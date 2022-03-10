@@ -367,14 +367,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
     def get_cohorts(self, card):
 
-        cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, {
-            'chatroom_id': card.id
-        }).values_list('cohort_id', flat=True)
-
-        cohorts = ModelUtilities.get_model_filter(Cohort, {'id__in': cohort_ids})
-        cohort_list = CohortWithCountSerializer(cohorts, many=True).data
-
-        return cohort_list
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+        return ChatroomHelper.get_chatroom_related_cohort_data_with_total_member_count(card)
 
     def get_unread_messages(self, card):
 
@@ -1436,30 +1430,3 @@ class EventFAQSerializer(serializers.ModelSerializer):
                 data['chatroom_id'] = data['card']
 
         return data
-
-
-class CohortWithCountSerializer(serializers.ModelSerializer):
-    total_members = serializers.SerializerMethodField()
-    cohort_id = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Cohort
-        fields = ['cohort_id', 'name', 'total_members', 'community_id']
-
-    def to_representation(self, instance):
-        data = super(CohortWithCountSerializer, self).to_representation(instance)
-
-        fields = self._readable_fields
-
-        for field in fields:
-
-            if data[field.field_name] is None:
-                del data[field.field_name]
-
-        return data
-
-    def get_cohort_id(self, cohort):
-        return cohort.id
-
-    def get_total_members(self, cohort):
-        return ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort.id}).count()

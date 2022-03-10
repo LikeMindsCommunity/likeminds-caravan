@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 from collabmates_api.chatroom_member.chatroom_member_manager import ChatroomMemberManager
 from collabmates_api.rest_api import EventFAQSerializer, EventMemberTestimonialsSerializer, EventHighlightsSerializer, \
-    EventInstructorSerializer, CohortWithCountSerializer
+    EventInstructorSerializer
 from utility.cache_keys import EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CHATROOM
 from utility.celery_tasks import update_chatroom_conversation_count_in_cache, \
@@ -358,14 +358,10 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             chatroom_context['attendees'] = event_attendees
 
     def fill_cohort_meta_for_response(self, card_instance, chatroom_context):
-        cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, {
-            'chatroom_id': card_instance.id
-        }).values_list('cohort_id', flat=True)
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
-        cohorts = ModelUtilities.get_model_filter(Cohort, {'id__in': cohort_ids})
-        cohort_list = CohortWithCountSerializer(cohorts, many=True).data
-
-        chatroom_context['cohorts'] = cohort_list
+        cohort_context_list = ChatroomHelper.get_chatroom_related_cohort_data_with_total_member_count(card_instance)
+        chatroom_context['cohorts'] = cohort_context_list
 
     def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
                          poll_votes) -> {}:

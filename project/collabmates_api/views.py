@@ -66,8 +66,7 @@ from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, EventRecordingsURLSerializer, GetChatroomInstanceSerializer,
                        CommunitySerializerV1,
                        YourCommunitySerializer, EventRecordingsAttachmentsSerializer, EventMemberTestimonialsSerializer,
-                       EventHighlightsSerializer, EventInstructorSerializer, EventFAQSerializer,
-                       CohortWithCountSerializer)
+                       EventHighlightsSerializer, EventInstructorSerializer, EventFAQSerializer)
 
 from utility.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
 from .upload_attachments import (save_community_image, save_chatroom_attachments,
@@ -12375,7 +12374,18 @@ class SyncChatrooms(APIView):
         cohort_ids_list = list(set(cohort_filter.values_list('cohort_id', flat=True)))
 
         cohorts = ModelUtilities.get_model_filter(Cohort, {'id__in': cohort_ids_list})
-        cohort_member_context = CohortWithCountSerializer(cohorts, many=True).data
+
+        cohort_member_context = []
+
+        for cohort in cohorts:
+            cohort_context = {
+                'cohort_id': cohort.id,
+                'name': cohort.name,
+                'community_id': cohort.community_id,
+                'total_members': ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort.id}).count()
+            }
+            cohort_member_context.append(cohort_context)
+
         cohort_filter = cohort_filter.values('chatroom_id', 'cohort_id')
 
         for cohort_member_obj in cohort_member_context:

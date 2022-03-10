@@ -3974,3 +3974,23 @@ class ChatroomHelper:
         chatroom_url = CHATROOM_URL_WITH_COMMUNITY_ID % (url, str(chatroom_instance.id), str(chatroom_instance.community.id))
 
         return chatroom_url
+
+    @staticmethod
+    def get_chatroom_related_cohort_data_with_total_member_count(card_instance):
+        chatroom_cohorts = ModelUtilities.get_model_filter(ChatroomCohort, {
+            'chatroom_id': card_instance.id
+        }).prefetch_related('cohort')
+
+        cohort_context_list = []
+
+        for chatroom_cohort in chatroom_cohorts:
+            cohort_context = {
+                'cohort_id': chatroom_cohort.cohort.id,
+                'name': chatroom_cohort.cohort.name,
+                'community_id': chatroom_cohort.cohort.community_id,
+                'total_members': ModelUtilities.get_model_filter(CohortMember, {
+                    'cohort_id': chatroom_cohort.cohort.id}).count(),
+            }
+            cohort_context_list.append(cohort_context)
+
+        return cohort_context_list
