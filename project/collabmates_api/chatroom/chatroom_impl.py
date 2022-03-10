@@ -3989,7 +3989,7 @@ class ChatroomHelper:
                 'name': chatroom_cohort.cohort.name,
                 'community_id': chatroom_cohort.cohort.community_id,
                 'total_members': ModelUtilities.get_model_filter(CohortMember, {
-                    'cohort_id': chatroom_cohort.cohort.id}).count(),
+                    'cohort_id': chatroom_cohort.cohort.id}).count()
             }
             cohort_context_list.append(cohort_context)
 
