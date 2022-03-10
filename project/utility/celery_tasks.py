@@ -2,6 +2,7 @@ from __future__ import absolute_import, unicode_literals
 
 from celery import shared_task
 from django.conf import settings
+from django.db import transaction
 
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from external_services.webflow.webflow_impl import WebflowImpl
@@ -2325,3 +2326,71 @@ def update_deferred_card_poll_updated_at_value(chatroom_id):
 
     chatroom_instance.updated_at = TimeUtilities.current_time_in_milliseconds()
     chatroom_instance.save()
+
+
+@shared_task
+@transaction.atomic()
+def convert_chatroom_to_secret_chatroom(chatroom_id):
+    chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+    if not chatroom_instance:
+        return
+
+    chatroom_participants = ModelUtilities.get_model_filter(collabcardState, {'card_id': chatroom_id,
+                                                                              'follow_status': True,
+                                                                              'remove': None})
+
+    chatroom_participants_ids = list(chatroom_participants.values_list('user_id', flat=True))
+
+    chatroom_instance.secret_chatroom_participants = json.dumps(chatroom_participants_ids)
+    chatroom_instance.is_secret = True
+    chatroom_instance.updated_at = TimeUtilities.current_time_in_milliseconds()
+    chatroom_instance.save()
+
+    community_manager_list = list(ModelUtilities.get_model_filter(Members, {
+        'state': member_states.ADMIN,
+        'community_id': chatroom_instance.community_id
+    }).values_list('member_id_id', flat=True))
+
+    user_ids_not_to_be_removed = chatroom_participants_ids + community_manager_list
+    chatroom_state_list = ModelUtilities.get_model_filter(collabcardState, {'card_id': chatroom_instance})
+    chatroom_state_list.filter(~Q(user_id__in=user_ids_not_to_be_removed)).delete()
+    update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': chatroom_instance}, {})
+
+
+@shared_task
+@transaction.atomic()
+def convert_chatroom_to_open_chatroom(chatroom_id):
+    chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+    if not chatroom_instance:
+        return
+
+    chatroom_participants = json.loads(chatroom_instance.secret_chatroom_participants)
+    chatroom_instance.secret_chatroom_participants = None
+    chatroom_instance.is_secret = False
+    chatroom_instance.updated_at = TimeUtilities.current_time_in_milliseconds()
+    chatroom_instance.save()
+
+    community_members = ModelUtilities.get_model_filter(Members, {
+        'state__in': [member_states.MEMBER, member_states.PROFILE_UNAVAILABLE],
+        'community_id': chatroom_instance.community_id
+    }).select_related('member_id')
+
+    bulk_create_instances = []
+
+    for member in community_members:
+
+        if member.member_id_id in chatroom_participants:
+            continue
+
+        chatroom_state_instance = collabcardState.create_chatroom_state_instances_for_bulk_create(
+            chatroom_instance, member.member_id, state=collabcard_states.COLLABCARD_STATE_SEEN,
+            follow_status=False, community_instance=chatroom_instance.community, external_seen=True
+        )
+
+        bulk_create_instances.append(chatroom_state_instance)
+
+    ModelUtilities.bulk_create_instances(collabcardState, bulk_create_instances)
+    update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': chatroom_instance}, {})
+

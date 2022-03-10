@@ -66,7 +66,9 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_chatroom_participants') and
                  callable(subclass.fetch_chatroom_participants)) and
                 (hasattr(subclass, 'publish_event_webflow') and
-                 callable(subclass.publish_event_webflow))
+                 callable(subclass.publish_event_webflow)) and
+                (hasattr(subclass, 'change_chatroom_type') and
+                 callable(subclass.change_chatroom_type))
                 or NotImplemented)
 
     @abc.abstractmethod
@@ -316,3 +318,13 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         """
 
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def change_chatroom_type(self, req_body) -> dict:
+        """
+        Changes chatroom type(secret/open)
+        """
+
+        raise NotImplementedError
+
+

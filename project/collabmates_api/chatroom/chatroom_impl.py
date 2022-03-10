@@ -80,7 +80,8 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     schedule_event_analytics_daily_7AM, send_event_analytics_on_event_creation, \
     schedule_event_analytics_on_event_before_n_hour, send_analytics_on_event_registered_to_attend, \
     create_event_in_webflow_service, update_event_in_webflow_service, reset_unread_message_count_in_cache, \
-    fetch_conversations_unread, create_chatroom_cohort_instances
+    fetch_conversations_unread, create_chatroom_cohort_instances, convert_chatroom_to_secret_chatroom, \
+    convert_chatroom_to_open_chatroom
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException, InvalidSecretChatroomParticipantsException)
 from utility.time_utilities import TimeUtilities
@@ -99,6 +100,7 @@ error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 subscription_url = settings.SUBSCRIPTION_SERVER_URL
 url = settings.URL
+
 
 class ChatroomImpl(ChatroomManager):
     member_id = None
@@ -1375,7 +1377,7 @@ class ChatroomImpl(ChatroomManager):
         is_cm = Members.is_member_community_promoter(card_instance.community, user_instance)
 
         if card_instance.user_id != user_instance.id and not is_cm:
-            return {'success': False, 'error_message': "User doesn’t have ability to update chatroom meta data"}
+            return {'success': False, 'error_message': "You don’t have ability to update chatroom meta data"}
 
         title = req_body.get('title')
         text = req_body.get('text')
@@ -2927,6 +2929,41 @@ class ChatroomImpl(ChatroomManager):
                 chatrooms_link_objects.append(response_context)
 
         return {'success': True, 'chatroom_links': chatrooms_link_objects}
+
+    def change_chatroom_type(self, req_body) -> dict:
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user id"}
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
+
+        if not card_instance:
+            return {'success': False, 'error_message': "Invalid chatroom id"}
+
+        is_cm = Members.is_member_community_promoter(card_instance.community, user_instance)
+
+        if card_instance.user_id != user_instance.id and not is_cm:
+            return {'success': False, 'error_message': "You don’t have ability to change chatroom type"}
+
+        self.set_chatroom_id(req_body.get('chatroom_id'))
+
+        if 'is_secret' not in req_body:
+            return {'success': False, 'error_message': "Send chatroom type to update"}
+
+        is_secret = req_body.get('is_secret')
+
+        if is_secret == card_instance.is_secret:
+            return {'success': True}
+
+        if is_secret:
+            convert_chatroom_to_secret_chatroom.delay(self.get_chatroom_id())
+
+        else:
+            convert_chatroom_to_open_chatroom.delay(self.get_chatroom_id())
+
+        return {'success': True}
 
 
 class ChatroomHelper:

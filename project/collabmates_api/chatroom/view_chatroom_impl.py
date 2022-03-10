@@ -679,6 +679,26 @@ class FetchAccessChatroomView(APIView):
         return JsonResponse(response_context)
 
 
+class ChangeChatroomTypeView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+        request_platform = RequestUtilities.get_platform_code(request)
+
+        chatroom_manager = ChatroomImpl(member_id, device_id=device_id,
+                                        request_platform=request_platform)
+        context = chatroom_manager.change_chatroom_type(req_body)
+
+        return JsonResponse(context)
+
+
 class AddEventRecordingAttachmentMeta(APIView):
 
     def _validate_request(self, member_id, req_body):
