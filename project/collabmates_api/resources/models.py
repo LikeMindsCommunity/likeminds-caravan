@@ -308,3 +308,157 @@ class ResourceURLState(models.Model):
         self.updated_at = current_time_in_ms
 
         super(ResourceURLState, self).save(*args, **kwargs)
+
+
+class ResourceFile(models.Model):
+    """Model for saving Resource File in a Resource Category"""
+
+    TYPE_CHOICES = (
+        ('pdf', 'pdf'),
+    )
+
+    id = models.UUIDField(
+        default=uuid.uuid4,
+        primary_key=True
+    )
+    category_id = models.ForeignKey(
+        ResourceCategory,
+        on_delete=models.PROTECT,
+        help_text=_(
+            'Stores pk of parent category id'
+        )
+    )
+    url = models.TextField()
+    name = models.CharField(
+        max_length=500
+    )
+    meta = models.TextField(
+        null=True,
+        blank=True
+    )
+    type = models.CharField(
+        max_length=15,
+        choices=TYPE_CHOICES
+    )
+    is_deleted = models.BooleanField(
+        default=False
+    )
+    is_downloadable = models.BooleanField(
+        default=True
+    )
+    is_pinned = models.BooleanField(
+        default=False
+    )
+    level = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text=_(
+            'stores distance from root folder | root folder - 0'
+        )
+    )
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'Resouce File'
+        verbose_name_plural = 'Resouce Files'
+        db_table = 'togther_resource_file'
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(ResourceFile, self).save(*args, **kwargs)
+
+
+class ResourceFilePermission(models.Model):
+    """Model to save resource File permissions"""
+
+    ACCESS_TYPE_CHOICES = [1, 2, 3]
+
+    id = models.UUIDField(
+        default=uuid.uuid4,
+        primary_key=True
+    )
+    cohort_id = models.ForeignKey(
+        Cohort,
+        on_delete=models.PROTECT
+    )
+    file_id = models.ForeignKey(
+        ResourceFile,
+        on_delete=models.PROTECT
+    )
+    access_type = models.IntegerField(
+        default=1,
+        choices=ACCESS_TYPE_CHOICES,
+        help_text=_(
+            '1 - access, 2 - restricted access, 3 - no access'
+        )
+    )
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'Resouce File Permission'
+        verbose_name_plural = 'Resouce File Permissions'
+        db_table = 'togther_resource_file_permission'
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(ResourceFilePermission, self).save(*args, **kwargs)
+
+
+class ResourceFileState(models.Model):
+    """Model to save resource File state for each member"""
+
+    ACCESS_TYPE_CHOICES = [1, 2, 3]
+
+    id = models.UUIDField(
+        default=uuid.uuid4,
+        primary_key=True
+    )
+    user_id = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT
+    )
+    file_id = models.ForeignKey(
+        ResourceFile,
+        on_delete=models.PROTECT
+    )
+    state = models.IntegerField(
+        default=1,
+        choices=ACCESS_TYPE_CHOICES,
+        help_text=_(
+            '1 - un-seen, 2 - seen, 3 - continue reading'
+        )
+    )
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'Resouce File State'
+        verbose_name_plural = 'Resouce File States'
+        db_table = 'togther_resource_file_state'
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(ResourceFileState, self).save(*args, **kwargs)

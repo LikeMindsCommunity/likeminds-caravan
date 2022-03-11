@@ -13,8 +13,11 @@ urlpatterns = [
     path('category/delete', ResourceCategory.as_view(), name="delete_resource_category"),
 
     path('url/create', ResourceURL.as_view(), name="create_resource_url"),
-    path('url/fetch', ResourceURL.as_view(), name="fetch_resource_url"),
     path('url/update', ResourceURL.as_view(), name="update_resource_url"),
     path('url/delete', ResourceURL.as_view(), name="delete_resource_url"),
+
+    path('file/create', ResourceFile.as_view(), name="create_resource_file"),
+    path('file/update', ResourceFile.as_view(), name="update_resource_file"),
+    path('file/delete', ResourceFile.as_view(), name="delete_resource_file"),
 
 ]

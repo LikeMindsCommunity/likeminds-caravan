@@ -469,7 +469,7 @@ class ResourcesImpl(ResourceManager):
 
     def update_resource_url(self, req_body):
         """
-        to update resource category
+        to update resource url
 
         Args:
             req_body (dict) - request body
@@ -479,7 +479,6 @@ class ResourcesImpl(ResourceManager):
             1. To Update permission access_type in
                ResourceURLPermission
             2. To add analytics
-            3. To add references
         """
         resource_url_instance = ModelUtilities.get_model_instance_or_none(
             ResourceURL,
@@ -577,8 +576,8 @@ class ResourcesImpl(ResourceManager):
         Returns:
             response (dict)
         TODO:
-            1. To delete all references
-            2. To delete All sub-categories, urls and files recursively
+            1. To trigger analytics
+            2. To delete references
         """
         resource_url_instance = ModelUtilities.get_model_instance_or_none(
             ResourceURL,
@@ -618,6 +617,174 @@ class ResourcesImpl(ResourceManager):
 
         return res
 
+    def create_resource_file(self, req_body):
+        """
+        to create resource file
+
+        Args:
+            req_body (dict) - request body
+        Returns:
+            response (dict)
+        TODO:
+            1. To Iterate and add each community cohort in
+               ResourceFilePermission
+            2. To add analytics
+            3. To add references
+        """
+        resource_category_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceCategory,
+            req_body.get('category_id')
+        )
+
+        if not resource_category_instance:
+            return get_error_context(False, 'incorrect category_id')
+
+        self.update_community_id(resource_category_instance.community_id.id)
+
+        validation_check = ResourceHelper.is_user_cm_or_not(
+            self.get_community_id(),
+            self.get_member_id()
+        )
+
+        if not validation_check.get('success'):
+            return validation_check
+
+        serializer = ResourceFileSerializer(data=req_body)
+
+        if serializer.is_valid():
+
+            level = ResourceHelper.fetch_level_for_resource(
+                req_body.get('category_id')
+            )
+
+            serializer.save(level=level)
+
+            res = {
+                'success': True,
+                'resource_file': serializer.data
+            }
+
+            return res
+
+        res = {
+            'success': False,
+            'error_message': serializer.errors
+        }
+
+        return res
+
+    def update_resource_file(self, req_body):
+        """
+        to update resource file
+
+        Args:
+            req_body (dict) - request body
+        Returns:
+            response (dict)
+        TODO:
+            1. To Update permission access_type in
+               ResourceFilePermission
+            2. To add analytics
+        """
+        resource_file_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceFile,
+            req_body.get('id')
+        )
+
+        if not resource_file_instance:
+            return get_error_context(False, 'incorrect id')
+
+        self.update_community_id(
+            resource_file_instance.category_id.community_id.id
+        )
+
+        validation_check = ResourceHelper.is_user_cm_or_not(
+            self.get_community_id(),
+            self.get_member_id()
+        )
+
+        if not validation_check.get('success'):
+            return validation_check
+
+        if resource_file_instance.is_deleted:
+            return get_error_context(
+                False,
+                'The Resource File has been deleted'
+            )
+
+        serializer = ResourceFileSerializer(
+            resource_file_instance,
+            data=req_body,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+
+            res = {
+                'success': True,
+                'resource_file': serializer.data
+            }
+
+            return res
+
+        res = {
+            'success': False,
+            'error_message': serializer.errors
+        }
+
+        return res
+
+    def delete_resource_file(self, req_body):
+        """
+        to delete resource file
+
+        Args:
+            req_body (dict) - request body
+        Returns:
+            response (dict)
+        TODO:
+            1. To trigger analytics
+            2. To delete references
+        """
+        resource_file_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceFile,
+            req_body.get('id')
+        )
+
+        if not resource_file_instance:
+            return get_error_context(False, 'incorrect id')
+
+        self.update_community_id(
+            resource_file_instance.category_id.community_id.id
+        )
+
+        validation_check = ResourceHelper.is_user_cm_or_not(
+            self.get_community_id(),
+            self.get_member_id()
+        )
+
+        if not validation_check.get('success'):
+            return validation_check
+
+        if resource_file_instance.is_deleted:
+            return get_error_context(
+                False,
+                'The Resource File has already been deleted'
+            )
+
+        resource_file_instance.is_deleted = True
+        resource_file_instance.save()
+
+        serializer = ResourceFileSerializer(resource_file_instance)
+
+        res = {
+            'success': True,
+            'resource_file': serializer.data
+        }
+
+        return res
+
 
 class ResourceHelper:
     """
@@ -636,12 +803,18 @@ class ResourceHelper:
             success: Boolean
             error_message (string): If success is False
         """
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        community_instance = ModelUtilities.get_model_instance_or_none(
+            Community,
+            community_id
+        )
 
         if not community_instance:
             return get_error_context(False, "Invalid community_id")
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+        user_instance = ModelUtilities.get_model_instance_or_none(
+            User,
+            member_id
+        )
 
         if not user_instance:
             return get_error_context(False, "Invalid member_id")

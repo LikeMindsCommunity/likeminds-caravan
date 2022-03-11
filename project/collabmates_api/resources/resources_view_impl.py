@@ -375,3 +375,111 @@ class ResourceURL(APIView):
                 res,
                 status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class ResourceFile(APIView):
+    """
+    View Class for CRUD operations on
+    - Resource File
+    - Resource File Permissions
+    - Resource File state
+    """
+    def post(self, request):
+        """to create new Resource File object"""
+        try:
+            member_id = RequestUtilities.get_member_id_from_headers(request)
+            req_body = RequestUtilities.load_request_body(request)
+
+            res_instance = ResourcesImpl(
+                member_id=member_id,
+                category_id=req_body.get('category_id')
+            )
+            res = res_instance.create_resource_file(req_body)
+
+            if res.get('success'):
+                return JsonResponse(
+                    res,
+                    status=status_codes.HTTP_200_OK
+                )
+
+            return JsonResponse(
+                res,
+                status=status_codes.HTTP_400_BAD_REQUEST
+            )
+
+        except Exception as e:
+            res = {
+                'success': False,
+                'Exception': str(e)
+            }
+            error_logger.error(e.args)
+            return JsonResponse(
+                res,
+                status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def patch(self, request):
+        """to update Resource File object"""
+        try:
+            member_id = RequestUtilities.get_member_id_from_headers(request)
+            req_body = RequestUtilities.load_request_body(request)
+
+            res_instance = ResourcesImpl(
+                member_id=member_id
+            )
+            res = res_instance.update_resource_file(req_body)
+
+            if res.get('success'):
+                return JsonResponse(
+                    res,
+                    status=status_codes.HTTP_200_OK
+                )
+
+            return JsonResponse(
+                res,
+                status=status_codes.HTTP_400_BAD_REQUEST
+            )
+
+        except Exception as e:
+            res = {
+                'success': False,
+                'Exception': str(e)
+            }
+            error_logger.error(e.args)
+            return JsonResponse(
+                res,
+                status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def delete(self, request):
+        """to delete Resource File object"""
+        try:
+            member_id = RequestUtilities.get_member_id_from_headers(request)
+            req_body = RequestUtilities.load_request_body(request)
+
+            res_instance = ResourcesImpl(
+                member_id=member_id
+            )
+            res = res_instance.delete_resource_file(req_body)
+
+            if res.get('success'):
+                return JsonResponse(
+                    res,
+                    status=status_codes.HTTP_200_OK
+                )
+
+            return JsonResponse(
+                res,
+                status=status_codes.HTTP_400_BAD_REQUEST
+            )
+
+        except Exception as e:
+            res = {
+                'success': False,
+                'Exception': str(e)
+            }
+            error_logger.error(e.args)
+            return JsonResponse(
+                res,
+                status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+            )

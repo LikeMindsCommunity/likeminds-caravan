@@ -59,3 +59,21 @@ class ResourceURLStateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResourceURLState
         fields = '__all__'
+
+class ResourceFileSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ResourceFile
+        fields = '__all__'
+
+class ResourceFilePermissionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ResourceFilePermission
+        fields = '__all__'
+
+class ResourceFileStateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ResourceFileState
+        fields = '__all__'
