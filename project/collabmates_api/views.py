@@ -92,18 +92,6 @@ error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
 
-############# functions for your communities  api ##########################
-
-def is_member_engage(community, member):
-    '''function to check if data is presnt in member engage table or not'''
-
-    is_present = False
-    member_data = Member_Engage.objects.filter(community_id=community, member_id=member)
-    if member_data.exists():
-        is_present = True
-    return is_present
-
-
 def update_pending_member_count_in_engage(community):
     '''function to update the member count in engage'''
     pending_members_count = Members.objects.filter(community_id=community, state=member_states.PENDING_MEMBER).count()
@@ -2446,16 +2434,16 @@ def create_community_version_1(request):
         member_instance.became_member_at = time.time()
         member_instance.save()
 
-        # making the member enage instance for created community
-        engage = Member_Engage()
-        engage.member_id = user_instance
-        engage.community_id = community_instance
-        engage.updated_at = time.time()
-        engage.member_state = member_states.ADMIN
-        engage.member_referral = "Finish setting up your community"
-        engage.click_state = click_states.SET_PURPOSE
-        engage.rights_list = json.dumps(member_rights.ALL_MEMBER_RIGHTS)
-        engage.save()
+        ModelUtilities.update_or_create_model(Member_Engage, {
+            'member_id': user_instance,
+            'community_id': community_instance
+        }, {
+            'member_state': member_states.ADMIN,
+            'click_state': click_states.SET_PURPOSE,
+            'member_referral': 'Finish setting up your community',
+            'rights_list': json.dumps(member_rights.ALL_MEMBER_RIGHTS),
+            'order_time': TimeUtilities.current_time_in_milliseconds()
+        })
 
         # give all the CM and member rights to the community creator i.e owner
         give_all_manager_rights(user=user_instance, community=community_instance)
@@ -8279,15 +8267,14 @@ def skip_community(request):
         member_instance.became_member_at = time.time()
         member_instance.save()
 
-    if not is_member_engage(community_id, member_id):
-        engage = Member_Engage()
-        engage.member_id = user_instance
-        engage.community_id = community_instance
-        engage.updated_at = time.time()
-        engage.member_state = member_states.PROFILE_UNAVAILABLE
-        engage.click_state = click_states.SKIP_COMMUNITY
-        # engage.rights_list = json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)
-        engage.save()
+    ModelUtilities.update_or_create_model(Member_Engage, {
+        'member_id': user_instance,
+        'community_id': community_instance
+    }, {
+        'member_state': member_states.PROFILE_UNAVAILABLE,
+        'click_state': click_states.SKIP_COMMUNITY,
+        'order_time': TimeUtilities.current_time_in_milliseconds()
+    })
 
     set_state_for_onboarding_chatroom(community_instance, user_instance.id, request)
     update_community_toast(user_instance, community_instance, message="Please complete your profile for full access")
@@ -8709,8 +8696,7 @@ def config(request):
     context['survey_seen'] = False
 
     # set installed flags in case of mobile devices
-    if RequestUtilities.is_request_android(request) \
-            or RequestUtilities.is_request_ios(request):
+    if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
         set_installed_flag(user_instance)
 
     # mixpanel changes
@@ -8757,7 +8743,7 @@ def set_installed_flag(user_instance):
 
         app_uninstall, created = appUninstalls.objects.get_or_create(user=user_instance)
 
-        if created:
+        if not created:
             app_uninstall.uninstall_days = 0
             app_uninstall.save()
 
@@ -8965,16 +8951,16 @@ def edit_community_version_1(request):
     name = res.get('community_name', community_instance.name)
     image_link = res.get('image_url', community_instance.image_link)
 
-    edit_field = None
+    edit_fields = []
 
     if community_instance.name != name:
-        edit_field = "name"
+        edit_fields.append("name")
 
     if community_instance.purpose != purpose:
-        edit_field = "purpose"
+        edit_fields.append("purpose")
 
     if community_instance.image_link != image_link:
-        edit_field = "image_url"
+        edit_fields.append("image_url")
 
     community_instance.purpose = purpose
     community_instance.name = name
@@ -8998,10 +8984,10 @@ def edit_community_version_1(request):
     community_instance.brand_color = res.get('brand_color', community_instance.brand_color)
     community_instance.likeminds_plan = res.get('likeminds_plan', community_instance.likeminds_plan)
 
-    if edit_field:
-        edit_community_data(community_instance, user_instance, edit_field=edit_field)
-
     community_instance.save()
+
+    for edit_field in edit_fields:
+        edit_community_data(community_instance, user_instance, edit_field=edit_field)
 
     CacheImpl.set_cache('COMMUNITY_BRANDING_{}'.format(community_instance.id), community_instance.branding)
 
@@ -12402,14 +12388,22 @@ class SyncChatrooms(APIView):
 
         cohort_ids_list = list(set(cohort_filter.values_list('cohort_id', flat=True)))
 
-        cohort_member_filter = ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': cohort_ids_list}). \
-            values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
-                                      community_id=F('cohort__community_id')).order_by('cohort_id').values(
-            'cohort_id', 'name', 'total_members', 'community_id')
+        cohorts = ModelUtilities.get_model_filter(Cohort, {'id__in': cohort_ids_list})
+
+        cohort_member_context = []
+
+        for cohort in cohorts:
+            cohort_context = {
+                'cohort_id': cohort.id,
+                'name': cohort.name,
+                'community_id': cohort.community_id,
+                'total_members': ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort.id}).count()
+            }
+            cohort_member_context.append(cohort_context)
 
         cohort_filter = cohort_filter.values('chatroom_id', 'cohort_id')
 
-        for cohort_member_obj in cohort_member_filter:
+        for cohort_member_obj in cohort_member_context:
             if cohort_member_obj['cohort_id'] not in cohort_member_map:
                 cohort_member_map[cohort_member_obj['cohort_id']] = [cohort_member_obj]
 

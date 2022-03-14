@@ -840,7 +840,7 @@ class ChatroomImpl(ChatroomManager):
         }
         SegmentImpl.track_event(user_id, "Participants added (Core service)", event_data)
 
-    def fetch_chatroom(self) -> dict:
+    def fetch_chatroom(self, is_internal=False) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
 
@@ -856,6 +856,9 @@ class ChatroomImpl(ChatroomManager):
             return {'error_message': "invalid user id"}
 
         community_instance = card_instance.community
+
+        if is_internal:
+            return {'chatroom': CollabcardSerializer(card_instance, user_instance.id)}
 
         if card_instance.access not in [event_access.COMMUNITY_MEMBERS, event_access.NON_COMMUNITY_USERS_AND_MEMBERS] \
                 and card_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
@@ -4114,3 +4117,24 @@ class ChatroomHelper:
             'chatroom_id': chatroom_instance.id,
         }
         SegmentImpl.track_event(user_id, "Chatroom deleted (Core service)", event_data)
+
+    @staticmethod
+    def get_chatroom_related_cohort_data_with_total_member_count(card_instance):
+        chatroom_cohorts = ModelUtilities.get_model_filter(ChatroomCohort, {
+            'chatroom_id': card_instance.id
+        }).prefetch_related('cohort')
+
+        cohort_context_list = []
+
+        for chatroom_cohort in chatroom_cohorts:
+            cohort_context = {
+                'cohort_id': chatroom_cohort.cohort.id,
+                'name': chatroom_cohort.cohort.name,
+                'community_id': chatroom_cohort.cohort.community_id,
+                'total_members': ModelUtilities.get_model_filter(CohortMember, {
+                    'cohort_id': chatroom_cohort.cohort.id}).count()
+            }
+            cohort_context_list.append(cohort_context)
+
+        return cohort_context_list
+

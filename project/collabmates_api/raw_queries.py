@@ -1914,7 +1914,7 @@ def get_last_seen_non_member_access_event_chatroom_id_for_community_managers(use
                     (SELECT id
                     FROM togther_collabcard
                     WHERE type IN (2,6)
-                            AND (access = 0 OR access in NULL)
+                            AND (access = 0 OR access is NULL)
                             AND community_id IN 
                         (SELECT community_id_id
                         FROM togther_members

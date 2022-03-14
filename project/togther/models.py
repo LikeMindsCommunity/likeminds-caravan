@@ -1317,20 +1317,6 @@ class Member_Engage(models.Model):
     rights_list = models.TextField(null=True)
     order_time = models.BigIntegerField(null=True)
 
-    @staticmethod
-    def create_instance(create_info):
-        engage = Member_Engage()
-        engage.member_id = create_info.get('user_instance')
-        engage.community_id = create_info.get('community_instance')
-        engage.updated_at = TimeUtilities.current_time_in_sec()
-        engage.member_state = create_info.get('state')
-        engage.click_state = create_info.get('click_state', 0)
-        engage.member_referral = create_info.get('member_referral', '')
-        engage.rights_list = create_info.get('rights_list', None)
-        engage.save()
-
-        return engage
-
     def save(self, *args, **kwargs):
         current_time = TimeUtilities.current_time_in_milliseconds()
 
@@ -1340,8 +1326,9 @@ class Member_Engage(models.Model):
         self.order_time = current_time
         super(Member_Engage, self).save(*args, **kwargs)
 
+    class Meta:
+        unique_together = [['member_id', 'community_id']]
 
-# community lpig
 
 class Community_Legacy(models.Model):
     '''Model to store the communities of legacy'''

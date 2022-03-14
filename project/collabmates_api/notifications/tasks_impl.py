@@ -974,6 +974,17 @@ class TasksHelper:
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
         link = ChatroomHelper.fetch_chatroom_link(chatroom_instance)
+
+        utm_campaign = ''
+
+        if chatroom_not_opened_type == chatroom_not_opened_types.TAGGED_CHATROOM:
+            utm_campaign = 'tagged_email'
+
+        if chatroom_not_opened_type == chatroom_not_opened_types.DM_CHATROOM:
+            utm_campaign = 'dm_email'
+
+        link = link + "&utm_source=email&utm_campaign=" + utm_campaign
+
         data_dict = {
             'community_name': community_instance.name,
             'chatroom_name': chatroom_instance.header,

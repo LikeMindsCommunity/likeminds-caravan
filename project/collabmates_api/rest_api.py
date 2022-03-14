@@ -367,18 +367,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
     def get_cohorts(self, card):
 
-        filter_dict = {
-            'chatroom_id': card.id
-        }
-
-        cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id', flat=True)
-
-        cohort_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': cohort_ids})
-                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
-                                                      community_id=F('cohort__community_id'))
-                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
-
-        return cohort_list
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+        return ChatroomHelper.get_chatroom_related_cohort_data_with_total_member_count(card)
 
     def get_unread_messages(self, card):
 
