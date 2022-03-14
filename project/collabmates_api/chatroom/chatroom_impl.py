@@ -1229,7 +1229,7 @@ class ChatroomImpl(ChatroomManager):
                                                                   self.get_chatroom_id(),
                                                                   self.get_member_id())
 
-        self._send_chatroom_creation_analytics_data(chatroom_instance, int(self.get_member_id()))
+        self._send_participants_added_in_chatroom_analytics_data(chatroom_instance, int(self.get_member_id()))
 
         # updating all secret chatroom participants
         filter_dict = {
@@ -1386,7 +1386,7 @@ class ChatroomImpl(ChatroomManager):
 
             ChatroomHelper.post_added_all_members_conversation(chatroom_instance, user_instance)
 
-            self._send_chatroom_creation_analytics_data(chatroom_instance, int(self.get_member_id()))
+            self._send_participants_added_in_chatroom_analytics_data(chatroom_instance, int(self.get_member_id()))
 
             if len(user_list) > 0:
                 send_notification_for_auto_follow_chatroom_for_all_members.delay(self.get_chatroom_id(),
@@ -2233,7 +2233,7 @@ class ChatroomImpl(ChatroomManager):
                                                                        conversation_states.CONVERSATION_ADD_ALL_MEMBERS,
                                                                        added_member_count=len(chatroom_participants))
 
-        self._send_chatroom_creation_analytics_data(card_instance, int(self.get_member_id()))
+        self._send_participants_added_in_chatroom_analytics_data(card_instance, int(self.get_member_id()))
 
         return {'success': True}
 
