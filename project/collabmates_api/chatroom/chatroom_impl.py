@@ -62,7 +62,7 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo, EventInstructor,
                             EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment,
                             EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember, removedMembers,
-                            CommunityGetStarted, EventRecordingsURL)
+                            CommunityGetStarted, EventRecordingsURL, ChatroomSecretTypeConversion)
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.webflow.webflow_impl import WebflowImpl
@@ -3023,6 +3023,14 @@ class ChatroomImpl(ChatroomManager):
 
         if is_secret == card_instance.is_secret:
             return {'success': True}
+
+        conversion_filter = ModelUtilities.get_model_filter(ChatroomSecretTypeConversion, {'chatroom': card_instance})
+
+        if conversion_filter:
+            last_conversion_time = conversion_filter[0].converted_at
+
+            if last_conversion_time + TimeUtilities.MILLI_SEC_IN_A_DAY > TimeUtilities.current_time_in_milliseconds():
+                return {'success': False, 'error_message': 'Action not allowed, try again after a few hours.'}
 
         if is_secret:
             convert_chatroom_to_secret_chatroom.delay(self.get_chatroom_id())

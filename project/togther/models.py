@@ -3262,3 +3262,29 @@ class MessageTemplate(models.Model):
         self.updated_at = current_time
 
         super(MessageTemplate, self).save(*args, **kwargs)
+
+
+class ChatroomSecretTypeConversion(models.Model):
+    chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    is_secret = models.IntegerField(default=0)
+    converted_at = models.BigIntegerField(default=0)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(ChatroomSecretTypeConversion, self).save(*args, **kwargs)
+
+    @staticmethod
+    def create_instance(is_secret, chatroom_instance):
+        chatroom_secret_type_conversion_instance = ChatroomSecretTypeConversion()
+        chatroom_secret_type_conversion_instance.is_secret = is_secret
+        chatroom_secret_type_conversion_instance.converted_at = TimeUtilities.current_time_in_milliseconds()
+        chatroom_secret_type_conversion_instance.chatroom = chatroom_instance
+        chatroom_secret_type_conversion_instance.save()

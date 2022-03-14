@@ -2355,6 +2355,7 @@ def convert_chatroom_to_secret_chatroom(chatroom_id):
     user_ids_not_to_be_removed = chatroom_participants_ids + community_manager_list
     chatroom_state_list = ModelUtilities.get_model_filter(collabcardState, {'card_id': chatroom_instance})
     chatroom_state_list.filter(~Q(user_id__in=user_ids_not_to_be_removed)).delete()
+    log_chatroom_secret_type_conversion_activity(chatroom_id, is_secret=True)
     update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': chatroom_instance}, {})
 
 
@@ -2392,5 +2393,25 @@ def convert_chatroom_to_open_chatroom(chatroom_id):
         bulk_create_instances.append(chatroom_state_instance)
 
     ModelUtilities.bulk_create_instances(collabcardState, bulk_create_instances)
+    log_chatroom_secret_type_conversion_activity(chatroom_id, is_secret=False)
     update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': chatroom_instance}, {})
 
+
+@shared_task
+def log_chatroom_secret_type_conversion_activity(chatroom_id, is_secret):
+    chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+    if not chatroom_instance:
+        return
+
+    conversion_filter = ModelUtilities.get_model_filter(ChatroomSecretTypeConversion, {'chatroom': chatroom_instance})
+
+    if conversion_filter:
+        conversion_instance = conversion_filter[0]
+        conversion_instance.is_secret = is_secret
+        conversion_instance.converted_at = TimeUtilities.current_time_in_milliseconds()
+        conversion_instance.save()
+
+    else:
+
+        ChatroomSecretTypeConversion.create_instance(is_secret=is_secret, chatroom_instance=chatroom_instance)
