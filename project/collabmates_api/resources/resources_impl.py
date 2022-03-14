@@ -52,11 +52,84 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             community_id (int)
-        Returns:
-            community_id (int)
         """
         self.community_id = community_id
         return
+
+    def update_community_id_for_deleting_reference(self, req_body):
+        """
+        updates the community_id class variable while deleting reference
+
+        Args:
+            community_id (int)
+        Returns:
+            response (dict)
+        """
+        res = {}
+
+        if req_body.get('category_id'):
+            resource_category_instance = ModelUtilities.get_model_instance_or_none(
+                ResourceCategory,
+                req_body.get('category_id')
+            )
+
+            if not resource_category_instance:
+                return get_error_context(False, 'incorrect category_id')
+
+            self.update_community_id(
+                resource_category_instance.community_id.id
+            )
+
+            res['category_instance'] = resource_category_instance
+
+        elif req_body.get('url_id'):
+            resource_url_instance = ModelUtilities.get_model_instance_or_none(
+                ResourceURL,
+                req_body.get('url_id')
+            )
+
+            if not resource_url_instance:
+                return get_error_context(False, 'incorrect url_id')
+
+            self.update_community_id(
+                resource_url_instance.category_id.community_id.id
+            )
+
+            res['url_instance'] = resource_url_instance
+
+        elif req_body.get('file_id'):
+            resource_file_instance = ModelUtilities.get_model_instance_or_none(
+                ResourceFile,
+                req_body.get('file_id')
+            )
+
+            if not resource_file_instance:
+                return get_error_context(False, 'incorrect file_id')
+
+            self.update_community_id(
+                resource_file_instance.category_id.community_id.id
+            )
+
+            res['file_instance'] = resource_file_instance
+
+        elif req_body.get('child_category_id'):
+            child_category_instance = ModelUtilities.get_model_instance_or_none(
+                ResourceCategory,
+                req_body.get('child_category_id')
+            )
+
+            if not child_category_instance:
+                return get_error_context(False, 'incorrect child_category_id')
+
+            self.update_community_id(
+                child_category_instance.community_id.id
+            )
+
+            res['child_category_instance'] = child_category_instance
+
+        res['success'] = True
+
+        return res
 
     def update_resource_settings(self, req_body):
         """
@@ -784,6 +857,148 @@ class ResourcesImpl(ResourceManager):
         }
 
         return res
+
+    def create_resource_reference(self, req_body):
+        """
+        to create resource reference
+
+        Args:
+            req_body (dict) - request body
+        Returns:
+            response (dict)
+        """
+        resource_category_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceCategory,
+            req_body.get('category_id')
+        )
+
+        if not resource_category_instance:
+            return get_error_context(False, 'incorrect category_id')
+
+        self.update_community_id(resource_category_instance.community_id.id)
+
+        validation_check = ResourceHelper.is_user_cm_or_not(
+            self.get_community_id(),
+            self.get_member_id()
+        )
+
+        if not validation_check.get('success'):
+            return validation_check
+
+        if not any(
+            req_body.get('url_id'),
+            req_body.get('file_id'),
+            req_body.get('child_category_id')
+        ):
+            return get_error_context(
+                False,
+                "atleast one among url_id, file_id, child_category_id is required"
+            )
+
+        serializer = ResourceReferenceSerializer(data=req_body)
+
+        if serializer.is_valid():
+            serializer.save()
+
+            res = {
+                'success': True,
+                'resource_reference': serializer.data
+            }
+
+            return res
+
+        res = {
+            'success': False,
+            'error_message': serializer.errors
+        }
+
+        return res
+
+    def delete_resource_reference(self, req_body):
+        """
+        to delete resource reference
+
+        Args:
+            req_body (dict) - request body
+        Returns:
+            response (dict)
+        TODO:
+        """
+        req_objs_check = self.update_community_id_for_deleting_reference(
+            req_body
+        )
+
+        if not req_objs_check.get('success'):
+            return req_objs_check
+
+        validation_check = ResourceHelper.is_user_cm_or_not(
+            self.get_community_id(),
+            self.get_member_id()
+        )
+
+        if not validation_check.get('success'):
+            return validation_check
+
+        if not any(
+            req_body.get('category_id'),
+            req_body.get('url_id'),
+            req_body.get('file_id'),
+            req_body.get('child_category_id')
+        ):
+            return get_error_context(
+                False,
+                'atleast one among category_id, url_id, file_id, child_category_id is required'
+            )
+
+        resource_reference_instances = ModelUtilities.get_model_filter(
+            ResourceReference,
+            req_objs_check
+        )
+
+        if not resource_reference_instances:
+            return get_error_context(
+                False,
+                'incorrect data'
+            )
+
+        if req_objs_check.get('url_instance') or \
+           req_objs_check.get('file_instance'):
+
+            instances = resource_reference_instances
+
+        else:
+            instances = ResourcesImpl.get_resource_references_to_recursively_delete(
+                resource_reference_instances
+            )
+
+        instances.delete()
+
+        serializer = ResourceReferenceSerializer(
+            instances,
+            many=True
+        )
+
+        res = {
+            'success': True,
+            'resource_reference': serializer.data
+        }
+
+        return res
+
+    @staticmethod
+    def get_resource_references_to_recursively_delete(instances):
+        sub_categories = instances.filter(
+            child_category_id__is_null=False
+        ).values_list(
+            'child_category_id',
+            flat=True
+        )
+
+        # To complete
+
+    def fetch_resource_reference(self, page):
+        pass
+
 
 
 class ResourceHelper:

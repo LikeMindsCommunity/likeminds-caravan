@@ -77,3 +77,9 @@ class ResourceFileStateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResourceFileState
         fields = '__all__'
+
+class ResourceReferenceSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ResourceReference
+        fields = '__all__'

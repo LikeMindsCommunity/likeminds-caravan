@@ -462,3 +462,52 @@ class ResourceFileState(models.Model):
         self.updated_at = current_time_in_ms
 
         super(ResourceFileState, self).save(*args, **kwargs)
+
+
+class ResourceReference(models.Model):
+    """Model to save resource references for each resource pair"""
+
+    id = models.UUIDField(
+        default=uuid.uuid4,
+        primary_key=True
+    )
+    category_id = models.ForeignKey(
+        ResourceCategory,
+        on_delete=models.PROTECT
+    )
+    url_id = models.ForeignKey(
+        ResourceURL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT
+    )
+    file_id = models.ForeignKey(
+        ResourceFile,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT
+    )
+    child_category_id = models.ForeignKey(
+        ResourceCategory,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT
+    )
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'Resouce Reference'
+        verbose_name_plural = 'Resouce References'
+        db_table = 'togther_resource_reference'
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(ResourceReference, self).save(*args, **kwargs)
