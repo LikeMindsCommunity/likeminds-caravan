@@ -1012,6 +1012,8 @@ class ChatroomImpl(ChatroomManager):
         self._create_chatroom_polls(user_instance, chatroom_instance, req_body)
         self._delete_draft(req_body)
 
+        self._send_chatroom_creation_analytics_data(chatroom_instance, self.get_chatroom_id())
+
         self._send_chatroom_creation_notifications(user_instance, community_id, community_instance.name,
                                                    chatroom_instance, card_content, user_has_auto_approve_right,
                                                    chatroom_type, is_intro_card)
@@ -1227,6 +1229,8 @@ class ChatroomImpl(ChatroomManager):
                                                                   self.get_chatroom_id(),
                                                                   self.get_member_id())
 
+        self._send_chatroom_creation_analytics_data(chatroom_instance, int(self.get_member_id()))
+
         # updating all secret chatroom participants
         filter_dict = {
             'card': chatroom_instance,
@@ -1381,6 +1385,8 @@ class ChatroomImpl(ChatroomManager):
                                          'updated_at': TimeUtilities.current_time_in_sec()})
 
             ChatroomHelper.post_added_all_members_conversation(chatroom_instance, user_instance)
+
+            self._send_chatroom_creation_analytics_data(chatroom_instance, int(self.get_member_id()))
 
             if len(user_list) > 0:
                 send_notification_for_auto_follow_chatroom_for_all_members.delay(self.get_chatroom_id(),
@@ -2226,6 +2232,8 @@ class ChatroomImpl(ChatroomManager):
         conversation_impl.ConversationHelper.create_conversation_state(card_instance, user_instance,
                                                                        conversation_states.CONVERSATION_ADD_ALL_MEMBERS,
                                                                        added_member_count=len(chatroom_participants))
+
+        self._send_chatroom_creation_analytics_data(card_instance, int(self.get_member_id()))
 
         return {'success': True}
 

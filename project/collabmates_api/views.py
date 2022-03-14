@@ -3583,6 +3583,8 @@ def chatroom_delete(request):
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
         # setting the updated time of deleted chatroom
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+        ChatroomHelper.send_chatroom_deleted_analytics_data(collabcard_instance, int(member_id))
 
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                        {'card': collabcard_instance},
