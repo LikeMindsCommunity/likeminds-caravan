@@ -8,13 +8,13 @@ from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom
 from utility.exception_utilities import InvalidMemberIdsException
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
-from ..chatroom.chatroom_impl import ChatroomImpl
+from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..search.sync import ElasticSearchSync
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
     CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers, \
     Collabcard
-from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list
+from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list, CohortAccess
 from ..rest_api import CohortSerializer, CohortMetaSerializer, ChatroomCohortSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
@@ -578,6 +578,17 @@ class CohortImpl(CohortManager):
 
         chatroom_cohort_filter.update(cohort_access=cohort_access,
                                       updated_at=TimeUtilities.current_time_in_milliseconds())
+
+        chatroom_cohorts = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id})
+
+        chatroom_update_analytics = {
+            'has_full_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.FULL_ACCESS) else False,
+            'has_restricted_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.RESTRICTED_ACCESS) else False,
+            'has_no_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.NO_ACCESS) else False
+        }
+
+        ChatroomHelper.send_chatroom_updated_analytics_data(chatroom_instance,
+                                                            int(self.get_member_id()), chatroom_update_analytics)
 
         return {'success': True}
 

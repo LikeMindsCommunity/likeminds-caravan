@@ -1107,6 +1107,9 @@ class ChatroomImpl(ChatroomManager):
         if notify is True and value is True:
             send_pin_chatroom_notification.delay(community_instance.id, self.get_member_id(), self.get_chatroom_id())
 
+        ChatroomHelper.send_chatroom_updated_analytics_data(chatroom_instance, int(self.get_member_id()),
+                                                            {'is_pinned': value})
+
         return {'success': True}
 
     def leave_secret_chatroom(self, member_id: Union[int, str] = None) -> None:
@@ -1428,15 +1431,25 @@ class ChatroomImpl(ChatroomManager):
         if not title and not header and not text:
             return {'success': False, 'error_message': "Send title or header to update"}
 
+        update_analytics_data = {
+            'updated_title': False,
+            'updated_description': False
+        }
+
         update_dict = {'is_edited': True, 'updated_at': TimeUtilities.current_time_in_milliseconds()}
 
         if title or text:
             update_dict['title'] = title if title else text
+            update_analytics_data['updated_title'] = True
 
         if header:
             update_dict['header'] = header
+            update_analytics_data['updated_description'] = True
 
         ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, update_dict)
+
+        ChatroomHelper.send_chatroom_updated_analytics_data(card_instance, int(self.get_member_id()),
+                                                            update_analytics_data)
 
         ChatroomHelper.run_async_tasks_related_to_chatroom_edit.delay(card_instance.id, title)
 
@@ -2140,6 +2153,9 @@ class ChatroomImpl(ChatroomManager):
 
         card_filter.update(member_can_message=value, updated_at=TimeUtilities.current_time_in_sec())
 
+        ChatroomHelper.send_chatroom_updated_analytics_data(card_instance, int(self.get_member_id()),
+                                                            {'has_send_permission': True})
+
         return {'success': True}
 
     def fetch_chatroom_settings(self) -> dict:
@@ -2237,6 +2253,13 @@ class ChatroomImpl(ChatroomManager):
                                                                        added_member_count=len(chatroom_participants))
 
         self._send_participants_added_in_chatroom_analytics_data(card_instance, int(self.get_member_id()))
+
+        chatroom_update_analytics = {
+            'added_future_members': card_instance.auto_follow_done and card_instance.include_members_later
+        }
+
+        ChatroomHelper.send_chatroom_updated_analytics_data(card_instance, int(self.get_member_id()),
+                                                            chatroom_update_analytics)
 
         return {'success': True}
 
@@ -4138,3 +4161,12 @@ class ChatroomHelper:
 
         return cohort_context_list
 
+    @staticmethod
+    def send_chatroom_updated_analytics_data(chatroom_instance, user_id, update_dict):
+        event_data = {
+            'community_id': chatroom_instance.community.id,
+            'community_name': chatroom_instance.community.name,
+            'chatroom_id': chatroom_instance.id,
+        }
+        event_data.update(update_dict)
+        SegmentImpl.track_event(user_id, "Chatroom updated (Core service)", event_data)
