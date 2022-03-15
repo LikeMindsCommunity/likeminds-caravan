@@ -840,7 +840,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                 return {'error_message': "Invalid chatroom id", 'status': 400}
 
             chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(pin_status,
-                                                                                          intro_room_setting_enabled)
+                                                                                          intro_room_setting_enabled,
+                                                                                          excluded_card_ids)
             chatroom_list = self.extract_chatrooms_on_scroll(chatroom_id, scroll_direction, chatroom_queryset,
                                                              limit_size=5)
 
