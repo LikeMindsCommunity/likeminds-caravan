@@ -35,7 +35,8 @@ from utility.celery_tasks import (
     update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache,
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
     cm_removed_dm_chatroom, member_becomes_cm_dm_chatroom, reset_unread_message_count_in_cache,
-    fetch_conversations_unread, update_deferred_card_poll_updated_at_value, get_to_show_results_for_conversation_poll)
+    fetch_conversations_unread, update_deferred_card_poll_updated_at_value, get_to_show_results_for_conversation_poll,
+    send_chatroom_deleted_analytics_data)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -3570,7 +3571,7 @@ def chatroom_delete(request):
         # updates last seen count after card is deleted
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
-        # setting the updated time of deleted chatroom
+        send_chatroom_deleted_analytics_data.delay(chatroom_id, int(member_id))
 
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                        {'card': collabcard_instance},
@@ -5440,6 +5441,12 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     context['can_access_secret_chatroom'] = can_access_secret_chatroom
 
     context['access_without_subscription'] = card_instance.access_without_subscription
+
+    from collabmates_api.cohort.cohort_impl import CohortHelper
+    cohort_access = CohortHelper.fetch_cohort_access_for_chatroom(card_instance.id, user_instance.id)
+
+    if cohort_access is not None:
+        context['cohort_access'] = cohort_access
 
     return context
 
@@ -11975,6 +11982,13 @@ class SyncChatrooms(APIView):
             chatroom['unread_messages'] = fetch_conversations_unread(data[0], member_id)
 
             chatroom['cohorts'] = cohort_member_map.get(data[0], [])
+
+            from collabmates_api.cohort.cohort_impl import CohortHelper
+
+            cohort_access = CohortHelper.fetch_cohort_access_for_chatroom(data[0], member_id)
+
+            if cohort_access is not None:
+                chatroom['cohort_access'] = cohort_access
 
             event_recordings_data = chatroom_event_recordings_mapper.get(data[0], {})
 

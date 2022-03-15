@@ -235,15 +235,27 @@ add_all_members = {'id': 16, 'title': "Add all members"}
 
 chatroom_settings = {'id': 17, 'title': "Settings"}
 
-member_can_message = {'id': 18, 'title': "Members can send message"}
+member_can_message = {'id': 18, 'title': "Participants can send message"}
 
 accessible_without_subscription = {'id': 19, 'title': "Accessible without subscription"}
 
 view_profile = {'id': 21, 'title': "View profile"}
 
+edit_chatroom_pic = {'id': 22, 'title': "Edit chatroom pic"}
+
+edit_info = {'id': 23, 'title': "Edit info"}
+
+make_it_secret = {'id': 24, 'title': "Make it secret"}
+
+auto_joined_by_all_members = {'id': 25, 'title': "Auto joined by all members"}
+
+manage_permissions = {'id': 26, 'title': "Manage Permissions"}
+
 settings_for_purpose_chatroom = [rename_chatroom, member_can_message, accessible_without_subscription]
 
 settings_for_chatroom = [rename_chatroom, member_can_message, pin_chatroom, accessible_without_subscription]
+
+settings_for_chatroom_with_revamp = [edit_chatroom_pic, edit_info, member_can_message, make_it_secret]
 
 # get onboarding examples
 INTRODUCTION_EXAMPLES = [
@@ -555,6 +567,12 @@ SINGLE_COMMUNITY_VIEW_VERSION_CODE = {
 }
 
 FREE_LINK_VERSION_CODE = {
+    "an": 1001,
+    "ios": 1001,
+    "web": 1001
+}
+
+CREATE_CHATROOM_REVAMP_VERSION_CODE = {
     "an": 1001,
     "ios": 1001,
     "web": 1001

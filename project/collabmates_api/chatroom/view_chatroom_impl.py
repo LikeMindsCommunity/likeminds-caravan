@@ -208,17 +208,10 @@ class AutoFollowChatroomForAllMembersView(APIView):
         if not header_member_id:
             raise InvalidHeaderException()
 
-        request_body = RequestUtilities.fetch_request_body(request)
-
-        chatroom_id = request_body.get('chatroom_id', None)
-
-        include_members_later = request_body.get('include_members_later', True)
-
-        chatroom_manager = ChatroomImpl(header_member_id, chatroom_id=chatroom_id)
-
+        request_body = RequestUtilities.load_request_body(request)
+        chatroom_manager = ChatroomImpl(header_member_id, chatroom_id=request_body.get('chatroom_id', None))
         response = chatroom_manager.follow_chatroom_automatically_for_all_members_of_community(header_member_id,
-                                                                                               chatroom_id,
-                                                                                               include_members_later)
+                                                                                               request_body)
 
         if response.get('error_message'):
             return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -581,8 +574,13 @@ class FetchChatroomSettingsView(APIView):
 
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        request_platform = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+
         chatroom_id = request.GET.get('chatroom_id')
-        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id,
+                                        request_platform=request_platform, version_code=version_code)
         response_context = chatroom_manager.fetch_chatroom_settings()
 
         if response_context.get('error_message'):
@@ -680,6 +678,26 @@ class FetchAccessChatroomView(APIView):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(response_context)
+
+
+class ChangeChatroomTypeView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            raise InvalidHeaderException()
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+        request_platform = RequestUtilities.get_platform_code(request)
+
+        chatroom_manager = ChatroomImpl(member_id, device_id=device_id,
+                                        request_platform=request_platform)
+        context = chatroom_manager.change_chatroom_type(req_body)
+
+        return JsonResponse(context)
 
 
 class AddEventRecordingAttachmentMeta(APIView):
