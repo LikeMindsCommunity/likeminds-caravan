@@ -35,7 +35,8 @@ from utility.celery_tasks import (
     update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache,
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
     cm_removed_dm_chatroom, member_becomes_cm_dm_chatroom, reset_unread_message_count_in_cache,
-    fetch_conversations_unread, update_deferred_card_poll_updated_at_value, get_to_show_results_for_conversation_poll)
+    fetch_conversations_unread, update_deferred_card_poll_updated_at_value, get_to_show_results_for_conversation_poll,
+    send_chatroom_deleted_analytics_data)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -3570,9 +3571,7 @@ def chatroom_delete(request):
         # updates last seen count after card is deleted
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
-        # setting the updated time of deleted chatroom
-        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
-        ChatroomHelper.send_chatroom_deleted_analytics_data(collabcard_instance, int(member_id))
+        send_chatroom_deleted_analytics_data.delay(chatroom_id, int(member_id))
 
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                        {'card': collabcard_instance},

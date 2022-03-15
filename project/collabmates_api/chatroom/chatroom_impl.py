@@ -82,7 +82,8 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     schedule_event_analytics_on_event_before_n_hour, send_analytics_on_event_registered_to_attend, \
     create_event_in_webflow_service, update_event_in_webflow_service, reset_unread_message_count_in_cache, \
     fetch_conversations_unread, create_chatroom_cohort_instances, convert_chatroom_to_secret_chatroom, \
-    convert_chatroom_to_open_chatroom
+    convert_chatroom_to_open_chatroom, send_chatroom_creation_analytics_data, \
+    send_participants_added_in_chatroom_analytics_data
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException, InvalidSecretChatroomParticipantsException)
 from utility.time_utilities import TimeUtilities
@@ -808,38 +809,6 @@ class ChatroomImpl(ChatroomManager):
         if card_instance.online_link_password:
             chatroom_context['online_link_password'] = card_instance.online_link_password
 
-    def _send_chatroom_creation_analytics_data(self, chatroom_instance, user_id):
-        event_data = {
-            'community_id': chatroom_instance.community.id,
-            'community_name': chatroom_instance.community.name,
-            'title': chatroom_instance.title,
-            'has_description': True if chatroom_instance.header else False,
-            'is_secret': chatroom_instance.is_secret
-        }
-        SegmentImpl.track_event(user_id, "Chatroom created (Core service)", event_data)
-
-    def _send_participants_added_in_chatroom_analytics_data(self, chatroom_instance, user_id):
-        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom': chatroom_instance})
-
-        total_participants_list = list(ModelUtilities.get_model_filter(collabcardState, {
-            'card': chatroom_instance,
-            'follow_status': True,
-            'is_tagged': False,
-            'remove': None
-        }).values_list('user_id', flat=True))
-
-        event_data = {
-            'community_id': chatroom_instance.community.id,
-            'community_name': chatroom_instance.community.name,
-            'chatroom_id': chatroom_instance.id,
-            'has_groups': True if chatroom_cohort_filter else False,
-            'has_members': True if total_participants_list else False,
-            'no_of_members': len(total_participants_list),
-            'added_all_members': chatroom_instance.auto_follow_done,
-            'added_future_members': chatroom_instance.include_members_later and chatroom_instance.auto_follow_done
-        }
-        SegmentImpl.track_event(user_id, "Participants added (Core service)", event_data)
-
     def fetch_chatroom(self, is_internal=False) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
@@ -1015,7 +984,7 @@ class ChatroomImpl(ChatroomManager):
         self._create_chatroom_polls(user_instance, chatroom_instance, req_body)
         self._delete_draft(req_body)
 
-        self._send_chatroom_creation_analytics_data(chatroom_instance, self.get_chatroom_id())
+        send_chatroom_creation_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()))
 
         self._send_chatroom_creation_notifications(user_instance, community_id, community_instance.name,
                                                    chatroom_instance, card_content, user_has_auto_approve_right,
@@ -1235,7 +1204,7 @@ class ChatroomImpl(ChatroomManager):
                                                                   self.get_chatroom_id(),
                                                                   self.get_member_id())
 
-        self._send_participants_added_in_chatroom_analytics_data(chatroom_instance, int(self.get_member_id()))
+        send_participants_added_in_chatroom_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()))
 
         # updating all secret chatroom participants
         filter_dict = {
@@ -1392,7 +1361,7 @@ class ChatroomImpl(ChatroomManager):
 
             ChatroomHelper.post_added_all_members_conversation(chatroom_instance, user_instance)
 
-            self._send_participants_added_in_chatroom_analytics_data(chatroom_instance, int(self.get_member_id()))
+            send_participants_added_in_chatroom_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()))
 
             if len(user_list) > 0:
                 send_notification_for_auto_follow_chatroom_for_all_members.delay(self.get_chatroom_id(),
@@ -2252,7 +2221,7 @@ class ChatroomImpl(ChatroomManager):
                                                                        conversation_states.CONVERSATION_ADD_ALL_MEMBERS,
                                                                        added_member_count=len(chatroom_participants))
 
-        self._send_participants_added_in_chatroom_analytics_data(card_instance, int(self.get_member_id()))
+        send_participants_added_in_chatroom_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()))
 
         chatroom_update_analytics = {
             'added_future_members': card_instance.auto_follow_done and card_instance.include_members_later
@@ -4139,15 +4108,6 @@ class ChatroomHelper:
         if not conversation_filter:
             conversation_impl.ConversationHelper.create_conversation_state(
                 chatroom_instance, user_instance, conversation_states.CONVERSATION_ADD_ALL_MEMBERS)
-
-    @staticmethod
-    def send_chatroom_deleted_analytics_data(chatroom_instance, user_id):
-        event_data = {
-            'community_id': chatroom_instance.community.id,
-            'community_name': chatroom_instance.community.name,
-            'chatroom_id': chatroom_instance.id,
-        }
-        SegmentImpl.track_event(user_id, "Chatroom deleted (Core service)", event_data)
 
     @staticmethod
     def get_chatroom_related_cohort_data_with_total_member_count(card_instance):
