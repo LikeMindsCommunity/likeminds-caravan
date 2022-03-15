@@ -2404,17 +2404,12 @@ def log_chatroom_secret_type_conversion_activity(chatroom_id, is_secret):
     if not chatroom_instance:
         return
 
-    conversion_filter = ModelUtilities.get_model_filter(ChatroomSecretTypeConversion, {'chatroom': chatroom_instance})
-
-    if conversion_filter:
-        conversion_instance = conversion_filter[0]
-        conversion_instance.is_secret = is_secret
-        conversion_instance.converted_at = TimeUtilities.current_time_in_milliseconds()
-        conversion_instance.save()
-
-    else:
-
-        ChatroomSecretTypeConversion.create_instance(is_secret=is_secret, chatroom_instance=chatroom_instance)
+    ModelUtilities.update_or_create_model(ChatroomSecretTypeConversion, {
+        'chatroom': chatroom_instance
+    }, {
+        'is_secret': False,
+        'converted_at': TimeUtilities.current_time_in_milliseconds()
+    })
 
 
 @shared_task
