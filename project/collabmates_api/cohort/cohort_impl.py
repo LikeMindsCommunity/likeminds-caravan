@@ -582,9 +582,9 @@ class CohortImpl(CohortManager):
         chatroom_cohorts = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id})
 
         chatroom_update_analytics = {
-            'has_full_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.FULL_ACCESS) else False,
-            'has_restricted_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.RESTRICTED_ACCESS) else False,
-            'has_no_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.NO_ACCESS) else False
+            'has_full_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.FULL_ACCESS.value) else False,
+            'has_restricted_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.RESTRICTED_ACCESS.value) else False,
+            'has_no_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.NO_ACCESS.value) else False
         }
 
         send_chatroom_updated_analytics_data.delay(chatroom_id, int(self.get_member_id()), chatroom_update_analytics)
