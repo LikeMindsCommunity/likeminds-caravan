@@ -2476,3 +2476,20 @@ def send_chatroom_deleted_analytics_data(chatroom_id, user_id):
         'chatroom_id': chatroom_instance.id,
     }
     SegmentImpl.track_event(user_id, "Chatroom deleted (Core service)", event_data)
+
+
+@shared_task
+def send_chatroom_updated_analytics_data(chatroom_id, user_id, update_dict):
+    chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+    if not chatroom_instance:
+        return
+
+    event_data = {
+        'community_id': chatroom_instance.community.id,
+        'community_name': chatroom_instance.community.name,
+        'chatroom_id': chatroom_instance.id,
+    }
+    event_data.update(update_dict)
+    SegmentImpl.track_event(user_id, "Chatroom updated (Core service)", event_data)
+

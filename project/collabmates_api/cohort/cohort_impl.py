@@ -4,7 +4,7 @@ from celery import shared_task
 
 from collabmates_api.cohort.cohort_manager import CohortManager
 from external_services.logging.logging_wrapper import LoggingWrapper
-from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom
+from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom, send_chatroom_updated_analytics_data
 from utility.exception_utilities import InvalidMemberIdsException
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
@@ -587,8 +587,7 @@ class CohortImpl(CohortManager):
             'has_no_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.NO_ACCESS) else False
         }
 
-        ChatroomHelper.send_chatroom_updated_analytics_data(chatroom_instance,
-                                                            int(self.get_member_id()), chatroom_update_analytics)
+        send_chatroom_updated_analytics_data.delay(chatroom_id, int(self.get_member_id()), chatroom_update_analytics)
 
         return {'success': True}
 

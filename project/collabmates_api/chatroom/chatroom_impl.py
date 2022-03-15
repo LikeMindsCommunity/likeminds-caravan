@@ -83,7 +83,7 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     create_event_in_webflow_service, update_event_in_webflow_service, reset_unread_message_count_in_cache, \
     fetch_conversations_unread, create_chatroom_cohort_instances, convert_chatroom_to_secret_chatroom, \
     convert_chatroom_to_open_chatroom, send_chatroom_creation_analytics_data, \
-    send_participants_added_in_chatroom_analytics_data
+    send_participants_added_in_chatroom_analytics_data, send_chatroom_updated_analytics_data
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException, InvalidSecretChatroomParticipantsException)
 from utility.time_utilities import TimeUtilities
@@ -1076,8 +1076,8 @@ class ChatroomImpl(ChatroomManager):
         if notify is True and value is True:
             send_pin_chatroom_notification.delay(community_instance.id, self.get_member_id(), self.get_chatroom_id())
 
-        ChatroomHelper.send_chatroom_updated_analytics_data(chatroom_instance, int(self.get_member_id()),
-                                                            {'is_pinned': value})
+        send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()),
+                                                   {'is_pinned': value})
 
         return {'success': True}
 
@@ -1417,8 +1417,7 @@ class ChatroomImpl(ChatroomManager):
 
         ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, update_dict)
 
-        ChatroomHelper.send_chatroom_updated_analytics_data(card_instance, int(self.get_member_id()),
-                                                            update_analytics_data)
+        send_chatroom_updated_analytics_data.delay(card_instance.id, int(self.get_member_id()), update_analytics_data)
 
         ChatroomHelper.run_async_tasks_related_to_chatroom_edit.delay(card_instance.id, title)
 
@@ -2122,8 +2121,8 @@ class ChatroomImpl(ChatroomManager):
 
         card_filter.update(member_can_message=value, updated_at=TimeUtilities.current_time_in_sec())
 
-        ChatroomHelper.send_chatroom_updated_analytics_data(card_instance, int(self.get_member_id()),
-                                                            {'has_send_permission': True})
+        send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()),
+                                                   {'has_send_permission': True})
 
         return {'success': True}
 
@@ -2227,8 +2226,8 @@ class ChatroomImpl(ChatroomManager):
             'added_future_members': card_instance.auto_follow_done and card_instance.include_members_later
         }
 
-        ChatroomHelper.send_chatroom_updated_analytics_data(card_instance, int(self.get_member_id()),
-                                                            chatroom_update_analytics)
+        send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()),
+                                                   chatroom_update_analytics)
 
         return {'success': True}
 
@@ -4128,13 +4127,3 @@ class ChatroomHelper:
             cohort_context_list.append(cohort_context)
 
         return cohort_context_list
-
-    @staticmethod
-    def send_chatroom_updated_analytics_data(chatroom_instance, user_id, update_dict):
-        event_data = {
-            'community_id': chatroom_instance.community.id,
-            'community_name': chatroom_instance.community.name,
-            'chatroom_id': chatroom_instance.id,
-        }
-        event_data.update(update_dict)
-        SegmentImpl.track_event(user_id, "Chatroom updated (Core service)", event_data)
