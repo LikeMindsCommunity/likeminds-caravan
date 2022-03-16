@@ -91,7 +91,8 @@ def get_my_chatrooms_count(user_id,
         excluded_card_ids_filter = """"""
         if create_chatroom_revamp_version_check(platform_code, version_code):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=community_id)
-            excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
+            if excluded_card_ids:
+                excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
 
         conn = get_connection()
         curr = conn.cursor()
@@ -218,7 +219,8 @@ def get_followed_chatrooms(user_id,
         excluded_card_ids_filter = """"""
         if create_chatroom_revamp_version_check(platform_code, version_code):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=community_id)
-            excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
+            if excluded_card_ids:
+                excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
 
         conn = get_connection()
         curr = conn.cursor()
