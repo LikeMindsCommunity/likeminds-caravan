@@ -358,23 +358,10 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             chatroom_context['attendees'] = event_attendees
 
     def fill_cohort_meta_for_response(self, card_instance, chatroom_context):
-        filter_dict = {
-            'chatroom_id': card_instance.id
-        }
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
-        related_cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id',
-                                                                                                      flat=True)
-
-        filter_dict = {
-            'cohort__id__in': related_cohort_ids
-        }
-
-        cohort_list = list(ModelUtilities.get_model_filter(CohortMember, filter_dict)
-                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
-                                                      community_id=F('cohort__community_id'))
-                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
-
-        chatroom_context['cohorts'] = cohort_list
+        cohort_context_list = ChatroomHelper.get_chatroom_related_cohort_data_with_total_member_count(card_instance)
+        chatroom_context['cohorts'] = cohort_context_list
 
     def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
                          poll_votes) -> {}:

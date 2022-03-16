@@ -2984,12 +2984,16 @@ class EventRecordingsURL(models.Model):
         instance.save()
         return instance
 
-     
+
 class ChatroomCohort(models.Model):
     cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
     chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    cohort_access = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        unique_together = (('cohort', 'chatroom'),)
 
     def save(self, *args, **kwargs):
 
@@ -3258,3 +3262,21 @@ class MessageTemplate(models.Model):
         self.updated_at = current_time
 
         super(MessageTemplate, self).save(*args, **kwargs)
+
+
+class ChatroomSecretTypeConversion(models.Model):
+    chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    is_secret = models.BooleanField(default=False)
+    converted_at = models.BigIntegerField(default=TimeUtilities.current_time_in_milliseconds())
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(ChatroomSecretTypeConversion, self).save(*args, **kwargs)

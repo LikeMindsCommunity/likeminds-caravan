@@ -35,7 +35,8 @@ from utility.celery_tasks import (
     update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache,
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
     cm_removed_dm_chatroom, member_becomes_cm_dm_chatroom, reset_unread_message_count_in_cache,
-    fetch_conversations_unread, update_deferred_card_poll_updated_at_value, get_to_show_results_for_conversation_poll)
+    fetch_conversations_unread, update_deferred_card_poll_updated_at_value, get_to_show_results_for_conversation_poll,
+    send_chatroom_deleted_analytics_data)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -3570,7 +3571,7 @@ def chatroom_delete(request):
         # updates last seen count after card is deleted
         update_last_unseen_in_engage_on_card_creation.delay(community_id)
 
-        # setting the updated time of deleted chatroom
+        send_chatroom_deleted_analytics_data.delay(chatroom_id, int(member_id))
 
         update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                        {'card': collabcard_instance},
@@ -5440,6 +5441,12 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     context['can_access_secret_chatroom'] = can_access_secret_chatroom
 
     context['access_without_subscription'] = card_instance.access_without_subscription
+
+    from collabmates_api.cohort.cohort_impl import CohortHelper
+    cohort_access = CohortHelper.fetch_cohort_access_for_chatroom(card_instance.id, user_instance.id)
+
+    if cohort_access is not None:
+        context['cohort_access'] = cohort_access
 
     return context
 
@@ -11976,6 +11983,13 @@ class SyncChatrooms(APIView):
 
             chatroom['cohorts'] = cohort_member_map.get(data[0], [])
 
+            from collabmates_api.cohort.cohort_impl import CohortHelper
+
+            cohort_access = CohortHelper.fetch_cohort_access_for_chatroom(data[0], member_id)
+
+            if cohort_access is not None:
+                chatroom['cohort_access'] = cohort_access
+
             event_recordings_data = chatroom_event_recordings_mapper.get(data[0], {})
 
             chatroom.update(event_recordings_data)
@@ -12373,14 +12387,22 @@ class SyncChatrooms(APIView):
 
         cohort_ids_list = list(set(cohort_filter.values_list('cohort_id', flat=True)))
 
-        cohort_member_filter = ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': cohort_ids_list}). \
-            values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
-                                      community_id=F('cohort__community_id')).order_by('cohort_id').values(
-            'cohort_id', 'name', 'total_members', 'community_id')
+        cohorts = ModelUtilities.get_model_filter(Cohort, {'id__in': cohort_ids_list})
+
+        cohort_member_context = []
+
+        for cohort in cohorts:
+            cohort_context = {
+                'cohort_id': cohort.id,
+                'name': cohort.name,
+                'community_id': cohort.community_id,
+                'total_members': ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort.id}).count()
+            }
+            cohort_member_context.append(cohort_context)
 
         cohort_filter = cohort_filter.values('chatroom_id', 'cohort_id')
 
-        for cohort_member_obj in cohort_member_filter:
+        for cohort_member_obj in cohort_member_context:
             if cohort_member_obj['cohort_id'] not in cohort_member_map:
                 cohort_member_map[cohort_member_obj['cohort_id']] = [cohort_member_obj]
 

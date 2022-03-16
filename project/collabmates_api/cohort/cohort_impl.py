@@ -4,17 +4,18 @@ from celery import shared_task
 
 from collabmates_api.cohort.cohort_manager import CohortManager
 from external_services.logging.logging_wrapper import LoggingWrapper
-from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom
+from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom, send_chatroom_updated_analytics_data
 from utility.exception_utilities import InvalidMemberIdsException
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
-from ..chatroom.chatroom_impl import ChatroomImpl
+from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..search.sync import ElasticSearchSync
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
-    CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers
-from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list
-from ..rest_api import CohortSerializer, CohortMetaSerializer
+    CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers, \
+    Collabcard
+from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list, CohortAccess
+from ..rest_api import CohortSerializer, CohortMetaSerializer, ChatroomCohortSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
     respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, create_secret_chatroom_right
@@ -505,6 +506,90 @@ class CohortImpl(CohortManager):
         else:
             ElasticSearchSync.update_members.delay(member_ids=list(existing_cohort_members),
                                                    community_id=cohort_instance.community_id)
+
+    def fetch_all_cohort_access_for_chatroom(self, chatroom_id):
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return get_error_context(success=False, error_message="Invalid chatroom_id")
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return get_error_context(success=False, error_message="Invalid member_id passed in headers")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return get_error_context(success=False, error_message="You are not a member of community")
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return get_error_context(success=False,
+                                     error_message="You don’t have the ability to fetch access of cohorts")
+
+        chatroom_cohorts = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id})
+        chatroom_cohorts_data = ChatroomCohortSerializer(chatroom_cohorts, many=True).data
+
+        return {'success': True, 'cohort_data': chatroom_cohorts_data}
+
+    def update_cohort_access_for_chatroom(self, request_body) -> dict:
+        chatroom_id = request_body.get('chatroom_id', None)
+        cohort_id = request_body.get('cohort_id', None)
+        cohort_access = request_body.get('cohort_access', None)
+
+        if not cohort_id:
+            return {'success': False, 'error_message': "invalid parameter: cohort_id"}
+
+        if cohort_access is None:
+            return {'success': False, 'error_message': "invalid parameter: cohort_access"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "invalid parameter: user_id"}
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return {'success': False, 'error_message': "invalid parameter: chatroom_id"}
+
+        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id,
+                                                                                  'cohort_id': cohort_id})
+
+        if not chatroom_cohort_filter:
+            return {'success': False, 'error_message': "Cohort is not added to this chatroom"}
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "You are not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if chatroom_instance.user_id != int(self.get_member_id()) and not is_cm:
+            return {'success': False, 'error_message': "You don’t have permission to update access of this chatroom!"}
+
+        chatroom_cohort_filter.update(cohort_access=cohort_access,
+                                      updated_at=TimeUtilities.current_time_in_milliseconds())
+
+        chatroom_cohorts = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id})
+
+        chatroom_update_analytics = {
+            'has_full_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.FULL_ACCESS.value) else False,
+            'has_restricted_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.RESTRICTED_ACCESS.value) else False,
+            'has_no_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.NO_ACCESS.value) else False
+        }
+
+        send_chatroom_updated_analytics_data.delay(chatroom_id, int(self.get_member_id()), chatroom_update_analytics)
+
+        return {'success': True}
 
 
 class CohortHelper:
@@ -1004,3 +1089,27 @@ class CohortHelper:
                     error_logger.error(e.args)
 
             cohort_member_filter.delete()
+
+    @staticmethod
+    def fetch_cohort_access_for_chatroom(chatroom_id, user_id):
+        cohort_access = None
+
+        # to check if we can optimize query count.
+        chatroom_cohorts = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id})
+
+        if not chatroom_cohorts:
+            return cohort_access
+
+        for chatroom_cohort in chatroom_cohorts:
+            is_cohort_member = ModelUtilities.is_model_filter_exists(CohortMember, {
+                'cohort_id': chatroom_cohort.cohort_id,
+                'user_id': user_id
+            })
+
+            if cohort_access is None and is_cohort_member:
+                cohort_access = chatroom_cohort.cohort_access
+
+            elif is_cohort_member:
+                cohort_access = max(cohort_access, chatroom_cohort.cohort_access)
+
+        return cohort_access

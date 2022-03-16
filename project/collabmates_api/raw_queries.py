@@ -9,6 +9,7 @@ from utility.utils import is_version_code_supported_for_intro_room
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.time_utilities import TimeUtilities
+from .utility import create_chatroom_revamp_version_check
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -46,11 +47,11 @@ def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_my_chatrooms_count(user_id, 
-                           version_code, 
-                           platform_code, 
+def get_my_chatrooms_count(user_id,
+                           version_code,
+                           platform_code,
                            consider_dm_chatrooms=False,
-                           dm_instance_community_ids_list=[], 
+                           dm_instance_community_ids_list=[],
                            community_id=None,
                            intro_room_community_list=[]):
     '''function to give the count of active my chatrooms'''
@@ -87,6 +88,12 @@ def get_my_chatrooms_count(user_id,
         else:
             filter_intro_rooms_query = """type = -1"""
 
+        excluded_card_ids_filter = """"""
+        if create_chatroom_revamp_version_check(platform_code, version_code):
+            excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=community_id)
+            if excluded_card_ids:
+                excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
+
         conn = get_connection()
         curr = conn.cursor()
 
@@ -101,10 +108,10 @@ def get_my_chatrooms_count(user_id,
                                               AND secret_chatroom_left = FALSE
                                               AND card_id IN (SELECT id
                                                               FROM   togther_collabcard
-                                                              WHERE  is_private = %s
+                                                              WHERE  (is_private = %s
                                                                      AND not (%s)
                                                                      AND chatroom_with_user_id
-                                                                         IS %s %s)
+                                                                         IS %s %s) %s)
 
                   ) """ % (
             str(user_id),
@@ -112,7 +119,9 @@ def get_my_chatrooms_count(user_id,
             is_private,
             str(filter_intro_rooms_query),
             chatroom_with_user_id_val,
-            dm_chatrooms_communities_filter)
+            dm_chatrooms_communities_filter,
+            excluded_card_ids_filter
+        )
 
         curr.execute(sql)
         count = curr.fetchone()
@@ -124,15 +133,52 @@ def get_my_chatrooms_count(user_id,
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
+def get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=None):
+    community_based_filter = """"""
+
+    if community_id:
+        community_based_filter = """AND chatroom_id IN (SELECT id
+                                           FROM   togther_collabcard
+                                           WHERE  community_id = %s)""" % (str(community_id))
+    try:
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+                SELECT chatroom_id
+                FROM   togther_ChatroomCohort
+                WHERE  cohort_id IN (SELECT cohort_id
+                                     FROM   togther_CohortMember
+                                     WHERE  user_id = %s) %s
+                GROUP  BY chatroom_id
+                HAVING MAX(cohort_access) = 0;
+            """ % (str(user_id), community_based_filter)
+
+        curr.execute(sql)
+        res = curr.fetchall()
+
+        card_ids = []
+        for card_id in res:
+            card_ids.append(card_id[0])
+
+        curr.close()
+
+        return card_ids
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
 def get_followed_chatrooms(user_id,
-                        page,
-                        version_code,
-                        platform_code,
-                        limit=10,
-                        consider_dm_chatrooms=False,
-                        dm_instance_community_ids_list=[],
-                        community_id=None,
-                        intro_room_community_list=[]):
+                           page,
+                           version_code,
+                           platform_code,
+                           limit=10,
+                           consider_dm_chatrooms=False,
+                           dm_instance_community_ids_list=[],
+                           community_id=None,
+                           intro_room_community_list=[]):
     '''function to get the active followed chatroom count'''
     try:
         page_number = int(page)
@@ -170,6 +216,12 @@ def get_followed_chatrooms(user_id,
         else:
             filter_intro_rooms_query = """type = -1"""
 
+        excluded_card_ids_filter = """"""
+        if create_chatroom_revamp_version_check(platform_code, version_code):
+            excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=community_id)
+            if excluded_card_ids:
+                excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
+
         conn = get_connection()
         curr = conn.cursor()
 
@@ -189,9 +241,9 @@ def get_followed_chatrooms(user_id,
                                        (
                                               SELECT id
                                               FROM   togther_collabcard
-                                              WHERE  is_private = %s
+                                              WHERE  (is_private = %s
                                               AND not (%s)
-                                              AND    chatroom_with_user_id IS %s %s) )
+                                              AND    chatroom_with_user_id IS %s %s) %s))
                 ORDER BY updated_at DESC,
                          id DESC limit %s offset %s""" % (
             str(user_id),
@@ -200,6 +252,7 @@ def get_followed_chatrooms(user_id,
             str(filter_intro_rooms_query),
             str(chatroom_with_user_val),
             str(dm_chatrooms_communities_filter),
+            str(excluded_card_ids_filter),
             str(limit),
             str(offset))
 
