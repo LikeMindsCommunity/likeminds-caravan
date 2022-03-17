@@ -1,4 +1,5 @@
 import json
+from celery import shared_task
 
 from django.conf import settings
 from uritemplate import partial
@@ -15,6 +16,7 @@ from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 
 
 class ResourcesImpl(ResourceManager):
@@ -80,9 +82,9 @@ class ResourcesImpl(ResourceManager):
                 resource_category_instance.community_id.id
             )
 
-            res['category_instance'] = resource_category_instance
+            res['category_id'] = resource_category_instance
 
-        elif req_body.get('url_id'):
+        if req_body.get('url_id'):
             resource_url_instance = ModelUtilities.get_model_instance_or_none(
                 ResourceURL,
                 req_body.get('url_id')
@@ -95,9 +97,9 @@ class ResourcesImpl(ResourceManager):
                 resource_url_instance.category_id.community_id.id
             )
 
-            res['url_instance'] = resource_url_instance
+            res['url_id'] = resource_url_instance
 
-        elif req_body.get('file_id'):
+        if req_body.get('file_id'):
             resource_file_instance = ModelUtilities.get_model_instance_or_none(
                 ResourceFile,
                 req_body.get('file_id')
@@ -110,9 +112,9 @@ class ResourcesImpl(ResourceManager):
                 resource_file_instance.category_id.community_id.id
             )
 
-            res['file_instance'] = resource_file_instance
+            res['file_id'] = resource_file_instance
 
-        elif req_body.get('child_category_id'):
+        if req_body.get('child_category_id'):
             child_category_instance = ModelUtilities.get_model_instance_or_none(
                 ResourceCategory,
                 req_body.get('child_category_id')
@@ -125,9 +127,7 @@ class ResourcesImpl(ResourceManager):
                 child_category_instance.community_id.id
             )
 
-            res['child_category_instance'] = child_category_instance
-
-        res['success'] = True
+            res['child_category_id'] = child_category_instance
 
         return res
 
@@ -232,7 +232,6 @@ class ResourcesImpl(ResourceManager):
             1. To Iterate and add each community cohort in
                ResourceCategoryPermission
             2. To add analytics
-            3. To add references
         """
         validation_check = ResourceHelper.is_user_cm_or_not(
             self.get_community_id(),
@@ -251,6 +250,18 @@ class ResourcesImpl(ResourceManager):
             )
 
             serializer.save(level=level)
+
+            if req_body.get('parent_category_id'):
+
+                reference_dict = {
+                    'category_id': serializer.data.get('parent_category_id'),
+                    'child_category_id': serializer.data.get('id')
+                }
+
+                ResourcesImpl.create_resource_reference_internally.delay(
+                    reference_dict,
+                    self.get_member_id()
+                )
 
             res = {
                 'success': True,
@@ -356,7 +367,6 @@ class ResourcesImpl(ResourceManager):
             1. To Update permission access_type in
                ResourceCategoryPermission
             2. To add analytics
-            3. To add references
         """
         resource_category_instance = ModelUtilities.get_model_instance_or_none(
             ResourceCategory,
@@ -411,9 +421,6 @@ class ResourcesImpl(ResourceManager):
             req_body (dict) - request body
         Returns:
             response (dict)
-        TODO:
-            1. To delete all references
-            2. To delete All sub-categories, urls and files recursively
         """
         resource_category_instance = ModelUtilities.get_model_instance_or_none(
             ResourceCategory,
@@ -440,6 +447,27 @@ class ResourcesImpl(ResourceManager):
         resource_category_instance.is_deleted = True
         resource_category_instance.save()
 
+        ResourcesImpl.recursively_delete_child_resources.delay(
+            category_id=resource_category_instance.id
+        )
+
+        if resource_category_instance.parent_category_id:
+
+            reference_dict = {
+                'category_id': resource_category_instance.parent_category_id.id,
+                'child_category_id': resource_category_instance.id
+            }
+
+        else:
+            reference_dict = {
+                'category_id': resource_category_instance.id
+            }
+
+        ResourcesImpl.delete_resource_reference_internally.delay(
+            reference_dict,
+            self.get_member_id()
+        )
+
         serializer = ResourceCategorySerializer(resource_category_instance)
 
         res = {
@@ -448,6 +476,68 @@ class ResourcesImpl(ResourceManager):
         }
 
         return res
+
+    @staticmethod
+    @shared_task
+    def recursively_delete_child_resources(category_id):
+        """
+        celery task that calls method to delete child resources
+        Args:
+            category_id: Category being deleted
+        Returns:
+            None
+        """
+        ResourcesImpl.recursive_method_to_delete_all_child_resources(
+            [category_id]
+        )
+
+    @staticmethod
+    def recursive_method_to_delete_all_child_resources(category_ids):
+        """"
+        deletes all child resources of the category being category
+        Args:
+            category_id (List) : Categories being deleted
+        Returns:
+            None
+        """
+        url_instances = ModelUtilities.get_model_filter(
+            ResourceURL,
+            {
+                'category_id__id__in': category_ids
+            }
+        )
+
+        file_instances = ModelUtilities.get_model_filter(
+            ResourceFile,
+            {
+                'category_id__id__in': category_ids
+            }
+        )
+
+        sub_category_instances = ModelUtilities.get_model_filter(
+            ResourceCategory,
+            {
+                'parent_category_id__id__in': category_ids
+            }
+        )
+
+        url_instances.update(is_deleted=True)
+        file_instances.update(is_deleted=True)
+        sub_category_instances.update(is_deleted=True)
+
+        if not sub_category_instances:
+            return
+
+        sub_category_ids = list(sub_category_instances.values_list(
+            'id',
+            flat=True
+        ))
+
+        ResourcesImpl.recursive_method_to_delete_all_child_resources(
+            sub_category_ids
+        )
+
+        return
 
     def create_resource_url(self, req_body):
         """
@@ -461,7 +551,6 @@ class ResourcesImpl(ResourceManager):
             1. To Iterate and add each community cohort in
                ResourceURLPermission
             2. To add analytics
-            3. To add references
         """
         resource_category_instance = ModelUtilities.get_model_instance_or_none(
             ResourceCategory,
@@ -494,6 +583,16 @@ class ResourcesImpl(ResourceManager):
             )
 
             serializer.save(level=level)
+
+            reference_dict = {
+                'category_id': serializer.data.get('category_id'),
+                'url_id': serializer.data.get('id')
+            }
+
+            ResourcesImpl.create_resource_reference_internally.delay(
+                reference_dict,
+                self.get_member_id()
+            )
 
             res = {
                 'success': True,
@@ -650,7 +749,6 @@ class ResourcesImpl(ResourceManager):
             response (dict)
         TODO:
             1. To trigger analytics
-            2. To delete references
         """
         resource_url_instance = ModelUtilities.get_model_instance_or_none(
             ResourceURL,
@@ -681,6 +779,16 @@ class ResourcesImpl(ResourceManager):
         resource_url_instance.is_deleted = True
         resource_url_instance.save()
 
+        reference_dict = {
+            'category_id': resource_url_instance.category_id.id,
+            'url_id': resource_url_instance.id
+        }
+
+        ResourcesImpl.delete_resource_reference_internally.delay(
+            reference_dict,
+            self.get_member_id()
+        )
+
         serializer = ResourceURLSerializer(resource_url_instance)
 
         res = {
@@ -702,7 +810,6 @@ class ResourcesImpl(ResourceManager):
             1. To Iterate and add each community cohort in
                ResourceFilePermission
             2. To add analytics
-            3. To add references
         """
         resource_category_instance = ModelUtilities.get_model_instance_or_none(
             ResourceCategory,
@@ -731,6 +838,16 @@ class ResourcesImpl(ResourceManager):
             )
 
             serializer.save(level=level)
+
+            reference_dict = {
+                'category_id': serializer.data.get('category_id'),
+                'file_id': serializer.data.get('id')
+            }
+
+            ResourcesImpl.create_resource_reference_internally.delay(
+                reference_dict,
+                self.get_member_id()
+            )
 
             res = {
                 'success': True,
@@ -849,6 +966,16 @@ class ResourcesImpl(ResourceManager):
         resource_file_instance.is_deleted = True
         resource_file_instance.save()
 
+        reference_dict = {
+            'category_id': resource_file_instance.category_id.id,
+            'file_id': resource_file_instance.id
+        }
+
+        ResourcesImpl.delete_resource_reference_internally.delay(
+            reference_dict,
+            self.get_member_id()
+        )
+
         serializer = ResourceFileSerializer(resource_file_instance)
 
         res = {
@@ -885,11 +1012,11 @@ class ResourcesImpl(ResourceManager):
         if not validation_check.get('success'):
             return validation_check
 
-        if not any(
+        if not any([
             req_body.get('url_id'),
             req_body.get('file_id'),
             req_body.get('child_category_id')
-        ):
+        ]):
             return get_error_context(
                 False,
                 "atleast one among url_id, file_id, child_category_id is required"
@@ -914,6 +1041,25 @@ class ResourcesImpl(ResourceManager):
 
         return res
 
+    @staticmethod
+    @shared_task
+    def create_resource_reference_internally(reference_dict, member_id):
+        """
+        to create resource reference instance internally
+        Args:
+            req_dict: Dict of input variables
+        Returns:
+            None
+        """
+        res_instance = ResourcesImpl(
+            member_id=member_id,
+            category_id=reference_dict.get('category_id')
+        )
+
+        res = res_instance.create_resource_reference(reference_dict)
+
+        return
+
     def delete_resource_reference(self, req_body):
         """
         to delete resource reference
@@ -928,8 +1074,8 @@ class ResourcesImpl(ResourceManager):
             req_body
         )
 
-        if not req_objs_check.get('success'):
-            return req_objs_check
+        if not req_objs_check:
+            return get_error_context(False, "invalid data")
 
         validation_check = ResourceHelper.is_user_cm_or_not(
             self.get_community_id(),
@@ -939,12 +1085,12 @@ class ResourcesImpl(ResourceManager):
         if not validation_check.get('success'):
             return validation_check
 
-        if not any(
+        if not any([
             req_body.get('category_id'),
             req_body.get('url_id'),
             req_body.get('file_id'),
             req_body.get('child_category_id')
-        ):
+        ]):
             return get_error_context(
                 False,
                 'atleast one among category_id, url_id, file_id, child_category_id is required'
@@ -961,13 +1107,12 @@ class ResourcesImpl(ResourceManager):
                 'incorrect data'
             )
 
-        if req_objs_check.get('url_instance') or \
-           req_objs_check.get('file_instance'):
-
+        if req_objs_check.get('url_id') or \
+           req_objs_check.get('file_id'):
             instances = resource_reference_instances
 
         else:
-            instances = ResourcesImpl.get_resource_references_to_recursively_delete(
+            instances = ResourcesImpl.get_resource_references_to_delete_recursively(
                 resource_reference_instances
             )
 
@@ -986,19 +1131,60 @@ class ResourcesImpl(ResourceManager):
         return res
 
     @staticmethod
-    def get_resource_references_to_recursively_delete(instances):
-        sub_categories = instances.filter(
-            child_category_id__is_null=False
+    @shared_task
+    def delete_resource_reference_internally(reference_dict, member_id):
+        """
+        to delete resource reference instance internally
+        Args:
+            req_dict: Dict of input variables
+        Returns:
+            None
+        """
+        res_instance = ResourcesImpl(
+            member_id=member_id,
+            category_id=reference_dict.get('category_id')
+        )
+
+        res = res_instance.delete_resource_reference(reference_dict)
+
+        return
+
+    @staticmethod
+    def get_resource_references_to_delete_recursively(instances):
+        """
+        to fetch all the resource reference instances that are
+        child to the current resource being deleted
+        Args:
+            instances : Resource Reference Queryset
+
+        Returns:
+            final_instances : Resource Reference Queryset
+        """
+        sub_categories_ids = instances.filter(
+            child_category_id__isnull=False
         ).values_list(
             'child_category_id',
             flat=True
         )
 
-        # To complete
+        if not sub_categories_ids:
+            return instances
+
+        sub_reference_intances = ModelUtilities.get_model_filter(
+            ResourceReference,
+            {
+                'category_id__in': sub_categories_ids
+            }
+        )
+
+        final_instances = instances | ResourcesImpl.get_resource_references_to_delete_recursively(sub_reference_intances)
+
+        info_logger.info('deleted resource reference instances - %s' % final_instances)
+
+        return final_instances
 
     def fetch_resource_reference(self, page):
         pass
-
 
 
 class ResourceHelper:
