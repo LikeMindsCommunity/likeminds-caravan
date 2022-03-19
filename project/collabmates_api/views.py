@@ -6048,6 +6048,7 @@ def collabcard_follow(request, function_dict=None):
                                                          community_instance=community_instance)
 
     if status:
+        card_state_instance = collabcard_state_filter[0]
         ConversationHelper.update_homescreen_meta_on_chatroom_follow(community_instance, card_instance,
                                                                      card_state_instance, user_instance)
     send_sync_notification.delay({'chatroom_id': card_instance.id,
