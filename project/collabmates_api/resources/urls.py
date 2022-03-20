@@ -20,4 +20,8 @@ urlpatterns = [
     path('file/update', ResourceFile.as_view(), name="update_resource_file"),
     path('file/delete', ResourceFile.as_view(), name="delete_resource_file"),
 
+    path('reference/create', ResourceReference.as_view(), name="create_resource_reference"),
+    path('reference/fetch', ResourceReference.as_view(), name="fetch_resource_reference"),
+    path('reference/delete', ResourceReference.as_view(), name="delete_resource_reference"),
+
 ]

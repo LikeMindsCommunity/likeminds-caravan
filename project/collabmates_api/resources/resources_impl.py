@@ -1068,7 +1068,6 @@ class ResourcesImpl(ResourceManager):
             req_body (dict) - request body
         Returns:
             response (dict)
-        TODO:
         """
         req_objs_check = self.update_community_id_for_deleting_reference(
             req_body
@@ -1118,14 +1117,8 @@ class ResourcesImpl(ResourceManager):
 
         instances.delete()
 
-        serializer = ResourceReferenceSerializer(
-            instances,
-            many=True
-        )
-
         res = {
             'success': True,
-            'resource_reference': serializer.data
         }
 
         return res
@@ -1184,6 +1177,16 @@ class ResourcesImpl(ResourceManager):
         return final_instances
 
     def fetch_resource_reference(self, page):
+        """
+        to fetch resource references
+
+        Args:
+            req_body (dict) - request body
+        Returns:
+            response (dict)
+        TODO:
+            To complete
+        """
         pass
 
 

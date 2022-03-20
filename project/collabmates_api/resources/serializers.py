@@ -111,3 +111,39 @@ class ResourceReferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResourceReference
         fields = '__all__'
+
+    def validate_category_id(self, category_instance):
+        """
+        Check that category_id instance is not deleted
+        """
+        if category_instance.is_deleted:
+            raise serializers.ValidationError("Category appears to be deleted. Please enter a valid category_id")
+
+        return category_instance
+
+    def validate_file_id(self, file_instance):
+        """
+        Check that file_id instance is not deleted
+        """
+        if file_instance.is_deleted:
+            raise serializers.ValidationError("File appears to be deleted. Please enter a valid file_id")
+
+        return file_instance
+
+    def validate_url_id(self, url_instance):
+        """
+        Check that url_id instance is not deleted
+        """
+        if url_instance.is_deleted:
+            raise serializers.ValidationError("URL appears to be deleted. Please enter a valid url_id")
+
+        return url_instance
+
+    def validate_child_category_id(self, category_instance):
+        """
+        Check that child_category_id instance is not deleted
+        """
+        if category_instance.is_deleted:
+            raise serializers.ValidationError("Child Category appears to be deleted. Please enter a valid child_category_id")
+
+        return category_instance
