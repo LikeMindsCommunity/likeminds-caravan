@@ -1,10 +1,7 @@
 import json
 from celery import shared_task
 
-from django.conf import settings
-from uritemplate import partial
-
-from togther.models import ModelUtilities, Community, User, Members
+from togther.models import ModelUtilities, Community, User, Members, Cohort
 from collabmates_api.rest_api import get_error_context
 
 from .models import *
@@ -14,6 +11,7 @@ from .resources_manager import ResourceManager
 
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
+from utility.time_utilities import TimeUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -251,6 +249,11 @@ class ResourcesImpl(ResourceManager):
 
             serializer.save(level=level)
 
+            ResourcesImpl.create_category_permission_for_cohorts.delay(
+                self.get_community_id(),
+                serializer.data.get('id')
+            )
+
             if req_body.get('parent_category_id'):
 
                 reference_dict = {
@@ -276,6 +279,41 @@ class ResourcesImpl(ResourceManager):
         }
 
         return res
+
+    @staticmethod
+    @shared_task
+    def create_category_permission_for_cohorts(community_id, category_id):
+        """
+        bulk create cohorts mapping with category in
+        ResourceCategoryPermission Schema
+        """
+        category_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceCategory,
+            category_id
+        )
+
+        community_cohorts = ModelUtilities.get_model_filter(
+            Cohort,
+            {
+                'community_id__id': community_id
+            }
+        )
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        category_permission_objs = [
+            ResourceCategoryPermission(
+                category_id=category_instance,
+                cohort_id=cohort,
+                created_at=current_time_in_ms,
+                updated_at=current_time_in_ms
+            ) for cohort in community_cohorts
+        ]
+
+        ModelUtilities.bulk_create_instances(
+            ResourceCategoryPermission,
+            category_permission_objs
+        )
 
     def fetch_resource_category(self, page):
         """
