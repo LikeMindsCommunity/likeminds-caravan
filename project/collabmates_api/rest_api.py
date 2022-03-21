@@ -1354,22 +1354,6 @@ class CohortMemberSerializer(serializers.ModelSerializer):
 
         return data
 
-class CohortMetaSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Cohort
-        fields = ('id', 'name', 'community_id', 'type', 'type_id')
-
-    def to_representation(self, cohort):
-        data = super(CohortMetaSerializer, self).to_representation(cohort)
-        fields = self._readable_fields
-
-        for field in fields:
-
-            if data[field.field_name] is None:
-                del data[field.field_name]
-
-        return data
-
 
 class CommunityQuestionsSerializerV2(serializers.ModelSerializer):
     class Meta:
