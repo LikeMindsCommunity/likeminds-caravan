@@ -1,5 +1,6 @@
 import json
 from celery import shared_task
+from utility.states import member_states
 
 from togther.models import ModelUtilities, Community, User, Members, Cohort
 from collabmates_api.rest_api import get_error_context
@@ -665,6 +666,11 @@ class ResourcesImpl(ResourceManager):
                 serializer.data.get('id')
             )
 
+            ResourcesImpl.create_url_state_for_all_members.delay(
+                self.get_community_id(),
+                serializer.data.get('id')
+            )
+
             reference_dict = {
                 'category_id': serializer.data.get('category_id'),
                 'url_id': serializer.data.get('id')
@@ -755,6 +761,43 @@ class ResourcesImpl(ResourceManager):
         ModelUtilities.bulk_create_instances(
             ResourceURLPermission,
             url_permission_objs
+        )
+
+    @staticmethod
+    @shared_task
+    def create_url_state_for_all_members(community_id, url_id):
+        """
+        bulk create all members mapping with url in
+        ResourceURLState Schema
+        Args:
+            community_id
+            url_id
+        """
+        community_member_filter = ModelUtilities.get_model_filter(
+            Members,
+            {
+                'community_id__id': community_id,
+                'state__in': [member_states.ADMIN, member_states.MEMBER]
+            }
+        )
+
+        url_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceURL,
+            url_id
+        )
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        url_state_objs = [ResourceURLState(
+            url_id=url_instance,
+            user_id=member.member_id,
+            created_at=current_time_in_ms,
+            updated_at=current_time_in_ms
+        ) for member in community_member_filter]
+
+        ModelUtilities.bulk_create_instances(
+            ResourceURLState,
+            url_state_objs
         )
 
     def update_resource_url(self, req_body):
@@ -1002,6 +1045,11 @@ class ResourcesImpl(ResourceManager):
                 serializer.data.get('id')
             )
 
+            ResourcesImpl.create_file_state_for_all_members.delay(
+                self.get_community_id(),
+                serializer.data.get('id')
+            )
+
             reference_dict = {
                 'category_id': serializer.data.get('category_id'),
                 'file_id': serializer.data.get('id')
@@ -1061,6 +1109,43 @@ class ResourcesImpl(ResourceManager):
         ModelUtilities.bulk_create_instances(
             ResourceFilePermission,
             file_permission_objs
+        )
+
+    @staticmethod
+    @shared_task
+    def create_file_state_for_all_members(community_id, file_id):
+        """
+        bulk create all members mapping with file in
+        ResourceFileState Schema
+        Args:
+            community_id
+            file_id
+        """
+        community_member_filter = ModelUtilities.get_model_filter(
+            Members,
+            {
+                'community_id__id': community_id,
+                'state__in': [member_states.ADMIN, member_states.MEMBER]
+            }
+        )
+
+        file_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceFile,
+            file_id
+        )
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        file_state_objs = [ResourceFileState(
+            file_id=file_instance,
+            user_id=member.member_id,
+            created_at=current_time_in_ms,
+            updated_at=current_time_in_ms
+        ) for member in community_member_filter]
+
+        ModelUtilities.bulk_create_instances(
+            ResourceFileState,
+            file_state_objs
         )
 
     def update_resource_file(self, req_body):
