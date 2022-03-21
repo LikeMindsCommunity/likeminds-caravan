@@ -1341,6 +1341,19 @@ class CohortSerializer(serializers.ModelSerializer):
         return data
 
 
+class CohortMemberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CohortMember
+        fields = '__all__'
+        depth = 1
+
+    def to_representation(self, cohort):
+        data = super(CohortMemberSerializer, self).to_representation(cohort)
+
+        data['user'] = data['user']['id']
+
+        return data
+
 class CohortMetaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cohort

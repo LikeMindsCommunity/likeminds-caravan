@@ -14,7 +14,7 @@ from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
     CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers
 from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list
-from ..rest_api import CohortSerializer, CohortMetaSerializer
+from ..rest_api import CohortSerializer, CohortMemberSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
     respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, create_secret_chatroom_right
@@ -283,12 +283,18 @@ class CohortImpl(CohortManager):
         member_instance = member_filter[0]
         is_cm = member_instance.state == member_states.ADMIN
 
-        if not is_cm or not member_ids:
-            member_cohort_dict = CohortHelper.precompute_cohorts_of_members(community_id=community_id,
-                                                                            member_ids=[self.get_member_id()])
+        if member_ids:
+
+            if not is_cm:
+                return get_error_context(success=False, error_message="You are not CM of this community")
+
+            else:
+                member_cohort_dict = CohortHelper.precompute_cohorts_of_members(community_id=community_id,
+                                                                                member_ids=member_ids)
+
         else:
             member_cohort_dict = CohortHelper.precompute_cohorts_of_members(community_id=community_id,
-                                                                            member_ids=member_ids)
+                                                                            member_ids=[self.get_member_id()])
 
         return {'success': True, 'member_cohorts': member_cohort_dict}
 
@@ -862,19 +868,9 @@ class CohortHelper:
             'cohort_id__in': community_cohort_ids,
             'user_id__in': member_ids
         }
-        member_cohort_filter = ModelUtilities.get_model_filter(CohortMember, user_cohort_filter).select_related(
-            'cohort')
-        member_cohort_dict = {int(user_id): None for user_id in member_ids if str(user_id).isdigit()}
+        member_cohort_filter = ModelUtilities.get_model_filter(CohortMember, user_cohort_filter)
 
-        for data in member_cohort_filter:
-            user_id = data.user_id
-            cohort_context = CohortMetaSerializer(data.cohort, many=False).data
-
-            if member_cohort_dict.get(user_id) is None:
-                member_cohort_dict[user_id] = [cohort_context]
-
-            else:
-                member_cohort_dict[user_id].append(cohort_context)
+        member_cohort_dict = CohortMemberSerializer(member_cohort_filter, many=True).data
 
         return member_cohort_dict
 
