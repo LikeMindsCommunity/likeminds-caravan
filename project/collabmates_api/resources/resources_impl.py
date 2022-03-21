@@ -227,9 +227,7 @@ class ResourcesImpl(ResourceManager):
         Returns:
             response (dict)
         TODO:
-            1. To Iterate and add each community cohort in
-               ResourceCategoryPermission
-            2. To add analytics
+            1. To add analytics
         """
         validation_check = ResourceHelper.is_user_cm_or_not(
             self.get_community_id(),
@@ -402,9 +400,7 @@ class ResourcesImpl(ResourceManager):
         Returns:
             response (dict)
         TODO:
-            1. To Update permission access_type in
-               ResourceCategoryPermission
-            2. To add analytics
+            1. To add analytics
         """
         resource_category_instance = ModelUtilities.get_model_instance_or_none(
             ResourceCategory,
@@ -437,6 +433,12 @@ class ResourcesImpl(ResourceManager):
         if serializer.is_valid():
             serializer.save()
 
+            if req_body.get('category_permission'):
+                ResourcesImpl.update_category_permission_for_cohorts.delay(
+                    req_body.get('id'),
+                    req_body.get('category_permission', [])
+                )
+
             res = {
                 'success': True,
                 'resource_category': serializer.data
@@ -450,6 +452,44 @@ class ResourcesImpl(ResourceManager):
         }
 
         return res
+
+    @staticmethod
+    @shared_task
+    def update_category_permission_for_cohorts(category_id, permission_obj):
+        """
+        updates access_type in ResourceCategoryPermission against a
+        particular category_id and cohort_id
+        Args:
+            category_id (int)
+            permission_dict (JSON):
+                cohort_id
+                access_type
+        """
+        for obj in permission_obj:
+
+            if not obj.get('cohort_id') or not obj.get('access_type'):
+                pass
+
+            try:
+                ModelUtilities.update_or_create_model(
+                    ResourceCategoryPermission,
+                    filter_dict={
+                        'category_id': ModelUtilities.get_model_instance_or_none(
+                            ResourceCategory,
+                            category_id
+                        ),
+                        'cohort_id': ModelUtilities.get_model_instance_or_none(
+                            Cohort,
+                            obj.get('cohort_id')
+                        )
+                    },
+                    update_dict={
+                        'access_type': obj.get('access_type')
+                    }
+                )
+            except Exception as e:
+                error_logger.error("Exception occurred while updation/creation of ResourceCategoryPermission - %s" % e.args)
+                pass
 
     def delete_resource_category(self, req_body):
         """
@@ -586,9 +626,7 @@ class ResourcesImpl(ResourceManager):
         Returns:
             response (dict)
         TODO:
-            1. To Iterate and add each community cohort in
-               ResourceURLPermission
-            2. To add analytics
+            1. To add analytics
         """
         resource_category_instance = ModelUtilities.get_model_instance_or_none(
             ResourceCategory,
@@ -621,6 +659,11 @@ class ResourcesImpl(ResourceManager):
             )
 
             serializer.save(level=level)
+
+            ResourcesImpl.create_url_permission_for_cohorts.delay(
+                req_body.get('category_id'),
+                serializer.data.get('id')
+            )
 
             reference_dict = {
                 'category_id': serializer.data.get('category_id'),
@@ -677,6 +720,43 @@ class ResourcesImpl(ResourceManager):
 
         return validated_data
 
+    @staticmethod
+    @shared_task
+    def create_url_permission_for_cohorts(category_id, url_id):
+        """
+        bulk create cohorts mapping with url in
+        ResourceURLPermission Schema
+        Args:
+            category_id
+            url_id
+        """
+        category_permission_filter = ModelUtilities.get_model_filter(
+            ResourceCategoryPermission,
+            {
+                'category_id__id': category_id
+            }
+        )
+
+        url_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceURL,
+            url_id
+        )
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        url_permission_objs = [ResourceURLPermission(
+            url_id=url_instance,
+            cohort_id=category_permission_obj.cohort_id,
+            access_type=category_permission_obj.access_type,
+            created_at=current_time_in_ms,
+            updated_at=current_time_in_ms
+        ) for category_permission_obj in category_permission_filter]
+
+        ModelUtilities.bulk_create_instances(
+            ResourceURLPermission,
+            url_permission_objs
+        )
+
     def update_resource_url(self, req_body):
         """
         to update resource url
@@ -686,9 +766,7 @@ class ResourcesImpl(ResourceManager):
         Returns:
             response (dict)
         TODO:
-            1. To Update permission access_type in
-               ResourceURLPermission
-            2. To add analytics
+            1. To add analytics
         """
         resource_url_instance = ModelUtilities.get_model_instance_or_none(
             ResourceURL,
@@ -729,6 +807,12 @@ class ResourcesImpl(ResourceManager):
 
         if serializer.is_valid():
             serializer.save()
+
+            if req_body.get('url_permission'):
+                ResourcesImpl.update_url_permission_for_cohorts.delay(
+                    req_body.get('id'),
+                    req_body.get('url_permission', [])
+                )
 
             res = {
                 'success': True,
@@ -776,6 +860,44 @@ class ResourcesImpl(ResourceManager):
             validated_data['og_tags'] = json.dumps(og_tags)
 
         return validated_data
+
+    @staticmethod
+    @shared_task
+    def update_url_permission_for_cohorts(url_id, permission_obj):
+        """
+        updates access_type in ResourceURLPermission against a
+        particular url_id and cohort_id
+        Args:
+            url_id (int)
+            permission_dict (JSON):
+                cohort_id
+                access_type
+        """
+        for obj in permission_obj:
+
+            if not obj.get('cohort_id') or not obj.get('access_type'):
+                pass
+
+            try:
+                ModelUtilities.update_or_create_model(
+                    ResourceURLPermission,
+                    filter_dict={
+                        'url_id': ModelUtilities.get_model_instance_or_none(
+                            ResourceURL,
+                            url_id
+                        ),
+                        'cohort_id': ModelUtilities.get_model_instance_or_none(
+                            Cohort,
+                            obj.get('cohort_id')
+                        )
+                    },
+                    update_dict={
+                        'access_type': obj.get('access_type')
+                    }
+                )
+            except Exception as e:
+                error_logger.error("Exception occurred while updation/creation of ResourceURLPermission - %s" % e.args)
+                pass
 
     def delete_resource_url(self, req_body):
         """
@@ -845,9 +967,7 @@ class ResourcesImpl(ResourceManager):
         Returns:
             response (dict)
         TODO:
-            1. To Iterate and add each community cohort in
-               ResourceFilePermission
-            2. To add analytics
+            1. To add analytics
         """
         resource_category_instance = ModelUtilities.get_model_instance_or_none(
             ResourceCategory,
@@ -877,6 +997,11 @@ class ResourcesImpl(ResourceManager):
 
             serializer.save(level=level)
 
+            ResourcesImpl.create_file_permission_for_cohorts.delay(
+                req_body.get('category_id'),
+                serializer.data.get('id')
+            )
+
             reference_dict = {
                 'category_id': serializer.data.get('category_id'),
                 'file_id': serializer.data.get('id')
@@ -901,6 +1026,43 @@ class ResourcesImpl(ResourceManager):
 
         return res
 
+    @staticmethod
+    @shared_task
+    def create_file_permission_for_cohorts(category_id, file_id):
+        """
+        bulk create cohorts mapping with file in
+        ResourceFilePermission Schema
+        Args:
+            category_id
+            file_id
+        """
+        category_permission_filter = ModelUtilities.get_model_filter(
+            ResourceCategoryPermission,
+            {
+                'category_id__id': category_id
+            }
+        )
+
+        file_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceFile,
+            file_id
+        )
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        file_permission_objs = [ResourceFilePermission(
+            file_id=file_instance,
+            cohort_id=category_permission_obj.cohort_id,
+            access_type=category_permission_obj.access_type,
+            created_at=current_time_in_ms,
+            updated_at=current_time_in_ms
+        ) for category_permission_obj in category_permission_filter]
+
+        ModelUtilities.bulk_create_instances(
+            ResourceFilePermission,
+            file_permission_objs
+        )
+
     def update_resource_file(self, req_body):
         """
         to update resource file
@@ -910,9 +1072,7 @@ class ResourcesImpl(ResourceManager):
         Returns:
             response (dict)
         TODO:
-            1. To Update permission access_type in
-               ResourceFilePermission
-            2. To add analytics
+            1. To add analytics
         """
         resource_file_instance = ModelUtilities.get_model_instance_or_none(
             ResourceFile,
@@ -949,6 +1109,12 @@ class ResourcesImpl(ResourceManager):
         if serializer.is_valid():
             serializer.save()
 
+            if req_body.get('file_permission'):
+                ResourcesImpl.update_file_permission_for_cohorts.delay(
+                    req_body.get('id'),
+                    req_body.get('file_permission', [])
+                )
+
             res = {
                 'success': True,
                 'resource_file': serializer.data
@@ -962,6 +1128,44 @@ class ResourcesImpl(ResourceManager):
         }
 
         return res
+
+    @staticmethod
+    @shared_task
+    def update_file_permission_for_cohorts(file_id, permission_obj):
+        """
+        updates access_type in ResourceFilePermission against a
+        particular file_id and cohort_id
+        Args:
+            file_id (int)
+            permission_dict (JSON):
+                cohort_id
+                access_type
+        """
+        for obj in permission_obj:
+
+            if not obj.get('cohort_id') or not obj.get('access_type'):
+                pass
+
+            try:
+                ModelUtilities.update_or_create_model(
+                    ResourceFilePermission,
+                    filter_dict={
+                        'file_id': ModelUtilities.get_model_instance_or_none(
+                            ResourceFile,
+                            file_id
+                        ),
+                        'cohort_id': ModelUtilities.get_model_instance_or_none(
+                            Cohort,
+                            obj.get('cohort_id')
+                        )
+                    },
+                    update_dict={
+                        'access_type': obj.get('access_type')
+                    }
+                )
+            except Exception as e:
+                error_logger.error("Exception occurred while updation/creation of ResourceFilePermission - %s" % e.args)
+                pass
 
     def delete_resource_file(self, req_body):
         """
