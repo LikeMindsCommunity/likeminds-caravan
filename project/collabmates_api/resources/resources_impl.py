@@ -1619,6 +1619,87 @@ class ResourcesImpl(ResourceManager):
                 state=RESOURCE_STATE.SEEN
             )
 
+    def fetch_resource_state(self, req_body):
+        """
+        to fetch resource's state
+
+        Args:
+            req_body (dict) - request body
+        Returns:
+            response (dict)
+        """
+        url_filter = list(ModelUtilities.get_model_filter(
+            ResourceURLState,
+            {
+                'state': req_body.get('state'),
+                'user_id__id': self.get_member_id(),
+                'url_id__category_id__community_id__id': self.get_community_id()
+            }
+        ).values_list(
+            'url_id',
+            flat=True
+        ))
+
+        file_filter = list(ModelUtilities.get_model_filter(
+            ResourceFileState,
+            {
+                'state': req_body.get('state'),
+                'user_id__id': self.get_member_id(),
+                'file_id__category_id__community_id__id': self.get_community_id()
+            }
+        ).values_list(
+            'file_id',
+            flat=True
+        ))
+
+        url_instances = ModelUtilities.get_model_filter(
+            ResourceURL,
+            {
+                'id__in': url_filter
+            }
+        )
+
+        file_instances = ModelUtilities.get_model_filter(
+            ResourceFile,
+            {
+                'id__in': file_filter
+            }
+        )
+
+        url_category_ids = list(
+            url_instances.values_list(
+                'category_id',
+                flat=True
+            ).distinct()
+        )
+
+        file_category_ids = list(
+            file_instances.values_list(
+                'category_id',
+                flat=True
+            ).distinct()
+        )
+
+        final_category_ids = set(url_category_ids + file_category_ids)
+
+        category_instances = ModelUtilities.get_model_filter(
+            ResourceCategory,
+            {
+                'id__in': final_category_ids
+            }
+        )
+
+        url_serializer = ResourceURLSerializer(url_instances, many=True)
+        file_serializer = ResourceFileSerializer(file_instances, many=True)
+        category_serializer = ResourceCategorySerializer(category_instances, many=True)
+
+        return {
+            'success': True,
+            'url': url_serializer.data,
+            'file': file_serializer.data,
+            'category': category_serializer.data,
+        }
+
 
 class ResourceHelper:
     """

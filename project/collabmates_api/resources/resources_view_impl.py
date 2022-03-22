@@ -635,6 +635,21 @@ class ResourceState(APIView):
 
         return res
 
+    def _validate_fetch_request(self, req_body):
+        """to validate GET request"""
+        res = {}
+
+        if not req_body:
+            res = get_error_context(False, "Invalid request body")
+
+        if not req_body.get('community_id'):
+            res = get_error_context(False, "community_id cannot be empty")
+
+        if not req_body.get('state'):
+            res = get_error_context(False, "state cannot be empty")
+
+        return res
+
     def patch(self, request):
         """to update Resource State"""
         try:
@@ -653,6 +668,48 @@ class ResourceState(APIView):
                 member_id=member_id
             )
             res = res_instance.update_resource_state(req_body)
+
+            if res.get('success'):
+                return JsonResponse(
+                    res,
+                    status=status_codes.HTTP_200_OK
+                )
+
+            return JsonResponse(
+                res,
+                status=status_codes.HTTP_400_BAD_REQUEST
+            )
+
+        except Exception as e:
+            res = {
+                'success': False,
+                'Exception': str(e)
+            }
+            error_logger.error(e.args)
+            return JsonResponse(
+                res,
+                status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def get(self, request):
+        """to fetch Resource State"""
+        try:
+            member_id = RequestUtilities.get_member_id_from_headers(request)
+            req_body = RequestUtilities.load_request_body(request)
+
+            request_validation_errors = self._validate_fetch_request(req_body)
+
+            if request_validation_errors:
+                return JsonResponse(
+                    request_validation_errors,
+                    status=status_codes.HTTP_400_BAD_REQUEST
+                )
+
+            res_instance = ResourcesImpl(
+                member_id=member_id,
+                community_id=req_body.get('community_id')
+            )
+            res = res_instance.fetch_resource_state(req_body)
 
             if res.get('success'):
                 return JsonResponse(

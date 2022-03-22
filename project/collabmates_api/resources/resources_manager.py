@@ -34,7 +34,11 @@ class ResourceManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_resource_reference') and
                 callable (subclass.fetch_resource_reference)) and
                 (hasattr(subclass, 'delete_resource_reference') and
-                callable(subclass.delete_resource_reference)) or
+                callable(subclass.delete_resource_reference)) and
+                (hasattr(subclass, 'update_resource_state') and
+                callable (subclass.update_resource_state)) and
+                (hasattr(subclass, 'fetch_resource_state') and
+                callable(subclass.fetch_resource_state)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -139,5 +143,19 @@ class ResourceManager(metaclass=abc.ABCMeta):
     def delete_resource_reference(self) -> dict:
         """
         to delete resource reference
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_resource_state(self) -> dict:
+        """
+        to update resource state
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_resource_state(self) -> dict:
+        """
+        to fetch resource state
         """
         raise NotImplementedError
