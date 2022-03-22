@@ -1516,6 +1516,109 @@ class ResourcesImpl(ResourceManager):
         """
         pass
 
+    def update_resource_state(self, req_body):
+        """
+        to update resource's state
+
+        Args:
+            req_body (dict) - request body
+        Returns:
+            response (dict)
+        """
+        if req_body.get('url_id'):
+
+            state_filter = ModelUtilities.get_model_filter(
+                ResourceURLState,
+                {
+                    'url_id__id': req_body.get('url_id'),
+                    'user_id__id': self.get_member_id()
+                }
+            )
+
+        elif req_body.get('file_id'):
+
+            state_filter = ModelUtilities.get_model_filter(
+                ResourceFileState,
+                {
+                    'file_id__id': req_body.get('file_id'),
+                    'user_id__id': self.get_member_id()
+                }
+            )
+
+        if not state_filter:
+            return get_error_context(False, "invalid url_id/file_id")
+
+        state_filter.update(state=req_body.get('state'))
+
+        if req_body.get('state') == RESOURCE_STATE.CONTINUE_READING:
+
+            if req_body.get('url_id'):
+                ResourcesImpl.update_other_resources_state_for_user.delay(
+                    self.get_member_id(),
+                    url_id=req_body.get('url_id')
+                )
+
+            else:
+                ResourcesImpl.update_other_resources_state_for_user.delay(
+                    self.get_member_id(),
+                    file_id=req_body.get('file_id')
+                )
+
+        return {'success': True}
+
+    @staticmethod
+    @shared_task
+    def update_other_resources_state_for_user(member_id, url_id=None, file_id=None):
+        """
+        updates state for rest of the resources (url and file)
+        if any resource is updated with the state = 3
+        """
+        if url_id:
+            ModelUtilities.get_model_filter(
+                ResourceURLState,
+                {
+                    'user_id__id': member_id,
+                    'state': RESOURCE_STATE.CONTINUE_READING
+                }
+            ).exclude(
+                url_id=url_id
+            ).update(
+                state=RESOURCE_STATE.SEEN
+            )
+
+            ModelUtilities.get_model_filter(
+                ResourceFileState,
+                {
+                    'user_id__id': member_id,
+                    'state': RESOURCE_STATE.CONTINUE_READING
+                }
+            ).update(
+                state=RESOURCE_STATE.SEEN
+            )
+
+        elif file_id:
+            ModelUtilities.get_model_filter(
+                ResourceFileState,
+                {
+                    'user_id__id': member_id,
+                    'state': RESOURCE_STATE.CONTINUE_READING
+                }
+            ).exclude(
+                file_id=file_id
+            ).update(
+                state=RESOURCE_STATE.SEEN
+            )
+
+            ModelUtilities.get_model_filter(
+                ResourceURLState,
+                {
+                    'user_id__id': member_id,
+                    'state': RESOURCE_STATE.CONTINUE_READING
+                }
+            ).update(
+                state=RESOURCE_STATE.SEEN
+            )
+
 
 class ResourceHelper:
     """

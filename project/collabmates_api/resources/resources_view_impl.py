@@ -614,3 +614,64 @@ class ResourceReference(APIView):
                 res,
                 status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class ResourceState(APIView):
+    """
+    View Class to fetch and update resources' state
+    """
+    def _validate_update_request(self, req_body):
+        """to validate PATCH request"""
+        res = {}
+
+        if not req_body:
+            res = get_error_context(False, "Invalid request body")
+
+        if not req_body.get('state'):
+            res = get_error_context(False, "state cannot be empty")
+
+        if not req_body.get('url_id') and not req_body.get('file_id'):
+            res = get_error_context(False, "one among url_id or file_id is needed")
+
+        return res
+
+    def patch(self, request):
+        """to update Resource State"""
+        try:
+            member_id = RequestUtilities.get_member_id_from_headers(request)
+            req_body = RequestUtilities.load_request_body(request)
+
+            request_validation_errors = self._validate_update_request(req_body)
+
+            if request_validation_errors:
+                return JsonResponse(
+                    request_validation_errors,
+                    status=status_codes.HTTP_400_BAD_REQUEST
+                )
+
+            res_instance = ResourcesImpl(
+                member_id=member_id
+            )
+            res = res_instance.update_resource_state(req_body)
+
+            if res.get('success'):
+                return JsonResponse(
+                    res,
+                    status=status_codes.HTTP_200_OK
+                )
+
+            return JsonResponse(
+                res,
+                status=status_codes.HTTP_400_BAD_REQUEST
+            )
+
+        except Exception as e:
+            res = {
+                'success': False,
+                'Exception': str(e)
+            }
+            error_logger.error(e.args)
+            return JsonResponse(
+                res,
+                status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+            )

@@ -24,4 +24,6 @@ urlpatterns = [
     path('reference/fetch', ResourceReference.as_view(), name="fetch_resource_reference"),
     path('reference/delete', ResourceReference.as_view(), name="delete_resource_reference"),
 
+    path('state/update', ResourceState.as_view(), name="update_resource_state"),
+    path('state/fetch', ResourceState.as_view(), name="fetch_resource_reference"),
 ]
