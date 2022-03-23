@@ -5,6 +5,8 @@ from django.db import transaction
 from togther.models import ModelUtilities, card_answers, collabcardState
 from utility.states import conversation_states
 
+updated_card_state_ids = []
+
 
 def follow_status_updation_on_the_basis_of_conversation_state():
     with transaction.atomic():
@@ -39,11 +41,13 @@ def follow_status_updation_on_the_basis_of_conversation_state():
             if not unfollowed_conversation_instance and followed_conversation_instance:
                 collabcard_state_instance.follow_status = True
                 collabcard_state_instance.save()
+                updated_card_state_ids.append(collabcard_state_instance.id)
 
             # User followed chatroom after unfollowing at-least once.
             elif unfollowed_conversation_instance.created_at < followed_conversation_instance.created_at:
                 collabcard_state_instance.follow_status = True
                 collabcard_state_instance.save()
+                updated_card_state_ids.append(collabcard_state_instance.id)
 
 
 start_time = time.time()
@@ -52,3 +56,4 @@ end_time = time.time()
 time_taken = end_time - start_time
 
 print(time_taken)
+print("Updated Collabcard State IDS:", updated_card_state_ids)
