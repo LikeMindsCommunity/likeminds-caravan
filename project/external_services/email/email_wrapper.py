@@ -21,6 +21,7 @@ info_logger = LoggingWrapper.get_instance()
 
 class MailWrapper(MailManager):
     from_email = 'LikeMinds<hello@likeminds.community>'
+    from_email_id = 'hello@likeminds.community'
 
     @staticmethod
     @shared_task
@@ -58,10 +59,10 @@ class MailWrapper(MailManager):
                                           categories=None, from_name=SENDER_NAME_FOR_EMAIL_COMMS):
 
         if not from_email:
-            from_email = MailWrapper.from_email
+            from_email = MailWrapper.from_email_id
 
         if not reply_to:
-            reply_to = from_email
+            reply_to = MailWrapper.from_email_id
 
         mail = Mail()
 
