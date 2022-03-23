@@ -1491,7 +1491,7 @@ class CommunityImpl(CommunityManager):
             mobile_nos_list = [NumberUtilities.get_integer_from_string(i) if str(i).isdigit() else i for i in
                                mobile_nos_list]
 
-            template_name = WHATSAPP_INVITE_TEMPLATE_WITH_CODE_NAME if validated_req_body.get('link_type') == 'free' \
+            template_name = WHATSAPP_INVITE_TEMPLATE_WITH_CODE_NAME if validated_req_body.get('link_type') == FREE_PLAN \
                 else WHATSAPP_INVITE_TEMPLATE_WITHOUT_CODE_NAME
 
             receivers_list = CommunityHelper.send_invite_whatsapp_context_dict(user_instance, community_instance,
@@ -2608,6 +2608,8 @@ class CommunityHelper:
     def send_invite_email_to_given_emails_list(user_instance, community_instance, valid_email_ids_list,
                                                validated_req_body, platform_code, version_code, mail_body):
 
+        hidden_text = 'flex' if validated_req_body.get('link_type') == FREE_PLAN else 'none' 
+
         community_share_link = CommunityHelper.generate_community_share_link(user_instance, community_instance,
                                                                              platform_code, version_code,
                                                                              validated_req_body.get('link_type'))
@@ -2633,7 +2635,8 @@ class CommunityHelper:
                 DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
                 "join_code": community_share_link.get('aj'),
                 "button_text": INVITE_MEMBERS_BUTTON_TEXT,
-                "button_link": community_share_link.get('link')
+                "button_link": community_share_link.get('link'),
+                "is_hidden": hidden_text
             })
 
             mail_subject = INVITE_MEMBERS_SUBJECT.format(community_instance.name)
