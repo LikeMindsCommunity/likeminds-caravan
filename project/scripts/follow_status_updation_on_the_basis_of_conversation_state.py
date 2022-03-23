@@ -52,12 +52,14 @@ def follow_status_updation_on_the_basis_of_conversation_state():
                 collabcard_state_instance.follow_status = True
                 collabcard_state_instance.save()
                 updated_card_state_ids.append(collabcard_state_instance.id)
+                time.sleep(0.5)
 
             # User followed chatroom after unfollowing at-least once.
             elif unfollowed_conversation_instance.created_at < followed_conversation_instance.created_at:
                 collabcard_state_instance.follow_status = True
                 collabcard_state_instance.save()
                 updated_card_state_ids.append(collabcard_state_instance.id)
+                time.sleep(0.5)
 
         print("To update count:", to_be_updated_count)
         print("Updated count:", len(updated_card_state_ids))
