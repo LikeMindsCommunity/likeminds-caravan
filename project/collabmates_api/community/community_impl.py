@@ -2608,7 +2608,9 @@ class CommunityHelper:
     def send_invite_email_to_given_emails_list(user_instance, community_instance, valid_email_ids_list,
                                                validated_req_body, platform_code, version_code, mail_body):
 
-        hidden_text = 'flex' if validated_req_body.get('link_type') == FREE_PLAN else 'none' 
+        is_free_plan = validated_req_body.get('link_type') == FREE_PLAN
+
+        hidden_text = 'flex' if is_free_plan else 'none'
 
         community_share_link = CommunityHelper.generate_community_share_link(user_instance, community_instance,
                                                                              platform_code, version_code,
@@ -2616,7 +2618,7 @@ class CommunityHelper:
 
         for valid_email_id in valid_email_ids_list:
 
-            if community_instance.is_paid:
+            if community_instance.is_paid and is_free_plan:
                 community_share_link = CommunityHelper.generate_community_share_link(user_instance, community_instance,
                                                                                      platform_code, version_code,
                                                                                      validated_req_body.get('link_type'))
@@ -2659,7 +2661,7 @@ class CommunityHelper:
 
         for mobile_no in mobile_nos_list:
 
-            if community_instance.is_paid:
+            if community_instance.is_paid and (validated_req_body.get('link_type') == FREE_PLAN):
                 community_share_link_dict = CommunityHelper.generate_community_share_link(user_instance,
                                                                                           community_instance,
                                                                                           platform_code, version_code,
