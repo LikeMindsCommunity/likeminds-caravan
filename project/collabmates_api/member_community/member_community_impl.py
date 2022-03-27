@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from django.db.models import Q
+from django.db.models import Q, When, Case
 from django.db.models.functions import Lower
 from rest_framework import status as status_codes
 from rest_framework.utils import json
@@ -16,7 +16,7 @@ from utility.constants import CONVERSATIONS_DISTINCT_CREATORS_KEY, CREATE_INTRO_
     CUSTOM_CLICK_TEXT
 from utility.exception_utilities import CustomException
 from utility.states import member_states, card_types, deleted_members, question_states, \
-    conversation_states, member_rights, community_setting_types, SyncTypes
+    conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
@@ -31,7 +31,9 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_community_introductions_based_on_user_list_query,
                            get_chatroom_count_based_on_community_list, get_distinct_chatroom_creator_list,
                            get_count_of_community_members_based_on_community_list,
-                           get_card_ids_to_exclude_based_on_cohort_access)
+                           get_card_ids_to_exclude_based_on_cohort_access,
+                           get_ordered_card_id_on_the_basis_of_message_count,
+                           get_ordered_card_id_on_the_basis_last_message, get_ordered_card_id_on_the_basis_of_participants_count)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -788,7 +790,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                          ).order_by('created_at')
         return member_queryset
 
-    def fetch_feed(self, pin_status, chatroom_id=None, scroll_direction=None) -> {}:
+    def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="") -> {}:
 
         community_instance = Community.get_community_or_None(self.get_community_id())
 
@@ -818,32 +820,40 @@ class MemberCommunityImpl(MemberCommunityManager):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
                                                                                self.get_community_id())
 
-        if not chatroom_id and not scroll_direction:
+        if api_version == api_version_headers.V1:
+            chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
+                pin_status, intro_room_setting_enabled, excluded_card_ids)
 
-            last_seen_chatroom = self.last_seen_chatroom_query(pin_status, intro_room_setting_enabled,
-                                                               excluded_card_ids)
+            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type)
 
-            if not last_seen_chatroom:
-                chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
-                    pin_status, intro_room_setting_enabled, excluded_card_ids)
-                chatroom_list = self.extract_chatrooms_without_scroll(chatroom_queryset, limit_size=5)
-
-            else:
-                last_seen_chatroom_id = last_seen_chatroom.card_id
-                chatroom_list = self.fetch_community_chatrooms_queryset_with_last_seen_chatroom(
-                    pin_status, last_seen_chatroom_id, intro_room_setting_enabled, excluded_card_ids, limit_size=5)
         else:
 
-            chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+            if not chatroom_id and not scroll_direction:
 
-            if not chatroom_instance:
-                return {'error_message': "Invalid chatroom id", 'status': 400}
+                last_seen_chatroom = self.last_seen_chatroom_query(pin_status, intro_room_setting_enabled,
+                                                                   excluded_card_ids)
 
-            chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(pin_status,
-                                                                                          intro_room_setting_enabled,
-                                                                                          excluded_card_ids)
-            chatroom_list = self.extract_chatrooms_on_scroll(chatroom_id, scroll_direction, chatroom_queryset,
-                                                             limit_size=5)
+                if not last_seen_chatroom:
+                    chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
+                        pin_status, intro_room_setting_enabled, excluded_card_ids)
+                    chatroom_list = self.extract_chatrooms_without_scroll(chatroom_queryset, limit_size=5)
+
+                else:
+                    last_seen_chatroom_id = last_seen_chatroom.card_id
+                    chatroom_list = self.fetch_community_chatrooms_queryset_with_last_seen_chatroom(
+                        pin_status, last_seen_chatroom_id, intro_room_setting_enabled, excluded_card_ids, limit_size=5)
+            else:
+
+                chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+
+                if not chatroom_instance:
+                    return {'error_message': "Invalid chatroom id", 'status': 400}
+
+                chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
+                    pin_status, intro_room_setting_enabled, excluded_card_ids)
+
+                chatroom_list = self.extract_chatrooms_on_scroll(chatroom_id, scroll_direction,
+                                                                 chatroom_queryset, limit_size=5)
 
         from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
@@ -852,7 +862,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'chatrooms': chatroom_context_list}
 
-    def fetch_feed_web(self, pin_status, chatroom_id=None, scroll_direction=None) -> {}:
+    def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="") -> {}:
 
         community_instance = Community.get_community_or_None(self.get_community_id())
 
@@ -881,20 +891,27 @@ class MemberCommunityImpl(MemberCommunityManager):
         if create_chatroom_revamp_version_check(self.get_platform_code(), self.get_version_code()):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
                                                                                self.get_community_id())
+        if api_version == api_version_headers.V1:
+            chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
+                pin_status, intro_room_setting_enabled, excluded_card_ids)
 
-        if not chatroom_id and not scroll_direction:
-            chatroom_list = self.fetch_chatroom_queryset_for_web(pin_status, intro_room_setting_enabled,
-                                                                 excluded_card_ids)
-            chatroom_list = chatroom_list[:5]
+            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type)
+
         else:
-            chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
 
-            if not chatroom_instance:
-                return {'error_message': "Invalid chatroom id", 'status': 400}
+            if not chatroom_id and not scroll_direction:
+                chatroom_list = self.fetch_chatroom_queryset_for_web(pin_status, intro_room_setting_enabled,
+                                                                     excluded_card_ids)
+                chatroom_list = chatroom_list[:5]
+            else:
+                chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
 
-            chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_instance,
-                                                                                    intro_room_setting_enabled,
-                                                                                    excluded_card_ids)
+                if not chatroom_instance:
+                    return {'error_message': "Invalid chatroom id", 'status': 400}
+
+                chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_instance,
+                                                                                        intro_room_setting_enabled,
+                                                                                        excluded_card_ids)
 
         from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
@@ -1474,6 +1491,30 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True}
 
+    def _get_sorted_chatroom_queryset_based_on_order_type(self, chatroom_queryset, order_type, page=1, limit=10):
+        card_ids = chatroom_queryset.values_list('card_id', flat=True)
+        ordered_card_ids = []
+
+        if order_type == 0:
+            return chatroom_queryset.order_by('-card__created_at')
+
+        # Recently Active
+        if order_type == 1:
+            ordered_card_ids = get_ordered_card_id_on_the_basis_last_message(card_ids, page, limit)
+
+        # Most Messages
+        if order_type == 2:
+            ordered_card_ids = get_ordered_card_id_on_the_basis_of_message_count(card_ids, page, limit)
+
+        # Most Participants
+        if order_type == 3:
+            ordered_card_ids = get_ordered_card_id_on_the_basis_of_participants_count(card_ids, page, limit)
+
+        chatroom_queryset = MemberCommunityHelper.get_ordered_collabcard_state_list_based_on_card_ids(
+            self.get_member_id(), ordered_card_ids)
+
+        return chatroom_queryset
+
 
 class MemberCommunityHelper:
     @staticmethod
@@ -1869,3 +1910,11 @@ class MemberCommunityHelper:
                                              'attachments_uploaded': True})
 
             update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': user_intro_card_instance}, {})
+
+    @staticmethod
+    def get_ordered_collabcard_state_list_based_on_card_ids(user_id, card_ids):
+
+        preserved = Case(*[When(card_id=card_id, then=pos) for pos, card_id in enumerate(card_ids)])
+        queryset = collabcardState.objects.filter(card_id__in=card_ids, user_id=user_id).order_by(preserved)
+
+        return queryset

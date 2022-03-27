@@ -40,6 +40,7 @@ class FetchCommunityFeed(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         platform_code = RequestUtilities.get_platform_code(request)
+        api_version = platform_code = request.META.get('HTTP_ACCEPT_VERSION', None)
 
         if not member_id:
             context = get_error_context(False, "member id missing in request")
@@ -55,6 +56,7 @@ class FetchCommunityFeed(APIView):
                                                 platform_code=platform_code)
         chatroom_id = request.GET.get('chatroom_id')
         scroll_direction = request.GET.get('scroll_direction')
+        order_type = request.GET.get('order_type', 0)
 
         if (chatroom_id and not scroll_direction) or (scroll_direction and not chatroom_id):
             return JsonResponse({'error_message': "Invalid request parameters", 'status': 400})
@@ -62,13 +64,19 @@ class FetchCommunityFeed(APIView):
         if scroll_direction is not None:
             scroll_direction = NumberUtilities.get_integer_from_string(scroll_direction)
 
+        if order_type:
+            order_type = NumberUtilities.get_integer_from_string(order_type)
+
         if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
 
-                chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
-                                                                scroll_direction=scroll_direction)
+            chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
+                                                            scroll_direction=scroll_direction,
+                                                            api_version=api_version, order_type=order_type)
+
         elif RequestUtilities.is_request_web(request):
 
-            chatroom_context = community_manager.fetch_feed_web(pin_status, chatroom_id, scroll_direction)
+            chatroom_context = community_manager.fetch_feed_web(pin_status, order_type,
+                                                                chatroom_id, scroll_direction, api_version=api_version)
 
         else:
 

@@ -492,6 +492,7 @@ class UserEmailSendStatusTypes:
 
 user_email_send_status_types = UserEmailSendStatusTypes()
 
+
 class ChatroomNotOpenedTypes:
     TAGGED_CHATROOM = 1
     DM_CHATROOM = 2
@@ -551,3 +552,10 @@ class CohortAccess(enum.Enum):
     NO_ACCESS = 0
     RESTRICTED_ACCESS = 1
     FULL_ACCESS = 2
+
+
+class APIVersionHeaders:
+    V1 = "v1"
+
+
+api_version_headers = APIVersionHeaders()

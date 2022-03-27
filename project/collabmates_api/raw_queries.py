@@ -2123,3 +2123,120 @@ def get_last_seen_event_conversation_id_for_user(chatroom_list):
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_ordered_card_id_on_the_basis_of_message_count(chatroom_ids, page=1, limit=10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        card_tuple = get_tuple_from_array(chatroom_ids)
+
+        if not card_tuple:
+            return 0
+
+        sql = """
+            SELECT togther_collabcard.id
+            FROM   togther_collabcard
+                   LEFT JOIN togther_card_answers
+                          ON togther_collabcard.id = togther_card_answers.card_id
+            WHERE  togther_collabcard.id IN %s
+            GROUP  BY togther_collabcard.id
+            ORDER  BY Count(togther_card_answers.card_id) DESC 
+            LIMIT %s OFFSET %s;
+        """ % (str(card_tuple), str(limit), str(offset))
+
+        curr.execute(sql)
+        res = curr.fetchall()
+        curr.close()
+
+        ordered_card_ids = []
+        for card_id in res:
+            ordered_card_ids.append(card_id[0])
+
+        return ordered_card_ids
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_ordered_card_id_on_the_basis_last_message(chatroom_ids, page=1, limit=10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        card_tuple = get_tuple_from_array(chatroom_ids)
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """WITH added_row_number
+                 AS (SELECT CA.created_at,
+                            CA.id,
+                            CA.card_id,
+                            Row_number()
+                              OVER(
+                                partition BY CA.card_id
+                                ORDER BY CA.created_at DESC) AS row_number
+                     FROM   togther_card_answers AS CA
+                     WHERE  CA.card_id IN %s)
+            SELECT card_id
+            FROM   added_row_number
+            WHERE  row_number = 1
+            ORDER  BY created_at DESC LIMIT %s OFFSET %s;
+        """ % (str(card_tuple), str(limit), str(offset))
+        curr.execute(sql)
+        res = curr.fetchall()
+        curr.close()
+
+        ordered_card_ids = []
+        for card_id in res:
+            ordered_card_ids.append(card_id[0])
+
+        return ordered_card_ids
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_ordered_card_id_on_the_basis_of_participants_count(chatroom_ids, page=1, limit=10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        card_tuple = get_tuple_from_array(chatroom_ids)
+
+        if not card_tuple:
+            return 0
+
+        sql = """
+            SELECT togther_collabcard.id
+            FROM   togther_collabcard
+                   LEFT JOIN togther_collabcardState
+                          ON togther_collabcard.id = togther_collabcardState.card_id
+            WHERE  togther_collabcard.id IN %s
+            GROUP  BY togther_collabcard.id
+            ORDER  BY count(togther_collabcardState.card_id) DESC 
+            LIMIT %s OFFSET %s
+        """ % (str(card_tuple), str(limit), str(offset))
+
+        curr.execute(sql)
+        res = curr.fetchall()
+        curr.close()
+
+        ordered_card_ids = []
+        for card_id in res:
+            ordered_card_ids.append(card_id[0])
+
+        return ordered_card_ids
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
