@@ -413,6 +413,19 @@ class CommunityImpl(CommunityManager):
         self._delete_community_relationships(community_instance)
 
         CacheImpl.delete_key('COMMUNITY_BRANDING_{}'.format(self.get_community_id()))
+        CacheImpl.delete_key('WHITELABEL_COMMUNITY_{}'.format(self.get_community_id()))
+
+        domains_data = CacheImpl.get_cache('WHITELABEL_DOMAINS')
+        domains_json = json.loads(domains_data) if domains_data else {}
+        updated_domains_json = {**domains_json}
+
+        for domain, community_id in domains_json.items():
+            if community_id == self.get_community_id():
+                del updated_domains_json[domain]
+                domains_cache_data = json.dumps(updated_domains_json)
+
+                CacheImpl.delete_key('WHITELABEL_DOMAINS')
+                CacheImpl.set_cache('WHITELABEL_DOMAINS', domains_cache_data)
 
         return {'success': True}
 
@@ -1355,6 +1368,7 @@ class CommunityImpl(CommunityManager):
 
         community_state = 0
         branding = None
+        whitelabel_info = None
 
         if validate_req_body.get('branding'):
             try:
@@ -1362,6 +1376,13 @@ class CommunityImpl(CommunityManager):
 
             except:
                 error_logger.error('error in branding key while community creation')
+
+        if validate_req_body.get('is_whitelabel') and validate_req_body.get('whitelabel_info'):
+            try:
+                whitelabel_info = json.dumps(validate_req_body['whitelabel_info'])
+
+            except:
+                error_logger.error('error in whitelabel_info key while community creation')
 
         if directory_questions_v2_version_check(self.get_request_platform(), self.get_version_code()):
             type_id, sub_type_id = CommunityHelper.get_default_community_type_subtype_id()
@@ -1379,7 +1400,9 @@ class CommunityImpl(CommunityManager):
                                                         'type': type_id,
                                                         'sub_type': sub_type_id,
                                                         'hide_community': community_state,
-                                                        'branding': branding})
+                                                        'branding': branding,
+                                                        'is_whitelabel': validate_req_body.get('is_whitelabel', False),
+                                                        'whitelabel_info': whitelabel_info})
 
         if validate_req_body.get('has_logo_uploaded', False):
             add_community_upload_image_analytics.delay(user_instance.id, community_instance.id, community_instance.name)
@@ -1412,6 +1435,8 @@ class CommunityImpl(CommunityManager):
                                                                      {"community_id": community_instance.id,
                                                                       "community_name": community_instance.name})
         CommunityHelper.set_user_email_status.delay(user_instance.id, community_instance.id)
+
+        CommunityHelper.set_community_data_in_cache(community_instance.id)
 
         community_serializer = CommunitySerializerV1(community_instance,
                                                      context={"current_user_id": self.get_member_id()},
@@ -1634,6 +1659,38 @@ class CommunityImpl(CommunityManager):
             CacheImpl.set_cache(branding_cache_key, community_instance.branding)
 
         output['success'] = True
+
+        return output
+
+    def fetch_community_id_from_domain(self, req_body) -> dict:
+
+        output = {}
+        whitelabel_domain_key = 'WHITELABEL_DOMAINS'
+
+        whitelabel_domains = CacheImpl.get_cache(whitelabel_domain_key)
+        domains_json = json.loads(whitelabel_domains) if whitelabel_domains else {}
+        print(domains_json)
+
+        community_id = domains_json.get(req_body.get('domain'), None)
+
+        if community_id:
+            output['community_id'] = community_id
+            output['success'] = True
+
+        else:
+
+            community_instances = ModelUtilities.get_model_filter(
+                Community, {'whitelabel_info__contains': req_body.get('domain')})
+
+            if community_instances:
+                community_instance = community_instances[0]
+                CommunityHelper.set_community_data_in_cache.delay(community_instance.id)
+                output['community_id'] = community_instance.id
+                output['success'] = True
+
+            else:
+                output['success'] = False
+                output['error_message'] = "Invalid domain"
 
         return output
 
@@ -2480,6 +2537,38 @@ class CommunityHelper:
                 "expires_at": TimeUtilities.add_hours_to_epoch_time(TimeUtilities.current_time_in_sec(),
                                                                     hours=MAX_NUMBER_OF_TIMES_GETTING_STARTED_EMAIL_SHOULD_FIRE * 24)
             })
+
+    @staticmethod
+    @shared_task
+    def set_community_data_in_cache(community_id):
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return
+
+        whitelabel_cache_key = 'WHITELABEL_COMMUNITY_{}'.format(community_instance.id)
+        domains_cache_key = 'WHITELABEL_DOMAINS'
+
+        whitelabel_cache_value = community_instance.whitelabel_info
+        whitelabel_json = json.loads(whitelabel_cache_value) if whitelabel_cache_value else None
+
+        CacheImpl.delete_key(whitelabel_cache_key)
+        CacheImpl.set_cache(whitelabel_cache_key, whitelabel_cache_value)
+
+        if whitelabel_json and 'website' in whitelabel_json:
+            domains_cache_value = CacheImpl.get_cache(domains_cache_key)
+            domains_json = json.loads(domains_cache_value) if domains_cache_value else {}
+            updated_domains_json = {**domains_json}
+
+            for domain, community_id in domains_json.items():
+                if community_id == community_instance.id:
+                    del updated_domains_json[domain]
+
+            updated_domains_json[whitelabel_json['website']] = community_instance.id
+            domains_cache_value = json.dumps(updated_domains_json)
+
+            CacheImpl.delete_key(domains_cache_key)
+            CacheImpl.set_cache(domains_cache_key, domains_cache_value)
 
     @staticmethod
     def get_mail_body_for_community_creation_get_started(user_instance, community_instance, branch_link=''):

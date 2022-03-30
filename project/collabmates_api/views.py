@@ -8947,6 +8947,8 @@ def edit_community_version_1(request):
 
     community_id = community_instance.id
 
+    from .community.community_impl import CommunityHelper
+
     purpose = res.get('purpose', community_instance.purpose)
     name = res.get('community_name', community_instance.name)
     image_link = res.get('image_url', community_instance.image_link)
@@ -8978,6 +8980,10 @@ def edit_community_version_1(request):
 
     community_instance.branding = json.dumps(res.get('branding')) if res.get('branding') else community_instance.branding
 
+    community_instance.is_whitelabel = res.get('is_whitelabel', community_instance.is_whitelabel)
+    community_instance.whitelabel_info = json.dumps(res.get('whitelabel_info')) if res.get('whitelabel_info') else \
+        community_instance.whitelabel_info
+
     community_instance.fee_membership = res.get('fee_membership', community_instance.fee_membership)
     community_instance.fee_event = res.get('fee_event', community_instance.fee_event)
     community_instance.fee_payment_pages = res.get('fee_payment_pages', community_instance.fee_payment_pages)
@@ -8990,6 +8996,8 @@ def edit_community_version_1(request):
         edit_community_data(community_instance, user_instance, edit_field=edit_field)
 
     CacheImpl.set_cache('COMMUNITY_BRANDING_{}'.format(community_instance.id), community_instance.branding)
+
+    CommunityHelper.set_community_data_in_cache(community_instance.id)
 
     change_community_level_context_for_paid_community(community_instance)
 
