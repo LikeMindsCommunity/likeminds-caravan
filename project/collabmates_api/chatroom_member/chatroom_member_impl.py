@@ -420,6 +420,13 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             chatroom_context['last_response_members'] = self.create_last_response_members_images(card_instance,
                                                                                                  community_instance)
 
+        total_participants_list = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                                    'follow_status': True,
+                                                                                    'is_tagged': False,
+                                                                                    'remove': None})
+
+        chatroom_context['participants_count'] = total_participants_list.count()
+
         return chatroom_context
 
     def process_chatroom_list(self, chatroom_list, community_instance) -> []:
