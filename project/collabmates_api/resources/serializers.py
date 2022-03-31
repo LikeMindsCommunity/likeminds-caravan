@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from togther.models import ModelUtilities
 from .models import *
+from .constants import *
 
 class ResourceSettingsSerializer(serializers.ModelSerializer):
 
@@ -32,17 +33,22 @@ class ResourceCategoryPermissionSerializer(serializers.ModelSerializer):
         model = ResourceCategoryPermission
         fields = '__all__'
 
-    def get_access_type(self, instance):
-        """
-        TODO:
-            1. Update logic for fetching access_type
-        """
-        return instance.access_type
+    def fetch_access_type(self, instance):
+        from .resources_impl import ResourceHelper
+
+        access_type = ResourceHelper.fetch_access_type_for_resource(
+            resource_type=RESOURCE_TYPE.CATEGORY,
+            resource_id=instance.category_id.id,
+            community_id=self.context.get("community_id"),
+            member_id=self.context.get("member_id"),
+        )
+
+        return access_type
 
     def to_representation(self, instance):
-        data = super(ResourceCategoryPermissionSerializer).to_representation(instance)
+        data = super(ResourceCategoryPermissionSerializer, self).to_representation(instance)
 
-        data['access_type'] = self.get_access_type()
+        data['access_type'] = self.fetch_access_type(instance)
 
         return data
 

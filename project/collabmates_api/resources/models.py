@@ -511,3 +511,108 @@ class ResourceReference(models.Model):
         self.updated_at = current_time_in_ms
 
         super(ResourceReference, self).save(*args, **kwargs)
+
+
+class ResourceCategoryParentCategory(models.Model):
+    """Model to save references among parent and child categories"""
+
+    id = models.UUIDField(
+        default=uuid.uuid4,
+        primary_key=True
+    )
+    category_id = models.ForeignKey(
+        ResourceCategory,
+        on_delete=models.PROTECT
+    )
+    child_category_id = models.ForeignKey(
+        ResourceCategory,
+        on_delete=models.PROTECT
+    )
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'Resouce Category Parent Category'
+        verbose_name_plural = 'Resouce Category Parent Categories'
+        db_table = 'togther_resource_category_parent_category'
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(ResourceCategoryParentCategory, self).save(*args, **kwargs)
+
+
+class ResourceURLParentCategory(models.Model):
+    """Model to save references among parent category and child url"""
+
+    id = models.UUIDField(
+        default=uuid.uuid4,
+        primary_key=True
+    )
+    category_id = models.ForeignKey(
+        ResourceCategory,
+        on_delete=models.PROTECT
+    )
+    url_id = models.ForeignKey(
+        ResourceURL,
+        on_delete=models.PROTECT
+    )
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'Resouce URL Parent Category'
+        verbose_name_plural = 'Resouce URL Parent Categories'
+        db_table = 'togther_resource_url_parent_category'
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(ResourceURLParentCategory, self).save(*args, **kwargs)
+
+
+class ResourceFileParentCategory(models.Model):
+    """Model to save references among parent category and child file"""
+
+    id = models.UUIDField(
+        default=uuid.uuid4,
+        primary_key=True
+    )
+    category_id = models.ForeignKey(
+        ResourceCategory,
+        on_delete=models.PROTECT
+    )
+    file_id = models.ForeignKey(
+        ResourceFile,
+        on_delete=models.PROTECT
+    )
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'Resouce File Parent Category'
+        verbose_name_plural = 'Resouce file Parent Categories'
+        db_table = 'togther_resource_file_parent_category'
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(ResourceFileParentCategory, self).save(*args, **kwargs)

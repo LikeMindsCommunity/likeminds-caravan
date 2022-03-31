@@ -3,6 +3,7 @@ from celery import shared_task
 from utility.states import member_states
 
 from togther.models import ModelUtilities, Community, User, Members, Cohort
+from collabmates_api.cohort.cohort_impl import CohortHelper
 from collabmates_api.rest_api import get_error_context
 
 from .models import *
@@ -46,6 +47,15 @@ class ResourcesImpl(ResourceManager):
             community_id (int)
         """
         return self.community_id
+
+    def get_category_id(self):
+        """
+        returns the category_id class variable
+
+        Returns:
+            category_id (int)
+        """
+        return self.category_id
 
     def update_community_id(self, community_id):
         """
@@ -248,11 +258,6 @@ class ResourcesImpl(ResourceManager):
 
             serializer.save(level=level)
 
-            ResourcesImpl.create_category_permission_for_cohorts.delay(
-                self.get_community_id(),
-                serializer.data.get('id')
-            )
-
             if req_body.get('parent_category_id'):
 
                 reference_dict = {
@@ -263,6 +268,22 @@ class ResourcesImpl(ResourceManager):
                 ResourcesImpl.create_resource_reference_internally.delay(
                     reference_dict,
                     self.get_member_id()
+                )
+
+                ResourcesImpl.copy_category_permission_from_parent_category.delay(
+                    req_body.get('parent_category_id'),
+                    serializer.data.get('id')
+                )
+
+                ResourcesImpl.create_parent_category_to_child_category_mapping.delay(
+                    req_body.get('parent_category_id'),
+                    serializer.data.get('id')
+                )
+
+            else:
+                ResourcesImpl.create_category_permission_for_cohorts.delay(
+                    self.get_community_id(),
+                    serializer.data.get('id')
                 )
 
             res = {
@@ -278,6 +299,44 @@ class ResourcesImpl(ResourceManager):
         }
 
         return res
+
+    @staticmethod
+    @shared_task
+    def copy_category_permission_from_parent_category(parent_category_id, category_id):
+        """
+        bulk update cohorts mapping with category in
+        ResourceCategoryPermission Schema based on parent
+        category _id
+        Args:
+            parent_category_id
+            category_id
+        """
+        parent_category_permission_filter = ModelUtilities.get_model_filter(
+            ResourceCategoryPermission,
+            {
+                'category_id__id': parent_category_id
+            }
+        )
+
+        category_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceCategory,
+            category_id
+        )
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        child_category_permission_objs = [ResourceCategoryPermission(
+            category_id=category_instance,
+            cohort_id=parent_category_permission_obj.cohort_id,
+            access_type=parent_category_permission_obj.access_type,
+            created_at=current_time_in_ms,
+            updated_at=current_time_in_ms
+        ) for parent_category_permission_obj in parent_category_permission_filter]
+
+        ModelUtilities.bulk_create_instances(
+            ResourceCategoryPermission,
+            child_category_permission_objs
+        )
 
     @staticmethod
     @shared_task
@@ -314,6 +373,53 @@ class ResourcesImpl(ResourceManager):
             category_permission_objs
         )
 
+    @staticmethod
+    @shared_task
+    def create_parent_category_to_child_category_mapping(parent_category_id, category_id):
+        """
+        bulk create all parent category with child category mapping
+        in ResourceCategoryParentCategory Schema
+        """
+        parent_category_list = list(ModelUtilities.get_model_filter(
+            ResourceCategoryParentCategory,
+            {
+                'child_category_id__id': parent_category_id
+            }
+        ).values_list(
+            'category_id',
+            flat=True
+        ))
+
+        parent_category_list.append(parent_category_id)
+
+        category_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceCategory,
+            category_id
+        )
+
+        parent_category_queryset = ModelUtilities.get_model_filter(
+            ResourceCategory,
+            {
+                'id__in': parent_category_list
+            }
+        )
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        child_to_parent_category_mapping = [
+            ResourceCategoryParentCategory(
+                category_id=parent_category,
+                child_category_id=category_instance,
+                created_at=current_time_in_ms,
+                updated_at=current_time_in_ms
+            ) for parent_category in parent_category_queryset
+        ]
+
+        ModelUtilities.bulk_create_instances(
+            ResourceCategoryParentCategory,
+            child_to_parent_category_mapping
+        )
+
     def fetch_resource_category(self, page):
         """
         to fetch resource category
@@ -322,9 +428,6 @@ class ResourcesImpl(ResourceManager):
             page (int) - page number of the paginated response
         Returns:
             response (dict)
-        TODO:
-            1. To Update access_type in ResourceCategoryPermission
-               before fetching
         """
         category_queryset = self.fetch_root_level_resource_category_objects()
 
@@ -345,7 +448,11 @@ class ResourcesImpl(ResourceManager):
 
         category_permission_serializer = ResourceCategoryPermissionSerializer(
             category_permission_queryset,
-            many=True
+            many=True,
+            context={
+                'member_id': self.get_member_id(),
+                'community_id': self.get_community_id()
+            }
         )
 
         res = {
@@ -1766,3 +1873,136 @@ class ResourceHelper:
             level = 0
 
         return level
+
+    @staticmethod
+    def fetch_access_type_for_resource(resource_type, resource_id,
+                                       community_id, member_id):
+        """
+        returns the access type for a particular resource by comparing
+        it's cohorts, all member cohorts and the access_type specified
+        in the Permission schema
+
+        Args:
+            resource_type : category, url, file
+            resource_id : respective resource ID
+        Returns:
+            access_type (int)
+        """
+        access_type_to_cohort_mapper = ResourceHelper.create_access_type_to_cohort_mapper(
+            resource_type,
+            resource_id
+        )
+
+        member_cohorts_excluding_all_member_cohort, all_member_cohort = ResourceHelper.get_member_cohorts(
+            community_id,
+            member_id
+        )
+
+        access_type = ResourceHelper.compute_access_type_for_resource(
+            access_type_to_cohort_mapper,
+            member_cohorts_excluding_all_member_cohort,
+            all_member_cohort
+        )
+
+        if not access_type:
+            access_type = RESOURCE_ACCESS_TYPE.NO_ACCESS
+
+        return access_type
+
+    @staticmethod
+    def create_access_type_to_cohort_mapper(resource_type, resource_id):
+        """
+        creates a dict for cohorts against their respective access_type
+        """
+        access_type_to_cohort_mapper = {
+            RESOURCE_ACCESS_TYPE.FULL_ACCESS: [],
+            RESOURCE_ACCESS_TYPE.RESTRICTED_ACCESS: [],
+            RESOURCE_ACCESS_TYPE.NO_ACCESS: []
+        }
+
+        resource_filter = ModelUtilities.get_model_filter(
+            RESOURCE_TYPE_TO_MODEL_MAPPER[resource_type]['model'],
+            {
+                RESOURCE_TYPE_TO_MODEL_MAPPER[resource_type]['field']: resource_id
+            }
+        ).select_related('cohort_id')
+
+        for resource in resource_filter:
+            if resource.access_type == RESOURCE_ACCESS_TYPE.FULL_ACCESS:
+                access_type_to_cohort_mapper[RESOURCE_ACCESS_TYPE.FULL_ACCESS].append(resource.cohort_id.id)
+
+            elif resource.access_type == RESOURCE_ACCESS_TYPE.RESTRICTED_ACCESS:
+                access_type_to_cohort_mapper[RESOURCE_ACCESS_TYPE.RESTRICTED_ACCESS].append(resource.cohort_id.id)
+
+            else:
+                access_type_to_cohort_mapper[RESOURCE_ACCESS_TYPE.NO_ACCESS].append(resource.cohort_id.id)
+
+        return access_type_to_cohort_mapper
+
+    @staticmethod
+    def get_member_cohorts(community_id, member_id):
+        """
+        returns member's cohorts list
+
+        Args:
+            community_id (int)
+            member_id (int)
+        Returns:
+            member_cohorts (List)
+            all_member_cohort (int)
+        """
+        member_cohorts = []
+        all_member_cohort = None
+
+        member_cohort_dict = CohortHelper.precompute_cohorts_of_members(community_id=community_id,
+                                                                        member_ids=[member_id])
+
+        for obj in member_cohort_dict:
+
+            if obj.get('cohort').get('type') == 3:
+                all_member_cohort = obj.get('cohort').get('id')
+                continue
+
+            member_cohorts.append(obj.get('cohort').get('id'))
+
+        return member_cohorts, all_member_cohort
+
+    @staticmethod
+    def compute_access_type_for_resource(access_type_to_cohort_mapper,
+                                         member_cohorts_excluding_all_member_cohort,
+                                         all_member_cohort):
+        """
+        returns access_type for resource after applying logic
+
+        Args:
+            access_type_to_cohort_mapper (dict)
+            member_cohorts (list)
+            all_member_cohort (int)
+        Returns:
+            access_type (int)
+        """
+        if not member_cohorts_excluding_all_member_cohort:
+
+            for access_type in sorted(access_type_to_cohort_mapper):
+
+                if all_member_cohort in access_type_to_cohort_mapper[access_type]:
+
+                    return access_type
+
+        return ResourceHelper.find_access_type_for_resource_when_member_cohort_is_null(
+            access_type_to_cohort_mapper,
+            member_cohorts_excluding_all_member_cohort
+        )
+
+    @staticmethod
+    def find_access_type_for_resource_when_member_cohort_is_null(access_type_to_cohort_mapper,
+                                                                 member_cohorts_excluding_all_member_cohort):
+        """
+        returns accesss_type for any resource
+        """
+        for access_type in sorted(access_type_to_cohort_mapper):
+
+            if any(cohort in access_type_to_cohort_mapper[access_type]
+                    for cohort in member_cohorts_excluding_all_member_cohort):
+
+                return access_type
