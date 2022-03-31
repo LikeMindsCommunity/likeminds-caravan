@@ -788,6 +788,11 @@ class ResourcesImpl(ResourceManager):
                 self.get_member_id()
             )
 
+            ResourcesImpl.create_parent_category_to_child_url_mapping.delay(
+                req_body.get('category_id'),
+                serializer.data.get('id')
+            )
+
             res = {
                 'success': True,
                 'resource_url': serializer.data
@@ -905,6 +910,53 @@ class ResourcesImpl(ResourceManager):
         ModelUtilities.bulk_create_instances(
             ResourceURLState,
             url_state_objs
+        )
+
+    @staticmethod
+    @shared_task
+    def create_parent_category_to_child_url_mapping(category_id, url_id):
+        """
+        bulk create all parent category with child url mapping
+        in ResourceURLParentCategory Schema
+        """
+        parent_category_list = list(ModelUtilities.get_model_filter(
+            ResourceCategoryParentCategory,
+            {
+                'child_category_id__id': category_id
+            }
+        ).values_list(
+            'category_id',
+            flat=True
+        ))
+
+        parent_category_list.append(category_id)
+
+        url_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceURL,
+            url_id
+        )
+
+        parent_category_queryset = ModelUtilities.get_model_filter(
+            ResourceCategory,
+            {
+                'id__in': parent_category_list
+            }
+        )
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        child_to_parent_category_mapping = [
+            ResourceURLParentCategory(
+                category_id=parent_category,
+                url_id=url_instance,
+                created_at=current_time_in_ms,
+                updated_at=current_time_in_ms
+            ) for parent_category in parent_category_queryset
+        ]
+
+        ModelUtilities.bulk_create_instances(
+            ResourceURLParentCategory,
+            child_to_parent_category_mapping
         )
 
     def update_resource_url(self, req_body):
@@ -1167,6 +1219,11 @@ class ResourcesImpl(ResourceManager):
                 self.get_member_id()
             )
 
+            ResourcesImpl.create_parent_category_to_child_file_mapping.delay(
+                req_body.get('category_id'),
+                serializer.data.get('id')
+            )
+
             res = {
                 'success': True,
                 'resource_file': serializer.data
@@ -1253,6 +1310,53 @@ class ResourcesImpl(ResourceManager):
         ModelUtilities.bulk_create_instances(
             ResourceFileState,
             file_state_objs
+        )
+
+    @staticmethod
+    @shared_task
+    def create_parent_category_to_child_file_mapping(category_id, file_id):
+        """
+        bulk create all parent category with child url mapping
+        in ResourceURLParentCategory Schema
+        """
+        parent_category_list = list(ModelUtilities.get_model_filter(
+            ResourceCategoryParentCategory,
+            {
+                'child_category_id__id': category_id
+            }
+        ).values_list(
+            'category_id',
+            flat=True
+        ))
+
+        parent_category_list.append(category_id)
+
+        file_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceFile,
+            file_id
+        )
+
+        parent_category_queryset = ModelUtilities.get_model_filter(
+            ResourceCategory,
+            {
+                'id__in': parent_category_list
+            }
+        )
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        child_to_parent_category_mapping = [
+            ResourceFileParentCategory(
+                category_id=parent_category,
+                file_id=file_instance,
+                created_at=current_time_in_ms,
+                updated_at=current_time_in_ms
+            ) for parent_category in parent_category_queryset
+        ]
+
+        ModelUtilities.bulk_create_instances(
+            ResourceFileParentCategory,
+            child_to_parent_category_mapping
         )
 
     def update_resource_file(self, req_body):
