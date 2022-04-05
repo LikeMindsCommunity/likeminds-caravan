@@ -35,7 +35,9 @@ class CommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'edit_questions') and callable(subclass.edit_questions)) and
                 (hasattr(subclass, 'fetch_community_questions') and callable(subclass.fetch_community_questions)) and
                 (hasattr(subclass, 'fetch_community_branding_info') and
-                 callable(subclass.fetch_community_branding_info)) or
+                 callable(subclass.fetch_community_branding_info)) and
+                (hasattr(subclass, 'fetch_community_id_from_domain') and
+                 callable(subclass.fetch_community_id_from_domain)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -181,5 +183,11 @@ class CommunityManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fetch_community_branding_info(self, req_body) -> {}:
         """ Fetches community branding info """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_community_id_from_domain(self, req_body) -> dict:
+        """ Fetches community id from doamin """
 
         raise NotImplementedError

@@ -714,7 +714,7 @@ class FetchCommunityBrandingView(APIView):
         validated_body = self._validate_request(member_id, community_id, req_body)
 
         if not validated_body.get('success'):
-            return JsonResponse(validated_body, status=status_codes.HTTP_200_OK)
+            return JsonResponse(validated_body, status=status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(member_id=validated_body.get('member_id'),
                                           community_id=community_id,
@@ -722,6 +722,39 @@ class FetchCommunityBrandingView(APIView):
                                           request_platform=platform_code)
 
         res = community_manager.fetch_community_branding_info(validated_body)
+
+        if not res.get('success'):
+            return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(res, status=status_codes.HTTP_200_OK)
+
+
+class FetchCommunityFromDomainView(APIView):
+
+    def _validate_request(self, req_body, member_id):
+
+        validated_req = {}
+
+        if 'domain' not in req_body:
+            return {'success': False, 'error_message': 'send domain'}
+
+        validated_req['success'] = True
+        validated_req['member_id'] = member_id
+        validated_req['domain'] = req_body.get('domain')
+
+        return validated_req
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.fetch_request_query_params(request)
+        validated_body = self._validate_request(req_body, member_id)
+
+        if not validated_body.get('success'):
+            return JsonResponse(validated_body, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_manager = CommunityImpl(member_id=validated_body.get('member_id'))
+
+        res = community_manager.fetch_community_id_from_domain(validated_body)
 
         if not res.get('success'):
             return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
