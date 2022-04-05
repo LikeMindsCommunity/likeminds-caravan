@@ -66,7 +66,7 @@ class ResourceURLSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Category appears to be deleted. Please enter a valid category_id")
 
         return category_instance
-        
+
     def to_representation(self, instance):
         data = super(ResourceURLSerializer, self).to_representation(instance)
 

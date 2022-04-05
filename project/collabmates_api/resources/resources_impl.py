@@ -10,6 +10,9 @@ from .models import *
 from .constants import *
 from .serializers import *
 from .resources_manager import ResourceManager
+from .raw_queries import fetch_child_url_ids_for_updating_permission, \
+                        fetch_child_file_ids_for_updating_permission, \
+                        fetch_child_category_ids_for_updating_permission
 
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -595,9 +598,85 @@ class ResourcesImpl(ResourceManager):
                         'access_type': obj.get('access_type')
                     }
                 )
+
+                ResourcesImpl.update_permissions_for_child_resources(obj, category_id)
+
             except Exception as e:
                 error_logger.error("Exception occurred while updation/creation of ResourceCategoryPermission - %s" % e.args)
                 pass
+
+    @staticmethod
+    def update_permissions_for_child_resources(req_obj, category_id):
+        """
+        Updates child resources' permissions based on the change
+        in parent category permission changes
+
+        Args:
+            obj (dict)
+                cohort_id
+                access_type
+            category_id
+        """
+        cohort_id = req_obj.get('cohort_id')
+        access_type_list = ()
+
+        if req_obj.get('access_type') == RESOURCE_ACCESS_TYPE.NO_ACCESS:
+
+            access_type_list = [RESOURCE_ACCESS_TYPE.FULL_ACCESS,
+                                RESOURCE_ACCESS_TYPE.RESTRICTED_ACCESS]
+
+        elif req_obj.get('access_type') == RESOURCE_ACCESS_TYPE.RESTRICTED_ACCESS:
+
+            access_type_list = [RESOURCE_ACCESS_TYPE.FULL_ACCESS]
+
+        if access_type_list:
+            url_ids_to_be_updated = fetch_child_url_ids_for_updating_permission(
+                category_id,
+                cohort_id,
+                access_type_list
+            )
+
+            file_ids_to_be_updated = fetch_child_file_ids_for_updating_permission(
+                category_id,
+                cohort_id,
+                access_type_list
+            )
+
+            category_ids_to_be_updated = fetch_child_category_ids_for_updating_permission(
+                category_id,
+                cohort_id,
+                access_type_list
+            )
+
+            ModelUtilities.get_model_filter(
+                ResourceURLPermission,
+                {
+                    'url_id__in': url_ids_to_be_updated,
+                    'cohort_id': cohort_id
+                }
+            ).update(
+                access_type=req_obj.get('access_type')
+            )
+
+            ModelUtilities.get_model_filter(
+                ResourceFilePermission,
+                {
+                    'file_id__in': file_ids_to_be_updated,
+                    'cohort_id': cohort_id
+                }
+            ).update(
+                access_type=req_obj.get('access_type')
+            )
+
+            ModelUtilities.get_model_filter(
+                ResourceCategoryPermission,
+                {
+                    'category_id__in': category_ids_to_be_updated,
+                    'cohort_id': cohort_id
+                }
+            ).update(
+                access_type=req_obj.get('access_type')
+            )
 
     def delete_resource_category(self, req_body):
         """
