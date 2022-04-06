@@ -184,7 +184,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
                   'type', 'sub_type', 'is_paid', 'auto_approval', 'grace_period',
                   'is_discoverable', 'website_url', 'community_category', 'referral_enabled',
                   'dashboard_link', 'updated_at', 'fee_membership', 'fee_event', 'fee_payment_pages',
-                  'likeminds_plan', 'branding')
+                  'likeminds_plan', 'branding', 'is_whitelabel', 'whitelabel_info')
 
     def __init__(self, *args, **kwargs):
         super(CommunitySerializerV1, self).__init__(*args, **kwargs)
@@ -227,6 +227,9 @@ class CommunitySerializerV1(serializers.ModelSerializer):
 
             if field.field_name == "branding":
                 data['branding'] = json.loads(community.branding) if community.branding else None
+
+            if field.field_name == "whitelabel_info":
+                data['whitelabel_info'] = json.loads(community.whitelabel_info) if community.whitelabel_info else None
 
             elif data[field.field_name] is None:
                 del data[field.field_name]

@@ -91,6 +91,9 @@ class Community(models.Model):
 
     branding = models.TextField(null=True)
 
+    is_whitelabel = models.BooleanField(default=False)
+    whitelabel_info = models.TextField(null=True)
+
     fee_membership = models.IntegerField(default=5)
     fee_event = models.IntegerField(default=5)
     fee_payment_pages = models.IntegerField(default=5)
@@ -123,6 +126,8 @@ class Community(models.Model):
         community_instance.sub_type = community_object['sub_type']
         community_instance.hide_community = community_object['hide_community']
         community_instance.branding = community_object['branding']
+        community_instance.is_whitelabel = community_object['is_whitelabel']
+        community_instance.whitelabel_info = community_object['whitelabel_info']
         community_instance.save()
 
         return community_instance
