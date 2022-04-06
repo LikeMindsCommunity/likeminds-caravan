@@ -163,3 +163,56 @@ def get_parent_categories_with_access_type(resource_type, resource_id, cohort_id
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+def get_child_resource_state_for_category(resource_type, state, member_id, child_categories):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        if len(child_categories) == 1:
+            child_category_query = "WHERE category_id_id = '%s'" % str(child_categories[0])
+
+        else:
+            child_category_query = "WHERE category_id_id in %s" % str(tuple(child_categories))
+
+        if resource_type == RESOURCE_TYPE.URL:
+            resource_id = "url_id_id"
+            state_schema = "togther_resource_url_state"
+            parent_mapping_schema = "togther_resource_url_parent_category"
+
+        elif resource_type == RESOURCE_TYPE.FILE:
+            resource_id = "file_id_id"
+            state_schema = "togther_resource_file_state"
+            parent_mapping_schema = "togther_resource_file_parent_category"
+
+        sql = """
+                SELECT DISTINCT(%s)
+                FROM %s
+                WHERE user_id_id=%s
+                AND state=%s
+                AND %s in (
+                    SELECT %s
+                    FROM %s
+                    %s
+                )
+            """ % (
+                resource_id,
+                state_schema,
+                str(member_id),
+                str(state),
+                resource_id,
+                resource_id,
+                parent_mapping_schema,
+                child_category_query
+            )
+
+        curr.execute(sql)
+        query = curr.fetchall()
+        curr.close()
+
+        child_ids = [data[0] for data in query]
+
+        return child_ids
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)

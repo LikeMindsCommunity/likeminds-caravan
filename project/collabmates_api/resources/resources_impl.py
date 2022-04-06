@@ -13,7 +13,8 @@ from .resources_manager import ResourceManager
 from .raw_queries import fetch_child_url_ids_for_updating_permission, \
                         fetch_child_file_ids_for_updating_permission, \
                         fetch_child_category_ids_for_updating_permission, \
-                        get_parent_categories_with_access_type
+                        get_parent_categories_with_access_type, \
+                        get_child_resource_state_for_category
 
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -1891,10 +1892,251 @@ class ResourcesImpl(ResourceManager):
             req_body (dict) - request body
         Returns:
             response (dict)
-        TODO:
-            To complete
         """
-        pass
+        resource_category_instance = ModelUtilities.get_model_instance_or_none(
+            ResourceCategory,
+            self.get_category_id()
+        )
+
+        if not resource_category_instance:
+            return get_error_context(False, 'incorrect category_id')
+
+        self.update_community_id(
+            resource_category_instance.community_id.id
+        )
+
+        member_check = Members.is_community_member(
+            self.get_community_id(),
+            self.get_member_id()
+        )
+
+        if not member_check:
+            return get_error_context(
+                False,
+                "To view resources, you need to be a member of the community."
+            )
+
+        url_dict = self.fetch_child_url_data_for_category(
+            resource_category_instance
+        )
+
+        file_dict = self.fetch_child_file_data_for_category(
+            resource_category_instance
+        )
+
+        category_dict = self.fetch_child_category_data_for_category(
+            resource_category_instance
+        )
+
+        res = {'success':True}
+
+        res.update(url_dict)
+        res.update(file_dict)
+        res.update(category_dict)
+
+        return res
+
+    def fetch_child_url_data_for_category(self, category_instance):
+        """
+        Returns
+            ResourceURL instances
+            ResourceURLPermission instances
+            REsourceURLState instances
+        for a particular category
+        """
+        url_instances = ModelUtilities.get_model_filter(
+            ResourceURL,
+            {
+                'category_id': category_instance
+            }
+        )
+
+        url_permission_instances = ModelUtilities.get_model_filter(
+            ResourceURLPermission,
+            {
+                'url_id__in': url_instances
+            }
+        )
+
+        url_state_instances = ModelUtilities.get_model_filter(
+            ResourceURLState,
+            {
+                'url_id__in': url_instances,
+                'user_id__id': self.get_member_id()
+            }
+        )
+
+        url_serializer = ResourceURLSerializer(
+            url_instances,
+            many=True
+        )
+
+        url_permission_serializer = ResourceURLPermissionSerializer(
+            url_permission_instances,
+            many=True,
+            context={
+                'member_id': self.get_member_id(),
+                'community_id': self.get_community_id()
+            }
+        )
+
+        url_state_serializer = ResourceURLStateSerializer(
+            url_state_instances,
+            many=True
+        )
+
+        res = {
+            'urls': url_serializer.data,
+            'url_permissions': url_permission_serializer.data,
+            'url_states': url_state_serializer.data
+        }
+
+        return res
+
+    def fetch_child_file_data_for_category(self, category_instance):
+        """
+        Returns
+            ResourceFile instances
+            ResourceFilePermission instances
+            ResourceFileState instances
+        for a particular category
+        """
+        file_instances = ModelUtilities.get_model_filter(
+            ResourceFile,
+            {
+                'category_id': category_instance
+            }
+        )
+
+        file_permission_instances = ModelUtilities.get_model_filter(
+            ResourceFilePermission,
+            {
+                'file_id__in': file_instances
+            }
+        )
+
+        file_state_instances = ModelUtilities.get_model_filter(
+            ResourceFileState,
+            {
+                'file_id__in': file_instances,
+                'user_id__id': self.get_member_id()
+            }
+        )
+
+        file_serializer = ResourceFileSerializer(
+            file_instances,
+            many=True
+        )
+
+        file_permission_serializer = ResourceFilePermissionSerializer(
+            file_permission_instances,
+            many=True,
+            context={
+                'member_id': self.get_member_id(),
+                'community_id': self.get_community_id()
+            }
+        )
+
+        file_state_serializer = ResourceFileStateSerializer(
+            file_state_instances,
+            many=True
+        )
+
+        res = {
+            'files': file_serializer.data,
+            'file_permissions': file_permission_serializer.data,
+            'file_states': file_state_serializer.data
+        }
+
+        return res
+
+    def fetch_child_category_data_for_category(self, category_instance):
+        """
+        Returns
+            ResourceCategory instances
+            ResourceCategoryPermission instances
+            Child ResourceURLState instances
+            Child ResourceFileState instances
+        for a particular category
+        """
+        category_instances = ModelUtilities.get_model_filter(
+            ResourceCategory,
+            {
+                'parent_category_id': category_instance
+            }
+        )
+
+        category_permission_instances = ModelUtilities.get_model_filter(
+            ResourceCategoryPermission,
+            {
+                'category_id__in': category_instances
+            }
+        )
+
+        category_serializer = ResourceCategorySerializer(
+            category_instances,
+            many=True
+        )
+
+        category_permission_serializer = ResourceCategoryPermissionSerializer(
+            category_permission_instances,
+            many=True,
+            context={
+                'member_id': self.get_member_id(),
+                'community_id': self.get_community_id()
+            }
+        )
+
+        child_category_list = list(category_instances.values_list('id', flat=True))
+
+        child_category_url_state_ids = get_child_resource_state_for_category(
+            RESOURCE_TYPE.URL,
+            RESOURCE_STATE.UNSEEN,
+            self.get_member_id(),
+            child_category_list
+        )
+
+        child_category_file_state_ids = get_child_resource_state_for_category(
+            RESOURCE_TYPE.FILE,
+            RESOURCE_STATE.UNSEEN,
+            self.get_member_id(),
+            child_category_list
+        )
+
+        child_category_url_state_instances = ModelUtilities.get_model_filter(
+            ResourceURLState,
+            {
+                'url_id__id__in': child_category_url_state_ids,
+                'user_id__id': self.get_member_id()
+            }
+        )
+
+        child_category_file_state_instances = ModelUtilities.get_model_filter(
+            ResourceFileState,
+            {
+                'file_id__id__in': child_category_file_state_ids,
+                'user_id__id': self.get_member_id()
+            }
+        )
+
+        child_category_url_state_serializer = ChildCategoryURLStateSerializer(
+            child_category_url_state_instances,
+            many=True
+        )
+
+        child_category_file_state_serializer = ChildCategoryFileStateSerializer(
+            child_category_file_state_instances,
+            many=True
+        )
+
+        res = {
+            'child_categories': category_serializer.data,
+            'child_category_permissions': category_permission_serializer.data,
+            'child_category_url_states': child_category_url_state_serializer.data,
+            'child_category_file_states': child_category_file_state_serializer.data
+        }
+
+        return res
 
     def update_resource_state(self, req_body):
         """

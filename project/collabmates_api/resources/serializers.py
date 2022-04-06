@@ -12,6 +12,7 @@ class ResourceSettingsSerializer(serializers.ModelSerializer):
         model = ResourceSettings
         fields = '__all__'
 
+
 class ResourceCategorySerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -26,6 +27,7 @@ class ResourceCategorySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Parent Category appears to be deleted. Please enter a valid parent_category_id")
 
         return parent_category_instance
+
 
 class ResourceCategoryPermissionSerializer(serializers.ModelSerializer):
 
@@ -52,6 +54,7 @@ class ResourceCategoryPermissionSerializer(serializers.ModelSerializer):
 
         return data
 
+
 class ResourceURLSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -73,17 +76,39 @@ class ResourceURLSerializer(serializers.ModelSerializer):
         data['og_tags'] = json.loads(instance.og_tags)
         return data
 
+
 class ResourceURLPermissionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ResourceURLPermission
         fields = '__all__'
 
+    def fetch_access_type(self, instance):
+        from .resources_impl import ResourceHelper
+
+        access_type = ResourceHelper.fetch_access_type_for_resource(
+            resource_type=RESOURCE_TYPE.URL,
+            resource_id=instance.url_id.id,
+            community_id=self.context.get("community_id"),
+            member_id=self.context.get("member_id"),
+        )
+
+        return access_type
+
+    def to_representation(self, instance):
+        data = super(ResourceURLPermissionSerializer, self).to_representation(instance)
+
+        data['access_type'] = self.fetch_access_type(instance)
+
+        return data
+
+
 class ResourceURLStateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ResourceURLState
         fields = '__all__'
+
 
 class ResourceFileSerializer(serializers.ModelSerializer):
 
@@ -100,17 +125,39 @@ class ResourceFileSerializer(serializers.ModelSerializer):
 
         return category_instance
 
+
 class ResourceFilePermissionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ResourceFilePermission
         fields = '__all__'
 
+    def fetch_access_type(self, instance):
+        from .resources_impl import ResourceHelper
+
+        access_type = ResourceHelper.fetch_access_type_for_resource(
+            resource_type=RESOURCE_TYPE.FILE,
+            resource_id=instance.file_id.id,
+            community_id=self.context.get("community_id"),
+            member_id=self.context.get("member_id"),
+        )
+
+        return access_type
+
+    def to_representation(self, instance):
+        data = super(ResourceFilePermissionSerializer, self).to_representation(instance)
+
+        data['access_type'] = self.fetch_access_type(instance)
+
+        return data
+
+
 class ResourceFileStateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ResourceFileState
         fields = '__all__'
+
 
 class ResourceReferenceSerializer(serializers.ModelSerializer):
 
@@ -153,3 +200,37 @@ class ResourceReferenceSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Child Category appears to be deleted. Please enter a valid child_category_id")
 
         return category_instance
+
+
+class ChildCategoryURLStateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ResourceURLState
+        fields = '__all__'
+
+    def fetch_category_id(self, instance):
+        return instance.url_id.category_id.id
+
+    def to_representation(self, instance):
+        data = super(ChildCategoryURLStateSerializer, self).to_representation(instance)
+
+        data['category_id'] = self.fetch_category_id(instance)
+
+        return data
+
+
+class ChildCategoryFileStateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ResourceFileState
+        fields = '__all__'
+
+    def fetch_category_id(self, instance):
+        return instance.file_id.category_id.id
+
+    def to_representation(self, instance):
+        data = super(ChildCategoryFileStateSerializer, self).to_representation(instance)
+
+        data['category_id'] = self.fetch_category_id(instance)
+
+        return data
