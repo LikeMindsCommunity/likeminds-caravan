@@ -12,7 +12,8 @@ from .serializers import *
 from .resources_manager import ResourceManager
 from .raw_queries import fetch_child_url_ids_for_updating_permission, \
                         fetch_child_file_ids_for_updating_permission, \
-                        fetch_child_category_ids_for_updating_permission
+                        fetch_child_category_ids_for_updating_permission, \
+                        get_parent_categories_with_access_type
 
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -579,9 +580,18 @@ class ResourcesImpl(ResourceManager):
         for obj in permission_obj:
 
             if not obj.get('cohort_id') or not obj.get('access_type'):
-                pass
+                continue
 
             try:
+                parent_categories_with_diff_access = ResourcesImpl.check_if_parent_categories_with_access_type_exist(
+                    RESOURCE_TYPE.CATEGORY,
+                    category_id,
+                    obj
+                )
+
+                if not parent_categories_with_diff_access.get('success'):
+                    continue
+
                 ModelUtilities.update_or_create_model(
                     ResourceCategoryPermission,
                     filter_dict={
@@ -1157,9 +1167,18 @@ class ResourcesImpl(ResourceManager):
         for obj in permission_obj:
 
             if not obj.get('cohort_id') or not obj.get('access_type'):
-                pass
+                continue
 
             try:
+                parent_categories_with_diff_access = ResourcesImpl.check_if_parent_categories_with_access_type_exist(
+                    RESOURCE_TYPE.URL,
+                    url_id,
+                    obj
+                )
+
+                if not parent_categories_with_diff_access.get('success'):
+                    continue
+
                 ModelUtilities.update_or_create_model(
                     ResourceURLPermission,
                     filter_dict={
@@ -1179,6 +1198,68 @@ class ResourcesImpl(ResourceManager):
             except Exception as e:
                 error_logger.error("Exception occurred while updation/creation of ResourceURLPermission - %s" % e.args)
                 pass
+
+    @staticmethod
+    def check_if_parent_categories_with_access_type_exist(resource_type,
+                                                          resource_id,
+                                                          obj):
+        """
+        checks if any parent category has a "restricted" access set
+
+        Args:
+            resource_type (str)
+            resource_id (str)
+            obj (dict)
+                cohort_id
+                access_type
+        Returns:
+            success (boolean)
+            error_message (str)
+        """
+        if obj.get('access_type') == RESOURCE_ACCESS_TYPE.FULL_ACCESS:
+
+            access_type_list = [RESOURCE_ACCESS_TYPE.RESTRICTED_ACCESS,
+                                RESOURCE_ACCESS_TYPE.NO_ACCESS]
+
+            parent_categories_with_diff_access = get_parent_categories_with_access_type(
+                resource_type,
+                resource_id,
+                obj.get('cohort_id'),
+                access_type_list
+            )
+
+            if parent_categories_with_diff_access:
+                res = get_error_context(
+                    False,
+                    "You cannot update access_type for this resource as its \
+                        parent categories have RESTRICTED/NO ACCESS set for %s" \
+                        % str(obj.get('cohort_id'))
+                )
+
+                return res
+
+        elif obj.get('access_type') == RESOURCE_ACCESS_TYPE.RESTRICTED_ACCESS:
+
+            access_type_list = [RESOURCE_ACCESS_TYPE.NO_ACCESS]
+
+            parent_categories_with_diff_access = get_parent_categories_with_access_type(
+                resource_type,
+                resource_id,
+                obj.get('cohort_id'),
+                access_type_list
+            )
+
+            if parent_categories_with_diff_access:
+                res = get_error_context(
+                    False,
+                    "You cannot update access_type for this resource as its \
+                        parent categories have NO ACCESS set for %s" % \
+                        str(obj.get('cohort_id'))
+                )
+
+                return res
+
+        return {'success': True}
 
     def delete_resource_url(self, req_body):
         """
@@ -1519,9 +1600,18 @@ class ResourcesImpl(ResourceManager):
         for obj in permission_obj:
 
             if not obj.get('cohort_id') or not obj.get('access_type'):
-                pass
+                continue
 
             try:
+                parent_categories_with_diff_access = ResourcesImpl.check_if_parent_categories_with_access_type_exist(
+                    RESOURCE_TYPE.FILE,
+                    file_id,
+                    obj
+                )
+
+                if not parent_categories_with_diff_access.get('success'):
+                    continue
+
                 ModelUtilities.update_or_create_model(
                     ResourceFilePermission,
                     filter_dict={
