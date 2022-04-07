@@ -52,7 +52,8 @@ def backfill_community_settings_for_direct_messages():
 
         user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
 
-        for setting_type in [community_setting_types.DIRECT_MESSAGES, community_setting_types.MEMBERS_CAN_DM]:
+        for setting_type in [community_setting_types.DIRECT_MESSAGES, community_setting_types.MEMBERS_CAN_DM,
+                             community_setting_types.DIRECT_MESSAGE_SETTING]:
 
             community_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
                                                                        {'setting_type': setting_type,
@@ -70,6 +71,9 @@ def backfill_community_settings_for_direct_messages():
             if setting_type == community_setting_types.DIRECT_MESSAGES:
                 is_enabled = community_dm_right.exists()
                 sub_title = DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED
+
+            if setting_type == community_setting_types.DIRECT_MESSAGE_SETTING:
+                is_enabled = True
 
             community_settings_data = {
                 'community_instance': community_instance,
@@ -120,8 +124,7 @@ def backfill_community_settings_for_direct_messages_setting():
 
 def backfill_is_private_member_value():
     card_filter = ModelUtilities.get_model_filter(Collabcard, {'is_private': True,
-                                                               'type': card_types.CARD_DIRECT_MESSAGE,
-                                                               'community__in': [49902]})
+                                                               'type': card_types.CARD_DIRECT_MESSAGE})
 
     count = card_filter.count()
 
@@ -174,8 +177,7 @@ def backfill_is_private_member_value():
 
 def remove_collabcardstate_created_on_join_for_dm():
     card_filter = ModelUtilities.get_model_filter(Collabcard, {'is_private': True,
-                                                               'type': card_types.CARD_DIRECT_MESSAGE,
-                                                               'community__in': [49902]})
+                                                               'type': card_types.CARD_DIRECT_MESSAGE})
 
     card_ids_list = list(card_filter.values_list('id', flat=True))
 
