@@ -13,7 +13,8 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  AddEventRecordingAttachmentMeta, UpdateAccessWithOutSubscriptionView,
                                  DeleteEventRecordingAttachment, DeleteEventRecordingAttachmentMeta,
                                  RemoveCohortFromChatroomView, AddCohortToChatroomView, FetchChatroomParticipantsView,
-                                 PublishEventWebflowView, FetchUserAllEventsMeta, ChangeChatroomTypeView)
+                                 PublishEventWebflowView, FetchUserAllEventsMeta, ChangeChatroomTypeView,
+                                 CreateDMChatroomView, BlockMemberView, RequestDMView)
 
 urlpatterns = [
     path('fetch', FetchChatroomView.as_view(), name="fetch_chatroom"),
@@ -62,4 +63,7 @@ urlpatterns = [
     path('event/delete_recordings_meta', DeleteEventRecordingAttachmentMeta.as_view(), name='delete_recordings_meta'),
     path('event/delete_recordings', DeleteEventRecordingAttachment.as_view(), name='delete_recordings'),
     path('event/publish_webflow', PublishEventWebflowView.as_view(), name='publish_webflow'),
+    path('create_dm', CreateDMChatroomView.as_view(), name='create_dm_chatroom'),
+    path('block', BlockMemberView.as_view(), name='block_member'),
+    path('request_dm', RequestDMView.as_view(), name='request_dm')
 ]

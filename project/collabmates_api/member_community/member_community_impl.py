@@ -1,3 +1,5 @@
+import math
+
 from django.contrib.auth.models import User
 from django.db.models import Q, When, Case
 from django.db.models.functions import Lower
@@ -9,14 +11,16 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
                             Collabcard, card_answers, conversationEngage, communityQuestions, CommunityUserDelete,
                             communityRightsSettings, CommunitySettings, communityAnswers, questionFilters,
-                            Card_Attachment)
+                            Card_Attachment, CommunityDirectMessageSettings, userMemberRights)
 from utility.celery_tasks import update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery, \
     update_multiple_previews_in_chatroom, set_level_click_state
 from utility.constants import CONVERSATIONS_DISTINCT_CREATORS_KEY, CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, \
     CUSTOM_CLICK_TEXT
 from utility.exception_utilities import CustomException
 from utility.states import member_states, card_types, deleted_members, question_states, \
-    conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers
+    conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers, \
+    community_dm_settings_state_types, community_dm_settings_duration_types, dm_icon_from_states
+
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
@@ -33,11 +37,14 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_count_of_community_members_based_on_community_list,
                            get_card_ids_to_exclude_based_on_cohort_access,
                            get_ordered_card_id_on_the_basis_of_message_count,
-                           get_ordered_card_id_on_the_basis_last_message, get_ordered_card_id_on_the_basis_of_participants_count)
+                           get_ordered_card_id_on_the_basis_last_message,
+                           get_ordered_card_id_on_the_basis_of_participants_count,
+                           check_user_has_member_can_initiate_dm_right, get_dm_chatrooms_of_user,
+                           get_last_conversation_id_corresponding_to_chatrooms_list)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
-    conversationSerializer
+    conversationSerializer, get_members_profile
 from ..static_files import REMOVED_USER_URL, ICONS
 from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_ITEMS, COMMUNITY_LEVEL_3_TEXT, \
     IMAGE_URLS_FOR_QUESTION_TITLES, CREATE_COMMUNITY_QUESTION_NAME_TITLE
@@ -84,6 +91,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def get_version_code(self) -> int:
         return self.version_code
+
+    def get_device_id(self) -> str:
+        return self.device_id
 
     def extract_member_communities(self, page: int) -> list:
 
@@ -1490,7 +1500,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             return {'success': True, 'question_answers': question_answers_data}
 
         return {'success': True}
-
+    
     def _get_sorted_chatroom_queryset_based_on_order_type(self, chatroom_queryset, order_type, page=1, limit=10):
         card_ids = chatroom_queryset.values_list('card_id', flat=True)
         ordered_card_ids = []
@@ -1514,6 +1524,134 @@ class MemberCommunityImpl(MemberCommunityManager):
             self.get_member_id(), ordered_card_ids)
 
         return chatroom_queryset
+
+    def request_dm_limit(self, member_id: str) -> {}:
+        validated_request = MemberCommunityHelper.validate_request_dm_limit_request(self.get_member_id(),
+                                                                                    self.get_community_id(),
+                                                                                    member_id)
+
+        if not validated_request.get('success'):
+            return validated_request
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        member_instance = validated_request.get('member_instance')
+
+        dm_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                            {'community': community_instance,
+                                                             'setting_type': community_setting_types.DIRECT_MESSAGES})
+
+        if all([dm_setting_filter, not dm_setting_filter[0].enabled]):
+            return get_error_context(False, 'Direct message is disabled for the community!')
+
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+
+        user_member_dm_chatroom = ChatroomHelper.get_dm_chatroom_from_members(community_instance.id,
+                                                                              user_instance.id, member_instance.id)
+
+        is_cm = Members.get_community_member_state(community_instance, user_instance) == member_states.ADMIN
+
+        response = {
+            'is_request_dm_limit_exceeded': False,
+            'new_request_dm_timestamp': None
+        }
+
+        if user_member_dm_chatroom:
+            response['chatroom_id'] = user_member_dm_chatroom.id
+
+        if not is_cm:
+            response = MemberCommunityHelper.member_request_dm_limit(user_instance, community_instance, response)
+
+        return response
+
+    def fetch_dm_chatrooms(self, page: int = 1) -> {}:
+        validated_request = MemberCommunityHelper.validate_fetch_dm_chatrooms_request(self.get_member_id(),
+                                                                                      self.get_community_id(),
+                                                                                      page)
+
+        if not validated_request.get('success'):
+            return validated_request
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        page = validated_request.get('page')
+
+        dm_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                            {'community': community_instance,
+                                                             'setting_type': community_setting_types.DIRECT_MESSAGES})
+
+        if all([dm_setting_filter, not dm_setting_filter[0].enabled]):
+            return get_error_context(False, 'Direct message is disabled!')
+
+        total_pages = 0
+
+        card_state_tuple = get_dm_chatrooms_of_user(user_instance.id, community_instance.id)
+
+        card_state_map = {data[0]: data[1] for data in card_state_tuple}
+
+        if not card_state_map:
+            return {'success': True, 'dm_chatrooms': [], 'total_pages': total_pages}
+
+        total_pages = int(math.ceil(len(card_state_map) / CHATROOMS_RECORD_LIMIT))
+
+        card_ans_map = get_last_conversation_id_corresponding_to_chatrooms_list(list(card_state_map.keys()), page=page)
+
+        dm_chatrooms = []
+
+        convsersation_states_to_consider = [
+            conversation_states.ANSWER,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_REMOVED_OR_LEFT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT
+        ]
+
+        rights_list = list(ModelUtilities.get_model_filter(userMemberRights,
+                                                           {'user': user_instance,
+                                                            'community': community_instance}).
+                           values_list("right__state", flat=True))
+
+        for card_id, card_ans_id in card_ans_map.items():
+            chatroom = MemberCommunityHelper.serialise_dm_chatrooms(user_instance, community_instance, card_id,
+                                                                    card_ans_id, card_state_map,
+                                                                    convsersation_states_to_consider, rights_list)
+
+            if chatroom:
+                dm_chatrooms.append(chatroom)
+
+        return {'success': True, 'dm_chatrooms': dm_chatrooms, 'total_pages': total_pages}
+
+    def member_can_dm(self, req_body: dict) -> {}:
+        validated_request = MemberCommunityHelper.validate_member_can_dm_request(self.get_member_id(),
+                                                                                 self.get_community_id(),
+                                                                                 req_body)
+
+        if not validated_request.get('success'):
+            return validated_request
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        member_instance = validated_request.get('member_instance')
+        req_from = validated_request.get('req_from')
+
+        if req_from == dm_icon_from_states.MEMBER_PROFILE:
+            response = MemberCommunityHelper.can_member_dm_from_member_profile(user_instance, member_instance,
+                                                                               community_instance)
+
+        elif req_from == dm_icon_from_states.COMMUNITY_DETAIL:
+            response = MemberCommunityHelper.can_member_dm_from_community_detail(user_instance, community_instance)
+
+        elif req_from in [dm_icon_from_states.DM_FEED, dm_icon_from_states.MEMBER_DIRECTORY]:
+            response = MemberCommunityHelper.can_member_from_dm_feed_or_member_directory(user_instance,
+                                                                                         community_instance)
+
+        else:
+            response = MemberCommunityHelper.can_member_dm_from_dm_chatroom(user_instance, validated_request)
+
+        return response
 
 
 class MemberCommunityHelper:
@@ -1910,7 +2048,7 @@ class MemberCommunityHelper:
                                              'attachments_uploaded': True})
 
             update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': user_intro_card_instance}, {})
-
+    
     @staticmethod
     def get_ordered_collabcard_state_list_based_on_card_ids(user_id, card_ids):
 
@@ -1918,3 +2056,370 @@ class MemberCommunityHelper:
         queryset = collabcardState.objects.filter(card_id__in=card_ids, user_id=user_id).order_by(preserved)
 
         return queryset
+
+    @staticmethod
+    def validate_request_dm_limit_request(user_id, community_id, member_id):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return get_error_context(False, "Invalid x-member-id")
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return get_error_context(False, "Invalid community_id")
+
+        member_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+
+        if not member_instance:
+            return get_error_context(False, "Invalid member_id")
+
+        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
+                'member_instance': member_instance}
+
+    @staticmethod
+    def validate_fetch_dm_chatrooms_request(user_id, community_id, page_no):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return get_error_context(False, "Invalid x-member-id")
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return get_error_context(False, "Invalid community_id")
+
+        if not isinstance(page_no, int):
+            page_no = NumberUtilities.get_integer_from_string(page_no, 0)
+
+            if not page_no:
+                return get_error_context(False, "Page must be integer")
+
+        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
+                'page': page_no}
+
+    @staticmethod
+    def validate_member_can_dm_request(user_id, community_id, req_body):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return get_error_context(False, "Invalid x-member-id")
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return get_error_context(False, "Invalid community_id")
+
+        if not req_body.get('req_from'):
+            return get_error_context(False, "Send req_from")
+
+        if req_body.get('req_from') not in [dm_icon_from_states.MEMBER_PROFILE, dm_icon_from_states.COMMUNITY_DETAIL,
+                                            dm_icon_from_states.DM_FEED, dm_icon_from_states.MEMBER_DIRECTORY,
+                                            dm_icon_from_states.CHATROOM]:
+            return get_error_context(False, "Invalid req_from")
+
+        member_instance = None
+        chatroom_instance = None
+
+        if req_body.get('member_id'):
+            member_instance = ModelUtilities.get_model_instance_or_none(User, req_body.get('member_id'))
+
+            if not member_instance:
+                return get_error_context(False, "Invalid member_id")
+
+        if req_body.get('chatroom_id'):
+            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
+
+            if not chatroom_instance:
+                return get_error_context(False, "Invalid chatroom_id")
+
+        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
+                'member_instance': member_instance, 'req_from': req_body.get('req_from'),
+                'chatroom_instance': chatroom_instance}
+
+    @staticmethod
+    def member_request_dm_limit(user_instance, community_instance, response):
+        members_can_dm_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                {'community': community_instance,
+                                                                 'setting_type': community_setting_types.MEMBERS_CAN_DM})
+
+        if all([members_can_dm_filter, not members_can_dm_filter[0].enabled]):
+            return get_error_context(False, 'Members cannot initiate direct messages!')
+
+        member_can_dm_right_state = member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM
+        user_has_dm_right = check_user_has_member_can_initiate_dm_right(user_instance.id, community_instance.id,
+                                                                        member_can_dm_right_state)
+
+        if not user_has_dm_right:
+            return get_error_context(False, "You don't have right to DM members!")
+
+        community_dm_settings_filter = ModelUtilities.get_model_filter(CommunityDirectMessageSettings,
+                                                                       {'community': community_instance})
+
+        if not community_dm_settings_filter:
+            return get_error_context(False, "Community DM settings are not set yet!")
+
+        community_dm_settings_instance = community_dm_settings_filter[0]
+
+        if community_dm_settings_instance.state == community_dm_settings_state_types.UNLIMITED:
+            return response
+
+        elif community_dm_settings_instance.state == community_dm_settings_state_types.LIMITED:
+
+            if community_dm_settings_instance.duration == community_dm_settings_duration_types.DAYS:
+                start_epoch_time = TimeUtilities.get_epoch_time_for_start_of_day_in_millisec(
+                    TimeUtilities.get_current_datetime())
+                end_epoch_time = TimeUtilities.get_epoch_time_for_end_of_day_in_millisec(
+                    TimeUtilities.get_current_datetime())
+
+            elif community_dm_settings_instance.duration == community_dm_settings_duration_types.WEEKS:
+                start_epoch_time = TimeUtilities.get_epoch_time_for_start_of_day_in_millisec(
+                    TimeUtilities.get_week_first_day_in_datetime())
+                end_epoch_time = TimeUtilities.get_epoch_time_for_end_of_day_in_millisec(
+                    TimeUtilities.get_week_end_day_in_datetime())
+
+            elif community_dm_settings_instance.duration == community_dm_settings_duration_types.MONTHS:
+                start_epoch_time = TimeUtilities.get_epoch_time_for_start_of_day_in_millisec(
+                    TimeUtilities.get_month_first_day_in_datetime())
+                end_epoch_time = TimeUtilities.get_epoch_time_for_end_of_day_in_millisec(
+                    TimeUtilities.get_month_last_day_in_datetime())
+
+        else:
+            return get_error_context(False, "Invalid state or duration!")
+
+        card_state_filter_object = {
+            'community': community_instance,
+            'card__is_private': True,
+            'card__type': card_types.CARD_DIRECT_MESSAGE,
+            'follow_status': True,
+            'chat_requested_by': user_instance,
+            'chat_request_created_at__gte': start_epoch_time,
+            'chat_request_created_at__lte': end_epoch_time
+        }
+
+        card_state_filter = ModelUtilities.get_model_filter(collabcardState, card_state_filter_object).exclude(
+            chat_request_state=None)
+
+        if card_state_filter.count() >= community_dm_settings_instance.number_in_duration:
+            return {'is_request_dm_limit_exceeded': True, 'new_request_dm_timestamp': end_epoch_time}
+
+    @staticmethod
+    def serialise_dm_chatrooms(user_instance, community_instance, card_id, card_ans_id, card_state_map,
+                               convsersation_states_to_consider, rights_list):
+        chatroom = {}
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+        card_state_instance = ModelUtilities.get_model_instance_or_none(collabcardState,
+                                                                        card_state_map.get(card_id))
+        card_answer_instance = ModelUtilities.get_model_instance_or_none(card_answers, card_ans_id)
+
+        if card_instance:
+            chatroom['chatroom'] = get_chatroom_instance(card_instance, user_instance.id, send_profile=False)
+            context = {"current_user_id": user_instance.id}
+            chatroom['community'] = CommunitySerializerV1(card_instance.community, context=context,
+                                                          many=False).data
+            chatroom['is_draft'] = False
+
+        if card_answer_instance:
+            last_conversation_dict = conversationSerializer(card_answer_instance,
+                                                            current_user_id=user_instance.id,
+                                                            device_id=self.get_device_id())
+            preview = generate_internal_link_preview_for_conversation(card_answer_instance, user_instance.id)
+
+            if preview:
+                last_conversation_dict['preview'] = preview
+
+            chatroom['last_conversation'] = last_conversation_dict
+
+            if card_state_instance.last_seen_conversation_id:
+                unseen_filter = {
+                    'id__gt': card_state_instance.last_seen_conversation_id,
+                    'card_id': card_instance.id,
+                    'state__in': convsersation_states_to_consider
+                }
+
+            else:
+                unseen_filter = {
+                    'card_id': card_instance.id,
+                    'state__in': convsersation_states_to_consider
+                }
+
+            chatroom['unseen_conversation_count'] = ModelUtilities.get_model_filter(card_answers,
+                                                                                    unseen_filter).count()
+            chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(
+                TimeUtilities.convert_milliseconds_to_sec(card_answer_instance.created_at))
+            chatroom['member_state'] = Members.get_community_member_state(community_instance, user_instance)
+
+            if card_state_instance.chat_request_state:
+                chatroom['chat_request_state'] = card_state_instance.chat_request_state
+
+            if card_state_instance.chat_request_created_at:
+                chatroom['chat_request_created_at'] = card_state_instance.chat_request_created_at
+
+            if card_state_instance.chat_requested_by:
+                chatroom['chat_requested_by'] = get_members_profile([card_state_instance.chat_requested_by],
+                                                                    community_instance.id, send_profile=False)
+
+            chatroom['is_private_member'] = card_instance.is_private_member
+            chatroom['member_right_states'] = rights_list
+
+        return chatroom
+
+    @staticmethod
+    def can_member_dm_from_member_profile(user_instance, member_instance, community_instance):
+        dm_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                            {'community': community_instance,
+                                                             'setting_type': community_setting_types.DIRECT_MESSAGES})
+
+        if all([dm_setting_filter, not dm_setting_filter[0].enabled]):
+            return {'success': True, 'show_dm': False}
+
+        if not member_instance:
+            return get_error_context(False, 'Invalid member_id')
+
+        is_member_admin = Members.get_community_member_state(community_instance, member_instance) == member_states.ADMIN
+        is_user_admin = Members.get_community_member_state(community_instance, user_instance) == member_states.ADMIN
+
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+        user_member_dm_chatroom = ChatroomHelper.get_dm_chatroom_from_members(community_instance.id,
+                                                                              user_instance.id,
+                                                                              member_instance.id)
+
+        if not user_member_dm_chatroom:
+            return {'success': True, 'show_dm': False}
+
+        elif is_user_admin or is_member_admin:
+            return {'success': True, 'show_dm': True,
+                    'cta': CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
+                                                                           community_instance.id)}
+
+        else:
+            members_can_dm_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                    {'community': community_instance,
+                                                                     'setting_type': community_setting_types.MEMBERS_CAN_DM})
+
+            if all([members_can_dm_filter, not members_can_dm_filter[0].enabled]):
+                return {'success': True, 'show_dm': False}
+
+            member_can_dm_right_state = member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM
+            user_has_dm_right = check_user_has_member_can_initiate_dm_right(user_instance.id, community_instance.id,
+                                                                            member_can_dm_right_state)
+
+            if not user_has_dm_right:
+                return {'success': True, 'show_dm': False}
+
+            return {'success': True, 'show_dm': True,
+                    'cta': CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
+                                                                           community_instance.id)}
+
+    @staticmethod
+    def can_member_dm_from_community_detail(user_instance, community_instance):
+        is_user_admin = Members.get_community_member_state(community_instance, user_instance) == member_states.ADMIN
+
+        if is_user_admin:
+            return {'success': True, 'show_dm': False}
+
+        dm_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                            {'community': community_instance,
+                                                             'setting_type': community_setting_types.DIRECT_MESSAGES})
+
+        if all([dm_setting_filter, not dm_setting_filter[0].enabled]):
+            return {'success': True, 'show_dm': False}
+
+        else:
+            cms_list = Members.get_managers_list(community_instance)
+
+            if len(cms_list) == 1:
+
+                from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+                user_member_dm_chatroom = ChatroomHelper.get_dm_chatroom_from_members(community_instance.id,
+                                                                                      user_instance.id,
+                                                                                      cms_list[0])
+                return {'success': True, 'show_dm': True,
+                        'cta': CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
+                                                                               community_instance.id)}
+
+            else:
+                return {'success': True, 'show_dm': True,
+                        'cta': CTA_ROUTE_DIRECT_MESSAGES_COMMUNITY_DETAIL_MULTIPLE_CM.format(community_instance.id)}
+
+    @staticmethod
+    def can_member_from_dm_feed_or_member_directory(user_instance, community_instance):
+        is_user_admin = Members.get_community_member_state(community_instance, user_instance) == member_states.ADMIN
+
+        if is_user_admin:
+            return {'success': True, 'show_dm': False}
+
+        members_can_dm_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                {'community': community_instance,
+                                                                 'setting_type': community_setting_types.MEMBERS_CAN_DM})
+
+        if all([members_can_dm_filter, not members_can_dm_filter[0].enabled]):
+            return {'success': True, 'show_dm': False}
+
+        member_can_dm_right_state = member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM
+        user_has_dm_right = check_user_has_member_can_initiate_dm_right(user_instance.id, community_instance.id,
+                                                                        member_can_dm_right_state)
+
+        if not user_has_dm_right:
+            return {'success': True, 'show_dm': False}
+
+        return {'success': True, 'show_dm': True,
+                'cta': CTA_ROUTE_DIRECT_MESSAGES_DM_FEED.format(community_instance.id)}
+
+    @staticmethod
+    def can_member_dm_from_dm_chatroom(user_instance, validated_request):
+        chatroom_instance = validated_request.get('chatroom_instance')
+
+        if not chatroom_instance:
+            return get_error_context(False, 'Invalid chatroom id')
+
+        community_instance = chatroom_instance.community
+
+        response = {'success': True, 'show_dm': False}
+
+        if any([not chatroom_instance.is_private, chatroom_instance.type != card_types.CARD_DIRECT_MESSAGE,
+                user_instance not in [chatroom_instance.user, chatroom_instance.chatroom_with_user]]):
+            return response
+
+        dm_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                            {'community': community_instance,
+                                                             'setting_type': community_setting_types.DIRECT_MESSAGES})
+
+        if all([dm_setting_filter, not dm_setting_filter[0].enabled]):
+            return response
+
+        is_user_admin = Members.is_member_community_promoter(community_instance, chatroom_instance.user)
+        is_chatroom_with_user_admin = Members.is_member_community_promoter(community_instance,
+                                                                           chatroom_instance.chatroom_with_user)
+
+        if is_user_admin or is_chatroom_with_user_admin:
+            return {'success': True, 'show_dm': True,
+                    'cta': CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(chatroom_instance.id,
+                                                                           community_instance.id)}
+
+        members_can_dm_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                {'community': community_instance,
+                                                                 'setting_type': community_setting_types.MEMBERS_CAN_DM})
+
+        if all([members_can_dm_filter, not members_can_dm_filter[0].enabled]):
+            return response
+
+        member_can_dm_right_state = member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM
+        user_has_dm_right = check_user_has_member_can_initiate_dm_right(
+            chatroom_instance.user_id, community_instance.id, member_can_dm_right_state)
+
+        if user_has_dm_right:
+            return {'success': True, 'show_dm': True,
+                    'cta': CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(chatroom_instance.id,
+                                                                           community_instance.id)}
+
+        else:
+            chatroom_with_user_has_dm_right = check_user_has_member_can_initiate_dm_right(
+                chatroom_instance.chatroom_with_user_id, community_instance.id, member_can_dm_right_state)
+
+            if chatroom_with_user_has_dm_right:
+                return {'success': True, 'show_dm': True,
+                        'cta': CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(chatroom_instance.id,
+                                                                               community_instance.id)}
+
+            return response

@@ -28,16 +28,17 @@ CREATE_COMMUNITY_PAGE_2 = {
     }
 
 
+DELETE_ROOM = {'id': 1, 'sub_title': None, 'title': 'Moderate chatrooms', "state": 0}
 
-DELETE_ROOM = {'id': 1, 'sub_title': None, 'title': 'Delete chat rooms/messages', "state": 0}
-
-APPROVE_MEMBERS = {'id': 2, 'sub_title': None, 'title': 'Approve/remove members', "state": 1}
+APPROVE_MEMBERS = {'id': 2, 'sub_title': None, 'title': 'Moderate members', "state": 1}
 
 EDIT_COMMUNITY = {'id': 3, 'sub_title': None, 'title': "Edit community details", "state": 2}
 
 VIEW_CONTACT = {'id': 4, 'sub_title': None, 'title': 'View member contact info', "state": 3}
 
 ADD_MANAGER = {'id': 5, 'sub_title': None, 'title': "Add community managers", "state": 4}
+
+MODERATE_DM_SETTINGS = {'id': 6, 'title': "Moderate DM settings", 'sub_title': None, "state": 5}
 
 MANAGER_RIGHTS_LIST = [DELETE_ROOM, APPROVE_MEMBERS, EDIT_COMMUNITY, VIEW_CONTACT, ADD_MANAGER]
 

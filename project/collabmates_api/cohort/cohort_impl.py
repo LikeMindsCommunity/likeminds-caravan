@@ -14,11 +14,12 @@ from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
     CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers, \
     Collabcard
-from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list, CohortAccess
+from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list, CohortAccess, member_rights
 from ..rest_api import CohortSerializer, CohortMetaSerializer, ChatroomCohortSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
-    respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, create_secret_chatroom_right
+    respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, \
+    create_secret_chatroom_right, ALL_MEMBER_COHORT_TEXT, members_can_dm_right
 from ..user.user_impl import UserImpl, UserHelper
 from ..user_moderation_rights import check_all_manager_rights, get_saved_member_rights_list, check_history_exists, \
     check_rights_history_existence, save_member_right, update_member_rights_in_conversation_engage, \
@@ -655,7 +656,7 @@ class CohortHelper:
         return userinfo_dict
 
     @staticmethod
-    def get_all_the_cohort_rights(cohort_rights):
+    def get_all_the_cohort_rights(cohort_rights, is_m2cm_v2=False):
         rights = {
             "create_room": False,
             "create_poll": False,
@@ -663,7 +664,8 @@ class CohortHelper:
             "respond_in_rooms": False,
             "invite_private": False,
             "auto_approve": False,
-            "create_secret_chatroom": False
+            "create_secret_chatroom": False,
+            "members_can_dm": False
         }
 
         for right in cohort_rights:
@@ -689,6 +691,9 @@ class CohortHelper:
 
             elif right.state == create_secret_chatroom_right['state']:
                 rights['create_secret_chatroom'] = True
+
+            elif is_m2cm_v2 and right.state == members_can_dm_right['state']:
+                rights['members_can_dm'] = True
 
         return rights
 
@@ -1113,3 +1118,48 @@ class CohortHelper:
                 cohort_access = max(cohort_access, chatroom_cohort.cohort_access)
 
         return cohort_access
+
+    @staticmethod
+    def add_members_can_dm_right_in_all_member_cohort(community_instance):
+        member_can_dm_right_filter = ModelUtilities.get_model_filter(
+            memberRights, {'state': member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM})
+
+        if not member_can_dm_right_filter:
+            return {'success': False, 'error_message': 'Member can dm right not found!'}
+
+        all_member_cohort_filter = ModelUtilities.get_model_filter(Cohort,
+                                                                   {'community': community_instance,
+                                                                    'name': ALL_MEMBER_COHORT_TEXT,
+                                                                    'type': cohort_types.ALL_MEMBER})
+
+        if not all_member_cohort_filter:
+            return {'success': False, 'error_message': 'All member cohort not exists!'}
+
+        filter_dict = {
+            'cohort': all_member_cohort_filter[0],
+            'member_rights': member_can_dm_right_filter[0]
+        }
+
+        ModelUtilities.update_or_create_model(CohortRights, filter_dict, filter_dict)
+        return {'success': True}
+
+    @staticmethod
+    def get_cohorts_with_specific_right(community_instance,
+                                        right_state=member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM,
+                                        is_m2cm_v2=False):
+
+        cohort_right_filter = ModelUtilities.get_model_filter(CohortRights,
+                                                              {'cohort__community': community_instance,
+                                                               'member_rights__state': right_state})
+
+        cohort_data = []
+
+        if not cohort_right_filter:
+            return cohort_data
+
+        serialized_data_context = {'get_rights_data': True, 'is_m2cm_v2': is_m2cm_v2}
+        cohort_ids = list(cohort_right_filter.values_list('cohort_id', flat=True))
+        cohort_instance_objects = CohortSerializer(ModelUtilities.get_model_filter(Cohort, {'id__in': cohort_ids}),
+                                                   context=serialized_data_context, many=True).data
+
+        return cohort_instance_objects

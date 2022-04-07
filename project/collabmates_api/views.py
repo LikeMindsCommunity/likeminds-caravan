@@ -34,9 +34,9 @@ from utility.celery_tasks import (
     update_event_attendees, set_levels_on_ctc_celery, set_level_click_state, update_event_instructors_in_cache,
     update_event_highlights_in_cache, update_event_faq_in_cache, update_event_member_testimonials_in_cache,
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
-    cm_removed_dm_chatroom, member_becomes_cm_dm_chatroom, reset_unread_message_count_in_cache,
-    fetch_conversations_unread, update_deferred_card_poll_updated_at_value, get_to_show_results_for_conversation_poll,
-    send_chatroom_deleted_analytics_data)
+    reset_unread_message_count_in_cache, fetch_conversations_unread, update_deferred_card_poll_updated_at_value,
+    get_to_show_results_for_conversation_poll, send_chatroom_deleted_analytics_data, cm_removed_dm_chatroom,
+    member_becomes_cm_dm_chatroom)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -50,7 +50,7 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     cm_onboarding_version_check, directory_questions_v2_version_check,
-                    get_user_email_preferred_verified)
+                    get_user_email_preferred_verified, m2cm_v2_version_check, m2cm_v1_version_check)
 from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
     tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
@@ -3355,6 +3355,9 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
     collabcard_filter = Collabcard.objects.filter(community=community_instance,
                                                   is_pending=False, is_deleted=False,
                                                   is_secret=False).order_by('id')
+
+    collabcard_filter = collabcard_filter.exclude(is_private=True, type=card_types.CARD_DIRECT_MESSAGE)
+
     chatroom_ids = []
 
     for card_instance in collabcard_filter:
@@ -4735,13 +4738,36 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                          platform_code=None):
     """ function to get chatroom actions """
 
-    if card_instance.is_private:
+    if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE]):
+
+        if not m2cm_v2_version_check(platform_code, version_code):
+
+            if card_status.get('mute_status'):
+                return collabcard_action_dm_user_mute
+
+            else:
+                return collabcard_action_dm_user_unmute
+
+        dm_chatroom_actions = [view_profile]
 
         if card_status.get('mute_status'):
-            return collabcard_action_dm_user_mute
+            dm_chatroom_actions.append(unMute_notifications)
 
         else:
-            return collabcard_action_dm_user_unmute
+            dm_chatroom_actions.append(mute_notifications)
+
+        if not card_instance.is_private_member:
+            return dm_chatroom_actions
+
+        last_conversation = ModelUtilities.get_model_filter(card_answers, {'card': card_instance}).last()
+
+        if last_conversation.state == conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT:
+            dm_chatroom_actions.append(unblock_member)
+
+        else:
+            dm_chatroom_actions.append(block_member_chatroom)
+
+        return dm_chatroom_actions
 
     purpose_card = False
     intro_card = False
@@ -8989,6 +9015,7 @@ def edit_community_version_1(request):
     community_instance.fee_payment_pages = res.get('fee_payment_pages', community_instance.fee_payment_pages)
     community_instance.brand_color = res.get('brand_color', community_instance.brand_color)
     community_instance.likeminds_plan = res.get('likeminds_plan', community_instance.likeminds_plan)
+    community_instance.hide_dm_tab = res.get('hide_dm_tab', community_instance.hide_dm_tab)
 
     community_instance.save()
 
@@ -10486,7 +10513,8 @@ def fetch_community_manager_rights(request):
     rights_context = []
 
     if admin.exists():
-        admin_rights = userAdminRights.objects.filter(community=community_instance, user=current_user_instance)
+        admin_rights = userAdminRights.objects.filter(community=community_instance,
+                                                      user=current_user_instance).order_by('-right__rank')
         user_rights = list(userAdminRights.objects.filter(community=community_instance,
                                                           user=user_instance).values_list('right__id',
                                                                                           flat=True))
@@ -10588,6 +10616,21 @@ def update_community_manager_rights(request):
                                           'member_id': current_user_id})
 
             return JsonResponse({'success': True})
+
+        moderate_dm_right_filter = ModelUtilities.get_model_filter(adminRights,
+                                                                   {'state': manager_rights.MODERATE_DM_SETTINGS})
+
+        if moderate_dm_right_filter:
+            existing_rights = set(userAdminRights.objects.filter(community=community_instance,
+                                                                 user=user_instance).values_list("right__id",
+                                                                                                 flat=True))
+            rights_added, removed_rights = get_added_and_removed_rights(selected_rights=selected_rights,
+                                                                        existing_rights=existing_rights)
+
+            if moderate_dm_right_filter[0].id in (list(rights_added) + list(removed_rights)) and \
+                not check_admin_moderate_dm_settings_right(current_user_instance, community_instance):
+                context = get_error_context(False, "You don't have right to give right of DM setting!")
+                return JsonResponse(context)
 
         rights_added, removed_rights = save_added_removed_rights_for_manager(community_instance,
                                                                              user_instance,
@@ -11566,15 +11609,18 @@ def fetch_community_setting_rights(request):
     current_user_id = get_member_id_from_headers(request)
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
+    platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
     can_show = False
 
-    if RequestUtilities.is_request_android(request) and version_code >= DM_CHATROOMS_VERSION_CODE_ANDROID:
+    if m2cm_v1_version_check(platform_code, version_code):
         can_show = True
 
-    if RequestUtilities.is_request_ios(request) and version_code >= DM_CHATROOMS_VERSION_CODE_IOS:
-        can_show = True
+    is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code)
+
+    if is_m2cm_v2:
+        can_show = False
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
@@ -11597,9 +11643,9 @@ def fetch_community_setting_rights(request):
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
     # checking if the logged in user is Manager of the community or not
     if admin.exists():
-        user_rights = check_all_member_rights(community=community_instance)
+        user_rights = check_all_member_rights(community=community_instance, is_m2cm_v2=is_m2cm_v2)
         # fetching all the rights of the community
-        rights_context = get_saved_member_rights_list(user_rights, show_dm_right=can_show)
+        rights_context = get_saved_member_rights_list(user_rights, show_dm_right=can_show, is_m2cm_v2=is_m2cm_v2)
         return JsonResponse({"rights": rights_context})
     else:
         context = get_error_context(False, "user is not a admin")
@@ -11652,6 +11698,22 @@ def update_community_rights(request):
                 right = memberRights.objects.get(pk=right_id)
                 communityRightsSettings(community=community_instance, right=right).save()
                 give_right_to_all_members(community=community_instance, right=right)
+
+                if all([right.state == member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES,
+                        right.title == member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES_TITLE]):
+
+                    filter_dict = {
+                        "community": community_instance,
+                        "setting_type": community_setting_types.DIRECT_MESSAGES
+                    }
+                    update_dict = {
+                        'setting_sub_title': DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED,
+                        'enabled': True,
+                        'updated_at': TimeUtilities.current_time_in_milliseconds(),
+                        'enabled_by': current_user_instance
+                    }
+
+                    ModelUtilities.model_update(CommunitySettings, filter_dict, update_dict)
             except:
                 error_logger.error("rights already exists for commnunity {community_id} in community settings")
 
@@ -11660,6 +11722,24 @@ def update_community_rights(request):
             right = memberRights.objects.get(pk=right_id)
             communityRightsSettings.objects.filter(community=community_instance, right=right).delete()
             remove_right_for_all_members(community=community_instance, right=right)
+
+            if all([right.state == member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES,
+                    right.title == member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES_TITLE]):
+
+                filter_dict = {
+                    "community": community_instance,
+                    "setting_type": community_setting_types.DIRECT_MESSAGES
+                }
+
+                update_dict = {
+                    'setting_sub_title': COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING.get(
+                        community_setting_types.DIRECT_MESSAGES),
+                    'enabled': False,
+                    'updated_at': TimeUtilities.current_time_in_milliseconds(),
+                    'enabled_by': None
+                }
+
+                ModelUtilities.model_update(CommunitySettings, filter_dict, update_dict)
 
         info_logger.info(
             f"UPDATING_COMMUNITY_SETTINGS - current user id = {current_user_id}"
@@ -11725,13 +11805,11 @@ class SyncChatrooms(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code(request)
 
         can_add_dm_chatrooms = False
 
-        if RequestUtilities.is_request_android(request) and version_code >= DM_CHATROOMS_VERSION_CODE_ANDROID:
-            can_add_dm_chatrooms = True
-
-        if RequestUtilities.is_request_ios(request) and version_code >= DM_CHATROOMS_VERSION_CODE_IOS:
+        if m2cm_v1_version_check(platform_code, version_code):
             can_add_dm_chatrooms = True
 
         query_params = request.query_params
@@ -11984,9 +12062,22 @@ class SyncChatrooms(APIView):
             chatroom["external_seen"] = data[67]
 
             chatroom["online_link_type"] = data[68]
+            chatroom["is_private_member"] = data[69]
 
             if chatroom['is_private'] and not can_add_dm_chatrooms:
                 continue
+
+            if chatroom['is_private_member'] and not m2cm_v2_version_check(platform_code, version_code):
+                continue
+
+            if data[70] is not None:
+                chatroom["chat_request_state"] = data[70]
+
+            if data[71]:
+                chatroom["chat_requested_by_id"] = data[71]
+
+            if data[72]:
+                chatroom["chat_request_created_at"] = data[72]
 
             chatroom['unread_messages'] = fetch_conversations_unread(data[0], member_id)
 
@@ -14344,12 +14435,17 @@ def add_community_settings_for_community(community_instance, user_instance):
     community_settings_list = []
 
     for setting_type, setting_title in COMMUNITY_SETTING_TYPE_TITLE_MAPPING.items():
+        is_enabled = True
+
+        if setting_type in [community_setting_types.DIRECT_MESSAGES, community_setting_types.MEMBERS_CAN_DM]:
+            is_enabled = False
+
         community_settings_data = {
             'community_instance': community_instance,
             'setting_type': setting_type,
             'setting_title': setting_title,
             'setting_sub_title': COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING.get(setting_type),
-            'enabled': True,
+            'enabled': is_enabled,
             'enabled_by': user_instance,
         }
         community_settings_instance = CommunitySettings.create_instance(community_settings_data)

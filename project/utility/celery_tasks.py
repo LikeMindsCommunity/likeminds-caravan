@@ -1659,6 +1659,18 @@ def cm_removed_dm_chatroom(user_id, community_id):
                                                                     {"card__in": dm_chatroom_instances})
 
     for dm_chatroom in dm_chatroom_instances:
+        is_private_member = all([Members.get_community_member_state(dm_chatroom.community, dm_chatroom.user) ==
+                                 member_states.MEMBER,
+                                 Members.get_community_member_state(dm_chatroom.community,
+                                                                    dm_chatroom.chatroom_with_user) ==
+                                 member_states.MEMBER])
+
+        if is_private_member != dm_chatroom.is_private_member:
+            dm_chatroom.is_private_member = is_private_member
+            dm_chatroom.save()
+
+            update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': dm_chatroom}, {})
+
         card_answer_instance = card_answers(card=dm_chatroom, user=user_instance, community=community_instance,
                                             answer=message,
                                             state=conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED)
@@ -1741,6 +1753,18 @@ def member_becomes_cm_dm_chatroom(user_id, community_id):
                                                                         {"card__in": dm_chatroom_instances})
 
         for dm_chatroom in dm_chatroom_instances:
+            is_private_member = all([Members.get_community_member_state(dm_chatroom.community, dm_chatroom.user) ==
+                                     member_states.MEMBER,
+                                     Members.get_community_member_state(dm_chatroom.community,
+                                                                        dm_chatroom.chatroom_with_user) ==
+                                     member_states.MEMBER])
+
+            if is_private_member != dm_chatroom.is_private_member:
+                dm_chatroom.is_private_member = is_private_member
+                dm_chatroom.save()
+
+                update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': dm_chatroom}, {})
+
             card_answer_instance = card_answers(card=dm_chatroom, user=user_instance, community=community_instance,
                                                 answer=message,
                                                 state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT)
@@ -1838,7 +1862,7 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
                  f"<<{member_instance.userinfo.name}|route://member/{member_instance.id}>>" \
                  f" <<{chatroom_user.userinfo.name}|route://member/{chatroom_user.id}>>"
 
-    if not conversation_state:
+    if conversation_state is None:
         dm_card_answer = card_answers(answer=answer, card=chatroom_instance, user=member_instance,
                                       community=community_instance,
                                       state=conversation_states.CONVERSATION_HEADER)
@@ -1924,7 +1948,9 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
             Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED) |
             Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT) |
             Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT) |
-            Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT)).filter(
+            Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT) |
+            Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT) |
+            Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT)).filter(
             Q(attachment_count=0) | Q(attachments_uploaded=True) | Q(api_version=1)).order_by("created_at")
 
         last_conversation = conversation_filter.last()
@@ -1953,6 +1979,8 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
             card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
             card_state_instance.save()
 
+    return dm_card_answer
+
 
 def fill_chatroom_basic_info(card_content, chatroom_name, chatroom_type, community_instance, member_instance,
                              device_id=None, request_platform=None):
@@ -1968,8 +1996,8 @@ def fill_chatroom_basic_info(card_content, chatroom_name, chatroom_type, communi
 
 
 @shared_task
-def create_member_dm_chatroom(member_id, community_id, device_id=None, request_platform=None, req_body={},
-                              is_cm_member=False, cm_list=[], is_script=False, is_joining=False):
+def create_member_dm_chatroom(member_id, community_id, device_id=None, request_platform=None, is_cm_member=False,
+                              cm_list=[], is_script=False, is_joining=False):
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not user_instance:
@@ -2024,7 +2052,11 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
             dm_chatroom = dm_chatroom_instances.filter(user__in=user_instances_list,
                                                        chatroom_with_user__in=user_instances_list)
 
+            is_private_member = all([community_manager.state == member_states.MEMBER,
+                                     member_state == member_states.MEMBER])
+
             if dm_chatroom:
+                dm_chatroom.update(is_private_member=is_private_member)
 
                 if not is_script:
 
@@ -2422,11 +2454,14 @@ def log_chatroom_secret_type_conversion_activity(chatroom_id, is_secret):
 
 
 @shared_task
-def send_chatroom_creation_analytics_data(chatroom_id, user_id):
+def send_chatroom_creation_analytics_data(chatroom_id, user_id, event_name=None):
     chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
     if not chatroom_instance:
         return
+
+    if not event_name:
+        event_name = "Chatroom created (Core service)"
 
     event_data = {
         'community_id': chatroom_instance.community.id,
@@ -2435,7 +2470,7 @@ def send_chatroom_creation_analytics_data(chatroom_id, user_id):
         'has_description': True if chatroom_instance.header else False,
         'is_secret': chatroom_instance.is_secret
     }
-    SegmentImpl.track_event(user_id, "Chatroom created (Core service)", event_data)
+    SegmentImpl.track_event(user_id, event_name, event_data)
 
 
 @shared_task

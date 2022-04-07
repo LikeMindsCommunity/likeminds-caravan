@@ -21,7 +21,10 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_members_detail') and callable(subclass.fetch_members_detail)) and
                 (hasattr(subclass, 'show_dm') and callable(subclass.show_dm)) and
                 (hasattr(subclass, 'fetch_member_profile') and callable(subclass.fetch_member_profile)) and
-                (hasattr(subclass, 'edit_member_profile') and callable(subclass.edit_member_profile)) or
+                (hasattr(subclass, 'edit_member_profile') and callable(subclass.edit_member_profile)) and
+                (hasattr(subclass, 'request_dm_limit') and callable(subclass.request_dm_limit)) and
+                (hasattr(subclass, 'fetch_dm_chatrooms') and callable(subclass.fetch_dm_chatrooms)) and
+                (hasattr(subclass, 'member_can_dm') and callable(subclass.member_can_dm)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -107,5 +110,20 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
     def edit_member_profile(self, req_body: dict) -> {}:
         """Edits member profile"""
+
+        raise NotImplementedError
+
+    def request_dm_limit(self, member_id: str) -> {}:
+        """Returns DM limit connection request meta for user"""
+
+        raise NotImplementedError
+
+    def fetch_dm_chatrooms(self, page: int) -> {}:
+        """Returns list of DM chatrooms user is part of"""
+
+        raise NotImplementedError
+
+    def member_can_dm(self, req_body: dict) -> {}:
+        """Returns whether member can DM other member or not"""
 
         raise NotImplementedError

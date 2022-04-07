@@ -314,8 +314,8 @@ def get_time_text_for_my_chatrooms(updated_at):
 
     current_time = time.time()
     current_date = datetime.fromtimestamp(current_time).date()
-    previous_date =  datetime.fromtimestamp(updated_at).date()
-    difference = current_date  - previous_date
+    previous_date = datetime.fromtimestamp(updated_at).date()
+    difference = current_date - previous_date
 
     if difference.days == 1:
         return "Yesterday"
