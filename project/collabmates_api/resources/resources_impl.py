@@ -1,5 +1,6 @@
 import json
 from celery import shared_task
+from django.db.models import Q
 from utility.states import member_states
 
 from togther.models import ModelUtilities, Community, User, Members, Cohort
@@ -1878,7 +1879,7 @@ class ResourcesImpl(ResourceManager):
             }
         )
 
-        final_instances = instances | ResourcesImpl.get_resource_references_to_delete_recursively(sub_reference_intances)
+        final_instances = instance, ResourcesImpl.get_resource_references_to_delete_recursively(sub_reference_intances)
 
         info_logger.info('deleted resource reference instances - %s' % final_instances)
 
@@ -2521,3 +2522,33 @@ class ResourceHelper:
                     for cohort in member_cohorts_excluding_all_member_cohort):
 
                 return access_type
+
+    @staticmethod
+    def fetch_distinct_community_ids_having_resources():
+        """
+        returns community ids list for which resources have been
+        added
+        """
+        community_ids = list(ModelUtilities.get_model_filter(
+            ResourceCategory,
+            {}
+        ).values_list(
+            'community_id',
+            flat=True
+        ).distinct())
+
+        return community_ids
+
+    @staticmethod
+    def fetch_resource_references_created_in_last_one_day(community_id,
+                                                          yesterday_8_pm):
+        """
+        returns referencs created from yesterday 8pm till now
+        """
+        references = ResourceReference.objects.filter(
+            category_id__community_id__id=community_id,
+            created_at__gte=yesterday_8_pm,
+            child_category_id__isnull=True
+        )
+
+        return references

@@ -54,6 +54,10 @@ app.conf.beat_schedule = {
     'send_daily_emails': {
         'task': 'collabmates_api.tasks.send_daily_emails',
         'schedule': crontab(hour=10, minute=0),
+    },
+    'send_daily_noti_for_resources_tab_8_pm': {
+        'task': 'collabmates_api.notifications.tasks.send_8_pm_noti_for_new_resources_added',
+        'schedule': crontab(hour=20, minute=0),
     }
 }
 

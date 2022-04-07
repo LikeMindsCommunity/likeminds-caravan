@@ -603,3 +603,52 @@ def send_mail_for_first_time_edit_community_questions(user_id, community_id):
                                                            context.get('from_email'),
                                                            categories=context.get('mail_categories'),
                                                            reply_to=context.get('reply_to_email'))
+
+@app.task
+@shared_task
+def send_8_pm_noti_for_new_resources_added():
+    try:
+        from collabmates_api.resources.resources_impl import ResourceHelper
+
+        community_ids = ResourceHelper.fetch_distinct_community_ids_having_resources()
+
+        for community_id in community_ids:
+
+            yesterday_8_pm = TasksHelper.calculate_8_pm_noti_time_for_resources_noti()
+
+            references_created_in_last_one_day = ResourceHelper.fetch_resource_references_created_in_last_one_day(
+                community_id,
+                yesterday_8_pm
+            )
+
+            community_members = TasksHelper.get_active_members_of_community(community_id)
+
+            for member in community_members:
+
+                new_resources_count = TasksHelper.get_new_resources_count_for_sending_resources_noti(
+                    references_created_in_last_one_day,
+                    community_id,
+                    member
+                )
+
+                if new_resources_count:
+                    user_details_list = TasksHelper.create_user_details_list_for_sending_app_notification(
+                        [member]
+                    )
+
+                    app_noti_dict = TasksHelper.fetch_app_noti_dict_for_resources_notification(
+                        new_resources_count,
+                        community_id
+                    )
+
+                    info_logger.info('Sending new_resources_added noti to user - %s | payload = %s' % \
+                        member, app_noti_dict)
+
+                    notification_meta(user_details_list, app_noti_dict)
+
+                else:
+                    info_logger.info('No new resources found for user - %s | community = %s' % \
+                        member, community_id)
+
+    except Exception as e:
+        error_logger.exception("got error in send_8_pm_noti_for_new_resources_added | error - %s" % (str(e)))

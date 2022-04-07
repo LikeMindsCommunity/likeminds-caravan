@@ -1138,3 +1138,78 @@ class TasksHelper:
             calendar_id = calendar_id_filter[0].calendar_id
 
         return calendar_id
+
+    @staticmethod
+    def calculate_8_pm_noti_time_for_resources_noti():
+
+        current_date_time = TimeUtilities.get_current_datetime_in_IST()
+
+        final_time = datetime.combine(current_date_time.date() - timedelta(days=1), \
+                                    TIME_8_PM.time())
+
+        return int(final_time.timestamp() * 1000)
+
+    @staticmethod
+    def get_new_resources_count_for_sending_resources_noti(references_created_in_last_one_day,
+                                                            community_id,
+                                                            member_id):
+        """
+        returns count for new resources added in last one day from current time
+        """
+        from collabmates_api.resources.resources_impl import ResourceHelper
+        from collabmates_api.resources.constants import RESOURCE_TYPE
+
+        new_resources_count = 0
+
+        for reference in references_created_in_last_one_day:
+
+            access_type = None
+
+            if reference.url_id:
+                access_type = ResourceHelper.fetch_access_type_for_resource(
+                    RESOURCE_TYPE.URL,
+                    reference.url_id.id,
+                    community_id,
+                    member_id
+                )
+
+            elif reference.file_id:
+                access_type = ResourceHelper.fetch_access_type_for_resource(
+                    RESOURCE_TYPE.FILE,
+                    reference.file_id.id,
+                    community_id,
+                    member_id
+                )
+
+            if access_type:
+                new_resources_count += 1
+
+        return new_resources_count
+
+    @staticmethod
+    def fetch_app_noti_dict_for_resources_notification(new_resources_count,
+                                                        community_id):
+        """
+        Returns dict containing title, subtitle and route for 
+        resources noti
+        """
+        community_instance = ModelUtilities.get_model_instance_or_none(
+            Community,
+            community_id
+        )
+
+        community_name = community_instance.name if community_instance else ""
+
+        title = TITLE_8_PM_RESOURCES_NOTI
+        subtitle = SUB_TITLE_8_PM_RESOURCES_NOTI % (str(new_resources_count), community_name)
+        route = ROUTE_8_PM_RESOURCES_NOTI % community_id
+
+        res_dict = {
+            'payload': {
+                'title': title,
+                'sub_title': subtitle,
+                'route': route
+            }
+        }
+
+        return res_dict
