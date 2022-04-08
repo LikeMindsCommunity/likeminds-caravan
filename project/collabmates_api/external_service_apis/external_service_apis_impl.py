@@ -2,7 +2,7 @@ from ..external_service_apis.external_service_apis_manager import ExternalServic
 from external_services.email.email_wrapper import MailWrapper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 
-from ..notification import notification_meta, get_token_for_fcm
+from ..notification import notification_meta, get_token_for_fcm, add_community_info_to_payload
 
 
 class ExternalServiceApisImpl(ExternalServiceApisManager):
@@ -117,6 +117,7 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
         member_ids_list = req_body.get('member_ids')
         message_payload = req_body.get('message_payload')
         notification_category = req_body.get('category', {})
+        community_id = req_body.get('community_id', None)
 
         notification_details_list = []
 
@@ -135,6 +136,9 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
 
         if notification_category:
             message['category'] = notification_category
+
+        if community_id:
+            message = add_community_info_to_payload(message, community_id)
 
         notification_meta(notification_details_list, message)
 

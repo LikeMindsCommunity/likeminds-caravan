@@ -12,7 +12,7 @@ from .constants import COMM_TYPE, EVENT_COMM_FREQUENCY, EVENT_TYPE, WHATSAPP_TEM
         WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL, SENDER_NAME_FOR_EMAIL_COMMS, CALENDAR_INVITE_TYPE
 from .tasks_impl import TasksImpl, TasksHelper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
-from collabmates_api.notification import notification_meta
+from collabmates_api.notification import notification_meta, add_community_info_to_payload
 from external_services.calender.calendar_impl import CalendarImpl
 
 error_logger = LoggingWrapper.get_instance()
@@ -260,6 +260,7 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
         is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
 
         if send_allowed and not is_task_deleted:
+            app_noti_dict = add_community_info_to_payload(app_noti_dict, community_id)
             notification_meta(user_details_list, app_noti_dict)
 
         else:
@@ -522,6 +523,7 @@ def schedule_app_notification_on_event_attachment(event_id, app_noti_dict):
         send_allowed = TasksHelper.should_send_notification(event_instance)
 
         if send_allowed:
+            app_noti_dict = add_community_info_to_payload(app_noti_dict, community_id)
             notification_meta(user_details_list, app_noti_dict)
 
     except Exception as e:
