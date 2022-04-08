@@ -177,13 +177,9 @@ def add_community_info_to_payload(message: dict, community_id: int) -> dict:
 
     community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
-    print(message)
-
     if community_instance:
         message['payload']['community_name'] = community_instance.name
         message['payload']['community_logo'] = community_instance.thumbnail
-
-    print(message)
 
     return message
 
@@ -705,7 +701,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
                 typ not in [card_types.CARD_POLL, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
             message['payload']['unread_new_chatroom'] = custom_payload
 
-        message = add_community_info_to_payload(message, card.community_id)
+        message = add_community_info_to_payload(message, community_id)
         notification_meta(notification_list_member, message)
 
         if not card.is_pending:
