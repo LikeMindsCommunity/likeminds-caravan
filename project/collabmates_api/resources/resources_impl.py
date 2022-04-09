@@ -20,6 +20,7 @@ from .raw_queries import fetch_child_url_ids_for_updating_permission, \
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.time_utilities import TimeUtilities
+from external_services.segment.segment_impl import SegmentImpl
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -243,8 +244,6 @@ class ResourcesImpl(ResourceManager):
             req_body (dict) - request body
         Returns:
             response (dict)
-        TODO:
-            1. To add analytics
         """
         validation_check = ResourceHelper.is_user_cm_or_not(
             self.get_community_id(),
@@ -291,6 +290,12 @@ class ResourcesImpl(ResourceManager):
                     self.get_community_id(),
                     serializer.data.get('id')
                 )
+
+            ResourceHelper.trigger_event_analytics_on_category_creation.delay(
+                self.get_member_id(),
+                self.get_community_id(),
+                level=level
+            )
 
             res = {
                 'success': True,
@@ -513,8 +518,6 @@ class ResourcesImpl(ResourceManager):
             req_body (dict) - request body
         Returns:
             response (dict)
-        TODO:
-            1. To add analytics
         """
         resource_category_instance = ModelUtilities.get_model_instance_or_none(
             ResourceCategory,
@@ -530,8 +533,10 @@ class ResourcesImpl(ResourceManager):
                 'The Resource Category has been deleted'
             )
 
+        self.update_community_id(resource_category_instance.community_id.id)
+
         validation_check = ResourceHelper.is_user_cm_or_not(
-            resource_category_instance.community_id.id,
+            self.get_community_id(),
             self.get_member_id()
         )
 
@@ -552,6 +557,30 @@ class ResourcesImpl(ResourceManager):
                     req_body.get('id'),
                     req_body.get('category_permission', [])
                 )
+
+                ResourceHelper.trigger_event_analytics_on_resource_permission_updation.delay(
+                    self.get_member_id(),
+                    self.get_community_id(),
+                    RESOURCE_TYPE.CATEGORY,
+                    req_body.get('category_permission'),
+                    resource_category_instance.is_downloadable
+                )
+
+            if req_body.get('view_type') and req_body.get('view_type') != \
+                    resource_category_instance.view_type:
+                ResourceHelper.trigger_event_analytics_on_category_view_updation.delay(
+                    self.get_member_id(),
+                    self.get_community_id(),
+                    req_body.get('view_type')
+                )
+
+            ResourceHelper.trigger_event_analytics_on_resource_updation.delay(
+                self.get_member_id(),
+                self.get_community_id(),
+                RESOURCE_TYPE.CATEGORY,
+                req_body.get('title'),
+                req_body.get('banner_url')
+            )
 
             res = {
                 'success': True,
@@ -824,8 +853,6 @@ class ResourcesImpl(ResourceManager):
             req_body (dict) - request body
         Returns:
             response (dict)
-        TODO:
-            1. To add analytics
         """
         resource_category_instance = ModelUtilities.get_model_instance_or_none(
             ResourceCategory,
@@ -882,6 +909,13 @@ class ResourcesImpl(ResourceManager):
             ResourcesImpl.create_parent_category_to_child_url_mapping.delay(
                 req_body.get('category_id'),
                 serializer.data.get('id')
+            )
+
+            ResourceHelper.trigger_event_analytics_on_adding_resource.delay(
+                self.get_member_id(),
+                self.get_community_id(),
+                RESOURCE_TYPE.URL,
+                level=level
             )
 
             res = {
@@ -1058,8 +1092,6 @@ class ResourcesImpl(ResourceManager):
             req_body (dict) - request body
         Returns:
             response (dict)
-        TODO:
-            1. To add analytics
         """
         resource_url_instance = ModelUtilities.get_model_instance_or_none(
             ResourceURL,
@@ -1106,6 +1138,22 @@ class ResourcesImpl(ResourceManager):
                     req_body.get('id'),
                     req_body.get('url_permission', [])
                 )
+
+                ResourceHelper.trigger_event_analytics_on_resource_permission_updation.delay(
+                    self.get_member_id(),
+                    self.get_community_id(),
+                    RESOURCE_TYPE.URL,
+                    req_body.get('url_permission'),
+                    resource_url_instance.is_downloadable
+                )
+
+            ResourceHelper.trigger_event_analytics_on_resource_updation.delay(
+                self.get_member_id(),
+                self.get_community_id(),
+                RESOURCE_TYPE.URL,
+                req_body.get('title'),
+                req_body.get('banner_url')
+            )
 
             res = {
                 'success': True,
@@ -1271,8 +1319,6 @@ class ResourcesImpl(ResourceManager):
             req_body (dict) - request body
         Returns:
             response (dict)
-        TODO:
-            1. To trigger analytics
         """
         resource_url_instance = ModelUtilities.get_model_instance_or_none(
             ResourceURL,
@@ -1303,6 +1349,11 @@ class ResourcesImpl(ResourceManager):
         resource_url_instance.is_deleted = True
         resource_url_instance.save()
 
+        ResourceHelper.trigger_event_analytics_on_deleting_resource.delay(
+            self.get_member_id(),
+            self.get_community_id()
+        )
+
         reference_dict = {
             'category_id': resource_url_instance.category_id.id,
             'url_id': resource_url_instance.id
@@ -1330,8 +1381,6 @@ class ResourcesImpl(ResourceManager):
             req_body (dict) - request body
         Returns:
             response (dict)
-        TODO:
-            1. To add analytics
         """
         resource_category_instance = ModelUtilities.get_model_instance_or_none(
             ResourceCategory,
@@ -1384,6 +1433,13 @@ class ResourcesImpl(ResourceManager):
             ResourcesImpl.create_parent_category_to_child_file_mapping.delay(
                 req_body.get('category_id'),
                 serializer.data.get('id')
+            )
+
+            ResourceHelper.trigger_event_analytics_on_adding_resource.delay(
+                self.get_member_id(),
+                self.get_community_id(),
+                RESOURCE_TYPE.FILE,
+                level=level
             )
 
             res = {
@@ -1529,8 +1585,6 @@ class ResourcesImpl(ResourceManager):
             req_body (dict) - request body
         Returns:
             response (dict)
-        TODO:
-            1. To add analytics
         """
         resource_file_instance = ModelUtilities.get_model_instance_or_none(
             ResourceFile,
@@ -1572,6 +1626,22 @@ class ResourcesImpl(ResourceManager):
                     req_body.get('id'),
                     req_body.get('file_permission', [])
                 )
+
+                ResourceHelper.trigger_event_analytics_on_resource_permission_updation.delay(
+                    self.get_member_id(),
+                    self.get_community_id(),
+                    RESOURCE_TYPE.FILE,
+                    req_body.get('file_permission'),
+                    resource_file_instance.is_downloadable
+                )
+
+            ResourceHelper.trigger_event_analytics_on_resource_updation.delay(
+                self.get_member_id(),
+                self.get_community_id(),
+                RESOURCE_TYPE.FILE,
+                req_body.get('name'),
+                req_body.get('meta')
+            )
 
             res = {
                 'success': True,
@@ -1642,9 +1712,6 @@ class ResourcesImpl(ResourceManager):
             req_body (dict) - request body
         Returns:
             response (dict)
-        TODO:
-            1. To trigger analytics
-            2. To delete references
         """
         resource_file_instance = ModelUtilities.get_model_instance_or_none(
             ResourceFile,
@@ -1674,6 +1741,11 @@ class ResourcesImpl(ResourceManager):
 
         resource_file_instance.is_deleted = True
         resource_file_instance.save()
+
+        ResourceHelper.trigger_event_analytics_on_deleting_resource.delay(
+            self.get_member_id(),
+            self.get_community_id()
+        )
 
         reference_dict = {
             'category_id': resource_file_instance.category_id.id,
@@ -2608,3 +2680,209 @@ class ResourceHelper:
         ).select_related('category_id')
 
         return url_instances, file_instances
+
+    @staticmethod
+    @shared_task
+    def trigger_event_analytics_on_category_creation(user_id, community_id, level=0):
+        """
+        Category creation event analytics
+        """
+        event_name = RESOURCE_CATEGORY_CREATION_EVENT
+
+        community = ModelUtilities.get_model_instance_or_none(
+            Community,
+            community_id
+        )
+
+        community_name = community.name if community else ""
+
+        event_dict = {
+            'community_id': community_id,
+            'community_name': community_name,
+            'level': level
+        }
+
+        SegmentImpl.track_event(
+            user_id,
+            event_name,
+            event_dict
+        )
+
+    @staticmethod
+    @shared_task
+    def trigger_event_analytics_on_category_view_updation(user_id, community_id, view_type):
+        """
+        Category's view_type updation event analytics
+        """
+        event_name = RESOURCE_CATEGORY_VIEW_TYPE_UPDATION_EVENT
+
+        community = ModelUtilities.get_model_instance_or_none(
+            Community,
+            community_id
+        )
+
+        community_name = community.name if community else ""
+
+        event_dict = {
+            'community_id': community_id,
+            'community_name': community_name,
+        }
+
+        event_dict['view_type'] = 'grid_view' if view_type == 1 else 'list_view'
+
+        SegmentImpl.track_event(
+            user_id,
+            event_name,
+            event_dict
+        )
+
+    @staticmethod
+    @shared_task
+    def trigger_event_analytics_on_resource_permission_updation(user_id,
+                                                                community_id,
+                                                                resource_type,
+                                                                permission_obj,
+                                                                is_downloadable):
+        """
+        Resource's permissions updation event analytics
+        """
+        event_name = RESOURCE_PERMISSION_UPDATION_EVENT
+
+        community = ModelUtilities.get_model_instance_or_none(
+            Community,
+            community_id
+        )
+
+        community_name = community.name if community else ""
+
+        element_type = RESOURCE_CATEGORY_ELEMENT if resource_type == RESOURCE_TYPE.CATEGORY \
+            else RESOURCE_ELEMENT
+
+        access_type_list = []
+
+        for obj in permission_obj:
+            if obj.get('access_type') == RESOURCE_ACCESS_TYPE.FULL_ACCESS:
+                access_type_list.append('full_access')
+
+            elif obj.get('access_type') == RESOURCE_ACCESS_TYPE.RESTRICTED_ACCESS:
+                access_type_list.append('restricted_access')
+
+            elif obj.get('access_type') == RESOURCE_ACCESS_TYPE.NO_ACCESS:
+                access_type_list.append('no_access')
+
+        event_dict = {
+            'community_id': community_id,
+            'community_name': community_name,
+            'element_type': element_type,
+            'is_downloadable': is_downloadable,
+            'access_type': access_type_list
+        }
+
+        SegmentImpl.track_event(
+            user_id,
+            event_name,
+            event_dict
+        )
+
+    @staticmethod
+    @shared_task
+    def trigger_event_analytics_on_resource_updation(user_id,
+                                                    community_id,
+                                                    resource_type,
+                                                    title,
+                                                    banner):
+        """
+        Resource's permissions updation event analytics
+        """
+        event_name = RESOURCE_CATEGORY_EDITED_EVENT \
+            if resource_type == RESOURCE_TYPE.CATEGORY \
+            else RESOURCE_EDITED_EVENT
+
+        community = ModelUtilities.get_model_instance_or_none(
+            Community,
+            community_id
+        )
+
+        community_name = community.name if community else ""
+
+        has_title = True if title else False
+
+        if resource_type == RESOURCE_TYPE.FILE:
+
+            try:
+                meta = json.loads(banner)
+                has_banner = True if meta.get('banner') else False
+
+            except:
+                has_banner = False
+
+        else:
+            has_banner = True if banner else False
+
+        event_dict = {
+            'community_id': community_id,
+            'community_name': community_name,
+            'has_title': has_title,
+            'has_banner': has_banner,
+        }
+
+        SegmentImpl.track_event(
+            user_id,
+            event_name,
+            event_dict
+        )
+
+    @staticmethod
+    @shared_task
+    def trigger_event_analytics_on_adding_resource(user_id, community_id,
+                                                resource_type, level=None):
+        """
+        Resource addition event analytics
+        """
+        event_name = RESOURCE_ADDED_EVENT
+
+        community = ModelUtilities.get_model_instance_or_none(
+            Community,
+            community_id
+        )
+
+        community_name = community.name if community else ""
+
+        event_dict = {
+            'community_id': community_id,
+            'community_name': community_name,
+            'resource_type': resource_type,
+            'level': level,
+        }
+
+        SegmentImpl.track_event(
+            user_id,
+            event_name,
+            event_dict
+        )
+
+    @staticmethod
+    @shared_task
+    def trigger_event_analytics_on_deleting_resource(user_id, community_id):
+        """
+        Resource deletion event analytics
+        """
+        event_name = RESOURCE_DELETED_EVENT
+
+        community = ModelUtilities.get_model_instance_or_none(
+            Community,
+            community_id
+        )
+
+        community_name = community.name if community else ""
+
+        event_dict = {
+            'community_id': community_id,
+            'community_name': community_name,
+        }
+
+        SegmentImpl.track_event(
+            user_id,
+            event_name,
+            event_dict
+        )

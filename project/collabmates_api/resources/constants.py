@@ -33,3 +33,14 @@ RESOURCE_TYPE_TO_MODEL_MAPPER = {
         'field': 'file_id'
     }
 }
+
+RESOURCE_CATEGORY_ELEMENT = 'resource_category'
+RESOURCE_ELEMENT = 'resource'
+
+RESOURCE_CATEGORY_CREATION_EVENT = 'Resource category added'
+RESOURCE_CATEGORY_VIEW_TYPE_UPDATION_EVENT = 'Display type changed'
+RESOURCE_PERMISSION_UPDATION_EVENT = 'Permission edited'
+RESOURCE_CATEGORY_EDITED_EVENT = 'Resource Category edited'
+RESOURCE_EDITED_EVENT = 'Resource edited'
+RESOURCE_ADDED_EVENT = 'Resource added'
+RESOURCE_DELETED_EVENT = 'Resource deleted'
