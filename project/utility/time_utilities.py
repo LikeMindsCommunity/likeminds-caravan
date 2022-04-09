@@ -216,3 +216,10 @@ class TimeUtilities:
         current_time_in_epoch = TimeUtilities.current_time_in_sec()
 
         return TimeUtilities.convert_epoch_to_datetime_in_IST(current_time_in_epoch)
+
+    @staticmethod
+    def get_current_day_of_the_week():
+
+        """0-Monday, 1-Tueday, .... 6-Sunday"""
+
+        return datetime.today().weekday()

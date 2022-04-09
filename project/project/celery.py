@@ -58,6 +58,10 @@ app.conf.beat_schedule = {
     'send_daily_noti_for_resources_tab_8_pm': {
         'task': 'collabmates_api.notifications.tasks.send_8_pm_noti_for_new_resources_added',
         'schedule': crontab(hour=20, minute=0),
+    },
+    'send_weekly_email_for_resources_tab': {
+        'task': 'collabmates_api.notifications.tasks.trigger_weekly_emails_for_resources_tab',
+        'schedule': crontab(hour=23, minute=0),
     }
 }
 

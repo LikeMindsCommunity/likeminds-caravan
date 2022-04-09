@@ -604,9 +604,15 @@ def send_mail_for_first_time_edit_community_questions(user_id, community_id):
                                                            categories=context.get('mail_categories'),
                                                            reply_to=context.get('reply_to_email'))
 
+
 @app.task
 @shared_task
 def send_8_pm_noti_for_new_resources_added():
+    """
+    This task runs every night @ 8PM
+    Sends notifications to all the users if new resources are added
+    in the last 24 hours
+    """
     try:
         from collabmates_api.resources.resources_impl import ResourceHelper
 
@@ -616,7 +622,7 @@ def send_8_pm_noti_for_new_resources_added():
 
             yesterday_8_pm = TasksHelper.calculate_8_pm_noti_time_for_resources_noti()
 
-            references_created_in_last_one_day = ResourceHelper.fetch_resource_references_created_in_last_one_day(
+            references_created_in_last_one_day = ResourceHelper.fetch_resource_references_created_in_last_n_day(
                 community_id,
                 yesterday_8_pm
             )
@@ -642,13 +648,110 @@ def send_8_pm_noti_for_new_resources_added():
                     )
 
                     info_logger.info('Sending new_resources_added noti to user - %s | payload = %s' % \
-                        member, app_noti_dict)
+                        (member, app_noti_dict))
 
                     notification_meta(user_details_list, app_noti_dict)
 
                 else:
-                    info_logger.info('No new resources found for user - %s | community = %s' % \
-                        member, community_id)
+                    info_logger.info('No new resources found for user - %s | community = %s for sending noti' % \
+                        (member, community_id))
 
     except Exception as e:
         error_logger.exception("got error in send_8_pm_noti_for_new_resources_added | error - %s" % (str(e)))
+
+
+@app.task
+@shared_task
+def trigger_weekly_emails_for_resources_tab():
+    """
+    This task runs every night @ 22:00
+    Schedules async tasks for all communities whose weekly
+    email is supposed to be scheduled for that day
+    """
+    try:
+        from collabmates_api.resources.resources_impl import ResourceHelper
+
+        community_settings = ResourceHelper.fetch_community_settings_for_scheduling_weekly_email()
+
+        for setting in community_settings:
+
+            task_begin_time = TasksHelper.calculate_time_for_resources_tab_weekly_email(
+                setting.get('time_of_weekly_email')
+            )
+
+            args = [setting.get('community_id')]
+
+            schedule_weekly_emails_for_resources_tab.apply_async(
+                args,
+                kwargs={},
+                eta=task_begin_time
+            )
+
+            info_logger.info("Scheduling weekly email for community = %s | time = %s" % 
+                            (setting.get('community_id'), setting.get('time_of_weekly_email')))
+
+    except Exception as e:
+        error_logger.exception("got error in schedule_weekly_emails_for_resources_tab | error - %s" % (str(e)))
+
+@shared_task
+def schedule_weekly_emails_for_resources_tab(community_id, time_of_weekly_email):
+    """
+    celery task that runs for each community_id to
+    send notification regarding new added resources
+    """
+    try:
+        from collabmates_api.resources.resources_impl import ResourceHelper
+
+        last_week_email_time = TasksHelper.calculate_last_email_time(time_of_weekly_email)
+
+        references_created_in_last_one_week = ResourceHelper.fetch_resource_references_created_in_last_n_day(
+            community_id,
+            last_week_email_time
+        )
+
+        if not references_created_in_last_one_week:
+            return True
+
+        url_instances, file_instances = ResourceHelper.fetch_url_and_file_instances_from_references(
+            references_created_in_last_one_week
+        )
+
+        community_members = TasksHelper.get_active_members_of_community(community_id)
+
+        for member in community_members:
+
+            new_resources_dict = TasksHelper.get_new_resources_for_sending_resources_email(
+                url_instances,
+                file_instances,
+                community_id,
+                member
+            )
+
+            if new_resources_dict:
+                data_dict = TasksHelper.get_data_dict_for_sending_weekly_resource_email(
+                    member,
+                    community_id,
+                    new_resources_dict
+                )
+
+                context = TasksHelper.create_context_for_sending_weekly_resource_email(
+                    [member],
+                    community_id,
+                    data_dict
+                )
+
+                info_logger.info('Sending new_resources_added email to user - %s' % member)
+
+                MailWrapper.send_email_with_custom_from_email(subject=context['subject'],
+                                                            template=context['template'],
+                                                            from_email=context['from_email'],
+                                                            to_mails_list=context['to_mails_list'],
+                                                            reply_to=context['reply_to'],
+                                                            from_name=context['from_name'])
+
+            else:
+                info_logger.info('No new resources found for user - %s | community = %s for sending email' % \
+                    (member, community_id))
+
+    except Exception as e:
+        error_logger.exception("got error in schedule_weekly_emails_for_resources_tab | error - %s" % (str(e)))

@@ -2540,15 +2540,71 @@ class ResourceHelper:
         return community_ids
 
     @staticmethod
-    def fetch_resource_references_created_in_last_one_day(community_id,
-                                                          yesterday_8_pm):
+    def fetch_resource_references_created_in_last_n_day(community_id,
+                                                        time):
         """
         returns referencs created from yesterday 8pm till now
         """
         references = ResourceReference.objects.filter(
             category_id__community_id__id=community_id,
-            created_at__gte=yesterday_8_pm,
+            created_at__gte=time,
             child_category_id__isnull=True
         )
 
         return references
+
+    @staticmethod
+    def fetch_community_settings_for_scheduling_weekly_email():
+        """
+        returns list of community ids for which email is
+        supposed to be scheduled the next day this
+        function is being called
+        """
+        day_of_week_next_day = (TimeUtilities.get_current_day_of_the_week() + 1) % 7
+
+        community_settings = ModelUtilities.get_model_filter(
+            ResourceSettings,
+            {
+                'day_of_weekly_email': day_of_week_next_day
+            }
+        ).values(
+            'community_id',
+            'time_of_weekly_email'
+        )
+
+        return community_settings
+
+    @staticmethod
+    def fetch_url_and_file_instances_from_references(references):
+        """
+        pass
+        """
+        url_ids = references.filter(
+            url_id__isnull=False
+        ).values_list(
+            'url_id',
+            flat=True
+        )
+
+        url_instances = ModelUtilities.get_model_filter(
+            ResourceURL,
+            {
+                'id__in': url_ids
+            }
+        ).select_related('category_id')
+
+        file_ids = references.filter(
+            file_id__isnull=False
+        ).values_list(
+            'file_id',
+            flat=True
+        )
+
+        file_instances = ModelUtilities.get_model_filter(
+            ResourceFile,
+            {
+                'id__in': file_ids
+            }
+        ).select_related('category_id')
+
+        return url_instances, file_instances

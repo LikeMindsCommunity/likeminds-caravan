@@ -1157,7 +1157,7 @@ class TasksHelper:
         returns count for new resources added in last one day from current time
         """
         from collabmates_api.resources.resources_impl import ResourceHelper
-        from collabmates_api.resources.constants import RESOURCE_TYPE
+        from collabmates_api.resources.constants import RESOURCE_TYPE, RESOURCE_ACCESS_TYPE
 
         new_resources_count = 0
 
@@ -1181,7 +1181,7 @@ class TasksHelper:
                     member_id
                 )
 
-            if access_type:
+            if access_type and access_type != RESOURCE_ACCESS_TYPE.NO_ACCESS:
                 new_resources_count += 1
 
         return new_resources_count
@@ -1213,3 +1213,191 @@ class TasksHelper:
         }
 
         return res_dict
+
+    @staticmethod
+    def calculate_time_for_resources_tab_weekly_email(time_of_the_weekly_email):
+        """
+        returns datetime for scheduling the weekly email
+        for each community
+        """
+        current_date_time_in_IST = TimeUtilities.get_current_datetime_in_IST()
+
+        email_time = datetime.strptime("%s:0" % time_of_the_weekly_email, "%H:%M")
+
+        final_time = datetime.combine(current_date_time_in_IST.date() + timedelta(days=1), \
+                                        email_time.time())
+
+        return final_time
+
+    @staticmethod
+    def calculate_last_email_time(time_of_weekly_email):
+
+        current_date_time = TimeUtilities.get_current_datetime_in_IST()
+
+        email_time = datetime.strptime("%s:0" % time_of_weekly_email, "%H:%M")
+
+        final_time = datetime.combine(current_date_time.date() - timedelta(days=7), \
+                                    email_time.time())
+
+        return int(final_time.timestamp() * 1000)
+
+    @staticmethod
+    def get_new_resources_for_sending_resources_email(url_instances,
+                                                      file_instances,
+                                                      community_id,
+                                                      member_id):
+        """
+        returns dict with new resources(urls and files) added
+        in last one week from current time
+        """
+        from collabmates_api.resources.resources_impl import ResourceHelper
+        from collabmates_api.resources.constants import RESOURCE_TYPE, RESOURCE_ACCESS_TYPE
+
+        new_resources_dict = {}
+
+        for url in url_instances:
+
+            access_type = ResourceHelper.fetch_access_type_for_resource(
+                RESOURCE_TYPE.URL,
+                url.id,
+                community_id,
+                member_id
+            )
+
+            if access_type and access_type != RESOURCE_ACCESS_TYPE.NO_ACCESS:
+
+                new_resources_dict = TasksHelper.fetch_url_dict_for_weekly_resources_email(
+                    url,
+                    new_resources_dict
+                )
+
+        for file in file_instances:
+
+            access_type = ResourceHelper.fetch_access_type_for_resource(
+                RESOURCE_TYPE.FILE,
+                file.id,
+                community_id,
+                member_id
+            )
+
+            if access_type and access_type != RESOURCE_ACCESS_TYPE.NO_ACCESS:
+
+                new_resources_dict = TasksHelper.fetch_file_dict_for_weekly_resources_email(
+                    file,
+                    new_resources_dict
+                )
+
+        return new_resources_dict
+
+    @staticmethod
+    def fetch_url_dict_for_weekly_resources_email(url, new_resources_dict):
+        """
+        returns dict by updating details for a particular url
+        """
+        url_og_tags = json.loads(url.og_tags)
+
+        if url_og_tags.get('title'):
+            url_name = url_og_tags.get('title')
+
+        else:
+            url_name = url_og_tags.get('url')
+        
+        category_id = str(url.category_id.id)
+
+        if category_id not in new_resources_dict:
+            new_resources_dict[category_id] = {}
+            new_resources_dict[category_id]['category_name'] = url.category_id.title
+            new_resources_dict[category_id]['urls'] = []
+            new_resources_dict[category_id]['files'] = []
+        
+        new_resources_dict[category_id]['urls'].append(url_name)
+
+        return new_resources_dict
+
+    @staticmethod
+    def fetch_file_dict_for_weekly_resources_email(file, new_resources_dict):
+        """
+        returns dict by updating details for a particular file
+        """
+        category_id = str(file.category_id.id)
+
+        if category_id not in new_resources_dict:
+            new_resources_dict[category_id] = {}
+            new_resources_dict[category_id]['category_name'] = file.category_id.title
+            new_resources_dict[category_id]['urls'] = []
+            new_resources_dict[category_id]['files'] = []
+
+        new_resources_dict[category_id]['files'].append(file.name)
+
+        return new_resources_dict
+
+    @staticmethod
+    def get_data_dict_for_sending_weekly_resource_email(member_id, community_id, resources_dict):
+        """
+        returns data_dict for rendering resources weekly email's
+        template
+        """
+        community_instance = ModelUtilities.get_model_instance_or_none(
+            Community,
+            community_id
+        )
+
+        user_instance = ModelUtilities.get_model_instance_or_none(
+            User,
+            member_id
+        )
+
+        username = user_instance.userinfo.name
+        community_name = community_instance.name
+
+        community_owner_instance = Members.get_community_owner_user_instance_or_none(community_instance)
+
+        if community_owner_instance:
+            co_name = community_owner_instance.userinfo.name
+
+        else:
+            co_name = ""
+
+        link = ""
+
+        data_dict = {
+            'member_name': username,
+            'resources': resources_dict,
+            'link': link,
+            'co_name': co_name,
+            'community_name': community_name
+        }
+
+        return data_dict
+
+    @staticmethod
+    def create_context_for_sending_weekly_resource_email(user_instances, community_id, data_dict):
+        """
+        creates context_dict for sending weekly resource's email
+        """
+        community_instance = ModelUtilities.get_model_instance_or_none(
+            Community,
+            community_id
+        )
+
+        community_name = community_instance.name
+
+        community_owner_instance = Members.get_community_owner_user_instance_or_none(community_instance)
+        co_name = community_owner_instance.userinfo.name
+
+        community_owner_email = TasksHelper.get_emails_list_for_user_instances([community_owner_instance])
+        reply_to = community_owner_email[0] if community_owner_email else ''
+
+        to_mails_list = TasksHelper.get_emails_list_for_user_instances(user_instances)
+
+        context = {
+            'subject': SUBJECT_WEEKLY_RESOURCES_EMAIL % community_name,
+            'from_name': co_name,
+            'from_email': SENDER_EMAIL_FOR_EMAIL_COMMS,
+            'to_mails_list': to_mails_list,
+            'reply_to': reply_to
+        }
+
+        context['template'] = get_template("template-to-be-added").render(data_dict)
+
+        return context
