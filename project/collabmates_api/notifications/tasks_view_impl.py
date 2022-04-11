@@ -56,7 +56,3 @@ class SendEventCreationMail(APIView):
             }
             error_logger.error(e.args)
             return JsonResponse(res, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def get(self,request):
-        send_8_pm_noti_for_new_resources_added.delay()
-        return JsonResponse({'success': True})

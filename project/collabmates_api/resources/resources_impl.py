@@ -566,8 +566,7 @@ class ResourcesImpl(ResourceManager):
                     resource_category_instance.is_downloadable
                 )
 
-            if req_body.get('view_type') and req_body.get('view_type') != \
-                    resource_category_instance.view_type:
+            if req_body.get('view_type'):
                 ResourceHelper.trigger_event_analytics_on_category_view_updation.delay(
                     self.get_member_id(),
                     self.get_community_id(),
