@@ -1998,16 +1998,31 @@ class ResourcesImpl(ResourceManager):
                 "To view resources, you need to be a member of the community."
             )
 
+        reference_instances = ModelUtilities.get_model_filter(
+            ResourceReference,
+            {
+                'category_id': resource_category_instance
+            }
+        ).select_related(
+            'url_id',
+            'file_id',
+            'category_id'
+        )
+
+        reference_queryset = ModelUtilities.paginate_queryset(reference_instances,
+                                                              page,
+                                                              paginate_by=FETCH_RESOURCE_CATEGORY_PAGE_SIZE)
+
         url_dict = self.fetch_child_url_data_for_category(
-            resource_category_instance
+            reference_queryset
         )
 
         file_dict = self.fetch_child_file_data_for_category(
-            resource_category_instance
+            reference_queryset
         )
 
         category_dict = self.fetch_child_category_data_for_category(
-            resource_category_instance
+            reference_queryset
         )
 
         res = {'success':True}
@@ -2018,7 +2033,7 @@ class ResourcesImpl(ResourceManager):
 
         return res
 
-    def fetch_child_url_data_for_category(self, category_instance):
+    def fetch_child_url_data_for_category(self, reference_queryset):
         """
         Returns
             ResourceURL instances
@@ -2026,10 +2041,16 @@ class ResourcesImpl(ResourceManager):
             REsourceURLState instances
         for a particular category
         """
+        url_ids = []
+
+        for ref in reference_queryset:
+            if ref.url_id:
+                url_ids.append(ref.url_id.id)
+
         url_instances = ModelUtilities.get_model_filter(
             ResourceURL,
             {
-                'category_id': category_instance
+                'id__in': url_ids
             }
         )
 
@@ -2075,7 +2096,7 @@ class ResourcesImpl(ResourceManager):
 
         return res
 
-    def fetch_child_file_data_for_category(self, category_instance):
+    def fetch_child_file_data_for_category(self, reference_queryset):
         """
         Returns
             ResourceFile instances
@@ -2083,10 +2104,16 @@ class ResourcesImpl(ResourceManager):
             ResourceFileState instances
         for a particular category
         """
+        file_ids = []
+
+        for ref in reference_queryset:
+            if ref.file_id:
+                file_ids.append(ref.file_id.id)
+
         file_instances = ModelUtilities.get_model_filter(
             ResourceFile,
             {
-                'category_id': category_instance
+                'id__in': file_ids
             }
         )
 
@@ -2132,7 +2159,7 @@ class ResourcesImpl(ResourceManager):
 
         return res
 
-    def fetch_child_category_data_for_category(self, category_instance):
+    def fetch_child_category_data_for_category(self, reference_queryset):
         """
         Returns
             ResourceCategory instances
@@ -2141,10 +2168,16 @@ class ResourcesImpl(ResourceManager):
             Child ResourceFileState instances
         for a particular category
         """
+        category_ids = []
+
+        for ref in reference_queryset:
+            if ref.category_id:
+                category_ids.append(ref.category_id.id)
+
         category_instances = ModelUtilities.get_model_filter(
             ResourceCategory,
             {
-                'parent_category_id': category_instance
+                'id__in': category_ids
             }
         )
 
