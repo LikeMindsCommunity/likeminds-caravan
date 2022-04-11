@@ -1644,16 +1644,9 @@ class CommunityImpl(CommunityManager):
         aj = validated_req_body.get('aj')
         shared_by = validated_req_body.get('shared_by')
 
-        is_free_trial = False
-
-        if free_link_and_freemium_community_version_check(self.get_request_platform(), int(self.get_version_code()))\
-                and community_instance.is_paid:
-            is_free_trial = True
-
         community_meta_data = CommunityHelper.compute_community_meta_data_according_to_aj_shared_by(user_instance,
                                                                                                     community_instance,
-                                                                                                    aj, shared_by,
-                                                                                                    is_free_trial)
+                                                                                                    aj, shared_by)
 
         CommunityHelper.send_drop_off_notification_in_join(user_instance, community_instance, aj)
 
