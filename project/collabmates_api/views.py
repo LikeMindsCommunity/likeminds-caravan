@@ -10491,6 +10491,8 @@ def fetch_community_manager_rights(request):
     current_user_id = get_member_id_from_headers(request)
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     context = None
     if not current_user_id:
@@ -10523,6 +10525,11 @@ def fetch_community_manager_rights(request):
 
             for right in admin_rights:
                 right = right.right
+
+                if all([not m2cm_v2_version_check(platform_code, version_code),
+                        right.state == moderate_dm_settings.get('state')]):
+                    continue
+
                 right_dict = get_right_dict(right)
                 if is_member:
                     right_dict["is_selected"] = True if right.id in manager_rights.DEFAULT_MANAGER_RIGHTS else False

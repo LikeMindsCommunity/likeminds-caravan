@@ -3104,9 +3104,21 @@ class ChatroomImpl(ChatroomManager):
         user_instances_list = [card_instance.user, card_instance.chatroom_with_user]
         user_member_state = Members.get_community_member_state(card_instance.community, card_instance.user)
         member_state = Members.get_community_member_state(card_instance.community, card_instance.chatroom_with_user)
+        last_conversation_state = None
+        last_cconversation = ModelUtilities.get_model_filter(card_answers,
+                                                             {'card': card_instance}).order_by('-created_at')
+
+        if last_cconversation:
+            last_conversation_state = last_cconversation[0].state
 
         if validated_request.get('user_instance') not in user_instances_list:
             return get_error_context(False, 'You are not part of chatroom!')
+
+        if any([(last_conversation_state == conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT)
+                and (validated_request.get('status') == block_chatroom_states.BLOCK),
+                (last_conversation_state == conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT)
+                and (validated_request.get('status') == block_chatroom_states.UNBLOCK)]):
+            return get_error_context(False, 'You cannot block/unblock twice!')
 
         if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE,
                 card_instance.user, card_instance.chatroom_with_user]):
@@ -3184,7 +3196,8 @@ class ChatroomImpl(ChatroomManager):
             if not response.get('success'):
                 return response
 
-            response = self.block_member({'status': block_chatroom_states.UNBLOCK})
+            if response.get('should_call_block_unblock', False):
+                response = self.block_member({'status': block_chatroom_states.UNBLOCK})
 
         elif chat_request_state == chat_request_states.REJECTED:
             response = ChatroomHelper.reject_dm_connection_request(user_instance, card_instance, user_member_state,
@@ -3193,7 +3206,8 @@ class ChatroomImpl(ChatroomManager):
             if not response.get('success'):
                 return response
 
-            response = self.block_member({'status': block_chatroom_states.BLOCK})
+            if response.get('should_call_block_unblock', False):
+                response = self.block_member({'status': block_chatroom_states.BLOCK})
 
         else:
             return get_error_context(False, 'Invalid chat request state')
@@ -4481,7 +4495,7 @@ class ChatroomHelper:
                                     {'chat_request_state': chat_request_state,
                                      'updated_at': TimeUtilities.current_time_in_sec()})
 
-        return {'success': True}
+        return {'success': True, 'should_call_block_unblock': True}
 
     @staticmethod
     def reject_dm_connection_request(user_instance, card_instance, user_member_state, member_state,
@@ -4505,4 +4519,4 @@ class ChatroomHelper:
                                     {'chat_request_state': chat_request_state,
                                      'updated_at': TimeUtilities.current_time_in_sec()})
 
-        return {'success': True}
+        return {'success': True, 'should_call_block_unblock': True}

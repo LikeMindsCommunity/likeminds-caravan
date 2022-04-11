@@ -2317,7 +2317,7 @@ def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, pag
         page_number = int(page)
         offset = (page_number - 1) * limit
         
-        chatrooms_list_string = ",".join([str(card_id) for card_id in chatrooms_list])
+        card_tuple = get_tuple_from_array(chatrooms_list)
         
         conn = get_connection()
         curr = conn.cursor()
@@ -2330,12 +2330,13 @@ def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, pag
                               OVER(
                                 partition BY CA.card_id
                                 ORDER BY CA.created_at DESC) AS row_number
-                                WHERE  CA.card_id IN (%s))
+                                FROM togther_card_answers as CA
+                                WHERE  CA.card_id IN %s)
             SELECT card_id, id
             FROM   added_row_number
             WHERE  row_number = 1
             ORDER  BY created_at DESC LIMIT %s OFFSET %s; 
-        """ % (chatrooms_list_string, str(limit), str(offset))
+        """ % (card_tuple, str(limit), str(offset))
         curr.execute(sql)
         card_list = curr.fetchall()
         curr.close()

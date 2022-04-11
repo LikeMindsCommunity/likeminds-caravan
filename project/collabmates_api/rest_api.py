@@ -1334,7 +1334,7 @@ class CohortSerializer(serializers.ModelSerializer):
             cohort_rights_filter = list(ModelUtilities.get_model_filter(
                 CohortRights, {'cohort_id': cohort.id}).prefetch_related('member_rights'))
 
-            from cohort.cohort_impl import CohortHelper
+            from collabmates_api.cohort.cohort_impl import CohortHelper
             cohort_rights = CohortHelper.get_all_the_cohort_rights(cohort_rights_filter)
             rights_list = get_saved_member_rights_list(cohort_rights, is_m2cm_v2=self.is_m2cm_v2)
 
