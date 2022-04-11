@@ -1149,3 +1149,14 @@ class TasksHelper:
             calendar_id = calendar_id_filter[0].calendar_id
 
         return calendar_id
+
+    @staticmethod
+    def add_community_info_to_notification_payload(message: dict, community_id: int) -> dict:
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if community_instance:
+            message['payload']['community_name'] = community_instance.name
+            message['payload']['community_logo'] = community_instance.thumbnail
+
+        return message

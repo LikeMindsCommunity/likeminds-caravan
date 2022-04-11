@@ -2,7 +2,8 @@ from ..external_service_apis.external_service_apis_manager import ExternalServic
 from external_services.email.email_wrapper import MailWrapper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 
-from ..notification import notification_meta, get_token_for_fcm, add_community_info_to_payload
+from ..notification import notification_meta, get_token_for_fcm
+from ..notifications.tasks_impl import TasksHelper
 
 
 class ExternalServiceApisImpl(ExternalServiceApisManager):
@@ -74,6 +75,9 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
         if not req_body.get('message_payload'):
             return {'error_message': 'send payload'}
 
+        if not req_body.get('community_id'):
+            return {'error_message': 'send community_id'}
+
         return req_body
 
     def send_email(self, req_body) -> dict:
@@ -138,7 +142,7 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
             message['category'] = notification_category
 
         if community_id:
-            message = add_community_info_to_payload(message, community_id)
+            message = TasksHelper.add_community_info_to_notification_payload(message, community_id)
 
         notification_meta(notification_details_list, message)
 
