@@ -956,6 +956,9 @@ class ResourcesImpl(ResourceManager):
         if req_body.get('title'):
             og_tags['title'] = req_body.get('title')
 
+        if req_body.get('banner_url'):
+            og_tags['image'] = req_body.get('banner_url')
+
         validated_data = req_body.copy()
 
         validated_data['og_tags'] = json.dumps(og_tags)
@@ -1195,6 +1198,13 @@ class ResourcesImpl(ResourceManager):
                 og_tags = json.loads(instance.og_tags)
 
             og_tags['title'] = req_body.get('title')
+
+        if req_body.get('banner_url'):
+
+            if not og_tags:
+                og_tags = json.loads(instance.og_tags)
+
+            og_tags['image'] = req_body.get('banner_url')
 
         if og_tags:
             validated_data['og_tags'] = json.dumps(og_tags)
