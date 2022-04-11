@@ -99,6 +99,7 @@ class Community(models.Model):
     fee_payment_pages = models.IntegerField(default=5)
 
     hide_dm_tab = models.BooleanField(default=False)
+    is_freemium_community = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

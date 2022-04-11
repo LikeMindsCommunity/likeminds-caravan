@@ -888,22 +888,14 @@ class CommunityImpl(CommunityManager):
 
         if member_state == member_states.GUEST:
 
-            is_free_trial = False
-
-            if community_instance.is_paid and free_link_and_freemium_community_version_check(
-                    self.get_request_platform(), int(self.get_version_code())):
-                is_free_trial = True
-
             if is_cm_onboarding_enabled:
                 join_link_valid, join_link_invalid_message = CommunityHelper.is_join_link_valid_v2(auto_join_code,
                                                                                                    shared_by_user,
                                                                                                    community_instance,
-                                                                                                   user_instance,
-                                                                                                   is_free_trial)
+                                                                                                   user_instance)
 
             else:
-                join_link_valid = CommunityHelper.is_join_link_valid(auto_join_code, shared_by_user, community_instance,
-                                                                     is_free_trial)
+                join_link_valid = CommunityHelper.is_join_link_valid(auto_join_code, shared_by_user, community_instance)
 
             if join_link_valid:
                 self.make_requesting_user_as_member_of_community_automatically(user_instance, community_instance,
@@ -2363,8 +2355,7 @@ class CommunityHelper:
         CommunityHelper.send_questions_data_on_airtable(user_instance, community_instance, airtable_data)
 
     @staticmethod
-    def is_join_link_valid_v2(auto_join_code, shared_by_user, community_instance, user_instance=None,
-                              is_free_trial=False):
+    def is_join_link_valid_v2(auto_join_code, shared_by_user, community_instance, user_instance=None):
 
         join_link_valid = False
         join_link_invalid_message = ''
@@ -2380,7 +2371,7 @@ class CommunityHelper:
         auto_approval = community_setting_instance[0].enabled if len(
             community_setting_instance) else community_instance.auto_approval
 
-        if community_instance.is_paid and (is_free_trial or ((auto_join_code is None) and (shared_by_user is None))):
+        if community_instance.is_paid and (auto_join_code is None) and (shared_by_user is None):
             join_link_valid = auto_approval
 
         else:
@@ -2409,11 +2400,8 @@ class CommunityHelper:
         return join_link_valid, join_link_invalid_message
 
     @staticmethod
-    def is_join_link_valid(auto_join_code, shared_by_user, community_instance, is_free_trial=False):
+    def is_join_link_valid(auto_join_code, shared_by_user, community_instance):
         join_link_valid = False
-
-        if is_free_trial:
-            return community_instance.auto_approval
 
         if auto_join_code is None \
                 and shared_by_user is None:
@@ -3369,8 +3357,7 @@ class CommunityHelper:
         return is_verified
 
     @staticmethod
-    def compute_community_meta_data_according_to_aj_shared_by(user_instance, community_instance, aj, shared_by,
-                                                              is_free_trial=False):
+    def compute_community_meta_data_according_to_aj_shared_by(user_instance, community_instance, aj, shared_by):
         community_serialized_object = CommunitySerializerV1(community_instance, many=False).data
         community_serialized_object['created_by'] = get_community_creator(community_instance)
         managers = CommunityHelper.get_community_managers(community_instance)
@@ -3393,7 +3380,7 @@ class CommunityHelper:
             title = FETCH_QUESTIONS_SHARED_BY_USER_TITLE.format(shared_by_user_name,
                                                                 community_serialized_object['name'])
 
-        if aj and shared_by and (not is_free_trial):
+        if aj and shared_by:
             auto_join = CommunityHelper.get_toast_according_to_aj_expiry(community_instance, aj, shared_by, user_instance)
             is_valid_private_link = True
 

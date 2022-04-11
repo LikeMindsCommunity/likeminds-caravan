@@ -913,12 +913,7 @@ def questions(request):
     except:
         error_logger.error(f"shared by user id does not exist in DB. shared by ---> {shared_by} ")
 
-    is_free_trial = False
-
-    if free_link_and_freemium_community_version_check(platform_code, version_code) and community_instance.is_paid:
-        is_free_trial = True
-
-    if aj and shared_by_user and (not is_free_trial):
+    if aj and shared_by_user:
         try:
             if is_cm_onboarding_enabled:
                 auto_join = private_link_app_invite_v2(community_instance, aj, created_by, shared_by_user,
@@ -9016,6 +9011,7 @@ def edit_community_version_1(request):
     community_instance.brand_color = res.get('brand_color', community_instance.brand_color)
     community_instance.likeminds_plan = res.get('likeminds_plan', community_instance.likeminds_plan)
     community_instance.hide_dm_tab = res.get('hide_dm_tab', community_instance.hide_dm_tab)
+    community_instance.is_freemium_community = res.get('is_freemium_community', community_instance.is_freemium_community)
 
     community_instance.save()
 
