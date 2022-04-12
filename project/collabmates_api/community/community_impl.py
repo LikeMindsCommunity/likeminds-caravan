@@ -37,7 +37,8 @@ from collabmates_api.branch import create_community_feed_url, create_community_o
     create_community_feed_url_for_cm_onboarding
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right, give_all_manager_rights, \
     give_all_member_rights, save_moderation_history, give_all_community_setting_rights, \
-    update_member_rights_in_member_engage, check_admin_moderate_dm_settings_right
+    update_member_rights_in_member_engage, check_admin_moderate_dm_settings_right, \
+    update_direct_message_right_in_member_rights_schema
 from django.db.models import Q, F
 
 from external_services.mixpanel.events import MixpanelEvents
@@ -1162,11 +1163,15 @@ class CommunityImpl(CommunityManager):
             if all([community_setting["setting_type"] == community_setting_types.DIRECT_MESSAGES,
                     community_setting['enabled']]):
                 update_dict['setting_sub_title'] = DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED
+                update_direct_message_right_in_member_rights_schema.delay(community_id=community_instance.id,
+                                                                          is_enabled=True)
 
             elif all([community_setting["setting_type"] == community_setting_types.DIRECT_MESSAGES,
                       not community_setting['enabled']]):
                 update_dict['setting_sub_title'] = COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING.get(
                     community_setting_types.DIRECT_MESSAGES)
+                update_direct_message_right_in_member_rights_schema.delay(community_id=community_instance.id,
+                                                                          is_enabled=False)
 
             if all([community_setting["setting_type"] == community_setting_types.MEMBERS_CAN_DM,
                     community_setting['enabled']]):
