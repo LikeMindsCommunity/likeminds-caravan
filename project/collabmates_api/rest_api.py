@@ -184,7 +184,8 @@ class CommunitySerializerV1(serializers.ModelSerializer):
                   'type', 'sub_type', 'is_paid', 'auto_approval', 'grace_period',
                   'is_discoverable', 'website_url', 'community_category', 'referral_enabled',
                   'dashboard_link', 'updated_at', 'fee_membership', 'fee_event', 'fee_payment_pages',
-                  'likeminds_plan', 'branding', 'is_whitelabel', 'whitelabel_info', 'hide_dm_tab')
+                  'likeminds_plan', 'branding', 'is_whitelabel', 'whitelabel_info', 'hide_dm_tab',
+                  'is_freemium_community')
 
     def __init__(self, *args, **kwargs):
         super(CommunitySerializerV1, self).__init__(*args, **kwargs)
