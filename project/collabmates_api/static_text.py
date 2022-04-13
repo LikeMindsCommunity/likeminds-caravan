@@ -578,8 +578,8 @@ SINGLE_COMMUNITY_VIEW_VERSION_CODE = {
 }
 
 FREE_LINK_VERSION_CODE = {
-    "an": 189,
-    "ios": 1001,
+    "an": 189 if settings.IS_BETA else 1001,
+    "ios": 338 if settings.IS_BETA else 1001,
     "web": 1001
 }
 
