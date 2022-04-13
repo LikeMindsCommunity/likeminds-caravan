@@ -3031,7 +3031,6 @@ class ChatroomImpl(ChatroomManager):
             'is_private': True,
             'type': card_types.CARD_DIRECT_MESSAGE,
             'community': community_instance,
-            'is_private_member': True,
             'user__in': [user_instance, member_instance],
             'chatroom_with_user__in': [user_instance, member_instance]
         }
@@ -3047,23 +3046,28 @@ class ChatroomImpl(ChatroomManager):
             member_state = ChatroomHelper.fetch_member_state_in_community(user=member_instance,
                                                                           community=community_instance)
 
-            if any([user_member_state == member_states.ADMIN, member_state == member_states.ADMIN]):
-                return get_error_context(False, 'You cannot create a DM if one user is CM!')
-
             card_content = {}
             chatroom_name = DM_CHATROOM_NAME
             chatroom_type = card_types.CARD_DIRECT_MESSAGE
 
-            card_content['chatroom_with_user'] = member_instance
-            card_content['is_private'] = True
+            if member_state == member_states.ADMIN:
+                self._fill_chatroom_basic_info(card_content, chatroom_name,
+                                               community_instance, member_instance, chatroom_type)
 
-            self._fill_chatroom_basic_info(card_content, chatroom_name,
-                                           community_instance, user_instance, chatroom_type)
+                card_content['chatroom_with_user'] = user_instance
+                card_content['member_state'] = member_state
+
+            else:
+                self._fill_chatroom_basic_info(card_content, chatroom_name,
+                                               community_instance, user_instance, chatroom_type)
+
+                card_content['chatroom_with_user'] = member_instance
+                card_content['member_state'] = user_member_state
 
             card_content['date_epoch'] = TimeUtilities.current_time_in_sec()
             card_content['header'] = chatroom_name
             card_content['has_been_named'] = True
-            card_content['member_state'] = user_member_state
+            card_content['is_private'] = True
 
             is_private_member = all([user_member_state == member_states.MEMBER,
                                      member_state == member_states.MEMBER])

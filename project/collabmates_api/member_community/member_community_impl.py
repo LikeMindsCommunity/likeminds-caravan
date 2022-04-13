@@ -2290,13 +2290,14 @@ class MemberCommunityHelper:
                                                                               user_instance.id,
                                                                               member_instance.id)
 
-        if not user_member_dm_chatroom:
-            return {'success': True, 'show_dm': False}
+        if is_user_admin or is_member_admin:
+            cta = CTA_ROUTE_DIRECT_MESSAGES_COMMUNITY_DETAIL_MULTIPLE_CM.format(community_instance.id)
 
-        elif is_user_admin or is_member_admin:
-            return {'success': True, 'show_dm': True,
-                    'cta': CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
-                                                                           community_instance.id)}
+            if user_member_dm_chatroom:
+                cta = CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
+                                                                      community_instance.id)
+
+            return {'success': True, 'show_dm': True, 'cta': cta}
 
         else:
             members_can_dm_filter = ModelUtilities.get_model_filter(CommunitySettings,
@@ -2313,9 +2314,13 @@ class MemberCommunityHelper:
             if not user_has_dm_right:
                 return {'success': True, 'show_dm': False}
 
-            return {'success': True, 'show_dm': True,
-                    'cta': CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
-                                                                           community_instance.id)}
+            cta = CTA_ROUTE_DIRECT_MESSAGES_COMMUNITY_DETAIL_MULTIPLE_CM.format(community_instance.id)
+
+            if user_member_dm_chatroom:
+                cta = CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
+                                                                      community_instance.id)
+
+            return {'success': True, 'show_dm': True, 'cta': cta}
 
     @staticmethod
     def can_member_dm_from_community_detail(user_instance, community_instance):
@@ -2340,9 +2345,14 @@ class MemberCommunityHelper:
                 user_member_dm_chatroom = ChatroomHelper.get_dm_chatroom_from_members(community_instance.id,
                                                                                       user_instance.id,
                                                                                       cms_list[0])
-                return {'success': True, 'show_dm': True,
-                        'cta': CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
-                                                                               community_instance.id)}
+
+                cta = CTA_ROUTE_DIRECT_MESSAGES_COMMUNITY_DETAIL_MULTIPLE_CM.format(community_instance.id)
+
+                if user_member_dm_chatroom:
+                    cta = CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
+                                                                          community_instance.id)
+
+                return {'success': True, 'show_dm': True, 'cta': cta}
 
             else:
                 return {'success': True, 'show_dm': True,
