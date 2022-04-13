@@ -50,7 +50,7 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     cm_onboarding_version_check, directory_questions_v2_version_check,
-                    get_user_email_preferred_verified, m2cm_v2_version_check, m2cm_v1_version_check)
+                    get_user_email_preferred_verified)
 from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
     tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
@@ -10633,7 +10633,7 @@ def update_community_manager_rights(request):
             if moderate_dm_right_filter[0].id in (list(rights_added) + list(removed_rights)) and \
                 not check_admin_moderate_dm_settings_right(current_user_instance, community_instance):
                 context = get_error_context(False, "You don't have right to give right of DM setting!")
-                return JsonResponse(context)
+                return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         rights_added, removed_rights = save_added_removed_rights_for_manager(community_instance,
                                                                              user_instance,

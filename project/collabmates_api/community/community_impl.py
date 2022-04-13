@@ -75,10 +75,11 @@ from ..notifications.tasks import send_mail_for_first_time_edit_community_questi
 from ..user.user_impl import UserHelper
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
-    directory_questions_v2_version_check, get_user_phone, m2cm_v2_version_check
+    directory_questions_v2_version_check, get_user_phone
 
 from ..sms import send_community_confirmation_sms
-from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check
+from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check, \
+    m2cm_v2_version_check
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()

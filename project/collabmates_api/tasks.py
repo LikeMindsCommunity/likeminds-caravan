@@ -35,9 +35,7 @@ from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24, CM_ONBOARD
     DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR, CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_LINK, \
     CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_TEXT, MEMBER_REPLY_EMAIL,FIVE_DAYS_IN_HOURS, \
     DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE, DIRECTORY_QUESTIONS_IOS_VERSION_CODE, \
-    DIRECTORY_QUESTIONS_WEB_VERSION_CODE, M2CM_V2_IOS_VERSION_CODE, M2CM_V2_ANDROID_VERSION_CODE, \
-    M2CM_V2_WEB_VERSION_CODE, DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS, \
-    DM_CHATROOMS_VERSION_CODE_WEB
+    DIRECTORY_QUESTIONS_WEB_VERSION_CODE
 from utility.mail_category_constants import *
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper, MailHelper
@@ -850,28 +848,6 @@ def directory_questions_v2_version_check(platform_code, version_code):
     if any([((platform_code == 'ios') and (version_code >= DIRECTORY_QUESTIONS_IOS_VERSION_CODE)),
             ((platform_code == 'web') and (version_code >= DIRECTORY_QUESTIONS_WEB_VERSION_CODE)),
             ((platform_code == 'an') and (version_code >= DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE))]):
-        is_enabled = True
-
-    return is_enabled
-
-
-def m2cm_v2_version_check(platform_code, version_code):
-    is_enabled = False
-
-    if any([((platform_code == 'ios') and (version_code >= M2CM_V2_IOS_VERSION_CODE)),
-            ((platform_code == 'web') and (version_code >= M2CM_V2_WEB_VERSION_CODE)),
-            ((platform_code == 'an') and (version_code >= M2CM_V2_ANDROID_VERSION_CODE))]):
-        is_enabled = True
-
-    return is_enabled
-
-
-def m2cm_v1_version_check(platform_code, version_code):
-    is_enabled = False
-
-    if any([((platform_code == 'ios') and (version_code >= DM_CHATROOMS_VERSION_CODE_IOS)),
-            ((platform_code == 'an') and (version_code >= DM_CHATROOMS_VERSION_CODE_ANDROID)),
-            ((platform_code == 'web') and (version_code >= DM_CHATROOMS_VERSION_CODE_WEB))]):
         is_enabled = True
 
     return is_enabled

@@ -34,8 +34,8 @@ from .constants import *
 from ..raw_queries import get_community_id_list, get_conversations_after_last_seen_messages_in_chatrooms, \
     get_dm_chatrooms_of_user
 from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
-from ..tasks import send_verification_mail_for_email_sync, cm_onboarding_version_check, m2cm_v1_version_check, \
-    m2cm_v2_version_check
+from ..tasks import send_verification_mail_for_email_sync, cm_onboarding_version_check
+from ..utility import m2cm_v1_version_check, m2cm_v2_version_check
 from ..rest_api import CommunitySerializerV1
 from ..serializers import get_logged_in_user
 from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS, \
