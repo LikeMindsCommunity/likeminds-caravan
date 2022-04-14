@@ -466,6 +466,15 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                                                                          community_instance)
                     removed_member_dict[card_creator_id] = chatroom_context['member']
 
+            chatroom_context['chat_request_state'] = data.chat_request_state
+            chatroom_context['chat_request_created_at'] = data.chat_request_created_at
+            chatroom_context['chat_requested_by'] = None
+
+            if data.chat_requested_by:
+                chatroom_context['chat_requested_by'] = get_members_profile([data.chat_requested_by.id],
+                                                                            community_instance.id,
+                                                                            send_profile=False)
+
             chatroom_context_list.append(chatroom_context)
 
         return chatroom_context_list
@@ -629,7 +638,8 @@ class ChatroomMemberHelper:
                             'online_link_type': card_instance.online_link_type,
                             'is_private': card_instance.is_private,
                             'access_without_subscription': card_instance.access_without_subscription,
-                            'member_can_message': card_instance.member_can_message}
+                            'member_can_message': card_instance.member_can_message,
+                            'is_private_member': card_instance.is_private_member}
 
         if card_instance.is_secret:
             chatroom_context['secret_chatroom_participants'] = json.loads(card_instance.secret_chatroom_participants)

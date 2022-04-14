@@ -98,6 +98,9 @@ class Community(models.Model):
     fee_event = models.IntegerField(default=5)
     fee_payment_pages = models.IntegerField(default=5)
 
+    hide_dm_tab = models.BooleanField(default=False)
+    is_freemium_community = models.BooleanField(default=False)
+
     def __str__(self):
         return self.name
 
@@ -565,6 +568,7 @@ class Collabcard(models.Model):
     about_recording = models.TextField(null=True)
     recording_url_og_tags = models.TextField(null=True)
     has_event_recording = models.BooleanField(default=False)
+    is_private_member = models.BooleanField(default=False)
 
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
@@ -983,6 +987,10 @@ class collabcardState(models.Model):
 
     secret_chatroom_left = models.BooleanField(default=False)
     attended = models.BooleanField(default=False)
+
+    chat_request_state = models.IntegerField(null=True)
+    chat_requested_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='chat_requested_by')
+    chat_request_created_at = models.BigIntegerField(null=True)
 
     class Meta:
         unique_together = (('card', 'user'),)
@@ -2003,6 +2011,7 @@ class adminRights(models.Model):
     title = models.TextField(null=True)
     sub_title = models.TextField(null=True)
     state = models.IntegerField(default=0)
+    rank = models.IntegerField(default=0)
 
 
 class memberRights(models.Model):
@@ -3283,5 +3292,25 @@ class ChatroomSecretTypeConversion(models.Model):
             self.created_at = current_time
 
         self.updated_at = current_time
-
+        
         super(ChatroomSecretTypeConversion, self).save(*args, **kwargs)
+
+
+class CommunityDirectMessageSettings(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    state = models.IntegerField(default=0)
+    duration = models.TextField(null=True)
+    number_in_duration = models.IntegerField(default=0)
+    
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(CommunityDirectMessageSettings, self).save(*args, **kwargs)

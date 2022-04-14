@@ -5,7 +5,7 @@ from togther.models import (Members, collabcardState, Userinfo, Collabcard,
                             memberRights, adminRights, userAdminRights, userMemberRights,
                             moderationHistory, Report, Report_Tags, communityRightsSettings,
                             Community, removedMembers, userMemberRightsHistory,
-                            Member_Engage, conversationEngage)
+                            Member_Engage, conversationEngage, ModelUtilities)
 from utility.states import (member_states, manager_rights, member_rights, moderation_history_types, SyncTypes)
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -22,7 +22,7 @@ def give_all_member_rights(user, community):
     """function to give a member all the rights """
     userMemberRights.objects.filter(user=user, community=community).delete()
 
-    member_rights = memberRights.objects.all().exclude(state__in=[4, 7]).order_by("state")
+    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8]).order_by("state")
     fill_member_rights(user, community, member_rights)
 
 
@@ -37,7 +37,7 @@ def give_default_member_rights(user, community):
 
     userMemberRights.objects.filter(user=user, community=community).delete()
 
-    member_rights_list = memberRights.objects.all().exclude(state=4).order_by("state")
+    member_rights_list = memberRights.objects.all().exclude(state__in=[4, 7, 8]).order_by("state")
 
     community_settings = list(communityRightsSettings.objects.filter(community=community).exclude(right__state=4)
                               .values_list("right__state", flat=True))
@@ -116,13 +116,16 @@ def save_member_right(user, community, right):
         error_logger.error(f"member right already exist for user {user.id} in community {community.id}")
 
 
-def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=False):
+def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=False, is_m2cm_v2=False):
     """ function to return the selected and disabled rights of a member or community settings """
     all_member_rights = memberRights.objects.all().exclude(state=4).order_by("state")
     rights_list = []
     for right in all_member_rights:
 
         if (right.state == member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES) and (not show_dm_right):
+            continue
+
+        if (right.state == member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM) and (not is_m2cm_v2):
             continue
 
         right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title, "state": right.state,
@@ -168,6 +171,10 @@ def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=F
             if show_dm_right:
                 right_dict["is_selected"] = user_rights["show_dm"]
                 right_dict["is_locked"] = False
+
+        elif right.state == members_can_dm_right['state']:
+            right_dict["is_selected"] = user_rights["members_can_dm"]
+            right_dict["is_locked"] = False
 
         if right.sub_title is None:
             del right_dict["sub_title"]
@@ -268,7 +275,7 @@ def check_all_manager_rights(user, community):
     return rights_list
 
 
-def check_all_member_rights(user=None, community=None):
+def check_all_member_rights(user=None, community=None, is_m2cm_v2=False):
     """function to give a manager all the rights """
 
     create_room = False
@@ -278,6 +285,7 @@ def check_all_member_rights(user=None, community=None):
     auto_approve = False
     secret_chatroom = False
     show_direct_messages = False
+    members_can_dm = False
 
     if user is None and community is not None:
         member_rights = communityRightsSettings.objects.select_related('right').exclude(right__state=4).filter(
@@ -308,10 +316,15 @@ def check_all_member_rights(user=None, community=None):
             secret_chatroom = True
         elif right.state == show_direct_messages_right['state']:
             show_direct_messages = True
+        elif right.state == members_can_dm_right['state']:
+            members_can_dm = True
 
     rights = {"create_room": create_room, "create_poll": create_poll, "create_event": create_event,
               "respond_in_rooms": respond_in_rooms, "auto_approve": auto_approve,
               "create_secret_chatroom": secret_chatroom, "show_dm": show_direct_messages}
+
+    if is_m2cm_v2:
+        rights["members_can_dm"] = members_can_dm
 
     return rights
 
@@ -370,6 +383,15 @@ def check_admin_edit_community_right(user, community):
 def check_admin_add_community_managers_right(user, community):
     user_rights = userAdminRights.objects.filter(user=user, community=community,
                                                  right__state=manager_rights.MANAGER_RIGHT_ADD_MANAGERS)
+
+    if user_rights.exists():
+        return True
+    return False
+
+
+def check_admin_moderate_dm_settings_right(user, community):
+    user_rights = userAdminRights.objects.filter(user=user, community=community,
+                                                 right__state=manager_rights.MODERATE_DM_SETTINGS)
 
     if user_rights.exists():
         return True
@@ -627,7 +649,7 @@ def get_right_dict(right):
 
 
 def give_all_community_setting_rights(community):
-    member_rights = memberRights.objects.all().exclude(state__in=[4, 7]).order_by("state")
+    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8]).order_by("state")
     save_community_setting_rights(community, member_rights)
 
 
@@ -1015,3 +1037,29 @@ def update_member_rights_list_for_community_members(community_id):
 
     # Updating updated_at timestamp for all users in community
     Member_Engage.objects.filter(community_id=community).update(updated_at=TimeUtilities.current_time_in_sec())
+
+
+@shared_task
+def update_direct_message_right_in_member_rights_schema(community_id, is_enabled=False):
+    dm_right_filter = ModelUtilities.get_model_filter(memberRights,
+                                                      {'state': member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+
+    if not dm_right_filter:
+        return
+
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+    if not community_instance:
+        return
+
+    filter_dict = {'community': community_instance, 'right': dm_right_filter[0]}
+
+    if is_enabled:
+        ModelUtilities.update_or_create_model(communityRightsSettings, filter_dict, filter_dict)
+        update_member_rights_list_for_community_members(community_id)
+
+    elif not is_enabled:
+        ModelUtilities.delete_record_in_model(communityRightsSettings, filter_dict)
+        update_member_rights_list_for_community_members(community_id)
+
+    return

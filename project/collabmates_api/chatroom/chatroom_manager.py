@@ -68,7 +68,13 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'publish_event_webflow') and
                  callable(subclass.publish_event_webflow)) and
                 (hasattr(subclass, 'change_chatroom_type') and
-                 callable(subclass.change_chatroom_type))
+                 callable(subclass.change_chatroom_type)) and
+                (hasattr(subclass, 'create_dm_chatroom') and
+                 callable(subclass.create_dm_chatroom)) and
+                (hasattr(subclass, 'block_member') and
+                 callable(subclass.block_member)) and
+                (hasattr(subclass, 'request_dm') and
+                 callable(subclass.request_dm))
                 or NotImplemented)
 
     @abc.abstractmethod
@@ -327,4 +333,26 @@ class ChatroomManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def create_dm_chatroom(self, req_body) -> dict:
+        """
+        Creates a DM chatroom
+        """
 
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def block_member(self, req_body) -> dict:
+        """
+        Block/Unblock member in chatroom
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def request_dm(self, req_body) -> dict:
+        """
+        Initiate, accept ot reject a connection request in DM chatroom
+        """
+
+        raise NotImplementedError

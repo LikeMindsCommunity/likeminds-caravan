@@ -8,7 +8,8 @@ import re
 from cms.models import NewAnswer
 from collabmates_api.community.constants import *
 from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSerializer, CommunityToastV1Serializer, \
-    CommunityGetStartedSerializer, CommunityQuestionsSerializerV2, CommunityAnswersSerializer, get_error_context
+    CommunityGetStartedSerializer, CommunityQuestionsSerializerV2, CommunityAnswersSerializer, get_error_context, \
+    CommunityDMSettingsSerializer
 
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
     give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage, \
@@ -28,7 +29,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityLevels, conversationEngage, userMemberRights, moderationHistory, communityQuestions, questionFilters, \
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, CommunityJoinDefaultEmail, \
     userEmails, ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
-    communityFieldSubTypes
+    communityFieldSubTypes, CommunityDirectMessageSettings
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST
@@ -36,7 +37,8 @@ from collabmates_api.branch import create_community_feed_url, create_community_o
     create_community_feed_url_for_cm_onboarding
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right, give_all_manager_rights, \
     give_all_member_rights, save_moderation_history, give_all_community_setting_rights, \
-    update_member_rights_in_member_engage
+    update_member_rights_in_member_engage, check_admin_moderate_dm_settings_right, \
+    update_direct_message_right_in_member_rights_schema
 from django.db.models import Q, F
 
 from external_services.mixpanel.events import MixpanelEvents
@@ -57,7 +59,7 @@ from utility.states import member_states, card_types, click_states, member_right
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types, \
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
-    airtable_webhook_types, WebhookTypes
+    airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -76,7 +78,8 @@ from ..tasks import send_community_confirmation_email, cm_onboarding_version_che
     directory_questions_v2_version_check, get_user_phone
 
 from ..sms import send_community_confirmation_sms
-from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check
+from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check, \
+    m2cm_v2_version_check
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -722,7 +725,7 @@ class CommunityImpl(CommunityManager):
         platform = self.get_request_platform()
 
         create_member_dm_chatroom.delay(self.get_member_id(), self.get_community_id(), device_id=device_id,
-                                        request_platform=platform, req_body=req_body, is_joining=True)
+                                        request_platform=platform, is_joining=True)
 
         CohortHelper.add_all_member_to_cohort(self.get_community_id(), [self.get_member_id()])
 
@@ -887,22 +890,14 @@ class CommunityImpl(CommunityManager):
 
         if member_state == member_states.GUEST:
 
-            is_free_trial = False
-
-            if community_instance.is_paid and free_link_and_freemium_community_version_check(
-                    self.get_request_platform(), int(self.get_version_code())):
-                is_free_trial = True
-
             if is_cm_onboarding_enabled:
                 join_link_valid, join_link_invalid_message = CommunityHelper.is_join_link_valid_v2(auto_join_code,
                                                                                                    shared_by_user,
                                                                                                    community_instance,
-                                                                                                   user_instance,
-                                                                                                   is_free_trial)
+                                                                                                   user_instance)
 
             else:
-                join_link_valid = CommunityHelper.is_join_link_valid(auto_join_code, shared_by_user, community_instance,
-                                                                     is_free_trial)
+                join_link_valid = CommunityHelper.is_join_link_valid(auto_join_code, shared_by_user, community_instance)
 
             if join_link_valid:
                 self.make_requesting_user_as_member_of_community_automatically(user_instance, community_instance,
@@ -1096,9 +1091,27 @@ class CommunityImpl(CommunityManager):
 
         community_settings_serializer = CommunitySettingsSerializer(community_settings_list, many=True)
 
+        community_settings = json.loads(json.dumps(community_settings_serializer.data))
+        filtered_community_settings_list = []
+        is_m2cm_v2 = m2cm_v2_version_check(self.get_request_platform(), self.get_version_code())
+
+        for community_setting in community_settings:
+
+            if all([community_setting.get('setting_type') in [community_setting_types.DIRECT_MESSAGES,
+                                                              community_setting_types.MEMBERS_CAN_DM,
+                                                              community_setting_types.DIRECT_MESSAGE_SETTING],
+                    not is_m2cm_v2]):
+                continue
+
+            if all([not check_admin_moderate_dm_settings_right(user_instance, community_instance),
+                    community_setting.get('setting_type') == community_setting_types.DIRECT_MESSAGE_SETTING]):
+                continue
+
+            filtered_community_settings_list.append(community_setting)
+
         response = {
             'success': True,
-            'community_settings': json.loads(json.dumps(community_settings_serializer.data))
+            'community_settings': filtered_community_settings_list
         }
 
         return response
@@ -1131,6 +1144,11 @@ class CommunityImpl(CommunityManager):
 
         for community_setting in community_settings_list:
 
+            if all([community_setting["setting_type"] in (community_setting_types.DIRECT_MESSAGES,
+                                                          community_setting_types.MEMBERS_CAN_DM),
+                    not check_admin_moderate_dm_settings_right(user_instance, community_instance)]):
+                continue
+
             filter_dict = {
                 "community_id": self.get_community_id(),
                 "setting_type": community_setting["setting_type"],
@@ -1142,6 +1160,26 @@ class CommunityImpl(CommunityManager):
                 'updated_at': TimeUtilities.current_time_in_milliseconds(),
                 'enabled_by': user_instance if community_setting['enabled'] else None
             }
+
+            if all([community_setting["setting_type"] == community_setting_types.DIRECT_MESSAGES,
+                    community_setting['enabled']]):
+                update_dict['setting_sub_title'] = DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED
+                update_direct_message_right_in_member_rights_schema.delay(community_id=community_instance.id,
+                                                                          is_enabled=True)
+
+            elif all([community_setting["setting_type"] == community_setting_types.DIRECT_MESSAGES,
+                      not community_setting['enabled']]):
+                update_dict['setting_sub_title'] = COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING.get(
+                    community_setting_types.DIRECT_MESSAGES)
+                update_direct_message_right_in_member_rights_schema.delay(community_id=community_instance.id,
+                                                                          is_enabled=False)
+
+            if all([community_setting["setting_type"] == community_setting_types.MEMBERS_CAN_DM,
+                    community_setting['enabled']]):
+                cohort_right_add = CohortHelper.add_members_can_dm_right_in_all_member_cohort(community_instance)
+
+                if not cohort_right_add.get('success'):
+                    return cohort_right_add
 
             if not community_setting['enabled']:
                 disabled_community_setting_context = {
@@ -1612,16 +1650,9 @@ class CommunityImpl(CommunityManager):
         aj = validated_req_body.get('aj')
         shared_by = validated_req_body.get('shared_by')
 
-        is_free_trial = False
-
-        if free_link_and_freemium_community_version_check(self.get_request_platform(), int(self.get_version_code()))\
-                and community_instance.is_paid:
-            is_free_trial = True
-
         community_meta_data = CommunityHelper.compute_community_meta_data_according_to_aj_shared_by(user_instance,
                                                                                                     community_instance,
-                                                                                                    aj, shared_by,
-                                                                                                    is_free_trial)
+                                                                                                    aj, shared_by)
 
         CommunityHelper.send_drop_off_notification_in_join(user_instance, community_instance, aj)
 
@@ -1663,7 +1694,6 @@ class CommunityImpl(CommunityManager):
         return output
 
     def fetch_community_id_from_domain(self, req_body) -> dict:
-
         output = {}
         whitelabel_domain_key = 'WHITELABEL_DOMAINS'
 
@@ -1693,6 +1723,59 @@ class CommunityImpl(CommunityManager):
                 output['error_message'] = "Invalid domain"
 
         return output
+
+    def update_community_dm_settings(self, req_body) -> {}:
+        validated_req_body = CommunityHelper.validate_update_community_dm_settings_request(self.get_member_id(),
+                                                                                           self.get_community_id(),
+                                                                                           req_body)
+
+        if not validated_req_body.get('success'):
+            return validated_req_body
+
+        filter_dict = {
+            'community': validated_req_body.get('community_instance')
+        }
+
+        ModelUtilities.update_or_create_model(CommunityDirectMessageSettings, filter_dict,
+                                              validated_req_body.get('update_dict'))
+
+        return {'success': True}
+
+    def fetch_community_dm_settings(self) -> {}:
+        validated_req_body = CommunityHelper.validate_fetch_community_dm_settings_request(self.get_member_id(),
+                                                                                          self.get_community_id())
+
+        if not validated_req_body.get('success'):
+            return validated_req_body
+
+        filter_dict = {
+            'community': validated_req_body.get('community_instance')
+        }
+
+        community_dm_settings_filter = ModelUtilities.get_model_filter(CommunityDirectMessageSettings, filter_dict)
+
+        if community_dm_settings_filter:
+            community_dm_setting_object = CommunityDMSettingsSerializer(community_dm_settings_filter[0]).data
+            return {'success': True, 'community_dm_settings': community_dm_setting_object}
+
+        else:
+            return {'success': False, 'error_message': 'No setting found!'}
+
+    def fetch_community_dm_right(self, req_body) -> {}:
+        validated_req_body = CommunityHelper.validate_fetch_community_dm_right_request(self.get_member_id(),
+                                                                                       self.get_community_id(),
+                                                                                       req_body)
+
+        if not validated_req_body.get('success'):
+            return validated_req_body
+
+        community_instance = validated_req_body.get('community_instance')
+        state = validated_req_body.get('state')
+        is_m2cm_v2 = m2cm_v2_version_check(self.get_request_platform(), self.get_version_code())
+
+        right_data = CohortHelper.get_cohorts_with_specific_right(community_instance, state, is_m2cm_v2=is_m2cm_v2)
+
+        return {'success': True, 'cohorts': right_data}
 
 
 class CommunityHelper:
@@ -2271,8 +2354,7 @@ class CommunityHelper:
         CommunityHelper.send_questions_data_on_airtable(user_instance, community_instance, airtable_data)
 
     @staticmethod
-    def is_join_link_valid_v2(auto_join_code, shared_by_user, community_instance, user_instance=None,
-                              is_free_trial=False):
+    def is_join_link_valid_v2(auto_join_code, shared_by_user, community_instance, user_instance=None):
 
         join_link_valid = False
         join_link_invalid_message = ''
@@ -2288,7 +2370,7 @@ class CommunityHelper:
         auto_approval = community_setting_instance[0].enabled if len(
             community_setting_instance) else community_instance.auto_approval
 
-        if community_instance.is_paid and (is_free_trial or ((auto_join_code is None) and (shared_by_user is None))):
+        if community_instance.is_paid and (auto_join_code is None) and (shared_by_user is None):
             join_link_valid = auto_approval
 
         else:
@@ -2317,11 +2399,8 @@ class CommunityHelper:
         return join_link_valid, join_link_invalid_message
 
     @staticmethod
-    def is_join_link_valid(auto_join_code, shared_by_user, community_instance, is_free_trial=False):
+    def is_join_link_valid(auto_join_code, shared_by_user, community_instance):
         join_link_valid = False
-
-        if is_free_trial:
-            return community_instance.auto_approval
 
         if auto_join_code is None \
                 and shared_by_user is None:
@@ -3277,8 +3356,7 @@ class CommunityHelper:
         return is_verified
 
     @staticmethod
-    def compute_community_meta_data_according_to_aj_shared_by(user_instance, community_instance, aj, shared_by,
-                                                              is_free_trial=False):
+    def compute_community_meta_data_according_to_aj_shared_by(user_instance, community_instance, aj, shared_by):
         community_serialized_object = CommunitySerializerV1(community_instance, many=False).data
         community_serialized_object['created_by'] = get_community_creator(community_instance)
         managers = CommunityHelper.get_community_managers(community_instance)
@@ -3301,7 +3379,7 @@ class CommunityHelper:
             title = FETCH_QUESTIONS_SHARED_BY_USER_TITLE.format(shared_by_user_name,
                                                                 community_serialized_object['name'])
 
-        if aj and shared_by and (not is_free_trial):
+        if aj and shared_by:
             auto_join = CommunityHelper.get_toast_according_to_aj_expiry(community_instance, aj, shared_by, user_instance)
             is_valid_private_link = True
 
@@ -3429,3 +3507,100 @@ class CommunityHelper:
 
         return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
                 'aj': req_body.get('aj', None), 'shared_by': req_body.get('shared_by', None)}
+
+    @staticmethod
+    def validate_update_community_dm_settings_request(user_id, community_id, req_body):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return {'success': False, 'error_message': 'Invalid member-id'}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return {'success': False, 'error_message': 'Invalid community_id'}
+
+        if not Members.is_member_community_promoter(community_instance, user_instance):
+            return {'success': False, 'error_message': 'You are not CM/Owner of this community!'}
+
+        if not check_admin_moderate_dm_settings_right(user_instance, community_instance):
+            return {'success': False, 'error_message': "You don't have right to update this setting!"}
+
+        update_dict = {}
+
+        if req_body.get('state') is not None:
+
+            if req_body.get('state') not in [community_dm_settings_state_types.UNLIMITED,
+                                             community_dm_settings_state_types.LIMITED]:
+                return {'success': False, 'error_message': 'Invalid state value!'}
+
+            else:
+                update_dict['state'] = req_body.get('state')
+
+        if req_body.get('duration'):
+
+            if req_body.get('duration') not in [community_dm_settings_duration_types.DAYS,
+                                                community_dm_settings_duration_types.WEEKS,
+                                                community_dm_settings_duration_types.MONTHS]:
+                return {'success': False, 'error_message': 'Invalid duration value!'}
+
+            else:
+
+                if not req_body.get('number_in_duration'):
+                    return {'success': False, 'error_message': 'Invalid number_in_duration value!'}
+
+                update_dict['duration'] = req_body.get('duration')
+
+        if req_body.get('number_in_duration'):
+
+            if not isinstance(req_body.get('number_in_duration'), int):
+                return {'success': False, 'error_message': 'Invalid number_in_duration value!'}
+
+            else:
+                update_dict['number_in_duration'] = req_body.get('number_in_duration')
+
+        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
+                'update_dict': update_dict}
+
+    @staticmethod
+    def validate_fetch_community_dm_settings_request(user_id, community_id):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return {'success': False, 'error_message': 'Invalid member-id'}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return {'success': False, 'error_message': 'Invalid community_id'}
+
+        if not Members.is_member_community_promoter(community_instance, user_instance):
+            return {'success': False, 'error_message': 'You are not CM/Owner of this community!'}
+
+        if not check_admin_moderate_dm_settings_right(user_instance, community_instance):
+            return {'success': False, 'error_message': "You don't have right to fetch this setting!"}
+
+        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance}
+
+    @staticmethod
+    def validate_fetch_community_dm_right_request(user_id, community_id, req_body):
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not user_instance:
+            return {'success': False, 'error_message': 'Invalid member-id'}
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return {'success': False, 'error_message': 'Invalid community_id'}
+
+        if req_body.get('state') is None:
+            return {'success': False, 'error_message': 'Empty state'}
+
+        state = NumberUtilities.get_integer_from_string(req_body.get('state'), -1)
+
+        if state < LEAST_MEMBER_RIGHT_STATE_VALUE:
+            return {'success': False, 'error_message': 'Invalid state'}
+
+        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
+                'state': state}
