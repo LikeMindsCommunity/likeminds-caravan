@@ -926,6 +926,12 @@ class TasksHelper:
         return removed_member_ids
 
     @staticmethod
+    def get_members_excluding_non_members_in_community(community_id, members_list):
+        removed_members = TasksHelper.get_removed_member_ids_in_community(community_id)
+
+        return list(set(members_list) - set(removed_members))
+
+    @staticmethod
     def get_active_members_excluding_non_members_in_community(community_instance: Community, active_members: list) -> \
             list:
         """
