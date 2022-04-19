@@ -24,7 +24,12 @@ url = settings.URL
 def trigger_event_comms(payload_for_whatsapp_comms, payload_for_app_and_email_notifications):
     trigger_whatsapp_communication_for_event.delay(payload_for_whatsapp_comms)
     trigger_app_notification_for_event.delay(payload_for_app_and_email_notifications)
-    trigger_email_communication_for_event.delay(payload_for_app_and_email_notifications)
+
+    args = [payload_for_app_and_email_notifications]
+    trigger_email_communication_for_event.apply_async(
+        args,
+        countdown=10
+    )
 
 
 @shared_task

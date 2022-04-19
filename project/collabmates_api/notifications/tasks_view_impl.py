@@ -41,7 +41,12 @@ class SendEventCreationMail(APIView):
                 'event_cost': req_body.get('event_cost')
             }
 
-            send_email_notification_for_event_type.delay(payload_for_event_creation_mail, EVENT_TYPE.CREATION)
+            args = [payload_for_event_creation_mail, EVENT_TYPE.CREATION]
+
+            send_email_notification_for_event_type.apply_async(
+                args,
+                countdown=10
+            )
 
             res = {
                 'success': True
