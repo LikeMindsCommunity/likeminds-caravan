@@ -32,14 +32,18 @@ class TaskManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_response_dict_for_email_comms(self, payload):
+    def get_response_dict_for_email_comms(self, payload, event_cost_in_event_creation_mail):
         """
         getting response_dict for email notifications
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_event_metadata_for_calendar_invite(self, payload):
+    def get_event_metadata_for_calendar_invite(self,
+                                               card_id,
+                                               send_to_members,
+                                               user_list,
+                                               calendar_invite_type):
         """
         getting event_metadata for calendar invite
         """
