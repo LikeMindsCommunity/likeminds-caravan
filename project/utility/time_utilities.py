@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 
 class TimeUtilities:
+    MILLI_SEC_IN_A_DAY = 86400000
 
     @staticmethod
     def current_time_in_millis() -> float:
@@ -223,3 +224,38 @@ class TimeUtilities:
         """0-Monday, 1-Tueday, .... 6-Sunday"""
 
         return datetime.today().weekday()
+
+    @staticmethod
+    def get_current_datetime():
+        return datetime.now()
+
+    @staticmethod
+    def get_week_first_day_in_datetime():
+        current_datetime = TimeUtilities.get_current_datetime()
+        return current_datetime - timedelta(days=current_datetime.weekday())
+
+    @staticmethod
+    def get_week_end_day_in_datetime():
+        return TimeUtilities.get_week_first_day_in_datetime() + timedelta(days=6)
+
+    @staticmethod
+    def get_month_first_day_in_datetime():
+        current_datetime = TimeUtilities.get_current_datetime()
+        return current_datetime.replace(day=1)
+
+    @staticmethod
+    def get_month_last_day_in_datetime():
+        next_month_datetime = TimeUtilities.get_current_datetime().replace(day=28) + timedelta(days=4)
+        return next_month_datetime - timedelta(days=next_month_datetime.day)
+
+    @staticmethod
+    def get_epoch_time_for_start_of_day_in_millisec(date_time):
+
+        """2020-10-11 01:56:24+05:30 --> 2020-10-11 00:00:00"""
+        return int(date_time.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()) * 1000
+
+    @staticmethod
+    def get_epoch_time_for_end_of_day_in_millisec(date_time):
+
+        """2020-10-11 01:56:24+05:30 --> 2020-10-11 00:00:00"""
+        return int(date_time.replace(hour=23, minute=59, second=59, microsecond=999).timestamp()) * 1000

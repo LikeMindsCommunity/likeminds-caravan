@@ -5,6 +5,8 @@ from urllib.parse import urlparse, ParseResult
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 
+from internal_services.url_tags.constants import REQUEST_TIMEOUT_SECONDS, URL_HIT_RETRIES, RETRY_BACKOFF_FACTOR, \
+    FORCE_STATUS_LIST, BROWSER_USER_AGENT
 from internal_services.url_tags.uri_tags_manager import UriTagsManager
 
 
@@ -173,15 +175,16 @@ class UriTagsHelper:
 
     @staticmethod
     def get_uri_page(uri: str) -> str:
-        request_timeout: int = 2
-
         requests_session: requests.sessions.Session = requests.Session()
-        retries: Retry = Retry(total=3,
-                               backoff_factor=0.1,
-                               status_forcelist=[500, 502, 503, 504])
+        retries: Retry = Retry(total=URL_HIT_RETRIES,
+                               backoff_factor=RETRY_BACKOFF_FACTOR,
+                               status_forcelist=FORCE_STATUS_LIST)
 
         requests_session.mount('https://', HTTPAdapter(max_retries=retries))
-        response: requests.models.Response = requests_session.get(uri, timeout=request_timeout)
+        headers = {
+            'User-Agent': BROWSER_USER_AGENT
+        }
+        response: requests.models.Response = requests_session.get(uri, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
         requests_session.close()
 
         return response.text

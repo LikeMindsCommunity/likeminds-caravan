@@ -15,24 +15,27 @@ from cms.models import userAcquition
 from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices, Community,
                             Members, userEmails, Userinfo, emailTokens, Collabcard, removedMembers,
                             DirectMessageTutorial, communityRightsSettings, card_answers, collabcardState,
-                            conversationEngage)
+                            conversationEngage, CommunitySettings)
 from collabmates_api.user.user_manager import UserManager
 
 from utility.exception_utilities import InvalidUserException
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import email_states, mobile_states, member_states, login_types, deleted_members, \
-    conversation_states, member_rights
+    conversation_states, member_rights, community_setting_types, chat_request_states
 from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
+from utility.constants import ONE_DAY_HOURS
 
 from utility.url_utilities import UrlUtilities
 
 from .constants import *
-from ..raw_queries import get_community_id_list
+from ..raw_queries import get_community_id_list, get_conversations_after_last_seen_messages_in_chatrooms, \
+    get_dm_chatrooms_of_user
 from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
 from ..tasks import send_verification_mail_for_email_sync, cm_onboarding_version_check
+from ..utility import m2cm_v1_version_check, m2cm_v2_version_check
 from ..rest_api import CommunitySerializerV1
 from ..serializers import get_logged_in_user
 from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS, \
@@ -596,10 +599,10 @@ class UserImpl(UserManager):
 
     def fetch_dm_home(self) -> dict:
 
-        if (self.get_platform_code() == "an") and (self.get_version_code() < DM_CHATROOMS_VERSION_CODE_ANDROID):
-            return {'success': True}
+        is_m2cm_v1 = m2cm_v1_version_check(self.get_platform_code(), self.get_version_code())
+        is_m2cm_v2 = m2cm_v2_version_check(self.get_platform_code(), self.get_version_code())
 
-        elif (self.get_platform_code() == "ios") and (self.get_version_code() < DM_CHATROOMS_VERSION_CODE_IOS):
+        if not is_m2cm_v1:
             return {'success': True}
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_user_id())
@@ -633,18 +636,20 @@ class UserImpl(UserManager):
             }).values_list(
                 "community_id_id", flat=True))
 
-        communities = ModelUtilities.get_model_filter(communityRightsSettings,
-                                                      {"community__id__in": communities_list,
-                                                       "right__state":
-                                                           member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+        communities = ModelUtilities.get_model_filter(CommunitySettings,
+                                                      {"community_id__in": communities_list,
+                                                       "setting_type": community_setting_types.DIRECT_MESSAGES})
 
+        dm_disabled_time = UserHelper.get_dm_disabled_time_for_members(communities)
+        communities = communities.filter(enabled=True)
         community_ids_list = list(communities.values_list("community_id", flat=True))
+        hide_dm_tab = False
 
         if admin.exists():
 
             is_cm = True
 
-            if direct_message_tutorial:
+            if (not is_m2cm_v2) and direct_message_tutorial:
 
                 if all([direct_message_tutorial.clicked, not direct_message_tutorial.messaged, not communities,
                         TimeUtilities.current_time_in_sec() >= TimeUtilities.add_hours_to_epoch_time(
@@ -652,7 +657,7 @@ class UserImpl(UserManager):
 
                     return {
                         "success": True,
-                        "is_cm": True
+                        "is_cm": is_cm
                     }
 
                 unseen_count = UserHelper.get_unread_dm_messages_count(user_instance.id, community_ids_list)
@@ -665,6 +670,25 @@ class UserImpl(UserManager):
                     "is_cm": is_cm
                 }
 
+            elif is_m2cm_v2:
+                get_dm_chatrooms_state_list = get_dm_chatrooms_of_user(user_id=user_instance.id,
+                                                                       community_id=community_ids_list)
+                unseen_count = 0
+
+                if get_dm_chatrooms_state_list:
+                    get_dm_chatrooms_list = [card_id[1] for card_id in get_dm_chatrooms_state_list]
+                    unseen_count = get_conversations_after_last_seen_messages_in_chatrooms(get_dm_chatrooms_list)
+
+                if self.get_community_id():
+                    hide_dm_tab = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id()).hide_dm_tab
+
+                return {
+                    "success": True,
+                    "unread_dm_count": unseen_count,
+                    "is_cm": is_cm,
+                    "hide_dm_tab": hide_dm_tab
+                }
+
             else:
                 return {"success": True, "clicked": False, "messaged": False, "is_cm": is_cm}
 
@@ -672,10 +696,9 @@ class UserImpl(UserManager):
 
             if communities:
 
-                if direct_message_tutorial:
+                if (not is_m2cm_v2) and direct_message_tutorial:
 
-                    unseen_count = UserHelper.get_unread_dm_messages_count(user_instance.id, community_ids_list,
-                                                                           is_cm=False)
+                    unseen_count = UserHelper.get_unread_dm_messages_count(user_instance.id, community_ids_list)
 
                     return {
                         "success": True,
@@ -685,11 +708,32 @@ class UserImpl(UserManager):
                         "is_cm": is_cm
                     }
 
+                elif is_m2cm_v2:
+                    get_dm_chatrooms_state_list = get_dm_chatrooms_of_user(user_id=user_instance.id,
+                                                                           community_id=community_ids_list)
+                    get_dm_chatrooms_list = [card_id[1] for card_id in get_dm_chatrooms_state_list]
+                    unseen_count = get_conversations_after_last_seen_messages_in_chatrooms(get_dm_chatrooms_list)
+                    connection_requests_count = ModelUtilities.get_model_filter(
+                        collabcardState, {'id__in': get_dm_chatrooms_list,
+                                          'chat_request_state': chat_request_states.INITIATED}).exclude(
+                        chat_requested_by=user_instance).count()
+
+                    return {
+                        "success": True,
+                        "unread_dm_count": unseen_count + connection_requests_count,
+                        "is_cm": is_cm
+                    }
+
                 else:
                     return {"success": True, "clicked": False, "messaged": False, "is_cm": is_cm}
 
             else:
-                return {"success": True, "is_cm": is_cm}
+
+                if TimeUtilities.current_time_in_sec() > dm_disabled_time:
+                    return {"success": True, "is_cm": is_cm, "hide_dm_tab": True}
+
+                else:
+                    return {"success": True, "is_cm": is_cm, "hide_dm_tab": False, "hide_dm_text": HIDE_DM_TEXT}
 
     def update_dm_tutorial(self, req_body) -> {}:
 
@@ -1399,7 +1443,7 @@ class UserHelper:
         return data
 
     @staticmethod
-    def get_unread_dm_messages_count(user_id, community_ids, is_cm=True):
+    def get_unread_dm_messages_count(user_id, community_ids):
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
         if not user_instance:
@@ -1417,10 +1461,12 @@ class UserHelper:
 
     @staticmethod
     def get_dm_feed_response(member_instances, cta=None, is_cm=False):
+        community_ids_list = list(member_instances.values_list("community_id_id", flat=True))
 
-        community_rights = ModelUtilities.get_model_filter(
-            communityRightsSettings, {"community__in": member_instances.values_list("community_id_id", flat=True),
-                                      "right__state": member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+        community_rights = ModelUtilities.get_model_filter(CommunitySettings,
+                                                           {"community__in": community_ids_list,
+                                                            "setting_type": community_setting_types.DIRECT_MESSAGES,
+                                                            "enabled": True})
 
         if is_cm:
 
@@ -1445,3 +1491,14 @@ class UserHelper:
 
             else:
                 return {"success": False, "error_message": "Direct messages are disabled for this community."}
+
+    @staticmethod
+    def get_dm_disabled_time_for_members(community_settings_filter):
+        dm_disabled_time = max([i if i else 0 for i in list(community_settings_filter.values_list("updated_at",
+                                                                                                  flat=True))])
+
+        if not dm_disabled_time:
+            dm_disabled_time = max([i if i else 0 for i in list(community_settings_filter.values_list("created_at",
+                                                                                                      flat=True))])
+
+        return TimeUtilities.add_hours_to_epoch_time(dm_disabled_time, ONE_DAY_HOURS)

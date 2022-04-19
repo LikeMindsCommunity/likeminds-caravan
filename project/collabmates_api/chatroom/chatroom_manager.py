@@ -66,11 +66,19 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_chatroom_participants') and
                  callable(subclass.fetch_chatroom_participants)) and
                 (hasattr(subclass, 'publish_event_webflow') and
-                 callable(subclass.publish_event_webflow))
+                 callable(subclass.publish_event_webflow)) and
+                (hasattr(subclass, 'change_chatroom_type') and
+                 callable(subclass.change_chatroom_type)) and
+                (hasattr(subclass, 'create_dm_chatroom') and
+                 callable(subclass.create_dm_chatroom)) and
+                (hasattr(subclass, 'block_member') and
+                 callable(subclass.block_member)) and
+                (hasattr(subclass, 'request_dm') and
+                 callable(subclass.request_dm))
                 or NotImplemented)
 
     @abc.abstractmethod
-    def fetch_chatroom(self) -> dict:
+    def fetch_chatroom(self, is_internal=False) -> dict:
         """
         fetching the chatroom from chatroom id
         """
@@ -111,8 +119,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def follow_chatroom_automatically_for_all_members_of_community(self, member_id, chatroom_id,
-                                                                   include_members_later) -> dict:
+    def follow_chatroom_automatically_for_all_members_of_community(self, member_id, request_body) -> dict:
         """
         to auto follow a chatroom
         """
@@ -314,6 +321,38 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def publish_event_webflow(self, req_body) -> dict:
         """
         Publishes the events in webflow
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def change_chatroom_type(self, req_body) -> dict:
+        """
+        Changes chatroom type(secret/open)
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def create_dm_chatroom(self, req_body) -> dict:
+        """
+        Creates a DM chatroom
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def block_member(self, req_body) -> dict:
+        """
+        Block/Unblock member in chatroom
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def request_dm(self, req_body) -> dict:
+        """
+        Initiate, accept ot reject a connection request in DM chatroom
         """
 
         raise NotImplementedError

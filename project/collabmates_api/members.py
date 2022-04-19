@@ -486,6 +486,8 @@ def get_all_members_version_1(request, req_dict=None):
     filter_list = request.GET.get('filter', None)
     conversation_id = request.GET.get('conversation_id')
     user_type = request.GET.get('type', None)
+    member_state = request.GET.get('member_state', None)
+    member_state = NumberUtilities.get_integer_from_string(member_state, -1)
 
     if conversation_id:
         return send_participants_of_conversation(conversation_id, filter_list, current_user_id,
@@ -599,6 +601,16 @@ def get_all_members_version_1(request, req_dict=None):
         total_filtered_members = community['members_count']
 
     members = add_expired_members_metadata(members, community_instance)
+    new_members_list = []
+
+    if member_state >= 0:
+
+        for member in members:
+
+            if member.get('state') == member_state:
+                new_members_list.append(member)
+
+        members = new_members_list
 
     context = {'members': members, 'community': community, 'total_members': community['members_count'],
                'total_filtered_members': total_filtered_members}

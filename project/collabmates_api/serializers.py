@@ -13,6 +13,7 @@ from .member_community.constants import CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED, CU
     CUSTOM_CLICK_TEXT_DELETED, CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_LEFT, CUSTOM_INTRO_TEXT_LEFT
 from .user_moderation_rights import *
 import time
+import json
 
 import ast
 from .static_files import *
@@ -50,6 +51,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
         'grace_period': community.grace_period,
         'is_discoverable': community.is_discoverable,
         'referral_enabled': community.referral_enabled,
+        'branding': json.loads(community.branding) if community.branding else None,
     }
 
     aj = community.id
@@ -234,6 +236,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'online_link_enable_before': card.online_link_enable_before,
         'is_private': card.is_private,
         'has_event_recording': card.has_event_recording,
+        'is_private_member': card.is_private_member
     }
 
     if card.secret_chatroom_participants:

@@ -184,7 +184,8 @@ class CommunitySerializerV1(serializers.ModelSerializer):
                   'type', 'sub_type', 'is_paid', 'auto_approval', 'grace_period',
                   'is_discoverable', 'website_url', 'community_category', 'referral_enabled',
                   'dashboard_link', 'updated_at', 'fee_membership', 'fee_event', 'fee_payment_pages',
-                  'likeminds_plan')
+                  'likeminds_plan', 'branding', 'is_whitelabel', 'whitelabel_info', 'hide_dm_tab',
+                  'is_freemium_community')
 
     def __init__(self, *args, **kwargs):
         super(CommunitySerializerV1, self).__init__(*args, **kwargs)
@@ -224,6 +225,12 @@ class CommunitySerializerV1(serializers.ModelSerializer):
                         'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
                 elif not community.image_link:
                     data['image_url'] = url + data['image_url']
+
+            if field.field_name == "branding":
+                data['branding'] = json.loads(community.branding) if community.branding else None
+
+            if field.field_name == "whitelabel_info":
+                data['whitelabel_info'] = json.loads(community.whitelabel_info) if community.whitelabel_info else None
 
             elif data[field.field_name] is None:
                 del data[field.field_name]
@@ -364,18 +371,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
     def get_cohorts(self, card):
 
-        filter_dict = {
-            'chatroom_id': card.id
-        }
-
-        cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id', flat=True)
-
-        cohort_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort_id__in': cohort_ids})
-                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
-                                                      community_id=F('cohort__community_id'))
-                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
-
-        return cohort_list
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+        return ChatroomHelper.get_chatroom_related_cohort_data_with_total_member_count(card)
 
     def get_unread_messages(self, card):
 
@@ -1321,6 +1318,8 @@ class CohortSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super(CohortSerializer, self).__init__(*args, **kwargs)
+        self.get_all_rights_data = self.context.get('get_rights_data', False)
+        self.is_m2cm_v2 = self.context.get('is_m2cm_v2', False)
 
     def to_representation(self, cohort):
         data = super(CohortSerializer, self).to_representation(cohort)
@@ -1328,8 +1327,19 @@ class CohortSerializer(serializers.ModelSerializer):
         data['member_ids'] = list(ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort.id}).values_list(
             'user_id', flat=True))
 
-        data['rights'] = list(ModelUtilities.get_model_filter(CohortRights, {'cohort_id': cohort.id}).values_list(
-            'member_rights_id', flat=True))
+        if not self.get_all_rights_data:
+            data['rights'] = list(ModelUtilities.get_model_filter(CohortRights, {'cohort_id': cohort.id}).values_list(
+                'member_rights_id', flat=True))
+
+        else:
+            cohort_rights_filter = list(ModelUtilities.get_model_filter(
+                CohortRights, {'cohort_id': cohort.id}).prefetch_related('member_rights'))
+
+            from collabmates_api.cohort.cohort_impl import CohortHelper
+            cohort_rights = CohortHelper.get_all_the_cohort_rights(cohort_rights_filter)
+            rights_list = get_saved_member_rights_list(cohort_rights, is_m2cm_v2=self.is_m2cm_v2)
+
+            data['rights'] = rights_list
 
         fields = self._readable_fields
 
@@ -1434,3 +1444,16 @@ class EventFAQSerializer(serializers.ModelSerializer):
                 data['chatroom_id'] = data['card']
 
         return data
+
+
+class ChatroomCohortSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatroomCohort
+        fields = ('cohort_id', 'chatroom_id', 'cohort_access')
+
+
+class CommunityDMSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CommunityDirectMessageSettings
+        fields = ('community', 'state', 'duration', 'number_in_duration')
+

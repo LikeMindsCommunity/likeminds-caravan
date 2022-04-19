@@ -10,7 +10,10 @@ from collabmates_api.community.community_view_impl import (FetchCommunity, Fetch
                                                            JoinEmailFetchView, FetchPaymentPageUrl,
                                                            CreateCommunityView, FetchGetStartedView,
                                                            SendInviteView, FetchCommunityFeedCM_OnboardingUrlView,
-                                                           EditCommunityQuestionsView, FetchCommunityQuestionsView)
+                                                           EditCommunityQuestionsView, FetchCommunityQuestionsView,
+                                                           FetchCommunityBrandingView, FetchCommunityFromDomainView,
+                                                           UpdateCommunityDMSettingsView, FetchCommunityDMSettingsView, 
+                                                           FetchCommunityDMRightView)
 
 urlpatterns = [
     path('create', CreateCommunityView.as_view(), name="create_community"),
@@ -39,5 +42,10 @@ urlpatterns = [
     path('fetch_get_started', FetchGetStartedView.as_view(), name="fetch_get_started"),
     path('invite', SendInviteView.as_view(), name="send_invite"),
     path('edit_questions', EditCommunityQuestionsView.as_view(), name="edit_questions"),
-    path('questions', FetchCommunityQuestionsView.as_view(), name="fetch_community_questions")
+    path('questions', FetchCommunityQuestionsView.as_view(), name="fetch_community_questions"),
+    path('<int:community_id>/branding', FetchCommunityBrandingView.as_view(), name="fetch_community_branding_info"),
+    path('get_community_id', FetchCommunityFromDomainView.as_view(), name="fetch_community_from_domain"),
+    path('update_community_dm_settings', UpdateCommunityDMSettingsView.as_view(), name="update_community_dm_settings"),
+    path('fetch_community_dm_settings', FetchCommunityDMSettingsView.as_view(), name="fetch_community_dm_settings"),
+    path('fetch_community_dm_right', FetchCommunityDMRightView.as_view(), name="fetch_community_dm_right")
 ]

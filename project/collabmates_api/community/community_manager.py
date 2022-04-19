@@ -33,7 +33,18 @@ class CommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_get_started') and callable(subclass.fetch_get_started)) and
                 (hasattr(subclass, 'send_invite') and callable(subclass.send_invite)) and
                 (hasattr(subclass, 'edit_questions') and callable(subclass.edit_questions)) and
-                (hasattr(subclass, 'fetch_community_questions') and callable(subclass.fetch_community_questions)) or
+                (hasattr(subclass, 'fetch_community_questions') and callable(subclass.fetch_community_questions)) and
+                (hasattr(subclass, 'fetch_community_branding_info') and
+                 callable(subclass.fetch_community_branding_info)) and
+                (hasattr(subclass, 'fetch_community_id_from_domain') and
+                 callable(subclass.fetch_community_id_from_domain)) and
+                (hasattr(subclass, 'update_community_dm_settings') and
+                 callable(subclass.update_community_dm_settings)) and
+                (hasattr(subclass, 'fetch_community_dm_settings') and
+                 callable(subclass.fetch_community_dm_settings)) and
+                (hasattr(subclass, 'fetch_community_dm_right') and callable(subclass.fetch_community_dm_right)) or
+                (hasattr(subclass, 'fetch_community_id_from_domain') and
+                 callable(subclass.fetch_community_id_from_domain)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -173,5 +184,35 @@ class CommunityManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fetch_community_questions(self, req_body) -> {}:
         """ Fetches community questions """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_community_branding_info(self, req_body) -> {}:
+        """ Fetches community branding info """
+
+        raise NotImplementedError
+    
+    @abc.abstractmethod
+    def fetch_community_id_from_domain(self, req_body) -> dict:
+        """ Fetches community id from doamin """
+        
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_community_dm_settings(self, req_body) -> {}:
+        """ Updates community DM settings in db """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_community_dm_settings(self) -> {}:
+        """ Fetches community DM settings from db """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_community_dm_right(self, req_body) -> {}:
+        """ Fetches community DM rights from cohorts """
 
         raise NotImplementedError

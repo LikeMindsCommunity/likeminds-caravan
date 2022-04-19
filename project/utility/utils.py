@@ -69,17 +69,6 @@ else:
 # count for a particular community to show tutorial
 tutorial_count = 3
 
-#member related functions
-def is_member_engage(community,member):
-
-    '''function to check if data is presnt in member engage table or not'''
-
-    is_present=False
-    member_data=Member_Engage.objects.filter(community_id=community,member_id=member)
-    if member_data:
-        is_present=True
-    return is_present
-
 
 def is_member_verified(community,user_instance):
 
@@ -325,8 +314,8 @@ def get_time_text_for_my_chatrooms(updated_at):
 
     current_time = time.time()
     current_date = datetime.fromtimestamp(current_time).date()
-    previous_date =  datetime.fromtimestamp(updated_at).date()
-    difference = current_date  - previous_date
+    previous_date = datetime.fromtimestamp(updated_at).date()
+    difference = current_date - previous_date
 
     if difference.days == 1:
         return "Yesterday"
