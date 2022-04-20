@@ -1754,12 +1754,15 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def update_last_seen_event(self) -> dict:
+    def update_last_seen_event(self, community_id: str) -> dict:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user-id"}
+
+        if community_id:
+            return self._update_last_seen_event_in_community(user_instance, community_id)
 
         last_seen_event_chatroom_id = get_last_seen_event_chatroom_id_for_user(user_id=user_instance.id)
         last_seen_event_chatroom_id_for_cohort_member = get_last_seen_non_member_access_event_for_user(
@@ -1801,12 +1804,70 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def fetch_unseen_count_in_event(self) -> dict:
+    @staticmethod
+    def _update_last_seen_event_in_community(user_instance: User, community_id: str):
+        community: Community = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        if not community:
+            return {'success': False, 'error_message': "Invalid community-id"}
+
+        last_seen_event_chatroom_id = get_last_seen_event_chatroom_id_for_user(
+            user_id=user_instance.id,
+            community_id=community_id
+        )
+        last_seen_event_chatroom_id_for_cohort_member = get_last_seen_non_member_access_event_for_user(
+            user_id=user_instance.id,
+            community_id=community_id
+        )
+        last_seen_event_chatroom_id_for_cm = get_last_seen_non_member_access_event_chatroom_id_for_community_managers(
+            user_id=user_instance.id,
+            community_id=community_id
+        )
+
+        if not last_seen_event_chatroom_id:
+            last_seen_event_chatroom_id = 0
+        if not last_seen_event_chatroom_id_for_cm:
+            last_seen_event_chatroom_id_for_cm = 0
+        if not last_seen_event_chatroom_id_for_cohort_member:
+            last_seen_event_chatroom_id_for_cohort_member = 0
+
+        last_seen_event_chatroom_id = max(last_seen_event_chatroom_id, last_seen_event_chatroom_id_for_cm,
+                                          last_seen_event_chatroom_id_for_cohort_member)
+
+        if not last_seen_event_chatroom_id:
+            return {'success': True}
+
+        event_nudge_filter = ModelUtilities.get_model_filter(EventNudge, {
+            'user': user_instance,
+            'community': community
+        })
+
+        if event_nudge_filter:
+            nudge_instance = event_nudge_filter[0]
+
+            if nudge_instance.seen_event_chatroom_id != last_seen_event_chatroom_id:
+                card_instance = ModelUtilities.get_model_instance_or_none(Collabcard,
+                                                                          last_seen_event_chatroom_id)
+                nudge_instance.seen_event_chatroom = card_instance
+                nudge_instance.save()
+
+        else:
+
+            card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, last_seen_event_chatroom_id)
+            EventNudge.create_instance({'card_instance': card_instance,
+                                        'user_instance': user_instance,
+                                        'community_instance': community})
+
+        return {'success': True}
+
+    def fetch_unseen_count_in_event(self, community_id: str) -> dict:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
             return {'error_message': "Invalid user-id"}
+
+        if community_id:
+            return self._fetch_unseen_event_count_in_community(user_instance, community_id)
 
         unseen_count = 0
 
@@ -1824,6 +1885,37 @@ class ChatroomImpl(ChatroomManager):
             unseen_count += get_count_for_non_member_access_event_for_user_non_community_manager(
                 card_id=card_instance.id,
                 user_id=user_instance.id)
+
+        return {'count': unseen_count}
+
+    @staticmethod
+    def _fetch_unseen_event_count_in_community(user_instance: User, community_id: str):
+
+        community: Community = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        if not community:
+            return {'error_message': "Invalid community-id"}
+
+        unseen_count = 0
+        nudge_filter = ModelUtilities.get_model_filter(EventNudge, {
+            'user': user_instance,
+            'community': community
+        })
+
+        if nudge_filter:
+            card_instance = nudge_filter[0].seen_event_chatroom
+
+            unseen_count = get_count_of_new_event_chatrooms_created_for_user(
+                card_id=card_instance.id,
+                user_id=user_instance.id,
+                community_id=community_id)
+            unseen_count += get_count_for_new_non_member_access_event_chatroom_community_managers(
+                card_id=card_instance.id,
+                user_id=user_instance.id,
+                community_id=community_id)
+            unseen_count += get_count_for_non_member_access_event_for_user_non_community_manager(
+                card_id=card_instance.id,
+                user_id=user_instance.id,
+                community_id=community_id)
 
         return {'count': unseen_count}
 

@@ -2526,6 +2526,7 @@ class EventFAQ(models.Model):
 class EventNudge(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, null=True, on_delete=models.CASCADE)
     seen_event_chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
@@ -2535,6 +2536,7 @@ class EventNudge(models.Model):
         instance = EventNudge()
         instance.seen_event_chatroom = create_info.get('card_instance')
         instance.user = create_info.get('user_instance')
+        instance.community = create_info.get('community_instance')
         instance.save()
 
     def save(self, *args, **kwargs):
