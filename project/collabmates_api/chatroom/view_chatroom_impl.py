@@ -405,9 +405,10 @@ class UpdateLastSeenEventChatroom(APIView):
 
     def post(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        community_id: str = request.POST.get('community_id')
 
         chatroom_manager = ChatroomImpl(member_id=member_id)
-        response_context = chatroom_manager.update_last_seen_event()
+        response_context = chatroom_manager.update_last_seen_event(community_id)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -419,9 +420,10 @@ class FetchUnseenCountInEvent(APIView):
 
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        community_id: str = request.GET.get('community_id')
 
         chatroom_manager = ChatroomImpl(member_id=member_id)
-        response_context = chatroom_manager.fetch_unseen_count_in_event()
+        response_context = chatroom_manager.fetch_unseen_count_in_event(community_id)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
