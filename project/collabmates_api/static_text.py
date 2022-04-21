@@ -678,6 +678,3 @@ CREATE_COMMUNITY_QUESTION_NAME_TITLE = "Name"
 SIX_HOURS_IN_SECONDS = 6 * 60 * 60
 
 FREE_TRIAL_PUBLIC_URL = "{}/renewal/{}"
-
-SINGLE_EVENT_URL = "{}/single_event/{}"
-AUTO_REGISTER_PARAMS = "?cta=register"

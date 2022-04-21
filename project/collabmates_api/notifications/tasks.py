@@ -90,8 +90,6 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
         active_user_ids = TasksHelper.get_active_members_of_community(community_instance.id)
         user_ids = []
 
-        template_name = None
-
         if event_type == EVENT_TYPE.CREATION:
             active_user_ids = TasksHelper.get_active_members_excluding_non_members_in_community(community_instance.id,
                                                                                                 active_user_ids)
@@ -149,14 +147,14 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
 
         is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
 
-        if send_allowed and not (is_task_deleted and template_name):
+        if send_allowed and not is_task_deleted:
             NotificationImpl.send_wa_bulk_notitfications(user_data_for_wa_notification, template_name=template_name,
-                                                         broadcast_name=template_name)
+                                                        broadcast_name=template_name)
 
         else:
             info_logger.info("No whatsapp notification scheuduled for event_type = %s | chatroom_deleted = %s | \
-                is_task_deleted = %s | payload received = %s" % (event_type, not send_allowed, is_task_deleted,
-                                                                 payload_for_whatsapp_comms))
+                is_task_deleted = %s | payload received = %s" % (event_type, not send_allowed, is_task_deleted, \
+                payload_for_whatsapp_comms))
 
     except Exception as e:
         error_logger.exception("got error in schedule_whatsapp_notification | error - %s | payload received = %s | \
