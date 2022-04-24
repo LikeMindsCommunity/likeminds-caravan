@@ -193,7 +193,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
     
-    @staticmethod
+    @abc.abstractmethod
     def fetch_community_id_from_domain(self, req_body) -> dict:
         """ Fetches community id from doamin """
         

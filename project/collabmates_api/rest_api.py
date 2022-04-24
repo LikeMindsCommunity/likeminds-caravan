@@ -184,7 +184,8 @@ class CommunitySerializerV1(serializers.ModelSerializer):
                   'type', 'sub_type', 'is_paid', 'auto_approval', 'grace_period',
                   'is_discoverable', 'website_url', 'community_category', 'referral_enabled',
                   'dashboard_link', 'updated_at', 'fee_membership', 'fee_event', 'fee_payment_pages',
-                  'likeminds_plan', 'branding', 'is_whitelabel', 'whitelabel_info', 'hide_dm_tab')
+                  'likeminds_plan', 'branding', 'is_whitelabel', 'whitelabel_info', 'hide_dm_tab',
+                  'is_freemium_community')
 
     def __init__(self, *args, **kwargs):
         super(CommunitySerializerV1, self).__init__(*args, **kwargs)
@@ -1334,7 +1335,7 @@ class CohortSerializer(serializers.ModelSerializer):
             cohort_rights_filter = list(ModelUtilities.get_model_filter(
                 CohortRights, {'cohort_id': cohort.id}).prefetch_related('member_rights'))
 
-            from cohort.cohort_impl import CohortHelper
+            from collabmates_api.cohort.cohort_impl import CohortHelper
             cohort_rights = CohortHelper.get_all_the_cohort_rights(cohort_rights_filter)
             rights_list = get_saved_member_rights_list(cohort_rights, is_m2cm_v2=self.is_m2cm_v2)
 

@@ -24,7 +24,12 @@ url = settings.URL
 def trigger_event_comms(payload_for_whatsapp_comms, payload_for_app_and_email_notifications):
     trigger_whatsapp_communication_for_event.delay(payload_for_whatsapp_comms)
     trigger_app_notification_for_event.delay(payload_for_app_and_email_notifications)
-    trigger_email_communication_for_event.delay(payload_for_app_and_email_notifications)
+
+    args = [payload_for_app_and_email_notifications]
+    trigger_email_communication_for_event.apply_async(
+        args,
+        countdown=10
+    )
 
 
 @shared_task
@@ -214,6 +219,8 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
         user_instances = []
 
         if event_type == EVENT_TYPE.CREATION:
+            active_user_ids = TasksHelper.get_active_members_excluding_non_members_in_community(community_id,
+                                                                                                active_user_ids)
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
                                                                                             event_instance,
                                                                                             add_event_creator=False)
@@ -224,7 +231,8 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
             users_not_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
                                                                                                             active_user_ids,
                                                                                                             attending=False)
-            user_instances = users_not_attending_event
+            user_instances = TasksHelper.get_members_excluding_non_members_in_community(community_id,
+                                                                                        users_not_attending_event)
 
         elif event_type == EVENT_TYPE.ATTENDANCE_15_MIN:
             users_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
@@ -410,6 +418,8 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         user_instances = []
 
         if event_type == EVENT_TYPE.CREATION:
+            active_user_ids = TasksHelper.get_active_members_excluding_non_members_in_community(community_id,
+                                                                                                active_user_ids)
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
                                                                                             event_instance,
                                                                                             add_event_creator=False)
@@ -427,7 +437,8 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
                                                                                                             active_user_ids,
                                                                                                             attending=False)
 
-            user_instances = users_not_attending_event
+            user_instances = TasksHelper.get_members_excluding_non_members_in_community(community_id,
+                                                                                        users_not_attending_event)
 
         elif event_type == EVENT_TYPE.REGISTRATION:
 

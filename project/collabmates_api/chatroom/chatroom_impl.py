@@ -1754,12 +1754,15 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def update_last_seen_event(self) -> dict:
+    def update_last_seen_event(self, community_id: str) -> dict:
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        user_instance: User = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user-id"}
+
+        if community_id:
+            return self._update_last_seen_event_in_community(user_instance, community_id)
 
         last_seen_event_chatroom_id = get_last_seen_event_chatroom_id_for_user(user_id=user_instance.id)
         last_seen_event_chatroom_id_for_cohort_member = get_last_seen_non_member_access_event_for_user(
@@ -1801,12 +1804,72 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def fetch_unseen_count_in_event(self) -> dict:
+    @staticmethod
+    def _update_last_seen_event_in_community(user_instance: User, community_id: str) -> dict:
+        community: Community = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        if not community:
+            return {'success': False, 'error_message': "Invalid community-id"}
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        last_seen_event_chatroom_id: int = get_last_seen_event_chatroom_id_for_user(
+            user_id=user_instance.id,
+            community_id=community_id
+        )
+        last_seen_event_chatroom_id_for_cohort_member: int = get_last_seen_non_member_access_event_for_user(
+            user_id=user_instance.id,
+            community_id=community_id
+        )
+        last_seen_event_chatroom_id_for_cm: int = get_last_seen_non_member_access_event_chatroom_id_for_community_managers(
+            user_id=user_instance.id,
+            community_id=community_id
+        )
+
+        if not last_seen_event_chatroom_id:
+            last_seen_event_chatroom_id = 0
+        if not last_seen_event_chatroom_id_for_cm:
+            last_seen_event_chatroom_id_for_cm = 0
+        if not last_seen_event_chatroom_id_for_cohort_member:
+            last_seen_event_chatroom_id_for_cohort_member = 0
+
+        last_seen_event_chatroom_id = max(last_seen_event_chatroom_id, last_seen_event_chatroom_id_for_cm,
+                                          last_seen_event_chatroom_id_for_cohort_member)
+
+        if not last_seen_event_chatroom_id:
+            return {'success': True}
+
+        event_nudge_filter: list = ModelUtilities.get_model_filter(EventNudge, {
+            'user': user_instance,
+            'community': community
+        })
+
+        if event_nudge_filter:
+            nudge_instance: EventNudge = event_nudge_filter[0]
+
+            if nudge_instance.seen_event_chatroom_id != last_seen_event_chatroom_id:
+                card_instance: Collabcard = ModelUtilities.get_model_instance_or_none(
+                    Collabcard,
+                    last_seen_event_chatroom_id
+                )
+                nudge_instance.seen_event_chatroom = card_instance
+                nudge_instance.save()
+
+        else:
+
+            card_instance: Collabcard = ModelUtilities.get_model_instance_or_none(Collabcard, last_seen_event_chatroom_id)
+            EventNudge.create_instance({'card_instance': card_instance,
+                                        'user_instance': user_instance,
+                                        'community_instance': community})
+
+        return {'success': True}
+
+    def fetch_unseen_count_in_event(self, community_id: str) -> dict:
+
+        user_instance: User = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
             return {'error_message': "Invalid user-id"}
+
+        if community_id:
+            return self._fetch_unseen_event_count_in_community(user_instance, community_id)
 
         unseen_count = 0
 
@@ -1824,6 +1887,37 @@ class ChatroomImpl(ChatroomManager):
             unseen_count += get_count_for_non_member_access_event_for_user_non_community_manager(
                 card_id=card_instance.id,
                 user_id=user_instance.id)
+
+        return {'count': unseen_count}
+
+    @staticmethod
+    def _fetch_unseen_event_count_in_community(user_instance: User, community_id: str):
+
+        community: Community = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        if not community:
+            return {'error_message': "Invalid community-id"}
+
+        unseen_count: int = 0
+        nudge_filter: list = ModelUtilities.get_model_filter(EventNudge, {
+            'user': user_instance,
+            'community': community
+        })
+
+        if nudge_filter:
+            card_instance: Collabcard = nudge_filter[0].seen_event_chatroom
+
+            unseen_count = get_count_of_new_event_chatrooms_created_for_user(
+                card_id=card_instance.id,
+                user_id=user_instance.id,
+                community_id=community_id)
+            unseen_count += get_count_for_new_non_member_access_event_chatroom_community_managers(
+                card_id=card_instance.id,
+                user_id=user_instance.id,
+                community_id=community_id)
+            unseen_count += get_count_for_non_member_access_event_for_user_non_community_manager(
+                card_id=card_instance.id,
+                user_id=user_instance.id,
+                community_id=community_id)
 
         return {'count': unseen_count}
 
@@ -2130,8 +2224,10 @@ class ChatroomImpl(ChatroomManager):
 
         card_filter.update(member_can_message=value, updated_at=TimeUtilities.current_time_in_sec())
 
-        send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()),
-                                                   {'has_send_permission': True})
+        send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(),
+                                                   int(self.get_member_id()),
+                                                   {'has_send_permission': True,
+                                                    'members_can_send_messages': value})
 
         return {'success': True}
 
@@ -2329,6 +2425,10 @@ class ChatroomImpl(ChatroomManager):
         card_filter.update(access_without_subscription=value, updated_at=TimeUtilities.current_time_in_milliseconds())
 
         update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': card_instance}, {})
+
+        send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(),
+                                                   int(self.get_member_id()),
+                                                   {'accessible_without_subscription': value})
 
         return {'success': True}
 
@@ -3031,7 +3131,6 @@ class ChatroomImpl(ChatroomManager):
             'is_private': True,
             'type': card_types.CARD_DIRECT_MESSAGE,
             'community': community_instance,
-            'is_private_member': True,
             'user__in': [user_instance, member_instance],
             'chatroom_with_user__in': [user_instance, member_instance]
         }
@@ -3047,23 +3146,28 @@ class ChatroomImpl(ChatroomManager):
             member_state = ChatroomHelper.fetch_member_state_in_community(user=member_instance,
                                                                           community=community_instance)
 
-            if any([user_member_state == member_states.ADMIN, member_state == member_states.ADMIN]):
-                return get_error_context(False, 'You cannot create a DM if one user is CM!')
-
             card_content = {}
             chatroom_name = DM_CHATROOM_NAME
             chatroom_type = card_types.CARD_DIRECT_MESSAGE
 
-            card_content['chatroom_with_user'] = member_instance
-            card_content['is_private'] = True
+            if member_state == member_states.ADMIN:
+                self._fill_chatroom_basic_info(card_content, chatroom_name,
+                                               community_instance, member_instance, chatroom_type)
 
-            self._fill_chatroom_basic_info(card_content, chatroom_name,
-                                           community_instance, user_instance, chatroom_type)
+                card_content['chatroom_with_user'] = user_instance
+                card_content['member_state'] = member_state
+
+            else:
+                self._fill_chatroom_basic_info(card_content, chatroom_name,
+                                               community_instance, user_instance, chatroom_type)
+
+                card_content['chatroom_with_user'] = member_instance
+                card_content['member_state'] = user_member_state
 
             card_content['date_epoch'] = TimeUtilities.current_time_in_sec()
             card_content['header'] = chatroom_name
             card_content['has_been_named'] = True
-            card_content['member_state'] = user_member_state
+            card_content['is_private'] = True
 
             is_private_member = all([user_member_state == member_states.MEMBER,
                                      member_state == member_states.MEMBER])
@@ -3104,9 +3208,21 @@ class ChatroomImpl(ChatroomManager):
         user_instances_list = [card_instance.user, card_instance.chatroom_with_user]
         user_member_state = Members.get_community_member_state(card_instance.community, card_instance.user)
         member_state = Members.get_community_member_state(card_instance.community, card_instance.chatroom_with_user)
+        last_conversation_state = None
+        last_cconversation = ModelUtilities.get_model_filter(card_answers,
+                                                             {'card': card_instance}).order_by('-created_at')
+
+        if last_cconversation:
+            last_conversation_state = last_cconversation[0].state
 
         if validated_request.get('user_instance') not in user_instances_list:
             return get_error_context(False, 'You are not part of chatroom!')
+
+        if any([(last_conversation_state == conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT)
+                and (validated_request.get('status') == block_chatroom_states.BLOCK),
+                (last_conversation_state == conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT)
+                and (validated_request.get('status') == block_chatroom_states.UNBLOCK)]):
+            return get_error_context(False, 'You cannot block/unblock twice!')
 
         if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE,
                 card_instance.user, card_instance.chatroom_with_user]):
@@ -3184,7 +3300,8 @@ class ChatroomImpl(ChatroomManager):
             if not response.get('success'):
                 return response
 
-            response = self.block_member({'status': block_chatroom_states.UNBLOCK})
+            if response.get('should_call_block_unblock', False):
+                response = self.block_member({'status': block_chatroom_states.UNBLOCK})
 
         elif chat_request_state == chat_request_states.REJECTED:
             response = ChatroomHelper.reject_dm_connection_request(user_instance, card_instance, user_member_state,
@@ -3193,7 +3310,8 @@ class ChatroomImpl(ChatroomManager):
             if not response.get('success'):
                 return response
 
-            response = self.block_member({'status': block_chatroom_states.BLOCK})
+            if response.get('should_call_block_unblock', False):
+                response = self.block_member({'status': block_chatroom_states.BLOCK})
 
         else:
             return get_error_context(False, 'Invalid chat request state')
@@ -4481,7 +4599,7 @@ class ChatroomHelper:
                                     {'chat_request_state': chat_request_state,
                                      'updated_at': TimeUtilities.current_time_in_sec()})
 
-        return {'success': True}
+        return {'success': True, 'should_call_block_unblock': True}
 
     @staticmethod
     def reject_dm_connection_request(user_instance, card_instance, user_member_state, member_state,
@@ -4505,4 +4623,4 @@ class ChatroomHelper:
                                     {'chat_request_state': chat_request_state,
                                      'updated_at': TimeUtilities.current_time_in_sec()})
 
-        return {'success': True}
+        return {'success': True, 'should_call_block_unblock': True}

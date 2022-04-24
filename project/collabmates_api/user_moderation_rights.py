@@ -5,7 +5,7 @@ from togther.models import (Members, collabcardState, Userinfo, Collabcard,
                             memberRights, adminRights, userAdminRights, userMemberRights,
                             moderationHistory, Report, Report_Tags, communityRightsSettings,
                             Community, removedMembers, userMemberRightsHistory,
-                            Member_Engage, conversationEngage)
+                            Member_Engage, conversationEngage, ModelUtilities)
 from utility.states import (member_states, manager_rights, member_rights, moderation_history_types, SyncTypes)
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -1037,3 +1037,29 @@ def update_member_rights_list_for_community_members(community_id):
 
     # Updating updated_at timestamp for all users in community
     Member_Engage.objects.filter(community_id=community).update(updated_at=TimeUtilities.current_time_in_sec())
+
+
+@shared_task
+def update_direct_message_right_in_member_rights_schema(community_id, is_enabled=False):
+    dm_right_filter = ModelUtilities.get_model_filter(memberRights,
+                                                      {'state': member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+
+    if not dm_right_filter:
+        return
+
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+    if not community_instance:
+        return
+
+    filter_dict = {'community': community_instance, 'right': dm_right_filter[0]}
+
+    if is_enabled:
+        ModelUtilities.update_or_create_model(communityRightsSettings, filter_dict, filter_dict)
+        update_member_rights_list_for_community_members(community_id)
+
+    elif not is_enabled:
+        ModelUtilities.delete_record_in_model(communityRightsSettings, filter_dict)
+        update_member_rights_list_for_community_members(community_id)
+
+    return

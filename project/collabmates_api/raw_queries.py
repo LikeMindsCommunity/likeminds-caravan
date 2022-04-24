@@ -1886,10 +1886,14 @@ def get_n_percentage_member_conversation_chatroom_list(community_id, members_cou
         return []
 
 
-def get_last_seen_event_chatroom_id_for_user(user_id):
+def get_last_seen_event_chatroom_id_for_user(user_id, community_id: str = None):
     try:
         conn = get_connection()
         curr = conn.cursor()
+
+        community_filter: str = str()
+        if community_id:
+            community_filter: str = f'AND community_id={community_id}'
 
         sql = """SELECT card_id
                  FROM togther_collabcardState
@@ -1898,8 +1902,13 @@ def get_last_seen_event_chatroom_id_for_user(user_id):
                     FROM togther_collabcard
                     WHERE type in (2,6) AND access in (1,2))
                         AND user_id=%s
+                        %s
                  ORDER BY card_id desc limit 1
-        """ % str(user_id)
+        """ % (
+            str(user_id),
+            community_filter
+        )
+
         curr.execute(sql)
         card_tupple = curr.fetchone()
         curr.close()
@@ -1911,26 +1920,38 @@ def get_last_seen_event_chatroom_id_for_user(user_id):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_last_seen_non_member_access_event_chatroom_id_for_community_managers(user_id):
+def get_last_seen_non_member_access_event_chatroom_id_for_community_managers(user_id, community_id: str = None):
     try:
         conn = get_connection()
         curr = conn.cursor()
+
+        community_filter: str = str()
+        if community_id:
+            community_filter: str = f'AND community_id={community_id}'
+
         sql = """
                 SELECT card_id
                 FROM togther_collabcardState
-                WHERE card_id IN 
-                    (SELECT id
+                WHERE card_id IN (
+                    SELECT id
                     FROM togther_collabcard
                     WHERE type IN (2,6)
-                            AND (access = 0 OR access is NULL)
-                            AND community_id IN 
-                        (SELECT community_id_id
-                        FROM togther_members
-                        WHERE user_id=%s
-                                AND state = 1))
-                            AND user_id=%s
+                        AND (access = 0 OR access is NULL)
+                        AND community_id IN (
+                            SELECT community_id_id
+                            FROM togther_members
+                            WHERE user_id=%s
+                                %s
+                                AND state = 1
+                        )
+                    )
+                    AND user_id=%s
                 ORDER BY card_id DESC limit 1
-        """ % (str(user_id), str(user_id))
+        """ % (
+            str(user_id),
+            community_id,
+            str(user_id)
+        )
 
         curr.execute(sql)
         card_tuple = curr.fetchone()
@@ -1943,10 +1964,15 @@ def get_last_seen_non_member_access_event_chatroom_id_for_community_managers(use
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_last_seen_non_member_access_event_for_user(user_id):
+def get_last_seen_non_member_access_event_for_user(user_id, community_id: str = None):
     try:
         conn = get_connection()
         curr = conn.cursor()
+
+        community_filter: str = str()
+        if community_id:
+            community_filter: str = f'AND community_id={community_id}'
+
         sql = """
                 SELECT card_id
                 FROM togther_collabcardState
@@ -1963,8 +1989,13 @@ def get_last_seen_non_member_access_event_for_user(user_id):
                             FROM togther_CohortMember
                             WHERE user_id = %s)))
                                 AND user_id = %s
+                                %s
                 ORDER BY card_id DESC limit 1;
-        """ % (str(user_id), str(user_id))
+        """ % (
+            str(user_id),
+            str(user_id),
+            community_filter
+        )
 
         curr.execute(sql)
         card_tuple = curr.fetchone()
@@ -1977,10 +2008,14 @@ def get_last_seen_non_member_access_event_for_user(user_id):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_count_of_new_event_chatrooms_created_for_user(card_id, user_id):
+def get_count_of_new_event_chatrooms_created_for_user(card_id, user_id, community_id: str = None):
     try:
         conn = get_connection()
         curr = conn.cursor()
+
+        community_filter: str = str()
+        if community_id:
+            community_filter: str = f'AND community_id={community_id}'
 
         sql = """SELECT count(*)
                  FROM togther_collabcardState
@@ -1989,8 +2024,14 @@ def get_count_of_new_event_chatrooms_created_for_user(card_id, user_id):
                     FROM togther_collabcard
                     WHERE type in (2,6) AND access in (1,2))
                         AND user_id=%s
+                        %s
                  AND card_id > %s
-        """ % (str(user_id), str(card_id))
+        """ % (
+            str(user_id),
+            community_filter,
+            str(card_id)
+        )
+
         curr.execute(sql)
         card_tupple = curr.fetchone()
         curr.close()
@@ -2004,26 +2045,44 @@ def get_count_of_new_event_chatrooms_created_for_user(card_id, user_id):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_count_for_new_non_member_access_event_chatroom_community_managers(user_id, card_id):
+def get_count_for_new_non_member_access_event_chatroom_community_managers(user_id, card_id, community_id: str = None):
     try:
         conn = get_connection()
         curr = conn.cursor()
+
+        community_filter: str = str()
+        if community_id:
+            community_filter: str = f'AND community_id_id={community_id}'
+
         sql = """
                 SELECT count(*)
                 FROM togther_collabcardState
-                WHERE card_id IN 
-                    (SELECT id
+                WHERE card_id IN (
+                    SELECT id
                     FROM togther_collabcard
                     WHERE type IN (2,6)
-                            AND (access = 0 OR access is NULL)
-                            AND community_id IN 
-                        (SELECT community_id_id
-                        FROM togther_members
-                        WHERE user_id=%s
-                                AND state = 1))
-                            AND user_id=%s
-                 AND card_id > %s
-        """ % (str(user_id), str(user_id), str(card_id))
+                        AND (
+                            access = 0 
+                            OR access is NULL
+                        )
+                        AND community_id IN (
+                            SELECT community_id_id
+                            FROM togther_members
+                            WHERE user_id=%s
+                            %s
+                            AND state = 1
+                        )
+                    )
+                    AND user_id=%s
+                    AND card_id > %s
+        """ % (
+            str(user_id),
+            community_filter,
+            str(user_id),
+            str(card_id)
+        )
+
+        print(sql)
 
         curr.execute(sql)
         card_tuple = curr.fetchone()
@@ -2037,33 +2096,51 @@ def get_count_for_new_non_member_access_event_chatroom_community_managers(user_i
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_count_for_non_member_access_event_for_user_non_community_manager(user_id, card_id):
+def get_count_for_non_member_access_event_for_user_non_community_manager(user_id, card_id, community_id: str = None):
     try:
         conn = get_connection()
         curr = conn.cursor()
+
+        community_filter: str = str()
+        if community_id:
+            community_filter: str = f'AND community_id={community_id}'
+
         sql = """
                 SELECT count(*)
                 FROM togther_collabcardState
-                WHERE card_id IN 
-                    (SELECT id
+                WHERE card_id IN (
+                    SELECT id
                     FROM togther_Collabcard
                     WHERE type IN (2,6)
-                            AND (access = 0 or access is NULL)
-                            AND id IN 
-                        (SELECT chatroom_id
-                        FROM togther_ChatroomCohort
-                        WHERE cohort_id IN 
-                            (SELECT cohort_id
-                            FROM togther_CohortMember
-                            WHERE user_id = %s))
-                                    AND community_id NOT IN 
-                                (SELECT community_id_id
-                                FROM togther_members
-                                WHERE user_id=%s
-                                        AND state = 1))
-                                    AND user_id = %s
-                 AND card_id > %s
-        """ % (str(user_id), str(user_id), str(user_id), str(card_id))
+                        AND (
+                            access = 0 
+                            or access is NULL
+                        )
+                        AND id IN (
+                            SELECT chatroom_id
+                            FROM togther_ChatroomCohort
+                            WHERE cohort_id IN (
+                                SELECT cohort_id
+                                FROM togther_CohortMember
+                                WHERE user_id = %s
+                            )
+                        )
+                        AND community_id NOT IN (
+                            SELECT community_id_id
+                            FROM togther_members
+                            WHERE user_id=%s
+                                AND state = 1
+                            )
+                        )
+                    AND user_id = %s
+                    %s
+                    AND card_id > %s
+        """ % (
+            str(user_id),
+            str(user_id),
+            str(user_id),
+            community_filter,
+            str(card_id))
 
         curr.execute(sql)
         card_tuple = curr.fetchone()
@@ -2317,7 +2394,7 @@ def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, pag
         page_number = int(page)
         offset = (page_number - 1) * limit
         
-        chatrooms_list_string = ",".join([str(card_id) for card_id in chatrooms_list])
+        card_tuple = get_tuple_from_array(chatrooms_list)
         
         conn = get_connection()
         curr = conn.cursor()
@@ -2330,12 +2407,13 @@ def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, pag
                               OVER(
                                 partition BY CA.card_id
                                 ORDER BY CA.created_at DESC) AS row_number
-                                WHERE  CA.card_id IN (%s))
+                                FROM togther_card_answers as CA
+                                WHERE  CA.card_id IN %s)
             SELECT card_id, id
             FROM   added_row_number
             WHERE  row_number = 1
             ORDER  BY created_at DESC LIMIT %s OFFSET %s; 
-        """ % (chatrooms_list_string, str(limit), str(offset))
+        """ % (card_tuple, str(limit), str(offset))
         curr.execute(sql)
         card_list = curr.fetchall()
         curr.close()

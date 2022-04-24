@@ -1129,7 +1129,6 @@ class CohortHelper:
 
         all_member_cohort_filter = ModelUtilities.get_model_filter(Cohort,
                                                                    {'community': community_instance,
-                                                                    'name': ALL_MEMBER_COHORT_TEXT,
                                                                     'type': cohort_types.ALL_MEMBER})
 
         if not all_member_cohort_filter:

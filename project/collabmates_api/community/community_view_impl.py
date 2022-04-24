@@ -596,7 +596,7 @@ class SendInviteView(APIView):
 
         if not member_id:
             return JsonResponse({'success': False, 'error_message': 'Send member_id'},
-                                status=status_codes.HTTP_200_OK)
+                                status=status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(member_id=member_id, request_platform=platform_code,
                                           version_code=version_code)
@@ -631,7 +631,7 @@ class EditCommunityQuestionsView(APIView):
         validated_body = self._validate_request(request)
 
         if not validated_body.get('success'):
-            return JsonResponse(validated_body, status=status_codes.HTTP_200_OK)
+            return JsonResponse(validated_body, status=status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(member_id=validated_body.get('member_id'),
                                           community_id=validated_body.get('community_id'),
@@ -674,7 +674,7 @@ class FetchCommunityQuestionsView(APIView):
         validated_body = self._validate_request(member_id, req_body)
 
         if not validated_body.get('success'):
-            return JsonResponse(validated_body, status=status_codes.HTTP_200_OK)
+            return JsonResponse(validated_body, status=status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(member_id=validated_body.get('member_id'),
                                           community_id=validated_body.get('community_id'),
@@ -787,7 +787,7 @@ class UpdateCommunityDMSettingsView(APIView):
         validated_body = self._validate_request(request)
 
         if not validated_body.get('success'):
-            return JsonResponse(validated_body, status=status_codes.HTTP_200_OK)
+            return JsonResponse(validated_body, status=status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(member_id=validated_body.get('member_id'),
                                           community_id=validated_body.get('community_id'),
@@ -828,7 +828,7 @@ class FetchCommunityDMSettingsView(APIView):
         validated_body = self._validate_request(member_id, req_body)
 
         if not validated_body.get('success'):
-            return JsonResponse(validated_body, status=status_codes.HTTP_200_OK)
+            return JsonResponse(validated_body, status=status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(member_id=validated_body.get('member_id'),
                                           community_id=validated_body.get('community_id'),

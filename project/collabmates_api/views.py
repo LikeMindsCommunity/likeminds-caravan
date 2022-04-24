@@ -36,7 +36,7 @@ from utility.celery_tasks import (
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
     reset_unread_message_count_in_cache, fetch_conversations_unread, update_deferred_card_poll_updated_at_value,
     get_to_show_results_for_conversation_poll, send_chatroom_deleted_analytics_data, cm_removed_dm_chatroom,
-    member_becomes_cm_dm_chatroom)
+    member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -50,7 +50,7 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     cm_onboarding_version_check, directory_questions_v2_version_check,
-                    get_user_email_preferred_verified, m2cm_v2_version_check, m2cm_v1_version_check)
+                    get_user_email_preferred_verified)
 from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
     tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
@@ -913,12 +913,7 @@ def questions(request):
     except:
         error_logger.error(f"shared by user id does not exist in DB. shared by ---> {shared_by} ")
 
-    is_free_trial = False
-
-    if free_link_and_freemium_community_version_check(platform_code, version_code) and community_instance.is_paid:
-        is_free_trial = True
-
-    if aj and shared_by_user and (not is_free_trial):
+    if aj and shared_by_user:
         try:
             if is_cm_onboarding_enabled:
                 auto_join = private_link_app_invite_v2(community_instance, aj, created_by, shared_by_user,
@@ -3491,6 +3486,10 @@ def chatroom_rename(request):
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
     ElasticSearchSync.update_chatroom_name.delay(chatroom_id, chatroom_name.strip())
+
+    send_chatroom_updated_analytics_data.delay(chatroom_id,
+                                               int(member_id),
+                                               {'chatroom_renamed': True})
 
     return JsonResponse({"success": True})
 
@@ -9016,6 +9015,7 @@ def edit_community_version_1(request):
     community_instance.brand_color = res.get('brand_color', community_instance.brand_color)
     community_instance.likeminds_plan = res.get('likeminds_plan', community_instance.likeminds_plan)
     community_instance.hide_dm_tab = res.get('hide_dm_tab', community_instance.hide_dm_tab)
+    community_instance.is_freemium_community = res.get('is_freemium_community', community_instance.is_freemium_community)
 
     community_instance.save()
 
@@ -10491,6 +10491,8 @@ def fetch_community_manager_rights(request):
     current_user_id = get_member_id_from_headers(request)
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     context = None
     if not current_user_id:
@@ -10523,6 +10525,11 @@ def fetch_community_manager_rights(request):
 
             for right in admin_rights:
                 right = right.right
+
+                if all([not m2cm_v2_version_check(platform_code, version_code),
+                        right.state == moderate_dm_settings.get('state')]):
+                    continue
+
                 right_dict = get_right_dict(right)
                 if is_member:
                     right_dict["is_selected"] = True if right.id in manager_rights.DEFAULT_MANAGER_RIGHTS else False
@@ -10630,7 +10637,7 @@ def update_community_manager_rights(request):
             if moderate_dm_right_filter[0].id in (list(rights_added) + list(removed_rights)) and \
                 not check_admin_moderate_dm_settings_right(current_user_instance, community_instance):
                 context = get_error_context(False, "You don't have right to give right of DM setting!")
-                return JsonResponse(context)
+                return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         rights_added, removed_rights = save_added_removed_rights_for_manager(community_instance,
                                                                              user_instance,

@@ -578,8 +578,8 @@ SINGLE_COMMUNITY_VIEW_VERSION_CODE = {
 }
 
 FREE_LINK_VERSION_CODE = {
-    "an": 1001,
-    "ios": 1001,
+    "an": 189 if settings.IS_BETA else 1001,
+    "ios": 338 if settings.IS_BETA else 1001,
     "web": 1001
 }
 
@@ -676,3 +676,5 @@ IMAGE_URLS_FOR_QUESTION_TITLES = ["Email", "Phone Number", "Phone No."]
 CREATE_COMMUNITY_QUESTION_NAME_TITLE = "Name"
 
 SIX_HOURS_IN_SECONDS = 6 * 60 * 60
+
+FREE_TRIAL_PUBLIC_URL = "{}/renewal/{}"

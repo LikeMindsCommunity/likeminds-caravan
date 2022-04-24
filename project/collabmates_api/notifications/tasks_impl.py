@@ -7,7 +7,7 @@ from external_services.calender.calendar_impl import CalendarImpl
 from external_services.email.email_wrapper import MailHelper
 from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, \
     userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember, CommunityGetStarted, \
-     EventGoogleCalendarLogs, removedMembers
+     EventGoogleCalendarLogs, removedMembers, Card_Attachment
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
@@ -316,6 +316,7 @@ class TasksImpl(TaskManager):
         event_time = TimeUtilities.convert_epoch_time_in_hh_mm_am_pm(payload.get('chatroom').date_time)
         event_date = TimeUtilities.convert_epoch_time_to_date_month_year(payload.get('chatroom').date_time)
         community_id = payload.get('chatroom').community.id
+        event_banner_url = TasksHelper.fetch_event_banner(event=payload.get('chatroom'))
 
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
@@ -336,12 +337,12 @@ class TasksImpl(TaskManager):
                 link = link + '&cta=register'
 
         response_dict = self.process_email_comms_response_dict(event_name, event_description, event_time, event_date, \
-                                                            link, event_cost, community_id)
+                                                            link, event_cost, community_id, event_banner_url)
 
         return response_dict
 
     def process_email_comms_response_dict(self, event_name, event_description, event_time, event_date, link,\
-                                        event_cost, community_id):
+                                        event_cost, community_id, event_banner_url):
 
         if self.get_event_type() == EVENT_TYPE.CREATION or self.get_event_type() == EVENT_TYPE.LAST_CALL:
 
@@ -385,6 +386,9 @@ class TasksImpl(TaskManager):
 
         else:
             response_dict = {}
+
+        if response_dict:
+            response_dict['event_banner_url'] = event_banner_url
 
         return response_dict
 
@@ -926,6 +930,12 @@ class TasksHelper:
         return removed_member_ids
 
     @staticmethod
+    def get_members_excluding_non_members_in_community(community_id, members_list):
+        removed_members = TasksHelper.get_removed_member_ids_in_community(community_id)
+
+        return list(set(members_list) - set(removed_members))
+
+    @staticmethod
     def get_active_members_excluding_non_members_in_community(community_instance: Community, active_members: list) -> \
             list:
         """
@@ -1160,3 +1170,17 @@ class TasksHelper:
             message['payload']['community_logo'] = community_instance.thumbnail
 
         return message
+
+    @staticmethod
+    def fetch_event_banner(event):
+        filter_dict = {
+            'collabcard_id': event,
+            'type': 'image'
+        }
+
+        chatroom_attachment = ModelUtilities.get_model_filter(Card_Attachment, filter_dict)
+
+        if chatroom_attachment:
+            return chatroom_attachment[0].file_url
+
+        return None

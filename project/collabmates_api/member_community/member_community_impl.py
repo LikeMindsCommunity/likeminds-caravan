@@ -1553,7 +1553,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         response = {
             'is_request_dm_limit_exceeded': False,
-            'new_request_dm_timestamp': None
+            'new_request_dm_timestamp': None,
+            'success': True
         }
 
         if user_member_dm_chatroom:
@@ -1596,6 +1597,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         card_ans_map = get_last_conversation_id_corresponding_to_chatrooms_list(list(card_state_map.keys()), page=page)
 
+        if not card_ans_map:
+            return {'success': True, 'dm_chatrooms': [], 'total_pages': total_pages}
+
         dm_chatrooms = []
 
         convsersation_states_to_consider = [
@@ -1617,7 +1621,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         for card_id, card_ans_id in card_ans_map.items():
             chatroom = MemberCommunityHelper.serialise_dm_chatrooms(user_instance, community_instance, card_id,
                                                                     card_ans_id, card_state_map,
-                                                                    convsersation_states_to_consider, rights_list)
+                                                                    convsersation_states_to_consider, rights_list,
+                                                                    device_id=self.get_device_id())
 
             if chatroom:
                 dm_chatrooms.append(chatroom)
@@ -2201,11 +2206,13 @@ class MemberCommunityHelper:
             chat_request_state=None)
 
         if card_state_filter.count() >= community_dm_settings_instance.number_in_duration:
-            return {'is_request_dm_limit_exceeded': True, 'new_request_dm_timestamp': end_epoch_time}
+            return {'is_request_dm_limit_exceeded': True, 'new_request_dm_timestamp': end_epoch_time, 'success': True}
+
+        return response
 
     @staticmethod
     def serialise_dm_chatrooms(user_instance, community_instance, card_id, card_ans_id, card_state_map,
-                               convsersation_states_to_consider, rights_list):
+                               convsersation_states_to_consider, rights_list, device_id):
         chatroom = {}
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
         card_state_instance = ModelUtilities.get_model_instance_or_none(collabcardState,
@@ -2221,8 +2228,7 @@ class MemberCommunityHelper:
 
         if card_answer_instance:
             last_conversation_dict = conversationSerializer(card_answer_instance,
-                                                            current_user_id=user_instance.id,
-                                                            device_id=self.get_device_id())
+                                                            current_user_id=user_instance.id, device_id=device_id)
             preview = generate_internal_link_preview_for_conversation(card_answer_instance, user_instance.id)
 
             if preview:
@@ -2284,13 +2290,14 @@ class MemberCommunityHelper:
                                                                               user_instance.id,
                                                                               member_instance.id)
 
-        if not user_member_dm_chatroom:
-            return {'success': True, 'show_dm': False}
+        if is_user_admin or is_member_admin:
+            cta = CTA_ROUTE_DIRECT_MESSAGES_COMMUNITY_DETAIL_MULTIPLE_CM.format(community_instance.id)
 
-        elif is_user_admin or is_member_admin:
-            return {'success': True, 'show_dm': True,
-                    'cta': CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
-                                                                           community_instance.id)}
+            if user_member_dm_chatroom:
+                cta = CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
+                                                                      community_instance.id)
+
+            return {'success': True, 'show_dm': True, 'cta': cta}
 
         else:
             members_can_dm_filter = ModelUtilities.get_model_filter(CommunitySettings,
@@ -2307,9 +2314,13 @@ class MemberCommunityHelper:
             if not user_has_dm_right:
                 return {'success': True, 'show_dm': False}
 
-            return {'success': True, 'show_dm': True,
-                    'cta': CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
-                                                                           community_instance.id)}
+            cta = CTA_ROUTE_DIRECT_MESSAGES_COMMUNITY_DETAIL_MULTIPLE_CM.format(community_instance.id)
+
+            if user_member_dm_chatroom:
+                cta = CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
+                                                                      community_instance.id)
+
+            return {'success': True, 'show_dm': True, 'cta': cta}
 
     @staticmethod
     def can_member_dm_from_community_detail(user_instance, community_instance):
@@ -2334,9 +2345,14 @@ class MemberCommunityHelper:
                 user_member_dm_chatroom = ChatroomHelper.get_dm_chatroom_from_members(community_instance.id,
                                                                                       user_instance.id,
                                                                                       cms_list[0])
-                return {'success': True, 'show_dm': True,
-                        'cta': CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
-                                                                               community_instance.id)}
+
+                cta = CTA_ROUTE_DIRECT_MESSAGES_COMMUNITY_DETAIL_MULTIPLE_CM.format(community_instance.id)
+
+                if user_member_dm_chatroom:
+                    cta = CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE.format(user_member_dm_chatroom.id,
+                                                                          community_instance.id)
+
+                return {'success': True, 'show_dm': True, 'cta': cta}
 
             else:
                 return {'success': True, 'show_dm': True,
