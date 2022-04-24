@@ -464,13 +464,13 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
 
         if send_allowed and not is_task_deleted:
-            MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
-                                                          from_email=context['from_email'],
-                                                          to_mails_list=context['to_mails_list'],
-                                                          reply_to=context['reply_to'],
-                                                          from_name=context['from_name'],
-                                                          categories=context['categories'],
-                                                          email_type=context['email_type'])
+            MailWrapper.send_email_with_custom_from_email.delay(subject=context.get('subject'),
+                                                                template=context.get('template'),
+                                                                to_mails_list=context.get('to_mails_list'),
+                                                                from_email=context.get('from_email'),
+                                                                reply_to=context.get('reply_to'),
+                                                                categories=context.get('categories'),
+                                                                from_name=context.get('from_name'))
 
         else:
             info_logger.info("No email notification scheuduled for event_type = %s | chatroom_deleted = %s | \
@@ -584,12 +584,13 @@ def send_communication_when_chatroom_not_opened(receiver_id, sender_id, chatroom
                                                                      chatroom_not_opened_type)
 
         if context:
-            MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
-                                                          from_email=context['from_email'],
-                                                          to_mails_list=context['to_mails_list'],
-                                                          categories=context['categories'],
-                                                          reply_to=context['reply_to'],
-                                                          email_type=context['email_type'])
+            MailWrapper.send_email_with_custom_from_email.delay(subject=context.get('subject'),
+                                                                template=context.get('template'),
+                                                                to_mails_list=context.get('to_mails_list'),
+                                                                from_email=context.get('from_email'),
+                                                                reply_to=context.get('reply_to'),
+                                                                categories=context.get('categories'),
+                                                                from_name=context.get('from_name'))
 
             TasksHelper.update_user_email_send_status(receiver_id, chatroom_id, chatroom_not_opened_type)
 
@@ -604,9 +605,10 @@ def send_mail_for_first_time_edit_community_questions(user_id, community_id):
     context = TasksHelper.create_context_for_sending_first_email_on_directory_questions_setup(user_id, community_id)
 
     if context:
-        MailWrapper.send_email_with_custom_from_email.delay(subject=context.get('mail_subject'),
-                                                            template=context.get('mail_template'),
-                                                            to_mails_list=context.get('from_email'),
-                                                            categories=context.get('mail_categories'),
-                                                            reply_to=context.get('reply_to_email'),
-                                                            email_type=context.get('email_type'))
+        MailWrapper.send_email_with_custom_from_email.delay(subject=context.get('subject'),
+                                                            template=context.get('template'),
+                                                            to_mails_list=context.get('to_mails_list'),
+                                                            from_email=context.get('from_email'),
+                                                            reply_to=context.get('reply_to'),
+                                                            categories=context.get('categories'),
+                                                            from_name=context.get('from_name'))

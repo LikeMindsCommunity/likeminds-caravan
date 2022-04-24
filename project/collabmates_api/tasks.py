@@ -412,17 +412,33 @@ def send_community_confirmation_email(user_id, community_id):
         categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.DOWNLOAD_APP,
                                                                                    EmailSubCategories.REQUEST_ACCEPTED)
 
+        context = {
+            'subject': subject,
+            'template': None,
+            'to_mails_list': [email],
+            'from_email': None,
+            'reply_to': None,
+            'categories': categories,
+            'from_name': None,
+            'email_type': None
+        }
+
         template_mapping = email_mapper.get_email_mapping(EmailCategories.DOWNLOAD_APP,
                                                           EmailSubCategories.REQUEST_ACCEPTED)
 
         if template_mapping:
-            template = get_template(template_mapping.get('location')).render(email_context)
+            context['template'] = get_template(template_mapping.get('location')).render(email_context)
+            context['email_type'] = template_mapping.get('email_type', None)
 
-            MailWrapper.send_email_with_custom_from_email.delay(subject=subject,
-                                                                template=template,
-                                                                to_mails_list=[email],
-                                                                categories=categories,
-                                                                email_type=template_mapping.get('email_type', None))
+            context = MailHelper.update_email_payload(context, community_id)
+
+            MailWrapper.send_email_with_custom_from_email.delay(subject=context.get('subject'),
+                                                                template=context.get('template'),
+                                                                to_mails_list=context.get('to_mails_list'),
+                                                                from_email=context.get('from_email'),
+                                                                reply_to=context.get('reply_to'),
+                                                                categories=context.get('categories'),
+                                                                from_name=context.get('from_name'))
 
         print(email_context)
         celery_beat_task = CeleryBeatTask()
@@ -468,17 +484,33 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
         categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.DOWNLOAD_APP,
                                                                                    EmailSubCategories.DOWNLOAD_DRIP)
 
+        context = {
+            'subject': subject,
+            'template': None,
+            'to_mails_list': [email],
+            'from_email': None,
+            'reply_to': None,
+            'categories': categories,
+            'from_name': None,
+            'email_type': None
+        }
+
         template_mapping = email_mapper.get_email_mapping(EmailCategories.DOWNLOAD_APP,
                                                           EmailSubCategories.DOWNLOAD_DRIP)
 
         if template_mapping:
-            template = get_template(template_mapping.get('location')).render(email_context)
+            context['template'] = get_template(template_mapping.get('location')).render(email_context)
+            context['email_type'] = template_mapping.get('email_type', None)
 
-            MailWrapper.send_email_with_custom_from_email.delay(subject=subject,
-                                                                template=template,
-                                                                to_mails_list=[email],
-                                                                categories=categories,
-                                                                email_type=template_mapping.get('email_type', None))
+            context = MailHelper.update_email_payload(context, community_id)
+
+            MailWrapper.send_email_with_custom_from_email.delay(subject=context.get('subject'),
+                                                                template=context.get('template'),
+                                                                to_mails_list=context.get('to_mails_list'),
+                                                                from_email=context.get('from_email'),
+                                                                reply_to=context.get('reply_to'),
+                                                                categories=context.get('categories'),
+                                                                from_name=context.get('from_name'))
 
         print(email_context)
 
@@ -578,16 +610,32 @@ def send_poll_results_announcement_mail(card_id, task_name):
             categories = MailHelper.get_email_category_list_using_category_subcategory(
                 EmailCategories.CHATROOM, EmailSubCategories.POLL_RESULTS)
 
+            context = {
+                'subject': subject,
+                'template': None,
+                'to_mails_list': [email],
+                'from_email': None,
+                'reply_to': None,
+                'categories': categories,
+                'from_name': None,
+                'email_type': None
+            }
+
             template_mapping = email_mapper.get_email_mapping(EmailCategories.CHATROOM, EmailSubCategories.POLL_RESULTS)
 
             if template_mapping:
-                template = get_template(template_mapping.get('location')).render(email_context)
+                context['template'] = get_template(template_mapping.get('location')).render(email_context)
+                context['email_type'] = template_mapping.get('email_type', None)
 
-                MailWrapper.send_email_with_custom_from_email.delay(subject=subject,
-                                                                    template=template,
-                                                                    to_mails_list=[email],
-                                                                    categories=categories,
-                                                                    email_type=template_mapping.get('email_type', None))
+                context = MailHelper.update_email_payload(context, community_id)
+
+                MailWrapper.send_email_with_custom_from_email.delay(subject=context.get('subject'),
+                                                                    template=context.get('template'),
+                                                                    to_mails_list=context.get('to_mails_list'),
+                                                                    from_email=context.get('from_email'),
+                                                                    reply_to=context.get('reply_to'),
+                                                                    categories=context.get('categories'),
+                                                                    from_name=context.get('from_name'))
 
     card_instance.disable_poll_announcement_mail = True
     card_instance.save()
@@ -717,14 +765,15 @@ def send_cm_onboarding_getting_started_email():
                     user_email_status_instance.updated_at, minutes=user_email_status_instance.frequency_in_minutes):
                 continue
 
-            mail_body = json.loads(user_email_status_instance.mail_data)
+            context = json.loads(user_email_status_instance.mail_data)
 
-            MailWrapper.send_email.delay(subject=mail_body.get('subject'),
-                                         template=mail_body.get('mail_body'),
-                                         to_mails_list=mail_body.get('mail_recipient_list'),
-                                         categories=mail_body.get('mail_categories'),
-                                         reply_to=mail_body.get('reply_to'),
-                                         email_type=mail_body.get('email_type'))
+            MailWrapper.send_email_with_custom_from_email.delay(subject=context.get('subject'),
+                                                                template=context.get('template'),
+                                                                to_mails_list=context.get('to_mails_list'),
+                                                                from_email=context.get('from_email'),
+                                                                reply_to=context.get('reply_to'),
+                                                                categories=context.get('categories'),
+                                                                from_name=context.get('from_name'))
 
             user_email_status_instance.updated_at = TimeUtilities.current_time_in_milliseconds()
 

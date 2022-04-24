@@ -8,7 +8,9 @@ from sendgrid.helpers.mail import Mail, Personalization, Content, Category
 from rest_framework import status as status_codes
 
 from collabmates_api.notifications.constants import SENDER_NAME_FOR_EMAIL_COMMS
+from collabmates_api.community.community_impl import CommunityHelper
 from utility.mail_category_constants import MAIL_CATEGORY_BETA, MAIL_CATEGORY_PROD
+from utility.states import email_types
 from ..email.email_manager import MailManager
 from django.core.mail import EmailMultiAlternatives
 from celery import shared_task
@@ -56,7 +58,7 @@ class MailWrapper(MailManager):
     @staticmethod
     @shared_task
     def send_email_with_custom_from_email(subject, template, to_mails_list, from_email=None, reply_to=None,
-                                          categories=None, from_name=SENDER_NAME_FOR_EMAIL_COMMS, email_type=None):
+                                          categories=None, from_name=SENDER_NAME_FOR_EMAIL_COMMS):
 
         if not from_email:
             from_email = MailWrapper.from_email_id
@@ -72,10 +74,6 @@ class MailWrapper(MailManager):
             mail.add_personalization(personalization)
 
         mail.from_email = Email(name=from_name, email=from_email)
-
-        if email_type:
-            # TODO add logic to update client email according to type of email_type
-            pass
 
         mail.subject = subject
 
@@ -114,3 +112,29 @@ class MailHelper:
         categories.append(f'{environment} - {category}')
         categories.append(f'{environment} - {category} - {subcategory}')
         return categories
+
+    @staticmethod
+    def update_email_payload(context, community_id):
+
+        email_type = context.get('email_type', None)
+
+        if email_type and email_type == email_types.COMMUNUITY_EMAIL:
+
+            whitelabel_info = CommunityHelper.fetch_whitelabel_data_for_community(community_id)
+
+            if whitelabel_info and whitelabel_info.get('email'):
+
+                context['from_email'] = whitelabel_info.get('email')
+                context['from_name'] = context['from_name'] if context.get('from_name') else ''
+                context['reply_to'] = whitelabel_info.get('email')
+
+        else:
+            from_email = context.get('from_email')
+            from_email_name = context.get('from_name')
+            reply_to = context.get('reply_to')
+
+            context['from_email'] = from_email if from_email else MailWrapper.from_email_id
+            context['from_name'] = from_email_name if from_email_name else SENDER_NAME_FOR_EMAIL_COMMS
+            context['reply_to'] = reply_to if reply_to else MailWrapper.from_email_id
+
+        return context

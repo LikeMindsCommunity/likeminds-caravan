@@ -1331,17 +1331,32 @@ class CommunityImpl(CommunityManager):
         mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.WELCOME,
                                                                                         EmailSubCategories.WELCOME)
 
+        context = {
+            'subject': mail_data['subject'],
+            'template': mail_data['body'],
+            'to_mails_list': mail_to,
+            'from_email': None,
+            'reply_to': mail_data['reply_to'],
+            'categories': mail_categories,
+            'from_name': None,
+            'email_type': None
+        }
+
         template_mapping = email_mapper.get_email_mapping(EmailCategories.WELCOME,
                                                           EmailSubCategories.WELCOME)
 
         if template_mapping:
+            context['email_type'] = template_mapping.get('email_type', None)
 
-            MailWrapper.send_email_with_custom_from_email.delay(subject=mail_data['subject'],
-                                                                template=mail_data['body'],
-                                                                to_mails_list=mail_to,
-                                                                categories=mail_categories,
-                                                                reply_to=mail_data['reply_to'],
-                                                                email_type=template_mapping.get('email_type', None))
+            context = MailHelper.update_email_payload(context, community_id)
+
+            MailWrapper.send_email_with_custom_from_email.delay(subject=context.get('subject'),
+                                                                template=context.get('template'),
+                                                                to_mails_list=context.get('to_mails_list'),
+                                                                from_email=context.get('from_email'),
+                                                                reply_to=context.get('reply_to'),
+                                                                categories=context.get('categories'),
+                                                                from_name=context.get('from_name'))
 
     @staticmethod
     def _fetch_join_email_data(community_id, community_instance) -> {}:
@@ -2672,29 +2687,32 @@ class CommunityHelper:
             "button_link": branch_link
         }
 
-        mail_body = None
-
         mail_subject = GETTING_STARTED_CM_MAIL_SUBJECT.format(user_instance.userinfo.name)
 
         mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
             EmailCategories.CREATE_COMMUNITY, EmailSubCategories.GETTING_STARTED)
 
+        context = {
+            'subject': mail_subject,
+            'template': None,
+            'to_mails_list': [user_instance.userinfo.email],
+            'from_email': None,
+            'reply_to': [INVITE_MEMBER_REPLY_EMAIL],
+            'categories': mail_categories,
+            'from_name': None,
+            'email_type': None
+        }
+
         template_mapping = email_mapper.get_email_mapping(EmailCategories.CREATE_COMMUNITY,
                                                           EmailSubCategories.GETTING_STARTED)
 
         if template_mapping:
-            template = get_template(template_mapping.get('location')).render(email_context)
+            context['template'] = get_template(template_mapping.get('location')).render(email_context)
+            context['email_type'] = template_mapping.get('email_type', None)
 
-            mail_body = {
-                'subject': mail_subject,
-                'mail_body': template,
-                'mail_recipient_list': [user_instance.userinfo.email],
-                'reply_to': [INVITE_MEMBER_REPLY_EMAIL],
-                'mail_categories': mail_categories,
-                'email_type': template_mapping.get('email_type', None)
-            }
+            context = MailHelper.update_email_payload(context, community_instance.id)
 
-        return mail_body
+        return context
 
     @staticmethod
     def give_owner_all_member_manager_rights(user_instance, community_instance):
@@ -2832,18 +2850,33 @@ class CommunityHelper:
             mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
                 EmailCategories.INVITE_MEMBER, EmailSubCategories.WITH_JOIN_CODE)
 
+            context = {
+                'subject': mail_subject,
+                'template': None,
+                'to_mails_list': [valid_email_id],
+                'from_email': None,
+                'reply_to': [INVITE_MEMBER_REPLY_EMAIL],
+                'categories': mail_categories,
+                'from_name': None,
+                'email_type': None
+            }
+
             template_mapping = email_mapper.get_email_mapping(EmailCategories.INVITE_MEMBER,
                                                               EmailSubCategories.WITH_JOIN_CODE)
 
             if template_mapping:
-                template = get_template(template_mapping.get('location')).render(email_context)
+                context['template'] = get_template(template_mapping.get('location')).render(email_context)
+                context['email_type'] = template_mapping.get('email_type', None)
 
-                MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
-                                                                    template=template,
-                                                                    to_mails_list=[valid_email_id],
-                                                                    categories=mail_categories,
-                                                                    reply_to=[INVITE_MEMBER_REPLY_EMAIL],
-                                                                    email_type=template_mapping.get('email_type', None))
+                context = MailHelper.update_email_payload(context, community_instance.id)
+
+                MailWrapper.send_email_with_custom_from_email.delay(subject=context.get('subject'),
+                                                                    template=context.get('template'),
+                                                                    to_mails_list=context.get('to_mails_list'),
+                                                                    from_email=context.get('from_email'),
+                                                                    reply_to=context.get('reply_to'),
+                                                                    categories=context.get('categories'),
+                                                                    from_name=context.get('from_name'))
 
     @staticmethod
     def send_invite_whatsapp_context_dict(user_instance, community_instance, mobile_nos_list, validated_req_body,
@@ -3630,3 +3663,24 @@ class CommunityHelper:
 
         return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
                 'state': state}
+
+    @staticmethod
+    def fetch_whitelabel_data_for_community(community_id):
+
+        whitelabel_info_key = 'WHITELABEL_COMMUNITY_{}'.format(community_id)
+
+        whitelabel_info = CacheImpl.get_cache(whitelabel_info_key)
+        json_object = json.loads(whitelabel_info) if whitelabel_info else {}
+
+        if not json_object:
+
+            community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+            if community_instance:
+                CommunityHelper.set_community_data_in_cache.delay(community_instance.id)
+                json_object = json.loads(community_instance.whitelabel_info) if community_instance.whitelabel_info else None
+
+            else:
+                return {'error_message': 'invalid community_id'}
+
+        return json_object

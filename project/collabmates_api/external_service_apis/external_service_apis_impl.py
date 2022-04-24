@@ -1,5 +1,5 @@
 from ..external_service_apis.external_service_apis_manager import ExternalServiceApisManager
-from external_services.email.email_wrapper import MailWrapper
+from external_services.email.email_wrapper import MailWrapper, MailHelper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 
 from ..notification import notification_meta, get_token_for_fcm
@@ -48,6 +48,9 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
         if not req_body.get('mail_recipient_list'):
             return {'error_message': 'send mail_recipient_list'}
 
+        if not req_body.get('community_id'):
+            return {'error_message': 'send community_id'}
+
         return req_body
 
     def _validate_wa_body_params(self, req_body):
@@ -83,15 +86,15 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
         if validated_mail_req.get('error_message'):
             return {'success': False, 'error_message': validated_mail_req.get('error_message')}
 
-        is_mail_sent = MailWrapper.send_email_with_custom_from_email.delay(
-            subject=req_body.get('subject'),
-            template=req_body.get('mail_body'),
-            to_mails_list=req_body.get('mail_recipient_list'),
-            from_email=req_body.get('from_email'),
-            categories=req_body.get('categories'),
-            reply_to=req_body.get('reply_to'),
-            email_type=req_body.get('email_type')
-        )
+        req_body = MailHelper.update_email_payload(req_body, req_body.get('community_id'))
+
+        is_mail_sent = MailWrapper.send_email_with_custom_from_email.delay(subject=req_body.get('subject'),
+                                                                           template=req_body.get('template'),
+                                                                           to_mails_list=req_body.get('to_mails_list'),
+                                                                           from_email=req_body.get('from_email'),
+                                                                           reply_to=req_body.get('reply_to'),
+                                                                           categories=req_body.get('categories'),
+                                                                           from_name=req_body.get('from_name'))
 
         if not is_mail_sent:
             return {'success': False, 'error_message': 'Error in sending mail.'}

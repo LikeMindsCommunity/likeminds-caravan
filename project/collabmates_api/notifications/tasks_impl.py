@@ -755,11 +755,13 @@ class TasksHelper:
         reply_to = community_owner_email[0] if community_owner_email else ''
 
         context = {
-            'from_name': community_name,
-            'from_email': SENDER_EMAIL_FOR_EMAIL_COMMS,
-            'to_mails_list': to_mails_list,
-            'reply_to': reply_to,
+            'subject': None,
             'template': None,
+            'to_mails_list': to_mails_list,
+            'from_email': SENDER_EMAIL_FOR_EMAIL_COMMS,
+            'reply_to': reply_to,
+            'categories': None,
+            'from_name': community_name,
             'email_type': None
         }
 
@@ -855,6 +857,8 @@ class TasksHelper:
         if template_mapping:
             context['template'] = get_template(template_mapping.get('location')).render(data_dict)
             context['email_type'] = template_mapping.get('email_type', None)
+
+            context = MailHelper.update_email_payload(context, event_instance.community.id)
 
         return context
 
@@ -1022,9 +1026,18 @@ class TasksHelper:
             'owner_name': community_owner_instance.userinfo.name
         }
 
-        template = None
+        context = {
+            'subject': SUBJECT_CHATROOM_NOT_OPENED_MAIL % sender_instance.userinfo.name,
+            'template': None,
+            'to_mails_list': to_mails_list,
+            'from_email': SENDER_FOR_ENGAGEMENT_COMMUNICATION,
+            'reply_to': reply_to,
+            'categories': None,
+            'from_name': None,
+            'email_type': None
+        }
+
         template_mapping = None
-        email_type = None
         categories = []
 
         if chatroom_not_opened_type == chatroom_not_opened_types.TAGGED_CHATROOM:
@@ -1035,25 +1048,17 @@ class TasksHelper:
                                                               EmailSubCategories.CHATROOM_TAG)
 
         if chatroom_not_opened_type == chatroom_not_opened_types.DM_CHATROOM:
-            template = get_template("mails/engagement_mails/dm_chatroom_not_opened.html").render(data_dict)
             categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.ENGAGEMENT,
                                                                                        EmailSubCategories.DM)
 
             template_mapping = email_mapper.get_email_mapping(EmailCategories.ENGAGEMENT,
                                                               EmailSubCategories.DM)
         if template_mapping:
-            template = get_template(template_mapping.get('location')).render(data_dict)
-            email_type = template_mapping.get('email_type', None)
+            context['template'] = get_template(template_mapping.get('location')).render(data_dict)
+            context['categories'] = categories
+            context['email_type'] = template_mapping.get('email_type', None)
 
-        context = {
-            'from_email': SENDER_FOR_ENGAGEMENT_COMMUNICATION,
-            'to_mails_list': to_mails_list,
-            'reply_to': reply_to,
-            'subject': SUBJECT_CHATROOM_NOT_OPENED_MAIL % sender_instance.userinfo.name,
-            'template': template,
-            'categories': categories,
-            'email_type': email_type
-        }
+        context = MailHelper.update_email_payload(context, community_id)
 
         return context
 
@@ -1113,9 +1118,6 @@ class TasksHelper:
                 "button_link": branch_link
             }
 
-            template = None
-            email_type = None
-
             mail_subject = CUSTOMISE_JOIN_FORM_MAIL_SUBJECT.format(user_instance.userinfo.name)
 
             user_email = get_user_email_preferred_verified(user_instance.id)
@@ -1123,24 +1125,28 @@ class TasksHelper:
             categories = MailHelper.get_email_category_list_using_category_subcategory(
                 EmailCategories.CREATE_COMMUNITY, EmailSubCategories.JOIN_FORM_CREATED)
 
+            context = {
+                'subject': mail_subject,
+                'template': None,
+                'to_mails_list': [user_email],
+                'from_email': None,
+                'reply_to': [INVITE_MEMBER_REPLY_EMAIL],
+                'categories': categories,
+                'from_name': None,
+                'email_type': None
+            }
+
             template_mapping = email_mapper.get_email_mapping(EmailCategories.CREATE_COMMUNITY,
                                                               EmailSubCategories.JOIN_FORM_CREATED)
 
             if template_mapping:
-                template = get_template(template_mapping.get('location')).render(email_context)
-                email_type = template_mapping.get('email_type', None)
+                context['template'] = get_template(template_mapping.get('location')).render(email_context)
+                context['email_type'] = template_mapping.get('email_type', None)
+
+                context = MailHelper.update_email_payload(context, community_id)
 
             if not user_email:
                 return {}
-
-            context = {
-                "mail_subject": mail_subject,
-                "mail_template": template,
-                "from_email": [user_email],
-                "reply_to_email": [INVITE_MEMBER_REPLY_EMAIL],
-                "mail_categories": categories,
-                "email_type": email_type
-            }
 
             return context
 

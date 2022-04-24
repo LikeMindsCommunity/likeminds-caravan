@@ -1345,18 +1345,31 @@ class UserHelper:
             mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
                 EmailCategories.CREATE_COMMUNITY, EmailSubCategories.DROPOFF)
 
+            context = {
+                'subject': mail_subject,
+                'template': None,
+                'to_mails_list': [user_instance.userinfo.email],
+                'from_email': None,
+                'reply_to': [FIRST_LOGIN_NON_FORM_CM_REPLY_EMAIL],
+                'categories': mail_categories,
+                'from_name': None,
+                'email_type': None
+            }
+
             template_mapping = email_mapper.get_email_mapping(EmailCategories.CREATE_COMMUNITY,
                                                               EmailSubCategories.DROPOFF)
 
             if template_mapping:
-                template = get_template(template_mapping.get('location')).render(email_context)
+                context['template'] = get_template(template_mapping.get('location')).render(email_context)
+                context['email_type'] = template_mapping.get('email_type', None)
 
-                MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
-                                                                    template=template,
-                                                                    to_mails_list=[user_instance.userinfo.email],
-                                                                    categories=mail_categories,
-                                                                    reply_to=[FIRST_LOGIN_NON_FORM_CM_REPLY_EMAIL],
-                                                                    email_type=template_mapping.get('email_type', None))
+                MailWrapper.send_email_with_custom_from_email.delay(subject=context.get('subject'),
+                                                                    template=context.get('template'),
+                                                                    to_mails_list=context.get('to_mails_list'),
+                                                                    from_email=context.get('from_email'),
+                                                                    reply_to=context.get('reply_to'),
+                                                                    categories=context.get('categories'),
+                                                                    from_name=context.get('from_name'))
 
             return
 
