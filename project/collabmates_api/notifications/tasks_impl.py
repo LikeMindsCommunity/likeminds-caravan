@@ -1114,6 +1114,7 @@ class TasksHelper:
             }
 
             template = None
+            email_type = None
 
             mail_subject = CUSTOMISE_JOIN_FORM_MAIL_SUBJECT.format(user_instance.userinfo.name)
 
@@ -1127,6 +1128,7 @@ class TasksHelper:
 
             if template_mapping:
                 template = get_template(template_mapping.get('location')).render(email_context)
+                email_type = template_mapping.get('email_type', None)
 
             if not user_email:
                 return {}
@@ -1137,7 +1139,7 @@ class TasksHelper:
                 "from_email": [user_email],
                 "reply_to_email": [INVITE_MEMBER_REPLY_EMAIL],
                 "mail_categories": categories,
-                "email_type": template_mapping.get('email_type', None)
+                "email_type": email_type
             }
 
             return context

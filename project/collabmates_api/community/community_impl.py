@@ -2672,7 +2672,7 @@ class CommunityHelper:
             "button_link": branch_link
         }
 
-        template = None
+        mail_body = None
 
         mail_subject = GETTING_STARTED_CM_MAIL_SUBJECT.format(user_instance.userinfo.name)
 
@@ -2685,14 +2685,14 @@ class CommunityHelper:
         if template_mapping:
             template = get_template(template_mapping.get('location')).render(email_context)
 
-        mail_body = {
-            'subject': mail_subject,
-            'mail_body': template,
-            'mail_recipient_list': [user_instance.userinfo.email],
-            'reply_to': [INVITE_MEMBER_REPLY_EMAIL],
-            'mail_categories': mail_categories,
-            'email_type': template_mapping.get('email_type', None)
-        }
+            mail_body = {
+                'subject': mail_subject,
+                'mail_body': template,
+                'mail_recipient_list': [user_instance.userinfo.email],
+                'reply_to': [INVITE_MEMBER_REPLY_EMAIL],
+                'mail_categories': mail_categories,
+                'email_type': template_mapping.get('email_type', None)
+            }
 
         return mail_body
 
