@@ -43,6 +43,7 @@ from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSIO
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper, MailHelper
+from external_services.email.email_mappings import email_mapper
 
 host_url = settings.URL
 subscription_url = settings.SUBSCRIPTION_SERVER_URL
@@ -1332,20 +1333,30 @@ class UserHelper:
         if members_filter:
             mail_subject = FIRST_LOGIN_NON_FORM_CM_MAIL_SUBJECT
 
-            mail_template = get_template('mails/cm_onboarding/cm_dropoff_mail_cm_onboarding.html').render({
+            email_context = {
                 "community_logo": LIKEMINDS_LOGO,
                 "community_name": 'LikeMinds',
                 "cm_name": user_instance.userinfo.name,
                 "community_brand_color": DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
                 "button_text": FIRST_LOGIN_NON_FORM_CM_MAIL_BUTTON_TEXT,
                 "button_link": CM_ONBOARDING_CREATE_COMMUNITY_BRANCH_LINK
-            })
+            }
+
             mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
                 EmailCategories.CREATE_COMMUNITY, EmailSubCategories.DROPOFF)
 
-            send_email_response = MailWrapper.send_email(mail_subject, mail_template, [user_instance.userinfo.email],
-                                                         categories=mail_categories,
-                                                         reply_to=[FIRST_LOGIN_NON_FORM_CM_REPLY_EMAIL])
+            template_mapping = email_mapper.get_email_mapping(EmailCategories.CREATE_COMMUNITY,
+                                                              EmailSubCategories.DROPOFF)
+
+            if template_mapping:
+                template = get_template(template_mapping.get('location')).render(email_context)
+
+                MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
+                                                                    template=template,
+                                                                    to_mails_list=[user_instance.userinfo.email],
+                                                                    categories=mail_categories,
+                                                                    reply_to=[FIRST_LOGIN_NON_FORM_CM_REPLY_EMAIL],
+                                                                    email_type=template_mapping.get('email_type', None))
 
             return
 

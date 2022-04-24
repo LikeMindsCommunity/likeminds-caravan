@@ -83,11 +83,15 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
         if validated_mail_req.get('error_message'):
             return {'success': False, 'error_message': validated_mail_req.get('error_message')}
 
-        is_mail_sent = MailWrapper.send_email.delay(subject=req_body.get('subject'), template=req_body.get('mail_body'),
-                                                    to_mails_list=req_body.get('mail_recipient_list'),
-                                                    from_email=req_body.get('from_email'),
-                                                    categories=req_body.get('categories'),
-                                                    reply_to=req_body.get('reply_to'))
+        is_mail_sent = MailWrapper.send_email_with_custom_from_email.delay(
+            subject=req_body.get('subject'),
+            template=req_body.get('mail_body'),
+            to_mails_list=req_body.get('mail_recipient_list'),
+            from_email=req_body.get('from_email'),
+            categories=req_body.get('categories'),
+            reply_to=req_body.get('reply_to'),
+            email_type=req_body.get('email_type')
+        )
 
         if not is_mail_sent:
             return {'success': False, 'error_message': 'Error in sending mail.'}

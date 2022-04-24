@@ -56,7 +56,7 @@ class MailWrapper(MailManager):
     @staticmethod
     @shared_task
     def send_email_with_custom_from_email(subject, template, to_mails_list, from_email=None, reply_to=None,
-                                          categories=None, from_name=SENDER_NAME_FOR_EMAIL_COMMS):
+                                          categories=None, from_name=SENDER_NAME_FOR_EMAIL_COMMS, email_type=None):
 
         if not from_email:
             from_email = MailWrapper.from_email_id
@@ -72,6 +72,10 @@ class MailWrapper(MailManager):
             mail.add_personalization(personalization)
 
         mail.from_email = Email(name=from_name, email=from_email)
+
+        if email_type:
+            # TODO add logic to update client email according to type of email_type
+            pass
 
         mail.subject = subject
 

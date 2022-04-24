@@ -37,8 +37,10 @@ from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24, CM_ONBOARD
     DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE, DIRECTORY_QUESTIONS_IOS_VERSION_CODE, \
     DIRECTORY_QUESTIONS_WEB_VERSION_CODE
 from utility.mail_category_constants import *
+from collabmates_api.notifications.constants import SENDER_EMAIL_FOR_EMAIL_COMMS, SENDER_NAME_FOR_EMAIL_COMMS
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper, MailHelper
+from external_services.email.email_mappings import email_mapper
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -406,14 +408,22 @@ def send_community_confirmation_email(user_id, community_id):
             'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
                 user_id) + '&code=mail_has_installed_app',
         }
-        template = get_template("mails/community_confirmation_email.html").render(email_context)
 
         categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.DOWNLOAD_APP,
                                                                                    EmailSubCategories.REQUEST_ACCEPTED)
 
-        to = [email]
+        template_mapping = email_mapper.get_email_mapping(EmailCategories.DOWNLOAD_APP,
+                                                          EmailSubCategories.REQUEST_ACCEPTED)
 
-        send_email(subject, template, to, categories=categories)
+        if template_mapping:
+            template = get_template(template_mapping.get('location')).render(email_context)
+
+            MailWrapper.send_email_with_custom_from_email.delay(subject=subject,
+                                                                template=template,
+                                                                to_mails_list=[email],
+                                                                categories=categories,
+                                                                email_type=template_mapping.get('email_type', None))
+
         print(email_context)
         celery_beat_task = CeleryBeatTask()
         task_name = str(user_id) + "_" + str(community_id) + "_send_community_confirmation_email_2"
@@ -454,13 +464,22 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
             'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
                 user_id) + '&code=mail_has_installed_app',
         }
-        template = get_template("mails/community_confirmation_email_2.html").render(email_context)
 
-        to = [email]
         categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.DOWNLOAD_APP,
                                                                                    EmailSubCategories.DOWNLOAD_DRIP)
 
-        send_email(subject, template, to, categories=categories)
+        template_mapping = email_mapper.get_email_mapping(EmailCategories.DOWNLOAD_APP,
+                                                          EmailSubCategories.DOWNLOAD_DRIP)
+
+        if template_mapping:
+            template = get_template(template_mapping.get('location')).render(email_context)
+
+            MailWrapper.send_email_with_custom_from_email.delay(subject=subject,
+                                                                template=template,
+                                                                to_mails_list=[email],
+                                                                categories=categories,
+                                                                email_type=template_mapping.get('email_type', None))
+
         print(email_context)
 
     celery_beat_task = CeleryBeatTask()
@@ -555,22 +574,20 @@ def send_poll_results_announcement_mail(card_id, task_name):
                 'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
                     user_id) + '&code=poll_results_announcement_mail',
             }
-            template = get_template("mails/poll_results_announcement.html").render(email_context)
-
-            to = [email]
-            fail_silently = False
-            msg = EmailMultiAlternatives(subject,
-                                         template,
-                                         f"{community_instance.name}<hello@likeminds.community>",
-                                         to)
-            msg.attach_alternative(template, "text/html")
 
             categories = MailHelper.get_email_category_list_using_category_subcategory(
                 EmailCategories.CHATROOM, EmailSubCategories.POLL_RESULTS)
 
-            msg.categories = categories
+            template_mapping = email_mapper.get_email_mapping(EmailCategories.CHATROOM, EmailSubCategories.POLL_RESULTS)
 
-            msg.send(fail_silently)
+            if template_mapping:
+                template = get_template(template_mapping.get('location')).render(email_context)
+
+                MailWrapper.send_email_with_custom_from_email.delay(subject=subject,
+                                                                    template=template,
+                                                                    to_mails_list=[email],
+                                                                    categories=categories,
+                                                                    email_type=template_mapping.get('email_type', None))
 
     card_instance.disable_poll_announcement_mail = True
     card_instance.save()
@@ -706,7 +723,8 @@ def send_cm_onboarding_getting_started_email():
                                          template=mail_body.get('mail_body'),
                                          to_mails_list=mail_body.get('mail_recipient_list'),
                                          categories=mail_body.get('mail_categories'),
-                                         reply_to=mail_body.get('reply_to'))
+                                         reply_to=mail_body.get('reply_to'),
+                                         email_type=mail_body.get('email_type'))
 
             user_email_status_instance.updated_at = TimeUtilities.current_time_in_milliseconds()
 

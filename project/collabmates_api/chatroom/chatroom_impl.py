@@ -68,6 +68,7 @@ from togther.models import (Members, Collabcard, card_answers, Community,
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.webflow.webflow_impl import WebflowImpl
 from external_services.email.email_wrapper import MailWrapper, MailHelper
+from external_services.email.email_mappings import email_mapper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
     event_online_link_types, block_chatroom_states, chat_request_states
@@ -4035,7 +4036,7 @@ class ChatroomHelper:
 
             branch_link = create_community_feed_url_for_cm_onboarding(card_instance.community)
 
-            mail_template = get_template('mails/cm_onboarding/first_event_creation_cm_onboarding.html').render({
+            email_context = {
                 "community_logo": card_instance.community.image_link,
                 "community_name": card_instance.community.name,
                 "cm_name": card_instance.user.userinfo.name,
@@ -4043,12 +4044,20 @@ class ChatroomHelper:
                 else DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
                 "button_link": branch_link,
                 "button_text": FIRST_EVENT_CM_MAIL_BUTTON_TEXT
-            })
+            }
 
-            send_email_response = MailWrapper.send_email.delay(mail_subject, mail_template,
-                                                               [card_instance.user.userinfo.email],
-                                                               categories=mail_categories,
-                                                               reply_to=[FIRST_EVENT_CM_REPLY_EMAIL])
+            template_mapping = email_mapper.get_email_mapping(EmailCategories.CREATE_COMMUNITY,
+                                                              EmailSubCategories.FIRST_EVENT_CREATED)
+
+            if template_mapping:
+                template = get_template(template_mapping.get('location')).render(email_context)
+
+                MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
+                                                                    template=template,
+                                                                    to_mails_list=[card_instance.user.userinfo.email],
+                                                                    categories=mail_categories,
+                                                                    reply_to=[FIRST_EVENT_CM_REPLY_EMAIL],
+                                                                    email_type=template_mapping.get('email_type', None))
 
     @staticmethod
     def get_settings_for_chatroom(chatroom_settings_list, card_instance):

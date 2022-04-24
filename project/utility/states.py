@@ -613,3 +613,11 @@ class DMIconFromStates:
 
 
 dm_icon_from_states = DMIconFromStates()
+
+
+class EmailTypes:
+    ADMIN_EMAIL = 'admin_mail'
+    COMMUNITY_EMAIL = 'community_mail'
+
+
+email_types = EmailTypes()

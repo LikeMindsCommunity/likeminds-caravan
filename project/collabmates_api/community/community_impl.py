@@ -23,6 +23,7 @@ from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.number_utilities import NumberUtilities
 from external_services.email.email_wrapper import MailWrapper, MailHelper
+from external_services.email.email_mappings import email_mapper
 from external_services.airtable.airtable_wrapper import AirtableWrapper
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
     card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
@@ -1327,12 +1328,20 @@ class CommunityImpl(CommunityManager):
 
         mail_data = CommunityImpl._fetch_join_email_data(community_id, community_instance)
 
-
         mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.WELCOME,
                                                                                         EmailSubCategories.WELCOME)
 
-        MailWrapper.send_email.delay(mail_data["subject"], mail_data["body"], mail_to, categories=mail_categories,
-                                     reply_to=mail_data["reply_to"])
+        template_mapping = email_mapper.get_email_mapping(EmailCategories.WELCOME,
+                                                          EmailSubCategories.WELCOME)
+
+        if template_mapping:
+
+            MailWrapper.send_email_with_custom_from_email.delay(subject=mail_data['subject'],
+                                                                template=mail_data['body'],
+                                                                to_mails_list=mail_to,
+                                                                categories=mail_categories,
+                                                                reply_to=mail_data['reply_to'],
+                                                                email_type=template_mapping.get('email_type', None))
 
     @staticmethod
     def _fetch_join_email_data(community_id, community_instance) -> {}:
@@ -2651,7 +2660,8 @@ class CommunityHelper:
 
     @staticmethod
     def get_mail_body_for_community_creation_get_started(user_instance, community_instance, branch_link=''):
-        mail_template = get_template('mails/cm_onboarding/getting_started_cm_onboarding.html').render({
+
+        email_context = {
             "community_logo": community_instance.image_link,
             "community_name": community_instance.name,
             "cm_name": user_instance.userinfo.name,
@@ -2660,19 +2670,28 @@ class CommunityHelper:
             DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR,
             "button_text": GETTING_STARTED_CM_BUTTON_TEXT,
             "button_link": branch_link
-        })
+        }
+
+        template = None
 
         mail_subject = GETTING_STARTED_CM_MAIL_SUBJECT.format(user_instance.userinfo.name)
 
         mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
             EmailCategories.CREATE_COMMUNITY, EmailSubCategories.GETTING_STARTED)
 
+        template_mapping = email_mapper.get_email_mapping(EmailCategories.CREATE_COMMUNITY,
+                                                          EmailSubCategories.GETTING_STARTED)
+
+        if template_mapping:
+            template = get_template(template_mapping.get('location')).render(email_context)
+
         mail_body = {
             'subject': mail_subject,
-            'mail_body': mail_template,
+            'mail_body': template,
             'mail_recipient_list': [user_instance.userinfo.email],
             'reply_to': [INVITE_MEMBER_REPLY_EMAIL],
-            'mail_categories': mail_categories
+            'mail_categories': mail_categories,
+            'email_type': template_mapping.get('email_type', None)
         }
 
         return mail_body
@@ -2796,7 +2815,7 @@ class CommunityHelper:
 
             changed_mail_body = "<br>".join(mail_body.split("\n"))
 
-            mail_template = get_template('mails/cm_onboarding/invite_members_cm_onboarding.html').render({
+            email_context = {
                 "community_logo": community_instance.image_link,
                 "community_name": community_instance.name,
                 "cm_name": user_instance.userinfo.name,
@@ -2807,17 +2826,24 @@ class CommunityHelper:
                 "button_text": INVITE_MEMBERS_BUTTON_TEXT,
                 "button_link": community_share_link.get('link'),
                 "is_hidden": hidden_text
-            })
+            }
 
             mail_subject = INVITE_MEMBERS_SUBJECT.format(community_instance.name)
             mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
                 EmailCategories.INVITE_MEMBER, EmailSubCategories.WITH_JOIN_CODE)
 
-            send_email_response = MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
-                                                                                      template=mail_template,
-                                                                                      to_mails_list=[valid_email_id],
-                                                                                      categories=mail_categories,
-                                                                                      reply_to=INVITE_MEMBER_REPLY_EMAIL)
+            template_mapping = email_mapper.get_email_mapping(EmailCategories.INVITE_MEMBER,
+                                                              EmailSubCategories.WITH_JOIN_CODE)
+
+            if template_mapping:
+                template = get_template(template_mapping.get('location')).render(email_context)
+
+                MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
+                                                                    template=template,
+                                                                    to_mails_list=[valid_email_id],
+                                                                    categories=mail_categories,
+                                                                    reply_to=[INVITE_MEMBER_REPLY_EMAIL],
+                                                                    email_type=template_mapping.get('email_type', None))
 
     @staticmethod
     def send_invite_whatsapp_context_dict(user_instance, community_instance, mobile_nos_list, validated_req_body,
