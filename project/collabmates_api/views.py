@@ -14179,16 +14179,6 @@ def compute_response_of_members_data(members_data, responses_data):
             member_context['custom_intro_text'] = CREATE_INTRO_TEXT_ADMIN % (
                 time.strftime("%d %B %Y", locale_time))
 
-        elif member_context['state'] == member_states.MEMBER or member_context[
-            'state'] == member_states.PROFILE_UNAVAILABLE:
-
-            if not responses_data.get(key):
-                member_context['custom_intro_text'] = CREATE_INTRO_TEXT_MEMBER % (
-                    time.strftime("%d %B %Y", locale_time))
-                member_context['custom_click_text'] = CUSTOM_CLICK_TEXT % (
-                    data['name'],
-                    time.strftime("%d %B %Y", locale_time))
-
         member_context['community_id'] = data['community_id']
 
         if max_last_updated < data['updated_at']:
