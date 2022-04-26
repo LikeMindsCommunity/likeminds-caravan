@@ -1821,6 +1821,13 @@ class MemberCommunityHelper:
                 user_data['custom_intro_text'] = CREATE_INTRO_TEXT_ADMIN % \
                                                  TimeUtilities.convert_epoch_time_in_date(member_instance.created_at)
 
+            else:
+                user_data['custom_intro_text'] = CREATE_INTRO_TEXT_MEMBER % TimeUtilities.convert_epoch_time_in_date(
+                    member_instance.created_at)
+                user_data['custom_click_text'] = CUSTOM_CLICK_TEXT % (
+                    member_instance.member_id.userinfo.name,
+                    TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
+
         return user_data
 
     @staticmethod
