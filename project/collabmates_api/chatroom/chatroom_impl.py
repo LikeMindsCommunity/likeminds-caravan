@@ -2157,7 +2157,8 @@ class ChatroomImpl(ChatroomManager):
 
         payload_for_app_and_email_notification = {
             'chatroom': card_instance.id,
-            'user': user_instance.id
+            'user': user_instance.id,
+            'attending_status': status
         }
 
         send_app_notification_for_event_type.delay(payload_for_app_and_email_notification, EVENT_TYPE.REGISTRATION)
