@@ -36,7 +36,7 @@ from utility.celery_tasks import (
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
     reset_unread_message_count_in_cache, fetch_conversations_unread, update_deferred_card_poll_updated_at_value,
     get_to_show_results_for_conversation_poll, send_chatroom_deleted_analytics_data, cm_removed_dm_chatroom,
-    member_becomes_cm_dm_chatroom)
+    member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -3486,6 +3486,10 @@ def chatroom_rename(request):
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
     ElasticSearchSync.update_chatroom_name.delay(chatroom_id, chatroom_name.strip())
+
+    send_chatroom_updated_analytics_data.delay(chatroom_id,
+                                               int(member_id),
+                                               {'chatroom_renamed': True})
 
     return JsonResponse({"success": True})
 

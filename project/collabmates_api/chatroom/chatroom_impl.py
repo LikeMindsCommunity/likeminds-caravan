@@ -2157,7 +2157,8 @@ class ChatroomImpl(ChatroomManager):
 
         payload_for_app_and_email_notification = {
             'chatroom': card_instance.id,
-            'user': user_instance.id
+            'user': user_instance.id,
+            'attending_status': status
         }
 
         send_app_notification_for_event_type.delay(payload_for_app_and_email_notification, EVENT_TYPE.REGISTRATION)
@@ -2224,8 +2225,10 @@ class ChatroomImpl(ChatroomManager):
 
         card_filter.update(member_can_message=value, updated_at=TimeUtilities.current_time_in_sec())
 
-        send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()),
-                                                   {'has_send_permission': True})
+        send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(),
+                                                   int(self.get_member_id()),
+                                                   {'has_send_permission': True,
+                                                    'members_can_send_messages': value})
 
         return {'success': True}
 
@@ -2423,6 +2426,10 @@ class ChatroomImpl(ChatroomManager):
         card_filter.update(access_without_subscription=value, updated_at=TimeUtilities.current_time_in_milliseconds())
 
         update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': card_instance}, {})
+
+        send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(),
+                                                   int(self.get_member_id()),
+                                                   {'accessible_without_subscription': value})
 
         return {'success': True}
 
