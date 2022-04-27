@@ -94,3 +94,6 @@ COMMUNITY_HOOD_MARKETING_TITLE = "CH onboarding beta" if settings.IS_BETA else "
 BRANCH_LINK_TYPE = 2
 
 PLATFORM_CODE_WEB = 'web'
+
+RESOURCES_TAB_PATH = 'resources/%s'
+RESOURCES_TAB_FEATURE = 'Resources Tab'

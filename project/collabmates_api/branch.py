@@ -11,7 +11,8 @@ from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
                                BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK,
                                BRANCH_FEATURE_COMMUNITY_OTL_URL, BRANCH_FEATURE_PAYMENT_PAGE_URL,
                                BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL, COMMUNITY_HOOD_ID,
-                               COMMUNITY_HOOD_MARKETING_TITLE, BRANCH_LINK_TYPE)
+                               COMMUNITY_HOOD_MARKETING_TITLE, BRANCH_LINK_TYPE, RESOURCES_TAB_FEATURE,
+                               RESOURCES_TAB_PATH)
 from utility.api_client import ApiClient
 from .utility import free_link_and_freemium_community_version_check
 
@@ -186,6 +187,12 @@ def create_link_item(base_url, community, channel, feature, private=False):
         }
     }
 
+    if feature == RESOURCES_TAB_FEATURE:
+        web_url = 'https://%s/%s' % (web_host_url, base_url)
+        link_item['data']['$desktop_url'] = web_url
+
+        return link_item
+
     if community.id == COMMUNITY_HOOD_ID:
         link_item["type"] = BRANCH_LINK_TYPE
         link_item["data"]["$marketing_title"] = COMMUNITY_HOOD_MARKETING_TITLE
@@ -340,5 +347,32 @@ def create_payment_page_url(community_instance, payment_id):
     # in case branch fails
     if 'url' not in data[0]:
         data[0]['url'] = f'https://{private_url}'
+
+    return data[0]['url']
+
+
+def create_resources_tab_url(community_instance):
+    data = []
+
+    base_url = RESOURCES_TAB_PATH % community_instance.id
+
+    long_url_item = create_link_item(base_url, community_instance, "AppBackend", RESOURCES_TAB_FEATURE)
+    data.append(long_url_item)
+
+    client = ApiClient()
+    client.update_request_url(api_endpoint)
+    client.update_body(data)
+    client.post()
+
+    if client.fetch_response_code() != 200:
+        data = [{}]
+        info_logger.info("Branch failed, sending normal links")
+    else:
+        data = client.fetch_response()
+
+    # in case branch fails
+    if 'url' not in data[0]:
+        web_url = 'https://%s/%s' % (web_host_url, base_url)
+        data[0]['url'] = web_url
 
     return data[0]['url']

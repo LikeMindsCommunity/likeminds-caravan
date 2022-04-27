@@ -16,6 +16,7 @@ from collabmates_api.notification import get_token_for_fcm
 from utility.url_utilities import UrlUtilities
 from utility.celery_tasks import get_event_pricing
 from collabmates_api.static_text import CUSTOMISE_JOIN_FORM_MAIL_SUBJECT
+from collabmates_api.branch import create_resources_tab_url
 
 from .constants import *
 from .tasks_manager import TaskManager
@@ -1328,6 +1329,7 @@ class TasksHelper:
         if category_id not in new_resources_dict:
             new_resources_dict[category_id] = {}
             new_resources_dict[category_id]['category_name'] = url.category_id.title
+            new_resources_dict[category_id]['icon_url'] = url.category_id.icon_url
             new_resources_dict[category_id]['urls'] = []
             new_resources_dict[category_id]['files'] = []
         
@@ -1345,6 +1347,7 @@ class TasksHelper:
         if category_id not in new_resources_dict:
             new_resources_dict[category_id] = {}
             new_resources_dict[category_id]['category_name'] = file.category_id.title
+            new_resources_dict[category_id]['icon_url'] = file.category_id.icon_url
             new_resources_dict[category_id]['urls'] = []
             new_resources_dict[category_id]['files'] = []
 
@@ -1379,7 +1382,7 @@ class TasksHelper:
         else:
             co_name = ""
 
-        link = ""
+        link = create_resources_tab_url(community_instance)
 
         data_dict = {
             'member_name': username,
@@ -1419,7 +1422,7 @@ class TasksHelper:
             'reply_to': reply_to
         }
 
-        context['template'] = get_template("template-to-be-added").render(data_dict)
+        context['template'] = get_template("mails/resources_tab_email.html").render(data_dict)
 
         return context
 

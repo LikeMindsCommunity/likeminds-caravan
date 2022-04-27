@@ -5,7 +5,7 @@ from rest_framework import status as status_codes
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.request_utilities import RequestUtilities
 from ..rest_api import get_error_context
-from .tasks import send_email_notification_for_event_type, send_8_pm_noti_for_new_resources_added
+from .tasks import send_email_notification_for_event_type
 from .constants import EVENT_TYPE
 
 error_logger = LoggingWrapper.get_instance()

@@ -15,7 +15,7 @@ from togther.models import ModelUtilities, Members, Community, Cohort, CohortMem
     CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers, \
     Collabcard
 from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list, CohortAccess, member_rights
-from ..rest_api import CohortSerializer, CohortMetaSerializer, ChatroomCohortSerializer
+from ..rest_api import CohortSerializer, CohortMemberSerializer, ChatroomCohortSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
     respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, \
