@@ -72,3 +72,15 @@ app.conf.update(
 app.conf.update(
     task_acks_late = True
 )
+
+app.conf.update(
+    result_persistent=False
+)
+
+app.conf.update(
+    task_ignore_result=True
+)
+
+app.conf.update(
+    result_expires=60
+)
