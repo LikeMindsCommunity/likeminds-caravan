@@ -613,3 +613,11 @@ class DMIconFromStates:
 
 
 dm_icon_from_states = DMIconFromStates()
+
+
+class APITypes:
+    Non_SDK = 0
+    SDK = 1
+
+
+api_types = APITypes()
