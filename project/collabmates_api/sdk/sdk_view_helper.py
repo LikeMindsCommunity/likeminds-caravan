@@ -18,8 +18,8 @@ class SdkViewHelper:
         if 'headline' not in request_body:
             return ResponseUtilities.get_inner_error_context('send headline in body')
 
-        if 'brand_colour' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send brand_colour in body')
+        if 'brand_color' not in request_body:
+            return ResponseUtilities.get_inner_error_context('send brand_color in body')
 
         return request_body
 

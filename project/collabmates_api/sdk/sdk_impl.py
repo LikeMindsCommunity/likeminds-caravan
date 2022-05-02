@@ -2,6 +2,7 @@ from rest_framework import status as status_codes
 
 from .sdk_manager import SdkManager
 from utility.response_utilities import ResponseUtilities
+from utility.states import api_types
 from togther.models import ModelUtilities
 from .models import SdkClient, SdkPlatform
 from collabmates_api.community.community_impl import CommunityImpl
@@ -41,7 +42,7 @@ class SdkImpl(SdkManager):
 
     def create_sdk(self, req_body) -> dict:
 
-        req_body['type'] = 1
+        req_body['type'] = api_types.SDK
 
         community_manager = CommunityImpl(self.get_member_id(),
                                           request_platform=self.get_request_platform(),
@@ -53,8 +54,25 @@ class SdkImpl(SdkManager):
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
         unique_id = uuid.uuid4()
+        community_id = create_community['community'].get('id')
 
-        # TODO create SdkClient and SdkPlatform objects
+        sdk_client = SdkClient(community_id=community_id, api_key=unique_id)
+        sdk_client.save()
+
+        platforms = req_body.get('platform')
+
+        if platforms:
+
+            for platform in platforms:
+
+                if None in [platform.get('type'), platform.get('package'), platform.get('certificate')]:
+                    continue
+
+                sdk_platform = SdkPlatform(community_id=community_id,
+                                           type=platform.get('type'),
+                                           package=platform.get('package'),
+                                           certificate=platform.get('certificate'))
+                sdk_platform.save()
 
         return {'api_key': unique_id}
 
@@ -65,7 +83,7 @@ class SdkImpl(SdkManager):
         if not sdk_client:
             return ResponseUtilities.get_impl_error_context('Invalid api_key', status_codes.HTTP_400_BAD_REQUEST)
 
-        req_body['type'] = 1
+        req_body['type'] = api_types.SDK
 
         user_manager = UserImpl(user_id="", mobile_no="")
         login_user = user_manager.login(req_body, None, None, None)
