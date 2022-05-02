@@ -53,7 +53,7 @@ class SdkImpl(SdkManager):
             return ResponseUtilities.get_impl_error_context('Community Creation Failed',
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
-        unique_id = uuid.uuid4()
+        unique_id = str(uuid.uuid4())
         community_id = create_community['community'].get('id')
 
         sdk_client = SdkClient(community_id=community_id, api_key=unique_id)
@@ -81,7 +81,7 @@ class SdkImpl(SdkManager):
         sdk_client = ModelUtilities.get_model_filter(SdkClient, {'api_key': self.get_api_key()})
 
         if not sdk_client:
-            return ResponseUtilities.get_impl_error_context('Invalid api_key', status_codes.HTTP_400_BAD_REQUEST)
+            return ResponseUtilities.get_impl_error_context('Invalid API key', status_codes.HTTP_400_BAD_REQUEST)
 
         req_body['type'] = api_types.SDK
 
