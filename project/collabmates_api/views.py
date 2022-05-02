@@ -12408,7 +12408,9 @@ class SyncChatrooms(APIView):
                                                                     ).values_list('user', flat=True).
                                     order_by('created_at', 'id'))
 
-        update_event_attendees.delay({'chatroom_id': chatroom['id']})
+        if event_attendees_list:
+            update_event_attendees.delay({'chatroom_id': chatroom['id']})
+
         chatroom['attendees_ids'] = event_attendees_list
 
     def fetch_event_instructors(self, card_id):
@@ -12426,8 +12428,9 @@ class SyncChatrooms(APIView):
 
             instructors_list = EventInstructorSerializer(instructor_filter, many=True).data
 
-            update_event_instructors_in_cache.delay({'chatroom_id': card_id,
-                                                     'instructors_list': instructors_list})
+            if instructors_list:
+                update_event_instructors_in_cache.delay({'chatroom_id': card_id,
+                                                        'instructors_list': instructors_list})
 
         return instructors_list
 
@@ -12445,8 +12448,9 @@ class SyncChatrooms(APIView):
 
             highlights_list = EventHighlightsSerializer(highlights_filter, many=True).data
 
-            update_event_highlights_in_cache.delay({'chatroom_id': card_id,
-                                                    'highlights_list': highlights_list})
+            if highlights_list:
+                update_event_highlights_in_cache.delay({'chatroom_id': card_id,
+                                                        'highlights_list': highlights_list})
 
         return highlights_list
 
@@ -12464,7 +12468,8 @@ class SyncChatrooms(APIView):
 
             faqs_list = EventFAQSerializer(faq_filter, many=True).data
 
-            update_event_faq_in_cache.delay({'chatroom_id': card_id, 'faqs_list': faqs_list})
+            if faqs_list:
+                update_event_faq_in_cache.delay({'chatroom_id': card_id, 'faqs_list': faqs_list})
 
         return faqs_list
 
@@ -12481,8 +12486,9 @@ class SyncChatrooms(APIView):
 
             testimonials_list = EventMemberTestimonialsSerializer(testimonial_filter, many=True).data
 
-            update_event_member_testimonials_in_cache.delay({'chatroom_id': card_id,
-                                                             'testimonials_list': testimonials_list})
+            if testimonials_list:
+                update_event_member_testimonials_in_cache.delay({'chatroom_id': card_id,
+                                                                'testimonials_list': testimonials_list})
 
         return testimonials_list
 

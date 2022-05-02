@@ -59,7 +59,8 @@ from utility.states import member_states, card_types, click_states, member_right
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types, \
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
-    airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types
+    airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
+    api_types
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -2951,6 +2952,8 @@ class CommunityHelper:
         if not community_instance:
             return
 
+        api_type = req_body.get('type', api_types.Non_SDK)
+
         # Add branding key to cache
         CacheImpl.set_cache('COMMUNITY_BRANDING_{}'.format(community_id), community_instance.branding)
 
@@ -3003,7 +3006,10 @@ class CommunityHelper:
             create_introduction_question_in_community(community_instance)
 
         post_purpose_collabcard_for_community(req_body, community_instance, user_instance.id)
-        post_master_introductions_for_community(community_instance.id, user_instance.id)
+
+        if api_type != api_types.SDK:
+            post_master_introductions_for_community(community_instance.id, user_instance.id)
+
         post_general_collabcard_for_community(community_instance, user_instance.id)
         post_member_directory_link(user_instance, community_instance)
 
