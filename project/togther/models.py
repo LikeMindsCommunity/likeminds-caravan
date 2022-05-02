@@ -410,6 +410,7 @@ class Userinfo(models.Model):
     apple_id = models.CharField(max_length=100, null=True)
     has_tags = models.BooleanField(default=False)
     updated_at = models.BigIntegerField(default=0)
+    user_unique_id = models.CharField(max_length=255, unique=True, null=True)
 
     def __str__(self):
         return self.name
@@ -2263,6 +2264,28 @@ class ModelUtilities:
         return instance
 
     @staticmethod
+    def get_user_instance_or_none(pk):
+        instance = None
+
+        if str(pk).isdigit():
+            column_name = "id"
+            model = User
+        else:
+            column_name = "user_unique_id"
+            model = Userinfo
+
+        instance_filter = model.objects.get(column_name=pk)
+        ModelUtilities.get_model_filter(model, {column_name: pk})
+
+        if instance_filter:
+            instance = instance_filter[0]
+
+            if column_name == "user_unique_id":
+                instance = instance.user_id
+
+        return instance
+
+    @staticmethod
     def paginate_queryset(queryset, page, paginate_by):
 
         offset = (page - 1) * paginate_by
@@ -3316,3 +3339,24 @@ class CommunityDirectMessageSettings(models.Model):
         self.updated_at = current_time
 
         super(CommunityDirectMessageSettings, self).save(*args, **kwargs)
+
+
+class SDKClientUsersInfo(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user_unique_id = models.CharField(max_length=255, unique=True, null=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        unique_together = [['community', 'user', 'user_unique_id']]
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(SDKClientUsersInfo, self).save(*args, **kwargs)

@@ -113,7 +113,10 @@ class UserLoginView(APIView):
                                           RequestUtilities.get_device_id_from_headers(request),
                                           RequestUtilities.get_version_code_from_headers(request))
 
-        return JsonResponse(user_context)
+        if user_context.get('success'):
+            return JsonResponse(user_context)
+
+        return JsonResponse(user_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
 
 class FetchUserAccess(APIView):
