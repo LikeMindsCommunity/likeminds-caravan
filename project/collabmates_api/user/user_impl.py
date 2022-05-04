@@ -271,7 +271,7 @@ class UserImpl(UserManager):
 
         return user_instance
 
-    def create_user_context_for_sdk(self, user_instance, sdk_client_user_info_instance=None):
+    def create_user_context_for_sdk(self, user_instance):
 
         user_object = {
             'success': True,
@@ -279,9 +279,6 @@ class UserImpl(UserManager):
             'email_exists': False,
             'access': UserHelper.is_user_belong_to_any_community(user_instance)
         }
-
-        if sdk_client_user_info_instance:
-            user_object['user']['user_unique_id'] = sdk_client_user_info_instance.user_unique_id
 
         return user_object
 
@@ -505,8 +502,7 @@ class UserImpl(UserManager):
             if not sdk_user_context.get('success'):
                 return sdk_user_context
 
-            return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'),
-                                                    sdk_user_context.get('sdk_client_user_info_instance'))
+            return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'))
 
         if (not login_type == api_types.SDK) and not user_context.get('has_profile_image'):
             return {'success': False, 'user': user_context,
