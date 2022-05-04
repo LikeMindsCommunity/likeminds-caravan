@@ -939,6 +939,32 @@ class UserImpl(UserManager):
 
         return response_context
 
+    def create_user_bot(self, req_body) -> dict:
+        validated_request = UserHelper.validate_create_user_bot_request(req_body)
+
+        if not validated_request.get('success'):
+            return validated_request
+
+        community_instance = validated_request.get('community_instance')
+
+        user_context = {
+            'user_name': CREATE_USER_BOT_NAME.format(community_instance.name),
+            'api_key': req_body.get('api_key')
+        }
+
+        user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'name': user_context.get('user_name')})
+
+        if not user_info_filter:
+            sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context)
+
+            if not sdk_user_context.get('success'):
+                return sdk_user_context
+
+            return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'))
+
+        else:
+            return self.create_user_context_for_sdk(user_info_filter[0].user_id)
+
 
 class UserHelper:
 
@@ -1617,3 +1643,15 @@ class UserHelper:
                                                                                                       flat=True))])
 
         return TimeUtilities.add_hours_to_epoch_time(dm_disabled_time, ONE_DAY_HOURS)
+
+    @staticmethod
+    def validate_create_user_bot_request(req_body):
+        if 'api_key' not in req_body:
+            return ResponseUtilities.get_error_context(False, 'Invalid API key!')
+
+        sdk_clients_filter = ModelUtilities.get_model_filter(SdkClient, {'api_key': req_body.get('api_key')})
+
+        if not sdk_clients_filter:
+            return ResponseUtilities.get_error_context(False, 'Invalid API key!')
+
+        return {'success': True, 'community_instance': sdk_clients_filter[0].community}
