@@ -130,3 +130,5 @@ DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR = "#00897B"
 LIKEMINDS_LOGO = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flogo.png?alt=media&token=2e66c0e5-35ef-4f94-ad2b-356c78eeaaba"
 
 HIDE_DM_TEXT = "DM feature has been disabled by the community manager. This tab will be removed soon."
+
+CREATE_USER_BOT_NAME = "{} bot"

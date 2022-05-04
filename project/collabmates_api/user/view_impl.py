@@ -113,7 +113,10 @@ class UserLoginView(APIView):
                                           RequestUtilities.get_device_id_from_headers(request),
                                           RequestUtilities.get_version_code_from_headers(request))
 
-        return JsonResponse(user_context)
+        if user_context.get('success'):
+            return JsonResponse(user_context)
+
+        return JsonResponse(user_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
 
 class FetchUserAccess(APIView):
@@ -235,3 +238,22 @@ class FetchAllUsers(APIView):
             }, status=user_response['status'])
 
         return JsonResponse(user_response)
+
+
+class CreateBotView(APIView):
+
+    def post(self, request):
+        req_body = RequestUtilities.load_request_body(request)
+        platform = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+
+        if not req_body:
+            return JsonResponse({'error_message': "Invalid request body"}, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_manager = UserImpl(user_id=None, platform_code=platform, version_code=version_code)
+        context = user_manager.create_user_bot(req_body)
+
+        if context.get('success'):
+            return JsonResponse(context, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)

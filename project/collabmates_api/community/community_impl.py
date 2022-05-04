@@ -1434,7 +1434,7 @@ class CommunityImpl(CommunityManager):
                                                         'members_count': 1,
                                                         'purpose': validate_req_body['headline'],
                                                         'brand_color': validate_req_body.get('brand_color', None),
-                                                        'image_link': validate_req_body['image_url'],
+                                                        'image_link': validate_req_body.get('image_url'),
                                                         'thumbnail': community_default_thumbnail,
                                                         'type': type_id,
                                                         'sub_type': sub_type_id,
@@ -2464,6 +2464,8 @@ class CommunityHelper:
     @staticmethod
     def create_community_validation(req_body):
 
+        api_type = req_body.get('type', api_types.Non_SDK)
+
         if 'name' not in req_body:
             return {'success': False, 'error_message': 'Empty name!'}
 
@@ -2476,7 +2478,7 @@ class CommunityHelper:
         if 'branding' not in req_body and 'brand_color' not in req_body:
             return {'success': False, 'error_message': 'Empty brand color!'}
 
-        if 'image_url' not in req_body:
+        if (api_type == api_types.Non_SDK) and ('image_url' not in req_body):
             return {'success': False, 'error_message': 'Empty image url!'}
 
         return req_body
