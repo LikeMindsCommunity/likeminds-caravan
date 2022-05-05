@@ -13,13 +13,14 @@ from togther.models import (Member_Engage, Community, Members, collabcardState, 
                             communityRightsSettings, CommunitySettings, communityAnswers, questionFilters,
                             Card_Attachment, CommunityDirectMessageSettings, userMemberRights)
 from utility.celery_tasks import update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery, \
-    update_multiple_previews_in_chatroom, set_level_click_state
+    update_multiple_previews_in_chatroom, set_level_click_state, create_member_dm_chatroom
 from utility.constants import CONVERSATIONS_DISTINCT_CREATORS_KEY, CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, \
     CUSTOM_CLICK_TEXT
 from utility.exception_utilities import CustomException
 from utility.states import member_states, card_types, deleted_members, question_states, \
     conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers, \
-    community_dm_settings_state_types, community_dm_settings_duration_types, dm_icon_from_states
+    community_dm_settings_state_types, community_dm_settings_duration_types, dm_icon_from_states, get_started_types, \
+    api_types
 
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
@@ -53,8 +54,11 @@ from ..user_moderation_rights import check_admin_approve_right, check_admin_dele
     check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
     check_admin_add_community_managers_right
 from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check
+from utility.response_utilities import ResponseUtilities
 from ..views import get_home_screen_community_actions, generate_internal_link_preview_for_conversation, \
-    get_latest_conversation_members, post_introduction_card_for_community
+    get_latest_conversation_members, post_introduction_card_for_community, update_community_get_started
+
+from collabmates_api.search.sync import ElasticSearchSync
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -1658,6 +1662,32 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return response
 
+    def join_community_sdk(self) -> {}:
+        validated_request = MemberCommunityHelper.validate_join_community_sdk_request(self.get_member_id(),
+                                                                                      self.get_community_id())
+
+        if not validated_request.get('success'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+
+        members_filter = ModelUtilities.get_model_filter(Members, {'member_id': user_instance,
+                                                                   'community_id': community_instance})
+
+        if members_filter:
+            return ResponseUtilities.get_impl_error_context('You are already a member of this community',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        MemberCommunityHelper.make_requesting_user_as_member_of_community(user_instance, community_instance,
+                                                                          device_id=self.get_device_id(),
+                                                                          platform=self.get_platform_code())
+
+        user_has_access = Members.user_has_app_access(user_instance.id)
+
+        return {'success': True, 'access': user_has_access}
+
 
 class MemberCommunityHelper:
     @staticmethod
@@ -2439,3 +2469,82 @@ class MemberCommunityHelper:
                                                                                community_instance.id)}
 
             return response
+
+    @staticmethod
+    def validate_join_community_sdk_request(user_id, community_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return get_error_context(False, "Invalid user ID")
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return get_error_context(False, "Invalid community ID")
+
+        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance}
+
+    @staticmethod
+    def make_requesting_user_as_member_of_community(user_instance, community_instance, device_id=None, platform=None):
+        Members.create_instance({'user_instance': user_instance,
+                                 'community_instance': community_instance,
+                                 'state': member_states.MEMBER,
+                                 'custom_title': "Member",
+                                 'became_member_at': TimeUtilities.current_time_in_sec()
+                                 })
+
+        ModelUtilities.update_or_create_model(Member_Engage, {
+            'member_id': user_instance,
+            'community_id': community_instance
+        }, {
+            'member_state': member_states.MEMBER,
+            'order_time': TimeUtilities.current_time_in_milliseconds()})
+
+        from collabmates_api.community.community_impl import CommunityHelper, CommunityImpl
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+        CommunityHelper.set_follow_status_for_announcement_chatroom_for_community(community_instance,
+                                                                                  user_instance)
+
+        shared_user_id = None
+        auto_join_code = None
+        CommunityHelper.set_moderation_rights_and_delete_user_previous_metadata_for_auto_join.delay(
+            user_instance.id,
+            community_instance.id,
+            shared_user_id,
+            auto_join_code,
+            api_type=api_types.SDK)
+
+        members_count = Members.get_members_count_in_community(community_instance)
+
+        community_impl = CommunityImpl(member_id=user_instance.id, community_id=community_instance.id)
+        community_impl.set_members_count_in_community(community_instance.id, members_count)
+
+        ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance)
+
+        action_required_by_promoter = ModelUtilities.is_model_filter_exists(Members,
+                                                                            {'community_id': community_instance,
+                                                                             'state': member_states.ADMIN,
+                                                                             'actions_required': True})
+
+        if action_required_by_promoter:
+            CommunityHelper.update_community_level_actions(community_instance,
+                                                           action_required_by_promoter, members_count)
+
+        create_member_dm_chatroom.delay(community_impl.get_member_id(), community_impl.get_community_id(),
+                                        device_id=device_id, request_platform=platform, is_joining=True)
+
+        from collabmates_api.cohort.cohort_impl import CohortHelper
+        CohortHelper.add_all_member_to_cohort(community_impl.get_community_id(), [community_impl.get_member_id()])
+
+        community_impl._send_join_email_to_member(user_instance.id, community_instance.id)
+
+        CohortHelper.add_member_to_respective_question_based_cohorts(community_impl.get_member_id(),
+                                                                     community_impl.get_community_id())
+
+        community_impl.send_join_data_on_webhook.delay(user_instance.id, community_instance.id)
+
+        ElasticSearchSync.update_member.delay(community_impl.get_member_id(), community_impl.get_community_id())
+
+        update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
+
+        CommunityHelper.send_community_moderation_mail_to_cm.delay(community_instance.id)

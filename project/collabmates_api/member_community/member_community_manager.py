@@ -24,6 +24,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'edit_member_profile') and callable(subclass.edit_member_profile)) and
                 (hasattr(subclass, 'request_dm_limit') and callable(subclass.request_dm_limit)) and
                 (hasattr(subclass, 'fetch_dm_chatrooms') and callable(subclass.fetch_dm_chatrooms)) and
+                (hasattr(subclass, 'join_community_sdk') and callable(subclass.join_community_sdk)) and
                 (hasattr(subclass, 'member_can_dm') and callable(subclass.member_can_dm)) or
                 NotImplemented)
 
@@ -125,5 +126,10 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
     def member_can_dm(self, req_body: dict) -> {}:
         """Returns whether member can DM other member or not"""
+
+        raise NotImplementedError
+
+    def join_community_sdk(self) -> {}:
+        """Meember joins a community in SDK"""
 
         raise NotImplementedError

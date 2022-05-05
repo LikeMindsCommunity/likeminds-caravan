@@ -945,11 +945,10 @@ class UserImpl(UserManager):
         if not validated_request.get('success'):
             return validated_request
 
-        community_instance = validated_request.get('community_instance')
+        community_name = validated_request.get('community_name')
 
         user_context = {
-            'user_name': CREATE_USER_BOT_NAME.format(community_instance.name),
-            'api_key': req_body.get('api_key')
+            'user_name': CREATE_USER_BOT_NAME.format(community_name),
         }
 
         user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'name': user_context.get('user_name')})
@@ -1646,12 +1645,7 @@ class UserHelper:
 
     @staticmethod
     def validate_create_user_bot_request(req_body):
-        if 'api_key' not in req_body:
-            return ResponseUtilities.get_error_context(False, 'Invalid API key!')
+        if 'community_name' not in req_body:
+            return ResponseUtilities.get_error_context(False, 'Empty community name!')
 
-        sdk_clients_filter = ModelUtilities.get_model_filter(SdkClient, {'api_key': req_body.get('api_key')})
-
-        if not sdk_clients_filter:
-            return ResponseUtilities.get_error_context(False, 'Invalid API key!')
-
-        return {'success': True, 'community_instance': sdk_clients_filter[0].community}
+        return {'success': True, 'community_name': req_body.get('community_name')}

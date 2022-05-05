@@ -1977,7 +1977,8 @@ class CommunityHelper:
     @staticmethod
     @shared_task
     def set_moderation_rights_and_delete_user_previous_metadata_for_auto_join(user_id, community_id, shared_id,
-                                                                              auto_join_code):
+                                                                              auto_join_code,
+                                                                              api_type=api_types.Non_SDK):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
@@ -2007,6 +2008,9 @@ class CommunityHelper:
 
         if auto_join_code is None and shared_by_user is None:
             history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+
+        if api_type == api_types.SDK:
+            history_type = moderation_history_types.SDK_JOIN
 
         is_rejoined = ModelUtilities.is_model_filter_exists(removedMembers, {'member': user_instance,
                                                                              'community': community_instance})

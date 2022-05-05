@@ -2274,8 +2274,7 @@ class ModelUtilities:
             column_name = "user_unique_id"
             model = Userinfo
 
-        instance_filter = model.objects.get(column_name=pk)
-        ModelUtilities.get_model_filter(model, {column_name: pk})
+        instance_filter = ModelUtilities.get_model_filter(model, {column_name: pk})
 
         if instance_filter:
             instance = instance_filter[0]
