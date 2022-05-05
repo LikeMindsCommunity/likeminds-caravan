@@ -8,6 +8,7 @@ from .models import SdkClient, SdkPlatform
 from collabmates_api.community.community_impl import CommunityImpl
 from collabmates_api.user.view_impl import UserImpl
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+from collabmates_api.rest_api import CommunitySerializerV1
 import uuid
 
 
@@ -109,7 +110,7 @@ class SdkImpl(SdkManager):
             return ResponseUtilities.get_impl_error_context('Unable to join community!',
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
-        return {'user': user_instance, 'community': sdk_client.community}
+        return {'user': user_instance, 'community': CommunitySerializerV1(sdk_client.community).data}
 
     def authenticate_sdk(self, req_body) -> dict:
 
