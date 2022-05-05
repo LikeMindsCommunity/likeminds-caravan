@@ -95,3 +95,12 @@ class SdkImpl(SdkManager):
         # TODO call api/community_member/join api and send status code accordingly
 
         pass
+
+    def authenticate_sdk(self, req_body) -> dict:
+
+        sdk_client = ModelUtilities.get_model_filter(SdkClient, {'api_key': self.get_api_key()})
+
+        if not sdk_client:
+            return ResponseUtilities.get_impl_error_context('Invalid API key!', status_codes.HTTP_400_BAD_REQUEST)
+
+        return {'success': True, 'community_id': sdk_client[0].community_id}

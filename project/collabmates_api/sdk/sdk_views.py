@@ -61,3 +61,29 @@ class InitiateSdkView(APIView):
             {'success': True},
             status=status_codes.HTTP_200_OK
         )
+
+
+class AuthenticateSdkView(APIView):
+
+    def post(self, request):
+
+        request_body = RequestUtilities.load_request_body(request)
+        validated_request_body = SdkViewHelper.authenticate_sdk_body_validator(request_body)
+        platform = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+
+        if 'error_message' in validated_request_body:
+            context = ResponseUtilities.get_view_impl_error_context(validated_request_body['error_message'],
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**context)
+
+        sdk_manager = SdkImpl(api_key=validated_request_body.get('api_key'), request_platform=platform,
+                              version_code=version_code)
+        response_data = sdk_manager.authenticate_sdk(validated_request_body)
+
+        if 'error_message' in response_data:
+            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
+                                                                    response_data['status'])
+            return JsonResponse(**context)
+
+        return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
