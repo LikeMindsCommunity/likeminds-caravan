@@ -62,7 +62,7 @@ class InitiateSdkView(APIView):
             return JsonResponse(context['data'], status=context['status'])
 
         return JsonResponse(
-            {'success': True},
+            {'success': True, 'user': response_data.get('user'), 'community': response_data.get('community')},
             status=status_codes.HTTP_200_OK
         )
 
