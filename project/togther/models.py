@@ -571,6 +571,8 @@ class Collabcard(models.Model):
     has_event_recording = models.BooleanField(default=False)
     is_private_member = models.BooleanField(default=False)
 
+    third_party_unique_id = models.TextField(null=True, blank=True)
+
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
         current_time_msec = TimeUtilities.current_time_in_milliseconds()

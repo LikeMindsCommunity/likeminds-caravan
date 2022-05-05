@@ -978,6 +978,8 @@ class ChatroomImpl(ChatroomManager):
 
         card_content['member_state'] = member_state
 
+        card_content['third_party_unique_id'] = req_body.get('third_party_unique_id')
+
         if card_content['is_secret'] and \
                 not ChatroomHelper.check_user_secret_room_creation_right(user_instance, community_instance):
             response = {
