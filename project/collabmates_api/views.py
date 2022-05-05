@@ -1430,9 +1430,13 @@ def user(request, user_id):
     context = {}
     try:
 
-        user_instance = User.objects.get(id=user_id)
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
-        context['user'] = get_logged_in_user(user_instance)
+        if not user_instance:
+            context['error_message'] = 'Invalid user ID'
+
+        else:
+            context['user'] = get_logged_in_user(user_instance)
 
     except Exception as e:
 
