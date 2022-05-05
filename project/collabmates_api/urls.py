@@ -27,7 +27,7 @@ urlpatterns = [
 
     path('multimedia/', include('collabmates_api.multimedia_operations.urls')),
 
-    path('user/<int:user_id>', api_views.user, name="user"),
+    path('user/<str:user_id>', api_views.user, name="user"),
     path('edit_user', api_views.edit_user, name="edit_user"),
     path('update_email', api_views.update_email, name="update_email"),
     path('update_mobiles', api_views.update_mobiles, name="update_mobiles"),
