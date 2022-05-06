@@ -1082,3 +1082,45 @@ class RequestDMView(APIView):
             return JsonResponse(response_context, status=status_codes.HTTP_200_OK)
 
         return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+
+class ScheduledChatroomFollow(APIView):
+
+    def _validate_request(self, member_id, chatroom_id):
+
+        if not member_id:
+            return {'success': False, 'error_message': "Send member-id in headers"}
+
+        if not chatroom_id:
+            return {'success': False, 'error_message': "Invalid Chatroom ID!"}
+
+        return {'success': True}
+
+    def get(self, request):
+        try:
+            chatroom_id = request.GET.get('chatroom_id', '')
+            member_id = RequestUtilities.get_member_id_from_headers(request)
+
+            validated_request = self._validate_request(member_id, chatroom_id)
+
+            if not validated_request.get('success'):
+                return JsonResponse(validated_request, status=status_codes.HTTP_400_BAD_REQUEST)
+
+            chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
+            response_context = chatroom_manager.scheduled_chatroom_follow()
+
+            if response_context.get('success'):
+                return JsonResponse(response_context, status=status_codes.HTTP_200_OK)
+
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            res = {
+                'success': False,
+                'Exception': str(e)
+            }
+            error_logger.error(e.args)
+            return JsonResponse(
+                res,
+                status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+            )
