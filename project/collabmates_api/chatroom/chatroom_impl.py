@@ -1076,8 +1076,6 @@ class ChatroomImpl(ChatroomManager):
         
         serializer = ScheduledChatroomFollowSerializer(data=data_dict)
 
-        print(data_dict)
-
         if serializer.is_valid():
             instance = serializer.save()
 
@@ -1093,9 +1091,6 @@ class ChatroomImpl(ChatroomManager):
                 args,
                 eta=task_begin_time
             )
-
-        print(serializer.errors)
-
 
     def pin_or_unpin_chatroom(self, req_body: dict) -> dict:
 
