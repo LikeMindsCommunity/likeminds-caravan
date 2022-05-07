@@ -32,7 +32,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
-    EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer
+    EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, ScheduledChatroomFollowSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
                            UserinfoSerializer, get_chatroom_instance, CollabcardSerializer)
 from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
@@ -63,7 +63,7 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo, EventInstructor,
                             EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment,
                             EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember, removedMembers,
-                            CommunityGetStarted, EventRecordingsURL, ChatroomSecretTypeConversion)
+                            CommunityGetStarted, EventRecordingsURL, ChatroomSecretTypeConversion, ScheduledChatroomFollow)
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.webflow.webflow_impl import WebflowImpl
@@ -978,6 +978,8 @@ class ChatroomImpl(ChatroomManager):
 
         card_content['member_state'] = member_state
 
+        card_content['third_party_unique_id'] = req_body.get('third_party_unique_id')
+
         if card_content['is_secret'] and \
                 not ChatroomHelper.check_user_secret_room_creation_right(user_instance, community_instance):
             response = {
@@ -1040,6 +1042,13 @@ class ChatroomImpl(ChatroomManager):
             ModelUtilities.model_update(collabcardState, {'card': chatroom_instance, 'user': user_instance},
                                         {'attending_status': True, 'updated_at': TimeUtilities.current_time_in_sec()})
 
+        if req_body.get('schedule_time') and req_body.get('end_time'):
+            ChatroomImpl.update_scheduled_chatroom_follow_and_delete_task_after_end_time.delay(
+                self.get_member_id(),
+                chatroom_instance.id,
+                req_body
+            )
+
         context = {
             'success': True,
             'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, community_instance),
@@ -1048,6 +1057,40 @@ class ChatroomImpl(ChatroomManager):
         }
 
         return context
+
+    @staticmethod
+    @shared_task
+    def update_scheduled_chatroom_follow_and_delete_task_after_end_time(member_id, chatroom_id, req_body):
+
+        data_dict = {
+            'schedule_time': req_body.get('schedule_time'),
+            'end_time': req_body.get('end_time'),
+            'chatroom_id': chatroom_id
+        }
+
+        if req_body.get('schedule_time_before'):
+            data_dict['schedule_time_before'] = req_body.get('schedule_time_before')
+
+        if req_body.get('end_time_after'):
+            data_dict['end_time_after'] = req_body.get('end_time_after')
+        
+        serializer = ScheduledChatroomFollowSerializer(data=data_dict)
+
+        if serializer.is_valid():
+            instance = serializer.save()
+
+            args = [member_id, chatroom_id]
+
+            task_begin_time = TimeUtilities.convert_epoch_to_datetime_in_IST(
+                instance.end_time + instance.end_time_after
+            )
+
+            from collabmates_api.views import delete_chatroom_async
+
+            delete_chatroom_async.apply_async(
+                args,
+                eta=task_begin_time
+            )
 
     def pin_or_unpin_chatroom(self, req_body: dict) -> dict:
 
@@ -3322,6 +3365,51 @@ class ChatroomImpl(ChatroomManager):
 
         else:
             return response
+
+    def scheduled_chatroom_follow(self):
+
+        schedule_follow_instance = ModelUtilities.get_model_filter(
+            ScheduledChatroomFollow,
+            {
+                'chatroom_id': self.get_chatroom_id()
+            }
+        )
+
+        res = {
+            'success': False
+        }
+
+        if schedule_follow_instance:
+            instance = schedule_follow_instance[0]
+
+            from collabmates_api.views import follow_chatroom_async
+
+            if instance.schedule_time - instance.schedule_time_before <= \
+                TimeUtilities.current_time_in_milliseconds():
+
+                follow_chatroom_async.delay(
+                    self.get_chatroom_id(),
+                    self.get_member_id()
+                    
+                )
+
+            else:
+                args = [self.get_chatroom_id(), self.get_member_id()]
+
+                task_begin_time = TimeUtilities.convert_epoch_to_datetime_in_IST(
+                    instance.schedule_time - instance.schedule_time_before
+                )
+
+                follow_chatroom_async.apply_async(
+                    args,
+                    eta=task_begin_time
+                )
+
+            res = {
+                'success': True
+            }
+
+        return res
 
 
 class ChatroomHelper:

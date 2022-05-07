@@ -639,7 +639,8 @@ class ChatroomMemberHelper:
                             'is_private': card_instance.is_private,
                             'access_without_subscription': card_instance.access_without_subscription,
                             'member_can_message': card_instance.member_can_message,
-                            'is_private_member': card_instance.is_private_member}
+                            'is_private_member': card_instance.is_private_member,
+                            'third_party_unique_id': card_instance.third_party_unique_id}
 
         if card_instance.is_secret:
             chatroom_context['secret_chatroom_participants'] = json.loads(card_instance.secret_chatroom_participants)

@@ -3513,16 +3513,29 @@ def chatroom_delete(request):
     reason = request.POST.get('reason', None)
     disallow_create_chatroom = request.POST.get('disallow_create_chatroom', None)
 
+    context = delete_chatroom_async(member_id,
+                              chatroom_id=chatroom_id,
+                              draft_id=draft_id,
+                              tag_id=tag_id,
+                              reason=reason,
+                              disallow_create_chatroom=disallow_create_chatroom)
+
+    return JsonResponse(context)
+
+@shared_task
+def delete_chatroom_async(member_id, chatroom_id=None, draft_id=None,
+                    tag_id=None, reason=None, disallow_create_chatroom=None):
+
     if disallow_create_chatroom is not None:
         disallow_create_chatroom = disallow_create_chatroom.lower() == "true"
 
     if draft_id:
         draftChatroom.objects.filter(id=draft_id).delete()
-        return JsonResponse({'success': True})
+        return {'success': True}
 
     if not chatroom_id:
         context = get_error_context(False, "send the chatroom_id in post params")
-        return JsonResponse(context)
+        return context
 
     try:
         collabcard_instance = Collabcard.objects.get(id=chatroom_id)
@@ -3543,12 +3556,12 @@ def chatroom_delete(request):
         if not is_card_creator and not is_promoter:
             context = get_error_context(False,
                                         "You are not the card creator or promoter. you cannot delete this chatroom")
-            return JsonResponse(context)
+            return context
 
         if not is_card_creator:
             if not check_admin_delete_right(user=current_user_instance, community=community_instance):
                 context = get_error_context(False, "You do not have right to delete this chatroom")
-                return JsonResponse(context)
+                return context
 
         # updating collabcard delete status
         update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
@@ -3594,11 +3607,11 @@ def chatroom_delete(request):
 
     except Exception as e:
         context = get_error_context(False, str(e))
-        return JsonResponse(context)
+        return context
 
     info_logger.info(
         f"DELETE_CHATROOM_API - current user id = {member_id}, card creator id = {card_creator.id}, disallow_create_chatroom = {disallow_create_chatroom}")
-    return JsonResponse({'success': True})
+    return {'success': True}
 
 
 def update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
@@ -5994,24 +6007,35 @@ def collabcard_follow(request, function_dict=None):
     status = request.GET.get('value', 'true')
     status = (status == "true")
 
+    context = follow_chatroom_async(collabcard_id,
+                                    member_id,
+                                    status)
+
+    if context.get('success'):
+        return JsonResponse(context)
+
+    return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+
+@shared_task
+def follow_chatroom_async(collabcard_id,
+                          member_id,
+                          status=True):
     # local imports from conversations in order to resolve circular import
     from .conversation.conversation_impl import ConversationHelper
 
     card_instance = Collabcard.get_chatroom_or_None(collabcard_id)
 
     if not card_instance:
-        return JsonResponse({'success': False, "error_message": "Invalid chatroom id"},
-                            status=status_codes.HTTP_400_BAD_REQUEST)
+        return {'success': False, "error_message": "Invalid chatroom id"}
 
     if not status and card_instance.is_secret:
-        return JsonResponse({'success': False, "error_message": "Cannot unfollow chatroom"},
-                            status=status_codes.HTTP_400_BAD_REQUEST)
+        return {'success': False, "error_message": "Cannot unfollow chatroom"}
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not user_instance:
-        return JsonResponse({'success': False, "error_message": "Invalid chatroom id"},
-                            status=status_codes.HTTP_400_BAD_REQUEST)
+        return {'success': False, "error_message": "Invalid member id"}
 
     # user cant unfollow his own collabcard
     if not status and card_instance.user_id == user_instance.id:
@@ -6046,10 +6070,10 @@ def collabcard_follow(request, function_dict=None):
         follow_status = card_state_instance.follow_status
 
         if status and follow_status:
-            return JsonResponse({'success': True})
+            return {'success': True}
 
         if not status and not follow_status:
-            return JsonResponse({'success': True})
+            return {'success': True}
 
         if status:
 
@@ -6097,7 +6121,7 @@ def collabcard_follow(request, function_dict=None):
                                         {'secret_chatroom_participants':
                                              json.dumps(participants_list)})
 
-    return JsonResponse({'success': True})
+    return {'success': True}
 
 
 def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN,
