@@ -12,6 +12,7 @@ from ..rest_api import get_error_context
 from ..chatroom.chatroom_impl import ChatroomImpl
 from ..mixins import TransactionMixin
 from external_services.logging.logging_wrapper import LoggingWrapper
+from utility.response_utilities import ResponseUtilities
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -32,6 +33,10 @@ class FetchChatroomView(APIView):
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, device_id=device_id,
                                         request_platform=request_platform, version_code=version_code)
         chatroom_data = chatroom_manager.fetch_chatroom(is_internal=is_internal)
+
+        if 'error_message' in chatroom_data:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
+                                                                                chatroom_data.get('status')))
 
         return JsonResponse(chatroom_data)
 
@@ -175,7 +180,6 @@ class GetTaggingList(APIView):
     def get(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
         chatroom_id = request.GET.get('chatroom_id')
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id)
@@ -190,8 +194,9 @@ class GetTaggingList(APIView):
             return JsonResponse({'error_message': "Internal server error"},
                                 status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        if chatroom_data.get('error_message'):
-            return JsonResponse(chatroom_data, status=status_codes.HTTP_400_BAD_REQUEST)
+        if 'error_message' in chatroom_data:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
+                                                                                chatroom_data.get('status')))
 
         return JsonResponse(chatroom_data)
 

@@ -100,6 +100,8 @@ from collabmates_api.notifications.tasks import trigger_event_comms, send_app_no
     reschedule_event_comms_notifications_on_event_update
 from collabmates_api.notifications.constants import EVENT_TYPE, CALENDAR_INVITE_TYPE
 
+from utility.response_utilities import ResponseUtilities
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 subscription_url = settings.SUBSCRIPTION_SERVER_URL
@@ -819,24 +821,24 @@ class ChatroomImpl(ChatroomManager):
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
 
         if not card_instance:
-            context = {
-                'error_message': "invalid chatroom id"
-            }
-            return context
+            return ResponseUtilities.get_impl_error_context("invalid chatroom id",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
-            return {'error_message': "invalid user id"}
+            return ResponseUtilities.get_impl_error_context("invalid user id",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = card_instance.community
 
         if is_internal:
-            return {'chatroom': CollabcardSerializer(card_instance, user_instance.id)}
+            return {'success': True, 'chatroom': CollabcardSerializer(card_instance, user_instance.id)}
 
         if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE,
                 not (card_instance.user == user_instance or card_instance.chatroom_with_user == user_instance)]):
-            return get_error_context(False, "You cannot access DM chatroom!")
+            return ResponseUtilities.get_impl_error_context("You cannot access DM chatroom!",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         if card_instance.access not in [event_access.COMMUNITY_MEMBERS, event_access.NON_COMMUNITY_USERS_AND_MEMBERS] \
                 and card_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
@@ -850,13 +852,15 @@ class ChatroomImpl(ChatroomManager):
                                                                                                    user_instance)
 
                 if not has_event_access:
-                    return {'error_message': "You don't have access to this event"}
+                    return ResponseUtilities.get_impl_error_context("You don't have access to this event",
+                                                                    status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_data = ChatroomHelper.compute_chatroom_response(card_instance, user_instance,
                                                                  community_instance=community_instance)
 
         if not chatroom_data:
-            return {'error_message': "user is not associated with chatroom"}
+            return ResponseUtilities.get_impl_error_context("User is not associated with chatroom",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         reset_unread_message_count_in_cache.delay(self.get_chatroom_id(), self.get_member_id())
 
@@ -927,6 +931,8 @@ class ChatroomImpl(ChatroomManager):
         )
 
         chatroom_obj.get('chatroom').update(event_recordings_data)
+
+        chatroom_obj['success'] = True
 
         return chatroom_obj
 
@@ -1278,24 +1284,26 @@ class ChatroomImpl(ChatroomManager):
         chatroom_instance = Collabcard.get_chatroom_or_None(self.get_chatroom_id())
 
         if not chatroom_instance:
-            return {'error_message': "invalid chatroom id"}
+            return ResponseUtilities.get_impl_error_context("invalid chatroom id",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         userinfo_instance = Userinfo.get_userinfo_or_None(self.get_member_id())
 
         if not userinfo_instance:
-            return {'error_message': "invalid user id"}
+            return ResponseUtilities.get_impl_error_context("invalid user id",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = chatroom_instance.community
 
         if chatroom_instance.is_secret:
             participant_list = self.compute_tagging_list_for_secret_participants(chatroom_instance, community_instance)
 
-            return {'participants': participant_list, 'members': []}
+            return {'success': True, 'participants': participant_list, 'members': []}
 
         members = self.compute_tagging_list_of_community_members(community_instance)
         participant_list = self.compute_tagging_list_of_guest_members(chatroom_instance)
 
-        return {'members': members, 'participants': participant_list}
+        return {'success': True, 'members': members, 'participants': participant_list}
 
     def create_introduction_card_in_community(self, community_instance, user_instance, req_body, member_state,
                                               master_intro_instance):

@@ -267,24 +267,25 @@ def my_chatrooms_version_1(request):
     member_id = get_member_id_from_headers(request)
     if not member_id:
         context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
     if not user_instance:
         context = get_error_context(False, "Invalid user ID")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     page = request.GET.get('page', 1)
     try:
         page = int(page)
     except:
         context = get_error_context(False, "send page number correctly")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     community_id = request.GET.get('community_id', None)
     community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
     if community_id and not community_instance:
-        return JsonResponse({"success": False, "error_message": "Invalid community ID"})
+        context = get_error_context(False, "Invalid community ID")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     show_dm = request.GET.get('show_dm', False)
 
@@ -455,9 +456,11 @@ def my_chatrooms_version_1(request):
 
         my_chatrooms.append(chatroom)
 
-    context = {'my_chatrooms': my_chatrooms,
-               'total_pages': total_pages
-               }
+    context = {
+        'success': True,
+        'my_chatrooms': my_chatrooms,
+        'total_pages': total_pages
+    }
 
     if page == 1:
 
@@ -4358,7 +4361,7 @@ def fetch_chatroom_version_2(request):
     card_id = request.GET.get('chatroom_id', '')
     if not card_id:
         context = get_error_context(False, "send chat_room_id as a get params")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     conversation_id = request.GET.get('conversation_id')
     scroll_direction = request.GET.get('scroll_direction')
@@ -4369,7 +4372,7 @@ def fetch_chatroom_version_2(request):
         card_instance = card_filter[0]
     else:
         context = get_error_context(False, "Chat_room does not exist. Might have been deleted")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     page = request.GET.get('page', 1)
     current_user_id = get_member_id_from_headers(request)
@@ -4401,6 +4404,7 @@ def fetch_chatroom_version_2(request):
                 memberNotificationFlag(code='poll_results_announcement_mail',
                                        card=card_instance, member=current_user_instance,
                                        flag=True).save()
+    context['success'] = True
 
     return JsonResponse(context)
 
@@ -6637,7 +6641,7 @@ def fetch_chatroom_feed_version_1(request):
 
     if scroll_direction and not chatroom_id:
         context = get_error_context(False, "send chatroom id with scroll direction")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     active = None
 
@@ -6646,7 +6650,7 @@ def fetch_chatroom_feed_version_1(request):
     member_id = get_member_id_from_headers(request)
     if member_id is None:
         context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     state_filter = collabcardState.objects.filter(community=community_id,
                                                   card__is_pending=False,
@@ -6657,7 +6661,7 @@ def fetch_chatroom_feed_version_1(request):
         .exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')
 
     chatrooms = []
-    context = {}
+
     if not chatroom_id and not scroll_direction:
 
         last_seen = state_filter.filter(~Q(state=0)).order_by('-card_id')
@@ -6694,7 +6698,10 @@ def fetch_chatroom_feed_version_1(request):
 
             chatrooms = get_chatrooms_version_1(downward, member_id, active, device_id=device_id)
 
-    context['chatrooms'] = chatrooms
+    context = {
+        'success': True,
+        'chatrooms': chatrooms
+    }
 
     return JsonResponse(context)
 
@@ -11879,6 +11886,7 @@ class SyncChatrooms(APIView):
 
         if draft and draft == "true":
             draft_response = self._get_draft_chatrooms(member_id, last_updated, page, paginate_by)
+            draft_response['success'] = True
             return JsonResponse(draft_response)
 
         if chatroom_id:
@@ -11900,7 +11908,7 @@ class SyncChatrooms(APIView):
             else:
                 chatroom = get_chatroom_data_in_case_of_guest(chatroom_id, member_id)
 
-                return JsonResponse({'chatrooms': chatroom})
+                return JsonResponse({'success': True, 'chatrooms': chatroom})
 
         elif community_id:
 
@@ -12132,9 +12140,9 @@ class SyncChatrooms(APIView):
             chatrooms.append(chatroom)
 
         if max_last_updated:
-            return JsonResponse({'chatrooms': chatrooms, 'max_last_updated': max_last_updated})
+            return JsonResponse({'success': True, 'chatrooms': chatrooms, 'max_last_updated': max_last_updated})
 
-        return JsonResponse({'chatrooms': chatrooms})
+        return JsonResponse({'success': True, 'chatrooms': chatrooms})
 
     def _get_header(self, header, title):
 
@@ -12605,7 +12613,7 @@ class SyncChatroomsDiff(APIView):
             user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
             if not user_instance:
-                return JsonResponse({'chatrooms': []})
+                return JsonResponse({'success': True, 'chatrooms': []})
 
             if previous_app_version < EVENT_ATTACHMENT_VERSION_CODE_AN <= version_code:
                 attachment_chatroom_list = self._get_event_recordings_of_user(user_instance)
@@ -12743,7 +12751,7 @@ class SyncChatroomsDiff(APIView):
 
             chatrooms.append(chatroom)
 
-        return JsonResponse({'chatrooms': chatrooms})
+        return JsonResponse({'success': True, 'chatrooms': chatrooms})
 
     def _add_poll_data(self, chatroom, data, poll_data, poll_votes, member_id):
         if chatroom['type'] == card_types.CARD_POLL:
