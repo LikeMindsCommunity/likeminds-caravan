@@ -43,10 +43,7 @@ class SdkViewHelper:
     @staticmethod
     def authenticate_sdk_body_validator(request_body):
 
-        if not request_body:
-            return ResponseUtilities.get_inner_error_context('invalid request body')
-
         if 'api_key' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send api_key in body')
+            return ResponseUtilities.get_inner_error_context('send api_key')
 
         return request_body
