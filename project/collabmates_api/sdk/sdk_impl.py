@@ -88,7 +88,7 @@ class SdkImpl(SdkManager):
 
         sdk_client = sdk_clients[0]
 
-        req_body['type'] = api_types.SDK
+        req_body['type'] = str(api_types.SDK)
 
         user_manager = UserImpl(user_id="", mobile_no="")
         login_user = user_manager.login(req_body, self.get_request_platform(), self.get_device_id(),

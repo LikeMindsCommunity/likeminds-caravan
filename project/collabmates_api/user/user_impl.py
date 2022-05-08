@@ -496,7 +496,7 @@ class UserImpl(UserManager):
         if not user_context:
             return {'success': False, 'error_message': "Invalid Login"}
 
-        if login_type == api_types.SDK:
+        if login_type == str(api_types.SDK):
             sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context)
 
             if not sdk_user_context.get('success'):
@@ -504,7 +504,7 @@ class UserImpl(UserManager):
 
             return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'))
 
-        if (not login_type == api_types.SDK) and not user_context.get('has_profile_image'):
+        if (not login_type == str(api_types.SDK)) and not user_context.get('has_profile_image'):
             return {'success': False, 'user': user_context,
                     'error_message': "profile picture not available"}
 
@@ -964,6 +964,15 @@ class UserImpl(UserManager):
         else:
             return self.create_user_context_for_sdk(user_info_filter[0].user_id)
 
+    def fetch_user_info(self) -> dict:
+        user_instance = ModelUtilities.get_user_instance_or_none(self.get_user_id())
+
+        if not user_instance:
+            return ResponseUtilities.get_impl_error_context('Invalid user ID',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        return {'success': True, 'user': get_logged_in_user(user_instance)}
+
 
 class UserHelper:
 
@@ -1028,7 +1037,7 @@ class UserHelper:
 
             return UserHelper.validate_custom_login_object(req_body)
 
-        elif login_type == api_types.SDK:
+        elif login_type == str(api_types.SDK):
             return UserHelper.validate_sdk_login_object(req_body)
 
         else:

@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 from collabmates_api.utility import single_community_view_version_check
 from utility.exception_utilities import InvalidHeaderException
 from utility.request_utilities import RequestUtilities
+from utility.response_utilities import ResponseUtilities
 from cms.cms_auth_utilities import CMSAuthUtilities
 from django.conf import settings
 from collabmates_api.user.user_impl import UserImpl
@@ -257,3 +258,21 @@ class CreateBotView(APIView):
             return JsonResponse(context, status=status_codes.HTTP_200_OK)
 
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+
+class FetchUserInfoView(APIView):
+    """
+    Fetch all the users
+    """
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        user_manager = UserImpl(user_id=member_id)
+        user_response = user_manager.fetch_user_info()
+
+        if 'error_message' not in user_response:
+            return JsonResponse(user_response, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(user_response.get('error_message'),
+                                                                            user_response.get('status')))

@@ -615,13 +615,6 @@ class ConversationImpl(ConversationManager):
                     if member_data['state'] == member_states.ADMIN:
                         member_data['custom_intro_text'] = CREATE_INTRO_TEXT_ADMIN % created_at
 
-                    elif member_data['state'] == member_states.MEMBER or \
-                            member_data['state'] == member_states.PROFILE_UNAVAILABLE:
-
-                        member_data['custom_intro_text'] = CREATE_INTRO_TEXT_MEMBER % created_at
-                        member_data['custom_click_text'] = CUSTOM_CLICK_TEXT % (
-                            member_data['name'],
-                            created_at)
             else:
                 userinfo_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id})
 

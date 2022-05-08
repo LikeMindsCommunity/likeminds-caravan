@@ -15,7 +15,8 @@ class UserManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_dm_home') and callable(subclass.fetch_dm_home)) and
                 (hasattr(subclass, 'update_dm_tutorial') and callable(subclass.update_dm_tutorial)) and
                 (hasattr(subclass, 'fetch_dm_feed') and callable(subclass.fetch_dm_feed)) and
-                (hasattr(subclass, 'create_user_bot') and callable(subclass.create_user_bot)) or
+                (hasattr(subclass, 'create_user_bot') and callable(subclass.create_user_bot)) and
+                (hasattr(subclass, 'fetch_user_info') and callable(subclass.fetch_user_info)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -103,6 +104,13 @@ class UserManager(metaclass=abc.ABCMeta):
     def create_user_bot(self, req_body) -> dict:
         """
         Creates a user bot
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_user_info(self) -> dict:
+        """
+        Fetches user info
         """
         raise NotImplementedError
 
