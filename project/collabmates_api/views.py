@@ -4375,10 +4375,12 @@ def fetch_chatroom_version_2(request):
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     page = request.GET.get('page', 1)
+    api_type = NumberUtilities.get_integer_from_string(request.GET.get('api_type', api_types.Non_SDK),
+                                                       api_types.Non_SDK)
     current_user_id = get_member_id_from_headers(request)
 
     context = get_chatroom_internal_version_2(request, card_instance, current_user_id, page, conversation_id,
-                                              scroll_direction, is_ios=is_ios)
+                                              scroll_direction, is_ios=is_ios, api_type=api_type)
 
     # Reset Unseen message count cache key with 0
     reset_unread_message_count_in_cache.delay(card_id, current_user_id)
@@ -4755,7 +4757,7 @@ def get_answer_bubble_context_for_web(ans):
 
 def get_chatroom_actions(card_status, creator, card_instance, promoter=False, current_user_instance=None,
                          community_instance=None, is_child=False, request_type="", parent_list=None, version_code=None,
-                         platform_code=None):
+                         platform_code=None, api_type=api_types.Non_SDK):
     """ function to get chatroom actions """
 
     if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE]):
@@ -4788,6 +4790,17 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
             dm_chatroom_actions.append(block_member_chatroom)
 
         return dm_chatroom_actions
+
+    if api_type == api_types.SDK:
+        actions = [view_participants]
+
+        if card_status.get('mute_status'):
+            actions.append(unMute_notifications)
+
+        else:
+            actions.append(mute_notifications)
+
+        return actions
 
     purpose_card = False
     intro_card = False
@@ -5361,7 +5374,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
 
 
 def get_chatroom_internal_version_2(request, card_instance, user_id, page, conversation_id, scroll_direction,
-                                    is_ios=False):
+                                    is_ios=False, api_type=api_types.Non_SDK):
     '''version 1 function for sending chatroom instance without conversations'''
 
     context = {}
@@ -5434,8 +5447,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                             promoter=is_promoter, current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
                                             request_type=request_type, parent_list=parent_list,
-                                            platform_code=platform_code, version_code=version_code
-                                            )
+                                            platform_code=platform_code, version_code=version_code, api_type=api_type)
 
     context['chatroom_actions'] = chatroom_actions
 
