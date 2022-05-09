@@ -283,7 +283,7 @@ class UserImpl(UserManager):
         return user_object
 
     @staticmethod
-    def _get_or_create_sdk_user_and_userinfo(user_context):
+    def _get_or_create_sdk_user_and_userinfo(user_context, api_key=None):
 
         user_unique_id = user_context.get('user_unique_id')
         user_instance = None
@@ -295,7 +295,6 @@ class UserImpl(UserManager):
             should_create_user = True
 
         else:
-            api_key = user_context.get('api_key')
 
             if not api_key:
                 return ResponseUtilities.get_error_context(False, "Invalid API key!")
@@ -481,7 +480,7 @@ class UserImpl(UserManager):
 
         return user_email_exists_object
 
-    def login(self, req_body, platform_code, device_id, version_code) -> {}:
+    def login(self, req_body, platform_code, device_id, version_code, api_key: str = None) -> {}:
 
         login_type = req_body.get('type')
 
@@ -497,7 +496,7 @@ class UserImpl(UserManager):
             return {'success': False, 'error_message': "Invalid Login"}
 
         if login_type == str(api_types.SDK):
-            sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context)
+            sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context, api_key=api_key)
 
             if not sdk_user_context.get('success'):
                 return sdk_user_context

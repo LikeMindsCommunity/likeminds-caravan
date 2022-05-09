@@ -112,7 +112,8 @@ class UserLoginView(APIView):
         user_context = user_manager.login(req_body,
                                           RequestUtilities.get_platform_code(request),
                                           RequestUtilities.get_device_id_from_headers(request),
-                                          RequestUtilities.get_version_code_from_headers(request))
+                                          RequestUtilities.get_version_code_from_headers(request),
+                                          api_key=RequestUtilities.get_api_key_from_headers(request))
 
         if user_context.get('success'):
             return JsonResponse(user_context)
