@@ -7,6 +7,8 @@ from togther.models import ModelUtilities
 from .models import SdkClient, SdkPlatform
 from collabmates_api.community.community_impl import CommunityImpl
 from collabmates_api.user.view_impl import UserImpl
+from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+from collabmates_api.rest_api import CommunitySerializerV1
 import uuid
 
 
@@ -19,11 +21,12 @@ class SdkImpl(SdkManager):
     device_id = None
 
     def __init__(self, member_id: str = None, api_key: str = None, request_platform: str = None,
-                 version_code: str = None):
+                 version_code: str = None, device_id: str = None):
         self.member_id = member_id
         self.api_key = api_key
         self.request_platform = request_platform
         self.version_code = version_code
+        self.device_id = device_id
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -78,20 +81,42 @@ class SdkImpl(SdkManager):
 
     def initiate_sdk(self, req_body) -> dict:
 
-        sdk_client = ModelUtilities.get_model_filter(SdkClient, {'api_key': self.get_api_key()})
+        sdk_clients = ModelUtilities.get_model_filter(SdkClient, {'api_key': self.get_api_key()})
 
-        if not sdk_client:
+        if not sdk_clients:
             return ResponseUtilities.get_impl_error_context('Invalid API key', status_codes.HTTP_400_BAD_REQUEST)
 
-        req_body['type'] = api_types.SDK
+        sdk_client = sdk_clients[0]
+
+        req_body['type'] = str(api_types.SDK)
 
         user_manager = UserImpl(user_id="", mobile_no="")
-        login_user = user_manager.login(req_body, None, None, None)
+        login_user = user_manager.login(req_body, self.get_request_platform(), self.get_device_id(),
+                                        self.get_version_code())
 
         if not login_user.get('success'):
             return ResponseUtilities.get_impl_error_context('Unable to login/sign-up!',
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
-        # TODO call api/community_member/join api and send status code accordingly
+        user_instance = login_user.get('user')
 
-        pass
+        member_community_manager = MemberCommunityImpl(user_instance.get('id'),
+                                                       community_id=sdk_client.community.id,
+                                                       device_id=self.get_device_id(),
+                                                       platform_code=self.get_request_platform())
+        join_community_context = member_community_manager.join_community_sdk()
+
+        if not join_community_context.get('success'):
+            return ResponseUtilities.get_impl_error_context('Unable to join community!',
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        return {'user': user_instance, 'community': CommunitySerializerV1(sdk_client.community).data}
+
+    def authenticate_sdk(self) -> dict:
+
+        sdk_client = ModelUtilities.get_model_filter(SdkClient, {'api_key': self.get_api_key()})
+
+        if not sdk_client:
+            return ResponseUtilities.get_impl_error_context('Invalid API key!', status_codes.HTTP_400_BAD_REQUEST)
+
+        return {'success': True, 'community_id': sdk_client[0].community_id}
