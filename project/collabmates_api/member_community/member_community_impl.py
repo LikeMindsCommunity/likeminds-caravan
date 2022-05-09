@@ -1676,13 +1676,10 @@ class MemberCommunityImpl(MemberCommunityManager):
         members_filter = ModelUtilities.get_model_filter(Members, {'member_id': user_instance,
                                                                    'community_id': community_instance})
 
-        if members_filter:
-            return ResponseUtilities.get_impl_error_context('You are already a member of this community',
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
-
-        MemberCommunityHelper.make_requesting_user_as_member_of_community(user_instance, community_instance,
-                                                                          device_id=self.get_device_id(),
-                                                                          platform=self.get_platform_code())
+        if not members_filter:
+            MemberCommunityHelper.make_requesting_user_as_member_of_community(user_instance, community_instance,
+                                                                              device_id=self.get_device_id(),
+                                                                              platform=self.get_platform_code())
 
         user_has_access = Members.user_has_app_access(user_instance.id)
 
