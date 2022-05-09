@@ -74,7 +74,9 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'block_member') and
                  callable(subclass.block_member)) and
                 (hasattr(subclass, 'request_dm') and
-                 callable(subclass.request_dm))
+                 callable(subclass.request_dm)) and
+                (hasattr(subclass, 'scheduled_chatroom_follow') and
+                 callable(subclass.scheduled_chatroom_follow))
                 or NotImplemented)
 
     @abc.abstractmethod
@@ -353,6 +355,14 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def request_dm(self, req_body) -> dict:
         """
         Initiate, accept ot reject a connection request in DM chatroom
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def scheduled_chatroom_follow(self, req_body) -> dict:
+        """
+        Follow chatroom for a user async
         """
 
         raise NotImplementedError

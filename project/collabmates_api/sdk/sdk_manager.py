@@ -25,7 +25,7 @@ class SdkManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def authenticate_sdk(self, req_body) -> dict:
+    def authenticate_sdk(self) -> dict:
         """
         Authenticate the SDK
         """

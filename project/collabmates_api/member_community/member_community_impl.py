@@ -1676,13 +1676,10 @@ class MemberCommunityImpl(MemberCommunityManager):
         members_filter = ModelUtilities.get_model_filter(Members, {'member_id': user_instance,
                                                                    'community_id': community_instance})
 
-        if members_filter:
-            return ResponseUtilities.get_impl_error_context('You are already a member of this community',
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
-
-        MemberCommunityHelper.make_requesting_user_as_member_of_community(user_instance, community_instance,
-                                                                          device_id=self.get_device_id(),
-                                                                          platform=self.get_platform_code())
+        if not members_filter:
+            MemberCommunityHelper.make_requesting_user_as_member_of_community(user_instance, community_instance,
+                                                                              device_id=self.get_device_id(),
+                                                                              platform=self.get_platform_code())
 
         user_has_access = Members.user_has_app_access(user_instance.id)
 
@@ -1850,13 +1847,6 @@ class MemberCommunityHelper:
             if member_instance.state == member_states.ADMIN:
                 user_data['custom_intro_text'] = CREATE_INTRO_TEXT_ADMIN % \
                                                  TimeUtilities.convert_epoch_time_in_date(member_instance.created_at)
-
-            else:
-                user_data['custom_intro_text'] = CREATE_INTRO_TEXT_MEMBER % TimeUtilities.convert_epoch_time_in_date(
-                    member_instance.created_at)
-                user_data['custom_click_text'] = CUSTOM_CLICK_TEXT % (
-                    member_instance.member_id.userinfo.name,
-                    TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
 
         return user_data
 

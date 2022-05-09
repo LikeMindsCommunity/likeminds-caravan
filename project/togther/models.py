@@ -571,6 +571,8 @@ class Collabcard(models.Model):
     has_event_recording = models.BooleanField(default=False)
     is_private_member = models.BooleanField(default=False)
 
+    third_party_unique_id = models.TextField(null=True, blank=True)
+
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
         current_time_msec = TimeUtilities.current_time_in_milliseconds()
@@ -3316,7 +3318,7 @@ class ChatroomSecretTypeConversion(models.Model):
             self.created_at = current_time
 
         self.updated_at = current_time
-        
+
         super(ChatroomSecretTypeConversion, self).save(*args, **kwargs)
 
 
@@ -3325,7 +3327,7 @@ class CommunityDirectMessageSettings(models.Model):
     state = models.IntegerField(default=0)
     duration = models.TextField(null=True)
     number_in_duration = models.IntegerField(default=0)
-    
+
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
@@ -3359,3 +3361,31 @@ class SDKClientUsersInfo(models.Model):
         self.updated_at = current_time
 
         super(SDKClientUsersInfo, self).save(*args, **kwargs)
+
+
+class ScheduledChatroomFollow(models.Model):
+    chatroom_id = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    schedule_time = models.BigIntegerField(default=0)
+    schedule_time_before = models.BigIntegerField(
+        default=TimeUtilities.get_minutes_in_milliseconds(1440))
+    end_time = models.BigIntegerField(default=0)
+    end_time_after = models.BigIntegerField(
+        default=TimeUtilities.get_minutes_in_milliseconds(1440))
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'scheduled chatroom follow'
+        verbose_name_plural = 'scheduled chatroom follows'
+        db_table = 'togther_scheduled_chatroom_follow'
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(ScheduledChatroomFollow, self).save(*args, **kwargs)

@@ -267,24 +267,25 @@ def my_chatrooms_version_1(request):
     member_id = get_member_id_from_headers(request)
     if not member_id:
         context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
     if not user_instance:
         context = get_error_context(False, "Invalid user ID")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     page = request.GET.get('page', 1)
     try:
         page = int(page)
     except:
         context = get_error_context(False, "send page number correctly")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     community_id = request.GET.get('community_id', None)
     community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
     if community_id and not community_instance:
-        return JsonResponse({"success": False, "error_message": "Invalid community ID"})
+        context = get_error_context(False, "Invalid community ID")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     show_dm = request.GET.get('show_dm', False)
 
@@ -455,9 +456,11 @@ def my_chatrooms_version_1(request):
 
         my_chatrooms.append(chatroom)
 
-    context = {'my_chatrooms': my_chatrooms,
-               'total_pages': total_pages
-               }
+    context = {
+        'success': True,
+        'my_chatrooms': my_chatrooms,
+        'total_pages': total_pages
+    }
 
     if page == 1:
 
@@ -3513,16 +3516,29 @@ def chatroom_delete(request):
     reason = request.POST.get('reason', None)
     disallow_create_chatroom = request.POST.get('disallow_create_chatroom', None)
 
+    context = delete_chatroom_async(member_id,
+                              chatroom_id=chatroom_id,
+                              draft_id=draft_id,
+                              tag_id=tag_id,
+                              reason=reason,
+                              disallow_create_chatroom=disallow_create_chatroom)
+
+    return JsonResponse(context)
+
+@shared_task
+def delete_chatroom_async(member_id, chatroom_id=None, draft_id=None,
+                    tag_id=None, reason=None, disallow_create_chatroom=None):
+
     if disallow_create_chatroom is not None:
         disallow_create_chatroom = disallow_create_chatroom.lower() == "true"
 
     if draft_id:
         draftChatroom.objects.filter(id=draft_id).delete()
-        return JsonResponse({'success': True})
+        return {'success': True}
 
     if not chatroom_id:
         context = get_error_context(False, "send the chatroom_id in post params")
-        return JsonResponse(context)
+        return context
 
     try:
         collabcard_instance = Collabcard.objects.get(id=chatroom_id)
@@ -3543,12 +3559,12 @@ def chatroom_delete(request):
         if not is_card_creator and not is_promoter:
             context = get_error_context(False,
                                         "You are not the card creator or promoter. you cannot delete this chatroom")
-            return JsonResponse(context)
+            return context
 
         if not is_card_creator:
             if not check_admin_delete_right(user=current_user_instance, community=community_instance):
                 context = get_error_context(False, "You do not have right to delete this chatroom")
-                return JsonResponse(context)
+                return context
 
         # updating collabcard delete status
         update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
@@ -3594,11 +3610,11 @@ def chatroom_delete(request):
 
     except Exception as e:
         context = get_error_context(False, str(e))
-        return JsonResponse(context)
+        return context
 
     info_logger.info(
         f"DELETE_CHATROOM_API - current user id = {member_id}, card creator id = {card_creator.id}, disallow_create_chatroom = {disallow_create_chatroom}")
-    return JsonResponse({'success': True})
+    return {'success': True}
 
 
 def update_collabcard_delete_status(collabcard_instance, current_user_instance, is_promoter,
@@ -4345,7 +4361,7 @@ def fetch_chatroom_version_2(request):
     card_id = request.GET.get('chatroom_id', '')
     if not card_id:
         context = get_error_context(False, "send chat_room_id as a get params")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     conversation_id = request.GET.get('conversation_id')
     scroll_direction = request.GET.get('scroll_direction')
@@ -4356,13 +4372,15 @@ def fetch_chatroom_version_2(request):
         card_instance = card_filter[0]
     else:
         context = get_error_context(False, "Chat_room does not exist. Might have been deleted")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     page = request.GET.get('page', 1)
+    api_type = NumberUtilities.get_integer_from_string(request.GET.get('api_type', api_types.Non_SDK),
+                                                       api_types.Non_SDK)
     current_user_id = get_member_id_from_headers(request)
 
     context = get_chatroom_internal_version_2(request, card_instance, current_user_id, page, conversation_id,
-                                              scroll_direction, is_ios=is_ios)
+                                              scroll_direction, is_ios=is_ios, api_type=api_type)
 
     # Reset Unseen message count cache key with 0
     reset_unread_message_count_in_cache.delay(card_id, current_user_id)
@@ -4388,6 +4406,7 @@ def fetch_chatroom_version_2(request):
                 memberNotificationFlag(code='poll_results_announcement_mail',
                                        card=card_instance, member=current_user_instance,
                                        flag=True).save()
+    context['success'] = True
 
     return JsonResponse(context)
 
@@ -4738,7 +4757,7 @@ def get_answer_bubble_context_for_web(ans):
 
 def get_chatroom_actions(card_status, creator, card_instance, promoter=False, current_user_instance=None,
                          community_instance=None, is_child=False, request_type="", parent_list=None, version_code=None,
-                         platform_code=None):
+                         platform_code=None, api_type=api_types.Non_SDK):
     """ function to get chatroom actions """
 
     if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE]):
@@ -4771,6 +4790,17 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
             dm_chatroom_actions.append(block_member_chatroom)
 
         return dm_chatroom_actions
+
+    if api_type == api_types.SDK:
+        actions = [view_participants]
+
+        if card_status.get('mute_status'):
+            actions.append(unMute_notifications)
+
+        else:
+            actions.append(mute_notifications)
+
+        return actions
 
     purpose_card = False
     intro_card = False
@@ -5344,7 +5374,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
 
 
 def get_chatroom_internal_version_2(request, card_instance, user_id, page, conversation_id, scroll_direction,
-                                    is_ios=False):
+                                    is_ios=False, api_type=api_types.Non_SDK):
     '''version 1 function for sending chatroom instance without conversations'''
 
     context = {}
@@ -5417,8 +5447,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                             promoter=is_promoter, current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
                                             request_type=request_type, parent_list=parent_list,
-                                            platform_code=platform_code, version_code=version_code
-                                            )
+                                            platform_code=platform_code, version_code=version_code, api_type=api_type)
 
     context['chatroom_actions'] = chatroom_actions
 
@@ -5994,24 +6023,35 @@ def collabcard_follow(request, function_dict=None):
     status = request.GET.get('value', 'true')
     status = (status == "true")
 
+    context = follow_chatroom_async(collabcard_id,
+                                    member_id,
+                                    status)
+
+    if context.get('success'):
+        return JsonResponse(context)
+
+    return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+
+@shared_task
+def follow_chatroom_async(collabcard_id,
+                          member_id,
+                          status=True):
     # local imports from conversations in order to resolve circular import
     from .conversation.conversation_impl import ConversationHelper
 
     card_instance = Collabcard.get_chatroom_or_None(collabcard_id)
 
     if not card_instance:
-        return JsonResponse({'success': False, "error_message": "Invalid chatroom id"},
-                            status=status_codes.HTTP_400_BAD_REQUEST)
+        return {'success': False, "error_message": "Invalid chatroom id"}
 
     if not status and card_instance.is_secret:
-        return JsonResponse({'success': False, "error_message": "Cannot unfollow chatroom"},
-                            status=status_codes.HTTP_400_BAD_REQUEST)
+        return {'success': False, "error_message": "Cannot unfollow chatroom"}
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not user_instance:
-        return JsonResponse({'success': False, "error_message": "Invalid chatroom id"},
-                            status=status_codes.HTTP_400_BAD_REQUEST)
+        return {'success': False, "error_message": "Invalid member id"}
 
     # user cant unfollow his own collabcard
     if not status and card_instance.user_id == user_instance.id:
@@ -6046,10 +6086,10 @@ def collabcard_follow(request, function_dict=None):
         follow_status = card_state_instance.follow_status
 
         if status and follow_status:
-            return JsonResponse({'success': True})
+            return {'success': True}
 
         if not status and not follow_status:
-            return JsonResponse({'success': True})
+            return {'success': True}
 
         if status:
 
@@ -6097,7 +6137,7 @@ def collabcard_follow(request, function_dict=None):
                                         {'secret_chatroom_participants':
                                              json.dumps(participants_list)})
 
-    return JsonResponse({'success': True})
+    return {'success': True}
 
 
 def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STATE_SEEN,
@@ -6613,7 +6653,7 @@ def fetch_chatroom_feed_version_1(request):
 
     if scroll_direction and not chatroom_id:
         context = get_error_context(False, "send chatroom id with scroll direction")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     active = None
 
@@ -6622,7 +6662,7 @@ def fetch_chatroom_feed_version_1(request):
     member_id = get_member_id_from_headers(request)
     if member_id is None:
         context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     state_filter = collabcardState.objects.filter(community=community_id,
                                                   card__is_pending=False,
@@ -6633,7 +6673,7 @@ def fetch_chatroom_feed_version_1(request):
         .exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')
 
     chatrooms = []
-    context = {}
+
     if not chatroom_id and not scroll_direction:
 
         last_seen = state_filter.filter(~Q(state=0)).order_by('-card_id')
@@ -6670,7 +6710,10 @@ def fetch_chatroom_feed_version_1(request):
 
             chatrooms = get_chatrooms_version_1(downward, member_id, active, device_id=device_id)
 
-    context['chatrooms'] = chatrooms
+    context = {
+        'success': True,
+        'chatrooms': chatrooms
+    }
 
     return JsonResponse(context)
 
@@ -11855,6 +11898,7 @@ class SyncChatrooms(APIView):
 
         if draft and draft == "true":
             draft_response = self._get_draft_chatrooms(member_id, last_updated, page, paginate_by)
+            draft_response['success'] = True
             return JsonResponse(draft_response)
 
         if chatroom_id:
@@ -11876,7 +11920,7 @@ class SyncChatrooms(APIView):
             else:
                 chatroom = get_chatroom_data_in_case_of_guest(chatroom_id, member_id)
 
-                return JsonResponse({'chatrooms': chatroom})
+                return JsonResponse({'success': True, 'chatrooms': chatroom})
 
         elif community_id:
 
@@ -12108,9 +12152,9 @@ class SyncChatrooms(APIView):
             chatrooms.append(chatroom)
 
         if max_last_updated:
-            return JsonResponse({'chatrooms': chatrooms, 'max_last_updated': max_last_updated})
+            return JsonResponse({'success': True, 'chatrooms': chatrooms, 'max_last_updated': max_last_updated})
 
-        return JsonResponse({'chatrooms': chatrooms})
+        return JsonResponse({'success': True, 'chatrooms': chatrooms})
 
     def _get_header(self, header, title):
 
@@ -12581,7 +12625,7 @@ class SyncChatroomsDiff(APIView):
             user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
             if not user_instance:
-                return JsonResponse({'chatrooms': []})
+                return JsonResponse({'success': True, 'chatrooms': []})
 
             if previous_app_version < EVENT_ATTACHMENT_VERSION_CODE_AN <= version_code:
                 attachment_chatroom_list = self._get_event_recordings_of_user(user_instance)
@@ -12719,7 +12763,7 @@ class SyncChatroomsDiff(APIView):
 
             chatrooms.append(chatroom)
 
-        return JsonResponse({'chatrooms': chatrooms})
+        return JsonResponse({'success': True, 'chatrooms': chatrooms})
 
     def _add_poll_data(self, chatroom, data, poll_data, poll_votes, member_id):
         if chatroom['type'] == card_types.CARD_POLL:
@@ -14188,16 +14232,6 @@ def compute_response_of_members_data(members_data, responses_data):
         if member_context['state'] == member_states.ADMIN and not responses_data.get(key):
             member_context['custom_intro_text'] = CREATE_INTRO_TEXT_ADMIN % (
                 time.strftime("%d %B %Y", locale_time))
-
-        elif member_context['state'] == member_states.MEMBER or member_context[
-            'state'] == member_states.PROFILE_UNAVAILABLE:
-
-            if not responses_data.get(key):
-                member_context['custom_intro_text'] = CREATE_INTRO_TEXT_MEMBER % (
-                    time.strftime("%d %B %Y", locale_time))
-                member_context['custom_click_text'] = CUSTOM_CLICK_TEXT % (
-                    data['name'],
-                    time.strftime("%d %B %Y", locale_time))
 
         member_context['community_id'] = data['community_id']
 
