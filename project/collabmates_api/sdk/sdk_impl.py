@@ -3,6 +3,7 @@ from rest_framework import status as status_codes
 from .sdk_manager import SdkManager
 from utility.response_utilities import ResponseUtilities
 from utility.states import api_types
+from utility.auth_utilities import AuthUtilities
 from togther.models import ModelUtilities
 from .models import SdkClient, SdkPlatform
 from collabmates_api.community.community_impl import CommunityImpl
@@ -81,12 +82,13 @@ class SdkImpl(SdkManager):
 
     def initiate_sdk(self, req_body) -> dict:
 
-        sdk_clients = ModelUtilities.get_model_filter(SdkClient, {'api_key': self.get_api_key()})
+        api_key_validation = AuthUtilities.validate_api_key(self.get_api_key())
 
-        if not sdk_clients:
-            return ResponseUtilities.get_impl_error_context('Invalid API key', status_codes.HTTP_400_BAD_REQUEST)
+        if 'error_message' in api_key_validation:
+            return ResponseUtilities.get_impl_error_context(api_key_validation.get('error_message'),
+                                                            api_key_validation.get('status'))
 
-        sdk_client = sdk_clients[0]
+        sdk_client = api_key_validation.get('sdk_client')
 
         req_body['type'] = str(api_types.SDK)
 
@@ -114,9 +116,12 @@ class SdkImpl(SdkManager):
 
     def authenticate_sdk(self) -> dict:
 
-        sdk_client = ModelUtilities.get_model_filter(SdkClient, {'api_key': self.get_api_key()})
+        api_key_validation = AuthUtilities.validate_api_key(self.get_api_key())
 
-        if not sdk_client:
-            return ResponseUtilities.get_impl_error_context('Invalid API key!', status_codes.HTTP_400_BAD_REQUEST)
+        if 'error_message' in api_key_validation:
+            return ResponseUtilities.get_impl_error_context(api_key_validation.get('error_message'),
+                                                            api_key_validation.get('status'))
 
-        return {'success': True, 'community_id': sdk_client[0].community_id}
+        sdk_client = api_key_validation.get('sdk_client')
+
+        return {'success': True, 'community_id': sdk_client.community_id}

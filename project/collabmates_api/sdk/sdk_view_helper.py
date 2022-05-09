@@ -35,15 +35,4 @@ class SdkViewHelper:
         if 'user_name' not in request_body:
             return ResponseUtilities.get_inner_error_context('send user_name in body')
 
-        if 'api_key' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send api_key in body')
-
-        return request_body
-
-    @staticmethod
-    def authenticate_sdk_body_validator(request_body):
-
-        if 'api_key' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send api_key')
-
         return request_body
