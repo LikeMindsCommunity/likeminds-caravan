@@ -94,7 +94,7 @@ class SdkImpl(SdkManager):
 
         user_manager = UserImpl(user_id="", mobile_no="")
         login_user = user_manager.login(req_body, self.get_request_platform(), self.get_device_id(),
-                                        self.get_version_code())
+                                        self.get_version_code(), api_key=self.get_api_key())
 
         if not login_user.get('success'):
             return ResponseUtilities.get_impl_error_context('Unable to login/sign-up!',
