@@ -1091,27 +1091,30 @@ class RequestDMView(APIView):
 
 class ScheduledChatroomFollow(APIView):
 
-    def _validate_request(self, member_id, chatroom_id):
+    def _validate_request(self, member_id, req_body):
 
         if not member_id:
             return {'success': False, 'error_message': "Send member-id in headers"}
 
-        if not chatroom_id:
+        if not req_body:
+            return {'success': False, 'error_message': "Invalid request body"}
+
+        if not req_body.get('chatroom_id'):
             return {'success': False, 'error_message': "Invalid Chatroom ID!"}
 
         return {'success': True}
 
-    def get(self, request):
+    def post(self, request):
         try:
-            chatroom_id = request.GET.get('chatroom_id', '')
+            req_body = RequestUtilities.load_request_body(request)
             member_id = RequestUtilities.get_member_id_from_headers(request)
 
-            validated_request = self._validate_request(member_id, chatroom_id)
+            validated_request = self._validate_request(member_id, req_body)
 
             if not validated_request.get('success'):
                 return JsonResponse(validated_request, status=status_codes.HTTP_400_BAD_REQUEST)
 
-            chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
+            chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
             response_context = chatroom_manager.scheduled_chatroom_follow()
 
             if response_context.get('success'):
