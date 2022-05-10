@@ -5543,11 +5543,14 @@ def save_the_latest_conversation(card_instance, user_id):
     last_conversation = card_answers.objects.filter(card=card_instance). \
         filter(Q(state=conversation_states.CONVERSATION_POLL) |
                Q(state=conversation_states.ANSWER) |
+               Q(state=conversation_states.CONVERSATION_HEADER) |
                Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_REMOVED_OR_LEFT) |
                Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED) |
                Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT) |
                Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT) |
-               Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT)).last()
+               Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT) |
+               Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT) |
+               Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT)).last()
 
     if last_conversation:
         user_instance = User.get_user_or_raise_exception(user_id)
