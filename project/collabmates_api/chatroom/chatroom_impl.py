@@ -2014,7 +2014,8 @@ class ChatroomImpl(ChatroomManager):
             if (not card_instance.is_paid and is_user_registered) or \
                     (card_instance.is_paid and ChatroomHelper.is_online_event_link_verified_for_user(card_instance,
                                                                                                      user_instance)) \
-                    or (card_instance.is_paid and member_state == member_states.ADMIN):
+                    or (card_instance.is_paid and (member_state == member_states.ADMIN or \
+                    user_instance == card_instance.user)):
                 self._fill_online_link_for_event(chatroom_context, card_instance)
 
             return chatroom_context
