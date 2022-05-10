@@ -771,6 +771,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             data['state'] = status_dict['state']
             data['mute_status'] = status_dict['mute_status']
             data['follow_status'] = status_dict['follow_status']
+            data['attending_status'] = status_dict['attending_status']
             data['is_guest'] = status_dict['is_guest']
             data['is_tagged'] = status_dict['is_tagged']
             data['attended'] = status_dict.get('attended', False)
