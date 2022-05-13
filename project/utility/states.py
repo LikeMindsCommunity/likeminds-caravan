@@ -623,3 +623,15 @@ class APITypes:
 
 
 api_types = APITypes()
+
+
+class UnsubscribeTypes:
+    MAIL_HAS_INSTALLED_APP = "mail_has_installed_app"
+    MAIL_CARD_OWNER_INACTIVITY = "mail_card_owner_inactivity"
+    MAIL_TAGGED_BUT_NOT_OPENED_CHATROOM = "mail_tagged_but_not_opened_chatroom"
+    MAIL_SEND_CHATROOM_OWNER = "mail_send_chatroom_owner_mail"
+    MAIL_EVENT_NOTIFICATIONS = "mail_event_notifications"
+    MAIL_CHATROOM_OR_DM = "mail_chatroom_or_dm"
+
+
+unsubscribe_types = UnsubscribeTypes()

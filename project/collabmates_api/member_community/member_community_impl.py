@@ -20,12 +20,13 @@ from utility.exception_utilities import CustomException
 from utility.states import member_states, card_types, deleted_members, question_states, \
     conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers, \
     community_dm_settings_state_types, community_dm_settings_duration_types, dm_icon_from_states, get_started_types, \
-    api_types
+    api_types, unsubscribe_types
 
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
-from utility.utils import get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room
+from utility.utils import (get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room,
+                           create_notification_flag)
 from .constants import *
 from ..community.constants import ANSWER_PRIVACY_PUBLIC_VALUE, ANSWER_PRIVACY_KEY, ANSWER_PRIVACY_PRIVATE_VALUE, \
     DIRECTORY_QUESTIONS_V2_ANSWER_KEY, DIRECTORY_QUESTIONS_V2_QUESTION_ID_KEY
@@ -1685,6 +1686,28 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True, 'access': user_has_access}
 
+    def unsubscribe_email_notifications(self, req_body: dict) -> {}:
+        validated_request = MemberCommunityHelper.validate_unsubscribe_email_notifications_request(
+            self.get_member_id(), self.get_community_id(), req_body)
+
+        if not validated_request.get('success'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        code_flag = validated_request.get('code_flag')
+
+        for code, value in code_flag.items():
+
+            if not isinstance(value, bool):
+                return ResponseUtilities.get_impl_error_context('Invalid flag values for code',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            create_notification_flag(user_instance, [code], community_id=community_instance.id, flag=value)
+
+        return {'success': True}
+
 
 class MemberCommunityHelper:
     @staticmethod
@@ -2538,3 +2561,23 @@ class MemberCommunityHelper:
         update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
 
         CommunityHelper.send_community_moderation_mail_to_cm.delay(community_instance.id)
+
+    @staticmethod
+    def validate_unsubscribe_email_notifications_request(user_id, community_id, req_body):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return get_error_context(False, "Invalid user ID")
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return get_error_context(False, "Invalid community ID")
+
+        if (not req_body.get('code_flag')) or (not isinstance(req_body.get('code_flag'), dict)) or \
+                (set(req_body.get('code_flag').keys()) - {unsubscribe_types.MAIL_EVENT_NOTIFICATIONS,
+                                                          unsubscribe_types.MAIL_CHATROOM_OR_DM}):
+            return get_error_context(False, "Invalid Invalid code flag object!")
+
+        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
+                'code_flag': req_body.get('code_flag')}

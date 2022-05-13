@@ -1069,7 +1069,7 @@ def get_user_email(member_id):
             return None
 
 
-def check_notification_flag(member_id,notification_list,card_id=None,community_id=None):
+def check_notification_flag(member_id, notification_list, card_id=None, community_id=None):
 
     ''' 
     functiont check if we can send notitfications to users 
@@ -1078,33 +1078,45 @@ def check_notification_flag(member_id,notification_list,card_id=None,community_i
     send member_id for member specific flags
     '''
 
-    member = User.objects.get(pk=member_id)
     flag = True
+    member = ModelUtilities.get_user_instance_or_none(member_id)
+
+    if not member:
+        return flag
 
     for notification in notification_list:
-        if card_id == None and community_id == None:
-            try:
-                p, created = memberNotificationFlag.objects.get_or_create(code=notification, member=member)
-            except MultipleObjectsReturned:
-                created = False
-                p = memberNotificationFlag.objects.filter(code=notification, member=member).first()
 
-        elif card_id != None and community_id == None:
-            card = Collabcard.objects.get(pk=card_id)
-            try:
-                p, created = memberNotificationFlag.objects.get_or_create(code=notification, card=card, member=member)
-            except MultipleObjectsReturned:
-                created = False
-                p = memberNotificationFlag.objects.filter(code=notification, card=card, member=member).first()
-        elif community_id != None and card_id == None:
-            community = Community.objects.get(pk=card_id)
-            try:
-                p, created = memberNotificationFlag.objects.get_or_create(code=notification, community=community, member=member)
-            except MultipleObjectsReturned:
-                created = False
-                p = memberNotificationFlag.objects.filter(code=notification, community=community, member=member).first()
-        
-        if p.flag == False:
+        filter_dict = {
+            'code': notification,
+            'member': member
+        }
+
+        if (card_id is not None) and (community_id is None):
+            card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+
+            if not card_instance:
+                continue
+
+            filter_dict['card'] = card_instance
+
+        elif (community_id is not None) and (card_id is None):
+            community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+            if not community_instance:
+                continue
+
+            filter_dict['community'] = community_instance
+
+        member_notification_filter = ModelUtilities.get_model_filter(memberNotificationFlag, filter_dict)
+
+        if not member_notification_filter:
+            member_notification_instance, _ = ModelUtilities.update_or_create_model(memberNotificationFlag,
+                                                                                    filter_dict, {})
+
+        else:
+            member_notification_instance = member_notification_filter[0]
+
+        if not member_notification_instance.flag:
             flag = False
             break
 
@@ -1116,28 +1128,34 @@ def create_notification_flag(member, notification_list, card_id=None, community_
     function to add notification flag
     """
 
+    update_dict = {
+        'flag': flag
+    }
+
     for notification in notification_list:
 
-        if card_id == None and community_id == None:
-            p, created = memberNotificationFlag.objects.get_or_create(code=notification, member=member)
-            if created:
-                p.flag=flag
-                p.save()
+        filter_dict = {
+            'code': notification,
+            'member': member
+        }
 
-        elif card_id != None and community_id == None:
-            card = Collabcard.objects.get(pk=card_id)
-            p, created = memberNotificationFlag.objects.get_or_create(code=notification, card=card, member=member)
-            if created:
-                p.flag=flag
-                p.save()
+        if (card_id is not None) and (community_id is None):
+            card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
 
-        elif community_id != None and card_id == None:
-            community = Community.objects.get(pk=card_id)
-            p, created = memberNotificationFlag.objects.get_or_create(code=notification, community=community,
-                                                                      member=member)
-            if created:
-                p.flag=flag
-                p.save()
+            if not card_instance:
+                continue
+
+            filter_dict['card'] = card_instance
+
+        elif (community_id is not None) and (card_id is None):
+            community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+            if not community_instance:
+                continue
+
+            filter_dict['community'] = community_instance
+
+        ModelUtilities.update_or_create_model(memberNotificationFlag, filter_dict, update_dict)
 
 
 def add_relative_time_to_epoch(epoch_time, minutes=0, hours=0, days=0):
