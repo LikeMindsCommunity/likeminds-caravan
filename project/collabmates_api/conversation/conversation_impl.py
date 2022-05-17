@@ -49,9 +49,10 @@ from utility.exception_utilities import CustomException, InvalidChatroomExceptio
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
-    conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types
+    conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types, \
+    unsubscribe_types
 from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
-    is_member_verified
+    is_member_verified, filter_user_instances_based_on_notification_flag
 from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
                                   update_preview_of_chatroom_in_cache,
@@ -1581,6 +1582,17 @@ class ConversationHelper:
     @staticmethod
     def send_engagement_communication(receiver_id, sender_id, chatroom_id, chatroom_not_opened_type):
 
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return
+
+        receiver_id_list = filter_user_instances_based_on_notification_flag(
+            [receiver_id], community_id=chatroom_instance.community_id, flag_code=unsubscribe_types.MAIL_CHATROOM_OR_DM)
+
+        if not receiver_id_list:
+            return
+
         status_type = None
 
         if chatroom_not_opened_type == chatroom_not_opened_types.TAGGED_CHATROOM:
@@ -1595,11 +1607,10 @@ class ConversationHelper:
 
         if not user_email_send_status_instance and status_type:
 
-            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
             collabcard_state_instances = ModelUtilities.get_model_filter(collabcardState, {'card_id': chatroom_id,
                                                                                            'user_id': receiver_id})
 
-            if not chatroom_instance or not collabcard_state_instances:
+            if not collabcard_state_instances:
                 return
 
             collabcard_state_instance = collabcard_state_instances[0]

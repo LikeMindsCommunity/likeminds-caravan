@@ -1158,6 +1158,34 @@ def create_notification_flag(member, notification_list, card_id=None, community_
         ModelUtilities.update_or_create_model(memberNotificationFlag, filter_dict, update_dict)
 
 
+def filter_user_instances_based_on_notification_flag(user_ids: list,
+                                                     community_id: int = None,
+                                                     card_id: int = None,
+                                                     flag_code: str = unsubscribe_types.MAIL_EVENT_NOTIFICATIONS,
+                                                     flag: bool = True):
+
+    filter_dict = {
+        'member__in': user_ids,
+        'code': flag_code,
+        'flag': not flag
+    }
+
+    if community_id:
+        filter_dict['community'] = community_id
+
+    if card_id:
+        filter_dict['card'] = card_id
+
+    notification_flag_filter = ModelUtilities.get_model_filter(memberNotificationFlag, filter_dict)
+
+    if not notification_flag_filter:
+        return user_ids
+
+    notification_flag_user_ids = list(notification_flag_filter.values_list('member_id', flat=True))
+
+    return list(set(user_ids) - set(notification_flag_user_ids))
+
+
 def add_relative_time_to_epoch(epoch_time, minutes=0, hours=0, days=0):
     epoch_time = datetime.fromtimestamp(epoch_time)
     epoch_time = epoch_time + timedelta(hours=hours,minutes=minutes,days=days)
