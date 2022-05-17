@@ -4458,21 +4458,20 @@ def conversation_meta(request):
 
     if not conversation_id or not chatroom_id:
         context = get_error_context(False, "send conversation_id and chatroom_id in post params")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     user_id = get_member_id_from_headers(request)
     user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
     if not user_instance:
         context = get_error_context(False, "In-valid user id")
-
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     card_instance = Collabcard.get_chatroom_or_None(chatroom_id)
 
     if card_instance is None:
         context = get_error_context(False, f"chatroom_id {chatroom_id} does not exist")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     answer_id = NumberUtilities.get_integer_from_string(conversation_id)
     conversation_instances = card_answers.objects \
@@ -4506,6 +4505,7 @@ def conversation_meta(request):
             conversation_list.append(conversation_serializer)
 
     context = {
+        'success': True,
         'conversations': conversation_list
     }
 
@@ -6741,7 +6741,7 @@ def fetch_community_chatroom_feed(request):
         community_instance = Community.objects.get(id=community_id)
     except:
         context = get_error_context(False, "send correct community id")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     chatroom_filter = \
         Collabcard.objects.filter(community=community_instance,
@@ -6759,6 +6759,7 @@ def fetch_community_chatroom_feed(request):
             break
 
     context = {
+        'success': True,
         'chatrooms': chatroom_list,
         'total_chatrooms': total_chatrooms
     }
@@ -10135,13 +10136,15 @@ def unread_conversation_notification(request):
     member_id = get_member_id_from_headers(request)
 
     if not member_id:
-        context = get_error_context(False, "send memeber id in headers")
-        return JsonResponse(context)
+        context = get_error_context(False, "send member id in headers")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     community_id: str = request.GET.get('community_id')
 
-    temp = dict()
-    temp['unread_conversation'] = get_custom_data_for_new_conversation_created(member_id, community_id)
+    temp = {
+        'success': True,
+        'unread_conversation': get_custom_data_for_new_conversation_created(member_id, community_id)
+    }
 
     return JsonResponse(temp)
 
@@ -11393,7 +11396,7 @@ def fetch_pending_chatroom(request):
 
     if request.method == "POST":
         context = get_error_context(False, "change HTTP method to GET")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     current_user_id = get_member_id_from_headers(request)
     # user_instance = User.objects.get(id=current_user_id)
@@ -11402,10 +11405,11 @@ def fetch_pending_chatroom(request):
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     if not community_id:
         context = get_error_context(False, "send community_id in params")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     member_instance = Members.objects.filter(community_id=community_id, member_id=current_user_id,
                                              state=member_states.ADMIN)
@@ -11415,23 +11419,25 @@ def fetch_pending_chatroom(request):
 
         if not has_right_0:
             context = get_error_context(False, "you doesnt have required right to view pending chat rooms")
-            return JsonResponse(context)
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     else:
         context = get_error_context(False, "You are not a CM of this community")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     pending_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=True,
                                                   is_deleted=False).order_by('id')
 
     chatrooms = []
-    context = {}
 
     for chatroom in pending_chatrooms:
         chatroom_instance = get_chatroom_instance(chatroom, current_user_id)
         chatrooms.append(chatroom_instance)
 
-    context['chatrooms'] = chatrooms
+    context = {
+        'success': True,
+        'chatrooms': chatrooms
+    }
 
     return JsonResponse(context)
 
@@ -13011,8 +13017,7 @@ class SyncConversation(APIView):
 
         if not member_id:
             context = get_error_context(False, "send member id in headers")
-
-            return JsonResponse(context)
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
@@ -13048,6 +13053,8 @@ class SyncConversation(APIView):
 
                 if max_last_updated:
                     context['max_last_updated'] = max_last_updated
+
+                context['success'] = True
 
                 return JsonResponse(context)
 
@@ -13087,6 +13094,7 @@ class SyncConversation(APIView):
                                                                                    member_id, device_id)
 
         context = {
+            'success': True,
             'conversations': conversations
         }
 
@@ -13590,7 +13598,7 @@ class SyncConversationDiff(APIView):
             user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
             if not user_instance:
-                return JsonResponse({'conversations': []})
+                return JsonResponse({'success': True, 'conversations': []})
 
             card_state_list = set(collabcardState.objects.filter(user=user_instance).values_list('card', flat=True))
 
@@ -13635,6 +13643,7 @@ class SyncConversationDiff(APIView):
             get_attachments_filtered_conversations(conversation_list, conversations, member_id, device_id)
 
         context = {
+            'success': True,
             'conversations': conversations,
         }
 

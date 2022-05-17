@@ -703,14 +703,14 @@ class ConversationImpl(ConversationManager):
             conversations = self._fetch_conversation_queryset()
             conversations = conversations[:self.get_paginate_by()]
             conversations = self._create_conversation_list(conversations)
-            return conversations
+            return {'success': True, 'conversations': conversations}
 
         # Client is not sending scroll direction and only sending conversation id
         if self.get_conversation_id() and self.get_scroll_direction() is None:
             conversation = ModelUtilities.get_model_instance_or_none(card_answers, self.get_conversation_id())
             conversations = [conversation]
             conversations = self._create_conversation_list(conversations)
-            return conversations
+            return {'success': True, 'conversations': conversations}
 
         # Client is sending scroll direction as False with conversation ID
         if not self.get_scroll_direction() and self.get_conversation_id():
@@ -720,7 +720,7 @@ class ConversationImpl(ConversationManager):
                 conversations = [last_seen_conversation]
                 conversations = self._create_conversation_list(conversations)
 
-                return conversations
+                return {'success': True, 'conversations': conversations}
 
         if not self.get_scroll_direction() and not self.get_conversation_id():
 
@@ -777,7 +777,7 @@ class ConversationImpl(ConversationManager):
 
             conversations = self._create_conversation_list(conversations)
 
-        return conversations
+        return {'success': True, 'conversations': conversations}
 
     def create_conversation(self, req_body: dict, is_ios: bool = False,
                             user_instance: User = None, chatroom_instance: Collabcard = None) -> {}:
@@ -1106,12 +1106,13 @@ class ConversationImpl(ConversationManager):
         conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, self.get_conversation_id())
 
         if not conversation_instance:
-            return {'status': False, 'error_message': "send correct conversation id"}
+            return ResponseUtilities.get_impl_error_context("Send correct conversation id",
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
-            return {'status': False, 'error_message': "incorrect user id"}
+            return ResponseUtilities.get_impl_error_context("Incorrect user id", status_codes.HTTP_400_BAD_REQUEST)
 
         poll_filter = ModelUtilities.get_model_filter(conversationPolls, {'id': poll_id,
                                                                           'conversation': conversation_instance})
@@ -1121,14 +1122,15 @@ class ConversationImpl(ConversationManager):
             poll_instance = poll_filter[0]
 
         if not poll_instance:
-            return {'status': False, 'error_message': "incorrect poll_id conversation pair"}
+            return ResponseUtilities.get_impl_error_context("incorrect poll_id conversation pair",
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = conversation_instance.community
         user_list = self._fetch_member_list_for_poll_conversation(conversation_instance, poll_instance,
                                                                   page, page_size)
         member_list = self._create_member_instances_from_user_list(user_list, community_instance)
 
-        return {'status': True, 'members': member_list}
+        return {'success': True, 'members': member_list}
 
     def _fetch_chatroom_topic_text(self):
 
@@ -1309,7 +1311,7 @@ class ConversationImpl(ConversationManager):
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
-            return {'error_message': "Invalid user-id"}
+            return ResponseUtilities.get_impl_error_context("Invalid user-id", status_codes.HTTP_400_BAD_REQUEST)
 
         unseen_count = 0
 
@@ -1322,7 +1324,7 @@ class ConversationImpl(ConversationManager):
                                  values_list('card_id', flat=True))
             unseen_count = get_count_of_new_event_conversation_created_for_user(conversation_instance.id, chatroom_list)
 
-        return {'count': unseen_count}
+        return {'success': True, 'count': unseen_count}
 
     def fetch_link_for_event(self) -> dict:
 
@@ -1352,7 +1354,7 @@ class ConversationImpl(ConversationManager):
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
-            return {'error_message': "Invalid user-id"}
+            return ResponseUtilities.get_impl_error_context("Invalid user-id", status_codes.HTTP_400_BAD_REQUEST)
 
         conversation_queryset = self.fetch_conversation_events_queryset(user_instance,
                                                                         attending_status=attending_status,
@@ -1361,7 +1363,7 @@ class ConversationImpl(ConversationManager):
         conversation_list = ModelUtilities.paginate_queryset(conversation_queryset, page, paginate_by=5)
         conversations = self._create_conversation_list(conversation_list)
 
-        return {'events': conversations}
+        return {'success': True, 'events': conversations}
 
     def fetch_unread_previews(self):
 
