@@ -4794,11 +4794,16 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     if api_type == api_types.SDK:
         actions = [view_participants]
 
-        if card_status.get('mute_status'):
-            actions.append(unMute_notifications)
+        if creator or card_status.get('follow_status'):
 
-        else:
-            actions.append(mute_notifications)
+            if card_status.get('mute_status'):
+                actions.append(unMute_notifications)
+
+            else:
+                actions.append(mute_notifications)
+
+        elif not card_status.get('follow_status'):
+            actions.append(join_chatroom)
 
         return actions
 
