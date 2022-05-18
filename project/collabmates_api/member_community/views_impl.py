@@ -41,7 +41,7 @@ class FetchCommunityFeed(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         platform_code = RequestUtilities.get_platform_code(request)
-        api_version = platform_code = request.META.get('HTTP_ACCEPT_VERSION', None)
+        api_version = RequestUtilities.get_accept_version_from_headers(request)
 
         if not member_id:
             context = get_error_context(False, "member id missing in request")
