@@ -84,6 +84,10 @@ class RequestUtilities:
         return request.META.get('HTTP_X_DEVICE_ID')
 
     @staticmethod
+    def get_api_key_from_headers(request: object) -> str:
+        return request.META.get('HTTP_X_API_KEY')
+
+    @staticmethod
     def load_request_body(request):
 
         try:

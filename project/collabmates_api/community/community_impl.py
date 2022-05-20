@@ -59,7 +59,8 @@ from utility.states import member_states, card_types, click_states, member_right
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types, \
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
-    airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types
+    airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
+    api_types
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -1433,7 +1434,7 @@ class CommunityImpl(CommunityManager):
                                                         'members_count': 1,
                                                         'purpose': validate_req_body['headline'],
                                                         'brand_color': validate_req_body.get('brand_color', None),
-                                                        'image_link': validate_req_body['image_url'],
+                                                        'image_link': validate_req_body.get('image_url'),
                                                         'thumbnail': community_default_thumbnail,
                                                         'type': type_id,
                                                         'sub_type': sub_type_id,
@@ -1976,7 +1977,8 @@ class CommunityHelper:
     @staticmethod
     @shared_task
     def set_moderation_rights_and_delete_user_previous_metadata_for_auto_join(user_id, community_id, shared_id,
-                                                                              auto_join_code):
+                                                                              auto_join_code,
+                                                                              api_type=api_types.Non_SDK):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
@@ -2006,6 +2008,9 @@ class CommunityHelper:
 
         if auto_join_code is None and shared_by_user is None:
             history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
+
+        if api_type == api_types.SDK:
+            history_type = moderation_history_types.SDK_JOIN
 
         is_rejoined = ModelUtilities.is_model_filter_exists(removedMembers, {'member': user_instance,
                                                                              'community': community_instance})
@@ -2463,6 +2468,8 @@ class CommunityHelper:
     @staticmethod
     def create_community_validation(req_body):
 
+        api_type = req_body.get('type', api_types.Non_SDK)
+
         if 'name' not in req_body:
             return {'success': False, 'error_message': 'Empty name!'}
 
@@ -2475,7 +2482,7 @@ class CommunityHelper:
         if 'branding' not in req_body and 'brand_color' not in req_body:
             return {'success': False, 'error_message': 'Empty brand color!'}
 
-        if 'image_url' not in req_body:
+        if (api_type == api_types.Non_SDK) and ('image_url' not in req_body):
             return {'success': False, 'error_message': 'Empty image url!'}
 
         return req_body
@@ -2951,6 +2958,8 @@ class CommunityHelper:
         if not community_instance:
             return
 
+        api_type = req_body.get('type', api_types.Non_SDK)
+
         # Add branding key to cache
         CacheImpl.set_cache('COMMUNITY_BRANDING_{}'.format(community_id), community_instance.branding)
 
@@ -3003,7 +3012,10 @@ class CommunityHelper:
             create_introduction_question_in_community(community_instance)
 
         post_purpose_collabcard_for_community(req_body, community_instance, user_instance.id)
-        post_master_introductions_for_community(community_instance.id, user_instance.id)
+
+        if api_type != api_types.SDK:
+            post_master_introductions_for_community(community_instance.id, user_instance.id)
+
         post_general_collabcard_for_community(community_instance, user_instance.id)
         post_member_directory_link(user_instance, community_instance)
 
