@@ -1790,7 +1790,7 @@ def member_becomes_cm_dm_chatroom(user_id, community_id):
             "member_id_id", flat=True)
 
         for user_id in user_ids_list:
-            create_member_dm_chatroom(user_id, community_id, cm_list=[member_instance.id])
+            create_member_dm_chatroom(user_id, community_id, cm_list=[member_instance.id], is_member_cm=True)
 
 
 def compute_member_images_for_homescreen_celery(chatroom_instance, community_instance):
@@ -1997,7 +1997,7 @@ def fill_chatroom_basic_info(card_content, chatroom_name, chatroom_type, communi
 
 @shared_task
 def create_member_dm_chatroom(member_id, community_id, device_id=None, request_platform=None, is_cm_member=False,
-                              cm_list=[], is_script=False, is_joining=False):
+                              cm_list=[], is_script=False, is_joining=False, is_member_cm=False):
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not user_instance:
@@ -2074,6 +2074,11 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
                         conv_state = conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT
 
                     else:
+
+                        if is_member_cm and list_cms:
+                            member_cm_instance = list_cms[0].member_id
+                            user_route = "<<" + str(member_cm_instance.userinfo.name) + "|route://member/" + str(
+                                member_cm_instance.id) + ">>"
 
                         answer = MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE.format(user_route)
 

@@ -410,6 +410,7 @@ class Userinfo(models.Model):
     apple_id = models.CharField(max_length=100, null=True)
     has_tags = models.BooleanField(default=False)
     updated_at = models.BigIntegerField(default=0)
+    user_unique_id = models.CharField(max_length=255, unique=True, null=True)
 
     def __str__(self):
         return self.name
@@ -569,6 +570,8 @@ class Collabcard(models.Model):
     recording_url_og_tags = models.TextField(null=True)
     has_event_recording = models.BooleanField(default=False)
     is_private_member = models.BooleanField(default=False)
+
+    third_party_unique_id = models.TextField(null=True, blank=True)
 
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
@@ -2263,6 +2266,27 @@ class ModelUtilities:
         return instance
 
     @staticmethod
+    def get_user_instance_or_none(pk):
+        instance = None
+
+        if str(pk).isdigit():
+            column_name = "id"
+            model = User
+        else:
+            column_name = "user_unique_id"
+            model = Userinfo
+
+        instance_filter = ModelUtilities.get_model_filter(model, {column_name: pk})
+
+        if instance_filter:
+            instance = instance_filter[0]
+
+            if column_name == "user_unique_id":
+                instance = instance.user_id
+
+        return instance
+
+    @staticmethod
     def paginate_queryset(queryset, page, paginate_by):
 
         offset = (page - 1) * paginate_by
@@ -2526,6 +2550,7 @@ class EventFAQ(models.Model):
 class EventNudge(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, null=True, on_delete=models.CASCADE)
     seen_event_chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
@@ -2535,6 +2560,7 @@ class EventNudge(models.Model):
         instance = EventNudge()
         instance.seen_event_chatroom = create_info.get('card_instance')
         instance.user = create_info.get('user_instance')
+        instance.community = create_info.get('community_instance')
         instance.save()
 
     def save(self, *args, **kwargs):
@@ -3292,7 +3318,7 @@ class ChatroomSecretTypeConversion(models.Model):
             self.created_at = current_time
 
         self.updated_at = current_time
-        
+
         super(ChatroomSecretTypeConversion, self).save(*args, **kwargs)
 
 
@@ -3301,7 +3327,7 @@ class CommunityDirectMessageSettings(models.Model):
     state = models.IntegerField(default=0)
     duration = models.TextField(null=True)
     number_in_duration = models.IntegerField(default=0)
-    
+
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
@@ -3314,3 +3340,52 @@ class CommunityDirectMessageSettings(models.Model):
         self.updated_at = current_time
 
         super(CommunityDirectMessageSettings, self).save(*args, **kwargs)
+
+
+class SDKClientUsersInfo(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user_unique_id = models.CharField(max_length=255, unique=True, null=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        unique_together = [['community', 'user', 'user_unique_id']]
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(SDKClientUsersInfo, self).save(*args, **kwargs)
+
+
+class ScheduledChatroomFollow(models.Model):
+    chatroom_id = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    schedule_time = models.BigIntegerField(default=0)
+    schedule_time_before = models.BigIntegerField(
+        default=TimeUtilities.get_minutes_in_milliseconds(1440))
+    end_time = models.BigIntegerField(default=0)
+    end_time_after = models.BigIntegerField(
+        default=TimeUtilities.get_minutes_in_milliseconds(1440))
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'scheduled chatroom follow'
+        verbose_name_plural = 'scheduled chatroom follows'
+        db_table = 'togther_scheduled_chatroom_follow'
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(ScheduledChatroomFollow, self).save(*args, **kwargs)

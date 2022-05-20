@@ -452,6 +452,9 @@ def get_moderation_history_title(moderation_history):
     elif moderation_history.type == moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE:
         title = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE_TEXT
 
+    elif moderation_history.type == moderation_history_types.SDK_JOIN:
+        title = moderation_history_types.SDK_JOIN_MEMBER_TEXT.format(moderation_history.user.userinfo.name)
+
     history = {"title": title, "moderation_time": moderation_history.moderation_time}
 
     return history

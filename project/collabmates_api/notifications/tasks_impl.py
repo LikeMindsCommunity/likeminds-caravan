@@ -152,19 +152,21 @@ class TasksImpl(TaskManager):
         is_paid_event = payload.get('chatroom').is_paid
         online_link_enable_before = payload.get('chatroom').online_link_enable_before
         community_id = payload.get('chatroom').community.id
+        attending_status = payload.get('attending_status', True)
 
         online_link_enable_before_in_mins = TimeUtilities.convert_milliseconds_to_min(online_link_enable_before)
 
         member_name = payload.get('user').userinfo.name if payload.get('user') else None
 
         response_dict = self.process_app_notification_response_dict(event_name, is_paid_event, event_id,
-                                                                online_link_enable_before_in_mins, member_name,
-                                                                community_id)
+                                                                    online_link_enable_before_in_mins, member_name,
+                                                                    community_id, attending_status=attending_status)
 
         return response_dict
 
-    def process_app_notification_response_dict(self, event_name, is_paid_event, event_id, online_link_enable_before_in_mins, \
-                                            member_name, community_id):
+    def process_app_notification_response_dict(self, event_name, is_paid_event, event_id,
+                                               online_link_enable_before_in_mins, member_name, community_id,
+                                               attending_status=True):
 
         if self.get_event_type() == EVENT_TYPE.CREATION:
 
@@ -203,7 +205,7 @@ class TasksImpl(TaskManager):
             category = NotificationCategories.EVENT_ATTENDANCE
             subcategory = NotificationSubCategories.EVENT_REMINDER_15_MINUTES_SUBCATEGORY
 
-        elif self.get_event_type() == EVENT_TYPE.REGISTRATION:
+        elif (self.get_event_type() == EVENT_TYPE.REGISTRATION) and attending_status:
 
             title = TITLE_EVENT_REGISTRATION_APP_NOTIFICATION
             subtitle = SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION % (member_name, event_name)
@@ -604,6 +606,7 @@ class TasksHelper:
         payload_with_objects = {}
 
         payload_with_objects['chatroom'] = chatroom_instance
+        payload_with_objects['attending_status'] = payload.get('attending_status', True)
 
         if payload.get('user'):
             user_instance = ModelUtilities.get_model_instance_or_none(User, payload.get('user'))

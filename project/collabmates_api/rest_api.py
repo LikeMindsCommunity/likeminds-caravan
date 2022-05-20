@@ -298,7 +298,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'testimonials', 'faq', 'online_link_enable_before', 'is_paid', 'access', 'online_link_type',
                   'online_link', 'online_link_id', 'online_link_password', 'event_payment_link', 'event_web_page',
                   'webflow_item_id', 'is_private', 'chatroom_with_user_id', 'member_can_message', 'cohorts',
-                  'has_event_recording', 'unread_messages', 'access_without_subscription'
+                  'has_event_recording', 'unread_messages', 'access_without_subscription', 'third_party_unique_id'
                   )
 
     def __init__(self, *args, **kwargs):
@@ -771,6 +771,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
             data['state'] = status_dict['state']
             data['mute_status'] = status_dict['mute_status']
             data['follow_status'] = status_dict['follow_status']
+            data['attending_status'] = status_dict['attending_status']
             data['is_guest'] = status_dict['is_guest']
             data['is_tagged'] = status_dict['is_tagged']
             data['attended'] = status_dict.get('attended', False)
@@ -1457,3 +1458,9 @@ class CommunityDMSettingsSerializer(serializers.ModelSerializer):
         model = CommunityDirectMessageSettings
         fields = ('community', 'state', 'duration', 'number_in_duration')
 
+
+class ScheduledChatroomFollowSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ScheduledChatroomFollow
+        fields = '__all__'

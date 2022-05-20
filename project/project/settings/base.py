@@ -67,6 +67,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'utility.custom_middleware.AppendOrRemoveSlashMiddleware',
+    'middleware.CustomAuthenticateUserID.CustomAuthenticateUserIDMiddleware',
     'middleware.api_logger.ApiLogger',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
@@ -248,6 +249,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'x-username',
     'x-password',
     'x-device-id',
+    'x-api-key',
 ]
 
 FCM_DJANGO_SETTINGS = {
