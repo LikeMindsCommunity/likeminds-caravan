@@ -2269,6 +2269,9 @@ class ModelUtilities:
     def get_user_instance_or_none(pk):
         instance = None
 
+        if not pk:
+            return instance
+
         if str(pk).isdigit():
             column_name = "id"
             model = User
