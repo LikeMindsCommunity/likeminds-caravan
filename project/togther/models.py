@@ -571,6 +571,7 @@ class Collabcard(models.Model):
     has_event_recording = models.BooleanField(default=False)
     is_private_member = models.BooleanField(default=False)
 
+    single_event_url = models.TextField(null=True)
     third_party_unique_id = models.TextField(null=True, blank=True)
 
     @staticmethod

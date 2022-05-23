@@ -92,7 +92,7 @@ from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from collabmates_api.conversation import conversation_impl
 
-from collabmates_api.branch import create_community_feed_url_for_cm_onboarding
+from collabmates_api.branch import create_community_feed_url_for_cm_onboarding, create_single_event_branch_url
 
 from collabmates_api.notifications.tasks import trigger_event_comms, send_app_notification_on_event_attachment, \
     send_app_notification_for_event_type, send_calender_invite_for_event_type, \
@@ -1558,6 +1558,7 @@ class ChatroomImpl(ChatroomManager):
             send_chatroom_creation_notification(card_instance, user_instance)
             send_event_analytics_on_event_creation.delay(card_instance.id, user_instance.id)
             ChatroomHelper.run_async_tasks_related_to_event_chatroom_analytics(card_instance)
+            ChatroomHelper.create_or_update_single_event_branch_link(card_instance.id)
 
             if cm_onboarding_version_check(self.get_request_platform(), self.get_version_code()):
                 ChatroomHelper.send_first_event_creation_email_to_promoter(card_instance)
@@ -4505,7 +4506,16 @@ class ChatroomHelper:
 
     @staticmethod
     def fetch_chatroom_link(chatroom_instance):
-        chatroom_url = CHATROOM_URL_WITH_COMMUNITY_ID % (url, str(chatroom_instance.id), str(chatroom_instance.community.id))
+
+        if chatroom_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+            chatroom_url = chatroom_instance.single_event_url
+
+            if not chatroom_url:
+                chatroom_url = ChatroomHelper.create_or_update_single_event_branch_link(chatroom_instance.id)
+
+        else:
+            chatroom_url = CHATROOM_URL_WITH_COMMUNITY_ID % (url, str(chatroom_instance.id),
+                                                             str(chatroom_instance.community.id))
 
         return chatroom_url
 
@@ -4722,3 +4732,20 @@ class ChatroomHelper:
                                      'updated_at': TimeUtilities.current_time_in_sec()})
 
         return {'success': True, 'should_call_block_unblock': True}
+
+    @staticmethod
+    @shared_task
+    def create_or_update_single_event_branch_link(card_id):
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+
+        if not card_instance:
+            return
+
+        branch_link = create_single_event_branch_url(card_instance)
+
+        if branch_link:
+            card_instance.single_event_url = branch_link
+            card_instance.save()
+
+        return branch_link
