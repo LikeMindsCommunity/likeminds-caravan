@@ -46,8 +46,8 @@ EVENT_COMM_SHOULD_HAPPEN_AFTER = datetime.strptime("08:0", "%H:%M") # 8:00 AM
 TIME_10_AM = datetime.strptime("10:0", "%H:%M")  # 10:00 AM
 TIME_9_AM = datetime.strptime("9:0", "%H:%M")  # 9:00 AM
 
-WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION = 'event_created_v5'
-WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL = 'event_registration_last_cal_v3'
+WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION = 'event_created_v6'
+WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL = 'event_registration_last_cal_v4'
 WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS = 'attend_5_hrs_before_v5'
 WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN = 'attend_10_mins_before_v2'
 
