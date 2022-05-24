@@ -60,15 +60,18 @@ class TasksImpl(TaskManager):
         else:
             cm_name = ""
 
+        auto_register_link = create_single_event_branch_url(payload.get('chatroom'), should_register=True)
+        auto_register_link = UrlUtilities.extract_part_from_url(auto_register_link, 'path', init_slash_off=True)
+
         link = UrlUtilities.extract_part_from_url(payload.get('chatroom').single_event_url, 'path', init_slash_off=True)
 
         custom_params = self.process_whatsapp_notification_custom_params(event_name, community_name, event_time,
-                                                                         event_date, cm_name, link)
+                                                                         event_date, cm_name, link, auto_register_link)
 
         return custom_params
 
-    def process_whatsapp_notification_custom_params(self, event_name, community_name, event_time, event_date, \
-                                                    cm_name, link):
+    def process_whatsapp_notification_custom_params(self, event_name, community_name, event_time, event_date,
+                                                    cm_name, link, auto_register_link):
 
         if self.get_event_type() == EVENT_TYPE.LAST_CALL or self.get_event_type() == EVENT_TYPE.CREATION:
 
@@ -95,7 +98,7 @@ class TasksImpl(TaskManager):
                 },
                 {
                     "name": "link",
-                    "value": link
+                    "value": auto_register_link
                 },
             ]
 
