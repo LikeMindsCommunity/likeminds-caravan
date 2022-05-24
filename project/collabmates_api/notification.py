@@ -39,7 +39,6 @@ from datetime import datetime, timedelta
 
 from .notifications.constants import NotificationCategories, NotificationSubCategories, NOTIFICATION_SUB_CATEGORY_KEY, \
     NOTIFICATION_CATEGORY_KEY
-from .notifications.task_impl import TaskHelper
 from .serializers import get_answer_files, get_collabcard_files
 from .static_text import *
 from utility.time_utilities import TimeUtilities
@@ -463,7 +462,6 @@ def send_notification_to_admins(community_id, name):
             }
         }
 
-        message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
         notification_meta(notification_list, message)
 
         # send_notification_to_multiple_devices(token_list,message)
@@ -509,8 +507,6 @@ def send_notification_for_join_requests(community_id, flag, member_id, promoter_
             NOTIFICATION_CATEGORY_KEY: NotificationCategories.MODERATION,
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MEMBERSHIP_APPROVED
         }
-
-        message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
         notification_meta(notification_list, message)
     # else:
     #     message['payload'] = {
@@ -691,7 +687,6 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
                 typ not in [card_types.CARD_POLL, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
             message['payload']['unread_new_chatroom'] = custom_payload
 
-        message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
         notification_meta(notification_list_member, message)
 
         if not card.is_pending:
@@ -1018,7 +1013,6 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
         notification_list.append(user_context)
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, community_instance.id)
     notification_meta(notification_list, message)
 
     send_notification_to_tagged_users_on_conversation_creation(tagged_users_list, answer_text, userinfo_instance,
@@ -1280,7 +1274,6 @@ def send_notification_to_tagged_users(card_id, answerer_name, answer, user_id, u
 
         notification_list.append(temp)
 
-        message = TaskHelper.add_community_info_to_notification_payload(message, card.community.id)
         notification_meta(notification_list, message)
 
     except (Exception, psycopg2.Error) as error:
@@ -1318,7 +1311,6 @@ def send_notification_to_event_co_hosts(co_hosts, card_id, event_title, event_cr
         }
     }
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, card.community.id)
     notification_meta(notification_list, message)
 
 
@@ -1517,7 +1509,6 @@ def send_notification_to_incomplete_profile_scheduled(member_id, community_id, c
             }
         }
 
-        message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
         notification_meta(notification_list, message)
 
 
@@ -1614,7 +1605,6 @@ def send_morning_pending_request_notification():
             if pending_members_count == 1:
                 message['payload']['sub_title'] = "1 member is awaiting your approval to join the community."
 
-            message = TaskHelper.add_community_info_to_notification_payload(message, community.id)
             notification_meta(notification_list, message)
 
 
@@ -1674,8 +1664,6 @@ def send_notification_to_join_drop_off_scheduled(member_id, community_id, aj, ti
 
             }
 
-            message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
-
             notification_meta(notification_list, message)
 
         else:
@@ -1690,9 +1678,6 @@ def send_notification_to_join_drop_off_scheduled(member_id, community_id, aj, ti
                     NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.PUBLIC_LINK_DROP_OFF
                 }
             }
-
-            message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
-
             notification_meta(notification_list, message)
 
             expiry_instance = communityExpiryCodes.objects.filter(community=community_instance, unique_code=aj)
@@ -1740,8 +1725,6 @@ def send_notification_to_join_drop_off_scheduled_2(member_id, community_id, aj, 
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.PRIVATE_LINK_DROP_OFF
         }
     }
-
-    message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
 
     notification_meta(notification_list, message)
 
@@ -1798,9 +1781,6 @@ def send_notification_to_join_drop_off_scheduled_3(member_id, community_id, aj):
             NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.EXPIRED_PRIVATE_LINK_DROP_OFF
         }
     }
-
-    message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
-
     notification_meta(notification_list, message)
 
 
@@ -1874,7 +1854,6 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
                 NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.UPDATE_PROFILE
             }
             notification_list.append(temp)
-            message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                                 date_time=date_time, interval=False, crontab=True)
@@ -1912,7 +1891,6 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
                 NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.UPDATE_PROFILE
             }
             notification_list.append(temp)
-            message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                                 date_time=date_time, interval=False, crontab=True)
@@ -1942,8 +1920,7 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
                 'mobile_os': notification_details[1],
             }
             message['payload']['sub_title'] = str(
-                member_name) + ", it has been over 15 days you joined us. Please update your profile now to take full advantage of " + str(
-                community_name) + " and connect with others."
+                member_name) + ", it has been over 15 days you joined us. Please update your profile now to take full advantage of LikeMinds and connect with others."
             message['payload']['route'] = "route://member_profile?member_id=" + str(
                 member.member_id.id) + "&community_id=" + str(community_id) + '&edit=true'
             message['category'] = {
@@ -1951,7 +1928,6 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
                 NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.UPDATE_PROFILE
             }
             notification_list.append(temp)
-            message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                                 date_time=date_time, interval=False, crontab=True)
@@ -1989,7 +1965,6 @@ def send_notification_for_directory_creation(community_id, start_time, day=0):
                 NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.UPDATE_PROFILE
             }
             notification_list.append(temp)
-            message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
             notification_meta(notification_list, message)
         celerybeatask.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                                 date_time=date_time, interval=False, crontab=True)
@@ -2028,7 +2003,6 @@ def send_notification_for_new_promoter(promoter_id, member_id, community_id, cus
         }
     }
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
     notification_meta(notification_list, message)
 
 
@@ -2068,7 +2042,6 @@ def send_notification_for_custom_title_changed(promoter_id, member_id, community
         }
     }
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
     notification_meta(notification_list, message)
 
 
@@ -2105,7 +2078,6 @@ def send_notification_for_ownership_transfered(prev_owner_id, new_owner_id, comm
         }
     }
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
     notification_meta(notification_list, message)
 
 
@@ -2142,7 +2114,6 @@ def send_notification_for_removed_member(admin_id, removed_user_id, community_id
         }
     }
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
     # notification_meta(notification_list, message)
 
 
@@ -2208,7 +2179,6 @@ def send_notification_for_right_given_to_member(user_id, community_id, rights_ad
             }
         }
 
-        message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
         notification_meta(notification_list, message)
 
 
@@ -2256,7 +2226,6 @@ def send_notification_for_pending_chatroom_approved_or_rejected(card_id, is_appr
         }
     }
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, card_instance.community.id)
     notification_meta(notification_list, message)
 
 
@@ -2358,7 +2327,6 @@ def send_notification_for_reports(report_id, community_id, reported_by_user_id,
         notification_list.append(user_details)
 
     if report_type in [0, 1]:  # will remove check after implementing conversation delete
-        message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
         notification_meta(notification_list, message)
 
 
@@ -2405,7 +2373,6 @@ def send_notification_for_chatroom_deleted(deleted_by_user_id, card_id, communit
 
         notification_list.append(user_details)
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
     # notification_meta(notification_list, message)
 
 
@@ -2460,7 +2427,6 @@ def send_notification_for_right_given_to_manager(user_id, community_id, rights_a
             }
         }
 
-        message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
         notification_meta(notification_list, message)
 
 
@@ -2502,7 +2468,6 @@ def send_notification_for_removed_cm(user_id, community_id):
         }
     }
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
     notification_meta(notification_list, message)
 
 
@@ -2532,7 +2497,6 @@ def send_intro_room_evening_notifications():
 
                 if member.id not in new_members:
                     notification_list = get_notification_list_intro_notification(user_instance)
-                    message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
                     notification_meta(notification_list, message)
 
 
@@ -2633,7 +2597,6 @@ def send_notification_to_managers_when_member_leaves_community(user_id, communit
         }
     }
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
     notification_meta(notification_list, message)
 
 
@@ -2759,7 +2722,6 @@ def send_pin_chatroom_notification(community_id, member_id, chatroom_id):
         }
     }
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, community_id)
     notification_meta(notification_list, message)
 
 
@@ -2799,7 +2761,6 @@ def send_notification_for_removed_secret_room_participant(user_id, chatroom_id):
         }
     }
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, chatroom_instance.community.id)
     notification_meta(notification_list, message)
 
 
@@ -2839,7 +2800,6 @@ def send_notification_for_new_secret_room_participant(user_id, chatroom_id):
         }
     }
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, chatroom_instance.community.id)
     notification_meta(notification_list, message)
 
 
@@ -2996,7 +2956,6 @@ def send_notification_for_auto_follow_chatroom_for_all_members(chatroom_id, cm_i
         }
     }
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, chatroom_instance.community.id)
     notification_meta(notification_list, message)
 
 
@@ -3033,7 +2992,6 @@ def send_notification_on_chatroom_topic_update(chatroom_id):
         }
     }
 
-    message = TaskHelper.add_community_info_to_notification_payload(message, card_instance.community.id)
     notification_meta(notification_list, message)
 
 

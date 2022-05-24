@@ -270,7 +270,6 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
         is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
 
         if send_allowed and not is_task_deleted:
-            app_noti_dict = TasksHelper.add_community_info_to_notification_payload(app_noti_dict, community_id)
             notification_meta(user_details_list, app_noti_dict)
 
         else:
@@ -536,7 +535,6 @@ def schedule_app_notification_on_event_attachment(event_id, app_noti_dict):
         send_allowed = TasksHelper.should_send_notification(event_instance)
 
         if send_allowed:
-            app_noti_dict = TasksHelper.add_community_info_to_notification_payload(app_noti_dict, community_id)
             notification_meta(user_details_list, app_noti_dict)
 
     except Exception as e:
