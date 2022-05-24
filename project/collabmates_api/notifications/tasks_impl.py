@@ -12,7 +12,6 @@ from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
     user_email_send_status_types, event_access, card_types, get_started_types
-from collabmates_api.notification import get_token_for_fcm
 from utility.url_utilities import UrlUtilities
 from utility.celery_tasks import get_event_pricing
 from collabmates_api.static_text import CUSTOMISE_JOIN_FORM_MAIL_SUBJECT
@@ -727,6 +726,8 @@ class TasksHelper:
 
         notification_details_list = []
 
+        from collabmates_api.notification import get_token_for_fcm
+
         for user_id in user_instances:
             notification_details = get_token_for_fcm(user_id, True)
 
@@ -1157,6 +1158,17 @@ class TasksHelper:
             calendar_id = calendar_id_filter[0].calendar_id
 
         return calendar_id
+
+    @staticmethod
+    def add_community_info_to_notification_payload(message: dict, community_id: int) -> dict:
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if community_instance:
+            message['payload']['community_name'] = community_instance.name
+            message['payload']['community_logo'] = community_instance.thumbnail
+
+        return message
 
     @staticmethod
     def fetch_event_banner(event):
