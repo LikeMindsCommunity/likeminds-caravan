@@ -2208,22 +2208,23 @@ class ChatroomImpl(ChatroomManager):
         #     ChatroomHelper.send_event_creation_mail.delay(card_instance.id, send_to_members=False,
         #                                                   user_list=[user_instance.id])
 
-        payload_for_app_and_email_notification = {
-            'chatroom': card_instance.id,
-            'user': user_instance.id,
-            'attending_status': status
-        }
+        if status:
+            payload_for_app_and_email_notification = {
+                'chatroom': card_instance.id,
+                'user': user_instance.id,
+                'attending_status': status
+            }
 
-        send_app_notification_for_event_type.delay(payload_for_app_and_email_notification, EVENT_TYPE.REGISTRATION)
-        send_email_notification_for_event_type.delay(payload_for_app_and_email_notification, EVENT_TYPE.REGISTRATION)
+            send_app_notification_for_event_type.delay(payload_for_app_and_email_notification, EVENT_TYPE.REGISTRATION)
+            send_email_notification_for_event_type.delay(payload_for_app_and_email_notification, EVENT_TYPE.REGISTRATION)
 
-        payload_for_calendar_invite = {
-            'chatroom': card_instance.id,
-        }
+            payload_for_calendar_invite = {
+                'chatroom': card_instance.id,
+            }
 
-        send_calender_invite_for_event_type.delay(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION, send_to_members=False,
-                                            user_list=[user_instance.id],
-                                            calendar_invite_type=CALENDAR_INVITE_TYPE.APPEND_ATTENDEES)
+            send_calender_invite_for_event_type.delay(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION,
+                                                      send_to_members=False, user_list=[user_instance.id],
+                                                      calendar_invite_type=CALENDAR_INVITE_TYPE.APPEND_ATTENDEES)
 
         ChatroomHelper.run_async_task_related_to_event_chatroom_attend_analytics(card_instance,
                                                                                  user_instance, status)
