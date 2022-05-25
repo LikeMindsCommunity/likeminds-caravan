@@ -411,6 +411,7 @@ class Userinfo(models.Model):
     has_tags = models.BooleanField(default=False)
     updated_at = models.BigIntegerField(default=0)
     user_unique_id = models.CharField(max_length=255, unique=True, null=True)
+    is_bot = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

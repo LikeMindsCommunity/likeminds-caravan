@@ -242,7 +242,7 @@ class FetchAllUsers(APIView):
         return JsonResponse(user_response)
 
 
-class CreateBotView(APIView):
+class BotView(APIView):
 
     def post(self, request):
         req_body = RequestUtilities.load_request_body(request)
@@ -258,7 +258,44 @@ class CreateBotView(APIView):
         if context.get('success'):
             return JsonResponse(context, status=status_codes.HTTP_200_OK)
 
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                            context.get('status')))
+
+    def put(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+        platform = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+
+        if not req_body:
+            return JsonResponse({'error_message': "Invalid request body"}, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_manager = UserImpl(user_id=member_id, platform_code=platform, version_code=version_code)
+        context = user_manager.update_user_bot(req_body)
+
+        if context.get('success'):
+            return JsonResponse(context, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                            context.get('status')))
+
+    def get(self, request):
+        req_body = RequestUtilities.load_request_body(request)
+        platform = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        if not req_body:
+            return JsonResponse({'error_message': "Invalid request body"}, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_manager = UserImpl(user_id=None, platform_code=platform, version_code=version_code)
+        context = user_manager.fetch_user_bot(api_key=api_key)
+
+        if context.get('success'):
+            return JsonResponse(context, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                            context.get('status')))
 
 
 class FetchUserInfoView(APIView):
