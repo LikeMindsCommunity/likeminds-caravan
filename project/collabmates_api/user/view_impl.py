@@ -250,7 +250,8 @@ class BotView(APIView):
         version_code = RequestUtilities.get_version_code_from_headers(request)
 
         if not req_body:
-            return JsonResponse({'error_message': "Invalid request body"}, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'success': False, 'error_message': "Invalid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
 
         user_manager = UserImpl(user_id=None, platform_code=platform, version_code=version_code)
         context = user_manager.create_user_bot(req_body)
@@ -268,7 +269,8 @@ class BotView(APIView):
         version_code = RequestUtilities.get_version_code_from_headers(request)
 
         if not req_body:
-            return JsonResponse({'error_message': "Invalid request body"}, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'success': False, 'error_message': "Invalid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
 
         user_manager = UserImpl(user_id=member_id, platform_code=platform, version_code=version_code)
         context = user_manager.update_user_bot(req_body)
@@ -280,13 +282,9 @@ class BotView(APIView):
                                                                             context.get('status')))
 
     def get(self, request):
-        req_body = RequestUtilities.load_request_body(request)
         platform = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
-
-        if not req_body:
-            return JsonResponse({'error_message': "Invalid request body"}, status=status_codes.HTTP_400_BAD_REQUEST)
 
         user_manager = UserImpl(user_id=None, platform_code=platform, version_code=version_code)
         context = user_manager.fetch_user_bot(api_key=api_key)
