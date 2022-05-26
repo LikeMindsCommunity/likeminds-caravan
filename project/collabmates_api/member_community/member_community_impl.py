@@ -27,6 +27,7 @@ from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from utility.utils import get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room
 from .constants import *
+from .member_community_view_helper import MemberCommunityViewHelper
 from ..community.constants import ANSWER_PRIVACY_PUBLIC_VALUE, ANSWER_PRIVACY_KEY, ANSWER_PRIVACY_PRIVATE_VALUE, \
     DIRECTORY_QUESTIONS_V2_ANSWER_KEY, DIRECTORY_QUESTIONS_V2_QUESTION_ID_KEY
 from ..sync.model_update import update_models_for_syncing_apis
@@ -1663,10 +1664,10 @@ class MemberCommunityImpl(MemberCommunityManager):
         return response
 
     def join_community_sdk(self) -> {}:
-        validated_request = MemberCommunityHelper.validate_join_community_sdk_request(self.get_member_id(),
-                                                                                      self.get_community_id())
+        validated_request = MemberCommunityViewHelper.validate_join_community_sdk_request(self.get_member_id(),
+                                                                                          self.get_community_id())
 
-        if not validated_request.get('success'):
+        if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
@@ -2459,20 +2460,6 @@ class MemberCommunityHelper:
                                                                                community_instance.id)}
 
             return response
-
-    @staticmethod
-    def validate_join_community_sdk_request(user_id, community_id):
-        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid user ID")
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community ID")
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance}
 
     @staticmethod
     def make_requesting_user_as_member_of_community(user_instance, community_instance, device_id=None, platform=None):
