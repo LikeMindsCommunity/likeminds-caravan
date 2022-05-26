@@ -1663,7 +1663,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return response
 
-    def join_community_sdk(self) -> {}:
+    def join_community_sdk(self, req_body: dict) -> {}:
         validated_request = MemberCommunityViewHelper.validate_join_community_sdk_request(self.get_member_id(),
                                                                                           self.get_community_id())
 
@@ -1679,7 +1679,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         if not members_filter:
             MemberCommunityHelper.make_requesting_user_as_member_of_community(user_instance, community_instance,
-                                                                              device_id=self.get_device_id(),
+                                                                              req_body, device_id=self.get_device_id(),
                                                                               platform=self.get_platform_code())
 
         user_has_access = Members.user_has_app_access(user_instance.id)
@@ -2462,10 +2462,12 @@ class MemberCommunityHelper:
             return response
 
     @staticmethod
-    def make_requesting_user_as_member_of_community(user_instance, community_instance, device_id=None, platform=None):
+    def make_requesting_user_as_member_of_community(user_instance, community_instance, req_body, device_id=None,
+                                                    platform=None):
         Members.create_instance({'user_instance': user_instance,
                                  'community_instance': community_instance,
                                  'state': member_states.MEMBER,
+                                 'image_url': req_body.get('image_url'),
                                  'custom_title': "Member",
                                  'became_member_at': TimeUtilities.current_time_in_sec()
                                  })

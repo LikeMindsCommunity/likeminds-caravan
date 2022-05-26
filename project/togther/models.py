@@ -222,6 +222,7 @@ class Members(models.Model):
         member_instance.is_owner = create_info.get('is_owner', False)
         member_instance.custom_title = create_info.get('custom_title', None)
         member_instance.became_member_at = create_info.get('became_member_at', 0)
+        member_instance.image_url = create_info.get('image_url', None)
         member_instance.save()
 
         return member_instance

@@ -473,7 +473,7 @@ class JoinCommunitySDKView(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id, community_id=req_body.get('community_id'),
                                                        device_id=device_id, platform_code=platform_code)
-        community_context = member_community_manager.join_community_sdk()
+        community_context = member_community_manager.join_community_sdk(req_body=req_body)
 
         if 'error_message' not in community_context:
             return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
