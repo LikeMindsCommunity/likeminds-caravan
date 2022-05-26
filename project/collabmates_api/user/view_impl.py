@@ -9,6 +9,7 @@ from utility.response_utilities import ResponseUtilities
 from cms.cms_auth_utilities import CMSAuthUtilities
 from django.conf import settings
 from collabmates_api.user.user_impl import UserImpl
+from collabmates_api.user.user_view_helper import UserViewHelper
 from rest_framework import status as status_codes
 
 
@@ -249,9 +250,11 @@ class BotView(APIView):
         platform = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
 
-        if not req_body:
-            return JsonResponse({'success': False, 'error_message': "Invalid request body"},
-                                status=status_codes.HTTP_400_BAD_REQUEST)
+        context = UserViewHelper.validate_user_bot_request_body(req_body)
+
+        if context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
 
         user_manager = UserImpl(user_id=None, platform_code=platform, version_code=version_code)
         context = user_manager.create_user_bot(req_body)
@@ -268,9 +271,11 @@ class BotView(APIView):
         platform = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
 
-        if not req_body:
-            return JsonResponse({'success': False, 'error_message': "Invalid request body"},
-                                status=status_codes.HTTP_400_BAD_REQUEST)
+        context = UserViewHelper.validate_user_bot_request_body(req_body)
+
+        if context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
 
         user_manager = UserImpl(user_id=member_id, platform_code=platform, version_code=version_code)
         context = user_manager.update_user_bot(req_body)

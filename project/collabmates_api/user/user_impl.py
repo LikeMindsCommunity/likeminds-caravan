@@ -943,7 +943,7 @@ class UserImpl(UserManager):
     def create_user_bot(self, req_body) -> dict:
         validated_request = UserViewHelper.validate_create_user_bot_request(req_body)
 
-        if not validated_request.get('success'):
+        if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
@@ -956,7 +956,7 @@ class UserImpl(UserManager):
 
         sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context)
 
-        if not sdk_user_context.get('success'):
+        if sdk_user_context.get('error_message'):
             return ResponseUtilities.get_impl_error_context(sdk_user_context.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
@@ -965,7 +965,7 @@ class UserImpl(UserManager):
     def update_user_bot(self, req_body) -> dict:
         validated_request = UserViewHelper.validate_update_user_bot_request(self.get_user_id(), req_body)
 
-        if not validated_request.get('success'):
+        if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
@@ -986,7 +986,7 @@ class UserImpl(UserManager):
     def fetch_user_bot(self, api_key: str = None) -> dict:
         validated_request = UserViewHelper.validate_fetch_user_bot_request(api_key)
 
-        if not validated_request.get('success'):
+        if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
