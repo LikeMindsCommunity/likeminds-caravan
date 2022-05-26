@@ -252,7 +252,7 @@ class BotView(APIView):
 
         context = UserViewHelper.validate_user_bot_request_body(req_body)
 
-        if context:
+        if context.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
                                                                                 context.get('status')))
 
@@ -273,7 +273,7 @@ class BotView(APIView):
 
         context = UserViewHelper.validate_user_bot_request_body(req_body)
 
-        if context:
+        if context.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
                                                                                 context.get('status')))
 
