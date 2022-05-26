@@ -35,6 +35,7 @@ from utility.response_utilities import ResponseUtilities
 from utility.url_utilities import UrlUtilities
 
 from .constants import *
+from .user_view_helper import UserViewHelper
 from ..raw_queries import get_community_id_list, get_conversations_after_last_seen_messages_in_chatrooms, \
     get_dm_chatrooms_of_user
 from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
@@ -940,7 +941,7 @@ class UserImpl(UserManager):
         return response_context
 
     def create_user_bot(self, req_body) -> dict:
-        validated_request = UserHelper.validate_create_user_bot_request(req_body)
+        validated_request = UserViewHelper.validate_create_user_bot_request(req_body)
 
         if not validated_request.get('success'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -962,7 +963,7 @@ class UserImpl(UserManager):
         return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'))
 
     def update_user_bot(self, req_body) -> dict:
-        validated_request = UserHelper.validate_update_user_bot_request(self.get_user_id(), req_body)
+        validated_request = UserViewHelper.validate_update_user_bot_request(self.get_user_id(), req_body)
 
         if not validated_request.get('success'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -983,7 +984,7 @@ class UserImpl(UserManager):
         return self.create_user_context_for_sdk(validated_request.get('user_instance'))
 
     def fetch_user_bot(self, api_key: str = None) -> dict:
-        validated_request = UserHelper.validate_fetch_user_bot_request(api_key)
+        validated_request = UserViewHelper.validate_fetch_user_bot_request(api_key)
 
         if not validated_request.get('success'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -1690,31 +1691,3 @@ class UserHelper:
                                                                                                       flat=True))])
 
         return TimeUtilities.add_hours_to_epoch_time(dm_disabled_time, ONE_DAY_HOURS)
-
-    @staticmethod
-    def validate_create_user_bot_request(req_body):
-        if 'community_name' not in req_body:
-            return ResponseUtilities.get_error_context(False, 'Empty community name!')
-
-        return {'success': True, 'community_name': req_body.get('community_name')}
-
-    @staticmethod
-    def validate_update_user_bot_request(user_id, req_body):
-        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
-
-        if not user_instance:
-            return ResponseUtilities.get_error_context(False, 'Invalid user id!')
-
-        if not req_body.get('community_name'):
-            return ResponseUtilities.get_error_context(False, 'Empty community name!')
-
-        return {'success': True, 'user_instance': user_instance, 'community_name': req_body.get('community_name')}
-
-    @staticmethod
-    def validate_fetch_user_bot_request(api_key):
-        community_instance = SdkClient.get_community_instance_or_none(api_key)
-
-        if not community_instance:
-            return ResponseUtilities.get_error_context(False, 'Invalid API key!')
-
-        return {'success': True, 'community_instance': community_instance}
