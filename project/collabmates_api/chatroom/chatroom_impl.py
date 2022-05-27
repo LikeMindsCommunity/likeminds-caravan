@@ -24,12 +24,14 @@ from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_P
     DM_CHATROOM_NAME
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
+from .chatroom_view_helper import ChatroomViewHelper
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of_new_event_chatrooms_created_for_user, \
     get_last_seen_non_member_access_event_chatroom_id_for_community_managers, \
     get_last_seen_non_member_access_event_for_user, \
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
-    get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right
+    get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right, \
+    get_participant_counts_on_basis_of_chatroom_ids
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, ScheduledChatroomFollowSerializer
@@ -935,6 +937,38 @@ class ChatroomImpl(ChatroomManager):
         chatroom_obj['success'] = True
 
         return chatroom_obj
+
+    def fetch_all_chatroom(self, api_key: str = None) -> dict:
+        validated_req = ChatroomViewHelper.validate_fetch_all_chatroom_request(self.get_member_id(),
+                                                                               api_key=api_key)
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = validated_req.get('user_instance')
+        community_instance = validated_req.get('community_instance')
+
+        chatrooms_filter = ModelUtilities.get_model_filter(Collabcard, {'user': user_instance,
+                                                                        'community': community_instance})
+
+        chatroom_object_list = []
+
+        if chatrooms_filter:
+            card_ids = list(chatrooms_filter.values_list('id', flat=True))
+            card_participants_count_map = get_participant_counts_on_basis_of_chatroom_ids(card_ids)
+
+            context = {
+                'member_id': self.get_member_id(),
+                'current_user_id': self.get_member_id()
+            }
+            chatroom_objects = GetChatroomInstanceSerializer(chatrooms_filter, context=context, many=True).data
+
+            for chatroom_object in chatroom_objects:
+                chatroom_object['participants_count'] = card_participants_count_map.get(chatroom_object.get('id'), 0)
+                chatroom_object_list.append(chatroom_object)
+
+        return {'success': True, 'chatrooms': chatroom_object_list}
 
     def create_chatroom(self, req_body: dict) -> dict:
 

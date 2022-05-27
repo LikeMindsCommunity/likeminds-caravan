@@ -37,7 +37,26 @@ class FetchChatroomView(APIView):
         if 'error_message' in chatroom_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
                                                                                 chatroom_data.get('status')))
+        return JsonResponse(chatroom_data)
 
+
+class FetchAllChatroomView(APIView):
+    """ inheriting API view class for using class based views in django """
+
+    def get(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+        request_platform = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        chatroom_manager = ChatroomImpl(member_id, device_id=device_id, request_platform=request_platform,
+                                        version_code=version_code)
+        chatroom_data = chatroom_manager.fetch_all_chatroom(api_key=api_key)
+
+        if chatroom_data.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
+                                                                                chatroom_data.get('status')))
         return JsonResponse(chatroom_data)
 
 

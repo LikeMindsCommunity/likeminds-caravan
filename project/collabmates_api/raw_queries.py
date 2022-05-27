@@ -2462,3 +2462,28 @@ def get_conversations_after_last_seen_messages_in_chatrooms(chatrooms_list, data
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_participant_counts_on_basis_of_chatroom_ids(card_ids_list):
+    try:
+        card_tuple = ",".join([str(card_id) for card_id in card_ids_list])
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """SELECT card_id,
+                        Count(*)
+                 FROM  togther_collabcardstate
+                 WHERE card_id IN (%s)
+                       AND follow_status = true
+                       AND is_tagged = false
+                       AND remove_id IS NULL
+                 GROUP BY card_id;""" % card_tuple
+        curr.execute(sql)
+        card_list = curr.fetchall()
+        curr.close()
+
+        return {data[0]: data[1] for data in card_list}
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
