@@ -1,6 +1,6 @@
 from django.db import models
 from utility.time_utilities import TimeUtilities
-from togther.models import Community
+from togther.models import (Community, ModelUtilities)
 
 
 class SdkClient(models.Model):
@@ -19,6 +19,30 @@ class SdkClient(models.Model):
         self.updated_at = current_time
 
         super(SdkClient, self).save(*args, **kwargs)
+
+    @staticmethod
+    def get_community_instance_or_none(pk):
+        instance = None
+
+        if not pk:
+            return instance
+
+        if str(pk).isdigit():
+            column_name = "id"
+            model = Community
+        else:
+            column_name = "api_key"
+            model = SdkClient
+
+        instance_filter = ModelUtilities.get_model_filter(model, {column_name: pk})
+
+        if instance_filter:
+            instance = instance_filter[0]
+
+            if column_name == "api_key":
+                instance = instance.community
+
+        return instance
 
 
 class SdkPlatform(models.Model):

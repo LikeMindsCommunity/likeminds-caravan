@@ -35,6 +35,7 @@ from utility.response_utilities import ResponseUtilities
 from utility.url_utilities import UrlUtilities
 
 from .constants import *
+from .user_view_helper import UserViewHelper
 from ..raw_queries import get_community_id_list, get_conversations_after_last_seen_messages_in_chatrooms, \
     get_dm_chatrooms_of_user
 from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
@@ -336,6 +337,7 @@ class UserImpl(UserManager):
             userinfo_instance.created_at = TimeUtilities.current_time_in_sec()
             userinfo_instance.user_id = user_instance
             userinfo_instance.user_unique_id = unique_id
+            userinfo_instance.is_bot = user_context.get('is_bot', False)
             userinfo_instance.save()
 
             if user_unique_id and community_instance:
@@ -939,29 +941,68 @@ class UserImpl(UserManager):
         return response_context
 
     def create_user_bot(self, req_body) -> dict:
-        validated_request = UserHelper.validate_create_user_bot_request(req_body)
+        validated_request = UserViewHelper.validate_create_user_bot_request(req_body)
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_name = validated_request.get('community_name')
 
         user_context = {
             'user_name': CREATE_USER_BOT_NAME.format(community_name),
+            'is_bot': True
         }
 
-        user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'name': user_context.get('user_name')})
+        sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context)
 
-        if not user_info_filter:
-            sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context)
+        if sdk_user_context.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(sdk_user_context.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-            if not sdk_user_context.get('success'):
-                return sdk_user_context
+        return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'))
 
-            return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'))
+    def update_user_bot(self, req_body) -> dict:
+        validated_request = UserViewHelper.validate_update_user_bot_request(self.get_user_id(), req_body)
 
-        else:
-            return self.create_user_context_for_sdk(user_info_filter[0].user_id)
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_name = validated_request.get('community_name')
+
+        filter_dict = {
+            'user_id': validated_request.get('user_instance')
+        }
+
+        update_dict = {
+            'name': CREATE_USER_BOT_NAME.format(community_name)
+        }
+
+        ModelUtilities.update_or_create_model(Userinfo, filter_dict, update_dict)
+
+        return self.create_user_context_for_sdk(validated_request.get('user_instance'))
+
+    def fetch_user_bot(self, api_key: str = None) -> dict:
+        validated_request = UserViewHelper.validate_fetch_user_bot_request(api_key)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+
+        user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
+
+        if not user_instance:
+            return ResponseUtilities.get_impl_error_context('No owner in community',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        if user_instance.userinfo.is_bot:
+            return self.create_user_context_for_sdk(user_instance)
+
+        return ResponseUtilities.get_impl_error_context('Community bot not found',
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def fetch_user_info(self) -> dict:
         user_instance = ModelUtilities.get_user_instance_or_none(self.get_user_id())
@@ -1650,10 +1691,3 @@ class UserHelper:
                                                                                                       flat=True))])
 
         return TimeUtilities.add_hours_to_epoch_time(dm_disabled_time, ONE_DAY_HOURS)
-
-    @staticmethod
-    def validate_create_user_bot_request(req_body):
-        if 'community_name' not in req_body:
-            return ResponseUtilities.get_error_context(False, 'Empty community name!')
-
-        return {'success': True, 'community_name': req_body.get('community_name')}
