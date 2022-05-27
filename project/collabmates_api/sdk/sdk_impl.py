@@ -66,7 +66,7 @@ class SdkImpl(SdkManager):
         unique_id = str(uuid.uuid4())
         community_id = create_community['community'].get('id')
 
-        sdk_client = SdkClient(community_id=community_id, api_key=unique_id, project_creator=project_creator)
+        sdk_client = SdkClient(community_id=community_id, api_key=unique_id, project_creator=project_creator.userinfo)
         sdk_client.save()
 
         platforms = req_body.get('platform')
