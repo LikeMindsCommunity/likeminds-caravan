@@ -51,8 +51,8 @@ class FetchAllChatroomView(APIView):
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
         chatroom_manager = ChatroomImpl(member_id, device_id=device_id, request_platform=request_platform,
-                                        version_code=version_code)
-        chatroom_data = chatroom_manager.fetch_all_chatroom(api_key=api_key)
+                                        version_code=version_code, api_key=api_key)
+        chatroom_data = chatroom_manager.fetch_all_chatroom()
 
         if chatroom_data.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
@@ -68,20 +68,19 @@ class CreateChatroomView(APIView):
 
     def post(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
-        if not member_id:
-            raise InvalidHeaderException()
-
         req_body = RequestUtilities.fetch_request_body(request)
-
         device_id = RequestUtilities.get_device_id_from_headers(request)
         request_platform = RequestUtilities.get_platform_code(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
-        chatroom_manager = ChatroomImpl(member_id, device_id=device_id,
-                                        request_platform=request_platform)
-        context = chatroom_manager.create_chatroom(req_body)
+        chatroom_manager = ChatroomImpl(member_id, device_id=device_id, request_platform=request_platform,
+                                        api_key=api_key)
+        chatroom_data = chatroom_manager.create_chatroom(req_body)
 
-        return JsonResponse(context)
+        if chatroom_data.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
+                                                                                chatroom_data.get('status')))
+        return JsonResponse(chatroom_data)
 
 
 class PinUnpinChatroomView(APIView):

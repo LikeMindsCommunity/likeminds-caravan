@@ -329,8 +329,8 @@ class FetchMembersMeta(APIView):
         community_id = request.GET.get('community_id')
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
-        community_manager = CommunityImpl(member_id=member_id, community_id=community_id)
-        chatroom_data = community_manager.fetch_members_meta(community_id, api_key=api_key)
+        community_manager = CommunityImpl(member_id=member_id, community_id=community_id, api_key=api_key)
+        chatroom_data = community_manager.fetch_members_meta(community_id)
 
         if 'error_message' in chatroom_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),

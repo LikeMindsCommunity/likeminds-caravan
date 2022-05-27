@@ -94,14 +94,15 @@ class CommunityImpl(CommunityManager):
     community_id = None
     version_code = None
 
-    def __init__(self, member_id: str, community_id: str = None, version_code: str = None,
-                 device_id: str = None, request_platform: str = None):
+    def __init__(self, member_id: str, community_id: str = None, version_code: str = None, device_id: str = None,
+                 request_platform: str = None, api_key: str = None):
 
         self.member_id = member_id
         self.community_id = community_id
         self.version_code = version_code
         self.device_id = device_id
         self.request_platform = request_platform
+        self.api_key = api_key
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -120,6 +121,9 @@ class CommunityImpl(CommunityManager):
 
     def get_version_code(self):
         return self.version_code
+
+    def get_api_key(self):
+        return self.api_key
 
     def set_community_id(self, community_id) -> None:
         self.community_id = community_id
@@ -938,10 +942,10 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True, 'access': user_has_access}
 
-    def fetch_members_meta(self, community_id, api_key: str = None):
+    def fetch_members_meta(self, community_id):
         validated_req = CommunityViewHelper.validate_fetch_members_meta_request(self.get_member_id(),
                                                                                 self.get_community_id(),
-                                                                                api_key=api_key)
+                                                                                api_key=self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),

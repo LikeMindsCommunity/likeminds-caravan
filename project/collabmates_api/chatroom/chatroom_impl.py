@@ -118,9 +118,8 @@ class ChatroomImpl(ChatroomManager):
     device_id = None
     request_platform = None
 
-    def __init__(self, member_id: str, chatroom_id: str = None,
-                 source_id: str = None, aj: str = None,
-                 device_id: str = None, request_platform: str = None, version_code: int = 0):
+    def __init__(self, member_id: str, chatroom_id: str = None, source_id: str = None, aj: str = None,
+                 device_id: str = None, request_platform: str = None, version_code: int = 0, api_key: str = None):
         self.member_id = member_id
         self.chatroom_id = chatroom_id
         self.source_id = source_id
@@ -128,6 +127,7 @@ class ChatroomImpl(ChatroomManager):
         self.device_id = device_id
         self.request_platform = request_platform
         self.version_code = version_code
+        self.api_key = api_key
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -161,6 +161,9 @@ class ChatroomImpl(ChatroomManager):
 
     def get_device_id(self):
         return self.device_id
+
+    def get_api_key(self):
+        return self.api_key
 
     def _make_user_chatroom_guest(self, card_instance):
         guest_context = adding_guest_in_chatroom({}, card_instance, self.get_aj(), self.get_source_id(),
@@ -938,9 +941,9 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_obj
 
-    def fetch_all_chatroom(self, api_key: str = None) -> dict:
+    def fetch_all_chatroom(self) -> dict:
         validated_req = ChatroomViewHelper.validate_fetch_all_chatroom_request(self.get_member_id(),
-                                                                               api_key=api_key)
+                                                                               api_key=self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -971,21 +974,17 @@ class ChatroomImpl(ChatroomManager):
         return {'success': True, 'chatrooms': chatroom_object_list}
 
     def create_chatroom(self, req_body: dict) -> dict:
+        validated_req = ChatroomViewHelper.validate_create_chatroom_request(self.get_member_id(),
+                                                                            self.get_api_key(),
+                                                                            req_body)
 
-        community_id = req_body.get('community_id', None)
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not community_id:
-            response = {
-                'success': False,
-                'error_message': 'Send community id in body'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
-
-        user_instance = ChatroomHelper.fetch_user_instance_or_raise_exception(self.get_member_id())
-        community_instance = ChatroomHelper.fetch_community_instance(community_id=community_id)
-
-        ChatroomHelper.is_user_community_member_or_raise_exception(community=community_instance,
-                                                                   user=user_instance)
+        user_instance = validated_req.get('user_instance')
+        community_instance = validated_req.get('community_instance')
+        community_id = community_instance.id
 
         member_state = ChatroomHelper.fetch_member_state_in_community(user=user_instance,
                                                                       community=community_instance)
@@ -1022,11 +1021,9 @@ class ChatroomImpl(ChatroomManager):
 
         if card_content['is_secret'] and \
                 not ChatroomHelper.check_user_secret_room_creation_right(user_instance, community_instance):
-            response = {
-                "success": False,
-                "error_message": "Only CM or member with secret chatroom creation right can create secret chatroom"
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+            error_message = "Only CM or member with secret chatroom creation right can create secret chatroom"
+            return ResponseUtilities.get_impl_error_context(error_message,
+                                                            status_code=status_codes.HTTP_403_FORBIDDEN)
 
         chatroom_instance = self._create_chatroom_with_contents(card_content=card_content)
         self.set_chatroom_id(chatroom_instance.id)
