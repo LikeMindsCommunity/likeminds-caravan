@@ -2,7 +2,7 @@ from rest_framework import status as status_codes
 
 from .sdk_manager import SdkManager
 from utility.response_utilities import ResponseUtilities
-from utility.states import api_types
+from utility.states import (api_types, login_types)
 from utility.auth_utilities import AuthUtilities
 from togther.models import ModelUtilities
 from .models import SdkClient, SdkPlatform
@@ -90,7 +90,7 @@ class SdkImpl(SdkManager):
 
         sdk_client = api_key_validation.get('sdk_client')
 
-        req_body['type'] = str(api_types.SDK)
+        req_body['type'] = login_types.SDK
 
         user_manager = UserImpl(user_id="", mobile_no="")
         login_user = user_manager.login(req_body, self.get_request_platform(), self.get_device_id(),
