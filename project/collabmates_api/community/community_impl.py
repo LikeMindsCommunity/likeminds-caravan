@@ -4,6 +4,7 @@ from celery import shared_task
 from django.contrib.auth.models import User
 from django.template.loader import get_template
 import re
+from rest_framework import status as status_codes
 
 from cms.models import NewAnswer
 from collabmates_api.community.constants import *
@@ -48,6 +49,7 @@ from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 
 from collabmates_api.community.community_manager import CommunityManager
+from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 
 from collabmates_api.mails import send_created_community_email_to_team
@@ -66,6 +68,7 @@ from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
 from utility.constants import PLATFORM_CODE_WEB
 from utility.api_client import ApiClient
+from utility.response_utilities import ResponseUtilities
 
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
@@ -935,21 +938,20 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True, 'access': user_has_access}
 
-    def fetch_members_meta(self, community_id):
+    def fetch_members_meta(self, community_id, api_key: str = None):
+        validated_req = CommunityViewHelper.validate_fetch_members_meta_request(self.get_member_id(),
+                                                                                self.get_community_id(),
+                                                                                api_key=api_key)
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not user_instance:
-            return {'error_message': "invalid user id"}
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return {'error_message': "invalid community id"}
+        community_instance = validated_req.get('community_instance')
 
         members = ChatroomImpl.compute_tagging_list_of_community_members(community_instance)
 
-        return {'members': members}
+        return {'success': True, 'members': members}
 
     def fetch_content_download_settings(self, chatroom_id=None):
 
