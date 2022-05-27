@@ -804,7 +804,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                          ).order_by('created_at')
         return member_queryset
 
-    def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="") -> {}:
+    def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1) -> {}:
 
         community_instance = Community.get_community_or_None(self.get_community_id())
 
@@ -838,7 +838,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
                 pin_status, intro_room_setting_enabled, excluded_card_ids)
 
-            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type)
+            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type,
+                                                                                   page=page)
 
         else:
 
@@ -876,7 +877,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'chatrooms': chatroom_context_list}
 
-    def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="") -> {}:
+    def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="",
+                       page=1) -> {}:
 
         community_instance = Community.get_community_or_None(self.get_community_id())
 
@@ -909,7 +911,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
                 pin_status, intro_room_setting_enabled, excluded_card_ids)
 
-            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type)
+            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type,
+                                                                                   page=page)
 
         else:
 
@@ -1510,7 +1513,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         ordered_card_ids = []
 
         if order_type == 0:
-            return chatroom_queryset.order_by('-card__created_at')
+            return ModelUtilities.paginate_queryset(chatroom_queryset.order_by('-card__created_at'), page=page,
+                                                    paginate_by=limit)
 
         # Recently Active
         if order_type == 1:

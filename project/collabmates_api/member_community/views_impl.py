@@ -58,6 +58,7 @@ class FetchCommunityFeed(APIView):
         chatroom_id = request.GET.get('chatroom_id')
         scroll_direction = request.GET.get('scroll_direction')
         order_type = request.GET.get('order_type', 0)
+        page = NumberUtilities.get_integer_from_string(request.GET.get('page'))
 
         if (chatroom_id and not scroll_direction) or (scroll_direction and not chatroom_id):
             return JsonResponse({'error_message': "Invalid request parameters", 'status': 400})
@@ -72,12 +73,14 @@ class FetchCommunityFeed(APIView):
 
             chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
                                                             scroll_direction=scroll_direction,
-                                                            api_version=api_version, order_type=order_type)
+                                                            api_version=api_version, order_type=order_type,
+                                                            page=page)
 
         elif RequestUtilities.is_request_web(request):
 
             chatroom_context = community_manager.fetch_feed_web(pin_status, order_type,
-                                                                chatroom_id, scroll_direction, api_version=api_version)
+                                                                chatroom_id, scroll_direction, api_version=api_version,
+                                                                page=page)
 
         else:
 
