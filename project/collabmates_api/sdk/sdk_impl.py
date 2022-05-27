@@ -44,9 +44,15 @@ class SdkImpl(SdkManager):
     def get_device_id(self) -> str:
         return self.device_id
 
-    def create_sdk(self, req_body) -> dict:
+    def create_sdk_project(self, req_body) -> dict:
 
         req_body['type'] = api_types.SDK
+
+        project_creator = ModelUtilities.get_user_instance_or_none(req_body.get('project_creator'))
+
+        if not project_creator:
+            return ResponseUtilities.get_impl_error_context('Invalid project_creator',
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(self.get_member_id(),
                                           request_platform=self.get_request_platform(),
@@ -54,13 +60,13 @@ class SdkImpl(SdkManager):
         create_community = community_manager.create_community(req_body)
 
         if 'error_message' in create_community:
-            return ResponseUtilities.get_impl_error_context('Community Creation Failed',
+            return ResponseUtilities.get_impl_error_context(create_community['error_message'],
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
         unique_id = str(uuid.uuid4())
         community_id = create_community['community'].get('id')
 
-        sdk_client = SdkClient(community_id=community_id, api_key=unique_id)
+        sdk_client = SdkClient(community_id=community_id, api_key=unique_id, project_creator=project_creator)
         sdk_client.save()
 
         platforms = req_body.get('platform')

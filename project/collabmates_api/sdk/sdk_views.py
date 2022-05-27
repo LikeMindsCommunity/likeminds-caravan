@@ -8,7 +8,7 @@ from .sdk_view_helper import SdkViewHelper
 from .sdk_impl import SdkImpl
 
 
-class CreateSdkView(APIView):
+class SdkProjectView(APIView):
 
     def post(self, request):
 
@@ -16,7 +16,7 @@ class CreateSdkView(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         request_platform = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
-        validated_request_body = SdkViewHelper.create_sdk_body_validator(request_body, member_id)
+        validated_request_body = SdkViewHelper.create_sdk_project_body_validator(request_body, member_id)
 
         if 'error_message' in validated_request_body:
             context = ResponseUtilities.get_view_impl_error_context(validated_request_body['error_message'],
@@ -24,7 +24,7 @@ class CreateSdkView(APIView):
             return JsonResponse(context['data'], status=context['status'])
 
         sdk_manager = SdkImpl(member_id=member_id, request_platform=request_platform, version_code=version_code)
-        response_data = sdk_manager.create_sdk(validated_request_body)
+        response_data = sdk_manager.create_sdk_project(validated_request_body)
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
