@@ -11,6 +11,7 @@ from utility.response_utilities import ResponseUtilities
 
 from collabmates_api.views import get_error_context
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+from collabmates_api.member_community.member_community_view_helper import MemberCommunityViewHelper
 from collabmates_api.member_community.views_manager import ViewsManager
 
 
@@ -461,32 +462,21 @@ class MemberCanDMView(APIView):
 
 class JoinCommunitySDKView(APIView):
 
-    @staticmethod
-    def _validate_request(member_id, req_body):
-
-        if not member_id:
-            return {'error_message': 'Query params missing'}
-
-        if not req_body.get('community_id'):
-            return {'error_message': 'Query params missing'}
-
-        return {'success': True}
-
     def post(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         req_body = RequestUtilities.load_request_body(request)
-        validated_req_body = self._validate_request(member_id, req_body)
+        validated_req_body = MemberCommunityViewHelper.validate_join_community_request(member_id, req_body)
         device_id = RequestUtilities.get_device_id_from_headers(request)
         platform_code = RequestUtilities.get_platform_code(request)
 
-        if not validated_req_body.get('success', False):
-            return JsonResponse({'success': False, 'error_message': "Invalid request body"},
-                                status=status_codes.HTTP_400_BAD_REQUEST)
+        if validated_req_body.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_req_body.get('error_message'),
+                                                                                validated_req_body.get('status')))
 
         member_community_manager = MemberCommunityImpl(member_id, community_id=req_body.get('community_id'),
                                                        device_id=device_id, platform_code=platform_code)
-        community_context = member_community_manager.join_community_sdk()
+        community_context = member_community_manager.join_community_sdk(req_body=req_body)
 
         if 'error_message' not in community_context:
             return JsonResponse(community_context, status=status_codes.HTTP_200_OK)

@@ -130,7 +130,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def join_community_sdk(self) -> {}:
+    def join_community_sdk(self, req_body: dict) -> {}:
         """Meember joins a community in SDK"""
 
         raise NotImplementedError
