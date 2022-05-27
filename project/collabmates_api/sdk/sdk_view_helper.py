@@ -4,6 +4,20 @@ from utility.response_utilities import ResponseUtilities
 class SdkViewHelper:
 
     @staticmethod
+    def fetch_sdk_project_validator(request_params, member_id):
+
+        if not request_params:
+            return ResponseUtilities.get_inner_error_context('invalid request params')
+
+        if 'project_creator' not in request_params and not request_params.get('project_creator'):
+            return ResponseUtilities.get_inner_error_context('send project_creator in params')
+
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context('send member_id in headers')
+
+        return request_params
+
+    @staticmethod
     def create_sdk_project_body_validator(request_body, member_id):
 
         if not request_body:
