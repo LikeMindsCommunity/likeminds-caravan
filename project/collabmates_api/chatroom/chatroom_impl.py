@@ -1468,28 +1468,22 @@ class ChatroomImpl(ChatroomManager):
             raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def edit_chatroom(self, req_body) -> dict:
+        validated_req = ChatroomViewHelper.validate_edit_chatroom_request(self.get_member_id(),
+                                                                          self.get_chatroom_id())
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user id"}
-
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
-
-        if not card_instance:
-            return {'success': False, 'error_message': "Invalid chatroom id"}
-
-        is_cm = Members.is_member_community_promoter(card_instance.community, user_instance)
-
-        if card_instance.user_id != user_instance.id and not is_cm:
-            return {'success': False, 'error_message': "You don’t have ability to update chatroom meta data"}
+        card_instance = validated_req.get('card_instance')
 
         title = req_body.get('title')
         text = req_body.get('text')
         header = req_body.get('header')
 
         if not title and not header and not text:
-            return {'success': False, 'error_message': "Send title or header to update"}
+            return ResponseUtilities.get_impl_error_context("Send title or header to update",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         update_analytics_data = {
             'updated_title': False,

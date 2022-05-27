@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from ..rest_api import get_error_context
 from ..chatroom.chatroom_impl import ChatroomImpl
+from .chatroom_view_helper import ChatroomViewHelper
 from ..mixins import TransactionMixin
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.response_utilities import ResponseUtilities
@@ -250,20 +251,23 @@ class EditChatroomView(APIView):
 
     def post(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
         req_body = RequestUtilities.load_request_body(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
-        if not req_body:
-            return JsonResponse({'success': False, 'error_message': "Invalid request"})
+        validated_req = ChatroomViewHelper.validate_req_body(req_body)
 
-        chatroom_manager = ChatroomImpl(member_id)
+        if validated_req.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_req.get('error_message'),
+                                                                                validated_req.get('status')))
 
-        response = chatroom_manager.edit_chatroom(req_body)
+        chatroom_manager = ChatroomImpl(member_id, chatroom_id=req_body.get('chatroom_id'), api_key=api_key)
+        chatroom_data = chatroom_manager.edit_chatroom(req_body)
 
-        if response.get('error_message'):
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+        if chatroom_data.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
+                                                                                chatroom_data.get('status')))
 
-        return JsonResponse(response)
+        return JsonResponse(chatroom_data)
 
 
 class FetchParticipantsOfSecretChatroom(APIView):
