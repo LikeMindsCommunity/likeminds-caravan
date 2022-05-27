@@ -168,17 +168,19 @@ class UserImpl(UserManager):
 
     def logout(self, device_id) -> dict:
 
-        user_instance = User.get_user_or_none(self.get_user_id())
+        user_instance = ModelUtilities.get_user_instance_or_none(self.get_user_id())
 
         if not user_instance:
-            return {'error_message': "In-valid user id", 'success': False}
+            return ResponseUtilities.get_impl_error_context("Invalid user id",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         device_count = self.delete_notification_sending_details(user_instance, device_id)
 
         if device_count[0]:
             return {'success': True}
 
-        return {'error_message': "In-valid device id", 'success': False}
+        return ResponseUtilities.get_impl_error_context("Invalid device id",
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def _get_community_instances_for_user(self):
         community_id_list = get_community_id_list(self.get_user_id())
