@@ -1,4 +1,5 @@
 from utility.response_utilities import ResponseUtilities
+from togther.models import ModelUtilities
 
 
 class SdkViewHelper:
@@ -11,6 +12,13 @@ class SdkViewHelper:
 
         if 'project_creator' not in request_params and not request_params.get('project_creator'):
             return ResponseUtilities.get_inner_error_context('send project_creator in params')
+
+        project_creator = ModelUtilities.get_user_instance_or_none(request_params.get('project_creator'))
+
+        if not project_creator:
+            return ResponseUtilities.get_inner_error_context('Invalid project_creator')
+
+        request_params['project_creator'] = project_creator
 
         if not member_id:
             return ResponseUtilities.get_inner_error_context('send member_id in headers')
@@ -28,6 +36,13 @@ class SdkViewHelper:
 
         if 'project_creator' not in request_body or not request_body.get('project_creator'):
             return ResponseUtilities.get_inner_error_context('send project_creator in body')
+
+        project_creator = ModelUtilities.get_user_instance_or_none(request_body.get('project_creator'))
+
+        if not project_creator:
+            return ResponseUtilities.get_inner_error_context('Invalid project_creator')
+
+        request_body['project_creator'] = project_creator
 
         if 'name' not in request_body or not request_body.get('name'):
             return ResponseUtilities.get_inner_error_context('send name in body')

@@ -33,10 +33,7 @@ class SdkProjectView(APIView):
                                                                     response_data['status'])
             return JsonResponse(context['data'], status=context['status'])
 
-        return JsonResponse(
-            {'success': True, 'projects': response_data.get('projects')},
-            status=status_codes.HTTP_200_OK
-        )
+        return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
 
     def post(self, request):
 
@@ -59,10 +56,7 @@ class SdkProjectView(APIView):
                                                                     response_data['status'])
             return JsonResponse(context['data'], status=context['status'])
 
-        return JsonResponse(
-            {'success': True, 'api_key': response_data.get('api_key')},
-            status=status_codes.HTTP_200_OK
-        )
+        return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
 
 
 class InitiateSdkView(APIView):

@@ -47,14 +47,8 @@ class SdkImpl(SdkManager):
 
     def fetch_sdk_project(self, request_params) -> dict:
 
-        project_creator = ModelUtilities.get_user_instance_or_none(request_params.get('project_creator'))
-
-        if not project_creator:
-            return ResponseUtilities.get_impl_error_context('Invalid project_creator',
-                                                            status_codes.HTTP_400_BAD_REQUEST)
-
         filters = {
-            'project_creator': project_creator
+            'project_creator': request_params.get('project_creator')
         }
 
         api_key = self.get_api_key()
@@ -67,17 +61,11 @@ class SdkImpl(SdkManager):
         if not projects:
             return ResponseUtilities.get_impl_error_context('No projects found', status_codes.HTTP_404_NOT_FOUND)
 
-        return {'projects': SdkProjectSerializer(projects).data}
+        return {'success': True, 'projects': SdkProjectSerializer(projects).data}
 
     def create_sdk_project(self, req_body) -> dict:
 
         req_body['type'] = api_types.SDK
-
-        project_creator = ModelUtilities.get_user_instance_or_none(req_body.get('project_creator'))
-
-        if not project_creator:
-            return ResponseUtilities.get_impl_error_context('Invalid project_creator',
-                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(self.get_member_id(),
                                           request_platform=self.get_request_platform(),
@@ -91,7 +79,8 @@ class SdkImpl(SdkManager):
         unique_id = str(uuid.uuid4())
         community_id = create_community['community'].get('id')
 
-        sdk_client = SdkClient(community_id=community_id, api_key=unique_id, project_creator=project_creator)
+        sdk_client = SdkClient(community_id=community_id, api_key=unique_id,
+                               project_creator=req_body.get('project_creator'))
         sdk_client.save()
 
         platforms = req_body.get('platform')
@@ -109,7 +98,7 @@ class SdkImpl(SdkManager):
                                            certificate=platform.get('certificate'))
                 sdk_platform.save()
 
-        return {'api_key': unique_id}
+        return {'success': True, 'api_key': unique_id}
 
     def initiate_sdk(self, req_body) -> dict:
 
