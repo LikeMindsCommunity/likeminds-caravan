@@ -10544,26 +10544,36 @@ def fetch_community_manager_rights(request):
     """ function to fetch manager rights """
 
     if request.method == 'POST':
-        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to GET'})
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to GET'},
+                            status=status_codes.HTTP_405_METHOD_NOT_ALLOWED)
 
     current_user_id = get_member_id_from_headers(request)
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
-    context = None
+    community_id = community_id if community_id else api_key
+
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     if not user_id:
         context = get_error_context(False, "send user_id in params")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    community_instance = Community.objects.get(pk=community_id)
+    if not community_id:
+        context = get_error_context(False, "Invalid API key/community ID")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    community_instance = SdkClient.get_community_instance_or_none(community_id)
+
+    if not community_instance:
+        context = get_error_context(False, "Invalid API key/community ID")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     current_user_instance = User.objects.get(pk=current_user_id)
     user_instance = User.objects.get(pk=user_id)
 
