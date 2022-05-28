@@ -23,6 +23,11 @@ class SdkViewHelper:
         if not member_id:
             return ResponseUtilities.get_inner_error_context('send member_id in headers')
 
+        member = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not member:
+            return ResponseUtilities.get_inner_error_context('Invalid x-member-id')
+
         return request_params
 
     @staticmethod
@@ -33,6 +38,11 @@ class SdkViewHelper:
 
         if not member_id:
             return ResponseUtilities.get_inner_error_context('send member_id in headers')
+
+        member = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not member:
+            return ResponseUtilities.get_inner_error_context('Invalid x-member-id')
 
         if 'project_creator' not in request_body or not request_body.get('project_creator'):
             return ResponseUtilities.get_inner_error_context('send project_creator in body')
