@@ -55,7 +55,7 @@ class SdkImpl(SdkManager):
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
         filters = {
-            'project_creator': request_params.get('project_creator')
+            'project_creator': validated_request.get('project_creator')
         }
 
         api_key = self.get_api_key()
@@ -93,7 +93,7 @@ class SdkImpl(SdkManager):
         community_id = create_community['community'].get('id')
 
         sdk_client = SdkClient(community_id=community_id, api_key=unique_id,
-                               project_creator=req_body.get('project_creator'))
+                               project_creator=validated_request_body.get('project_creator'))
         sdk_client.save()
 
         platforms = req_body.get('platform')

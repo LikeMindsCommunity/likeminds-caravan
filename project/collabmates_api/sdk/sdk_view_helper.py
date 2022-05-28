@@ -18,8 +18,6 @@ class SdkViewHelper:
         if not project_creator:
             return ResponseUtilities.get_inner_error_context('Invalid project_creator')
 
-        request_params['project_creator'] = project_creator
-
         if not member_id:
             return ResponseUtilities.get_inner_error_context('send member_id in headers')
 
@@ -28,7 +26,7 @@ class SdkViewHelper:
         if not member:
             return ResponseUtilities.get_inner_error_context('Invalid x-member-id')
 
-        return request_params
+        return {'project_creator': project_creator}
 
     @staticmethod
     def create_sdk_project_body_validator(request_body, member_id):
@@ -52,15 +50,13 @@ class SdkViewHelper:
         if not project_creator:
             return ResponseUtilities.get_inner_error_context('Invalid project_creator')
 
-        request_body['project_creator'] = project_creator
-
         if 'name' not in request_body or not request_body.get('name'):
             return ResponseUtilities.get_inner_error_context('send name in body')
 
         if 'platform' in request_body and request_body['platform'] and not isinstance(request_body['platform'], list):
             return ResponseUtilities.get_inner_error_context('platform object should be a list')
 
-        return request_body
+        return {'project_creator': project_creator}
 
     @staticmethod
     def initiate_sdk_body_validator(request_body):
