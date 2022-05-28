@@ -10618,7 +10618,8 @@ def fetch_community_manager_rights(request):
     for mobile_no in mobile_filter:
         mobile_list.append(userMobilesSerializer(mobile_no))
 
-    return JsonResponse({"admin_mobiles": mobile_list, "member": member_profile[0], "rights": rights_context})
+    return JsonResponse({'success': True, "admin_mobiles": mobile_list, "member": member_profile[0],
+                         "rights": rights_context})
 
 
 def update_attending_status_for_paid_events_for_new_community_manager(user_instance, community_instance):
