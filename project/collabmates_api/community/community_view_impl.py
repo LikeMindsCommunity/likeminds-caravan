@@ -874,3 +874,20 @@ class FetchCommunityDMRightView(APIView):
             return JsonResponse(res, status=status_codes.HTTP_200_OK)
 
         return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
+
+
+class CommunityMemberView(APIView):
+
+    def post(self, request, *args, **kwargs):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        community_data = community_manager.add_community_member(req_body)
+
+        if community_data.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_data.get('error_message'),
+                                                                                community_data.get('status')))
+        return JsonResponse(community_data)
