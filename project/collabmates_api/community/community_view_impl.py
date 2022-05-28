@@ -8,6 +8,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import InvalidHeaderException, CustomException
 from utility.number_utilities import NumberUtilities
+from utility.response_utilities import ResponseUtilities
 from rest_framework import status as status_codes
 
 from ..rest_api import get_error_context
@@ -325,25 +326,16 @@ class FetchMembersMeta(APIView):
     def get(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
         community_id = request.GET.get('community_id')
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
-        community_manager = CommunityImpl(member_id=member_id, community_id=community_id)
+        community_manager = CommunityImpl(member_id=member_id, community_id=community_id, api_key=api_key)
+        community_data = community_manager.fetch_members_meta(community_id)
 
-        try:
-            chatroom_data = community_manager.fetch_members_meta(community_id)
-
-        except Exception as e:
-
-            error_logger.error(e.args)
-
-            return JsonResponse({'error_message': "Internal server error"},
-                                status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        if chatroom_data.get('error_message'):
-            return JsonResponse(chatroom_data, status=status_codes.HTTP_400_BAD_REQUEST)
-
-        return JsonResponse(chatroom_data)
+        if 'error_message' in community_data:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_data.get('error_message'),
+                                                                                community_data.get('status')))
+        return JsonResponse(community_data)
 
 
 class FetchContentDownloadSettings(APIView):
