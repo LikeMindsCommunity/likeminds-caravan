@@ -6,6 +6,7 @@ from utility.states import (api_types, login_types)
 from utility.auth_utilities import AuthUtilities
 from togther.models import ModelUtilities
 from .models import SdkClient, SdkPlatform
+from .sdk_view_helper import SdkViewHelper
 from .serializers import SdkProjectSerializer
 from collabmates_api.community.community_impl import CommunityImpl
 from collabmates_api.user.view_impl import UserImpl
@@ -47,6 +48,12 @@ class SdkImpl(SdkManager):
 
     def fetch_sdk_project(self, request_params) -> dict:
 
+        validated_request = SdkViewHelper.fetch_sdk_project_validator(request_params, self.get_member_id())
+
+        if 'error_message' in validated_request:
+            return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
         filters = {
             'project_creator': request_params.get('project_creator')
         }
@@ -64,6 +71,12 @@ class SdkImpl(SdkManager):
         return {'success': True, 'projects': SdkProjectSerializer(projects).data}
 
     def create_sdk_project(self, req_body) -> dict:
+
+        validated_request_body = SdkViewHelper.create_sdk_project_body_validator(req_body, self.get_member_id())
+
+        if 'error_message' in validated_request_body:
+            return ResponseUtilities.get_impl_error_context(validated_request_body['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         req_body['type'] = api_types.SDK
 
