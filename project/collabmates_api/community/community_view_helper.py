@@ -1,4 +1,4 @@
-from togther.models import (ModelUtilities)
+from togther.models import (ModelUtilities, Members)
 from collabmates_api.sdk.models import (SdkClient)
 from utility.response_utilities import ResponseUtilities
 
@@ -43,6 +43,11 @@ class CommunityViewHelper:
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key!")
 
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
+
+        if not is_admin:
+            return ResponseUtilities.get_inner_error_context("Invalid credentials")
+
         if req_body.get('user_unique_id'):
             user_body['user_unique_id'] = req_body.get('user_unique_id')
 
@@ -51,3 +56,37 @@ class CommunityViewHelper:
 
         return {'user_instance': user_instance, 'community_instance': community_instance,
                 'user_body': user_body}
+
+    @staticmethod
+    def validate_update_community_member_request(user_id, api_key, req_body):
+
+        if not req_body:
+            return ResponseUtilities.get_inner_error_context("Invalid request body")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        community_instance = SdkClient.get_community_instance_or_none(api_key)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid API key!")
+
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
+
+        if not is_admin:
+            return ResponseUtilities.get_inner_error_context("Invalid credentials")
+
+        member_instance = ModelUtilities.get_user_instance_or_none(req_body.get('user_unique_id'))
+
+        if not member_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user_unique_id")
+
+        is_community_member = Members.is_community_member(community_instance, member_instance)
+
+        if not is_community_member:
+            return ResponseUtilities.get_inner_error_context("User not part of community")
+
+        return {'user_instance': user_instance, 'community_instance': community_instance,
+                'member_instance': member_instance}
