@@ -340,6 +340,16 @@ class UserImpl(UserManager):
             userinfo_instance.is_bot = user_context.get('is_bot', False)
             userinfo_instance.save()
 
+            mobile_context = user_context.get('mobile_context')
+
+            if mobile_context and mobile_context.get('country_code') and mobile_context.get('mobile_no'):
+                UserImpl.create_user_mobile_number(user_instance,
+                                                   mobile_context.get('country_code'),
+                                                   mobile_context.get('mobile_no'))
+
+            if user_context.get('email'):
+                UserImpl.create_user_primary_email(user_instance, user_context)
+
             if user_unique_id and community_instance:
                 sdk_client_user_info_instance = SDKClientUsersInfo()
                 sdk_client_user_info_instance.community = community_instance
@@ -950,7 +960,7 @@ class UserImpl(UserManager):
         community_name = validated_request.get('community_name')
 
         user_context = {
-            'user_name': CREATE_USER_BOT_NAME.format(community_name),
+            'name': CREATE_USER_BOT_NAME.format(community_name),
             'is_bot': True
         }
 
