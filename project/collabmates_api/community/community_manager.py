@@ -42,9 +42,10 @@ class CommunityManager(metaclass=abc.ABCMeta):
                  callable(subclass.update_community_dm_settings)) and
                 (hasattr(subclass, 'fetch_community_dm_settings') and
                  callable(subclass.fetch_community_dm_settings)) and
-                (hasattr(subclass, 'fetch_community_dm_right') and callable(subclass.fetch_community_dm_right)) or
+                (hasattr(subclass, 'fetch_community_dm_right') and callable(subclass.fetch_community_dm_right)) and
                 (hasattr(subclass, 'fetch_community_id_from_domain') and
-                 callable(subclass.fetch_community_id_from_domain)) or
+                 callable(subclass.fetch_community_id_from_domain)) and
+                (hasattr(subclass, 'edit_community_v1') and callable(subclass.edit_community_v1)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -214,5 +215,13 @@ class CommunityManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fetch_community_dm_right(self, req_body) -> {}:
         """ Fetches community DM rights from cohorts """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def edit_community_v1(self, req_body) -> dict:
+        """
+        edit community object
+        """
 
         raise NotImplementedError

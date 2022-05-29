@@ -68,7 +68,7 @@ class SdkImpl(SdkManager):
         if not projects:
             return ResponseUtilities.get_impl_error_context('No projects found', status_codes.HTTP_404_NOT_FOUND)
 
-        return {'success': True, 'projects': SdkProjectSerializer(projects).data}
+        return {'success': True, 'projects': SdkProjectSerializer(projects, many=True).data}
 
     def create_sdk_project(self, req_body) -> dict:
 
@@ -112,6 +112,65 @@ class SdkImpl(SdkManager):
                 sdk_platform.save()
 
         return {'success': True, 'api_key': unique_id}
+
+    def edit_sdk_project(self, req_body) -> dict:
+
+        validated_request_body = SdkViewHelper.edit_sdk_project_body_validator(req_body, self.get_member_id(),
+                                                                               self.get_api_key())
+
+        if 'error_message' in validated_request_body:
+            return ResponseUtilities.get_impl_error_context(validated_request_body['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        api_key_validation = AuthUtilities.validate_api_key(self.get_api_key())
+
+        if 'error_message' in api_key_validation:
+            return ResponseUtilities.get_impl_error_context(api_key_validation.get('error_message'),
+                                                            api_key_validation.get('status'))
+
+        sdk_client = api_key_validation.get('sdk_client')
+
+        is_cm = AuthUtilities.is_cm(sdk_client.community.id, self.get_member_id())
+
+        if 'error_message' in is_cm:
+            return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
+
+        platforms = req_body.get('platform')
+
+        if platforms:
+
+            for platform in platforms:
+
+                if None in [platform.get('type'), platform.get('package'), platform.get('certificate')]:
+                    continue
+
+                sdk_platforms = ModelUtilities.get_model_filter(SdkPlatform, {'community_id': sdk_client.community.id,
+                                                                              'type': platform.get('type')})
+                if sdk_platforms:
+                    sdk_platform = sdk_platforms[0]
+                    sdk_platform.package = platform.get('package')
+                    sdk_platform.certificate = platform.get('certificate')
+                    sdk_platform.save()
+
+        community_manager = CommunityImpl(member_id=self.get_member_id(),
+                                          community_id=sdk_client.community.id,
+                                          request_platform=self.get_request_platform(),
+                                          version_code=self.get_version_code())
+        edit_community = community_manager.edit_community_v1(req_body)
+
+        if 'error_message' in edit_community:
+            return ResponseUtilities.get_impl_error_context(edit_community['error_message'],
+                                                            edit_community['status'])
+
+        user_manager = UserImpl(user_id=self.get_member_id(), platform_code=self.get_request_platform(),
+                                version_code=self.get_version_code())
+        update_bot = user_manager.update_user_bot({'community_name': req_body.get('name')})
+
+        if 'error_message' in update_bot:
+            return ResponseUtilities.get_impl_error_context(update_bot['error_message'],
+                                                            update_bot['status'])
+
+        return {'success': True}
 
     def initiate_sdk(self, req_body) -> dict:
 

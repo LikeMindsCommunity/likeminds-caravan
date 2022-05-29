@@ -59,6 +59,28 @@ class SdkViewHelper:
         return {'project_creator': project_creator}
 
     @staticmethod
+    def edit_sdk_project_body_validator(request_body, member_id, api_key):
+
+        if not request_body:
+            return ResponseUtilities.get_inner_error_context('Invalid request body')
+
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context('Send member_id in headers')
+
+        member = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not member:
+            return ResponseUtilities.get_inner_error_context('Invalid x-member-id')
+
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context('Send api_key in headers')
+
+        if 'platform' in request_body and request_body['platform'] and not isinstance(request_body['platform'], list):
+            return ResponseUtilities.get_inner_error_context('platform object should be a list')
+
+        return {}
+
+    @staticmethod
     def initiate_sdk_body_validator(request_body):
 
         if not request_body:
