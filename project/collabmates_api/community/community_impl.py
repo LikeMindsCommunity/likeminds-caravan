@@ -1438,9 +1438,9 @@ class CommunityImpl(CommunityManager):
 
         community_instance = Community.create_instance({'name': validate_req_body['name'],
                                                         'members_count': 1,
-                                                        'purpose': validate_req_body['headline'],
+                                                        'purpose': validate_req_body.get('headline', None),
                                                         'brand_color': validate_req_body.get('brand_color', None),
-                                                        'image_link': validate_req_body.get('image_url'),
+                                                        'image_link': validate_req_body.get('image_url', None),
                                                         'thumbnail': community_default_thumbnail,
                                                         'type': type_id,
                                                         'sub_type': sub_type_id,
@@ -2482,14 +2482,16 @@ class CommunityHelper:
         if len(req_body.get('name')) > CHARACTER_LIMIT_ON_COMMUNITY_NAME:
             return {'success': False, 'error_message': 'Characters length should not be greater than 30'}
 
-        if 'headline' not in req_body:
-            return {'success': False, 'error_message': 'Empty headline!'}
+        if api_type == api_types.Non_SDK:
 
-        if 'branding' not in req_body and 'brand_color' not in req_body:
-            return {'success': False, 'error_message': 'Empty brand color!'}
+            if ('headline' not in req_body) or (not req_body.get('headline')):
+                return {'success': False, 'error_message': 'Empty headline!'}
 
-        if (api_type == api_types.Non_SDK) and ('image_url' not in req_body):
-            return {'success': False, 'error_message': 'Empty image url!'}
+            if 'branding' not in req_body and 'brand_color' not in req_body:
+                return {'success': False, 'error_message': 'Empty brand color!'}
+
+            if ('image_url' not in req_body) or (not req_body.get('headline')):
+                return {'success': False, 'error_message': 'Empty image url!'}
 
         return req_body
 
