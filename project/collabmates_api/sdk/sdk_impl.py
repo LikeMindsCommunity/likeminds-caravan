@@ -113,6 +113,32 @@ class SdkImpl(SdkManager):
 
         return {'success': True, 'api_key': unique_id}
 
+    def delete_sdk_project(self) -> dict:
+
+        validated_request_body = SdkViewHelper.delete_sdk_project_validator(self.get_member_id())
+
+        if 'error_message' in validated_request_body:
+            return ResponseUtilities.get_impl_error_context(validated_request_body['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        api_key_validation = AuthUtilities.validate_api_key(self.get_api_key())
+
+        if 'error_message' in api_key_validation:
+            return ResponseUtilities.get_impl_error_context(api_key_validation.get('error_message'),
+                                                            api_key_validation.get('status'))
+
+        sdk_client = api_key_validation.get('sdk_client')
+
+        is_cm = AuthUtilities.is_cm(sdk_client.community.id, self.get_member_id())
+
+        if 'error_message' in is_cm:
+            return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
+
+        sdk_client.is_deleted = True
+        sdk_client.save()
+
+        return {'success': True}
+
     def initiate_sdk(self, req_body) -> dict:
 
         api_key_validation = AuthUtilities.validate_api_key(self.get_api_key())
