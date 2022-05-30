@@ -9,6 +9,7 @@ class SdkClient(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     api_key = models.CharField(max_length=64, unique=True, null=True)
     project_creator = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    is_deleted = models.BooleanField(default=False)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 

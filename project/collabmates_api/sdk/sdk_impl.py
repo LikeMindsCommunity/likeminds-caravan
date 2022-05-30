@@ -55,7 +55,8 @@ class SdkImpl(SdkManager):
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
         filters = {
-            'project_creator': validated_request.get('project_creator')
+            'project_creator': validated_request.get('project_creator'),
+            'is_deleted': False
         }
 
         api_key = self.get_api_key()
@@ -169,6 +170,32 @@ class SdkImpl(SdkManager):
         if 'error_message' in update_bot:
             return ResponseUtilities.get_impl_error_context(update_bot['error_message'],
                                                             update_bot['status'])
+
+        return {'success': True}
+
+    def delete_sdk_project(self) -> dict:
+
+        validated_request_body = SdkViewHelper.delete_sdk_project_validator(self.get_member_id())
+
+        if 'error_message' in validated_request_body:
+            return ResponseUtilities.get_impl_error_context(validated_request_body['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        api_key_validation = AuthUtilities.validate_api_key(self.get_api_key())
+
+        if 'error_message' in api_key_validation:
+            return ResponseUtilities.get_impl_error_context(api_key_validation.get('error_message'),
+                                                            api_key_validation.get('status'))
+
+        sdk_client = api_key_validation.get('sdk_client')
+
+        is_cm = AuthUtilities.is_cm(sdk_client.community.id, self.get_member_id())
+
+        if 'error_message' in is_cm:
+            return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
+
+        sdk_client.is_deleted = True
+        sdk_client.save()
 
         return {'success': True}
 
