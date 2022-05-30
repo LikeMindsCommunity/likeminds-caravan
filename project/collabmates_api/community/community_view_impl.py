@@ -886,7 +886,7 @@ class EditCommunityV1View(APIView):
         username, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
 
         community_manager = CommunityImpl(member_id=member_id, community_id=request_body.get('community_id'))
-        community_data = community_manager.edit_community_v1(request_body, username, password)
+        community_data = community_manager.edit_community(request_body, username, password)
 
         if 'error_message' in community_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_data.get('error_message'),

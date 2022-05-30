@@ -1788,19 +1788,8 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True, 'cohorts': right_data}
 
-    def edit_community_v1(self, req_body, username=None, password=None) -> dict:
-
-        validated_request_body = CommunityViewHelper.validate_edit_community_v1_request(req_body,
-                                                                                        self.get_community_id(),
-                                                                                        self.get_member_id(),
-                                                                                        username, password)
-
-        if 'error_message' in validated_request_body:
-            return ResponseUtilities.get_impl_error_context(validated_request_body['error_message'],
-                                                            status_codes.HTTP_400_BAD_REQUEST)
-
-        community_instance = validated_request_body.get('community_instance')
-        user_instance = validated_request_body.get('user_instance')
+    @staticmethod
+    def _update_community_object(community_instance, user_instance, req_body):
 
         purpose = req_body.get('purpose', community_instance.purpose)
         name = req_body.get('community_name', community_instance.name)
@@ -1827,7 +1816,8 @@ class CommunityImpl(CommunityManager):
         community_instance.is_paid = req_body.get('is_paid', community_instance.is_paid)
         community_instance.is_discoverable = req_body.get('is_discoverable', community_instance.is_discoverable)
         community_instance.website_url = req_body.get('website_url', community_instance.website_url)
-        community_instance.community_category = req_body.get('community_category', community_instance.community_category)
+        community_instance.community_category = req_body.get('community_category',
+                                                             community_instance.community_category)
         community_instance.referral_enabled = req_body.get('referral_enabled', community_instance.referral_enabled)
         community_instance.dashboard_link = req_body.get('dashboard_link', community_instance.dashboard_link)
 
@@ -1851,6 +1841,22 @@ class CommunityImpl(CommunityManager):
 
         for edit_field in edit_fields:
             edit_community_data(community_instance, user_instance, edit_field=edit_field)
+
+    def edit_community(self, req_body, username=None, password=None) -> dict:
+
+        validated_request_body = CommunityViewHelper.validate_edit_community_v1_request(req_body,
+                                                                                        self.get_community_id(),
+                                                                                        self.get_member_id(),
+                                                                                        username, password)
+
+        if 'error_message' in validated_request_body:
+            return ResponseUtilities.get_impl_error_context(validated_request_body['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request_body.get('community_instance')
+        user_instance = validated_request_body.get('user_instance')
+
+        self._update_community_object(community_instance, user_instance, req_body)
 
         CacheImpl.set_cache('COMMUNITY_BRANDING_{}'.format(community_instance.id), community_instance.branding)
 
