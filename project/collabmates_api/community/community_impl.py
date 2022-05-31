@@ -1442,7 +1442,9 @@ class CommunityImpl(CommunityManager):
 
         purpose = validate_req_body.get('headline', None)
 
-        if (req_body.get('type', api_types.Non_SDK) == api_types.SDK) and (not purpose):
+        is_sdk = req_body.get('type', api_types.Non_SDK) == api_types.SDK
+
+        if is_sdk and (not purpose):
             purpose = SDK_COMMUNITY_HEADLINE
 
         community_instance = Community.create_instance({'name': validate_req_body['name'],
@@ -1493,7 +1495,8 @@ class CommunityImpl(CommunityManager):
         CommunityHelper.set_community_data_in_cache(community_instance.id)
 
         community_serializer = CommunitySerializerV1(community_instance,
-                                                     context={"current_user_id": self.get_member_id()},
+                                                     context={"current_user_id": self.get_member_id(),
+                                                              "is_sdk": is_sdk},
                                                      many=False).data
 
         return {'success': True, 'community': community_serializer}
