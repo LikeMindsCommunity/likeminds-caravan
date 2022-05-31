@@ -117,17 +117,20 @@ class SdkViewHelper:
         if 'user_name' not in request_body:
             return ResponseUtilities.get_inner_error_context('send user_name in body')
 
-        req_body = {
+        login_req_body = {
             'type': login_types.SDK,
             'user': {
                 'name': request_body.get('user_name'),
             }
         }
 
+        join_req_body = {}
+
         if 'user_unique_id' in request_body:
-            req_body['user']['user_unique_id'] = req_body.get('user_unique_id')
+            login_req_body['user']['user_unique_id'] = request_body.get('user_unique_id')
 
         if 'image_url' in request_body:
-            req_body['user']['image_url'] = req_body.get('image_url')
+            login_req_body['user']['image_url'] = request_body.get('image_url')
+            join_req_body['image_url'] = request_body.get('image_url')
 
-        return {'req_body': req_body}
+        return {'login_req_body': login_req_body, 'join_req_body': join_req_body}
