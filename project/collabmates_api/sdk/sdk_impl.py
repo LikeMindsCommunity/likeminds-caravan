@@ -221,7 +221,7 @@ class SdkImpl(SdkManager):
         login_user = user_manager.login(req_body, self.get_request_platform(), self.get_device_id(),
                                         self.get_version_code(), api_key=self.get_api_key())
 
-        if not login_user.get('success'):
+        if 'error_message' in login_user:
             return ResponseUtilities.get_impl_error_context(login_user.get('error_message'),
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
@@ -234,7 +234,7 @@ class SdkImpl(SdkManager):
                                                        api_key=self.get_api_key())
         join_community_context = member_community_manager.join_community_sdk()
 
-        if not join_community_context.get('success'):
+        if 'error_message' in join_community_context:
             return ResponseUtilities.get_impl_error_context(join_community_context.get('error_message'),
                                                             join_community_context.get('status'))
 
