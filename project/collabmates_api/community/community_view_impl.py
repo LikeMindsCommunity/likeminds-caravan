@@ -325,7 +325,6 @@ class CommunityJoinView(APIView):
 class FetchMembersMeta(APIView):
 
     def get(self, request, *args, **kwargs):
-
         member_id = RequestUtilities.get_member_id_from_headers(request)
         community_id = request.GET.get('community_id')
         api_key = RequestUtilities.get_api_key_from_headers(request)
@@ -737,7 +736,7 @@ class FetchCommunityFromDomainView(APIView):
         validated_req['success'] = True
         validated_req['member_id'] = member_id
         validated_req['domain'] = req_body.get('domain')
-        
+
         return validated_req
 
     def get(self, request):
@@ -880,7 +879,6 @@ class FetchCommunityDMRightView(APIView):
 class EditCommunityView(APIView):
 
     def post(self, request):
-
         request_body = RequestUtilities.load_request_body(request)
         member_id = RequestUtilities.get_member_id_from_headers(request)
         username, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
@@ -890,7 +888,7 @@ class EditCommunityView(APIView):
 
         if 'error_message' in community_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_data.get('error_message'),
-                                                                         community_data.get('status')))
+                                                                                community_data.get('status')))
         return JsonResponse(community_data)
 
 
