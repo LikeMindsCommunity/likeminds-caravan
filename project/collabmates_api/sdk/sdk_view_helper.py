@@ -1,5 +1,6 @@
 from utility.response_utilities import ResponseUtilities
 from togther.models import ModelUtilities
+from utility.states import (login_types)
 
 
 class SdkViewHelper:
@@ -116,4 +117,17 @@ class SdkViewHelper:
         if 'user_name' not in request_body:
             return ResponseUtilities.get_inner_error_context('send user_name in body')
 
-        return request_body
+        req_body = {
+            'type': login_types.SDK,
+            'user': {
+                'name': request_body.get('user_name'),
+            }
+        }
+
+        if 'user_unique_id' in request_body:
+            req_body['user']['user_unique_id'] = req_body.get('user_unique_id')
+
+        if 'image_url' in request_body:
+            req_body['user']['image_url'] = req_body.get('image_url')
+
+        return {'req_body': req_body}
