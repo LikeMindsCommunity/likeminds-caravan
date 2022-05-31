@@ -157,7 +157,7 @@ class SdkImpl(SdkManager):
                                           community_id=sdk_client.community.id,
                                           request_platform=self.get_request_platform(),
                                           version_code=self.get_version_code())
-        edit_community = community_manager.edit_community_v1(req_body)
+        edit_community = community_manager.edit_community(req_body)
 
         if 'error_message' in edit_community:
             return ResponseUtilities.get_impl_error_context(edit_community['error_message'],
