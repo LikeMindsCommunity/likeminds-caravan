@@ -45,7 +45,9 @@ class CommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_community_dm_right') and callable(subclass.fetch_community_dm_right)) and
                 (hasattr(subclass, 'fetch_community_id_from_domain') and
                  callable(subclass.fetch_community_id_from_domain)) and
-                (hasattr(subclass, 'edit_community') and callable(subclass.edit_community)) or
+                (hasattr(subclass, 'edit_community') and callable(subclass.edit_community)) and
+                (hasattr(subclass, 'add_community_member') and callable(subclass.add_community_member)) and
+                (hasattr(subclass, 'update_community_member') and callable(subclass.update_community_member)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -223,5 +225,17 @@ class CommunityManager(metaclass=abc.ABCMeta):
         """
         edit community object
         """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def add_community_member(self, req_body: dict) -> {}:
+        """ Add member to community using SDK dashboard"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_community_member(self, req_body: dict) -> {}:
+        """ Updates member data in community using SDK dashboard"""
 
         raise NotImplementedError

@@ -56,6 +56,7 @@ from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, 
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from .mails import *
 from .sms import *
+from .sdk.models import SdkClient
 
 from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
@@ -65,9 +66,9 @@ from cms.cms_auth_utilities import CMSAuthUtilities
 
 from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, EventRecordingsURLSerializer, GetChatroomInstanceSerializer,
-                       CommunitySerializerV1,
-                       YourCommunitySerializer, EventRecordingsAttachmentsSerializer, EventMemberTestimonialsSerializer,
-                       EventHighlightsSerializer, EventInstructorSerializer, EventFAQSerializer)
+                       CommunitySerializerV1, YourCommunitySerializer, EventRecordingsAttachmentsSerializer,
+                       EventMemberTestimonialsSerializer, EventHighlightsSerializer, EventInstructorSerializer,
+                       EventFAQSerializer)
 
 from utility.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
 from .upload_attachments import (save_community_image, save_chatroom_attachments,
@@ -8403,9 +8404,12 @@ def compute_moderation_member_rights_list_for_ios(moderated_member_list, version
 def members_state(request, req_dict=None):
     '''This function gives the state of user.Get Api'''
 
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
     if not req_dict:
         member_id = request.GET.get('member_id')
         community_id = request.GET.get('community_id')
+        community_id = community_id if community_id else api_key
         collabcard_id = request.GET.get('collabcard_id')
 
         if collabcard_id and not community_id:
@@ -8418,12 +8422,12 @@ def members_state(request, req_dict=None):
             community_id = card.community.id
 
         if not community_id:
-            context = get_error_context(False, "send a valid community id or collabcard id")
+            context = get_error_context(False, "Invalid API key/community ID")
             return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     else:
         member_id = req_dict['member_id']
-        community_id = req_dict['community_id']
+        community_id = req_dict.get('community_id') if req_dict.get('community_id') else api_key
 
     state = 0
     tool_state = 0
@@ -8431,10 +8435,10 @@ def members_state(request, req_dict=None):
 
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
-    community_instance = Community.get_community_or_None(community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id)
 
     if community_instance is None:
-        response = get_error_context(False, f"community with id {community_id} doesn't exists")
+        response = get_error_context(False, "Invalid API key/community ID")
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
     query_set = ModelUtilities.get_model_filter(Members,
