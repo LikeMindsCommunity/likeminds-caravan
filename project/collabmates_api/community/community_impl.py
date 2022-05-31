@@ -18,7 +18,10 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
     post_master_introductions_for_community, post_member_directory_link, post_general_collabcard_for_community, \
     update_community_get_started, get_branch_links_for_community_share_v1, fill_share_context_for_paid_community, \
     fill_share_context_for_unpaid_community, check_join_community_hood_get_started, \
-    add_community_upload_image_analytics, create_introduction_question_in_community, edit_community_data, get_community_creator
+    add_community_upload_image_analytics, create_introduction_question_in_community, edit_community_data, \
+    get_community_creator, change_community_level_context_for_paid_community
+
+from collabmates_api.notification import send_sync_notification
 
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
@@ -73,7 +76,7 @@ from utility.response_utilities import ResponseUtilities
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
 from utility.celery_tasks import (create_member_dm_chatroom, create_intro_room_disabled_text_for_community_members,
-                                  update_preview_for_account_image_change)
+                                  update_preview_for_account_image_change, update_multiple_previews_in_community)
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..search.sync import ElasticSearchSync
 from ..notifications.tasks import send_mail_for_first_time_edit_community_questions
@@ -1784,6 +1787,88 @@ class CommunityImpl(CommunityManager):
         right_data = CohortHelper.get_cohorts_with_specific_right(community_instance, state, is_m2cm_v2=is_m2cm_v2)
 
         return {'success': True, 'cohorts': right_data}
+
+    @staticmethod
+    def _update_community_object(community_instance, user_instance, req_body):
+
+        purpose = req_body.get('purpose', community_instance.purpose)
+        name = req_body.get('community_name', community_instance.name)
+        image_link = req_body.get('image_url', community_instance.image_link)
+
+        edit_fields = []
+
+        if community_instance.name != name:
+            edit_fields.append("name")
+
+        if community_instance.purpose != purpose:
+            edit_fields.append("purpose")
+
+        if community_instance.image_link != image_link:
+            edit_fields.append("image_url")
+
+        community_instance.purpose = purpose
+        community_instance.name = name
+        community_instance.image_link = image_link
+
+        community_instance.type = req_body.get('type', community_instance.type)
+        community_instance.subtype = req_body.get('sub_type', community_instance.sub_type)
+
+        community_instance.is_paid = req_body.get('is_paid', community_instance.is_paid)
+        community_instance.is_discoverable = req_body.get('is_discoverable', community_instance.is_discoverable)
+        community_instance.website_url = req_body.get('website_url', community_instance.website_url)
+        community_instance.community_category = req_body.get('community_category',
+                                                             community_instance.community_category)
+        community_instance.referral_enabled = req_body.get('referral_enabled', community_instance.referral_enabled)
+        community_instance.dashboard_link = req_body.get('dashboard_link', community_instance.dashboard_link)
+
+        community_instance.branding = json.dumps(req_body.get('branding')) if req_body.get(
+            'branding') else community_instance.branding
+
+        community_instance.is_whitelabel = req_body.get('is_whitelabel', community_instance.is_whitelabel)
+        community_instance.whitelabel_info = json.dumps(req_body.get('whitelabel_info')) if req_body.get(
+            'whitelabel_info') else community_instance.whitelabel_info
+
+        community_instance.fee_membership = req_body.get('fee_membership', community_instance.fee_membership)
+        community_instance.fee_event = req_body.get('fee_event', community_instance.fee_event)
+        community_instance.fee_payment_pages = req_body.get('fee_payment_pages', community_instance.fee_payment_pages)
+        community_instance.brand_color = req_body.get('brand_color', community_instance.brand_color)
+        community_instance.likeminds_plan = req_body.get('likeminds_plan', community_instance.likeminds_plan)
+        community_instance.hide_dm_tab = req_body.get('hide_dm_tab', community_instance.hide_dm_tab)
+        community_instance.is_freemium_community = req_body.get('is_freemium_community',
+                                                                community_instance.is_freemium_community)
+
+        community_instance.save()
+
+        for edit_field in edit_fields:
+            edit_community_data(community_instance, user_instance, edit_field=edit_field)
+
+    def edit_community(self, req_body, username=None, password=None) -> dict:
+
+        validated_request_body = CommunityViewHelper.validate_edit_community_request(req_body,
+                                                                                        self.get_community_id(),
+                                                                                        self.get_member_id(),
+                                                                                        username, password)
+
+        if 'error_message' in validated_request_body:
+            return ResponseUtilities.get_impl_error_context(validated_request_body['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request_body.get('community_instance')
+        user_instance = validated_request_body.get('user_instance')
+
+        self._update_community_object(community_instance, user_instance, req_body)
+
+        CacheImpl.set_cache('COMMUNITY_BRANDING_{}'.format(community_instance.id), community_instance.branding)
+
+        CommunityHelper.set_community_data_in_cache(community_instance.id)
+
+        change_community_level_context_for_paid_community(community_instance)
+
+        send_sync_notification.delay({'community_id': community_instance.id,
+                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+        update_multiple_previews_in_community.delay({'community_id': community_instance.id})
+
+        return {'success': True}
 
     def add_community_member(self, req_body: dict) -> {}:
         validated_req_body = CommunityViewHelper.validate_add_community_member_request(self.get_member_id(),
