@@ -54,7 +54,7 @@ User.add_to_class("get_user_or_none", get_user_or_none)
 class Community(models.Model):
     name = models.CharField(max_length=200)
     about = models.TextField(null=True)
-    purpose = models.CharField(max_length=2048)
+    purpose = models.CharField(max_length=2048, null=True)
     location = models.CharField(max_length=200, null=True)
     image_url = models.ImageField(upload_to="media/community", null=True)
     members_count = models.IntegerField(default=0)
