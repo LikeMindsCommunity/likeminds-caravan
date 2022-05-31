@@ -1440,9 +1440,14 @@ class CommunityImpl(CommunityManager):
             type_id = TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
             sub_type_id = SUB_TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
 
+        purpose = validate_req_body.get('headline', None)
+
+        if (req_body.get('type', api_types.Non_SDK) == api_types.SDK) and (not purpose):
+            purpose = SDK_COMMUNITY_HEADLINE
+
         community_instance = Community.create_instance({'name': validate_req_body['name'],
                                                         'members_count': 1,
-                                                        'purpose': validate_req_body.get('headline', None),
+                                                        'purpose': purpose,
                                                         'brand_color': validate_req_body.get('brand_color', None),
                                                         'image_link': validate_req_body.get('image_url', None),
                                                         'thumbnail': community_default_thumbnail,
