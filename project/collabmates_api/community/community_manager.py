@@ -45,7 +45,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_community_dm_right') and callable(subclass.fetch_community_dm_right)) and
                 (hasattr(subclass, 'fetch_community_id_from_domain') and
                  callable(subclass.fetch_community_id_from_domain)) and
-                (hasattr(subclass, 'edit_community_v1') and callable(subclass.edit_community_v1)) or
+                (hasattr(subclass, 'edit_community') and callable(subclass.edit_community)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -219,7 +219,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def edit_community_v1(self, req_body) -> dict:
+    def edit_community(self, req_body) -> dict:
         """
         edit community object
         """
