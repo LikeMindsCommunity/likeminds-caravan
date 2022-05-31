@@ -469,13 +469,15 @@ class JoinCommunitySDKView(APIView):
         validated_req_body = MemberCommunityViewHelper.validate_join_community_request(member_id, req_body)
         device_id = RequestUtilities.get_device_id_from_headers(request)
         platform_code = RequestUtilities.get_platform_code(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if validated_req_body.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_req_body.get('error_message'),
                                                                                 validated_req_body.get('status')))
 
         member_community_manager = MemberCommunityImpl(member_id, community_id=req_body.get('community_id'),
-                                                       device_id=device_id, platform_code=platform_code)
+                                                       device_id=device_id, platform_code=platform_code,
+                                                       api_key=api_key)
         community_context = member_community_manager.join_community_sdk(req_body=req_body)
 
         if 'error_message' not in community_context:

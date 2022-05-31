@@ -5,6 +5,19 @@ from togther.models import ModelUtilities
 class SdkViewHelper:
 
     @staticmethod
+    def _member_id_validator(member_id):
+
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context('send member_id in headers')
+
+        member = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not member:
+            return ResponseUtilities.get_inner_error_context('Invalid x-member-id')
+
+        return {'user_instance': member}
+
+    @staticmethod
     def fetch_sdk_project_validator(request_params, member_id):
 
         if not request_params:
@@ -18,13 +31,10 @@ class SdkViewHelper:
         if not project_creator:
             return ResponseUtilities.get_inner_error_context('Invalid project_creator')
 
-        if not member_id:
-            return ResponseUtilities.get_inner_error_context('send member_id in headers')
+        member_validator = SdkViewHelper._member_id_validator(member_id)
 
-        member = ModelUtilities.get_user_instance_or_none(member_id)
-
-        if not member:
-            return ResponseUtilities.get_inner_error_context('Invalid x-member-id')
+        if 'error_message' in member_validator:
+            return member_validator
 
         return {'project_creator': project_creator}
 
@@ -34,13 +44,10 @@ class SdkViewHelper:
         if not request_body:
             return ResponseUtilities.get_inner_error_context('invalid request body')
 
-        if not member_id:
-            return ResponseUtilities.get_inner_error_context('send member_id in headers')
+        member_validator = SdkViewHelper._member_id_validator(member_id)
 
-        member = ModelUtilities.get_user_instance_or_none(member_id)
-
-        if not member:
-            return ResponseUtilities.get_inner_error_context('Invalid x-member-id')
+        if 'error_message' in member_validator:
+            return member_validator
 
         if 'project_creator' not in request_body or not request_body.get('project_creator'):
             return ResponseUtilities.get_inner_error_context('send project_creator in body')
@@ -57,6 +64,48 @@ class SdkViewHelper:
             return ResponseUtilities.get_inner_error_context('platform object should be a list')
 
         return {'project_creator': project_creator}
+
+    @staticmethod
+    def edit_sdk_project_body_validator(request_body, member_id, api_key):
+
+        if not request_body:
+            return ResponseUtilities.get_inner_error_context('Invalid request body')
+
+        req_body = request_body.copy()
+
+        if 'name' in req_body and req_body['name']:
+            req_body['community_name'] = req_body['name']
+            del req_body['name']
+
+        if 'headline' in req_body and req_body['headline']:
+            req_body['purpose'] = req_body['headline']
+            del req_body['headline']
+
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context('Send member_id in headers')
+
+        member = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not member:
+            return ResponseUtilities.get_inner_error_context('Invalid x-member-id')
+
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context('Send api_key in headers')
+
+        if 'platform' in request_body and request_body['platform'] and not isinstance(request_body['platform'], list):
+            return ResponseUtilities.get_inner_error_context('platform object should be a list')
+
+        return {'req_body': req_body}
+
+    @staticmethod
+    def delete_sdk_project_validator(member_id):
+
+        member_validator = SdkViewHelper._member_id_validator(member_id)
+
+        if 'error_message' in member_validator:
+            return member_validator
+
+        return {'user_instance': member_validator.get('user_instance')}
 
     @staticmethod
     def initiate_sdk_body_validator(request_body):

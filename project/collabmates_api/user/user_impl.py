@@ -348,7 +348,7 @@ class UserImpl(UserManager):
 
             mobile_context = user_context.get('mobile_context')
 
-            if all([mobile_context, mobile_context.get('country_code'), mobile_context.get('mobile_no')]):
+            if mobile_context and mobile_context.get('country_code') and mobile_context.get('mobile_no'):
                 UserImpl.create_user_mobile_number(user_instance,
                                                    mobile_context.get('country_code'),
                                                    mobile_context.get('mobile_no'))
@@ -967,7 +967,7 @@ class UserImpl(UserManager):
         community_name = validated_request.get('community_name')
 
         user_context = {
-            'user_name': CREATE_USER_BOT_NAME.format(community_name),
+            'name': CREATE_USER_BOT_NAME.format(community_name),
             'is_bot': True
         }
 
