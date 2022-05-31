@@ -76,6 +76,7 @@ from .upload_attachments import (save_community_image, save_chatroom_attachments
                                  get_user_image_based_on_community)
 from rest_framework import status as status_codes
 from utility.request_utilities import RequestUtilities
+from utility.response_utilities import ResponseUtilities
 from utility.number_utilities import NumberUtilities
 from utility.exception_utilities import (CustomException, InvalidHeaderException)
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -10538,6 +10539,15 @@ def fetch_intro_examples(request):
 
 
 ################################# moderation rights ###############################################
+def validate_community_id_or_api_key(community_id, api_key):
+    community_id = community_id if community_id else api_key
+
+    community_instance = SdkClient.get_community_instance_or_none(community_id)
+
+    if not community_instance:
+        return ResponseUtilities.get_inner_error_context("Invalid API key/community ID")
+
+    return {"community_instance": community_instance}
 
 
 def fetch_community_manager_rights(request):
@@ -10554,7 +10564,7 @@ def fetch_community_manager_rights(request):
     version_code = RequestUtilities.get_version_code_from_headers(request)
     api_key = RequestUtilities.get_api_key_from_headers(request)
 
-    community_id = community_id if community_id else api_key
+    community_dict = validate_community_id_or_api_key(community_id, api_key)
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
@@ -10564,16 +10574,11 @@ def fetch_community_manager_rights(request):
         context = get_error_context(False, "send user_id in params")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not community_id:
-        context = get_error_context(False, "Invalid API key/community ID")
+    if community_dict.get('error_message'):
+        context = get_error_context(False, community_dict.get('error_message'))
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
-
-    if not community_instance:
-        context = get_error_context(False, "Invalid API key/community ID")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
-
+    community_instance = community_dict.get('community_instance')
     current_user_instance = User.objects.get(pk=current_user_id)
     user_instance = User.objects.get(pk=user_id)
 
@@ -10650,25 +10655,21 @@ def update_community_manager_rights(request):
     custom_title = req_body['custom_title'] if "custom_title" in req_body else None
     api_key = RequestUtilities.get_api_key_from_headers(request)
 
-    community_id = community_id if community_id else api_key
+    community_dict = validate_community_id_or_api_key(community_id, api_key)
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     if not user_id:
-        context = get_error_context(False, "send user_id in body")
+        context = get_error_context(False, "send user_id in params")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not community_id:
-        context = get_error_context(False, "Invalid API key/community ID")
+    if community_dict.get('error_message'):
+        context = get_error_context(False, community_dict.get('error_message'))
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
-
-    if not community_instance:
-        context = get_error_context(False, "Invalid API key/community ID")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+    community_instance = community_dict.get('community_instance')
 
     current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
 
@@ -11079,7 +11080,7 @@ def fetch_community_member_rights(request):
     user_id = request.GET.get('user_id', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
 
-    community_id = community_id if community_id else api_key
+    community_dict = validate_community_id_or_api_key(community_id, api_key)
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
@@ -11089,15 +11090,11 @@ def fetch_community_member_rights(request):
         context = get_error_context(False, "send user_id in params")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not community_id:
-        context = get_error_context(False, "Invalid API key/community ID")
+    if community_dict.get('error_message'):
+        context = get_error_context(False, community_dict.get('error_message'))
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
-
-    if not community_instance:
-        context = get_error_context(False, "Invalid API key/community ID")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+    community_instance = community_dict.get('community_instance')
 
     current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
 
@@ -11145,26 +11142,21 @@ def update_community_member_rights(request):
     custom_title = req_body['custom_title'] if "custom_title" in req_body else None
     api_key = RequestUtilities.get_api_key_from_headers(request)
 
-    community_id = community_id if community_id else api_key
+    community_dict = validate_community_id_or_api_key(community_id, api_key)
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     if not user_id:
-        context = get_error_context(False, "send user_id in body")
+        context = get_error_context(False, "send user_id in params")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not community_id:
-        context = get_error_context(False, "Invalid API key/community ID")
+    if community_dict.get('error_message'):
+        context = get_error_context(False, community_dict.get('error_message'))
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
-
-    if not community_instance:
-        context = get_error_context(False, "Invalid API key/community ID")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
-
+    community_instance = community_dict.get('community_instance')
 
     current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
 
