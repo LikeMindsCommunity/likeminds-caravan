@@ -215,11 +215,9 @@ class SdkImpl(SdkManager):
 
         sdk_client = api_key_validation.get('sdk_client')
 
-        req_body['type'] = login_types.SDK
-
         user_manager = UserImpl(user_id="", mobile_no="")
-        login_user = user_manager.login(req_body, self.get_request_platform(), self.get_device_id(),
-                                        self.get_version_code(), api_key=self.get_api_key())
+        login_user = user_manager.login(validated_request_body.get('req_body'), self.get_request_platform(),
+                                        self.get_device_id(), self.get_version_code(), api_key=self.get_api_key())
 
         if 'error_message' in login_user:
             return ResponseUtilities.get_impl_error_context(login_user.get('error_message'),
