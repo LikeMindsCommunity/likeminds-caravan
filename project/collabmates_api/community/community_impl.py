@@ -1850,9 +1850,9 @@ class CommunityImpl(CommunityManager):
     def edit_community(self, req_body, username=None, password=None) -> dict:
 
         validated_request_body = CommunityViewHelper.validate_edit_community_request(req_body,
-                                                                                        self.get_community_id(),
-                                                                                        self.get_member_id(),
-                                                                                        username, password)
+                                                                                     self.get_community_id(),
+                                                                                     self.get_member_id(),
+                                                                                     username, password)
 
         if 'error_message' in validated_request_body:
             return ResponseUtilities.get_impl_error_context(validated_request_body['error_message'],
