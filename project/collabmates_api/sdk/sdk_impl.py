@@ -226,16 +226,12 @@ class SdkImpl(SdkManager):
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = login_user.get('user')
-        existing_user = login_user.get('existing_user')
 
-        if (not self.get_member_id() and existing_user) and (self.get_member_id() != user_instance.get('id')):
-            return ResponseUtilities.get_impl_error_context('Invalid Credentials', status_codes.HTTP_401_UNAUTHORIZED)
-
-        # TODO- Add x-api-key support in community_member/join api
         member_community_manager = MemberCommunityImpl(member_id=user_instance.get('user_unique_id'),
                                                        community_id=sdk_client.community.id,
                                                        device_id=self.get_device_id(),
-                                                       platform_code=self.get_request_platform())
+                                                       platform_code=self.get_request_platform(),
+                                                       api_key=self.get_api_key())
         join_community_context = member_community_manager.join_community_sdk()
 
         if not join_community_context.get('success'):
