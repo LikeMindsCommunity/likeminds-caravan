@@ -216,7 +216,7 @@ class SdkImpl(SdkManager):
         sdk_client = api_key_validation.get('sdk_client')
 
         user_manager = UserImpl(user_id="", mobile_no="")
-        login_user = user_manager.login(validated_request_body.get('req_body'), self.get_request_platform(),
+        login_user = user_manager.login(validated_request_body.get('login_req_body'), self.get_request_platform(),
                                         self.get_device_id(), self.get_version_code(), api_key=self.get_api_key())
 
         if 'error_message' in login_user:
@@ -230,7 +230,8 @@ class SdkImpl(SdkManager):
                                                        device_id=self.get_device_id(),
                                                        platform_code=self.get_request_platform(),
                                                        api_key=self.get_api_key())
-        join_community_context = member_community_manager.join_community_sdk()
+        join_community_context = member_community_manager.join_community_sdk(
+            validated_request_body.get('join_req_body'))
 
         if 'error_message' in join_community_context:
             return ResponseUtilities.get_impl_error_context(join_community_context.get('error_message'),
