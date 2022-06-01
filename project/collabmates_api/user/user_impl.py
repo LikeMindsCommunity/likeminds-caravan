@@ -341,7 +341,7 @@ class UserImpl(UserManager):
             userinfo_instance.created_at = TimeUtilities.current_time_in_sec()
             userinfo_instance.user_id = user_instance
             userinfo_instance.user_unique_id = unique_id
-            userinfo_instance.is_guest = user_context.get('is_guest')
+            userinfo_instance.is_guest = user_context.get('is_guest', False)
             userinfo_instance.image_link = UserHelper.process_image_url_for_processing(user_context, user_instance)
             userinfo_instance.organisation_name = user_context.get('organisation_name')
             userinfo_instance.is_bot = user_context.get('is_bot', False)
