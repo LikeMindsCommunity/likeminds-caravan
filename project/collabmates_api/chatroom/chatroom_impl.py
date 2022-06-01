@@ -1513,12 +1513,14 @@ class ChatroomImpl(ChatroomManager):
         card_instance = Collabcard.get_chatroom_or_None(self.get_chatroom_id())
 
         if not card_instance:
-            return {'error_message': "invalid chatroom id"}
+            return ResponseUtilities.get_impl_error_context("Invalid chatroom id",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
-            return {'error_message': "invalid user id"}
+            return ResponseUtilities.get_impl_error_context("Invalid user id",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = card_instance.community
         can_edit_participant = False
@@ -1544,9 +1546,10 @@ class ChatroomImpl(ChatroomManager):
 
             participant_list = self.compute_tagging_list_for_secret_participants(card_instance, community_instance)
 
-            return {'participants': participant_list, 'can_edit_participant': can_edit_participant}
+            return {'success': True, 'participants': participant_list, 'can_edit_participant': can_edit_participant}
 
-        return {'error_message': "Chatroom is not secret"}
+        return ResponseUtilities.get_impl_error_context("Chatroom is not secret",
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def create_event(self, req_body: dict) -> dict:
 
