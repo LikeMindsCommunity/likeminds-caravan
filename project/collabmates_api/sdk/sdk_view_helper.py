@@ -1,5 +1,6 @@
 from utility.response_utilities import ResponseUtilities
 from togther.models import ModelUtilities
+from utility.states import (login_types)
 
 
 class SdkViewHelper:
@@ -71,6 +72,16 @@ class SdkViewHelper:
         if not request_body:
             return ResponseUtilities.get_inner_error_context('Invalid request body')
 
+        req_body = request_body.copy()
+
+        if 'name' in req_body and req_body['name']:
+            req_body['community_name'] = req_body['name']
+            del req_body['name']
+
+        if 'headline' in req_body and req_body['headline']:
+            req_body['purpose'] = req_body['headline']
+            del req_body['headline']
+
         if not member_id:
             return ResponseUtilities.get_inner_error_context('Send member_id in headers')
 
@@ -85,7 +96,7 @@ class SdkViewHelper:
         if 'platform' in request_body and request_body['platform'] and not isinstance(request_body['platform'], list):
             return ResponseUtilities.get_inner_error_context('platform object should be a list')
 
-        return {}
+        return {'req_body': req_body}
 
     @staticmethod
     def delete_sdk_project_validator(member_id):
@@ -106,4 +117,20 @@ class SdkViewHelper:
         if 'user_name' not in request_body:
             return ResponseUtilities.get_inner_error_context('send user_name in body')
 
-        return request_body
+        login_req_body = {
+            'type': login_types.SDK,
+            'user': {
+                'name': request_body.get('user_name'),
+            }
+        }
+
+        join_req_body = {}
+
+        if 'user_unique_id' in request_body:
+            login_req_body['user']['user_unique_id'] = request_body.get('user_unique_id')
+
+        if 'image_url' in request_body:
+            login_req_body['user']['image_url'] = request_body.get('image_url')
+            join_req_body['image_url'] = request_body.get('image_url')
+
+        return {'login_req_body': login_req_body, 'join_req_body': join_req_body}

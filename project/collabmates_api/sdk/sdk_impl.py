@@ -157,7 +157,7 @@ class SdkImpl(SdkManager):
                                           community_id=sdk_client.community.id,
                                           request_platform=self.get_request_platform(),
                                           version_code=self.get_version_code())
-        edit_community = community_manager.edit_community(req_body)
+        edit_community = community_manager.edit_community(validated_request_body.get('req_body'))
 
         if 'error_message' in edit_community:
             return ResponseUtilities.get_impl_error_context(edit_community['error_message'],
@@ -201,6 +201,12 @@ class SdkImpl(SdkManager):
 
     def initiate_sdk(self, req_body) -> dict:
 
+        validated_request_body = SdkViewHelper.initiate_sdk_body_validator(req_body)
+
+        if 'error_message' in validated_request_body:
+            return ResponseUtilities.get_impl_error_context(validated_request_body['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
         api_key_validation = AuthUtilities.validate_api_key(self.get_api_key())
 
         if 'error_message' in api_key_validation:
@@ -209,27 +215,27 @@ class SdkImpl(SdkManager):
 
         sdk_client = api_key_validation.get('sdk_client')
 
-        req_body['type'] = login_types.SDK
-
         user_manager = UserImpl(user_id="", mobile_no="")
-        login_user = user_manager.login(req_body, self.get_request_platform(), self.get_device_id(),
-                                        self.get_version_code(), api_key=self.get_api_key())
+        login_user = user_manager.login(validated_request_body.get('login_req_body'), self.get_request_platform(),
+                                        self.get_device_id(), self.get_version_code(), api_key=self.get_api_key())
 
-        if not login_user.get('success'):
-            return ResponseUtilities.get_impl_error_context('Unable to login/sign-up!',
+        if 'error_message' in login_user:
+            return ResponseUtilities.get_impl_error_context(login_user.get('error_message'),
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = login_user.get('user')
 
-        member_community_manager = MemberCommunityImpl(user_instance.get('id'),
+        member_community_manager = MemberCommunityImpl(member_id=user_instance.get('user_unique_id'),
                                                        community_id=sdk_client.community.id,
                                                        device_id=self.get_device_id(),
-                                                       platform_code=self.get_request_platform())
-        join_community_context = member_community_manager.join_community_sdk()
+                                                       platform_code=self.get_request_platform(),
+                                                       api_key=self.get_api_key())
+        join_community_context = member_community_manager.join_community_sdk(
+            validated_request_body.get('join_req_body'))
 
-        if not join_community_context.get('success'):
-            return ResponseUtilities.get_impl_error_context('Unable to join community!',
-                                                            status_codes.HTTP_400_BAD_REQUEST)
+        if 'error_message' in join_community_context:
+            return ResponseUtilities.get_impl_error_context(join_community_context.get('error_message'),
+                                                            join_community_context.get('status'))
 
         return {'user': user_instance, 'community': CommunitySerializerV1(sdk_client.community).data}
 

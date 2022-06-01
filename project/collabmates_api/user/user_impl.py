@@ -341,6 +341,7 @@ class UserImpl(UserManager):
             userinfo_instance.created_at = TimeUtilities.current_time_in_sec()
             userinfo_instance.user_id = user_instance
             userinfo_instance.user_unique_id = unique_id
+            userinfo_instance.is_guest = user_context.get('is_guest', False)
             userinfo_instance.image_link = UserHelper.process_image_url_for_processing(user_context, user_instance)
             userinfo_instance.organisation_name = user_context.get('organisation_name')
             userinfo_instance.is_bot = user_context.get('is_bot', False)
@@ -415,6 +416,7 @@ class UserImpl(UserManager):
 
         return {'id': userinfo_instance.user_id_id,
                 'name': userinfo_instance.name,
+                'is_guest': userinfo_instance.is_guest,
                 'image_url': userinfo_instance.image_link,
                 'user_unique_id': userinfo_instance.user_unique_id}
 
@@ -1206,6 +1208,19 @@ class UserHelper:
             'email': custom_meta.get('email', ''),
             'organisation_name': custom_meta.get('organisation_name')
         }
+
+        user_name = req_body.get('user_name')
+
+        if req_body.get('is_guest'):
+            user_context['is_guest'] = req_body.get('is_guest')
+
+            if not user_name:
+                user_name = "Guest User"
+
+        if not user_name:
+            return user_context
+
+        user_context['user_name'] = user_name
 
         if custom_meta.get('image_url'):
             user_context['image_url'] = custom_meta.get('image_url')
