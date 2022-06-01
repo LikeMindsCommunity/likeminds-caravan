@@ -43,7 +43,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="") -> {}:
+    def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1) -> {}:
         """
         fetches the chatrooms of community
         """
@@ -61,7 +61,8 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="") -> {}:
+    def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="",
+                       page=1) -> {}:
         """
         fetched the feed data for web
         """
@@ -129,7 +130,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def join_community_sdk(self) -> {}:
+    def join_community_sdk(self, req_body: dict) -> {}:
         """Meember joins a community in SDK"""
 
         raise NotImplementedError

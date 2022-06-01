@@ -679,5 +679,7 @@ SIX_HOURS_IN_SECONDS = 6 * 60 * 60
 
 FREE_TRIAL_PUBLIC_URL = "{}/renewal/{}"
 
+SDK_GUEST_USER_DAYS_VALIDITY = 30
+
 SINGLE_EVENT_URL = "{}/single_event/{}"
 AUTO_REGISTER_PARAMS = "?cta=register"
