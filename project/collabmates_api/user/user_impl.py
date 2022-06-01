@@ -1205,22 +1205,10 @@ class UserHelper:
 
         user_context = {
             'name': custom_meta.get('name'),
+            'is_guest': custom_meta.get('is_guest', False),
             'email': custom_meta.get('email', ''),
             'organisation_name': custom_meta.get('organisation_name')
         }
-
-        user_name = req_body.get('user_name')
-
-        if req_body.get('is_guest'):
-            user_context['is_guest'] = req_body.get('is_guest')
-
-            if not user_name:
-                user_name = "Guest User"
-
-        if not user_name:
-            return user_context
-
-        user_context['user_name'] = user_name
 
         if custom_meta.get('image_url'):
             user_context['image_url'] = custom_meta.get('image_url')
