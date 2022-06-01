@@ -12,11 +12,7 @@ class MemberCommunityViewHelper:
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         if not member_id:
-            return ResponseUtilities.get_impl_error_context("Query params missing",
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
-
-        if not req_body.get('community_id'):
-            return ResponseUtilities.get_impl_error_context("Query params missing",
+            return ResponseUtilities.get_impl_error_context("Empty member-id",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         return {}
