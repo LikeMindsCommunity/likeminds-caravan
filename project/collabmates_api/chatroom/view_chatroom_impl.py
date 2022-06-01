@@ -283,17 +283,18 @@ class FetchParticipantsOfSecretChatroom(APIView):
         try:
             chatroom_data = chatroom_manager.fetch_participants_of_secret_chatroom()
 
+            if chatroom_data.get('error_message'):
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
+                                                                                    chatroom_data.get('status')))
+
+            return JsonResponse(chatroom_data)
+
         except Exception as e:
 
             error_logger.error(e.args)
 
-            return JsonResponse({'error_message': "Internal server error"},
+            return JsonResponse({'success': False, 'error_message': "Internal server error"},
                                 status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        if chatroom_data.get('error_message'):
-            return JsonResponse(chatroom_data, status=status_codes.HTTP_400_BAD_REQUEST)
-
-        return JsonResponse(chatroom_data)
 
 
 class CreateEventView(APIView):

@@ -114,13 +114,21 @@ class SdkViewHelper:
         if not request_body:
             return ResponseUtilities.get_inner_error_context('invalid request body')
 
-        if 'user_name' not in request_body:
+        user_name = request_body.get('user_name')
+
+        if request_body.get('is_guest'):
+
+            if not user_name:
+                user_name = "Guest User"
+
+        if not user_name:
             return ResponseUtilities.get_inner_error_context('send user_name in body')
 
         login_req_body = {
             'type': login_types.SDK,
             'user': {
-                'name': request_body.get('user_name'),
+                'name': user_name,
+                'is_guest': request_body.get('is_guest', False)
             }
         }
 
