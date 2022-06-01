@@ -400,10 +400,14 @@ class ChatroomImpl(ChatroomManager):
                 card_content['has_been_named'] = has_been_named
 
     def _add_og_tags(self, req_body, card_content):
-        if 'share_link' in req_body:
-            card_content['share_link'] = req_body['share_link']
-            og_tags = UriTagsImpl(req_body['share_link']).get_tags_from_uri()
-            card_content['og_tags'] = json.dumps(og_tags)
+        try:
+            if 'share_link' in req_body:
+                card_content['share_link'] = req_body['share_link']
+                og_tags = UriTagsImpl(req_body['share_link']).get_tags_from_uri()
+                card_content['og_tags'] = json.dumps(og_tags)
+
+        except Exception as e:
+            error_logger.error(f"link tag parsing failed for link={req_body['share_link']}, reason={e}")
 
     def _check_and_set_chatroom_pending_status(self, card_content, is_intro_card, user_has_auto_approve_right):
         if not user_has_auto_approve_right and not is_intro_card:
