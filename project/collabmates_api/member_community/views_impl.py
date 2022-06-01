@@ -466,7 +466,7 @@ class JoinCommunitySDKView(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         req_body = RequestUtilities.load_request_body(request)
-        validated_req_body = MemberCommunityViewHelper.validate_join_community_request(member_id, req_body)
+        validated_req_body = MemberCommunityViewHelper.validate_join_community_request(member_id)
         device_id = RequestUtilities.get_device_id_from_headers(request)
         platform_code = RequestUtilities.get_platform_code(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
