@@ -54,7 +54,7 @@ User.add_to_class("get_user_or_none", get_user_or_none)
 class Community(models.Model):
     name = models.CharField(max_length=200)
     about = models.TextField(null=True)
-    purpose = models.CharField(max_length=2048)
+    purpose = models.CharField(max_length=2048, null=True)
     location = models.CharField(max_length=200, null=True)
     image_url = models.ImageField(upload_to="media/community", null=True)
     members_count = models.IntegerField(default=0)
@@ -222,6 +222,7 @@ class Members(models.Model):
         member_instance.is_owner = create_info.get('is_owner', False)
         member_instance.custom_title = create_info.get('custom_title', None)
         member_instance.became_member_at = create_info.get('became_member_at', 0)
+        member_instance.image_url = create_info.get('image_url', None)
         member_instance.save()
 
         return member_instance
@@ -411,6 +412,9 @@ class Userinfo(models.Model):
     has_tags = models.BooleanField(default=False)
     updated_at = models.BigIntegerField(default=0)
     user_unique_id = models.CharField(max_length=255, unique=True, null=True)
+    is_guest = models.BooleanField(default=False)
+    last_active = models.BigIntegerField(default=0)
+    organisation_name = models.CharField(max_length=255, null=True, blank=True)
     is_bot = models.BooleanField(default=False)
 
     def __str__(self):

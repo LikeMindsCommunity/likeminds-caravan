@@ -78,10 +78,11 @@ class UserLogout(APIView):
 
         user_context = user_manager.logout(device_id)
 
-        if user_context.get('error_message'):
-            return JsonResponse(user_context, status=status_codes.HTTP_400_BAD_REQUEST)
+        if not user_context.get('error_message'):
+            return JsonResponse(user_context)
 
-        return JsonResponse(user_context)
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(user_context.get('error_message'),
+                                                                            user_context.get('status')))
 
 
 class UserRemoveProfile(APIView):
@@ -301,9 +302,9 @@ class BotView(APIView):
                                                                             context.get('status')))
 
 
-class FetchUserInfoView(APIView):
+class FetchUser(APIView):
     """
-    Fetch all the users
+    Fetch user
     """
 
     def get(self, request):
