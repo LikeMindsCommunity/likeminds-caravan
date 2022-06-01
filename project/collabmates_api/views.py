@@ -8491,6 +8491,7 @@ def members_state(request, req_dict=None):
             pass
 
     json_response = {
+        'success': True,
         'state': state,
         'tool_state': 1,
         'edit_required': edit_required,
