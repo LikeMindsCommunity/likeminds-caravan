@@ -1686,6 +1686,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         members_filter = ModelUtilities.get_model_filter(Members, {'member_id': user_instance,
                                                                    'community_id': community_instance})
 
+        req_body = req_body if req_body else {}
+
         if not members_filter:
             MemberCommunityHelper.make_requesting_user_as_member_of_community(user_instance, community_instance,
                                                                               req_body, device_id=self.get_device_id(),

@@ -7,11 +7,7 @@ from collabmates_api.sdk.models import (SdkClient)
 class MemberCommunityViewHelper:
 
     @staticmethod
-    def validate_join_community_request(member_id, req_body):
-        if not req_body:
-            return ResponseUtilities.get_impl_error_context("Invalid request body",
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
-
+    def validate_join_community_request(member_id):
         if not member_id:
             return ResponseUtilities.get_impl_error_context("Empty member-id",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
