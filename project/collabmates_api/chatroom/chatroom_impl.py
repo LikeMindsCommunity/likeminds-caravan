@@ -24,12 +24,14 @@ from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_P
     DM_CHATROOM_NAME
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
+from .chatroom_view_helper import ChatroomViewHelper
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of_new_event_chatrooms_created_for_user, \
     get_last_seen_non_member_access_event_chatroom_id_for_community_managers, \
     get_last_seen_non_member_access_event_for_user, \
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
-    get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right
+    get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right, \
+    get_participant_counts_on_basis_of_chatroom_ids
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, ScheduledChatroomFollowSerializer
@@ -116,9 +118,8 @@ class ChatroomImpl(ChatroomManager):
     device_id = None
     request_platform = None
 
-    def __init__(self, member_id: str, chatroom_id: str = None,
-                 source_id: str = None, aj: str = None,
-                 device_id: str = None, request_platform: str = None, version_code: int = 0):
+    def __init__(self, member_id: str, chatroom_id: str = None, source_id: str = None, aj: str = None,
+                 device_id: str = None, request_platform: str = None, version_code: int = 0, api_key: str = None):
         self.member_id = member_id
         self.chatroom_id = chatroom_id
         self.source_id = source_id
@@ -126,6 +127,7 @@ class ChatroomImpl(ChatroomManager):
         self.device_id = device_id
         self.request_platform = request_platform
         self.version_code = version_code
+        self.api_key = api_key
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -159,6 +161,9 @@ class ChatroomImpl(ChatroomManager):
 
     def get_device_id(self):
         return self.device_id
+
+    def get_api_key(self):
+        return self.api_key
 
     def _make_user_chatroom_guest(self, card_instance):
         guest_context = adding_guest_in_chatroom({}, card_instance, self.get_aj(), self.get_source_id(),
@@ -936,22 +941,50 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_obj
 
-    def create_chatroom(self, req_body: dict) -> dict:
+    def fetch_all_chatroom(self) -> dict:
+        validated_req = ChatroomViewHelper.validate_fetch_all_chatroom_request(self.get_member_id(),
+                                                                               api_key=self.get_api_key())
 
-        community_id = req_body.get('community_id', None)
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not community_id:
-            response = {
-                'success': False,
-                'error_message': 'Send community id in body'
+        user_instance = validated_req.get('user_instance')
+        community_instance = validated_req.get('community_instance')
+
+        chatrooms_filter = ModelUtilities.get_model_filter(Collabcard, {'user': user_instance,
+                                                                        'community': community_instance})
+
+        chatroom_object_list = []
+
+        if chatrooms_filter:
+            card_ids = list(chatrooms_filter.values_list('id', flat=True))
+            card_participants_count_map = get_participant_counts_on_basis_of_chatroom_ids(card_ids)
+
+            context = {
+                'member_id': self.get_member_id(),
+                'current_user_id': self.get_member_id()
             }
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+            chatroom_objects = GetChatroomInstanceSerializer(chatrooms_filter, context=context, many=True).data
 
-        user_instance = ChatroomHelper.fetch_user_instance_or_raise_exception(self.get_member_id())
-        community_instance = ChatroomHelper.fetch_community_instance(community_id=community_id)
+            for chatroom_object in chatroom_objects:
+                chatroom_object['participants_count'] = card_participants_count_map.get(chatroom_object.get('id'), 0)
+                chatroom_object_list.append(chatroom_object)
 
-        ChatroomHelper.is_user_community_member_or_raise_exception(community=community_instance,
-                                                                   user=user_instance)
+        return {'success': True, 'chatrooms': chatroom_object_list}
+
+    def create_chatroom(self, req_body: dict) -> dict:
+        validated_req = ChatroomViewHelper.validate_create_chatroom_request(self.get_member_id(),
+                                                                            self.get_api_key(),
+                                                                            req_body)
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = validated_req.get('user_instance')
+        community_instance = validated_req.get('community_instance')
+        community_id = community_instance.id
 
         member_state = ChatroomHelper.fetch_member_state_in_community(user=user_instance,
                                                                       community=community_instance)
@@ -988,11 +1021,9 @@ class ChatroomImpl(ChatroomManager):
 
         if card_content['is_secret'] and \
                 not ChatroomHelper.check_user_secret_room_creation_right(user_instance, community_instance):
-            response = {
-                "success": False,
-                "error_message": "Only CM or member with secret chatroom creation right can create secret chatroom"
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+            error_message = "Only CM or member with secret chatroom creation right can create secret chatroom"
+            return ResponseUtilities.get_impl_error_context(error_message,
+                                                            status_code=status_codes.HTTP_403_FORBIDDEN)
 
         chatroom_instance = self._create_chatroom_with_contents(card_content=card_content)
         self.set_chatroom_id(chatroom_instance.id)
@@ -1437,28 +1468,22 @@ class ChatroomImpl(ChatroomManager):
             raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def edit_chatroom(self, req_body) -> dict:
+        validated_req = ChatroomViewHelper.validate_edit_chatroom_request(self.get_member_id(),
+                                                                          self.get_chatroom_id())
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user id"}
-
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
-
-        if not card_instance:
-            return {'success': False, 'error_message': "Invalid chatroom id"}
-
-        is_cm = Members.is_member_community_promoter(card_instance.community, user_instance)
-
-        if card_instance.user_id != user_instance.id and not is_cm:
-            return {'success': False, 'error_message': "You don’t have ability to update chatroom meta data"}
+        card_instance = validated_req.get('card_instance')
 
         title = req_body.get('title')
         text = req_body.get('text')
         header = req_body.get('header')
 
         if not title and not header and not text:
-            return {'success': False, 'error_message': "Send title or header to update"}
+            return ResponseUtilities.get_impl_error_context("Send title or header to update",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         update_analytics_data = {
             'updated_title': False,

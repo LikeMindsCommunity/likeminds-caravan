@@ -72,12 +72,13 @@ class MemberCommunityImpl(MemberCommunityManager):
     version_code = None
 
     def __init__(self, member_id: str, community_id: str, device_id: str = None, platform_code: str = "",
-                 version_code: int = 0):
+                 version_code: int = 0, api_key: str = None):
         self.member_id = member_id
         self.community_id = community_id
         self.device_id = device_id
         self.platform_code = platform_code
         self.version_code = version_code
+        self.api_key = api_key
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -99,6 +100,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def get_device_id(self) -> str:
         return self.device_id
+
+    def get_api_key(self) -> str:
+        return self.api_key
 
     def extract_member_communities(self, page: int) -> list:
 
@@ -805,7 +809,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                          ).order_by('created_at')
         return member_queryset
 
-    def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="") -> {}:
+    def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1) -> {}:
 
         community_instance = Community.get_community_or_None(self.get_community_id())
 
@@ -839,7 +843,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
                 pin_status, intro_room_setting_enabled, excluded_card_ids)
 
-            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type)
+            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type,
+                                                                                   page=page)
 
         else:
 
@@ -877,7 +882,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'chatrooms': chatroom_context_list}
 
-    def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="") -> {}:
+    def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="",
+                       page=1) -> {}:
 
         community_instance = Community.get_community_or_None(self.get_community_id())
 
@@ -910,7 +916,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
                 pin_status, intro_room_setting_enabled, excluded_card_ids)
 
-            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type)
+            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type,
+                                                                                   page=page)
 
         else:
 
@@ -1511,7 +1518,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         ordered_card_ids = []
 
         if order_type == 0:
-            return chatroom_queryset.order_by('-card__created_at')
+            return ModelUtilities.paginate_queryset(chatroom_queryset.order_by('-card__created_at'), page=page,
+                                                    paginate_by=limit)
 
         # Recently Active
         if order_type == 1:
@@ -1665,7 +1673,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def join_community_sdk(self, req_body: dict) -> {}:
         validated_request = MemberCommunityViewHelper.validate_join_community_sdk_request(self.get_member_id(),
-                                                                                          self.get_community_id())
+                                                                                          self.get_community_id(),
+                                                                                          self.get_api_key())
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),

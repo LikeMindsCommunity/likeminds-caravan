@@ -17,6 +17,10 @@ class RequestUtilities:
         return NumberUtilities.get_integer_from_string(request.META.get('HTTP_X_VERSION_CODE', 0))
 
     @staticmethod
+    def get_accept_version_from_headers(request: object) -> str:
+        return request.META.get('HTTP_X_ACCEPT_VERSION', None)
+
+    @staticmethod
     def fetch_request_body(request):
         request_body = json.loads(request.body)
 
