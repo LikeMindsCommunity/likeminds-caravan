@@ -302,9 +302,9 @@ class BotView(APIView):
                                                                             context.get('status')))
 
 
-class FetchUserInfoView(APIView):
+class FetchUser(APIView):
     """
-    Fetch all the users
+    Fetch user
     """
 
     def get(self, request):

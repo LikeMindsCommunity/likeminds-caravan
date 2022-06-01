@@ -341,6 +341,7 @@ class UserImpl(UserManager):
             userinfo_instance.created_at = TimeUtilities.current_time_in_sec()
             userinfo_instance.user_id = user_instance
             userinfo_instance.user_unique_id = unique_id
+            userinfo_instance.is_guest = user_context.get('is_guest', False)
             userinfo_instance.image_link = UserHelper.process_image_url_for_processing(user_context, user_instance)
             userinfo_instance.organisation_name = user_context.get('organisation_name')
             userinfo_instance.is_bot = user_context.get('is_bot', False)
@@ -348,7 +349,7 @@ class UserImpl(UserManager):
 
             mobile_context = user_context.get('mobile_context')
 
-            if all([mobile_context, mobile_context.get('country_code'), mobile_context.get('mobile_no')]):
+            if mobile_context and mobile_context.get('country_code') and mobile_context.get('mobile_no'):
                 UserImpl.create_user_mobile_number(user_instance,
                                                    mobile_context.get('country_code'),
                                                    mobile_context.get('mobile_no'))
@@ -415,8 +416,10 @@ class UserImpl(UserManager):
 
         return {'id': userinfo_instance.user_id_id,
                 'name': userinfo_instance.name,
+                'is_guest': userinfo_instance.is_guest,
                 'image_url': userinfo_instance.image_link,
-                'user_unique_id': userinfo_instance.user_unique_id}
+                'user_unique_id': userinfo_instance.user_unique_id,
+                'organisation_name': userinfo_instance.organisation_name}
 
     def compute_logged_in_user(self, userinfo_instance):
 
@@ -967,7 +970,7 @@ class UserImpl(UserManager):
         community_name = validated_request.get('community_name')
 
         user_context = {
-            'user_name': CREATE_USER_BOT_NAME.format(community_name),
+            'name': CREATE_USER_BOT_NAME.format(community_name),
             'is_bot': True
         }
 
@@ -1203,6 +1206,7 @@ class UserHelper:
 
         user_context = {
             'name': custom_meta.get('name'),
+            'is_guest': custom_meta.get('is_guest', False),
             'email': custom_meta.get('email', ''),
             'organisation_name': custom_meta.get('organisation_name')
         }
