@@ -418,7 +418,8 @@ class UserImpl(UserManager):
                 'name': userinfo_instance.name,
                 'is_guest': userinfo_instance.is_guest,
                 'image_url': userinfo_instance.image_link,
-                'user_unique_id': userinfo_instance.user_unique_id}
+                'user_unique_id': userinfo_instance.user_unique_id,
+                'organisation_name': userinfo_instance.organisation_name}
 
     def compute_logged_in_user(self, userinfo_instance):
 
