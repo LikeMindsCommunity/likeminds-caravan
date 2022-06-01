@@ -530,6 +530,7 @@ def get_all_members_version_1(request, req_dict=None):
                                                         total_participants_list)
 
             context['total_members'] = total_participants_list.count()
+            context['success'] = True
 
             return context
 
@@ -558,6 +559,7 @@ def get_all_members_version_1(request, req_dict=None):
                 }
 
             context['total_members'] = total_count
+            context['success'] = True
 
             return context
 
@@ -574,17 +576,20 @@ def get_all_members_version_1(request, req_dict=None):
         if chatroom_instance.is_secret:
             context = get_secret_chatroom_participants(chatroom_instance,
                                                        current_user_id, page, filter_list=filter_list)
+            context['success'] = True
 
             return context
 
         if is_request_web(request):
             context = collabcard_members(chatroom_instance, community_id, current_user_id, page)
             context['total_members'] = total_participants
+            context['success'] = True
 
             return context
 
         context = chatroom_participants(chatroom_instance, filter_list, community_id, current_user_id, page)
         context['total_members'] = total_participants
+        context['success'] = True
 
         return context
 
@@ -623,8 +628,8 @@ def get_all_members_version_1(request, req_dict=None):
 
         members = new_members_list
 
-    context = {'members': members, 'community': community, 'total_members': community['members_count'],
-               'total_filtered_members': total_filtered_members}
+    context = {'success': True, 'members': members, 'community': community,
+               'total_members': community['members_count'], 'total_filtered_members': total_filtered_members}
 
     if NumberUtilities.get_integer_from_string(page) == 1:
         context['total_only_members'] = Members.objects \
