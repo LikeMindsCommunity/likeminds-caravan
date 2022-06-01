@@ -412,6 +412,8 @@ class Userinfo(models.Model):
     has_tags = models.BooleanField(default=False)
     updated_at = models.BigIntegerField(default=0)
     user_unique_id = models.CharField(max_length=255, unique=True, null=True)
+    is_guest = models.BooleanField(default=False)
+    last_active = models.BigIntegerField(default=0)
     organisation_name = models.CharField(max_length=255, null=True, blank=True)
     is_bot = models.BooleanField(default=False)
 

@@ -8773,6 +8773,8 @@ def config(request):
         userinfo_instance.version_code = version_code
         userinfo_instance.save()
 
+    update_last_active_timestamp_for_user(userinfo_instance)
+
     context['success'] = True
     context['mobile_no_exists'] = ModelUtilities.is_model_filter_exists(userMobiles, {'user': user_instance})
 
@@ -8814,6 +8816,12 @@ def config(request):
             context['show_in_app_review'] = True
 
     return JsonResponse(context)
+
+
+def update_last_active_timestamp_for_user(userinfo_instance):
+
+    userinfo_instance.last_active = TimeUtilities.current_time_in_milliseconds()
+    userinfo_instance.save()
 
 
 def set_installed_flag(user_instance):

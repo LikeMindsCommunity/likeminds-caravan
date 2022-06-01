@@ -149,8 +149,8 @@ def UserinfoSerializer(user):
     userinfo = {
         'id': user.user_id_id,
         'name': user.name,
-        'updated_at': user.updated_at
-
+        'updated_at': user.updated_at,
+        'is_guest': user.is_guest
     }
 
     if user.image_link:
