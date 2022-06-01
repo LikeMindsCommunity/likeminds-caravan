@@ -225,7 +225,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
                     data[
                         'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
                 elif not community.image_link:
-                    data['image_url'] = url + data['image_url']
+                    data['image_url'] = (url + data['image_url']) if data['image_url'] else None
 
             if field.field_name == "branding":
                 data['branding'] = json.loads(community.branding) if community.branding else None
