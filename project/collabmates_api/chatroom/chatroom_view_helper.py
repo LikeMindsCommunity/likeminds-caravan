@@ -67,3 +67,17 @@ class ChatroomViewHelper:
             return ResponseUtilities.get_inner_error_context("You don’t have ability to update chatroom meta data")
 
         return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def validate_fetch_participants_meta(user_id, chatroom_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom id")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
