@@ -2683,19 +2683,15 @@ class ChatroomImpl(ChatroomManager):
 
     def fetch_chatroom_participants(self):
 
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+        validated_req = ChatroomViewHelper.validate_edit_chatroom_request(self.get_member_id(),
+                                                                          self.get_chatroom_id())
 
-        if not card_instance:
-            context = get_error_context(False, "Invalid Chatroom ID")
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-            return context
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            context = get_error_context(False, "Invalid User ID")
-
-            return context
+        user_instance = validated_req.get('user_instance')
+        card_instance = validated_req.get('card_instance')
 
         community_instance = card_instance.community
         can_edit_participant = False
@@ -2716,7 +2712,8 @@ class ChatroomImpl(ChatroomManager):
             'card': card_instance,
             'follow_status': True,
             'is_tagged': False,
-            'remove': None
+            'remove': None,
+            'user__userinfo__is_guest': False
         }
 
         total_participants_list = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',

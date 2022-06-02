@@ -961,6 +961,12 @@ class FetchChatroomParticipantsView(APIView):
         try:
             chatroom_data = chatroom_manager.fetch_chatroom_participants()
 
+            if chatroom_data.get('error_message'):
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
+                                                                                    chatroom_data.get('status')))
+
+            return JsonResponse(chatroom_data)
+
         except Exception as e:
 
             error_logger.error(e.args)
@@ -971,11 +977,6 @@ class FetchChatroomParticipantsView(APIView):
             }
 
             return JsonResponse(response, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        if chatroom_data.get('error_message'):
-            return JsonResponse(chatroom_data, status=status_codes.HTTP_400_BAD_REQUEST)
-
-        return JsonResponse(chatroom_data, status=status_codes.HTTP_200_OK)
 
 
 class PublishEventWebflowView(APIView):
