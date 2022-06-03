@@ -2683,8 +2683,8 @@ class ChatroomImpl(ChatroomManager):
 
     def fetch_chatroom_participants(self):
 
-        validated_req = ChatroomViewHelper.validate_edit_chatroom_request(self.get_member_id(),
-                                                                          self.get_chatroom_id())
+        validated_req = ChatroomViewHelper.validate_fetch_participants_meta(self.get_member_id(),
+                                                                            self.get_chatroom_id())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
