@@ -28,6 +28,7 @@ from utility.number_utilities import NumberUtilities
 from utility.utils import (get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room,
                            create_notification_flag)
 from .constants import *
+from .member_community_view_helper import MemberCommunityViewHelper
 from ..community.constants import ANSWER_PRIVACY_PUBLIC_VALUE, ANSWER_PRIVACY_KEY, ANSWER_PRIVACY_PRIVATE_VALUE, \
     DIRECTORY_QUESTIONS_V2_ANSWER_KEY, DIRECTORY_QUESTIONS_V2_QUESTION_ID_KEY
 from ..sync.model_update import update_models_for_syncing_apis
@@ -72,12 +73,13 @@ class MemberCommunityImpl(MemberCommunityManager):
     version_code = None
 
     def __init__(self, member_id: str, community_id: str, device_id: str = None, platform_code: str = "",
-                 version_code: int = 0):
+                 version_code: int = 0, api_key: str = None):
         self.member_id = member_id
         self.community_id = community_id
         self.device_id = device_id
         self.platform_code = platform_code
         self.version_code = version_code
+        self.api_key = api_key
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -99,6 +101,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def get_device_id(self) -> str:
         return self.device_id
+
+    def get_api_key(self) -> str:
+        return self.api_key
 
     def extract_member_communities(self, page: int) -> list:
 
@@ -805,7 +810,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                          ).order_by('created_at')
         return member_queryset
 
-    def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="") -> {}:
+    def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1) -> {}:
 
         community_instance = Community.get_community_or_None(self.get_community_id())
 
@@ -839,7 +844,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
                 pin_status, intro_room_setting_enabled, excluded_card_ids)
 
-            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type)
+            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type,
+                                                                                   page=page)
 
         else:
 
@@ -877,7 +883,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'chatrooms': chatroom_context_list}
 
-    def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="") -> {}:
+    def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="",
+                       page=1) -> {}:
 
         community_instance = Community.get_community_or_None(self.get_community_id())
 
@@ -910,7 +917,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
                 pin_status, intro_room_setting_enabled, excluded_card_ids)
 
-            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type)
+            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type,
+                                                                                   page=page)
 
         else:
 
@@ -1511,7 +1519,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         ordered_card_ids = []
 
         if order_type == 0:
-            return chatroom_queryset.order_by('-card__created_at')
+            return ModelUtilities.paginate_queryset(chatroom_queryset.order_by('-card__created_at'), page=page,
+                                                    paginate_by=limit)
 
         # Recently Active
         if order_type == 1:
@@ -1663,11 +1672,12 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return response
 
-    def join_community_sdk(self) -> {}:
-        validated_request = MemberCommunityHelper.validate_join_community_sdk_request(self.get_member_id(),
-                                                                                      self.get_community_id())
+    def join_community_sdk(self, req_body: dict) -> {}:
+        validated_request = MemberCommunityViewHelper.validate_join_community_sdk_request(self.get_member_id(),
+                                                                                          self.get_community_id(),
+                                                                                          self.get_api_key())
 
-        if not validated_request.get('success'):
+        if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
@@ -1677,9 +1687,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         members_filter = ModelUtilities.get_model_filter(Members, {'member_id': user_instance,
                                                                    'community_id': community_instance})
 
+        req_body = req_body if req_body else {}
+
         if not members_filter:
             MemberCommunityHelper.make_requesting_user_as_member_of_community(user_instance, community_instance,
-                                                                              device_id=self.get_device_id(),
+                                                                              req_body, device_id=self.get_device_id(),
                                                                               platform=self.get_platform_code())
 
         user_has_access = Members.user_has_app_access(user_instance.id)
@@ -2484,24 +2496,12 @@ class MemberCommunityHelper:
             return response
 
     @staticmethod
-    def validate_join_community_sdk_request(user_id, community_id):
-        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid user ID")
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community ID")
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance}
-
-    @staticmethod
-    def make_requesting_user_as_member_of_community(user_instance, community_instance, device_id=None, platform=None):
+    def make_requesting_user_as_member_of_community(user_instance, community_instance, req_body, device_id=None,
+                                                    platform=None):
         Members.create_instance({'user_instance': user_instance,
                                  'community_instance': community_instance,
                                  'state': member_states.MEMBER,
+                                 'image_url': req_body.get('image_url'),
                                  'custom_title': "Member",
                                  'became_member_at': TimeUtilities.current_time_in_sec()
                                  })

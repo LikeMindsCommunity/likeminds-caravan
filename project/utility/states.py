@@ -407,6 +407,7 @@ class LoginTypes:
     LINKEDIN_WEB = "linkedin_web"
     APPLE = "apple"
     CUSTOM = "custom"
+    SDK = "sdk"
 
 
 login_types = LoginTypes()

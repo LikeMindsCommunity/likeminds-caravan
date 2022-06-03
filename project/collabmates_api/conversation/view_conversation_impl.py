@@ -12,6 +12,7 @@ from .conversation_impl import ConversationImpl
 from ..mixins import TransactionMixin
 
 from utility.request_utilities import RequestUtilities
+from utility.response_utilities import ResponseUtilities
 from utility.exception_utilities import InvalidHeaderException, CustomException
 
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -44,9 +45,13 @@ class FetchConversation(APIView):
                                                 include_conversation_id=include_conversation_id,
                                                 version_code=version_code, platform_code=platform_code)
 
-        conversations = conversation_manager.fetch_conversation(top_navigate)
+        conversation_response = conversation_manager.fetch_conversation(top_navigate)
 
-        return JsonResponse({'conversations': conversations})
+        if conversation_response.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                conversation_response.get('error_message'), conversation_response.get('status')))
+
+        return JsonResponse(conversation_response)
 
 
 class CreateConversation(APIView):
@@ -143,7 +148,8 @@ class FetchConversationPollUsers(APIView):
         poll_conversation_response = conversation_manager.poll_users(poll_id, page, page_size)
 
         if poll_conversation_response.get('error_message'):
-            return JsonResponse(poll_conversation_response, status=400)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                poll_conversation_response.get('error_message'), poll_conversation_response.get('status')))
 
         return JsonResponse(poll_conversation_response)
 
@@ -290,7 +296,8 @@ class FetchUnseenCountInEvent(APIView):
         response_context = conversation_manager.fetch_unseen_count_in_event()
 
         if response_context.get('error_message'):
-            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
 
         return JsonResponse(response_context)
 
@@ -334,7 +341,8 @@ class FetchUserAllEvents(APIView):
         response_context = conversation_manager.fetch_user_all_events(page, attending_status, past_events=past_events)
 
         if response_context.get('error_message'):
-            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
 
         return JsonResponse(response_context)
 

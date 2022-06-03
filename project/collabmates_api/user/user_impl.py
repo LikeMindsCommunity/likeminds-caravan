@@ -35,6 +35,7 @@ from utility.response_utilities import ResponseUtilities
 from utility.url_utilities import UrlUtilities
 
 from .constants import *
+from .user_view_helper import UserViewHelper
 from ..raw_queries import get_community_id_list, get_conversations_after_last_seen_messages_in_chatrooms, \
     get_dm_chatrooms_of_user
 from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
@@ -167,17 +168,19 @@ class UserImpl(UserManager):
 
     def logout(self, device_id) -> dict:
 
-        user_instance = User.get_user_or_none(self.get_user_id())
+        user_instance = ModelUtilities.get_user_instance_or_none(self.get_user_id())
 
         if not user_instance:
-            return {'error_message': "In-valid user id", 'success': False}
+            return ResponseUtilities.get_impl_error_context("Invalid user id",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         device_count = self.delete_notification_sending_details(user_instance, device_id)
 
         if device_count[0]:
             return {'success': True}
 
-        return {'error_message': "In-valid device id", 'success': False}
+        return ResponseUtilities.get_impl_error_context("Invalid device id",
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def _get_community_instances_for_user(self):
         community_id_list = get_community_id_list(self.get_user_id())
@@ -265,19 +268,21 @@ class UserImpl(UserManager):
             userinfo_instance.name = user_context['name']
             userinfo_instance.created_at = TimeUtilities.current_time_in_sec()
             userinfo_instance.user_id = user_instance
+            userinfo_instance.user_unique_id = str(uuid.uuid4())
             userinfo_instance.image_link = UserHelper.process_image_url_for_processing(user_context,
                                                                                        user_instance)
             userinfo_instance.save()
 
         return user_instance
 
-    def create_user_context_for_sdk(self, user_instance):
+    def create_user_context_for_sdk(self, user_instance, is_exisiting_user=False):
 
         user_object = {
             'success': True,
             'user': self.compute_logged_in_user(user_instance.userinfo),
             'email_exists': False,
-            'access': UserHelper.is_user_belong_to_any_community(user_instance)
+            'access': UserHelper.is_user_belong_to_any_community(user_instance),
+            'existing_user': is_exisiting_user
         }
 
         return user_object
@@ -297,12 +302,12 @@ class UserImpl(UserManager):
         else:
 
             if not api_key:
-                return ResponseUtilities.get_error_context(False, "Invalid API key!")
+                return ResponseUtilities.get_inner_error_context("Invalid API key!")
 
             sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key})
 
             if not sdk_client_filter:
-                return ResponseUtilities.get_error_context(False, "Invalid API key!")
+                return ResponseUtilities.get_inner_error_context("Invalid API key!")
 
             community_instance = sdk_client_filter[0].community
 
@@ -312,17 +317,17 @@ class UserImpl(UserManager):
 
             if sdk_client_users_info_filter:
                 sdk_client_user_info_instance = sdk_client_users_info_filter[0]
-                return {'success': True,
-                        'user_instance': sdk_client_user_info_instance.user,
-                        'sdk_client_user_info_instance': sdk_client_user_info_instance}
+                return {'user_instance': sdk_client_user_info_instance.user,
+                        'sdk_client_user_info_instance': sdk_client_user_info_instance,
+                        'existing_user': True}
 
             user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_unique_id': user_unique_id})
 
             if user_info_filter:
                 user_instance = user_info_filter[0].user_id
-                return {'success': True,
-                        'user_instance': user_instance,
-                        'sdk_client_user_info_instance': sdk_client_user_info_instance}
+                return {'user_instance': user_instance,
+                        'sdk_client_user_info_instance': sdk_client_user_info_instance,
+                        'existing_user': True}
 
             should_create_user = True
 
@@ -332,11 +337,25 @@ class UserImpl(UserManager):
             user_instance.save()
 
             userinfo_instance = Userinfo()
-            userinfo_instance.name = user_context.get('user_name')
+            userinfo_instance.name = user_context.get('name')
             userinfo_instance.created_at = TimeUtilities.current_time_in_sec()
             userinfo_instance.user_id = user_instance
             userinfo_instance.user_unique_id = unique_id
+            userinfo_instance.is_guest = user_context.get('is_guest', False)
+            userinfo_instance.image_link = UserHelper.process_image_url_for_processing(user_context, user_instance)
+            userinfo_instance.organisation_name = user_context.get('organisation_name')
+            userinfo_instance.is_bot = user_context.get('is_bot', False)
             userinfo_instance.save()
+
+            mobile_context = user_context.get('mobile_context')
+
+            if mobile_context and mobile_context.get('country_code') and mobile_context.get('mobile_no'):
+                UserImpl.create_user_mobile_number(user_instance,
+                                                   mobile_context.get('country_code'),
+                                                   mobile_context.get('mobile_no'))
+
+            if user_context.get('email'):
+                UserImpl.create_user_primary_email(user_instance, user_context)
 
             if user_unique_id and community_instance:
                 sdk_client_user_info_instance = SDKClientUsersInfo()
@@ -345,9 +364,9 @@ class UserImpl(UserManager):
                 sdk_client_user_info_instance.user_unique_id = user_unique_id
                 sdk_client_user_info_instance.save()
 
-        return {'success': True,
-                'user_instance': user_instance,
-                'sdk_client_user_info_instance': sdk_client_user_info_instance}
+        return {'user_instance': user_instance,
+                'sdk_client_user_info_instance': sdk_client_user_info_instance,
+                'existing_user': False}
 
     @staticmethod
     def create_user_primary_email(user_instance, user_context, email_state=email_states.PRIMARY):
@@ -360,7 +379,7 @@ class UserImpl(UserManager):
         login_type = user_context.get('login_type')
         verified = False
 
-        if login_type != "custom":
+        if login_type not in [login_types.CUSTOM, login_types.SDK]:
             verified = True
 
         user_exists = ModelUtilities.is_model_filter_exists(userEmails, {'verified': verified,
@@ -397,8 +416,10 @@ class UserImpl(UserManager):
 
         return {'id': userinfo_instance.user_id_id,
                 'name': userinfo_instance.name,
+                'is_guest': userinfo_instance.is_guest,
                 'image_url': userinfo_instance.image_link,
-                'user_unique_id': userinfo_instance.user_unique_id}
+                'user_unique_id': userinfo_instance.user_unique_id,
+                'organisation_name': userinfo_instance.organisation_name}
 
     def compute_logged_in_user(self, userinfo_instance):
 
@@ -495,15 +516,16 @@ class UserImpl(UserManager):
         if not user_context:
             return {'success': False, 'error_message': "Invalid Login"}
 
-        if login_type == str(api_types.SDK):
+        if login_type == login_types.SDK:
             sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context, api_key=api_key)
 
-            if not sdk_user_context.get('success'):
+            if sdk_user_context.get('error_message'):
                 return sdk_user_context
 
-            return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'))
+            return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'),
+                                                    sdk_user_context.get('existing_user'))
 
-        if (not login_type == str(api_types.SDK)) and not user_context.get('has_profile_image'):
+        if (not login_type == login_types.SDK) and not user_context.get('has_profile_image'):
             return {'success': False, 'user': user_context,
                     'error_message': "profile picture not available"}
 
@@ -939,29 +961,68 @@ class UserImpl(UserManager):
         return response_context
 
     def create_user_bot(self, req_body) -> dict:
-        validated_request = UserHelper.validate_create_user_bot_request(req_body)
+        validated_request = UserViewHelper.validate_create_user_bot_request(req_body)
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_name = validated_request.get('community_name')
 
         user_context = {
-            'user_name': CREATE_USER_BOT_NAME.format(community_name),
+            'name': CREATE_USER_BOT_NAME.format(community_name),
+            'is_bot': True
         }
 
-        user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'name': user_context.get('user_name')})
+        sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context)
 
-        if not user_info_filter:
-            sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context)
+        if sdk_user_context.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(sdk_user_context.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-            if not sdk_user_context.get('success'):
-                return sdk_user_context
+        return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'))
 
-            return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'))
+    def update_user_bot(self, req_body) -> dict:
+        validated_request = UserViewHelper.validate_update_user_bot_request(self.get_user_id(), req_body)
 
-        else:
-            return self.create_user_context_for_sdk(user_info_filter[0].user_id)
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_name = validated_request.get('community_name')
+
+        filter_dict = {
+            'user_id': validated_request.get('user_instance')
+        }
+
+        update_dict = {
+            'name': CREATE_USER_BOT_NAME.format(community_name)
+        }
+
+        ModelUtilities.update_or_create_model(Userinfo, filter_dict, update_dict)
+
+        return self.create_user_context_for_sdk(validated_request.get('user_instance'))
+
+    def fetch_user_bot(self, api_key: str = None) -> dict:
+        validated_request = UserViewHelper.validate_fetch_user_bot_request(api_key)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+
+        user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
+
+        if not user_instance:
+            return ResponseUtilities.get_impl_error_context('No owner in community',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        if user_instance.userinfo.is_bot:
+            return self.create_user_context_for_sdk(user_instance)
+
+        return ResponseUtilities.get_impl_error_context('Community bot not found',
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def fetch_user_info(self) -> dict:
         user_instance = ModelUtilities.get_user_instance_or_none(self.get_user_id())
@@ -1036,7 +1097,7 @@ class UserHelper:
 
             return UserHelper.validate_custom_login_object(req_body)
 
-        elif login_type == str(api_types.SDK):
+        elif login_type == login_types.SDK:
             return UserHelper.validate_sdk_login_object(req_body)
 
         else:
@@ -1138,18 +1199,30 @@ class UserHelper:
     @staticmethod
     def validate_sdk_login_object(req_body):
 
-        user_context = {}
+        custom_meta = req_body.get('user', {})
 
-        if not req_body.get('user_name'):
-            return user_context
+        if not custom_meta.get('name'):
+            return {}
 
-        user_context['user_name'] = req_body.get('user_name')
+        user_context = {
+            'name': custom_meta.get('name'),
+            'is_guest': custom_meta.get('is_guest', False),
+            'email': custom_meta.get('email', ''),
+            'organisation_name': custom_meta.get('organisation_name')
+        }
 
-        if req_body.get('user_unique_id'):
-            user_context['user_unique_id'] = req_body.get('user_unique_id')
+        if custom_meta.get('image_url'):
+            user_context['image_url'] = custom_meta.get('image_url')
+            user_context['has_profile_image'] = True
 
-        if req_body.get('api_key'):
-            user_context['api_key'] = req_body.get('api_key')
+        else:
+            user_context['has_profile_image'] = False
+
+        user_context['login_type'] = login_types.SDK
+        user_context['mobile_context'] = UserHelper.compute_mobile_no(req_body)
+
+        if custom_meta.get('user_unique_id'):
+            user_context['user_unique_id'] = custom_meta.get('user_unique_id')
 
         return user_context
 
@@ -1195,8 +1268,7 @@ class UserHelper:
         if not image_url:
             return ''
 
-        if user_context.get('login_type') == "custom":
-
+        if user_context.get('login_type') in [login_types.CUSTOM, login_types.SDK]:
             return image_url
 
         return upload_image_to_firebase(image_url, user_instance.id)
@@ -1650,10 +1722,3 @@ class UserHelper:
                                                                                                       flat=True))])
 
         return TimeUtilities.add_hours_to_epoch_time(dm_disabled_time, ONE_DAY_HOURS)
-
-    @staticmethod
-    def validate_create_user_bot_request(req_body):
-        if 'community_name' not in req_body:
-            return ResponseUtilities.get_error_context(False, 'Empty community name!')
-
-        return {'success': True, 'community_name': req_body.get('community_name')}
