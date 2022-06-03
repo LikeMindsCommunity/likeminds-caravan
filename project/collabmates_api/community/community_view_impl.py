@@ -881,7 +881,8 @@ class EditCommunityView(APIView):
     def post(self, request):
         request_body = RequestUtilities.load_request_body(request)
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        username, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
+        username = RequestUtilities.get_user_name_from_headers(request)
+        password = RequestUtilities.get_password_from_headers(request)
 
         community_manager = CommunityImpl(member_id=member_id, community_id=request_body.get('community_id'))
         community_data = community_manager.edit_community(request_body, username, password)
