@@ -33,11 +33,18 @@ class SdkClient(models.Model):
         if str(pk).isdigit():
             column_name = "id"
             model = Community
+            model_filter = {
+                "id": pk
+            }
         else:
             column_name = "api_key"
             model = SdkClient
+            model_filter = {
+                "api_key": pk,
+                "is_deleted": False
+            }
 
-        instance_filter = ModelUtilities.get_model_filter(model, {column_name: pk})
+        instance_filter = ModelUtilities.get_model_filter(model, model_filter)
 
         if instance_filter:
             instance = instance_filter[0]
