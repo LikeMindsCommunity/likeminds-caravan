@@ -361,7 +361,7 @@ class ChatroomImpl(ChatroomManager):
         card_content['location_long'] = req_body.get('location_long', None)
 
         card_content['about'] = req_body.get('about', None)
-        card_content['co_hosts'] = json.dumps(req_body['co_hosts']) if ('co_hosts' in req_body) else None
+        card_content['co_hosts'] = json.dumps(req_body['co_hosts']) if ('co_hosts' in req_body) else []
         card_content['online_link'] = req_body.get('online_link', None)
 
     def _fill_chatroom_poll_details(self, card_content, req_body):
