@@ -1,6 +1,7 @@
 import json
 
 import time
+from collections import Iterable
 from typing import Union
 from rest_framework import status as status_codes
 from django.contrib.auth.models import User
@@ -361,7 +362,10 @@ class ChatroomImpl(ChatroomManager):
         card_content['location_long'] = req_body.get('location_long', None)
 
         card_content['about'] = req_body.get('about', None)
-        card_content['co_hosts'] = json.dumps(req_body['co_hosts']) if ('co_hosts' in req_body) else []
+        card_content['co_hosts'] = json.dumps(req_body['co_hosts']) if \
+            ('co_hosts' in req_body and
+             req_body['co_hosts'] is not None and
+             isinstance(req_body['co_hosts'], Iterable)) else []
         card_content['online_link'] = req_body.get('online_link', None)
 
     def _fill_chatroom_poll_details(self, card_content, req_body):
