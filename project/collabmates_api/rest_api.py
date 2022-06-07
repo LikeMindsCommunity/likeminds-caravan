@@ -1468,3 +1468,10 @@ class ScheduledChatroomFollowSerializer(serializers.ModelSerializer):
     class Meta:
         model = ScheduledChatroomFollow
         fields = '__all__'
+
+
+class SDKClientUsersInfoSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = SDKClientUsersInfo
+        fields = ('user', 'community', 'user_unique_id')

@@ -41,7 +41,7 @@ from ..raw_queries import get_community_id_list, get_conversations_after_last_se
 from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
 from ..tasks import send_verification_mail_for_email_sync, cm_onboarding_version_check
 from ..utility import m2cm_v1_version_check, m2cm_v2_version_check
-from ..rest_api import CommunitySerializerV1
+from ..rest_api import CommunitySerializerV1, SDKClientUsersInfoSerializer
 from ..serializers import get_logged_in_user
 from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS, \
     CM_ONBOARDING_CREATE_COMMUNITY_BRANCH_LINK
@@ -275,11 +275,11 @@ class UserImpl(UserManager):
 
         return user_instance
 
-    def create_user_context_for_sdk(self, user_instance, is_exisiting_user=False):
+    def create_user_context_for_sdk(self, user_instance, is_exisiting_user=False, sdk_client_user_info_instance=None):
 
         user_object = {
             'success': True,
-            'user': self.compute_logged_in_user(user_instance.userinfo),
+            'user': self.compute_logged_in_user(user_instance.userinfo, sdk_client_user_info_instance),
             'email_exists': False,
             'access': UserHelper.is_user_belong_to_any_community(user_instance),
             'existing_user': is_exisiting_user
@@ -332,6 +332,9 @@ class UserImpl(UserManager):
             should_create_user = True
 
         if should_create_user:
+            if not user_context.get('name'):
+                return ResponseUtilities.get_inner_error_context("Invalid user name!")
+
             user_instance = User()
             user_instance.username = unique_id
             user_instance.save()
@@ -421,9 +424,13 @@ class UserImpl(UserManager):
                 'user_unique_id': userinfo_instance.user_unique_id,
                 'organisation_name': userinfo_instance.organisation_name}
 
-    def compute_logged_in_user(self, userinfo_instance):
+    def compute_logged_in_user(self, userinfo_instance, sdk_client_user_info_instance=None):
 
         userinfo_context = self.userinfo_serializer(userinfo_instance)
+
+        if sdk_client_user_info_instance:
+            userinfo_context['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client_user_info_instance,
+                                                                               many=False).data
 
         email_list = self.create_user_email_list(userinfo_instance)
         mobile_list = self.create_user_mobile_list(userinfo_instance)
@@ -523,7 +530,8 @@ class UserImpl(UserManager):
                 return sdk_user_context
 
             return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'),
-                                                    sdk_user_context.get('existing_user'))
+                                                    sdk_user_context.get('existing_user'),
+                                                    sdk_user_context.get('sdk_client_user_info_instance'))
 
         if (not login_type == login_types.SDK) and not user_context.get('has_profile_image'):
             return {'success': False, 'user': user_context,
@@ -1201,7 +1209,7 @@ class UserHelper:
 
         custom_meta = req_body.get('user', {})
 
-        if not custom_meta.get('name'):
+        if not (custom_meta.get('name') or custom_meta.get('user_unique_id')):
             return {}
 
         user_context = {
