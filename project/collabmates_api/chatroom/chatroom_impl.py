@@ -1251,24 +1251,22 @@ class ChatroomImpl(ChatroomManager):
             send_notification_for_removed_secret_room_participant.delay(member_id, self.get_chatroom_id())
 
     def add_secret_chatroom_participant(self, req_body: dict) -> dict:
+        validated_req_body = ChatroomViewHelper.validate_add_secret_chatroom_participants_request(self.get_member_id(),
+                                                                                                  self.get_chatroom_id(),
+                                                                                                  req_body)
 
-        secret_chatroom_participants = req_body.get('secret_chatroom_participants', None)
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if secret_chatroom_participants is None:
-            response = {
-                'success': False,
-                'error_message': 'send secret_chatroom_participants in body'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+        chatroom_instance = validated_req_body.get('card_instance')
+        secret_chatroom_participants = validated_req_body.get('secret_chatroom_participants')
 
         secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
-            secret_chatroom_participants
-        )
+            secret_chatroom_participants)
 
         if len(secret_chatroom_participants) <= 0:
             return {'success': True}
-
-        chatroom_instance = Collabcard.get_chatroom_or_raise_exception(self.get_chatroom_id())
 
         existing_participants = json.loads(chatroom_instance.secret_chatroom_participants)
 

@@ -168,30 +168,17 @@ class AddSecretChatroomParticipantView(APIView):
 
     def post(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
-        if not member_id:
-            raise InvalidHeaderException()
-
         req_body = RequestUtilities.fetch_request_body(request)
-
         chatroom_id = req_body.get('chatroom_id', None)
 
-        if chatroom_id is None:
-            response = {
-                'success': False,
-                'error_message': 'send chatroom id in body'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
-
         chatroom_manager = ChatroomImpl(member_id, chatroom_id=chatroom_id)
+        chatroom_data = chatroom_manager.add_secret_chatroom_participant(req_body)
 
-        chatroom_manager.add_secret_chatroom_participant(req_body)
+        if 'error_message' in chatroom_data:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
+                                                                                chatroom_data.get('status')))
 
-        context = {
-            "success": True
-        }
-
-        return JsonResponse(context)
+        return JsonResponse(chatroom_data)
 
 
 class GetTaggingList(APIView):
