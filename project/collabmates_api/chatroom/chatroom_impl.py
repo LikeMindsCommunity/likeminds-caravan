@@ -32,7 +32,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_last_seen_non_member_access_event_for_user, \
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
     get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right, \
-    get_participant_counts_on_basis_of_chatroom_ids
+    get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, ScheduledChatroomFollowSerializer
@@ -949,7 +949,7 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_obj
 
-    def fetch_all_chatroom(self) -> dict:
+    def fetch_all_chatroom(self, page: int = 1) -> dict:
         validated_req = ChatroomViewHelper.validate_fetch_all_chatroom_request(self.get_member_id(),
                                                                                api_key=self.get_api_key())
 
@@ -960,8 +960,9 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req.get('user_instance')
         community_instance = validated_req.get('community_instance')
 
-        chatrooms_filter = ModelUtilities.get_model_filter(Collabcard, {'user': user_instance,
-                                                                        'community': community_instance})
+        card_ids = get_all_chatrooms_of_community(user_instance.id, community_instance.id, page)
+
+        chatrooms_filter = ModelUtilities.get_model_filter(Collabcard, {'id__in': card_ids})
 
         chatroom_object_list = []
 
