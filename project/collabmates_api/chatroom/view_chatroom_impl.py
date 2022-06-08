@@ -263,9 +263,7 @@ class FetchParticipantsOfSecretChatroom(APIView):
     def get(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
         chatroom_id = request.GET.get('chatroom_id')
-
         chatroom_manager = ChatroomImpl(member_id, chatroom_id)
 
         try:
@@ -941,9 +939,7 @@ class FetchChatroomParticipantsView(APIView):
     def get(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
         chatroom_id = request.GET.get('chatroom_id')
-
         chatroom_manager = ChatroomImpl(member_id, chatroom_id)
 
         try:

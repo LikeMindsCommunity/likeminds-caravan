@@ -80,6 +80,9 @@ class ChatroomViewHelper:
         if not card_instance:
             return ResponseUtilities.get_inner_error_context("Invalid chatroom id")
 
+        if card_instance.is_secret:
+            return ResponseUtilities.get_inner_error_context("Chatroom is secret!")
+
         return {'user_instance': user_instance, 'card_instance': card_instance}
 
     @staticmethod
