@@ -35,7 +35,7 @@ from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24, CM_ONBOARD
     DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR, CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_LINK, \
     CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_TEXT, MEMBER_REPLY_EMAIL,FIVE_DAYS_IN_HOURS, \
     DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE, DIRECTORY_QUESTIONS_IOS_VERSION_CODE, \
-    DIRECTORY_QUESTIONS_WEB_VERSION_CODE
+    DIRECTORY_QUESTIONS_WEB_VERSION_CODE, SDK_GUEST_USER_DAYS_VALIDITY
 from utility.mail_category_constants import *
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper, MailHelper
@@ -851,3 +851,42 @@ def directory_questions_v2_version_check(platform_code, version_code):
         is_enabled = True
 
     return is_enabled
+
+
+@app.task
+def remove_guest_users_sdk():
+
+    last_active_check = get_user_last_active_check_timestamp()
+
+    user_infos = ModelUtilities.get_model_filter(
+        Userinfo,
+        {
+            'is_guest': True,
+            'last_active__lte': last_active_check
+        }
+    )
+
+    ModelUtilities.get_model_filter(
+        User,
+        {
+            "userinfo__in": user_infos
+        }
+    ).delete()
+
+
+def get_user_last_active_check_timestamp():
+    from datetime import datetime, timedelta
+
+    current_time = TimeUtilities.current_time_in_sec()
+
+    time_delta_in_hours = SDK_GUEST_USER_DAYS_VALIDITY * 24
+
+    time_delta = TimeUtilities.get_epoch_time(
+        hours=time_delta_in_hours
+    )
+
+    last_active_timestamp = TimeUtilities.convert_sec_to_milliseconds(
+        current_time - time_delta
+    )
+
+    return last_active_timestamp

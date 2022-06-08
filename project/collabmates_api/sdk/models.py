@@ -1,12 +1,15 @@
 from django.db import models
 from utility.time_utilities import TimeUtilities
-from togther.models import Community
+from togther.models import (Community, Userinfo, ModelUtilities)
+from django.contrib.auth.models import User
 
 
 class SdkClient(models.Model):
 
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     api_key = models.CharField(max_length=64, unique=True, null=True)
+    project_creator = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    is_deleted = models.BooleanField(default=False)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
@@ -19,6 +22,37 @@ class SdkClient(models.Model):
         self.updated_at = current_time
 
         super(SdkClient, self).save(*args, **kwargs)
+
+    @staticmethod
+    def get_community_instance_or_none(pk):
+        instance = None
+
+        if not pk:
+            return instance
+
+        if str(pk).isdigit():
+            column_name = "id"
+            model = Community
+            model_filter = {
+                "id": pk
+            }
+        else:
+            column_name = "api_key"
+            model = SdkClient
+            model_filter = {
+                "api_key": pk,
+                "is_deleted": False
+            }
+
+        instance_filter = ModelUtilities.get_model_filter(model, model_filter)
+
+        if instance_filter:
+            instance = instance_filter[0]
+
+            if column_name == "api_key":
+                instance = instance.community
+
+        return instance
 
 
 class SdkPlatform(models.Model):

@@ -46,10 +46,10 @@ EVENT_COMM_SHOULD_HAPPEN_AFTER = datetime.strptime("08:0", "%H:%M") # 8:00 AM
 TIME_10_AM = datetime.strptime("10:0", "%H:%M")  # 10:00 AM
 TIME_9_AM = datetime.strptime("9:0", "%H:%M")  # 9:00 AM
 
-WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION = 'event_created_v2'
-WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL = 'event_registration_last_cal_v2'
-WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS = 'attend_5_hrs_before_v1'
-WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN = 'attend_10_mins_before_v1'
+WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION = 'event_created_v6'
+WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL = 'event_registration_last_cal_v4'
+WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS = 'attend_5_hrs_before_v5'
+WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN = 'attend_10_mins_before_v2'
 
 TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION = "New attachments & recordings have been added to %s event in your community"
 TITLE_UPDATE_EVENT_ATTACHMENT_APP_NOTIICATION = "Attachments & recordings have been updated in %s event."
@@ -58,22 +58,22 @@ ROUTE_EVENT_ATTACHMENT_APP_NOTIICATION = "route://event_attachment?chatroom_id=%
 
 TITLE_EVENT_CREATION_APP_NOTIFICATION = "%s event happening in your community"
 SUB_TITLE_EVENT_CREATION_APP_NOTIFICATION = "Register for the event now!"
-ROUTE_FREE_EVENT_CREATION_APP_NOTIFICATION = "route://event_chatroom?chatroom_id=%s&is_paid=false&type=register"
-ROUTE_PAID_EVENT_CREATION_APP_NOTIFICATION = "route://event_chatroom?chatroom_id=%s&is_paid=true&type=register"
+ROUTE_FREE_EVENT_CREATION_APP_NOTIFICATION = "route://single_event?chatroom_id=%s&is_paid=false&type=register"
+ROUTE_PAID_EVENT_CREATION_APP_NOTIFICATION = "route://single_event?chatroom_id=%s&is_paid=true&type=register"
 
 TITLE_EVENT_LAST_CALL_APP_NOTIFICATION = "Registration Reminder"
 SUB_TITLE_EVENT_LAST_CALL_APP_NOTIFICATION = "%s event happening in your community"
-ROUTE_FREE_EVENT_LAST_CALL_APP_NOTIFICATION = "route://event_chatroom?chatroom_id=%s&is_paid=false&type=register_last_call"
-ROUTE_PAID_EVENT_LAST_CALL_APP_NOTIFICATION = "route://event_chatroom?chatroom_id=%s&is_paid=true&type=register_last_call"
+ROUTE_FREE_EVENT_LAST_CALL_APP_NOTIFICATION = "route://single_event?chatroom_id=%s&is_paid=false&type=register_last_call"
+ROUTE_PAID_EVENT_LAST_CALL_APP_NOTIFICATION = "route://single_event?chatroom_id=%s&is_paid=true&type=register_last_call"
 
 TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION = "Event starting in %s mins!"
 SUB_TITLE_EVENT_ATTENDANCE_APP_NOTIFICATION = "%s event starting in your community"
-ROUTE_EVENT_ATTENDANCE_APP_NOTIFICATION = "route://event_chatroom?chatroom_id=%s&type=attendance"
+ROUTE_EVENT_ATTENDANCE_APP_NOTIFICATION = "route://single_event?chatroom_id=%s&type=attendance"
 
 TITLE_EVENT_REGISTRATION_APP_NOTIFICATION = "New event registration"
 SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION = "%s has registered for %s event happening in your community"
-ROUTE_FREE_EVENT_REGISTRATION_APP_NOTIFICATION = "route://event_chatroom?chatroom_id=%s&community_id=%s&is_paid=false&type=registered"
-ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION = "route://event_chatroom?chatroom_id=%s&community_id=%s&is_paid=true&type=registered"
+ROUTE_FREE_EVENT_REGISTRATION_APP_NOTIFICATION = "route://single_event?chatroom_id=%s&community_id=%s&is_paid=false&type=registered"
+ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION = "route://single_event?chatroom_id=%s&community_id=%s&is_paid=true&type=registered"
 
 MAIL_EVENT_NOTIFICATION = 30
 

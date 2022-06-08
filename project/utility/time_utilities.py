@@ -45,6 +45,10 @@ class TimeUtilities:
         return millisec // 60000
 
     @staticmethod
+    def convert_sec_to_milliseconds(sec):
+        return int(sec * 1000)
+
+    @staticmethod
     def get_epoch_time(hours=0, minutes=0):
         epoch_time = hours * 3600 + minutes * 60
         return epoch_time

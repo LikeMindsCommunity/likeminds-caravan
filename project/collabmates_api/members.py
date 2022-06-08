@@ -5,6 +5,7 @@ from .serializers import *
 from .utility import *
 from .user_moderation_rights import check_admin_approve_right
 from .rest_api import CommunitySerializerV1
+from collabmates_api.sdk.models import SdkClient
 
 
 def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=None):
@@ -477,7 +478,7 @@ def add_expired_members_metadata(members, community_instance):
 def get_all_members_version_1(request, req_dict=None):
     """function to get all members of the community"""
 
-    page = request.GET.get('page', 1)
+    page = RequestUtilities.get_page_number(request)
 
     community_id = request.GET.get('community_id')
     chatroom_id = request.GET.get('chatroom_id', None)
@@ -488,15 +489,25 @@ def get_all_members_version_1(request, req_dict=None):
     user_type = request.GET.get('type', None)
     member_state = request.GET.get('member_state', None)
     member_state = NumberUtilities.get_integer_from_string(member_state, -1)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
+    community_id = community_id if community_id else api_key
+
+    community_instance = SdkClient.get_community_instance_or_none(community_id)
+
+    if not community_instance:
+        response = {
+            'success': False,
+            'error_message': "Invalid API key/community ID"
+        }
+
+        raise InvalidCommunityException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    community_id = community_instance.id
 
     if conversation_id:
         return send_participants_of_conversation(conversation_id, filter_list, current_user_id,
                                                  page=NumberUtilities.get_integer_from_string(page))
-
-    # functionality for user filtering based on options
-
-    context = {}
-    # flow for sending members of chatroom
 
     if chatroom_id:
         chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
@@ -519,6 +530,7 @@ def get_all_members_version_1(request, req_dict=None):
                                                         total_participants_list)
 
             context['total_members'] = total_participants_list.count()
+            context['success'] = True
 
             return context
 
@@ -547,6 +559,7 @@ def get_all_members_version_1(request, req_dict=None):
                 }
 
             context['total_members'] = total_count
+            context['success'] = True
 
             return context
 
@@ -563,17 +576,20 @@ def get_all_members_version_1(request, req_dict=None):
         if chatroom_instance.is_secret:
             context = get_secret_chatroom_participants(chatroom_instance,
                                                        current_user_id, page, filter_list=filter_list)
+            context['success'] = True
 
             return context
 
         if is_request_web(request):
             context = collabcard_members(chatroom_instance, community_id, current_user_id, page)
             context['total_members'] = total_participants
+            context['success'] = True
 
             return context
 
         context = chatroom_participants(chatroom_instance, filter_list, community_id, current_user_id, page)
         context['total_members'] = total_participants
+        context['success'] = True
 
         return context
 
@@ -612,8 +628,8 @@ def get_all_members_version_1(request, req_dict=None):
 
         members = new_members_list
 
-    context = {'members': members, 'community': community, 'total_members': community['members_count'],
-               'total_filtered_members': total_filtered_members}
+    context = {'success': True, 'members': members, 'community': community,
+               'total_members': community['members_count'], 'total_filtered_members': total_filtered_members}
 
     if NumberUtilities.get_integer_from_string(page) == 1:
         context['total_only_members'] = Members.objects \

@@ -56,6 +56,7 @@ from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, 
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from .mails import *
 from .sms import *
+from .sdk.models import SdkClient
 
 from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
@@ -65,9 +66,9 @@ from cms.cms_auth_utilities import CMSAuthUtilities
 
 from .user_moderation_rights import *
 from .rest_api import (CardAnswersDBSyncSerializer, EventRecordingsURLSerializer, GetChatroomInstanceSerializer,
-                       CommunitySerializerV1,
-                       YourCommunitySerializer, EventRecordingsAttachmentsSerializer, EventMemberTestimonialsSerializer,
-                       EventHighlightsSerializer, EventInstructorSerializer, EventFAQSerializer)
+                       CommunitySerializerV1, YourCommunitySerializer, EventRecordingsAttachmentsSerializer,
+                       EventMemberTestimonialsSerializer, EventHighlightsSerializer, EventInstructorSerializer,
+                       EventFAQSerializer)
 
 from utility.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
 from .upload_attachments import (save_community_image, save_chatroom_attachments,
@@ -76,6 +77,7 @@ from .upload_attachments import (save_community_image, save_chatroom_attachments
                                  get_user_image_based_on_community)
 from rest_framework import status as status_codes
 from utility.request_utilities import RequestUtilities
+from utility.response_utilities import ResponseUtilities
 from utility.number_utilities import NumberUtilities
 from utility.exception_utilities import (CustomException, InvalidHeaderException)
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -8403,9 +8405,12 @@ def compute_moderation_member_rights_list_for_ios(moderated_member_list, version
 def members_state(request, req_dict=None):
     '''This function gives the state of user.Get Api'''
 
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
     if not req_dict:
         member_id = request.GET.get('member_id')
         community_id = request.GET.get('community_id')
+        community_id = community_id if community_id else api_key
         collabcard_id = request.GET.get('collabcard_id')
 
         if collabcard_id and not community_id:
@@ -8418,12 +8423,12 @@ def members_state(request, req_dict=None):
             community_id = card.community.id
 
         if not community_id:
-            context = get_error_context(False, "send a valid community id or collabcard id")
+            context = get_error_context(False, "Invalid API key/community ID")
             return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     else:
         member_id = req_dict['member_id']
-        community_id = req_dict['community_id']
+        community_id = req_dict.get('community_id') if req_dict.get('community_id') else api_key
 
     state = 0
     tool_state = 0
@@ -8431,10 +8436,10 @@ def members_state(request, req_dict=None):
 
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
-    community_instance = Community.get_community_or_None(community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id)
 
     if community_instance is None:
-        response = get_error_context(False, f"community with id {community_id} doesn't exists")
+        response = get_error_context(False, "Invalid API key/community ID")
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
     query_set = ModelUtilities.get_model_filter(Members,
@@ -8486,6 +8491,7 @@ def members_state(request, req_dict=None):
             pass
 
     json_response = {
+        'success': True,
         'state': state,
         'tool_state': 1,
         'edit_required': edit_required,
@@ -8768,6 +8774,8 @@ def config(request):
         userinfo_instance.version_code = version_code
         userinfo_instance.save()
 
+    update_last_active_timestamp_for_user(userinfo_instance)
+
     context['success'] = True
     context['mobile_no_exists'] = ModelUtilities.is_model_filter_exists(userMobiles, {'user': user_instance})
 
@@ -8809,6 +8817,12 @@ def config(request):
             context['show_in_app_review'] = True
 
     return JsonResponse(context)
+
+
+def update_last_active_timestamp_for_user(userinfo_instance):
+
+    userinfo_instance.last_active = TimeUtilities.current_time_in_milliseconds()
+    userinfo_instance.save()
 
 
 def set_installed_flag(user_instance):
@@ -8977,118 +8991,6 @@ def change_community_level_context_for_paid_community(community_instance):
             level_instance.title = PAID_COMMUNITY_LEVEL_4_SUB_TITLE
 
         level_instance.save()
-
-
-@csrf_exempt
-def edit_community_version_1(request):
-    '''function to edit the community'''
-
-    res = JsonUtilities.load_json_data(request.body)
-
-    if not res:
-        error_context = get_error_context(False, "In-valid request body")
-
-        return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
-
-    community_instance = ModelUtilities.get_model_instance_or_none(Community, res.get('community_id'))
-
-    if not community_instance:
-        error_context = get_error_context(False, "In-valid community id")
-
-        return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
-
-    member_id = RequestUtilities.get_member_id_from_headers(request)
-
-    if member_id:
-        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
-
-        if not user_instance:
-            error_context = get_error_context(False, "In-valid member id")
-
-            return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
-
-    else:
-        user_name, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
-
-        if not CMSAuthUtilities.validate_user(user_name, password):
-            error_context = get_error_context(False, "In-valid username and password")
-
-            return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
-
-        members_filter = ModelUtilities.get_model_filter(Members,
-                                                         {"community_id": community_instance,
-                                                          "is_owner": True})
-
-        if not members_filter:
-            error_context = get_error_context(False, "Unable to find owner")
-
-            return JsonResponse(error_context, status=status_codes.HTTP_400_BAD_REQUEST)
-
-        user_instance = members_filter[0].member_id
-
-    community_id = community_instance.id
-
-    from .community.community_impl import CommunityHelper
-
-    purpose = res.get('purpose', community_instance.purpose)
-    name = res.get('community_name', community_instance.name)
-    image_link = res.get('image_url', community_instance.image_link)
-
-    edit_fields = []
-
-    if community_instance.name != name:
-        edit_fields.append("name")
-
-    if community_instance.purpose != purpose:
-        edit_fields.append("purpose")
-
-    if community_instance.image_link != image_link:
-        edit_fields.append("image_url")
-
-    community_instance.purpose = purpose
-    community_instance.name = name
-    community_instance.image_link = image_link
-
-    community_instance.type = res.get('type', community_instance.type)
-    community_instance.subtype = res.get('sub_type', community_instance.sub_type)
-
-    community_instance.is_paid = res.get('is_paid', community_instance.is_paid)
-    community_instance.is_discoverable = res.get('is_discoverable', community_instance.is_discoverable)
-    community_instance.website_url = res.get('website_url', community_instance.website_url)
-    community_instance.community_category = res.get('community_category', community_instance.community_category)
-    community_instance.referral_enabled = res.get('referral_enabled', community_instance.referral_enabled)
-    community_instance.dashboard_link = res.get('dashboard_link', community_instance.dashboard_link)
-
-    community_instance.branding = json.dumps(res.get('branding')) if res.get('branding') else community_instance.branding
-
-    community_instance.is_whitelabel = res.get('is_whitelabel', community_instance.is_whitelabel)
-    community_instance.whitelabel_info = json.dumps(res.get('whitelabel_info')) if res.get('whitelabel_info') else \
-        community_instance.whitelabel_info
-
-    community_instance.fee_membership = res.get('fee_membership', community_instance.fee_membership)
-    community_instance.fee_event = res.get('fee_event', community_instance.fee_event)
-    community_instance.fee_payment_pages = res.get('fee_payment_pages', community_instance.fee_payment_pages)
-    community_instance.brand_color = res.get('brand_color', community_instance.brand_color)
-    community_instance.likeminds_plan = res.get('likeminds_plan', community_instance.likeminds_plan)
-    community_instance.hide_dm_tab = res.get('hide_dm_tab', community_instance.hide_dm_tab)
-    community_instance.is_freemium_community = res.get('is_freemium_community', community_instance.is_freemium_community)
-
-    community_instance.save()
-
-    for edit_field in edit_fields:
-        edit_community_data(community_instance, user_instance, edit_field=edit_field)
-
-    CacheImpl.set_cache('COMMUNITY_BRANDING_{}'.format(community_instance.id), community_instance.branding)
-
-    CommunityHelper.set_community_data_in_cache(community_instance.id)
-
-    change_community_level_context_for_paid_community(community_instance)
-
-    send_sync_notification.delay({'community_id': community_id,
-                                  'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
-    update_multiple_previews_in_community.delay({'community_id': community_id})
-
-    return JsonResponse({'success': True})
 
 
 @csrf_exempt
@@ -9465,16 +9367,6 @@ class AllMembersVersion1(APIView):
 
         if not member_id:
             raise InvalidHeaderException()
-
-        platform_code = RequestUtilities.get_request_type(request)
-
-        if platform_code == INVALID_PLATFORM:
-            response = {
-                'success': False,
-                'error_message': 'Invalid platform code'
-            }
-
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         context = get_all_members_version_1(request)
 
@@ -10538,32 +10430,46 @@ def fetch_intro_examples(request):
 
 
 ################################# moderation rights ###############################################
+def validate_community_id_or_api_key(community_id, api_key):
+    community_id = community_id if community_id else api_key
+
+    community_instance = SdkClient.get_community_instance_or_none(community_id)
+
+    if not community_instance:
+        return ResponseUtilities.get_inner_error_context("Invalid API key/community ID")
+
+    return {"community_instance": community_instance}
 
 
 def fetch_community_manager_rights(request):
     """ function to fetch manager rights """
 
     if request.method == 'POST':
-        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to GET'})
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to GET'},
+                            status=status_codes.HTTP_405_METHOD_NOT_ALLOWED)
 
     current_user_id = get_member_id_from_headers(request)
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
-    context = None
+    community_dict = validate_community_id_or_api_key(community_id, api_key)
+
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     if not user_id:
         context = get_error_context(False, "send user_id in params")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    community_instance = Community.objects.get(pk=community_id)
+    if community_dict.get('error_message'):
+        context = get_error_context(False, community_dict.get('error_message'))
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    community_instance = community_dict.get('community_instance')
     current_user_instance = User.objects.get(pk=current_user_id)
     user_instance = User.objects.get(pk=user_id)
 
@@ -10608,7 +10514,8 @@ def fetch_community_manager_rights(request):
     for mobile_no in mobile_filter:
         mobile_list.append(userMobilesSerializer(mobile_no))
 
-    return JsonResponse({"admin_mobiles": mobile_list, "member": member_profile[0], "rights": rights_context})
+    return JsonResponse({'success': True, "admin_mobiles": mobile_list, "member": member_profile[0],
+                         "rights": rights_context})
 
 
 def update_attending_status_for_paid_events_for_new_community_manager(user_instance, community_instance):
@@ -10628,7 +10535,8 @@ def update_community_manager_rights(request):
     """ function to remove a communtiy manager as manager """
 
     if request.method == 'GET':
-        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'},
+                            status=status_codes.HTTP_405_METHOD_NOT_ALLOWED)
 
     current_user_id = get_member_id_from_headers(request)
     req_body = json.loads(request.body)
@@ -10636,26 +10544,35 @@ def update_community_manager_rights(request):
     community_id = req_body['community_id'] if "community_id" in req_body else None
     selected_rights = req_body['rights'] if "rights" in req_body else []
     custom_title = req_body['custom_title'] if "custom_title" in req_body else None
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
+    community_dict = validate_community_id_or_api_key(community_id, api_key)
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
-    if not user_id:
-        context = get_error_context(False, "send user_id in body")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in body")
-        return JsonResponse(context)
-    # if selected_rights is None:
-    #     context = get_error_context(False, "send rights in body")
-    #     return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    community_instance = Community.objects.get(pk=community_id)
-    current_user_instance = User.objects.get(pk=current_user_id)
-    if int(user_id) == int(current_user_id):
-        user_instance = current_user_instance
-    else:
-        user_instance = User.objects.get(pk=user_id)
+    if not user_id:
+        context = get_error_context(False, "send user_id in params")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    if community_dict.get('error_message'):
+        context = get_error_context(False, community_dict.get('error_message'))
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    community_instance = community_dict.get('community_instance')
+
+    current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
+
+    if not current_user_instance:
+        context = get_error_context(False, "Invalid x-member-id")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        context = get_error_context(False, "Invalid user id")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
@@ -11046,30 +10963,44 @@ def fetch_community_member_rights(request):
     """ function to fetch member rights """
 
     if request.method == 'POST':
-        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to GET'})
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to GET'},
+                            status=status_codes.HTTP_405_METHOD_NOT_ALLOWED)
 
     current_user_id = get_member_id_from_headers(request)
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
+    community_dict = validate_community_id_or_api_key(community_id, api_key)
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     if not user_id:
         context = get_error_context(False, "send user_id in params")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    community_instance = Community.objects.get(pk=community_id)
-    current_user_instance = User.objects.get(pk=current_user_id)
-    user_instance = User.objects.get(pk=user_id)
+    if community_dict.get('error_message'):
+        context = get_error_context(False, community_dict.get('error_message'))
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    community_instance = community_dict.get('community_instance')
+
+    current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
+
+    if not current_user_instance:
+        context = get_error_context(False, "Invalid x-member-id")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        context = get_error_context(False, "Invalid user id")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
-
-    rights_context = []
 
     if admin.exists():
         admin_rights = check_all_manager_rights(current_user_instance, community_instance)
@@ -11083,7 +11014,7 @@ def fetch_community_member_rights(request):
 
     member_profile = get_members_profile([user_instance], community_instance)
 
-    return JsonResponse({"member": member_profile[0], "rights": rights_context})
+    return JsonResponse({"success": True, "member": member_profile[0], "rights": rights_context})
 
 
 @csrf_exempt
@@ -11091,7 +11022,8 @@ def update_community_member_rights(request):
     """ function to remove a communtiy manager as manager """
 
     if request.method == 'GET':
-        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'},
+                            status=status_codes.HTTP_405_METHOD_NOT_ALLOWED)
 
     current_user_id = get_member_id_from_headers(request)
     req_body = json.loads(request.body)
@@ -11099,20 +11031,35 @@ def update_community_member_rights(request):
     community_id = req_body['community_id'] if "community_id" in req_body else None
     selected_rights = req_body['rights'] if "rights" in req_body else []
     custom_title = req_body['custom_title'] if "custom_title" in req_body else None
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
+    community_dict = validate_community_id_or_api_key(community_id, api_key)
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
-    if not user_id:
-        context = get_error_context(False, "send user_id in body")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in body")
-        return JsonResponse(context)
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    community_instance = Community.objects.get(pk=community_id)
-    current_user_instance = User.objects.get(pk=current_user_id)
-    user_instance = User.objects.get(pk=user_id)
+    if not user_id:
+        context = get_error_context(False, "send user_id in params")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    if community_dict.get('error_message'):
+        context = get_error_context(False, community_dict.get('error_message'))
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    community_instance = community_dict.get('community_instance')
+
+    current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
+
+    if not current_user_instance:
+        context = get_error_context(False, "Invalid x-member-id")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        context = get_error_context(False, "Invalid user_id")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     info_logger.info(f"UPDATING_MEMBER_RIGHTS - current user id = {current_user_id}, user id = {user_id}"
                      f", community id = {community_id}")

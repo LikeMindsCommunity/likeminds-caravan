@@ -192,6 +192,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
         self.current_user_id = self.context.get('current_user_id', None)  # optional
         self.promoter_id = self.context.get('promoter_id', None)
         self.is_owner = self.context.get('is_owner', False)
+        self.is_sdk = self.context.get('is_sdk', False)
         self.current_user_instance = self.context.get('current_user_instance', None)
         self.restrict_members_count = self.context.get('restrict_members_count', False)
 
@@ -213,7 +214,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
                 check_all_member_rights(community=community.id), show_dm_right=True)
 
             if field.field_name == "image_url":
-                if community.image_link:
+                if community.image_link or self.is_sdk:
                     data['image_url'] = community.image_link
                 elif community.image_url:
                     data['image_url'] = community.image_url.url
@@ -224,7 +225,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
                     data[
                         'image_url'] = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMUCHvC0wEVO5yDMe9wddUoagIqQ3VPH0nm8_VtjK5gk3M0mMO'
                 elif not community.image_link:
-                    data['image_url'] = url + data['image_url']
+                    data['image_url'] = (url + data.get('image_url')) if data.get('image_url') else None
 
             if field.field_name == "branding":
                 data['branding'] = json.loads(community.branding) if community.branding else None
@@ -298,8 +299,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'testimonials', 'faq', 'online_link_enable_before', 'is_paid', 'access', 'online_link_type',
                   'online_link', 'online_link_id', 'online_link_password', 'event_payment_link', 'event_web_page',
                   'webflow_item_id', 'is_private', 'chatroom_with_user_id', 'member_can_message', 'cohorts',
-                  'has_event_recording', 'unread_messages', 'access_without_subscription', 'third_party_unique_id'
-                  )
+                  'has_event_recording', 'unread_messages', 'access_without_subscription', 'third_party_unique_id',
+                  'include_members_later')
 
     def __init__(self, *args, **kwargs):
         super(GetChatroomInstanceSerializer, self).__init__(*args, **kwargs)
@@ -1467,3 +1468,10 @@ class ScheduledChatroomFollowSerializer(serializers.ModelSerializer):
     class Meta:
         model = ScheduledChatroomFollow
         fields = '__all__'
+
+
+class SDKClientUsersInfoSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = SDKClientUsersInfo
+        fields = ('user', 'community', 'user_unique_id')

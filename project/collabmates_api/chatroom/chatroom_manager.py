@@ -7,6 +7,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     @classmethod
     def __subclasshook__(cls, subclass):
         return ((hasattr(subclass, 'fetch_chatroom') and callable(subclass.fetch_chatroom)) and
+                (hasattr(subclass, 'fetch_all_chatroom') and callable(subclass.fetch_all_chatroom)) and
                 (hasattr(subclass, 'create_chatroom') and callable(subclass.create_chatroom)) and
                 (hasattr(subclass, 'pin_or_unpin_chatroom') and
                  callable(subclass.pin_or_unpin_chatroom)) and
@@ -83,6 +84,13 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def fetch_chatroom(self, is_internal=False) -> dict:
         """
         fetching the chatroom from chatroom id
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_all_chatroom(self, page: int = 1) -> dict:
+        """
+        Fetch all chatrooms in community
         """
         raise NotImplementedError
 
@@ -316,7 +324,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         """
         function to fetch chatroom participants meta data
         """
-        
+
         raise NotImplementedError
 
     @abc.abstractmethod
