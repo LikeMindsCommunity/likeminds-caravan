@@ -121,7 +121,7 @@ class SdkViewHelper:
             if not user_name:
                 user_name = "Guest User"
 
-        if not user_name:
+        if not (user_name or request_body.get('user_unique_id')):
             return ResponseUtilities.get_inner_error_context('send user_name in body')
 
         login_req_body = {
