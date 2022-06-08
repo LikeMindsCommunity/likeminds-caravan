@@ -32,7 +32,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_last_seen_non_member_access_event_for_user, \
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
     get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right, \
-    get_participant_counts_on_basis_of_chatroom_ids
+    get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, ScheduledChatroomFollowSerializer
@@ -949,7 +949,7 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_obj
 
-    def fetch_all_chatroom(self) -> dict:
+    def fetch_all_chatroom(self, page: int = 1) -> dict:
         validated_req = ChatroomViewHelper.validate_fetch_all_chatroom_request(self.get_member_id(),
                                                                                api_key=self.get_api_key())
 
@@ -960,8 +960,9 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req.get('user_instance')
         community_instance = validated_req.get('community_instance')
 
-        chatrooms_filter = ModelUtilities.get_model_filter(Collabcard, {'user': user_instance,
-                                                                        'community': community_instance})
+        card_ids = get_all_chatrooms_of_community(user_instance.id, community_instance.id, page)
+
+        chatrooms_filter = ModelUtilities.get_model_filter(Collabcard, {'id__in': card_ids})
 
         chatroom_object_list = []
 
@@ -1250,24 +1251,22 @@ class ChatroomImpl(ChatroomManager):
             send_notification_for_removed_secret_room_participant.delay(member_id, self.get_chatroom_id())
 
     def add_secret_chatroom_participant(self, req_body: dict) -> dict:
+        validated_req_body = ChatroomViewHelper.validate_add_secret_chatroom_participants_request(self.get_member_id(),
+                                                                                                  self.get_chatroom_id(),
+                                                                                                  req_body)
 
-        secret_chatroom_participants = req_body.get('secret_chatroom_participants', None)
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if secret_chatroom_participants is None:
-            response = {
-                'success': False,
-                'error_message': 'send secret_chatroom_participants in body'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+        chatroom_instance = validated_req_body.get('card_instance')
+        secret_chatroom_participants = validated_req_body.get('secret_chatroom_participants')
 
         secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
-            secret_chatroom_participants
-        )
+            secret_chatroom_participants)
 
         if len(secret_chatroom_participants) <= 0:
             return {'success': True}
-
-        chatroom_instance = Collabcard.get_chatroom_or_raise_exception(self.get_chatroom_id())
 
         existing_participants = json.loads(chatroom_instance.secret_chatroom_participants)
 

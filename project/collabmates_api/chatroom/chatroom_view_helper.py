@@ -80,4 +80,30 @@ class ChatroomViewHelper:
         if not card_instance:
             return ResponseUtilities.get_inner_error_context("Invalid chatroom id")
 
+        if card_instance.is_secret:
+            return ResponseUtilities.get_inner_error_context("Chatroom is secret!")
+
         return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def validate_add_secret_chatroom_participants_request(user_id, chatroom_id, req_body):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom id")
+
+        if not card_instance.is_secret:
+            return ResponseUtilities.get_inner_error_context("Chatroom is not secret!")
+
+        secret_chatroom_participants = req_body.get('secret_chatroom_participants', None)
+
+        if secret_chatroom_participants is None:
+            return ResponseUtilities.get_inner_error_context("send secret_chatroom_participants in body")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance,
+                'secret_chatroom_participants': secret_chatroom_participants}

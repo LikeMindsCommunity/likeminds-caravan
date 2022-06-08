@@ -2650,9 +2650,6 @@ class CommunityHelper:
         if 'name' not in req_body:
             return {'success': False, 'error_message': 'Empty name!'}
 
-        if len(req_body.get('name')) > CHARACTER_LIMIT_ON_COMMUNITY_NAME:
-            return {'success': False, 'error_message': 'Characters length should not be greater than 30'}
-
         if api_type == api_types.Non_SDK:
 
             if ('headline' not in req_body) or (not req_body.get('headline')):
