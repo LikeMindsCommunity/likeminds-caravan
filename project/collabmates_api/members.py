@@ -478,7 +478,7 @@ def add_expired_members_metadata(members, community_instance):
 def get_all_members_version_1(request, req_dict=None):
     """function to get all members of the community"""
 
-    page = request.GET.get('page', 1)
+    page = RequestUtilities.get_page_number(request)
 
     community_id = request.GET.get('community_id')
     chatroom_id = request.GET.get('chatroom_id', None)
