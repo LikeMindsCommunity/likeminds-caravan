@@ -527,8 +527,7 @@ class UserImpl(UserManager):
             sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context, api_key=api_key)
 
             if sdk_user_context.get('error_message'):
-                return ResponseUtilities.get_impl_error_context(sdk_user_context.get('error_message'),
-                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+                return {'success': False, 'error_message': sdk_user_context.get('error_message')}
 
             return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'),
                                                     sdk_user_context.get('existing_user'),

@@ -118,8 +118,7 @@ class UserLoginView(APIView):
                                           api_key=RequestUtilities.get_api_key_from_headers(request))
 
         if user_context.get('error_message'):
-            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(user_context.get('error_message'),
-                                                                                user_context.get('status')))
+            return JsonResponse(user_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(user_context)
 
