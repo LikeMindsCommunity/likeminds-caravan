@@ -2383,31 +2383,16 @@ class ChatroomImpl(ChatroomManager):
         return {'success': True, 'settings': settings_list}
 
     def add_members_to_chatroom(self, chatroom_participants) -> dict:
+        validated_req = ChatroomViewHelper.validate_add_members_to_open_chatroom(self.get_member_id(),
+                                                                                 self.get_chatroom_id(),
+                                                                                 chatroom_participants)
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not user_instance:
-            return {'success': False, 'error_message': "In-valid user id"}
-
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
-
-        if not card_instance:
-            return {'success': False, 'error_message': "In-valid chatroom id"}
-
-        if not chatroom_participants:
-            return {'success': False, 'error_message': "Invalid Chatroom participants"}
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
-                                                                  'member_id': user_instance})
-
-        if not member_filter:
-            return {'success': False, 'error_message': "User is not a member of community"}
-
-        member_instance = member_filter[0]
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if not is_cm:
-            return {'success': False, 'error_message': "User doesn't have the ability to perform this operation"}
+        user_instance = validated_req.get('user_instance')
+        card_instance = validated_req.get('card_instance')
 
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants)
 
