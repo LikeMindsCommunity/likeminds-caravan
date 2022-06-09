@@ -1161,13 +1161,12 @@ def create_notification_flag(member, notification_list, card_id=None, community_
 def filter_user_instances_based_on_notification_flag(user_ids: list,
                                                      community_id: int = None,
                                                      card_id: int = None,
-                                                     flag_code: str = unsubscribe_types.MAIL_EVENT_NOTIFICATIONS,
-                                                     flag: bool = True):
+                                                     flag_code: str = unsubscribe_types.MAIL_EVENT_NOTIFICATIONS):
 
     filter_dict = {
         'member__in': user_ids,
         'code': flag_code,
-        'flag': not flag
+        'flag': False
     }
 
     if community_id:

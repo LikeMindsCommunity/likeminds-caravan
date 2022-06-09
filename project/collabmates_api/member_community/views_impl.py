@@ -513,8 +513,8 @@ class UnsubscribeEmailNotificationsView(APIView):
         member_community_manager = MemberCommunityImpl(member_id, community_id=req_body.get('community_id'))
         community_context = member_community_manager.unsubscribe_email_notifications(req_body)
 
-        if 'error_message' not in community_context:
-            return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+        if 'error_message' in community_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                                community_context.get('status_code')))
 
-        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
-                                                                            community_context.get('status_code')))
+        return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
