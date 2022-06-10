@@ -19,6 +19,7 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.string_utilities import StringUtilities
 from random import randint
+import uuid
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from utility.celery_tasks import (
@@ -7850,6 +7851,7 @@ def create_custom_user(name, mobile_no, country_code, email, image_url, login_ty
             userinfo_instance.login_type = login_type
             userinfo_instance.login_json = None
             userinfo_instance.created_at = time.time()
+            userinfo_instance.user_unique_id = str(uuid.uuid4())
             userinfo_instance.user_id = user_instance
             userinfo_instance.save()
 
