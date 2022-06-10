@@ -237,21 +237,13 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
     @staticmethod
     def compute_total_response_count(card_instance):
-
-        key = CONVERSATIONS_COUNT_CACHE_KEY % str(card_instance.id)
-
-        conversation_count = CacheImpl.get_cache(key)
-
-        if conversation_count:
-            return conversation_count['total_responses_count']
-        else:
-            conversations_count = card_answers.objects.filter(card=card_instance.id,
-                                                              state=conversation_states.ANSWER).filter(
-                Q(attachment_count=0)
-                | Q(
-                    attachments_uploaded=True)).count()
-            update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance.id,
-                                                         'total_responses_count': conversations_count})
+        conversations_count = card_answers.objects.filter(card=card_instance.id,
+                                                          state=conversation_states.ANSWER).filter(
+            Q(attachment_count=0)
+            | Q(
+                attachments_uploaded=True)).count()
+        update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance.id,
+                                                     'total_responses_count': conversations_count})
 
             return conversations_count
 
