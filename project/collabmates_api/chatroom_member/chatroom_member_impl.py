@@ -245,7 +245,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance.id,
                                                      'total_responses_count': conversations_count})
 
-            return conversations_count
+        return conversations_count
 
     @staticmethod
     def compute_user_id_list_of_chatroom_creators(chatroom_list) -> []:
