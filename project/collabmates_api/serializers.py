@@ -150,11 +150,11 @@ def UserinfoSerializer(user):
         'id': user.user_id_id,
         'name': user.name,
         'updated_at': user.updated_at,
-        'is_guest': user.is_guest
+        'is_guest': user.is_guest,
+        'user_unique_id': user.user_unique_id,
+        'organisation_name': user.organisation_name,
+        'image_url': user.image_link
     }
-
-    if user.image_link:
-        userinfo['image_url'] = user.image_link
 
     return userinfo
 
