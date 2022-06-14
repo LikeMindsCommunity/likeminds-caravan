@@ -62,6 +62,10 @@ app.conf.beat_schedule = {
     'send_weekly_email_for_resources_tab': {
         'task': 'collabmates_api.notifications.tasks.trigger_weekly_emails_for_resources_tab',
         'schedule': crontab(hour=23, minute=0),
+    },
+    'remove_guest_users_sdk': {
+        'task': 'collabmates_api.tasks.remove_guest_users_sdk',
+        'schedule': crontab(hour=2, minute=0),
     }
 }
 

@@ -6,13 +6,13 @@ from urllib.parse import urlparse
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community
 from .static_files import *
-from .static_text import CM_ONBOARDING_COMMUNITY_FEED_URL, FREE_TRIAL_PUBLIC_URL
+from .static_text import CM_ONBOARDING_COMMUNITY_FEED_URL, FREE_TRIAL_PUBLIC_URL, SINGLE_EVENT_URL, AUTO_REGISTER_PARAMS
 from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
                                BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK,
                                BRANCH_FEATURE_COMMUNITY_OTL_URL, BRANCH_FEATURE_PAYMENT_PAGE_URL,
                                BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL, COMMUNITY_HOOD_ID,
                                COMMUNITY_HOOD_MARKETING_TITLE, BRANCH_LINK_TYPE, RESOURCES_TAB_FEATURE,
-                               RESOURCES_TAB_PATH)
+                               RESOURCES_TAB_PATH, BRANCH_SINGLE_EVENT_URL)
 from utility.api_client import ApiClient
 from .utility import free_link_and_freemium_community_version_check
 
@@ -233,6 +233,9 @@ def create_link_item(base_url, community, channel, feature, private=False):
         link_item['data']['$desktop_url'] = desktop_url
         link_item["data"]['$android_url'] = fallback_url
 
+    if feature == BRANCH_SINGLE_EVENT_URL:
+        link_item['data']['$fallback_url'] = fallback_url
+
     return link_item
 
 
@@ -357,6 +360,7 @@ def create_resources_tab_url(community_instance):
     base_url = RESOURCES_TAB_PATH % community_instance.id
 
     long_url_item = create_link_item(base_url, community_instance, "AppBackend", RESOURCES_TAB_FEATURE)
+    
     data.append(long_url_item)
 
     client = ApiClient()
@@ -374,5 +378,35 @@ def create_resources_tab_url(community_instance):
     if 'url' not in data[0]:
         web_url = 'https://%s/%s' % (web_host_url, base_url)
         data[0]['url'] = web_url
+
+    return data[0]['url']
+
+
+def create_single_event_branch_url(card_instance, should_register=False):
+    data = []
+
+    single_event_url = SINGLE_EVENT_URL.format(host_url, card_instance.id)
+
+    if should_register:
+        single_event_url = single_event_url + AUTO_REGISTER_PARAMS
+
+    long_url_item = create_link_item(single_event_url, card_instance.community, "AppBackend",
+                                     BRANCH_SINGLE_EVENT_URL)
+    data.append(long_url_item)
+
+    client = ApiClient()
+    client.update_request_url(api_endpoint)
+    client.update_body(data)
+    client.post()
+
+    if client.fetch_response_code() != 200:
+        data = [{}]
+        info_logger.info("Branch failed, sending normal links")
+    else:
+        data = client.fetch_response()
+
+    # in case branch fails
+    if 'url' not in data[0]:
+        data[0]['url'] = f'https://{single_event_url}'
 
     return data[0]['url']

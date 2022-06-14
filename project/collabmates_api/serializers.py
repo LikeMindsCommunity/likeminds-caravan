@@ -149,12 +149,12 @@ def UserinfoSerializer(user):
     userinfo = {
         'id': user.user_id_id,
         'name': user.name,
-        'updated_at': user.updated_at
-
+        'updated_at': user.updated_at,
+        'is_guest': user.is_guest,
+        'user_unique_id': user.user_unique_id,
+        'organisation_name': user.organisation_name,
+        'image_url': user.image_link
     }
-
-    if user.image_link:
-        userinfo['image_url'] = user.image_link
 
     return userinfo
 
@@ -236,7 +236,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'online_link_enable_before': card.online_link_enable_before,
         'is_private': card.is_private,
         'has_event_recording': card.has_event_recording,
-        'is_private_member': card.is_private_member
+        'is_private_member': card.is_private_member,
+        'include_members_later': card.include_members_later
     }
 
     if card.secret_chatroom_participants:

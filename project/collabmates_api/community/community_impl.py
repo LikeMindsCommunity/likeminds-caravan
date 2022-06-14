@@ -4,6 +4,7 @@ from celery import shared_task
 from django.contrib.auth.models import User
 from django.template.loader import get_template
 import re
+from rest_framework import status as status_codes
 
 from cms.models import NewAnswer
 from collabmates_api.community.constants import *
@@ -17,7 +18,10 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
     post_master_introductions_for_community, post_member_directory_link, post_general_collabcard_for_community, \
     update_community_get_started, get_branch_links_for_community_share_v1, fill_share_context_for_paid_community, \
     fill_share_context_for_unpaid_community, check_join_community_hood_get_started, \
-    add_community_upload_image_analytics, create_introduction_question_in_community, edit_community_data, get_community_creator
+    add_community_upload_image_analytics, create_introduction_question_in_community, edit_community_data, \
+    get_community_creator, change_community_level_context_for_paid_community
+
+from collabmates_api.notification import send_sync_notification
 
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
@@ -48,6 +52,7 @@ from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 
 from collabmates_api.community.community_manager import CommunityManager
+from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 
 from collabmates_api.mails import send_created_community_email_to_team
@@ -60,20 +65,22 @@ from utility.states import member_states, card_types, click_states, member_right
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
-    api_types
+    api_types, login_types
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
 from utility.constants import PLATFORM_CODE_WEB
 from utility.api_client import ApiClient
+from utility.response_utilities import ResponseUtilities
 
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
-from utility.celery_tasks import create_member_dm_chatroom, create_intro_room_disabled_text_for_community_members
+from utility.celery_tasks import (create_member_dm_chatroom, create_intro_room_disabled_text_for_community_members,
+                                  update_preview_for_account_image_change, update_multiple_previews_in_community)
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..search.sync import ElasticSearchSync
 from ..notifications.tasks import send_mail_for_first_time_edit_community_questions
-from ..user.user_impl import UserHelper
+from ..user.user_impl import UserHelper, UserImpl
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
     directory_questions_v2_version_check, get_user_phone
@@ -91,14 +98,15 @@ class CommunityImpl(CommunityManager):
     community_id = None
     version_code = None
 
-    def __init__(self, member_id: str, community_id: str = None, version_code: str = None,
-                 device_id: str = None, request_platform: str = None):
+    def __init__(self, member_id: str, community_id: str = None, version_code: str = None, device_id: str = None,
+                 request_platform: str = None, api_key: str = None):
 
         self.member_id = member_id
         self.community_id = community_id
         self.version_code = version_code
         self.device_id = device_id
         self.request_platform = request_platform
+        self.api_key = api_key
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -117,6 +125,9 @@ class CommunityImpl(CommunityManager):
 
     def get_version_code(self):
         return self.version_code
+
+    def get_api_key(self):
+        return self.api_key
 
     def set_community_id(self, community_id) -> None:
         self.community_id = community_id
@@ -936,20 +947,19 @@ class CommunityImpl(CommunityManager):
         return {'success': True, 'access': user_has_access}
 
     def fetch_members_meta(self, community_id):
+        validated_req = CommunityViewHelper.validate_fetch_members_meta_request(self.get_member_id(),
+                                                                                self.get_community_id(),
+                                                                                api_key=self.get_api_key())
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not user_instance:
-            return {'error_message': "invalid user id"}
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return {'error_message': "invalid community id"}
+        community_instance = validated_req.get('community_instance')
 
         members = ChatroomImpl.compute_tagging_list_of_community_members(community_instance)
 
-        return {'members': members}
+        return {'success': True, 'members': members}
 
     def fetch_content_download_settings(self, chatroom_id=None):
 
@@ -1430,11 +1440,18 @@ class CommunityImpl(CommunityManager):
             type_id = TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
             sub_type_id = SUB_TYPE_ID_WITH_NO_DIRECTORY_QUESTIONS
 
+        purpose = validate_req_body.get('headline', None)
+
+        is_sdk = req_body.get('type', api_types.Non_SDK) == api_types.SDK
+
+        if is_sdk and (not purpose):
+            purpose = SDK_COMMUNITY_HEADLINE
+
         community_instance = Community.create_instance({'name': validate_req_body['name'],
                                                         'members_count': 1,
-                                                        'purpose': validate_req_body['headline'],
+                                                        'purpose': purpose,
                                                         'brand_color': validate_req_body.get('brand_color', None),
-                                                        'image_link': validate_req_body.get('image_url'),
+                                                        'image_link': validate_req_body.get('image_url', None),
                                                         'thumbnail': community_default_thumbnail,
                                                         'type': type_id,
                                                         'sub_type': sub_type_id,
@@ -1478,7 +1495,8 @@ class CommunityImpl(CommunityManager):
         CommunityHelper.set_community_data_in_cache(community_instance.id)
 
         community_serializer = CommunitySerializerV1(community_instance,
-                                                     context={"current_user_id": self.get_member_id()},
+                                                     context={"current_user_id": self.get_member_id(),
+                                                              "is_sdk": is_sdk},
                                                      many=False).data
 
         return {'success': True, 'community': community_serializer}
@@ -1777,6 +1795,165 @@ class CommunityImpl(CommunityManager):
         right_data = CohortHelper.get_cohorts_with_specific_right(community_instance, state, is_m2cm_v2=is_m2cm_v2)
 
         return {'success': True, 'cohorts': right_data}
+
+    @staticmethod
+    def _update_community_object(community_instance, user_instance, req_body):
+
+        purpose = req_body.get('purpose', community_instance.purpose)
+        name = req_body.get('community_name', community_instance.name)
+        image_link = req_body.get('image_url', community_instance.image_link)
+
+        edit_fields = []
+
+        if community_instance.name != name:
+            edit_fields.append("name")
+
+        if community_instance.purpose != purpose:
+            edit_fields.append("purpose")
+
+        if community_instance.image_link != image_link:
+            edit_fields.append("image_url")
+
+        community_instance.purpose = purpose
+        community_instance.name = name
+        community_instance.image_link = image_link
+
+        community_instance.type = req_body.get('type', community_instance.type)
+        community_instance.subtype = req_body.get('sub_type', community_instance.sub_type)
+
+        community_instance.is_paid = req_body.get('is_paid', community_instance.is_paid)
+        community_instance.is_discoverable = req_body.get('is_discoverable', community_instance.is_discoverable)
+        community_instance.website_url = req_body.get('website_url', community_instance.website_url)
+        community_instance.community_category = req_body.get('community_category',
+                                                             community_instance.community_category)
+        community_instance.referral_enabled = req_body.get('referral_enabled', community_instance.referral_enabled)
+        community_instance.dashboard_link = req_body.get('dashboard_link', community_instance.dashboard_link)
+
+        community_instance.branding = json.dumps(req_body.get('branding')) if req_body.get(
+            'branding') else community_instance.branding
+
+        community_instance.is_whitelabel = req_body.get('is_whitelabel', community_instance.is_whitelabel)
+        community_instance.whitelabel_info = json.dumps(req_body.get('whitelabel_info')) if req_body.get(
+            'whitelabel_info') else community_instance.whitelabel_info
+
+        community_instance.fee_membership = req_body.get('fee_membership', community_instance.fee_membership)
+        community_instance.fee_event = req_body.get('fee_event', community_instance.fee_event)
+        community_instance.fee_payment_pages = req_body.get('fee_payment_pages', community_instance.fee_payment_pages)
+        community_instance.brand_color = req_body.get('brand_color', community_instance.brand_color)
+        community_instance.likeminds_plan = req_body.get('likeminds_plan', community_instance.likeminds_plan)
+        community_instance.hide_dm_tab = req_body.get('hide_dm_tab', community_instance.hide_dm_tab)
+        community_instance.is_freemium_community = req_body.get('is_freemium_community',
+                                                                community_instance.is_freemium_community)
+
+        community_instance.save()
+
+        for edit_field in edit_fields:
+            edit_community_data(community_instance, user_instance, edit_field=edit_field)
+
+    def edit_community(self, req_body, username=None, password=None) -> dict:
+
+        validated_request_body = CommunityViewHelper.validate_edit_community_request(req_body,
+                                                                                     self.get_community_id(),
+                                                                                     self.get_member_id(),
+                                                                                     username, password)
+
+        if 'error_message' in validated_request_body:
+            return ResponseUtilities.get_impl_error_context(validated_request_body['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request_body.get('community_instance')
+        user_instance = validated_request_body.get('user_instance')
+
+        self._update_community_object(community_instance, user_instance, req_body)
+
+        CacheImpl.set_cache('COMMUNITY_BRANDING_{}'.format(community_instance.id), community_instance.branding)
+
+        CommunityHelper.set_community_data_in_cache(community_instance.id)
+
+        change_community_level_context_for_paid_community(community_instance)
+
+        send_sync_notification.delay({'community_id': community_instance.id,
+                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+        update_multiple_previews_in_community.delay({'community_id': community_instance.id})
+
+        return {'success': True}
+
+    def add_community_member(self, req_body: dict) -> {}:
+        validated_req_body = CommunityViewHelper.validate_add_community_member_request(self.get_member_id(),
+                                                                                       self.get_api_key(),
+                                                                                       req_body)
+
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = validated_req_body.get('user_instance')
+        community_instance = validated_req_body.get('community_instance')
+
+        req_body = {
+            "user": validated_req_body.get('user_body'),
+            "type": login_types.SDK
+        }
+
+        user_manager = UserImpl(user_id="", mobile_no="")
+        login_user = user_manager.login(req_body, self.get_request_platform(), self.get_device_id(),
+                                        self.get_version_code(), api_key=self.get_api_key())
+
+        if login_user.get('error_message'):
+            return ResponseUtilities.get_impl_error_context('Unable to login/sign-up!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_object = login_user.get('user')
+
+        member_community_manager = MemberCommunityImpl(user_object.get('id'),
+                                                       community_id=community_instance.id,
+                                                       device_id=self.get_device_id(),
+                                                       platform_code=self.get_request_platform())
+
+        community_req_body = {
+            "image_url": validated_req_body['user_body'].get('image_url')
+        }
+
+        join_community_context = member_community_manager.join_community_sdk(community_req_body)
+
+        if not join_community_context.get('success'):
+            return ResponseUtilities.get_impl_error_context('Unable to join community!',
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        return {'success': True, 'user': user_object, 'community': CommunitySerializerV1(community_instance).data}
+
+    def update_community_member(self, req_body: dict) -> {}:
+        validated_req_body = CommunityViewHelper.validate_update_community_member_request(self.get_member_id(),
+                                                                                          self.get_api_key(),
+                                                                                          req_body)
+
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        member_instance = validated_req_body.get('member_instance')
+        userinfo_instance = member_instance.userinfo
+
+        if req_body.get('user_name'):
+            userinfo_instance.name = req_body.get('user_name')
+            userinfo_instance.save()
+
+            update_models_for_syncing_apis(SyncTypes.MEMBERS, {'member_id': member_instance.id}, {})
+
+            ElasticSearchSync.update_user_name.delay(member_instance.id, userinfo_instance.name)
+            ElasticSearchSync.update_member_name.delay(member_instance.id, userinfo_instance.name)
+
+        if req_body.get('image_url'):
+            previous_image_url = userinfo_instance.image_link
+            userinfo_instance.image_link = req_body.get('image_url')
+            userinfo_instance.updated_at = TimeUtilities.current_time_in_sec()
+            userinfo_instance.save()
+
+            update_preview_for_account_image_change.delay({'user_id': member_instance.id,
+                                                           'image_url': req_body.get('image_url'),
+                                                           'previous_image_url': previous_image_url})
+
+        return {'success': True}
 
 
 class CommunityHelper:
@@ -2473,17 +2650,16 @@ class CommunityHelper:
         if 'name' not in req_body:
             return {'success': False, 'error_message': 'Empty name!'}
 
-        if len(req_body.get('name')) > CHARACTER_LIMIT_ON_COMMUNITY_NAME:
-            return {'success': False, 'error_message': 'Characters length should not be greater than 30'}
+        if api_type == api_types.Non_SDK:
 
-        if 'headline' not in req_body:
-            return {'success': False, 'error_message': 'Empty headline!'}
+            if ('headline' not in req_body) or (not req_body.get('headline')):
+                return {'success': False, 'error_message': 'Empty headline!'}
 
-        if 'branding' not in req_body and 'brand_color' not in req_body:
-            return {'success': False, 'error_message': 'Empty brand color!'}
+            if 'branding' not in req_body and 'brand_color' not in req_body:
+                return {'success': False, 'error_message': 'Empty brand color!'}
 
-        if (api_type == api_types.Non_SDK) and ('image_url' not in req_body):
-            return {'success': False, 'error_message': 'Empty image url!'}
+            if ('image_url' not in req_body) or (not req_body.get('headline')):
+                return {'success': False, 'error_message': 'Empty image url!'}
 
         return req_body
 
