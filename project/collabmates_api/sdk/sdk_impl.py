@@ -62,12 +62,21 @@ class SdkImpl(SdkManager):
         api_key = self.get_api_key()
 
         if api_key:
-            filters['api_key'] = api_key
+            api_key_validation = AuthUtilities.validate_api_key(self.get_api_key())
 
-        projects = ModelUtilities.get_model_filter(SdkClient, filters)
+            if 'error_message' in api_key_validation:
+                return ResponseUtilities.get_impl_error_context(api_key_validation.get('error_message'),
+                                                                api_key_validation.get('status'))
 
-        if not projects:
-            return ResponseUtilities.get_impl_error_context('No projects found', status_codes.HTTP_404_NOT_FOUND)
+            sdk_client = api_key_validation.get('sdk_client')
+
+            if sdk_client.project_creator != validated_request.get('project_creator'):
+                return ResponseUtilities.get_impl_error_context('No projects found', status_codes.HTTP_404_NOT_FOUND)
+
+            projects = [sdk_client]
+
+        else:
+            projects = ModelUtilities.get_model_filter(SdkClient, filters)
 
         return {'success': True, 'projects': SdkProjectSerializer(projects, many=True).data}
 
@@ -164,6 +173,7 @@ class SdkImpl(SdkManager):
                                                             edit_community['status'])
 
         if req_body.get('name'):
+
             user_manager = UserImpl(user_id=self.get_member_id(), platform_code=self.get_request_platform(),
                                     version_code=self.get_version_code())
             update_bot = user_manager.update_user_bot({'community_name': req_body.get('name')})
