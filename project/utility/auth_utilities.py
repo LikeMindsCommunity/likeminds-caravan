@@ -43,14 +43,9 @@ class AuthUtilities:
             return ResponseUtilities.get_impl_error_context('Send x-api-key in headers',
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
-        sdk_clients = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key})
+        sdk_clients = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key, 'is_deleted': False})
 
         if not sdk_clients:
             return ResponseUtilities.get_impl_error_context('Invalid API key', status_codes.HTTP_400_BAD_REQUEST)
 
-        sdk_client = sdk_clients[0]
-
-        if sdk_client.is_deleted:
-            return ResponseUtilities.get_impl_error_context('Invalid API key', status_codes.HTTP_400_BAD_REQUEST)
-
-        return {'success': True, 'sdk_client': sdk_client}
+        return {'success': True, 'sdk_client': sdk_clients[0]}
