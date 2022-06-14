@@ -48,4 +48,9 @@ class AuthUtilities:
         if not sdk_clients:
             return ResponseUtilities.get_impl_error_context('Invalid API key', status_codes.HTTP_400_BAD_REQUEST)
 
-        return {'success': True, 'sdk_client': sdk_clients[0]}
+        sdk_client = sdk_clients[0]
+
+        if sdk_client.is_deleted:
+            return ResponseUtilities.get_impl_error_context('Invalid API key', status_codes.HTTP_400_BAD_REQUEST)
+
+        return {'success': True, 'sdk_client': sdk_client}
