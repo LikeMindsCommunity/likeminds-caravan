@@ -42,7 +42,7 @@ from ..views import remove_members, remove_all_member_rights, remove_all_manager
 from ..tasks import send_verification_mail_for_email_sync, cm_onboarding_version_check
 from ..utility import m2cm_v1_version_check, m2cm_v2_version_check
 from ..rest_api import CommunitySerializerV1, SDKClientUsersInfoSerializer
-from ..serializers import get_logged_in_user
+from ..serializers import get_logged_in_user, UserinfoSerializer
 from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS, \
     CM_ONBOARDING_CREATE_COMMUNITY_BRANCH_LINK
 
@@ -414,19 +414,9 @@ class UserImpl(UserManager):
             instance.created_at = TimeUtilities.current_time_in_sec()
             instance.save()
 
-    @staticmethod
-    def userinfo_serializer(userinfo_instance):
-
-        return {'id': userinfo_instance.user_id_id,
-                'name': userinfo_instance.name,
-                'is_guest': userinfo_instance.is_guest,
-                'image_url': userinfo_instance.image_link,
-                'user_unique_id': userinfo_instance.user_unique_id,
-                'organisation_name': userinfo_instance.organisation_name}
-
     def compute_logged_in_user(self, userinfo_instance, sdk_client_user_info_instance=None):
 
-        userinfo_context = self.userinfo_serializer(userinfo_instance)
+        userinfo_context = UserinfoSerializer(userinfo_instance)
 
         if sdk_client_user_info_instance:
             userinfo_context['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client_user_info_instance,
