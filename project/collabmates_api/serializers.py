@@ -150,11 +150,11 @@ def UserinfoSerializer(user):
         'id': user.user_id_id,
         'name': user.name,
         'updated_at': user.updated_at,
-        'is_guest': user.is_guest
+        'is_guest': user.is_guest,
+        'user_unique_id': user.user_unique_id,
+        'organisation_name': user.organisation_name,
+        'image_url': user.image_link
     }
-
-    if user.image_link:
-        userinfo['image_url'] = user.image_link
 
     return userinfo
 
@@ -1553,6 +1553,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
                                          send_profile=send_profile)
     community_profile['state'] = member_instance.state
     community_profile['is_owner'] = member_instance.is_owner
+    community_profile['member_since_epoch'] = member_instance.created_at
     if member_instance.custom_title and not member_instance.custom_title == 'Member':
         community_profile['custom_title'] = member_instance.custom_title
     # sending image  url of members

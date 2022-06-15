@@ -42,7 +42,8 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_ordered_card_id_on_the_basis_last_message,
                            get_ordered_card_id_on_the_basis_of_participants_count,
                            check_user_has_member_can_initiate_dm_right, get_dm_chatrooms_of_user,
-                           get_last_conversation_id_corresponding_to_chatrooms_list)
+                           get_last_conversation_id_corresponding_to_chatrooms_list,
+                           get_ordered_card_id_on_the_basis_newest_chatroom)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -642,7 +643,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                     'is_owner': data['is_owner'],
                     'community_id': data['community_id'],
                     'route': MEMBER_COMMUNITY_PROFILE_ROUTE % (str(data['community_id']), str(data['member_id'])),
-                    'created_at': data['created_at']
+                    'created_at': data['created_at'],
+                    'user_unique_id': data['user_unique_id']
                 }
 
                 if member['state'] == member_states.ADMIN or \
@@ -840,11 +842,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                                self.get_community_id())
 
         if api_version == api_version_headers.V1:
-            chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
-                pin_status, intro_room_setting_enabled, excluded_card_ids)
-
-            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type,
-                                                                                   page=page)
+            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(intro_room_setting_enabled,
+                                                                                   pin_status, excluded_card_ids,
+                                                                                   order_type, page=page)
 
         else:
 
@@ -913,11 +913,9 @@ class MemberCommunityImpl(MemberCommunityManager):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
                                                                                self.get_community_id())
         if api_version == api_version_headers.V1:
-            chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
-                pin_status, intro_room_setting_enabled, excluded_card_ids)
-
-            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type,
-                                                                                   page=page)
+            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(intro_room_setting_enabled,
+                                                                                   pin_status, excluded_card_ids,
+                                                                                   order_type, page=page)
 
         else:
 
@@ -1513,25 +1511,41 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True}
     
-    def _get_sorted_chatroom_queryset_based_on_order_type(self, chatroom_queryset, order_type, page=1, limit=10):
-        card_ids = chatroom_queryset.values_list('card_id', flat=True)
+    def _get_sorted_chatroom_queryset_based_on_order_type(self, intro_room_settings_enabled, pin_status,
+                                                          excluded_card_ids, order_type, page=1, limit=10):
+
+        excluded_card_types = [card_types.CARD_INTRO, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]
+
+        if not intro_room_settings_enabled:
+            excluded_card_types.append(card_types.CARD_MASTER_INTRO)
+
         ordered_card_ids = []
 
         if order_type == 0:
-            return ModelUtilities.paginate_queryset(chatroom_queryset.order_by('-card__created_at'), page=page,
-                                                    paginate_by=limit)
-
+            ordered_card_ids = get_ordered_card_id_on_the_basis_newest_chatroom(self.get_member_id(),
+                                                                                self.get_community_id(),
+                                                                                pin_status, excluded_card_ids,
+                                                                                excluded_card_types, page, limit)
         # Recently Active
         if order_type == 1:
-            ordered_card_ids = get_ordered_card_id_on_the_basis_last_message(card_ids, page, limit)
+            ordered_card_ids = get_ordered_card_id_on_the_basis_last_message(self.get_member_id(),
+                                                                             self.get_community_id(),
+                                                                             pin_status, excluded_card_ids,
+                                                                             excluded_card_types, page, limit)
 
         # Most Messages
         if order_type == 2:
-            ordered_card_ids = get_ordered_card_id_on_the_basis_of_message_count(card_ids, page, limit)
+            ordered_card_ids = get_ordered_card_id_on_the_basis_of_message_count(self.get_member_id(),
+                                                                                 self.get_community_id(),
+                                                                                 pin_status, excluded_card_ids,
+                                                                                 excluded_card_types, page, limit)
 
         # Most Participants
         if order_type == 3:
-            ordered_card_ids = get_ordered_card_id_on_the_basis_of_participants_count(card_ids, page, limit)
+            ordered_card_ids = get_ordered_card_id_on_the_basis_of_participants_count(self.get_member_id(),
+                                                                                      self.get_community_id(),
+                                                                                      pin_status, excluded_card_ids,
+                                                                                      excluded_card_types, page, limit)
 
         chatroom_queryset = MemberCommunityHelper.get_ordered_collabcard_state_list_based_on_card_ids(
             self.get_member_id(), ordered_card_ids)
@@ -1812,6 +1826,7 @@ class MemberCommunityHelper:
             temp['id'] = value['id']
             temp['name'] = value['name']
             temp['image_url'] = value['image_url']
+            temp['user_unique_id'] = value['user_unique_id']
 
             member_list.append(temp)
 

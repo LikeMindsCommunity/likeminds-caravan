@@ -614,6 +614,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
 
         fields = self._readable_fields
 
+        data['member'] = get_members_profile([data['user']], data['community_id'], send_profile=False)
+
         for field in fields:
 
             if field.field_name == 'header':

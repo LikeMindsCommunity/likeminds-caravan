@@ -414,7 +414,7 @@ class Userinfo(models.Model):
     user_unique_id = models.CharField(max_length=255, unique=True, null=True)
     is_guest = models.BooleanField(default=False)
     last_active = models.BigIntegerField(default=0)
-    organisation_name = models.CharField(max_length=255, null=True, blank=True)
+    organisation_name = models.CharField(max_length=255, null=True)
     is_bot = models.BooleanField(default=False)
 
     def __str__(self):
@@ -3354,7 +3354,7 @@ class CommunityDirectMessageSettings(models.Model):
 class SDKClientUsersInfo(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    user_unique_id = models.CharField(max_length=255, unique=True, null=True)
+    user_unique_id = models.CharField(max_length=255, null=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
