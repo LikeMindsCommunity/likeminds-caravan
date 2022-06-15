@@ -2247,6 +2247,9 @@ def get_ordered_card_id_on_the_basis_of_message_count(user_id, community_id, is_
                                             AND        ca.is_pinned = {}
                                             AND        cs.user_id = {} {} ))
             AND       togther_card_answers.state IN (0)
+            AND       (
+                                togther_card_answers.attachment_count = 0
+                      OR        togther_card_answers.attachments_uploaded = true)
             GROUP BY  togther_collabcard.id
             ORDER BY  count(togther_card_answers.card_id) DESC limit {} offset {};
         """.format(community_id, excluded_card_types_tuple, is_pinned, user_id, excluded_card_id_string, limit, offset)
