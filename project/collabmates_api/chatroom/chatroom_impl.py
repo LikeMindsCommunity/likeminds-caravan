@@ -254,6 +254,8 @@ class ChatroomImpl(ChatroomManager):
                 instance.external_seen = True
                 instance.save()
 
+        update_last_unseen_in_engage(user=user_instance, community=card_instance.community)
+
     def _fetch_icon_states_for_chatroom(self, card_instance, chatroom_data):
 
         icons = {}
@@ -960,7 +962,7 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req.get('user_instance')
         community_instance = validated_req.get('community_instance')
 
-        card_ids = get_all_chatrooms_of_community(user_instance.id, community_instance.id, page)
+        card_ids = get_all_chatrooms_of_community(community_instance.id, page)
 
         chatrooms_filter = ModelUtilities.get_model_filter(Collabcard, {'id__in': card_ids})
 

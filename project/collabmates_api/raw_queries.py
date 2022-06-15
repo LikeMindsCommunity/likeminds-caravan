@@ -1567,7 +1567,8 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
                          "togther_members"."custom_title",
                          "togther_userinfo"."name",
                          "togther_userinfo"."image_link",
-                         "togther_members"."created_at"
+                         "togther_members"."created_at",
+                         "togther_userinfo"."user_unique_id"
                 FROM "togther_members"
                 INNER JOIN "togther_userinfo"
                     ON ("togther_members"."member_id_id" = "togther_userinfo"."user_id_id")
@@ -1594,6 +1595,7 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
             member_dict['name'] = data[6]
             member_dict['image_link'] = data[7]
             member_dict['created_at'] = data[8]
+            member_dict['user_unique_id'] = data[9]
             member_list.append(member_dict)
 
         return member_list
@@ -2599,7 +2601,7 @@ def get_participant_counts_on_basis_of_chatroom_ids(card_ids_list):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_all_chatrooms_of_community(user_id, community_id, page=1, limit=10):
+def get_all_chatrooms_of_community(community_id, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -2609,11 +2611,11 @@ def get_all_chatrooms_of_community(user_id, community_id, page=1, limit=10):
 
         sql = """SELECT id
                  FROM  togther_collabcard
-                 WHERE (user_id=%s
+                 WHERE (is_deleted = false
                        AND is_private = false
                        AND community_id = %s 
                        AND type NOT IN (10))
-                 OFFSET %s LIMIT %s;""" % (str(user_id), str(community_id), str(offset), str(limit))
+                 OFFSET %s LIMIT %s;""" % (str(community_id), str(offset), str(limit))
 
         curr.execute(sql)
         card_list = curr.fetchall()
