@@ -965,7 +965,7 @@ class UserImpl(UserManager):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        community_name = validated_request.get('community_name')
+        community_name = validated_request.get('name')
 
         user_context = {
             'name': CREATE_USER_BOT_NAME.format(community_name),
@@ -987,7 +987,7 @@ class UserImpl(UserManager):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        community_name = validated_request.get('community_name')
+        community_name = validated_request.get('name')
 
         filter_dict = {
             'user_id': validated_request.get('user_instance')
