@@ -2599,7 +2599,7 @@ def get_participant_counts_on_basis_of_chatroom_ids(card_ids_list):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_all_chatrooms_of_community(user_id, community_id, page=1, limit=10):
+def get_all_chatrooms_of_community(community_id, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -2609,11 +2609,11 @@ def get_all_chatrooms_of_community(user_id, community_id, page=1, limit=10):
 
         sql = """SELECT id
                  FROM  togther_collabcard
-                 WHERE (user_id=%s
+                 WHERE (is_deleted = false
                        AND is_private = false
                        AND community_id = %s 
                        AND type NOT IN (10))
-                 OFFSET %s LIMIT %s;""" % (str(user_id), str(community_id), str(offset), str(limit))
+                 OFFSET %s LIMIT %s;""" % (str(community_id), str(offset), str(limit))
 
         curr.execute(sql)
         card_list = curr.fetchall()

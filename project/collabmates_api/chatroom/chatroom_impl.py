@@ -962,7 +962,7 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req.get('user_instance')
         community_instance = validated_req.get('community_instance')
 
-        card_ids = get_all_chatrooms_of_community(user_instance.id, community_instance.id, page)
+        card_ids = get_all_chatrooms_of_community(community_instance.id, page)
 
         chatrooms_filter = ModelUtilities.get_model_filter(Collabcard, {'id__in': card_ids})
 
