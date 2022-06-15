@@ -254,6 +254,8 @@ class ChatroomImpl(ChatroomManager):
                 instance.external_seen = True
                 instance.save()
 
+        update_last_unseen_in_engage(user=user_instance, community=card_instance.community)
+
     def _fetch_icon_states_for_chatroom(self, card_instance, chatroom_data):
 
         icons = {}
