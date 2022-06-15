@@ -176,7 +176,7 @@ class SdkImpl(SdkManager):
 
             user_manager = UserImpl(user_id=self.get_member_id(), platform_code=self.get_request_platform(),
                                     version_code=self.get_version_code())
-            update_bot = user_manager.update_user_bot({'community_name': req_body.get('name')})
+            update_bot = user_manager.update_user_bot({'name': req_body.get('name')})
 
             if 'error_message' in update_bot:
                 return ResponseUtilities.get_impl_error_context(update_bot['error_message'],

@@ -643,7 +643,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                     'is_owner': data['is_owner'],
                     'community_id': data['community_id'],
                     'route': MEMBER_COMMUNITY_PROFILE_ROUTE % (str(data['community_id']), str(data['member_id'])),
-                    'created_at': data['created_at']
+                    'created_at': data['created_at'],
+                    'user_unique_id': data['user_unique_id']
                 }
 
                 if member['state'] == member_states.ADMIN or \
@@ -1825,6 +1826,7 @@ class MemberCommunityHelper:
             temp['id'] = value['id']
             temp['name'] = value['name']
             temp['image_url'] = value['image_url']
+            temp['user_unique_id'] = value['user_unique_id']
 
             member_list.append(temp)
 
