@@ -959,30 +959,25 @@ class ChatroomImpl(ChatroomManager):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        user_instance = validated_req.get('user_instance')
         community_instance = validated_req.get('community_instance')
 
         card_ids = get_all_chatrooms_of_community(community_instance.id, page)
+        chatroom_list = ModelUtilities.get_model_filter(collabcardState,
+                                                        {'card_id__in': card_ids,
+                                                         'user': self.get_member_id(),
+                                                         'secret_chatroom_left': False}).select_related('card',
+                                                                                                        'card__user')
 
-        chatrooms_filter = ModelUtilities.get_model_filter(Collabcard, {'id__in': card_ids})
+        chatroom_context_list = []
 
-        chatroom_object_list = []
+        if chatroom_list:
 
-        if chatrooms_filter:
-            card_ids = list(chatrooms_filter.values_list('id', flat=True))
-            card_participants_count_map = get_participant_counts_on_basis_of_chatroom_ids(card_ids)
+            from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
-            context = {
-                'member_id': self.get_member_id(),
-                'current_user_id': self.get_member_id()
-            }
-            chatroom_objects = GetChatroomInstanceSerializer(chatrooms_filter, context=context, many=True).data
+            chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
+            chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
 
-            for chatroom_object in chatroom_objects:
-                chatroom_object['participants_count'] = card_participants_count_map.get(chatroom_object.get('id'), 0)
-                chatroom_object_list.append(chatroom_object)
-
-        return {'success': True, 'chatrooms': chatroom_object_list}
+        return {'success': True, 'chatrooms': chatroom_context_list}
 
     def create_chatroom(self, req_body: dict) -> dict:
         validated_req = ChatroomViewHelper.validate_create_chatroom_request(self.get_member_id(),
