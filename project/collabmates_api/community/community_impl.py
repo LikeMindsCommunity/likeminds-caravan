@@ -2647,7 +2647,7 @@ class CommunityHelper:
 
         api_type = req_body.get('type', api_types.Non_SDK)
 
-        if 'name' not in req_body:
+        if not req_body.get('name'):
             return {'success': False, 'error_message': 'Empty name!'}
 
         if api_type == api_types.Non_SDK:

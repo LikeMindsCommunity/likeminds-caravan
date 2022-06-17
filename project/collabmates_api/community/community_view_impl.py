@@ -520,7 +520,7 @@ class FetchCommunityMeta(APIView):
     def _validate_request(self, aj):
         res = {}
 
-        if not aj:
+        if not (aj and str(aj).isdigit()):
             res = get_error_context(False, "Invalid aj")
 
         return res
