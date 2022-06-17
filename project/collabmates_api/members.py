@@ -5,7 +5,7 @@ from .serializers import *
 from .utility import *
 from .user_moderation_rights import check_admin_approve_right
 from .rest_api import CommunitySerializerV1
-from collabmates_api.sdk.models import SdkClient
+from utility.auth_utilities import AuthUtilities
 
 
 def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=None):
@@ -491,9 +491,7 @@ def get_all_members_version_1(request, req_dict=None):
     member_state = NumberUtilities.get_integer_from_string(member_state, -1)
     api_key = RequestUtilities.get_api_key_from_headers(request)
 
-    community_id = community_id if community_id else api_key
-
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
+    community_instance = AuthUtilities.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
     if not community_instance:
         response = {

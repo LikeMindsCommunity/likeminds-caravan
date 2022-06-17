@@ -1,6 +1,6 @@
 from utility.response_utilities import ResponseUtilities
 from togther.models import (ModelUtilities)
-from collabmates_api.sdk.models import (SdkClient)
+from utility.auth_utilities import AuthUtilities
 from rest_framework import status as status_codes
 
 
@@ -36,7 +36,7 @@ class UserViewHelper:
 
     @staticmethod
     def validate_fetch_user_bot_request(api_key):
-        community_instance = SdkClient.get_community_instance_or_none(api_key)
+        community_instance = AuthUtilities.get_community_instance_or_none(api_key=api_key)
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context('Invalid API key!')

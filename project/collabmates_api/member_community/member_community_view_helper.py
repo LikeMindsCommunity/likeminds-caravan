@@ -1,7 +1,7 @@
 from rest_framework import status as status_codes
 from utility.response_utilities import ResponseUtilities
 from togther.models import (ModelUtilities, Community)
-from collabmates_api.sdk.models import (SdkClient)
+from utility.auth_utilities import AuthUtilities
 
 
 class MemberCommunityViewHelper:
@@ -21,9 +21,7 @@ class MemberCommunityViewHelper:
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user ID")
 
-        community_id = community_id if community_id else api_key
-
-        community_instance = SdkClient.get_community_instance_or_none(community_id)
+        community_instance = AuthUtilities.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid community ID")

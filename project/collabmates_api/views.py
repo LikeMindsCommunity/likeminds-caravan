@@ -56,7 +56,7 @@ from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, 
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from .mails import *
 from .sms import *
-from .sdk.models import SdkClient
+from utility.auth_utilities import AuthUtilities
 
 from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
@@ -8430,7 +8430,6 @@ def members_state(request, req_dict=None):
 
     else:
         member_id = req_dict['member_id']
-        community_id = req_dict.get('community_id') if req_dict.get('community_id') else api_key
 
     state = 0
     tool_state = 0
@@ -8438,9 +8437,9 @@ def members_state(request, req_dict=None):
 
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
+    community_instance = AuthUtilities.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
-    if community_instance is None:
+    if not community_instance:
         response = get_error_context(False, "Invalid API key/community ID")
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
@@ -10433,9 +10432,7 @@ def fetch_intro_examples(request):
 
 ################################# moderation rights ###############################################
 def validate_community_id_or_api_key(community_id, api_key):
-    community_id = community_id if community_id else api_key
-
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
+    community_instance = AuthUtilities.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
     if not community_instance:
         return ResponseUtilities.get_inner_error_context("Invalid API key/community ID")
