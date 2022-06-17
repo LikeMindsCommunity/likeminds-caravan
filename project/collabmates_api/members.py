@@ -5,7 +5,7 @@ from .serializers import *
 from .utility import *
 from .user_moderation_rights import check_admin_approve_right
 from .rest_api import CommunitySerializerV1
-from collabmates_api.sdk.models import SdkClient
+from collabmates_api.sdk.models import (SdkClient)
 from utility.response_utilities import ResponseUtilities
 
 
@@ -496,9 +496,7 @@ def get_all_members_version_1(request, req_dict=None):
         return ResponseUtilities.get_impl_error_context("Invalid x-member-id",
                                                         status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-    community_id = community_id if community_id else api_key
-
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
     if not community_instance:
         return ResponseUtilities.get_impl_error_context("Invalid API key/community ID",

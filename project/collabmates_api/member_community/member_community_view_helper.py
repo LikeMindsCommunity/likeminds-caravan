@@ -21,9 +21,7 @@ class MemberCommunityViewHelper:
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user ID")
 
-        community_id = community_id if community_id else api_key
-
-        community_instance = SdkClient.get_community_instance_or_none(community_id)
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid community ID")

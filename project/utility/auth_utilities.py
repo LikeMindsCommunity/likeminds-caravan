@@ -1,7 +1,7 @@
 from rest_framework import status as status_codes
 from .response_utilities import ResponseUtilities
 from .states import member_states
-from togther.models import ModelUtilities, User, Community, Members
+from togther.models import (ModelUtilities, User, Community, Members)
 from collabmates_api.sdk.models import SdkClient
 
 
