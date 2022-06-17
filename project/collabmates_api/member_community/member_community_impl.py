@@ -813,10 +813,14 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1) -> {}:
 
-        community_instance = Community.get_community_or_None(self.get_community_id())
+        validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
+                                                                              self.get_community_id())
 
-        if not community_instance:
-            return {'error_message': "Invalid community_id", 'status': 400}
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_req.get('community_instance')
 
         filter_dict = {
             'community_id': self.get_community_id(),
@@ -864,10 +868,11 @@ class MemberCommunityImpl(MemberCommunityManager):
                         pin_status, last_seen_chatroom_id, intro_room_setting_enabled, excluded_card_ids, limit_size=5)
             else:
 
-                chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+                chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
                 if not chatroom_instance:
-                    return {'error_message': "Invalid chatroom id", 'status': 400}
+                    return ResponseUtilities.get_impl_error_context("Invalid chatroom ID",
+                                                                    status_code=status_codes.HTTP_400_BAD_REQUEST)
 
                 chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
                     pin_status, intro_room_setting_enabled, excluded_card_ids)
@@ -885,10 +890,14 @@ class MemberCommunityImpl(MemberCommunityManager):
     def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="",
                        page=1) -> {}:
 
-        community_instance = Community.get_community_or_None(self.get_community_id())
+        validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
+                                                                              self.get_community_id())
 
-        if not community_instance:
-            return {'error_message': "Invalid community_id", 'status': 400}
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_req.get('community_instance')
 
         filter_dict = {
             'community_id': self.get_community_id(),
@@ -924,10 +933,11 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                      excluded_card_ids)
                 chatroom_list = chatroom_list[:5]
             else:
-                chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+                chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
                 if not chatroom_instance:
-                    return {'error_message': "Invalid chatroom id", 'status': 400}
+                    return ResponseUtilities.get_impl_error_context("Invalid chatroom ID",
+                                                                    status_code=status_codes.HTTP_400_BAD_REQUEST)
 
                 chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_instance,
                                                                                         intro_room_setting_enabled,

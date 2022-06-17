@@ -52,7 +52,7 @@ User.add_to_class("get_user_or_none", get_user_or_none)
 
 
 class Community(models.Model):
-    name = models.CharField(max_length=200)
+    name = models.TextField()
     about = models.TextField(null=True)
     purpose = models.CharField(max_length=2048, null=True)
     location = models.CharField(max_length=200, null=True)

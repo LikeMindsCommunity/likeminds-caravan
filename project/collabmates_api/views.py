@@ -9371,6 +9371,10 @@ class AllMembersVersion1(APIView):
 
         context = get_all_members_version_1(request)
 
+        if context.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
+
         if request.accepted_renderer.format == '*/*':
             info_logger.info("html format")
             return render(request, 'filtered_members.html', context)
@@ -10469,8 +10473,17 @@ def fetch_community_manager_rights(request):
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     community_instance = community_dict.get('community_instance')
-    current_user_instance = User.objects.get(pk=current_user_id)
-    user_instance = User.objects.get(pk=user_id)
+    current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
+
+    if not current_user_instance:
+        context = get_error_context(False, "Invalid member_id in headers")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        context = get_error_context(False, "Invalid user_id")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
