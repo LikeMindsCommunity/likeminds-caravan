@@ -1,7 +1,7 @@
 from togther.models import (ModelUtilities, Community, Members)
 from utility.response_utilities import ResponseUtilities
 from cms.cms_auth_utilities import CMSAuthUtilities
-from utility.auth_utilities import AuthUtilities
+from collabmates_api.sdk.models import (SdkClient)
 
 
 class CommunityViewHelper:
@@ -13,7 +13,7 @@ class CommunityViewHelper:
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user id")
 
-        community_instance = AuthUtilities.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key/community ID")
@@ -72,7 +72,7 @@ class CommunityViewHelper:
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user id")
 
-        community_instance = AuthUtilities.get_community_instance_or_none(api_key=api_key)
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key!")
@@ -102,7 +102,7 @@ class CommunityViewHelper:
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user id")
 
-        community_instance = AuthUtilities.get_community_instance_or_none(api_key=api_key)
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key!")
