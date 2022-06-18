@@ -43,7 +43,8 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_ordered_card_id_on_the_basis_of_participants_count,
                            check_user_has_member_can_initiate_dm_right, get_dm_chatrooms_of_user,
                            get_last_conversation_id_corresponding_to_chatrooms_list,
-                           get_ordered_card_id_on_the_basis_newest_chatroom)
+                           get_ordered_card_id_on_the_basis_newest_chatroom,
+                           fetch_user_communities_sorted_by_order_time)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -354,7 +355,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not user_instance:
             return {'error_message': "Invalid user id", 'status': 400}
 
-        communities = self._find_member_communities(self.get_member_id())
+        member_engage_ids = fetch_user_communities_sorted_by_order_time(self.get_member_id(), page=page)
+        communities = MemberCommunityHelper.get_ordered_home_communities_list_based_on_engage_ids(member_engage_ids)
         community_ids_list = list(communities.values_list("community_id_id", flat=True))
 
         if is_cm and (is_cm == 'true'):
@@ -390,9 +392,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         else:
             total_communities_count = len(community_ids_list)
 
-        community_queryset = self._paged_queryset(communities, page)
-        community_id_list = self.compute_community_id_list_from_queryset(community_queryset)
-        community_list = self._process_communities(community_queryset, community_id_list, user_instance)
+        community_id_list = self.compute_community_id_list_from_queryset(communities)
+        community_list = self._process_communities(communities, community_id_list, user_instance)
 
         return {'your_communities': community_list, 'total_communities_count': total_communities_count}
 
@@ -2563,3 +2564,11 @@ class MemberCommunityHelper:
         update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
 
         CommunityHelper.send_community_moderation_mail_to_cm.delay(community_instance.id)
+
+    @staticmethod
+    def get_ordered_home_communities_list_based_on_engage_ids(member_engage_ids):
+
+        preserved = Case(*[When(id=id, then=pos) for pos, id in enumerate(member_engage_ids)])
+        queryset = ModelUtilities.get_model_filter(Member_Engage, {"id__in": member_engage_ids}).order_by(preserved)
+
+        return queryset
