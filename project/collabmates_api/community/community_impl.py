@@ -54,6 +54,7 @@ from external_services.caching.cache_impl import CacheImpl
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+from collabmates_api.sdk.models import (SdkClient)
 
 from collabmates_api.mails import send_created_community_email_to_team
 
@@ -1593,6 +1594,7 @@ class CommunityImpl(CommunityManager):
     def edit_questions(self, req_body) -> {}:
         validated_req_body = CommunityHelper.validate_edit_question_request(self.get_member_id(),
                                                                             self.get_community_id(),
+                                                                            self.get_api_key(),
                                                                             req_body)
 
         if not validated_req_body.get('success'):
@@ -3263,13 +3265,13 @@ class CommunityHelper:
                                                   'is_completed': True})
     
     @staticmethod
-    def validate_edit_question_request(member_id, community_id, req_body):
+    def validate_edit_question_request(member_id, community_id, api_key, req_body):
         user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
         if not user_instance:
             return get_error_context(False, 'Invalid member_id')
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
         if not community_instance:
             return get_error_context(False, 'Invalid community_id')
