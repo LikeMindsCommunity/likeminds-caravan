@@ -3293,6 +3293,12 @@ def create_chatroom_state_instance(card_instance, user_instance, state=collabcar
                                    attending_status=False, **kwargs):
     '''function to create chatroom state instance'''
 
+    collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                                'user': user_instance})
+
+    if collabcard_state_filter:
+        return collabcard_state_filter[0]
+
     try:
         collabcard_state_instance = collabcardState()
         collabcard_state_instance.card = card_instance

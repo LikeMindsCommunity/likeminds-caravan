@@ -1024,6 +1024,12 @@ class collabcardState(models.Model):
                                        attending_status=False, **kwargs):
         """function to create chatroom state instance"""
 
+        collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                                    'user': user_instance})
+
+        if collabcard_state_filter:
+            return collabcard_state_filter[0]
+
         try:
             collabcard_state_instance = collabcardState()
             collabcard_state_instance.card = card_instance
@@ -1056,6 +1062,12 @@ class collabcardState(models.Model):
                                                         mute_status=False, is_tagged=False, external_follow=False,
                                                         attending_status=False, **kwargs):
         """function to create chatroom state instance for bulk create"""
+
+        collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                                    'user': user_instance})
+
+        if collabcard_state_filter:
+            return None
 
         if kwargs.get('community_instance'):
             community_instance = kwargs.get('community_instance')

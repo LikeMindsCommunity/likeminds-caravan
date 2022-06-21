@@ -4003,9 +4003,9 @@ class ChatroomHelper:
         ElasticSearchSync.update_chatroom_for_user(master_intro_instance.id, user_instance.id)
 
     @staticmethod
-    def pre_compute_chatroom_state_of_members(card_instance, member_list, follow_status):
-        state_filter = collabcardState.objects.filter(card=card_instance, user__in=member_list,
-                                                      follow_status=follow_status)
+    def pre_compute_chatroom_state_of_members(card_instance, member_list):
+        state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                         'user__in': member_list})
 
         chatroom_state_dict = {int(user_id): None for user_id in member_list if str(user_id).isdigit()}
 
@@ -4109,9 +4109,7 @@ class ChatroomHelper:
     @staticmethod
     def bulk_follow_chatroom_users(card_instance, user_list):
 
-        chatroom_state_dict = ChatroomHelper.pre_compute_chatroom_state_of_members(card_instance,
-                                                                                   user_list,
-                                                                                   follow_status=False)
+        chatroom_state_dict = ChatroomHelper.pre_compute_chatroom_state_of_members(card_instance, user_list)
         bulk_update_list = []
         chatroom_member_list = []
 
@@ -4119,12 +4117,20 @@ class ChatroomHelper:
 
         for community_member in user_list:
 
-            if chatroom_state_dict.get(community_member) is not None:
+            collabcard_state = chatroom_state_dict.get(community_member)
+
+            if (collabcard_state is not None) and (not collabcard_state.follow_status):
                 chatroom_member_list.append(community_member)
-                collabcard_state = chatroom_state_dict.get(community_member)
                 collabcard_state.follow_status = True
                 collabcard_state.updated_at = TimeUtilities.current_time_in_sec()
                 bulk_update_list.append(collabcard_state)
+
+            elif collabcard_state is None:
+                chatroom_member_list.append(community_member)
+                user_instance = ModelUtilities.get_user_instance_or_none(community_member)
+                collabcardState.create_chatroom_state_instance(card_instance, user_instance,
+                                                               state=collabcard_states.COLLABCARD_STATE_UNSEEN,
+                                                               follow_status=True)
 
         ModelUtilities.bulk_update_instances(collabcardState, bulk_update_list,
                                              ['follow_status', 'updated_at'])

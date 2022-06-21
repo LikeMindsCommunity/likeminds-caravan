@@ -2436,7 +2436,8 @@ def convert_chatroom_to_open_chatroom(chatroom_id):
             follow_status=False, community_instance=chatroom_instance.community, external_seen=True
         )
 
-        bulk_create_instances.append(chatroom_state_instance)
+        if chatroom_state_instance:
+            bulk_create_instances.append(chatroom_state_instance)
 
     ModelUtilities.bulk_create_instances(collabcardState, bulk_create_instances)
     log_chatroom_secret_type_conversion_activity(chatroom_id, is_secret=False)
