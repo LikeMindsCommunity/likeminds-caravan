@@ -24,25 +24,29 @@ class SdkClient(models.Model):
         super(SdkClient, self).save(*args, **kwargs)
 
     @staticmethod
-    def get_community_instance_or_none(pk):
+    def get_community_instance_or_none(community_id=None, api_key=None):
         instance = None
 
-        if not pk:
+        if not (community_id or api_key):
             return instance
 
-        if str(pk).isdigit():
+        if all([community_id, str(community_id).isdigit()]):
             column_name = "id"
             model = Community
             model_filter = {
-                "id": pk
+                "id": community_id
             }
-        else:
+
+        elif api_key:
             column_name = "api_key"
             model = SdkClient
             model_filter = {
-                "api_key": pk,
+                "api_key": api_key,
                 "is_deleted": False
             }
+
+        else:
+            return instance
 
         instance_filter = ModelUtilities.get_model_filter(model, model_filter)
 

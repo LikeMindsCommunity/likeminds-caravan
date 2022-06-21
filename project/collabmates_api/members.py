@@ -5,7 +5,8 @@ from .serializers import *
 from .utility import *
 from .user_moderation_rights import check_admin_approve_right
 from .rest_api import CommunitySerializerV1
-from collabmates_api.sdk.models import SdkClient
+from collabmates_api.sdk.models import (SdkClient)
+from utility.response_utilities import ResponseUtilities
 
 
 def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=None):
@@ -491,17 +492,15 @@ def get_all_members_version_1(request, req_dict=None):
     member_state = NumberUtilities.get_integer_from_string(member_state, -1)
     api_key = RequestUtilities.get_api_key_from_headers(request)
 
-    community_id = community_id if community_id else api_key
+    if not current_user_instance:
+        return ResponseUtilities.get_impl_error_context("Invalid x-member-id",
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
     if not community_instance:
-        response = {
-            'success': False,
-            'error_message': "Invalid API key/community ID"
-        }
-
-        raise InvalidCommunityException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+        return ResponseUtilities.get_impl_error_context("Invalid API key/community ID",
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     community_id = community_instance.id
 
@@ -513,12 +512,8 @@ def get_all_members_version_1(request, req_dict=None):
         chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
         if not chatroom_instance:
-            response = {
-                'success': False,
-                'error_message': f'chatroom with id {chatroom_id} does not exists'
-            }
-
-            raise InvalidChatroomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+            return ResponseUtilities.get_impl_error_context(f'chatroom with id {chatroom_id} does not exists',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         if str(user_type) == ATTENDEES_FILTER_NAME:
             # Filter only attendees of this chatroom

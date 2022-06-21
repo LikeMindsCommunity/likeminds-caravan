@@ -56,7 +56,7 @@ from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, 
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from .mails import *
 from .sms import *
-from .sdk.models import SdkClient
+from collabmates_api.sdk.models import (SdkClient)
 
 from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
@@ -8430,7 +8430,6 @@ def members_state(request, req_dict=None):
 
     else:
         member_id = req_dict['member_id']
-        community_id = req_dict.get('community_id') if req_dict.get('community_id') else api_key
 
     state = 0
     tool_state = 0
@@ -8438,9 +8437,9 @@ def members_state(request, req_dict=None):
 
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
-    if community_instance is None:
+    if not community_instance:
         response = get_error_context(False, "Invalid API key/community ID")
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
@@ -9371,6 +9370,10 @@ class AllMembersVersion1(APIView):
             raise InvalidHeaderException()
 
         context = get_all_members_version_1(request)
+
+        if context.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
 
         if request.accepted_renderer.format == '*/*':
             info_logger.info("html format")
@@ -10433,9 +10436,7 @@ def fetch_intro_examples(request):
 
 ################################# moderation rights ###############################################
 def validate_community_id_or_api_key(community_id, api_key):
-    community_id = community_id if community_id else api_key
-
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
     if not community_instance:
         return ResponseUtilities.get_inner_error_context("Invalid API key/community ID")
@@ -10472,8 +10473,17 @@ def fetch_community_manager_rights(request):
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     community_instance = community_dict.get('community_instance')
-    current_user_instance = User.objects.get(pk=current_user_id)
-    user_instance = User.objects.get(pk=user_id)
+    current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
+
+    if not current_user_instance:
+        context = get_error_context(False, "Invalid member_id in headers")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        context = get_error_context(False, "Invalid user_id")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing

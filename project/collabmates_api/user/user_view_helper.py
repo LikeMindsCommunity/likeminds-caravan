@@ -36,7 +36,7 @@ class UserViewHelper:
 
     @staticmethod
     def validate_fetch_user_bot_request(api_key):
-        community_instance = SdkClient.get_community_instance_or_none(api_key)
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context('Invalid API key!')

@@ -2647,3 +2647,31 @@ def get_all_chatrooms_of_community(community_id, page=1, limit=10):
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def fetch_user_communities_sorted_by_order_time(user_id, page=1, limit=10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+                SELECT   id
+                FROM     togther_member_engage
+                WHERE    (member_id_id = %s
+                         AND      community_id_id NOT IN
+                                  (
+                                     SELECT community_id
+                                     FROM   collabmates_api_sdkclient) )
+                ORDER BY order_time DESC offset %s limit %s;""" % (str(user_id), str(offset), str(limit))
+
+        curr.execute(sql)
+        card_list = curr.fetchall()
+        curr.close()
+
+        return [data[0] for data in card_list]
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)

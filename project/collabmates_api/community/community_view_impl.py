@@ -520,7 +520,7 @@ class FetchCommunityMeta(APIView):
     def _validate_request(self, aj):
         res = {}
 
-        if not aj:
+        if not (aj and str(aj).isdigit()):
             res = get_error_context(False, "Invalid aj")
 
         return res
@@ -610,9 +610,6 @@ class EditCommunityQuestionsView(APIView):
         if not member_id:
             return {'success': False, 'error_message': 'Send member_id'}
 
-        if not req_body.get('community_id'):
-            return {'success': False, 'error_message': 'Send community_id'}
-
         req_body['success'] = True
         req_body['member_id'] = member_id
         return req_body
@@ -620,6 +617,7 @@ class EditCommunityQuestionsView(APIView):
     def post(self, request):
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         validated_body = self._validate_request(request)
 
         if not validated_body.get('success'):
@@ -628,7 +626,8 @@ class EditCommunityQuestionsView(APIView):
         community_manager = CommunityImpl(member_id=validated_body.get('member_id'),
                                           community_id=validated_body.get('community_id'),
                                           version_code=version_code,
-                                          request_platform=platform_code)
+                                          request_platform=platform_code,
+                                          api_key=api_key)
 
         res = community_manager.edit_questions(validated_body)
 
