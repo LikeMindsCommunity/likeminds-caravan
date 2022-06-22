@@ -514,7 +514,7 @@ class ChatroomImpl(ChatroomManager):
     def _send_additional_notifications_and_tasks_after_room_creation(self, user_instance, community_instance,
                                                                      chatroom_instance, req_body,
                                                                      is_intro_chatroom, user_has_auto_approve_right,
-                                                                     community_id):
+                                                                     community_id, chatroom_participants_list=None):
         create_intro = 'create_intro' in req_body
         if create_intro:
             update_seen_status_for_new_user_in_chatroom(community_instance, user_instance)
@@ -535,9 +535,9 @@ class ChatroomImpl(ChatroomManager):
 
             # batch update for already existing users and saving their unseen count
             if not chatroom_instance.is_secret:
-                ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting.delay(chatroom_instance.id,
-                                                                                            user_instance.id,
-                                                                                            community_instance.id)
+                ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting.delay(
+                    chatroom_instance.id, user_instance.id, community_instance.id,
+                    chatroom_participants_list=chatroom_participants_list)
             else:
                 update_last_answer_id(chatroom_instance.id, "")
 
@@ -1068,10 +1068,12 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_instance.co_hosts:
             ChatroomHelper.auto_follow_event_co_hosts_and_send_notification(chatroom_instance, user_instance.userinfo)
 
+        open_chatroom_participants = req_body.get('chatroom_participants', [])
+
         self._send_additional_notifications_and_tasks_after_room_creation(user_instance, community_instance,
                                                                           chatroom_instance, req_body,
                                                                           is_intro_card, user_has_auto_approve_right,
-                                                                          community_id)
+                                                                          community_id, open_chatroom_participants)
 
         ChatroomHelper.update_time_for_community_members_on_card_creation(community_instance)
 
@@ -3857,7 +3859,8 @@ class ChatroomHelper:
         return member_dict
 
     @staticmethod
-    def set_state_for_all_chatroom_members_in_community(card_instance, community_instance):
+    def set_state_for_all_chatroom_members_in_community(card_instance, community_instance,
+                                                        chatroom_participants_list=None):
 
         member_filter = Members.get_members_of_community(community_instance).select_related('member_id')
         member_list = list(member_filter.values_list('member_id_id', flat=True))
@@ -3871,13 +3874,13 @@ class ChatroomHelper:
                             card_types.CARD_PUBLIC_EVENT
 
         community_admins_list = []
-
         event_attendees_list = []
+        chatroom_participants_list = chatroom_participants_list if chatroom_participants_list else []
 
         from collabmates_api.notifications.tasks_impl import TasksHelper
 
         event_creator_and_community_owner = TasksHelper.get_community_owner_and_event_creator(community_instance,
-                                                                                            card_instance)
+                                                                                              card_instance)
 
         for data in member_filter:
             user_instance = data.member_id
@@ -3887,7 +3890,8 @@ class ChatroomHelper:
             if not member_dict.get(user_instance.id):
 
                 attending_status = is_event_chatroom and (user_instance.id in event_creator_and_community_owner)
-                follow_status = True if attending_status else card_instance.auto_follow_done
+                follow_status = True if (attending_status or user_instance.id in chatroom_participants_list) else \
+                    card_instance.auto_follow_done
 
                 instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
                                                                                            user_instance,
@@ -3942,7 +3946,8 @@ class ChatroomHelper:
     @staticmethod
     @shared_task
     def run_async_tasks_related_to_member_for_chatroom_posting(card_id, user_id, community_id,
-                                                               is_intro_chatroom=False):
+                                                               is_intro_chatroom=False,
+                                                               chatroom_participants_list=None):
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
@@ -3953,7 +3958,9 @@ class ChatroomHelper:
                 or not community_instance:
             return
 
-        ChatroomHelper.set_state_for_all_chatroom_members_in_community(card_instance, community_instance)
+        ChatroomHelper.set_state_for_all_chatroom_members_in_community(
+            card_instance, community_instance, chatroom_participants_list=chatroom_participants_list)
+
         ChatroomHelper.update_unseen_count_for_homescreen_communitites(card_instance, community_instance)
         update_last_answer_id(card_instance.id, "")
 
