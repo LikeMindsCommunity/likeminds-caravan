@@ -32,13 +32,17 @@ class ChatroomViewHelper:
 
     @staticmethod
     def validate_create_chatroom_request(user_id, api_key, req_body):
+
+        if not req_body.get('title'):
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom title!")
+
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user id")
 
         community_instance = SdkClient.get_community_instance_or_none(community_id=req_body.get('community_id'),
-                                                                          api_key=api_key)
+                                                                      api_key=api_key)
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key/community ID")
