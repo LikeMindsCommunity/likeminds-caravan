@@ -84,6 +84,29 @@ url = settings.URL
 server_key = settings.FCM_SERVER_KEY
 
 
+def send_test_notification(request):
+    platform = request.GET.get('platform')
+    fcm_token = request.GET.get('fcm_token')
+
+    message = {}
+    message['payload'] = {
+        'title': "Testing Notification",
+        'sub_title': "checking",
+        'route': "route://collabcard?collabcard_id=" + str(4779)
+    }
+    token_list = []
+    token_list.append(fcm_token)
+    # if platform == "android":
+    #     res = send_notification_for_android(token_list,message)
+    # else:
+    res = send_notification_for_ios(token_list, message)
+
+    context = {
+        'res': res
+    }
+    return JsonResponse(context)
+
+
 # notifications for different mobile os versions
 def get_firebase_server_key_from_message_payload(message):
     message_payload = message.get('payload', {})
