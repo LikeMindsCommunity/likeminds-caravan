@@ -123,13 +123,13 @@ def get_firebase_server_key_from_message_payload(message):
     return server_key
 
 
-def send_notification_for_android(token_list, message):
+def send_notification_for_android(token_list, message, firebase_key=None):
     """function to send notification to android"""
 
     if not token_list:
         return
 
-    firebase_key = get_firebase_server_key_from_message_payload(message)
+    firebase_key = firebase_key if firebase_key else server_key
 
     extra_kwargs = {
         "android": {
@@ -144,13 +144,13 @@ def send_notification_for_android(token_list, message):
     return result
 
 
-def send_notification_for_ios(token_list, message):
+def send_notification_for_ios(token_list, message, firebase_key=None):
     """function to send notification to android"""
 
     if not token_list:
         return
 
-    firebase_key = get_firebase_server_key_from_message_payload(message)
+    firebase_key = firebase_key if firebase_key else server_key
 
     push_service = FCMNotification(api_key=firebase_key)
 
@@ -169,13 +169,13 @@ def send_notification_for_ios(token_list, message):
     return result
 
 
-def send_notification_for_web(token_list, message):
+def send_notification_for_web(token_list, message, firebase_key=None):
     """function to send notification to web"""
 
     if not token_list:
         return
 
-    firebase_key = get_firebase_server_key_from_message_payload(message)
+    firebase_key = firebase_key if firebase_key else server_key
 
     push_service = FCMNotification(api_key=firebase_key)
 
@@ -299,11 +299,13 @@ def notification_meta(notification_list, message, calling_notification=""):
 
             notification_payload_list.append(notification_payload_dict)
 
-    send_notification_for_android(tokens['Android'], message)
+    firebase_key = get_firebase_server_key_from_message_payload(message)
 
-    send_notification_for_ios(tokens['iOS'], message)
+    send_notification_for_android(tokens['Android'], message, firebase_key)
 
-    send_notification_for_web(tokens['web'], message)
+    send_notification_for_ios(tokens['iOS'], message, firebase_key)
+
+    send_notification_for_web(tokens['web'], message, firebase_key)
 
     track_notification_with_notification_payload_list(notification_payload_list)
 
