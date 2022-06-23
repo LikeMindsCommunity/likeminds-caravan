@@ -101,9 +101,11 @@ class SdkImpl(SdkManager):
 
         unique_id = str(uuid.uuid4())
         community_id = create_community['community'].get('id')
+        firebase_server_key = req_body.get('firebase_server_key', None)
 
         sdk_client = SdkClient(community_id=community_id, api_key=unique_id,
-                               project_creator=validated_request_body.get('project_creator'))
+                               project_creator=validated_request_body.get('project_creator'),
+                               firebase_server_key=firebase_server_key)
         sdk_client.save()
 
         platforms = req_body.get('platform')
@@ -144,6 +146,10 @@ class SdkImpl(SdkManager):
 
         if 'error_message' in is_cm:
             return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
+
+        if req_body.get('firebase_server_key'):
+            sdk_client.firebase_server_key = req_body.get('firebase_server_key')
+            sdk_client.save()
 
         platforms = req_body.get('platform')
 

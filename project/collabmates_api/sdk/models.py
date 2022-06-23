@@ -10,6 +10,7 @@ class SdkClient(models.Model):
     api_key = models.CharField(max_length=64, unique=True, null=True)
     project_creator = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     is_deleted = models.BooleanField(default=False)
+    firebase_server_key = models.TextField(null=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 

@@ -9,4 +9,4 @@ class SdkProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SdkClient
-        fields = ('api_key', 'community')
+        fields = ('api_key', 'community', 'firebase_server_key')
