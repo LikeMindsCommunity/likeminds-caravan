@@ -108,7 +108,6 @@ def send_test_notification(request):
     return JsonResponse(context)
 
 
-# notifications for different mobile os versions
 def get_firebase_server_key_from_message_payload(message):
     message_payload = message.get('payload', {})
     community_id = message_payload.get('community_id', {})
