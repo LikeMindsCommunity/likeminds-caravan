@@ -84,6 +84,7 @@ url = settings.URL
 server_key = settings.FCM_SERVER_KEY
 
 
+# notifications for different mobile os versions
 def send_test_notification(request):
     platform = request.GET.get('platform')
     fcm_token = request.GET.get('fcm_token')
