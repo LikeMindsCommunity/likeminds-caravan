@@ -85,34 +85,17 @@ server_key = settings.FCM_SERVER_KEY
 
 
 # notifications for different mobile os versions
-def send_test_notification(request):
-    platform = request.GET.get('platform')
-    fcm_token = request.GET.get('fcm_token')
+def get_firebase_server_key_from_message_payload(message):
+    message_payload = message.get('payload', {})
+    community_id = message_payload.get('community_id', {})
 
-    message = {}
-    message['payload'] = {
-        'title': "Testing Notification",
-        'sub_title': "checking",
-        'route': "route://collabcard?collabcard_id=" + str(4779)
-    }
-    token_list = []
-    token_list.append(fcm_token)
-    # if platform == "android":
-    #     res = send_notification_for_android(token_list,message)
-    # else:
-    res = send_notification_for_ios(token_list, message)
+    if community_id:
+        sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
 
-    context = {
-        'res': res
-    }
-    return JsonResponse(context)
+        if sdk_client_filter and sdk_client_filter[0].firebase_server_key:
+            return sdk_client_filter[0].firebase_server_key
 
-
-def get_firebase_server_key_from_community_id(community_id):
-    sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
-
-    if sdk_client_filter and sdk_client_filter[0].firebase_server_key:
-        return sdk_client_filter[0].firebase_server_key
+        del message['payload']['community_id']
 
     return server_key
 
@@ -120,17 +103,10 @@ def get_firebase_server_key_from_community_id(community_id):
 def send_notification_for_android(token_list, message):
     """function to send notification to android"""
 
-    firebase_key = server_key
-
     if not token_list:
         return
 
-    message_payload = message.get('payload', {})
-    community_id = message_payload.get('community_id', {})
-
-    if community_id:
-        firebase_key = get_firebase_server_key_from_community_id(community_id)
-        del message['payload']['community_id']
+    firebase_key = get_firebase_server_key_from_message_payload(message)
 
     extra_kwargs = {
         "android": {
@@ -148,17 +124,10 @@ def send_notification_for_android(token_list, message):
 def send_notification_for_ios(token_list, message):
     """function to send notification to android"""
 
-    firebase_key = server_key
-
     if not token_list:
         return
 
-    message_payload = message.get('payload', {})
-    community_id = message_payload.get('community_id', {})
-
-    if community_id:
-        firebase_key = get_firebase_server_key_from_community_id(community_id)
-        del message['payload']['community_id']
+    firebase_key = get_firebase_server_key_from_message_payload(message)
 
     push_service = FCMNotification(api_key=firebase_key)
 
@@ -180,17 +149,10 @@ def send_notification_for_ios(token_list, message):
 def send_notification_for_web(token_list, message):
     """function to send notification to web"""
 
-    firebase_key = server_key
-
     if not token_list:
         return
 
-    message_payload = message.get('payload', {})
-    community_id = message_payload.get('community_id', {})
-
-    if community_id:
-        firebase_key = get_firebase_server_key_from_community_id(community_id)
-        del message['payload']['community_id']
+    firebase_key = get_firebase_server_key_from_message_payload(message)
 
     push_service = FCMNotification(api_key=firebase_key)
 
