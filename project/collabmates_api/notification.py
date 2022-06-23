@@ -110,7 +110,7 @@ def send_test_notification(request):
 
 def get_firebase_server_key_from_message_payload(message):
     message_payload = message.get('payload', {})
-    community_id = message_payload.get('community_id', {})
+    community_id = message_payload.get('community_id', None)
 
     if community_id:
         sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
