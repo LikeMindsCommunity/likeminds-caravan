@@ -60,6 +60,7 @@ from utility.number_utilities import NumberUtilities
 from utility.celery_tasks import save_users_with_muted_chatrooms
 from utility.cache_keys import USER_MUTED_CHATROOM
 from external_services.caching.cache_impl import CacheImpl
+from collabmates_api.sdk.models import (SdkClient)
 
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 from external_services.wa_notification.constants import WATI_NOTIFICATION_CONST
@@ -107,13 +108,24 @@ def send_test_notification(request):
     return JsonResponse(context)
 
 
+def get_firebase_server_key_from_community_id(community_id):
+    sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
+
+    if sdk_client_filter and sdk_client_filter[0].firebase_server_key:
+        return sdk_client_filter[0].firebase_server_key
+
+
 def send_notification_for_android(token_list, message):
     """function to send notification to android"""
 
     if not token_list:
         return
 
-    result = ""
+    message_payload = message.get('payload', {})
+    community_id = message_payload.get('community_id', {})
+
+    sdk_server_key = get_firebase_server_key_from_community_id(community_id)
+    server_key = sdk_server_key if sdk_server_key else server_key
 
     extra_kwargs = {
         "android": {
@@ -131,10 +143,14 @@ def send_notification_for_android(token_list, message):
 def send_notification_for_ios(token_list, message):
     """function to send notification to android"""
 
-    result = ""
-
     if not token_list:
         return
+
+    message_payload = message.get('payload', {})
+    community_id = message_payload.get('community_id', {})
+
+    sdk_server_key = get_firebase_server_key_from_community_id(community_id)
+    server_key = sdk_server_key if sdk_server_key else server_key
 
     push_service = FCMNotification(api_key=server_key)
 
@@ -158,6 +174,12 @@ def send_notification_for_web(token_list, message):
 
     if not token_list:
         return
+
+    message_payload = message.get('payload', {})
+    community_id = message_payload.get('community_id', {})
+
+    sdk_server_key = get_firebase_server_key_from_community_id(community_id)
+    server_key = sdk_server_key if sdk_server_key else server_key
 
     push_service = FCMNotification(api_key=server_key)
 
