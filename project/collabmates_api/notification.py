@@ -114,9 +114,13 @@ def get_firebase_server_key_from_community_id(community_id):
     if sdk_client_filter and sdk_client_filter[0].firebase_server_key:
         return sdk_client_filter[0].firebase_server_key
 
+    return server_key
+
 
 def send_notification_for_android(token_list, message):
     """function to send notification to android"""
+
+    firebase_key = server_key
 
     if not token_list:
         return
@@ -124,15 +128,16 @@ def send_notification_for_android(token_list, message):
     message_payload = message.get('payload', {})
     community_id = message_payload.get('community_id', {})
 
-    sdk_server_key = get_firebase_server_key_from_community_id(community_id)
-    server_key = sdk_server_key if sdk_server_key else server_key
+    if community_id:
+        firebase_key = get_firebase_server_key_from_community_id(community_id)
+        del message['payload']['community_id']
 
     extra_kwargs = {
         "android": {
             "priority": "high"
         }
     }
-    push_service = FCMNotification(api_key=server_key)
+    push_service = FCMNotification(api_key=firebase_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'], extra_kwargs=extra_kwargs)
 
@@ -143,16 +148,19 @@ def send_notification_for_android(token_list, message):
 def send_notification_for_ios(token_list, message):
     """function to send notification to android"""
 
+    firebase_key = server_key
+
     if not token_list:
         return
 
     message_payload = message.get('payload', {})
     community_id = message_payload.get('community_id', {})
 
-    sdk_server_key = get_firebase_server_key_from_community_id(community_id)
-    server_key = sdk_server_key if sdk_server_key else server_key
+    if community_id:
+        firebase_key = get_firebase_server_key_from_community_id(community_id)
+        del message['payload']['community_id']
 
-    push_service = FCMNotification(api_key=server_key)
+    push_service = FCMNotification(api_key=firebase_key)
 
     extra_kwargs = {
         "mutable_content": True
@@ -172,16 +180,19 @@ def send_notification_for_ios(token_list, message):
 def send_notification_for_web(token_list, message):
     """function to send notification to web"""
 
+    firebase_key = server_key
+
     if not token_list:
         return
 
     message_payload = message.get('payload', {})
     community_id = message_payload.get('community_id', {})
 
-    sdk_server_key = get_firebase_server_key_from_community_id(community_id)
-    server_key = sdk_server_key if sdk_server_key else server_key
+    if community_id:
+        firebase_key = get_firebase_server_key_from_community_id(community_id)
+        del message['payload']['community_id']
 
-    push_service = FCMNotification(api_key=server_key)
+    push_service = FCMNotification(api_key=firebase_key)
 
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
