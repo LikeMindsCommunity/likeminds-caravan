@@ -959,6 +959,7 @@ class CommunityImpl(CommunityManager):
         community_instance = validated_req.get('community_instance')
 
         members = ChatroomImpl.compute_tagging_list_of_community_members(community_instance)
+        members = ChatroomImpl.remove_guest_user_from_participants_data_list(members)
 
         return {'success': True, 'members': members}
 

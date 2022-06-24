@@ -1568,7 +1568,8 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
                          "togther_userinfo"."name",
                          "togther_userinfo"."image_link",
                          "togther_members"."created_at",
-                         "togther_userinfo"."user_unique_id"
+                         "togther_userinfo"."user_unique_id",
+                         "togther_userinfo"."is_guest"
                 FROM "togther_members"
                 INNER JOIN "togther_userinfo"
                     ON ("togther_members"."member_id_id" = "togther_userinfo"."user_id_id")
@@ -1596,6 +1597,7 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
             member_dict['image_link'] = data[7]
             member_dict['created_at'] = data[8]
             member_dict['user_unique_id'] = data[9]
+            member_dict['is_guest'] = data[10]
             member_list.append(member_dict)
 
         return member_list
