@@ -7939,8 +7939,8 @@ def generate_otp(request):
             international = True
 
         if international and international_otp_limit_exceeded():
-            error_message = f"otp generate failed for={phone_no}, reason=international otp generate limit exceeded"
-            context = get_error_context(False, error_message)
+            error_message: str = f"otp generate failed for={phone_no}, reason=international otp generate limit exceeded"
+            context: dict = get_error_context(False, error_message)
             error_logger.error(context)
             return JsonResponse(status=403, data=context)
 
@@ -7972,8 +7972,8 @@ def generate_otp(request):
 
 def international_otp_limit_exceeded() -> bool:
     DAILY_INTERNATIONAL_OTP_GENERATE_LIMIT: int = 10
-    key = INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=0)
-    current_count = CacheImpl.get_cache(key)
+    key: str = INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=0)
+    current_count: int = CacheImpl.get_cache(key)
     if isinstance(current_count, int) and current_count >= DAILY_INTERNATIONAL_OTP_GENERATE_LIMIT:
         return True
 
@@ -7984,10 +7984,10 @@ def update_international_otp_generate_count(international: bool, context: dict) 
     if not (international and context['success']):
         return
 
-    key = (INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=0))
-    value = 1
+    key: str = (INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=0))
+    value: int = 1
 
-    current_count = CacheImpl.get_cache(key)
+    current_count: int = CacheImpl.get_cache(key)
     if isinstance(current_count, int):
         value = current_count + 1
 
