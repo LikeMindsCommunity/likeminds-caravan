@@ -423,7 +423,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         total_participants_list = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
                                                                                     'follow_status': True,
                                                                                     'is_tagged': False,
-                                                                                    'remove': None})
+                                                                                    'remove': None,
+                                                                                    'user__userinfo__is_guest': False})
 
         chatroom_context['participants_count'] = total_participants_list.count()
 
