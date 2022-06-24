@@ -15,3 +15,5 @@ EVENT_ATTENDEES_CHATROOM = "event_attendees_%s"
 
 EVENT_ATTENDEES_CONVERSATION = "event_attendees_%s"
 
+INTERNATIONAL_OTP_GENERATE_CACHE_KEY = "international_otp_generate_%s"
+

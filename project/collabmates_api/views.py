@@ -20,7 +20,8 @@ from togther.models import *
 from utility.string_utilities import StringUtilities
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
-    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION
+    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
+    INTERNATIONAL_OTP_GENERATE_CACHE_KEY
 from utility.celery_tasks import (
     update_last_unseen_in_engage_on_card_creation,
     update_last_unseen_in_engage, update_my_chatrooms_for_users,
@@ -7908,6 +7909,7 @@ def generate_otp(request):
     mobile_no = request.GET.get('mobile_no')
     country_code = request.GET.get('country_code')
     user_id = request.GET.get('user_id')
+    international: bool = False
 
     # check got retry
     retry = request.GET.get('retry')
@@ -7932,10 +7934,14 @@ def generate_otp(request):
             info_logger.info(context)
             return JsonResponse(context)
 
-        international = False
-
         if country_code != '91':
             international = True
+
+        if international and international_otp_limit_exceeded():
+            error_message = f"otp generate failed for={phone_no}, reason=international otp generate limit exceeded"
+            context = get_error_context(False, error_message)
+            error_logger.error(context)
+            return JsonResponse(status=403, data=context)
 
         if retry:
             otp_manager = OTPApiClient()
@@ -7958,7 +7964,33 @@ def generate_otp(request):
 
         context['success'] = True
 
+    update_international_otp_generate_count(international, context)
+
     return JsonResponse(context)
+
+
+def international_otp_limit_exceeded() -> bool:
+    DAILY_INTERNATIONAL_OTP_GENERATE_LIMIT: int = 10
+    key = INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=0)
+    current_count = CacheImpl.get_cache(key)
+    if isinstance(current_count, int) and current_count >= DAILY_INTERNATIONAL_OTP_GENERATE_LIMIT:
+        return True
+
+    return False
+
+
+def update_international_otp_generate_count(international: bool, context: dict) -> None:
+    if not (international and context['success']):
+        return
+
+    key = (INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=0))
+    value = 1
+
+    current_count = CacheImpl.get_cache(key)
+    if isinstance(current_count, int):
+        value = current_count + 1
+
+    CacheImpl.set_cache(key, value)
 
 
 def send_otp_on_user_emails(user_id):
