@@ -144,3 +144,29 @@ class ChatroomViewHelper:
             return ResponseUtilities.get_inner_error_context("User doesn't have the ability to perform this operation")
 
         return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def validate_chatroom_auto_follow_for_all_members_request(chatroom_id, member_id):
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid chatroom id")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid user id")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("You are not a part of this community.")
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return ResponseUtilities.get_inner_error_context("You need to be Owner/CM of the community to enable auto follow")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
