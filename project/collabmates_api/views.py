@@ -5468,7 +5468,8 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
         else:
             context['participant_count'] = collabcardState.objects.filter(follow_status=True,
                                                                           card=card_instance, remove=None,
-                                                                          is_tagged=False).count()
+                                                                          is_tagged=False,
+                                                                          user__userinfo__is_guest=False).count()
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
 
     if not conversation_member_filter.exists():

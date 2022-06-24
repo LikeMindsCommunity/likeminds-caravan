@@ -645,7 +645,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                     'community_id': data['community_id'],
                     'route': MEMBER_COMMUNITY_PROFILE_ROUTE % (str(data['community_id']), str(data['member_id'])),
                     'created_at': data['created_at'],
-                    'user_unique_id': data['user_unique_id']
+                    'user_unique_id': data['user_unique_id'],
+                    'is_guest': data['is_guest']
                 }
 
                 if member['state'] == member_states.ADMIN or \
