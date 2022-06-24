@@ -583,6 +583,17 @@ class ChatroomImpl(ChatroomManager):
         return tag_list
 
     @staticmethod
+    def remove_guest_user_from_participants_data_list(participants_data):
+        participants_list = []
+
+        for member_data in participants_data:
+
+            if not member_data.get('is_guest'):
+                participants_list.append(member_data)
+
+        return participants_list
+
+    @staticmethod
     def compute_tagging_list_for_secret_participants(chatroom_instance, community_instance):
 
         try:
@@ -1551,6 +1562,7 @@ class ChatroomImpl(ChatroomManager):
                         })
 
             participant_list = self.compute_tagging_list_for_secret_participants(card_instance, community_instance)
+            participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
             return {'success': True, 'participants': participant_list, 'can_edit_participant': can_edit_participant}
 
