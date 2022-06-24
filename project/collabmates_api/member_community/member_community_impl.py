@@ -1840,6 +1840,9 @@ class MemberCommunityHelper:
             temp['image_url'] = value['image_url']
             temp['user_unique_id'] = value['user_unique_id']
 
+            if value.get('is_guest'):
+                temp['is_guest'] = value['is_guest']
+
             member_list.append(temp)
 
         return member_list
