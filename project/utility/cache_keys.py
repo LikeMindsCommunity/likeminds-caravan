@@ -15,3 +15,4 @@ EVENT_ATTENDEES_CHATROOM = "event_attendees_%s"
 
 EVENT_ATTENDEES_CONVERSATION = "event_attendees_%s"
 
+CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY = "chatroom_participants_created_{}"
