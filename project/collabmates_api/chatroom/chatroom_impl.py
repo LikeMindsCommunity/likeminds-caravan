@@ -586,7 +586,7 @@ class ChatroomImpl(ChatroomManager):
     def remove_guest_user_from_participants_data_list(participants_data):
         participants_list = []
 
-        for member_data in participants_list:
+        for member_data in participants_data:
 
             if not member_data.get('is_guest'):
                 participants_list.append(member_data)
