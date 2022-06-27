@@ -13,6 +13,7 @@ from django.conf import settings
 
 from external_services.calender.calendar_impl import CalendarImpl
 from external_services.segment.segment_impl import SegmentImpl
+from external_services.caching.cache_impl import CacheImpl
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.api_client import ApiClient
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
@@ -104,6 +105,7 @@ from collabmates_api.notifications.tasks import trigger_event_comms, send_app_no
 from collabmates_api.notifications.constants import EVENT_TYPE, CALENDAR_INVITE_TYPE
 
 from utility.response_utilities import ResponseUtilities
+from utility.cache_keys import (CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -283,11 +285,14 @@ class ChatroomImpl(ChatroomManager):
         return collabcardState.objects.filter(follow_status=True, card=card_instance, remove=None,
                                               is_tagged=False).count()
 
-    def _fill_chatroom_basic_info(self, card_content, title, community, user, chatroom_type):
+    def _fill_chatroom_basic_info(self, card_content, title, community, user, chatroom_type, auto_follow_done=False,
+                                  include_members_later=False):
         card_content['title'] = title
         card_content['community'] = community
         card_content['user'] = user
         card_content['type'] = chatroom_type
+        card_content['auto_follow_done'] = auto_follow_done
+        card_content['include_members_later'] = include_members_later
 
         card_content['device_id'] = self.device_id
         card_content['platform'] = self.request_platform
@@ -1014,11 +1019,14 @@ class ChatroomImpl(ChatroomManager):
 
         chatroom_type = int(req_body.get('type', card_types.CARD_NORMAL))
         is_intro_card = chatroom_type == card_types.CARD_INTRO
+        auto_follow_done = req_body.get('auto_follow_done', False)
+        include_members_later = req_body.get('include_members_later', False)
 
         card_content = {}
 
         self._fill_chatroom_basic_info(card_content, chatroom_name,
-                                       community_instance, user_instance, chatroom_type)
+                                       community_instance, user_instance, chatroom_type,
+                                       auto_follow_done=auto_follow_done, include_members_later=include_members_later)
         self._fill_chatroom_attachment_count(card_content, req_body)
         self._fill_chatroom_epoch_time(card_content, req_body)
 
@@ -1048,6 +1056,7 @@ class ChatroomImpl(ChatroomManager):
         self._add_preview_from_internal_link(chatroom_instance, req_body)
         self._create_chatroom_polls(user_instance, chatroom_instance, req_body)
         self._delete_draft(req_body)
+        ChatroomHelper.set_chatroom_participants_created_key_in_cache(self.get_chatroom_id(), False)
 
         send_chatroom_creation_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()))
 
@@ -1413,39 +1422,26 @@ class ChatroomImpl(ChatroomManager):
 
     def follow_chatroom_automatically_for_all_members_of_community(self, member_id, request_body) -> dict:
 
-        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+        validated_req = ChatroomViewHelper.validate_chatroom_auto_follow_for_all_members_request(
+            self.get_chatroom_id(), member_id)
 
-        if not chatroom_instance:
-            return {'success': False, 'error_message': "invalid chatroom id"}
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+        cache_key = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(self.get_chatroom_id())
+        are_chatroom_participants_created = CacheImpl.get_cache(cache_key)
 
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user id"}
+        if all(['are_participants_created' in are_chatroom_participants_created,
+                not are_chatroom_participants_created.get('are_participants_created')]):
+            return ResponseUtilities.get_impl_error_context('Chatroom creation in progress. Try again after some time.',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
+        user_instance = validated_req.get('user_instance')
+        chatroom_instance = validated_req.get('card_instance')
         community_id = chatroom_instance.community_id
 
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_id,
-                                                                  'member_id': user_instance})
-
         user_list = []
-
-        if not member_filter:
-            response = {
-                'success': False,
-                'error_message': 'You are not a part of this community.'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
-
-        member_instance = member_filter[0]
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if not is_cm:
-            response = {
-                'success': False,
-                'error_message': 'You need to be Owner/CM of the community to enable auto follow'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
 
         auto_follow_done = request_body.get('auto_follow_done', True)
         include_members_later = request_body.get('include_members_later', True)
@@ -1478,11 +1474,9 @@ class ChatroomImpl(ChatroomManager):
             return {'success': True}
 
         else:
-            response = {
-                'success': False,
-                'error_message': 'All members of this community are already added to this chat room'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+            return ResponseUtilities.get_impl_error_context(
+                'All members of this community are already added to this chat room',
+                status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def edit_chatroom(self, req_body) -> dict:
         validated_req = ChatroomViewHelper.validate_edit_chatroom_request(self.get_member_id(),
@@ -2400,6 +2394,14 @@ class ChatroomImpl(ChatroomManager):
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        cache_key = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(self.get_chatroom_id())
+        are_chatroom_participants_created = CacheImpl.get_cache(cache_key)
+
+        if all(['are_participants_created' in are_chatroom_participants_created,
+                not are_chatroom_participants_created.get('are_participants_created')]):
+            return ResponseUtilities.get_impl_error_context('Chatroom creation in progress. Try again after some time.',
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = validated_req.get('user_instance')
@@ -3576,6 +3578,7 @@ class ChatroomHelper:
                     bulk_create_list.append(instance)
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
+        ChatroomHelper.set_chatroom_participants_created_key_in_cache(chatroom_id, True)
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
             card_instance.id, user_list)
 
@@ -3930,6 +3933,7 @@ class ChatroomHelper:
                                                 calendar_invite_type=CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION)
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
+        ChatroomHelper.set_chatroom_participants_created_key_in_cache(card_instance.id, True)
 
         if event_attendees_list:
             update_event_attendees({
@@ -4022,9 +4026,9 @@ class ChatroomHelper:
         ElasticSearchSync.update_chatroom_for_user(master_intro_instance.id, user_instance.id)
 
     @staticmethod
-    def pre_compute_chatroom_state_of_members(card_instance, member_list, follow_status):
-        state_filter = collabcardState.objects.filter(card=card_instance, user__in=member_list,
-                                                      follow_status=follow_status)
+    def pre_compute_chatroom_state_of_members(card_instance, member_list):
+        state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                         'user__in': member_list})
 
         chatroom_state_dict = {int(user_id): None for user_id in member_list if str(user_id).isdigit()}
 
@@ -4128,25 +4132,45 @@ class ChatroomHelper:
     @staticmethod
     def bulk_follow_chatroom_users(card_instance, user_list):
 
-        chatroom_state_dict = ChatroomHelper.pre_compute_chatroom_state_of_members(card_instance,
-                                                                                   user_list,
-                                                                                   follow_status=False)
-        bulk_update_list = []
-        chatroom_member_list = []
-
         user_list = [int(user_id) for user_id in user_list if str(user_id).isdigit()]
+
+        community_members = list(Members.get_members_of_community(card_instance.community).values_list('member_id',
+                                                                                                       flat=True))
+
+        user_list = list(set(user_list).intersection(set(community_members)))
+
+        chatroom_state_dict = ChatroomHelper.pre_compute_chatroom_state_of_members(card_instance, user_list)
+
+        bulk_update_list = []
+        bulk_create_list = []
+        chatroom_member_list = []
 
         for community_member in user_list:
 
-            if chatroom_state_dict.get(community_member) is not None:
+            collabcard_state = chatroom_state_dict.get(community_member)
+
+            if all([collabcard_state is not None, not collabcard_state.follow_status]):
                 chatroom_member_list.append(community_member)
-                collabcard_state = chatroom_state_dict.get(community_member)
                 collabcard_state.follow_status = True
                 collabcard_state.updated_at = TimeUtilities.current_time_in_sec()
                 bulk_update_list.append(collabcard_state)
 
-        ModelUtilities.bulk_update_instances(collabcardState, bulk_update_list,
-                                             ['follow_status', 'updated_at'])
+            elif collabcard_state is None:
+                chatroom_member_list.append(community_member)
+                user_instance = ModelUtilities.get_user_instance_or_none(community_member)
+
+                if not user_instance:
+                    continue
+
+                bulk_create_list.appen(collabcardState.create_chatroom_state_instances_for_bulk_create(
+                    card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_UNSEEN, follow_status=True))
+
+        if bulk_update_list:
+            ModelUtilities.bulk_update_instances(collabcardState, bulk_update_list,
+                                                 ['follow_status', 'updated_at'])
+
+        if bulk_create_list:
+            ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
 
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list \
             .delay(card_instance.id, chatroom_member_list)
@@ -4783,3 +4807,8 @@ class ChatroomHelper:
             card_instance.save()
 
         return branch_link
+
+    @staticmethod
+    def set_chatroom_participants_created_key_in_cache(chatroom_id, are_participants_created=False):
+        key = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(chatroom_id)
+        CacheImpl.set_cache(key, {"are_participants_created": are_participants_created})
