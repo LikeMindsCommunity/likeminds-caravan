@@ -674,6 +674,7 @@ def chatroom_participants(chatroom_instance, filter_list, community_id, current_
 
 def filtered_member_list(current_user_id, community_id, filter_list, page, member_instance):
     member_list = get_member_query_set(current_user_id, community_id, send_all=True)
+    member_list = member_list.filter(member_id__userinfo__is_guest=False)
     filter_list = json.loads(filter_list)
     member_set = get_filtered_users(filter_list, member_list)
     total_filtered_members = len(member_set)
@@ -689,6 +690,7 @@ def filtered_member_list(current_user_id, community_id, filter_list, page, membe
 
 def unfiltered_member_list(current_user_id, community_id, page):
     member_list = get_member_query_set(current_user_id, community_id, page=page)
+    member_list = member_list.filter(member_id__userinfo__is_guest=False)
     members = get_member_instances_without_filter(member_list, current_user_id, community_id, page=page)
 
     unfilter_context = {
