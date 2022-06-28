@@ -7986,7 +7986,7 @@ def send_international_otp_limit_mail(country_code: str, mobile: str) -> None:
         "country_code": country_code,
         "mobile": mobile
     })
-    mail_to = ['himanshu@likeminds.community']
+    mail_to = ['himanshu@likeminds.community', 'backend@likeminds.community']
     mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
         EmailCategories.OTP,
         EmailSubCategories.INTERNATIONAL_LIMIT_EXCEEDED
