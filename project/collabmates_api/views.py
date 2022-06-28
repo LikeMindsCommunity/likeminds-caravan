@@ -7946,9 +7946,12 @@ def generate_otp(request):
             international = True
 
         if international and international_otp_limit_exceeded():
+            send_international_otp_limit_mail(str(country_code), str(mobile_no))
+
             error_message: str = f"otp generate failed for={phone_no}, reason=international otp generate limit exceeded"
+            error_logger.error(error_message)
             context: dict = get_error_context(False, error_message)
-            error_logger.error(context)
+
             return JsonResponse(status=403, data=context)
 
         if retry:
@@ -7977,11 +7980,29 @@ def generate_otp(request):
     return JsonResponse(context)
 
 
+def send_international_otp_limit_mail(country_code: str, mobile: str) -> None:
+    subject = "International OTP limit exceeded"
+    template = get_template('mails/international_otp_limit.html').render({
+        "country_code": country_code,
+        "mobile": mobile
+    })
+    mail_to = ['himanshu@likeminds.community']
+    mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
+        EmailCategories.OTP,
+        EmailSubCategories.INTERNATIONAL_LIMIT_EXCEEDED
+    )
+
+    MailWrapper.send_email.delay(subject=subject,
+                                 template=template,
+                                 to_mails_list=mail_to,
+                                 categories=mail_categories)
+
+
 def international_otp_limit_exceeded() -> bool:
-    DAILY_INTERNATIONAL_OTP_GENERATE_LIMIT: int = 10
-    key: str = INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=0)
+    HOURLY_INTERNATIONAL_OTP_GENERATE_LIMIT: int = 10
+    key: str = INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=1)
     current_count: int = CacheImpl.get_cache(key)
-    if isinstance(current_count, int) and current_count >= DAILY_INTERNATIONAL_OTP_GENERATE_LIMIT:
+    if isinstance(current_count, int) and current_count >= HOURLY_INTERNATIONAL_OTP_GENERATE_LIMIT:
         return True
 
     return False
@@ -7991,7 +8012,7 @@ def update_international_otp_generate_count(international: bool, context: dict) 
     if not (international and context['success']):
         return
 
-    key: str = (INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=0))
+    key: str = (INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=1))
     value: int = 1
 
     current_count: int = CacheImpl.get_cache(key)

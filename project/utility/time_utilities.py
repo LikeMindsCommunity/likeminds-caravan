@@ -263,11 +263,15 @@ class TimeUtilities:
             date formats
             ------------
             0       - ddmmyyyy <24062022 (24th June, 2022)>
+            1       - ddmmyyyyHH <2406202215 (24th June, 2022 3 PM)>
             default - 2022-06-24 15:02:41.550114
         """
         now: datetime = datetime.now()
 
         if date_format == 0:
             return now.strftime("%d%m%Y")
+
+        if date_format == 1:
+            return now.strftime("%d%m%Y%H")
 
         return now.__str__()
