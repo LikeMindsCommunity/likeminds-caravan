@@ -21,7 +21,7 @@ from utility.string_utilities import StringUtilities
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
-    INTERNATIONAL_OTP_GENERATE_CACHE_KEY
+    CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, INTERNATIONAL_OTP_GENERATE_CACHE_KEY
 from utility.celery_tasks import (
     update_last_unseen_in_engage_on_card_creation,
     update_last_unseen_in_engage, update_my_chatrooms_for_users,
@@ -6070,6 +6070,13 @@ def follow_chatroom_async(collabcard_id,
     # user cant unfollow his own collabcard
     if not status and card_instance.user_id == user_instance.id:
         return JsonResponse({'success': True})
+
+    cache_key = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(collabcard_id)
+    are_chatroom_participants_created = CacheImpl.get_cache(cache_key)
+
+    if all(['are_participants_created' in are_chatroom_participants_created,
+            not are_chatroom_participants_created.get('are_participants_created')]):
+        return {'success': False, "error_message": "Chatroom creation in progress. Try again after some time."}
 
     community_instance = card_instance.community
     member_state = Members.get_community_member_state(community_instance.id, user_instance.id)
