@@ -1128,7 +1128,8 @@ def get_members_of_community_based_on_community_list_for_sync(community_id_list,
                      togther_userinfo.image_link,
                      togther_userinfo.name,
                      togther_members.custom_title,
-                     togther_community.name
+                     togther_community.name,
+                     togther_userinfo.is_guest
             FROM togther_members
             INNER JOIN togther_userinfo
                 ON togther_members.member_id_id = togther_userinfo.user_id_id
@@ -1173,7 +1174,8 @@ def get_members_of_community_based_on_user_list_for_sync(user_id_list, community
                      togther_userinfo.image_link,
                      togther_userinfo.name,
                      togther_members.custom_title,
-                     togther_community.name
+                     togther_community.name,
+                     togther_userinfo.is_guest
             FROM togther_members
             INNER JOIN togther_userinfo
                 ON togther_members.member_id_id = togther_userinfo.user_id_id
@@ -1250,6 +1252,7 @@ def process_member_data(res):
         temp['name'] = data[8]
         temp['custom_title'] = data[9]
         temp['community_name'] = data[10]
+        temp['is_guest'] = data[11]
         member_data.append(temp)
 
     return member_data

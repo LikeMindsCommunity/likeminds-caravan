@@ -14251,6 +14251,7 @@ def compute_response_of_members_data(members_data, responses_data):
         member_context['name'] = data['name']
         member_context['image_url'] = data['image_url']
         member_context['state'] = data['state']
+        member_context['is_guest'] = data['is_guest']
         member_context['is_owner'] = data['is_owner']
         community_name = data['community_name']
         locale_time = time.localtime(data['created_at'])
