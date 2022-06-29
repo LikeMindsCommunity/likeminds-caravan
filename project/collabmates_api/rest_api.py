@@ -201,7 +201,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
         if self.restrict_members_count:
             return None
 
-        return get_members_count_in_community(instance)
+        return get_members_count_in_community(instance, remove_guest_user=True)
 
     def to_representation(self, community):
         data = super(CommunitySerializerV1, self).to_representation(community)

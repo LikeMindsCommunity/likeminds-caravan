@@ -628,7 +628,7 @@ def get_all_members_version_1(request, req_dict=None):
 
     if NumberUtilities.get_integer_from_string(page) == 1:
         context['total_only_members'] = Members.objects \
-            .filter(community_id=community_instance, state=member_states.MEMBER) \
+            .filter(community_id=community_instance, state=member_states.MEMBER, member_id__userinfo__is_guest=False) \
             .count()
 
     if promoter_instance:
@@ -674,6 +674,7 @@ def chatroom_participants(chatroom_instance, filter_list, community_id, current_
 
 def filtered_member_list(current_user_id, community_id, filter_list, page, member_instance):
     member_list = get_member_query_set(current_user_id, community_id, send_all=True)
+    member_list = member_list.filter(member_id__userinfo__is_guest=False)
     filter_list = json.loads(filter_list)
     member_set = get_filtered_users(filter_list, member_list)
     total_filtered_members = len(member_set)
@@ -688,7 +689,7 @@ def filtered_member_list(current_user_id, community_id, filter_list, page, membe
 
 
 def unfiltered_member_list(current_user_id, community_id, page):
-    member_list = get_member_query_set(current_user_id, community_id, page=page)
+    member_list = get_member_query_set(current_user_id, community_id, page=page, remove_guest_user=True)
     members = get_member_instances_without_filter(member_list, current_user_id, community_id, page=page)
 
     unfilter_context = {
@@ -919,7 +920,7 @@ def intersect_sets(set1, set2):
     return set1.intersection(set2)
 
 
-def get_member_query_set(current_user_id, community_id, send_all=False, page=1):
+def get_member_query_set(current_user_id, community_id, send_all=False, page=1, remove_guest_user=False):
     if send_all:
         member_list = Members.objects.filter(community_id=community_id).filter(
             Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
@@ -934,7 +935,8 @@ def get_member_query_set(current_user_id, community_id, send_all=False, page=1):
     if is_promoter:
         is_promoter = check_admin_approve_right(community=community_id, user=current_user_id)
 
-    member_list = get_paginated_member_queryset(page=page, community_id=community_id, promoter=is_promoter)
+    member_list = get_paginated_member_queryset(page=page, community_id=community_id, promoter=is_promoter,
+                                                remove_guest_user=remove_guest_user)
 
     return member_list
 
@@ -963,13 +965,19 @@ def send_participants_of_chatroom(chatroom_instance, filter_list, community_id, 
     return context
 
 
-def get_paginated_member_queryset(page, community_id, promoter=False):
+def get_paginated_member_queryset(page, community_id, promoter=False, remove_guest_user=False):
     '''function to get paginated  member ids'''
 
     cursor = connection.cursor()
     page_number = int(page)
     limit = 10
     offset = (page_number - 1) * 10
+
+    guest_user_query = ""
+
+    if remove_guest_user:
+        guest_user_query = "AND togther_userinfo.is_guest = false"
+
     if promoter:
         sql = """
                 SELECT   togther_members.id,
@@ -978,13 +986,13 @@ def get_paginated_member_queryset(page, community_id, promoter=False):
                 FROM togther_members
                 INNER JOIN togther_userinfo
                     ON togther_members.member_id_id = togther_userinfo.user_id_id
-                        AND togther_members.community_id_id = %s
+                        AND togther_members.community_id_id = %s %s
                         AND (togther_members.state = 1
                         OR togther_members.state = 4
                         OR togther_members.state = 9
                         OR togther_members.state = 3)
                 ORDER BY  togther_userinfo.name, togther_members.member_id_id limit %s offset %s
-        """ % (str(community_id), str(limit), str(offset))
+        """ % (str(community_id), guest_user_query, str(limit), str(offset))
     else:
         sql = """
                 SELECT  togther_members.id,
