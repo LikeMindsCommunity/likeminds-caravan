@@ -2606,30 +2606,20 @@ class CommunityHelper:
         return join_link_valid
 
     @staticmethod
-    def fetch_community_for_aj(aj, user_id, platform_code, version_code):
+    def fetch_community_for_aj(aj, platform_code, version_code):
         res = {
             'success': False
         }
-
-        is_cm_onboarding_enabled = cm_onboarding_version_check(platform_code, version_code)
-
-        if is_cm_onboarding_enabled:
-            user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-            if not user_instance:
-                res['error_message'] = 'Invalid member-id'
-                return res
 
         is_aj_present = ModelUtilities.get_model_filter(communityExpiryCodes, {'unique_code': aj})
 
         if is_aj_present:
             aj_instance = is_aj_present[0]
+            is_cm_onboarding_enabled = cm_onboarding_version_check(platform_code, version_code)
 
-            if is_cm_onboarding_enabled and aj_instance.community.is_paid:
-
-                if aj_instance.user:
-                    res['error_message'] = 'Invite code already used!'
-                    return res
+            if is_cm_onboarding_enabled and aj_instance.community.is_paid and aj_instance.user:
+                res['error_message'] = 'Invite code already used!'
+                return res
 
             res['success'] = True
             res['community_id'] = aj_instance.community.id
