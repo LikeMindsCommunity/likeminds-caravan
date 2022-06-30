@@ -74,7 +74,7 @@ from external_services.webflow.webflow_impl import WebflowImpl
 from external_services.email.email_wrapper import MailWrapper, MailHelper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
-    event_online_link_types, block_chatroom_states, chat_request_states
+    event_online_link_types, block_chatroom_states, chat_request_states, api_types
 
 from utility.utils import check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -211,7 +211,7 @@ class ChatroomImpl(ChatroomManager):
 
         return card_status
 
-    def _fetch_chatroom_actions(self, card_instance, chatroom_data):
+    def _fetch_chatroom_actions(self, card_instance, chatroom_data, api_type=api_types.Non_SDK):
 
         card_status = self._fetch_card_status(chatroom_data)
         is_promoter = False
@@ -237,8 +237,7 @@ class ChatroomImpl(ChatroomManager):
                                                 current_user_instance=self.get_member_id(),
                                                 community_instance=card_instance.community, is_child=is_child,
                                                 parent_list=parent_list, platform_code=self.get_request_platform(),
-                                                version_code=self.get_version_code()
-                                                )
+                                                version_code=self.get_version_code(), api_type=api_type)
         return chatroom_actions
 
     def _save_external_seen_in_chatroom_state(self, card_instance, user_instance):
@@ -847,7 +846,7 @@ class ChatroomImpl(ChatroomManager):
         if card_instance.online_link_password:
             chatroom_context['online_link_password'] = card_instance.online_link_password
 
-    def fetch_chatroom(self, is_internal=False) -> dict:
+    def fetch_chatroom(self, is_internal=False, api_type: int = api_types.Non_SDK) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
 
@@ -900,7 +899,7 @@ class ChatroomImpl(ChatroomManager):
 
         chatroom_obj = dict()
         chatroom_obj['chatroom'] = chatroom_data
-        chatroom_obj['chatroom_actions'] = self._fetch_chatroom_actions(card_instance, chatroom_data)
+        chatroom_obj['chatroom_actions'] = self._fetch_chatroom_actions(card_instance, chatroom_data, api_type=api_type)
         chatroom_obj['community'] = CommunitySerializerV1(community_instance,
                                                           context={"current_user_id": user_instance.id},
                                                           many=False).data
