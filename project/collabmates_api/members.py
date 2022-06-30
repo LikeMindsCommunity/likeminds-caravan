@@ -140,6 +140,7 @@ def get_secret_chatroom_tagging_list(chatroom_instance, community_instance, bloc
         member_dict = {'id': user_id,
                        'name': user_instance.userinfo.name,
                        'image_url': user_instance.userinfo.image_link,
+                       'is_guest': user_instance.userinfo.is_guest,
                        }
 
         if participant.image_url:
@@ -218,6 +219,7 @@ def get_community_members_for_tagging(community, blocked_users_list, current_mem
             'id': user_id,
             'name': user_instance.userinfo.name,
             'image_url': member.image_url if member.image_url else user_instance.userinfo.image_link,
+            'is_guest': user_instance.userinfo.is_guest,
             'state': member.state
         }
 
