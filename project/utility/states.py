@@ -20,17 +20,19 @@ class ManagerRights:
     MANAGER_RIGHT_EDIT_COMMUNITY = 2
     MANAGER_RIGHT_VIEW_CONTACT_INFO = 3
     MANAGER_RIGHT_ADD_MANAGERS = 4
-    MANAGER_RIGHT_DELETE_ROOMS_TITLE = "Delete chat rooms/messages"
-    MANAGER_RIGHT_APPROVE_MEMBERS_TITLE = "Approve/remove members"
+    MODERATE_DM_SETTINGS = 5
+    MANAGER_RIGHT_DELETE_ROOMS_TITLE = "Moderate chatrooms"
+    MANAGER_RIGHT_APPROVE_MEMBERS_TITLE = "Moderate members"
     MANAGER_RIGHT_EDIT_COMMUNITY_TITLE = "Edit community details"
     MANAGER_RIGHT_VIEW_CONTACT_INFO_TITLE = "View member contact info"
     MANAGER_RIGHT_ADD_MANAGERS_TITLE = "Add community managers"
+    MODERATE_DM_SETTINGS_TITLE = "Moderate DM settings"
 
     DEFAULT_MANAGER_RIGHTS = [MANAGER_RIGHT_DELETE_ROOMS, MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS,
                               MANAGER_RIGHT_EDIT_COMMUNITY]
     ALL_MANAGER_RIGHTS = [MANAGER_RIGHT_DELETE_ROOMS, MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS,
                           MANAGER_RIGHT_EDIT_COMMUNITY, MANAGER_RIGHT_VIEW_CONTACT_INFO,
-                          MANAGER_RIGHT_ADD_MANAGERS]
+                          MANAGER_RIGHT_ADD_MANAGERS, MODERATE_DM_SETTINGS]
 
 
 manager_rights = ManagerRights()
@@ -45,6 +47,7 @@ class MemberRights:
     MEMBER_RIGHT_AUTO_APPROVE = 5
     MEMBER_RIGHT_CREATE_SECRET_ROOM = 6
     MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES = 7
+    MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM = 8
 
     MEMBER_RIGHT_CREATE_ROOMS_TITLE = "Create chat rooms"
     MEMBER_RIGHT_CREATE_POLL_TITLE = "Create polls"
@@ -53,7 +56,8 @@ class MemberRights:
     MEMBER_RIGHT_INVITE_PRIVATE_LINK_TITLE = "Invite members via private link"
     MEMBER_RIGHT_AUTO_APPROVE_TITLE = "Auto-approve created chat rooms"
     MEMBER_RIGHT_CREATE_SECRET_CHATROOM_TITLE = "Create secret chatroom"
-    MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES_TITLE = "Direct Messages"
+    MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES_TITLE = "Direct messages"
+    MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM_TITLE = "Members who can initiate DMs"
 
     DEFAULT_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_ROOMS, MEMBER_RIGHT_CREATE_POLL,
                              MEMBER_RIGHT_CREATE_EVENT, MEMBER_RIGHT_RESPOND_IN_ROOM,
@@ -82,6 +86,7 @@ class ModerationHistoryTypes:
     REJOINED_COMMUNITY_PUBLIC_LINK = 11
     REJOINED_COMMUNITY_PRIVATE_LINK = 12
     APPLIED_PUBLIC_LINK_WEBSITE = 13
+    SDK_JOIN = 14
     APPLIED_PUBLIC_LINK_TEXT = "Applied via invite link from "
     APPLIED_PRIVATE_LINK_TEXT = "Joined via invite link from "
     APPROVED_FROM_TEXT = "Approved from "
@@ -96,6 +101,7 @@ class ModerationHistoryTypes:
     REJOINED_COMMUNITY_PUBLIC_LINK_TEXT = "Rejoined via invite link from  "
     REJOINED_COMMUNITY_PRIVATE_LINK_TEXT = "Rejoined via invite link from "
     APPLIED_PUBLIC_LINK_WEBSITE_TEXT = "Applied via community website"
+    SDK_JOIN_MEMBER_TEXT = "{} joined the community"
 
 
 moderation_history_types = ModerationHistoryTypes()
@@ -373,6 +379,8 @@ class ConversationStates:
     CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT = 16
     CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT = 17
     CONVERSATION_EVENT = 18
+    CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT = 19
+    CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT = 20
 
 
 conversation_states = ConversationStates()
@@ -399,6 +407,7 @@ class LoginTypes:
     LINKEDIN_WEB = "linkedin_web"
     APPLE = "apple"
     CUSTOM = "custom"
+    SDK = "sdk"
 
 
 login_types = LoginTypes()
@@ -439,6 +448,9 @@ event_webflow_update_types = EventWebflowUpdateTypes()
 class CommunitySettingTypes:
     INTRO_ROOM = "intro_room"
     MEMBERS_AUTO_JOIN = "members_auto_join"
+    DIRECT_MESSAGES = "direct_messages"
+    MEMBERS_CAN_DM = "members_can_dm"
+    DIRECT_MESSAGE_SETTING = "direct_messages_setting"
 
 
 community_setting_types = CommunitySettingTypes()
@@ -491,6 +503,7 @@ class UserEmailSendStatusTypes:
 
 
 user_email_send_status_types = UserEmailSendStatusTypes()
+
 
 class ChatroomNotOpenedTypes:
     TAGGED_CHATROOM = 1
@@ -545,3 +558,69 @@ airtable_webhook_types = AirtableWebhookTypes()
 
 class WebhookTypes(enum.Enum):
     COMMUNITY_JOIN = 1
+
+
+class CohortAccess(enum.Enum):
+    NO_ACCESS = 0
+    RESTRICTED_ACCESS = 1
+    FULL_ACCESS = 2
+
+
+class APIVersionHeaders:
+    V1 = "v1"
+
+
+api_version_headers = APIVersionHeaders()
+
+
+class CommunityDMSettingsStateTypes:
+    UNLIMITED = 0
+    LIMITED = 1
+
+
+community_dm_settings_state_types = CommunityDMSettingsStateTypes()
+
+
+class CommunityDMSettingsDurationTypes:
+    DAYS = "days"
+    WEEKS = "weeks"
+    MONTHS = "months"
+
+
+community_dm_settings_duration_types = CommunityDMSettingsDurationTypes()
+
+
+class BlockChatroomStates:
+    BLOCK = 0
+    UNBLOCK = 1
+
+
+block_chatroom_states = BlockChatroomStates()
+
+
+class DMChatRequestStates:
+    INITIATED = 0
+    ACCEPTED = 1
+    REJECTED = 2
+
+
+chat_request_states = DMChatRequestStates()
+
+
+class DMIconFromStates:
+    MEMBER_PROFILE = "member_profile"
+    COMMUNITY_DETAIL = "community_detail"
+    DM_FEED = "dm_feed"
+    MEMBER_DIRECTORY = "member_directory"
+    CHATROOM = "chatroom"
+
+
+dm_icon_from_states = DMIconFromStates()
+
+
+class APITypes:
+    Non_SDK = 0
+    SDK = 1
+
+
+api_types = APITypes()

@@ -52,9 +52,9 @@ User.add_to_class("get_user_or_none", get_user_or_none)
 
 
 class Community(models.Model):
-    name = models.CharField(max_length=200)
+    name = models.TextField()
     about = models.TextField(null=True)
-    purpose = models.CharField(max_length=2048)
+    purpose = models.CharField(max_length=2048, null=True)
     location = models.CharField(max_length=200, null=True)
     image_url = models.ImageField(upload_to="media/community", null=True)
     members_count = models.IntegerField(default=0)
@@ -91,9 +91,15 @@ class Community(models.Model):
 
     branding = models.TextField(null=True)
 
+    is_whitelabel = models.BooleanField(default=False)
+    whitelabel_info = models.TextField(null=True)
+
     fee_membership = models.IntegerField(default=5)
     fee_event = models.IntegerField(default=5)
     fee_payment_pages = models.IntegerField(default=5)
+
+    hide_dm_tab = models.BooleanField(default=False)
+    is_freemium_community = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -123,6 +129,8 @@ class Community(models.Model):
         community_instance.sub_type = community_object['sub_type']
         community_instance.hide_community = community_object['hide_community']
         community_instance.branding = community_object['branding']
+        community_instance.is_whitelabel = community_object['is_whitelabel']
+        community_instance.whitelabel_info = community_object['whitelabel_info']
         community_instance.save()
 
         return community_instance
@@ -214,6 +222,7 @@ class Members(models.Model):
         member_instance.is_owner = create_info.get('is_owner', False)
         member_instance.custom_title = create_info.get('custom_title', None)
         member_instance.became_member_at = create_info.get('became_member_at', 0)
+        member_instance.image_url = create_info.get('image_url', None)
         member_instance.save()
 
         return member_instance
@@ -402,6 +411,11 @@ class Userinfo(models.Model):
     apple_id = models.CharField(max_length=100, null=True)
     has_tags = models.BooleanField(default=False)
     updated_at = models.BigIntegerField(default=0)
+    user_unique_id = models.CharField(max_length=255, unique=True, null=True)
+    is_guest = models.BooleanField(default=False)
+    last_active = models.BigIntegerField(default=0)
+    organisation_name = models.CharField(max_length=255, null=True)
+    is_bot = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -560,6 +574,10 @@ class Collabcard(models.Model):
     about_recording = models.TextField(null=True)
     recording_url_og_tags = models.TextField(null=True)
     has_event_recording = models.BooleanField(default=False)
+    is_private_member = models.BooleanField(default=False)
+
+    single_event_url = models.TextField(null=True)
+    third_party_unique_id = models.TextField(null=True, blank=True)
 
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
@@ -979,6 +997,10 @@ class collabcardState(models.Model):
     secret_chatroom_left = models.BooleanField(default=False)
     attended = models.BooleanField(default=False)
 
+    chat_request_state = models.IntegerField(null=True)
+    chat_requested_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='chat_requested_by')
+    chat_request_created_at = models.BigIntegerField(null=True)
+
     class Meta:
         unique_together = (('card', 'user'),)
 
@@ -1317,20 +1339,6 @@ class Member_Engage(models.Model):
     rights_list = models.TextField(null=True)
     order_time = models.BigIntegerField(null=True)
 
-    @staticmethod
-    def create_instance(create_info):
-        engage = Member_Engage()
-        engage.member_id = create_info.get('user_instance')
-        engage.community_id = create_info.get('community_instance')
-        engage.updated_at = TimeUtilities.current_time_in_sec()
-        engage.member_state = create_info.get('state')
-        engage.click_state = create_info.get('click_state', 0)
-        engage.member_referral = create_info.get('member_referral', '')
-        engage.rights_list = create_info.get('rights_list', None)
-        engage.save()
-
-        return engage
-
     def save(self, *args, **kwargs):
         current_time = TimeUtilities.current_time_in_milliseconds()
 
@@ -1340,8 +1348,9 @@ class Member_Engage(models.Model):
         self.order_time = current_time
         super(Member_Engage, self).save(*args, **kwargs)
 
+    class Meta:
+        unique_together = [['member_id', 'community_id']]
 
-# community lpig
 
 class Community_Legacy(models.Model):
     '''Model to store the communities of legacy'''
@@ -2011,6 +2020,7 @@ class adminRights(models.Model):
     title = models.TextField(null=True)
     sub_title = models.TextField(null=True)
     state = models.IntegerField(default=0)
+    rank = models.IntegerField(default=0)
 
 
 class memberRights(models.Model):
@@ -2258,6 +2268,30 @@ class ModelUtilities:
         except Exception as e:
 
             pass
+
+        return instance
+
+    @staticmethod
+    def get_user_instance_or_none(pk):
+        instance = None
+
+        if not pk:
+            return instance
+
+        if str(pk).isdigit():
+            column_name = "id"
+            model = User
+        else:
+            column_name = "user_unique_id"
+            model = Userinfo
+
+        instance_filter = ModelUtilities.get_model_filter(model, {column_name: pk})
+
+        if instance_filter:
+            instance = instance_filter[0]
+
+            if column_name == "user_unique_id":
+                instance = instance.user_id
 
         return instance
 
@@ -2525,6 +2559,7 @@ class EventFAQ(models.Model):
 class EventNudge(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, null=True, on_delete=models.CASCADE)
     seen_event_chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
@@ -2534,6 +2569,7 @@ class EventNudge(models.Model):
         instance = EventNudge()
         instance.seen_event_chatroom = create_info.get('card_instance')
         instance.user = create_info.get('user_instance')
+        instance.community = create_info.get('community_instance')
         instance.save()
 
     def save(self, *args, **kwargs):
@@ -2997,12 +3033,16 @@ class EventRecordingsURL(models.Model):
         instance.save()
         return instance
 
-     
+
 class ChatroomCohort(models.Model):
     cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
     chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    cohort_access = models.IntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        unique_together = (('cohort', 'chatroom'),)
 
     def save(self, *args, **kwargs):
 
@@ -3271,3 +3311,90 @@ class MessageTemplate(models.Model):
         self.updated_at = current_time
 
         super(MessageTemplate, self).save(*args, **kwargs)
+
+
+class ChatroomSecretTypeConversion(models.Model):
+    chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    is_secret = models.BooleanField(default=False)
+    converted_at = models.BigIntegerField(default=TimeUtilities.current_time_in_milliseconds())
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(ChatroomSecretTypeConversion, self).save(*args, **kwargs)
+
+
+class CommunityDirectMessageSettings(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    state = models.IntegerField(default=0)
+    duration = models.TextField(null=True)
+    number_in_duration = models.IntegerField(default=0)
+
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(CommunityDirectMessageSettings, self).save(*args, **kwargs)
+
+
+class SDKClientUsersInfo(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user_unique_id = models.CharField(max_length=255, null=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        unique_together = [['community', 'user', 'user_unique_id']]
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(SDKClientUsersInfo, self).save(*args, **kwargs)
+
+
+class ScheduledChatroomFollow(models.Model):
+    chatroom_id = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    schedule_time = models.BigIntegerField(default=0)
+    schedule_time_before = models.BigIntegerField(
+        default=TimeUtilities.get_minutes_in_milliseconds(1440))
+    end_time = models.BigIntegerField(default=0)
+    end_time_after = models.BigIntegerField(
+        default=TimeUtilities.get_minutes_in_milliseconds(1440))
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'scheduled chatroom follow'
+        verbose_name_plural = 'scheduled chatroom follows'
+        db_table = 'togther_scheduled_chatroom_follow'
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(ScheduledChatroomFollow, self).save(*args, **kwargs)

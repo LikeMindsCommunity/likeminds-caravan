@@ -54,6 +54,10 @@ app.conf.beat_schedule = {
     'send_daily_emails': {
         'task': 'collabmates_api.tasks.send_daily_emails',
         'schedule': crontab(hour=10, minute=0),
+    },
+    'remove_guest_users_sdk': {
+        'task': 'collabmates_api.tasks.remove_guest_users_sdk',
+        'schedule': crontab(hour=2, minute=0),
     }
 }
 
@@ -71,4 +75,16 @@ app.conf.update(
 
 app.conf.update(
     task_acks_late = True
+)
+
+app.conf.update(
+    result_persistent=False
+)
+
+app.conf.update(
+    task_ignore_result=True
+)
+
+app.conf.update(
+    result_expires=60
 )

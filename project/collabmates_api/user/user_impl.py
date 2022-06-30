@@ -1,4 +1,6 @@
 import json
+import uuid
+
 import requests as rqst
 
 from urllib import parse
@@ -15,26 +17,32 @@ from cms.models import userAcquition
 from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices, Community,
                             Members, userEmails, Userinfo, emailTokens, Collabcard, removedMembers,
                             DirectMessageTutorial, communityRightsSettings, card_answers, collabcardState,
-                            conversationEngage)
+                            conversationEngage, CommunitySettings, SDKClientUsersInfo)
 from collabmates_api.user.user_manager import UserManager
+from collabmates_api.sdk.models import (SdkClient)
 
 from utility.exception_utilities import InvalidUserException
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import email_states, mobile_states, member_states, login_types, deleted_members, \
-    conversation_states, member_rights
+    conversation_states, member_rights, community_setting_types, chat_request_states, api_types
 from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
+from utility.constants import ONE_DAY_HOURS
+from utility.response_utilities import ResponseUtilities
 
 from utility.url_utilities import UrlUtilities
 
 from .constants import *
-from ..raw_queries import get_community_id_list
+from .user_view_helper import UserViewHelper
+from ..raw_queries import get_community_id_list, get_conversations_after_last_seen_messages_in_chatrooms, \
+    get_dm_chatrooms_of_user
 from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
 from ..tasks import send_verification_mail_for_email_sync, cm_onboarding_version_check
-from ..rest_api import CommunitySerializerV1
-from ..serializers import get_logged_in_user
+from ..utility import m2cm_v1_version_check, m2cm_v2_version_check
+from ..rest_api import CommunitySerializerV1, SDKClientUsersInfoSerializer
+from ..serializers import get_logged_in_user, UserinfoSerializer
 from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS, \
     CM_ONBOARDING_CREATE_COMMUNITY_BRANCH_LINK
 
@@ -160,17 +168,19 @@ class UserImpl(UserManager):
 
     def logout(self, device_id) -> dict:
 
-        user_instance = User.get_user_or_none(self.get_user_id())
+        user_instance = ModelUtilities.get_user_instance_or_none(self.get_user_id())
 
         if not user_instance:
-            return {'error_message': "In-valid user id", 'success': False}
+            return ResponseUtilities.get_impl_error_context("Invalid user id",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         device_count = self.delete_notification_sending_details(user_instance, device_id)
 
         if device_count[0]:
             return {'success': True}
 
-        return {'error_message': "In-valid device id", 'success': False}
+        return ResponseUtilities.get_impl_error_context("Invalid device id",
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def _get_community_instances_for_user(self):
         community_id_list = get_community_id_list(self.get_user_id())
@@ -258,11 +268,108 @@ class UserImpl(UserManager):
             userinfo_instance.name = user_context['name']
             userinfo_instance.created_at = TimeUtilities.current_time_in_sec()
             userinfo_instance.user_id = user_instance
+            userinfo_instance.user_unique_id = str(uuid.uuid4())
             userinfo_instance.image_link = UserHelper.process_image_url_for_processing(user_context,
                                                                                        user_instance)
             userinfo_instance.save()
 
         return user_instance
+
+    def create_user_context_for_sdk(self, user_instance, is_exisiting_user=False, sdk_client_user_info_instance=None):
+
+        user_object = {
+            'success': True,
+            'user': self.compute_logged_in_user(user_instance.userinfo, sdk_client_user_info_instance),
+            'email_exists': False,
+            'access': UserHelper.is_user_belong_to_any_community(user_instance),
+            'existing_user': is_exisiting_user
+        }
+
+        return user_object
+
+    @staticmethod
+    def _get_or_create_sdk_user_and_userinfo(user_context, api_key=None):
+
+        user_unique_id = user_context.get('user_unique_id')
+        user_instance = None
+        unique_id = str(uuid.uuid4())
+        sdk_client_user_info_instance = None
+        community_instance = None
+
+        if not user_unique_id:
+            should_create_user = True
+
+        else:
+
+            if not api_key:
+                return ResponseUtilities.get_inner_error_context("Invalid API key!")
+
+            sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key})
+
+            if not sdk_client_filter:
+                return ResponseUtilities.get_inner_error_context("Invalid API key!")
+
+            community_instance = sdk_client_filter[0].community
+
+            sdk_client_users_info_filter = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                                           {'community': community_instance,
+                                                                            'user_unique_id': user_unique_id})
+
+            if sdk_client_users_info_filter:
+                sdk_client_user_info_instance = sdk_client_users_info_filter[0]
+                return {'user_instance': sdk_client_user_info_instance.user,
+                        'sdk_client_user_info_instance': sdk_client_user_info_instance,
+                        'existing_user': True}
+
+            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_unique_id': user_unique_id})
+
+            if user_info_filter:
+                user_instance = user_info_filter[0].user_id
+                return {'user_instance': user_instance,
+                        'sdk_client_user_info_instance': sdk_client_user_info_instance,
+                        'existing_user': True}
+
+            should_create_user = True
+
+        if should_create_user:
+            if not user_context.get('name'):
+                return ResponseUtilities.get_inner_error_context("Invalid user name!")
+
+            user_instance = User()
+            user_instance.username = unique_id
+            user_instance.save()
+
+            userinfo_instance = Userinfo()
+            userinfo_instance.name = user_context.get('name')
+            userinfo_instance.created_at = TimeUtilities.current_time_in_sec()
+            userinfo_instance.user_id = user_instance
+            userinfo_instance.user_unique_id = unique_id
+            userinfo_instance.is_guest = user_context.get('is_guest', False)
+            userinfo_instance.image_link = UserHelper.process_image_url_for_processing(user_context, user_instance)
+            userinfo_instance.organisation_name = user_context.get('organisation_name')
+            userinfo_instance.is_bot = user_context.get('is_bot', False)
+            userinfo_instance.save()
+
+            mobile_context = user_context.get('mobile_context')
+
+            if mobile_context and mobile_context.get('country_code') and mobile_context.get('mobile_no'):
+                UserImpl.create_user_mobile_number(user_instance,
+                                                   mobile_context.get('country_code'),
+                                                   mobile_context.get('mobile_no'))
+
+            if user_context.get('email'):
+                UserImpl.create_user_primary_email(user_instance, user_context)
+
+            if user_unique_id and community_instance:
+                sdk_client_user_info_instance = SDKClientUsersInfo()
+                sdk_client_user_info_instance.community = community_instance
+                sdk_client_user_info_instance.user = user_instance
+                sdk_client_user_info_instance.user_unique_id = user_unique_id
+                sdk_client_user_info_instance.save()
+
+        return {'user_instance': user_instance,
+                'sdk_client_user_info_instance': sdk_client_user_info_instance,
+                'existing_user': False}
 
     @staticmethod
     def create_user_primary_email(user_instance, user_context, email_state=email_states.PRIMARY):
@@ -275,7 +382,7 @@ class UserImpl(UserManager):
         login_type = user_context.get('login_type')
         verified = False
 
-        if login_type != "custom":
+        if login_type not in [login_types.CUSTOM, login_types.SDK]:
             verified = True
 
         user_exists = ModelUtilities.is_model_filter_exists(userEmails, {'verified': verified,
@@ -307,16 +414,13 @@ class UserImpl(UserManager):
             instance.created_at = TimeUtilities.current_time_in_sec()
             instance.save()
 
-    @staticmethod
-    def userinfo_serializer(userinfo_instance):
+    def compute_logged_in_user(self, userinfo_instance, sdk_client_user_info_instance=None):
 
-        return {'id': userinfo_instance.user_id_id,
-                'name': userinfo_instance.name,
-                'image_url': userinfo_instance.image_link}
+        userinfo_context = UserinfoSerializer(userinfo_instance)
 
-    def compute_logged_in_user(self, userinfo_instance):
-
-        userinfo_context = self.userinfo_serializer(userinfo_instance)
+        if sdk_client_user_info_instance:
+            userinfo_context['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client_user_info_instance,
+                                                                               many=False).data
 
         email_list = self.create_user_email_list(userinfo_instance)
         mobile_list = self.create_user_mobile_list(userinfo_instance)
@@ -394,7 +498,9 @@ class UserImpl(UserManager):
 
         return user_email_exists_object
 
-    def login(self, req_body, platform_code, device_id, version_code) -> {}:
+    def login(self, req_body, platform_code, device_id, version_code, api_key: str = None) -> {}:
+
+        login_type = req_body.get('type')
 
         try:
             user_context = UserHelper.validate_login_types(req_body)
@@ -407,7 +513,17 @@ class UserImpl(UserManager):
         if not user_context:
             return {'success': False, 'error_message': "Invalid Login"}
 
-        if not user_context.get('has_profile_image'):
+        if login_type == login_types.SDK:
+            sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context, api_key=api_key)
+
+            if sdk_user_context.get('error_message'):
+                return {'success': False, 'error_message': sdk_user_context.get('error_message')}
+
+            return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'),
+                                                    sdk_user_context.get('existing_user'),
+                                                    sdk_user_context.get('sdk_client_user_info_instance'))
+
+        if (not login_type == login_types.SDK) and not user_context.get('has_profile_image'):
             return {'success': False, 'user': user_context,
                     'error_message': "profile picture not available"}
 
@@ -596,10 +712,10 @@ class UserImpl(UserManager):
 
     def fetch_dm_home(self) -> dict:
 
-        if (self.get_platform_code() == "an") and (self.get_version_code() < DM_CHATROOMS_VERSION_CODE_ANDROID):
-            return {'success': True}
+        is_m2cm_v1 = m2cm_v1_version_check(self.get_platform_code(), self.get_version_code())
+        is_m2cm_v2 = m2cm_v2_version_check(self.get_platform_code(), self.get_version_code())
 
-        elif (self.get_platform_code() == "ios") and (self.get_version_code() < DM_CHATROOMS_VERSION_CODE_IOS):
+        if not is_m2cm_v1:
             return {'success': True}
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_user_id())
@@ -633,18 +749,20 @@ class UserImpl(UserManager):
             }).values_list(
                 "community_id_id", flat=True))
 
-        communities = ModelUtilities.get_model_filter(communityRightsSettings,
-                                                      {"community__id__in": communities_list,
-                                                       "right__state":
-                                                           member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+        communities = ModelUtilities.get_model_filter(CommunitySettings,
+                                                      {"community_id__in": communities_list,
+                                                       "setting_type": community_setting_types.DIRECT_MESSAGES})
 
+        dm_disabled_time = UserHelper.get_dm_disabled_time_for_members(communities)
+        communities = communities.filter(enabled=True)
         community_ids_list = list(communities.values_list("community_id", flat=True))
+        hide_dm_tab = False
 
         if admin.exists():
 
             is_cm = True
 
-            if direct_message_tutorial:
+            if (not is_m2cm_v2) and direct_message_tutorial:
 
                 if all([direct_message_tutorial.clicked, not direct_message_tutorial.messaged, not communities,
                         TimeUtilities.current_time_in_sec() >= TimeUtilities.add_hours_to_epoch_time(
@@ -652,7 +770,7 @@ class UserImpl(UserManager):
 
                     return {
                         "success": True,
-                        "is_cm": True
+                        "is_cm": is_cm
                     }
 
                 unseen_count = UserHelper.get_unread_dm_messages_count(user_instance.id, community_ids_list)
@@ -665,6 +783,25 @@ class UserImpl(UserManager):
                     "is_cm": is_cm
                 }
 
+            elif is_m2cm_v2:
+                get_dm_chatrooms_state_list = get_dm_chatrooms_of_user(user_id=user_instance.id,
+                                                                       community_id=community_ids_list)
+                unseen_count = 0
+
+                if get_dm_chatrooms_state_list:
+                    get_dm_chatrooms_list = [card_id[1] for card_id in get_dm_chatrooms_state_list]
+                    unseen_count = get_conversations_after_last_seen_messages_in_chatrooms(get_dm_chatrooms_list)
+
+                if self.get_community_id():
+                    hide_dm_tab = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id()).hide_dm_tab
+
+                return {
+                    "success": True,
+                    "unread_dm_count": unseen_count,
+                    "is_cm": is_cm,
+                    "hide_dm_tab": hide_dm_tab
+                }
+
             else:
                 return {"success": True, "clicked": False, "messaged": False, "is_cm": is_cm}
 
@@ -672,10 +809,9 @@ class UserImpl(UserManager):
 
             if communities:
 
-                if direct_message_tutorial:
+                if (not is_m2cm_v2) and direct_message_tutorial:
 
-                    unseen_count = UserHelper.get_unread_dm_messages_count(user_instance.id, community_ids_list,
-                                                                           is_cm=False)
+                    unseen_count = UserHelper.get_unread_dm_messages_count(user_instance.id, community_ids_list)
 
                     return {
                         "success": True,
@@ -685,11 +821,32 @@ class UserImpl(UserManager):
                         "is_cm": is_cm
                     }
 
+                elif is_m2cm_v2:
+                    get_dm_chatrooms_state_list = get_dm_chatrooms_of_user(user_id=user_instance.id,
+                                                                           community_id=community_ids_list)
+                    get_dm_chatrooms_list = [card_id[1] for card_id in get_dm_chatrooms_state_list]
+                    unseen_count = get_conversations_after_last_seen_messages_in_chatrooms(get_dm_chatrooms_list)
+                    connection_requests_count = ModelUtilities.get_model_filter(
+                        collabcardState, {'id__in': get_dm_chatrooms_list,
+                                          'chat_request_state': chat_request_states.INITIATED}).exclude(
+                        chat_requested_by=user_instance).count()
+
+                    return {
+                        "success": True,
+                        "unread_dm_count": unseen_count + connection_requests_count,
+                        "is_cm": is_cm
+                    }
+
                 else:
                     return {"success": True, "clicked": False, "messaged": False, "is_cm": is_cm}
 
             else:
-                return {"success": True, "is_cm": is_cm}
+
+                if TimeUtilities.current_time_in_sec() > dm_disabled_time:
+                    return {"success": True, "is_cm": is_cm, "hide_dm_tab": True}
+
+                else:
+                    return {"success": True, "is_cm": is_cm, "hide_dm_tab": False, "hide_dm_text": HIDE_DM_TEXT}
 
     def update_dm_tutorial(self, req_body) -> {}:
 
@@ -801,6 +958,79 @@ class UserImpl(UserManager):
 
         return response_context
 
+    def create_user_bot(self, req_body) -> dict:
+        validated_request = UserViewHelper.validate_create_user_bot_request(req_body)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_name = validated_request.get('name')
+
+        user_context = {
+            'name': CREATE_USER_BOT_NAME.format(community_name),
+            'is_bot': True
+        }
+
+        sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context)
+
+        if sdk_user_context.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(sdk_user_context.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'))
+
+    def update_user_bot(self, req_body) -> dict:
+        validated_request = UserViewHelper.validate_update_user_bot_request(self.get_user_id(), req_body)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_name = validated_request.get('name')
+
+        filter_dict = {
+            'user_id': validated_request.get('user_instance')
+        }
+
+        update_dict = {
+            'name': CREATE_USER_BOT_NAME.format(community_name)
+        }
+
+        ModelUtilities.update_or_create_model(Userinfo, filter_dict, update_dict)
+
+        return self.create_user_context_for_sdk(validated_request.get('user_instance'))
+
+    def fetch_user_bot(self, api_key: str = None) -> dict:
+        validated_request = UserViewHelper.validate_fetch_user_bot_request(api_key)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+
+        user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
+
+        if not user_instance:
+            return ResponseUtilities.get_impl_error_context('No owner in community',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        if user_instance.userinfo.is_bot:
+            return self.create_user_context_for_sdk(user_instance)
+
+        return ResponseUtilities.get_impl_error_context('Community bot not found',
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    def fetch_user_info(self) -> dict:
+        user_instance = ModelUtilities.get_user_instance_or_none(self.get_user_id())
+
+        if not user_instance:
+            return ResponseUtilities.get_impl_error_context('Invalid user ID',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        return {'success': True, 'user': get_logged_in_user(user_instance)}
+
 
 class UserHelper:
 
@@ -864,6 +1094,9 @@ class UserHelper:
         elif login_type == login_types.CUSTOM:
 
             return UserHelper.validate_custom_login_object(req_body)
+
+        elif login_type == login_types.SDK:
+            return UserHelper.validate_sdk_login_object(req_body)
 
         else:
             return {}
@@ -962,6 +1195,36 @@ class UserHelper:
         return user_context
 
     @staticmethod
+    def validate_sdk_login_object(req_body):
+
+        custom_meta = req_body.get('user', {})
+
+        if not (custom_meta.get('name') or custom_meta.get('user_unique_id')):
+            return {}
+
+        user_context = {
+            'name': custom_meta.get('name'),
+            'is_guest': custom_meta.get('is_guest', False),
+            'email': custom_meta.get('email', ''),
+            'organisation_name': custom_meta.get('organisation_name')
+        }
+
+        if custom_meta.get('image_url'):
+            user_context['image_url'] = custom_meta.get('image_url')
+            user_context['has_profile_image'] = True
+
+        else:
+            user_context['has_profile_image'] = False
+
+        user_context['login_type'] = login_types.SDK
+        user_context['mobile_context'] = UserHelper.compute_mobile_no(req_body)
+
+        if custom_meta.get('user_unique_id'):
+            user_context['user_unique_id'] = custom_meta.get('user_unique_id')
+
+        return user_context
+
+    @staticmethod
     def generate_email_verification_token_for_custom_login(user_instance, email):
 
         if not email:
@@ -1003,8 +1266,7 @@ class UserHelper:
         if not image_url:
             return ''
 
-        if user_context.get('login_type') == "custom":
-
+        if user_context.get('login_type') in [login_types.CUSTOM, login_types.SDK]:
             return image_url
 
         return upload_image_to_firebase(image_url, user_instance.id)
@@ -1399,7 +1661,7 @@ class UserHelper:
         return data
 
     @staticmethod
-    def get_unread_dm_messages_count(user_id, community_ids, is_cm=True):
+    def get_unread_dm_messages_count(user_id, community_ids):
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
         if not user_instance:
@@ -1417,10 +1679,12 @@ class UserHelper:
 
     @staticmethod
     def get_dm_feed_response(member_instances, cta=None, is_cm=False):
+        community_ids_list = list(member_instances.values_list("community_id_id", flat=True))
 
-        community_rights = ModelUtilities.get_model_filter(
-            communityRightsSettings, {"community__in": member_instances.values_list("community_id_id", flat=True),
-                                      "right__state": member_rights.MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES})
+        community_rights = ModelUtilities.get_model_filter(CommunitySettings,
+                                                           {"community__in": community_ids_list,
+                                                            "setting_type": community_setting_types.DIRECT_MESSAGES,
+                                                            "enabled": True})
 
         if is_cm:
 
@@ -1445,3 +1709,14 @@ class UserHelper:
 
             else:
                 return {"success": False, "error_message": "Direct messages are disabled for this community."}
+
+    @staticmethod
+    def get_dm_disabled_time_for_members(community_settings_filter):
+        dm_disabled_time = max([i if i else 0 for i in list(community_settings_filter.values_list("updated_at",
+                                                                                                  flat=True))])
+
+        if not dm_disabled_time:
+            dm_disabled_time = max([i if i else 0 for i in list(community_settings_filter.values_list("created_at",
+                                                                                                      flat=True))])
+
+        return TimeUtilities.add_hours_to_epoch_time(dm_disabled_time, ONE_DAY_HOURS)

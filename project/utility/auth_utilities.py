@@ -1,7 +1,8 @@
 from rest_framework import status as status_codes
 from .response_utilities import ResponseUtilities
 from .states import member_states
-from togther.models import ModelUtilities, User, Community, Members
+from togther.models import (ModelUtilities, User, Community, Members)
+from collabmates_api.sdk.models import SdkClient
 
 
 class AuthUtilities:
@@ -34,3 +35,17 @@ class AuthUtilities:
                                                             status_codes.HTTP_403_FORBIDDEN)
 
         return {'success': True}
+
+    @staticmethod
+    def validate_api_key(api_key):
+
+        if not api_key:
+            return ResponseUtilities.get_impl_error_context('Send x-api-key in headers',
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        sdk_clients = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key, 'is_deleted': False})
+
+        if not sdk_clients:
+            return ResponseUtilities.get_impl_error_context('Invalid API key', status_codes.HTTP_400_BAD_REQUEST)
+
+        return {'success': True, 'sdk_client': sdk_clients[0]}

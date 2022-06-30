@@ -70,14 +70,22 @@ DOWNLOAD_SETTING_TYPE_TITLE_MAPPING = {
 
 COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
     "intro_room": "Introductions Room",
-    "members_auto_join": "Members auto-join"
+    "members_auto_join": "Members auto-join",
+    "direct_messages": "Enable direct messages",
+    "members_can_dm": "Members can DM other members",
+    "direct_messages_setting": "Direct message"
 }
 
 COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
     "intro_room": "Introduction rooms are used to welcome new members in your communities. If the feature is "
                   "turned off, Introduction rooms and intro rooms would be hidden.",
-    "members_auto_join": "If disabled, members will need approval from the community manager to join the community."
+    "members_auto_join": "If disabled, members will need approval from the community manager to join the community.",
+    "direct_messages": "If enabled, community managers will be able to message all  members and vice-versa.",
+    "members_can_dm": "Members would have option to accept or reject another member’s DM request.",
+    "direct_messages_setting": ""
 }
+
+DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED = "Community managers will be able to message all members and vice-versa."
 
 INTRO_ROOM_SETTING_DISABLED_TOAST = "Introduction Room has been turned off by the community manager."
 
@@ -170,3 +178,7 @@ DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY = "question_answers"
 
 PAID_PLAN = "paid"
 FREE_PLAN = "free"
+
+LEAST_MEMBER_RIGHT_STATE_VALUE = 0
+
+SDK_COMMUNITY_HEADLINE = "We will send all the announcements here on this chatroom."

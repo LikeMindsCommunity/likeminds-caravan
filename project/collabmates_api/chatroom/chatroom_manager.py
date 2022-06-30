@@ -7,6 +7,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     @classmethod
     def __subclasshook__(cls, subclass):
         return ((hasattr(subclass, 'fetch_chatroom') and callable(subclass.fetch_chatroom)) and
+                (hasattr(subclass, 'fetch_all_chatroom') and callable(subclass.fetch_all_chatroom)) and
                 (hasattr(subclass, 'create_chatroom') and callable(subclass.create_chatroom)) and
                 (hasattr(subclass, 'pin_or_unpin_chatroom') and
                  callable(subclass.pin_or_unpin_chatroom)) and
@@ -66,13 +67,30 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_chatroom_participants') and
                  callable(subclass.fetch_chatroom_participants)) and
                 (hasattr(subclass, 'publish_event_webflow') and
-                 callable(subclass.publish_event_webflow))
+                 callable(subclass.publish_event_webflow)) and
+                (hasattr(subclass, 'change_chatroom_type') and
+                 callable(subclass.change_chatroom_type)) and
+                (hasattr(subclass, 'create_dm_chatroom') and
+                 callable(subclass.create_dm_chatroom)) and
+                (hasattr(subclass, 'block_member') and
+                 callable(subclass.block_member)) and
+                (hasattr(subclass, 'request_dm') and
+                 callable(subclass.request_dm)) and
+                (hasattr(subclass, 'scheduled_chatroom_follow') and
+                 callable(subclass.scheduled_chatroom_follow))
                 or NotImplemented)
 
     @abc.abstractmethod
-    def fetch_chatroom(self) -> dict:
+    def fetch_chatroom(self, is_internal=False) -> dict:
         """
         fetching the chatroom from chatroom id
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_all_chatroom(self, page: int = 1) -> dict:
+        """
+        Fetch all chatrooms in community
         """
         raise NotImplementedError
 
@@ -111,8 +129,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def follow_chatroom_automatically_for_all_members_of_community(self, member_id, chatroom_id,
-                                                                   include_members_later) -> dict:
+    def follow_chatroom_automatically_for_all_members_of_community(self, member_id, request_body) -> dict:
         """
         to auto follow a chatroom
         """
@@ -307,13 +324,53 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         """
         function to fetch chatroom participants meta data
         """
-        
+
         raise NotImplementedError
 
     @abc.abstractmethod
     def publish_event_webflow(self, req_body) -> dict:
         """
         Publishes the events in webflow
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def change_chatroom_type(self, req_body) -> dict:
+        """
+        Changes chatroom type(secret/open)
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def create_dm_chatroom(self, req_body) -> dict:
+        """
+        Creates a DM chatroom
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def block_member(self, req_body) -> dict:
+        """
+        Block/Unblock member in chatroom
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def request_dm(self, req_body) -> dict:
+        """
+        Initiate, accept ot reject a connection request in DM chatroom
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def scheduled_chatroom_follow(self, req_body) -> dict:
+        """
+        Follow chatroom for a user async
         """
 
         raise NotImplementedError

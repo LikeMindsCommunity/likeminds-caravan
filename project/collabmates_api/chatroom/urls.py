@@ -1,5 +1,5 @@
 from django.urls import path
-from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpinChatroomView,
+from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpinChatroomView, FetchAllChatroomView,
                                  LeaveSecretChatroomView, AddSecretChatroomParticipantView, GetTaggingList,
                                  AutoFollowChatroomForAllMembersView, EditChatroomView,
                                  FetchParticipantsOfSecretChatroom, CreateEventView, EventAddOrUpdateInstructor,
@@ -13,10 +13,12 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  AddEventRecordingAttachmentMeta, UpdateAccessWithOutSubscriptionView,
                                  DeleteEventRecordingAttachment, DeleteEventRecordingAttachmentMeta,
                                  RemoveCohortFromChatroomView, AddCohortToChatroomView, FetchChatroomParticipantsView,
-                                 PublishEventWebflowView, FetchUserAllEventsMeta)
+                                 PublishEventWebflowView, FetchUserAllEventsMeta, ChangeChatroomTypeView,
+                                 CreateDMChatroomView, BlockMemberView, RequestDMView, ScheduledChatroomFollow)
 
 urlpatterns = [
     path('fetch', FetchChatroomView.as_view(), name="fetch_chatroom"),
+    path('fetch_all', FetchAllChatroomView.as_view(), name="fetch_all_chatroom"),
     path('create', CreateChatroomView.as_view(), name="create_chatroom"),
     path('pin', PinUnpinChatroomView.as_view(), name="pin_unpin_chatroom"),
     path('secret/add', AddSecretChatroomParticipantView.as_view(), name="add_secret_room_participant"),
@@ -35,6 +37,7 @@ urlpatterns = [
          name='fetch_settings'),
     path('update_access', UpdateAccessWithOutSubscriptionView.as_view(), name='update_access'),
     path('fetch_access', FetchAccessChatroomView.as_view(), name='fetch_access'),
+    path('change_type', ChangeChatroomTypeView.as_view(), name="change_type"),
     path('add', AddMembersToChatroomView.as_view(), name='add_members_to_chatroom'),
     path('remove_cohort', RemoveCohortFromChatroomView.as_view(), name="remove_cohort_from_chatroom"),
     path('add_cohorts', AddCohortToChatroomView.as_view(), name="add_cohorts_to_chatroom"),
@@ -61,4 +64,8 @@ urlpatterns = [
     path('event/delete_recordings_meta', DeleteEventRecordingAttachmentMeta.as_view(), name='delete_recordings_meta'),
     path('event/delete_recordings', DeleteEventRecordingAttachment.as_view(), name='delete_recordings'),
     path('event/publish_webflow', PublishEventWebflowView.as_view(), name='publish_webflow'),
+    path('create_dm', CreateDMChatroomView.as_view(), name='create_dm_chatroom'),
+    path('block', BlockMemberView.as_view(), name='block_member'),
+    path('request_dm', RequestDMView.as_view(), name='request_dm'),
+    path('schedule_follow', ScheduledChatroomFollow.as_view(), name='schedule_follow')
 ]

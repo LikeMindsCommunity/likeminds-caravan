@@ -1,0 +1,144 @@
+from utility.response_utilities import ResponseUtilities
+from togther.models import ModelUtilities
+from utility.states import (login_types)
+
+
+class SdkViewHelper:
+
+    @staticmethod
+    def _member_id_validator(member_id):
+
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context('send member_id in headers')
+
+        member = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not member:
+            return ResponseUtilities.get_inner_error_context('Invalid x-member-id')
+
+        return {'user_instance': member}
+
+    @staticmethod
+    def fetch_sdk_project_validator(request_params, member_id):
+
+        if not request_params:
+            return ResponseUtilities.get_inner_error_context('invalid request params')
+
+        if 'project_creator' not in request_params and not request_params.get('project_creator'):
+            return ResponseUtilities.get_inner_error_context('send project_creator in params')
+
+        project_creator = ModelUtilities.get_user_instance_or_none(request_params.get('project_creator'))
+
+        if not project_creator:
+            return ResponseUtilities.get_inner_error_context('Invalid project_creator')
+
+        member_validator = SdkViewHelper._member_id_validator(member_id)
+
+        if 'error_message' in member_validator:
+            return member_validator
+
+        return {'project_creator': project_creator}
+
+    @staticmethod
+    def create_sdk_project_body_validator(request_body, member_id):
+
+        if not request_body:
+            return ResponseUtilities.get_inner_error_context('invalid request body')
+
+        member_validator = SdkViewHelper._member_id_validator(member_id)
+
+        if 'error_message' in member_validator:
+            return member_validator
+
+        if 'project_creator' not in request_body or not request_body.get('project_creator'):
+            return ResponseUtilities.get_inner_error_context('send project_creator in body')
+
+        project_creator = ModelUtilities.get_user_instance_or_none(request_body.get('project_creator'))
+
+        if not project_creator:
+            return ResponseUtilities.get_inner_error_context('Invalid project_creator')
+
+        if 'name' not in request_body or not request_body.get('name'):
+            return ResponseUtilities.get_inner_error_context('send name in body')
+
+        if 'platform' in request_body and request_body['platform'] and not isinstance(request_body['platform'], list):
+            return ResponseUtilities.get_inner_error_context('platform object should be a list')
+
+        return {'project_creator': project_creator}
+
+    @staticmethod
+    def edit_sdk_project_body_validator(request_body, member_id, api_key):
+
+        if not request_body:
+            return ResponseUtilities.get_inner_error_context('Invalid request body')
+
+        req_body = request_body.copy()
+
+        if 'name' in req_body and req_body['name']:
+            req_body['community_name'] = req_body['name']
+            del req_body['name']
+
+        if 'headline' in req_body and req_body['headline']:
+            req_body['purpose'] = req_body['headline']
+            del req_body['headline']
+
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context('Send member_id in headers')
+
+        member = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not member:
+            return ResponseUtilities.get_inner_error_context('Invalid x-member-id')
+
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context('Send api_key in headers')
+
+        if 'platform' in request_body and request_body['platform'] and not isinstance(request_body['platform'], list):
+            return ResponseUtilities.get_inner_error_context('platform object should be a list')
+
+        return {'req_body': req_body}
+
+    @staticmethod
+    def delete_sdk_project_validator(member_id):
+
+        member_validator = SdkViewHelper._member_id_validator(member_id)
+
+        if 'error_message' in member_validator:
+            return member_validator
+
+        return {'user_instance': member_validator.get('user_instance')}
+
+    @staticmethod
+    def initiate_sdk_body_validator(request_body):
+
+        if not request_body:
+            return ResponseUtilities.get_inner_error_context('invalid request body')
+
+        user_name = request_body.get('user_name')
+
+        if request_body.get('is_guest'):
+
+            if not user_name:
+                user_name = "Guest User"
+
+        if not (user_name or request_body.get('user_unique_id')):
+            return ResponseUtilities.get_inner_error_context('send user_name in body')
+
+        login_req_body = {
+            'type': login_types.SDK,
+            'user': {
+                'name': user_name,
+                'is_guest': request_body.get('is_guest', False)
+            }
+        }
+
+        join_req_body = {}
+
+        if 'user_unique_id' in request_body:
+            login_req_body['user']['user_unique_id'] = request_body.get('user_unique_id')
+
+        if 'image_url' in request_body:
+            login_req_body['user']['image_url'] = request_body.get('image_url')
+            join_req_body['image_url'] = request_body.get('image_url')
+
+        return {'login_req_body': login_req_body, 'join_req_body': join_req_body}

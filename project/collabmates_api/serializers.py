@@ -149,12 +149,12 @@ def UserinfoSerializer(user):
     userinfo = {
         'id': user.user_id_id,
         'name': user.name,
-        'updated_at': user.updated_at
-
+        'updated_at': user.updated_at,
+        'is_guest': user.is_guest,
+        'user_unique_id': user.user_unique_id,
+        'organisation_name': user.organisation_name,
+        'image_url': user.image_link
     }
-
-    if user.image_link:
-        userinfo['image_url'] = user.image_link
 
     return userinfo
 
@@ -236,6 +236,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'online_link_enable_before': card.online_link_enable_before,
         'is_private': card.is_private,
         'has_event_recording': card.has_event_recording,
+        'is_private_member': card.is_private_member,
+        'include_members_later': card.include_members_later
     }
 
     if card.secret_chatroom_participants:
@@ -1551,6 +1553,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
                                          send_profile=send_profile)
     community_profile['state'] = member_instance.state
     community_profile['is_owner'] = member_instance.is_owner
+    community_profile['member_since_epoch'] = member_instance.created_at
     if member_instance.custom_title and not member_instance.custom_title == 'Member':
         community_profile['custom_title'] = member_instance.custom_title
     # sending image  url of members
@@ -1575,18 +1578,6 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
             community_profile['custom_intro_text'] = """Created this community on %s""" % \
                                                      TimeUtilities.convert_epoch_time_in_date(
                                                          member_instance.created_at)
-
-    if member_instance.state == member_states.MEMBER or member_instance.state == member_states.PROFILE_UNAVAILABLE:
-
-        answer_filter = communityAnswers.objects.filter(community=community_id).filter(
-            member=member_instance.member_id).order_by('id')
-
-        if not answer_filter.exists():
-            community_profile['custom_intro_text'] = """Joined via a private community link on %s""" % (
-                TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
-            community_profile['custom_click_text'] = CUSTOM_CLICK_TEXT % (
-                member_instance.member_id.userinfo.name,
-                TimeUtilities.convert_epoch_time_in_date(member_instance.created_at))
 
     # add menu for all members api and fetch community profile API
 

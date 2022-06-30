@@ -11,10 +11,14 @@ class UserManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'remove_profile') and callable(subclass.remove_profile)) and
                 (hasattr(subclass, 'login') and callable(subclass.login)) and
                 (hasattr(subclass, 'fetch_all_users') and callable(subclass.fetch_all_users)) and
-                (hasattr(subclass, 'fetch_app_access') and callable(subclass.fetch_app_access)) or
-                (hasattr(subclass, 'fetch_dm_home') and callable(subclass.fetch_dm_home)) or
-                (hasattr(subclass, 'update_dm_tutorial') and callable(subclass.update_dm_tutorial)) or
-                (hasattr(subclass, 'fetch_dm_feed') and callable(subclass.fetch_dm_feed)) or
+                (hasattr(subclass, 'fetch_app_access') and callable(subclass.fetch_app_access)) and
+                (hasattr(subclass, 'fetch_dm_home') and callable(subclass.fetch_dm_home)) and
+                (hasattr(subclass, 'update_dm_tutorial') and callable(subclass.update_dm_tutorial)) and
+                (hasattr(subclass, 'fetch_dm_feed') and callable(subclass.fetch_dm_feed)) and
+                (hasattr(subclass, 'create_user_bot') and callable(subclass.create_user_bot)) and
+                (hasattr(subclass, 'update_user_bot') and callable(subclass.update_user_bot)) and
+                (hasattr(subclass, 'fetch_user_bot') and callable(subclass.fetch_user_bot)) and
+                (hasattr(subclass, 'fetch_user_info') and callable(subclass.fetch_user_info)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -46,7 +50,7 @@ class UserManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def login(self, req_body, platform_code, device_id, version_code) -> {}:
+    def login(self, req_body, platform_code, device_id, version_code, api_key: str = None) -> {}:
         """
         login the user into our system
         """
@@ -95,6 +99,34 @@ class UserManager(metaclass=abc.ABCMeta):
     def fetch_all_users(self, page, user_ids) -> dict:
         """
         returns all the users corresponding to given user_ids
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def create_user_bot(self, req_body) -> dict:
+        """
+        Creates a user bot
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_user_bot(self, req_body) -> dict:
+        """
+        Updates a user bot
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_user_bot(self, api_key: str = None) -> dict:
+        """
+        Fetches a user bot
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_user_info(self) -> dict:
+        """
+        Fetches user info
         """
         raise NotImplementedError
 

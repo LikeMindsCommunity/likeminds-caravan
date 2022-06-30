@@ -5,9 +5,11 @@ from rest_framework.views import APIView
 from collabmates_api.utility import single_community_view_version_check
 from utility.exception_utilities import InvalidHeaderException
 from utility.request_utilities import RequestUtilities
+from utility.response_utilities import ResponseUtilities
 from cms.cms_auth_utilities import CMSAuthUtilities
 from django.conf import settings
 from collabmates_api.user.user_impl import UserImpl
+from collabmates_api.user.user_view_helper import UserViewHelper
 from rest_framework import status as status_codes
 
 
@@ -76,10 +78,11 @@ class UserLogout(APIView):
 
         user_context = user_manager.logout(device_id)
 
-        if user_context.get('error_message'):
-            return JsonResponse(user_context, status=status_codes.HTTP_400_BAD_REQUEST)
+        if not user_context.get('error_message'):
+            return JsonResponse(user_context)
 
-        return JsonResponse(user_context)
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(user_context.get('error_message'),
+                                                                            user_context.get('status')))
 
 
 class UserRemoveProfile(APIView):
@@ -111,7 +114,11 @@ class UserLoginView(APIView):
         user_context = user_manager.login(req_body,
                                           RequestUtilities.get_platform_code(request),
                                           RequestUtilities.get_device_id_from_headers(request),
-                                          RequestUtilities.get_version_code_from_headers(request))
+                                          RequestUtilities.get_version_code_from_headers(request),
+                                          api_key=RequestUtilities.get_api_key_from_headers(request))
+
+        if user_context.get('error_message'):
+            return JsonResponse(user_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(user_context)
 
@@ -235,3 +242,79 @@ class FetchAllUsers(APIView):
             }, status=user_response['status'])
 
         return JsonResponse(user_response)
+
+
+class BotView(APIView):
+
+    def post(self, request):
+        req_body = RequestUtilities.load_request_body(request)
+        platform = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+
+        context = UserViewHelper.validate_user_bot_request_body(req_body)
+
+        if context.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
+
+        user_manager = UserImpl(user_id=None, platform_code=platform, version_code=version_code)
+        context = user_manager.create_user_bot(req_body)
+
+        if context.get('success'):
+            return JsonResponse(context, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                            context.get('status')))
+
+    def put(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+        platform = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+
+        context = UserViewHelper.validate_user_bot_request_body(req_body)
+
+        if context.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
+
+        user_manager = UserImpl(user_id=member_id, platform_code=platform, version_code=version_code)
+        context = user_manager.update_user_bot(req_body)
+
+        if context.get('success'):
+            return JsonResponse(context, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                            context.get('status')))
+
+    def get(self, request):
+        platform = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        user_manager = UserImpl(user_id=None, platform_code=platform, version_code=version_code)
+        context = user_manager.fetch_user_bot(api_key=api_key)
+
+        if context.get('success'):
+            return JsonResponse(context, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                            context.get('status')))
+
+
+class FetchUser(APIView):
+    """
+    Fetch user
+    """
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        user_manager = UserImpl(user_id=member_id)
+        user_response = user_manager.fetch_user_info()
+
+        if 'error_message' not in user_response:
+            return JsonResponse(user_response, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(user_response.get('error_message'),
+                                                                            user_response.get('status')))

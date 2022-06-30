@@ -358,23 +358,10 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             chatroom_context['attendees'] = event_attendees
 
     def fill_cohort_meta_for_response(self, card_instance, chatroom_context):
-        filter_dict = {
-            'chatroom_id': card_instance.id
-        }
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
-        related_cohort_ids = ModelUtilities.get_model_filter(ChatroomCohort, filter_dict).values_list('cohort_id',
-                                                                                                      flat=True)
-
-        filter_dict = {
-            'cohort__id__in': related_cohort_ids
-        }
-
-        cohort_list = list(ModelUtilities.get_model_filter(CohortMember, filter_dict)
-                           .values('cohort').annotate(total_members=Count('cohort'), name=F('cohort__name'),
-                                                      community_id=F('cohort__community_id'))
-                           .order_by('cohort_id').values('cohort_id', 'name', 'total_members', 'community_id'))
-
-        chatroom_context['cohorts'] = cohort_list
+        cohort_context_list = ChatroomHelper.get_chatroom_related_cohort_data_with_total_member_count(card_instance)
+        chatroom_context['cohorts'] = cohort_context_list
 
     def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
                          poll_votes) -> {}:
@@ -433,6 +420,14 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             chatroom_context['last_response_members'] = self.create_last_response_members_images(card_instance,
                                                                                                  community_instance)
 
+        total_participants_list = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                                    'follow_status': True,
+                                                                                    'is_tagged': False,
+                                                                                    'remove': None,
+                                                                                    'user__userinfo__is_guest': False})
+
+        chatroom_context['participants_count'] = total_participants_list.count()
+
         return chatroom_context
 
     def process_chatroom_list(self, chatroom_list, community_instance) -> []:
@@ -471,6 +466,15 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                         community_instance).compute_removed_user_context(card_instance.user,
                                                                          community_instance)
                     removed_member_dict[card_creator_id] = chatroom_context['member']
+
+            chatroom_context['chat_request_state'] = data.chat_request_state
+            chatroom_context['chat_request_created_at'] = data.chat_request_created_at
+            chatroom_context['chat_requested_by'] = None
+
+            if data.chat_requested_by:
+                chatroom_context['chat_requested_by'] = get_members_profile([data.chat_requested_by.id],
+                                                                            community_instance.id,
+                                                                            send_profile=False)
 
             chatroom_context_list.append(chatroom_context)
 
@@ -635,7 +639,10 @@ class ChatroomMemberHelper:
                             'online_link_type': card_instance.online_link_type,
                             'is_private': card_instance.is_private,
                             'access_without_subscription': card_instance.access_without_subscription,
-                            'member_can_message': card_instance.member_can_message}
+                            'member_can_message': card_instance.member_can_message,
+                            'is_private_member': card_instance.is_private_member,
+                            'third_party_unique_id': card_instance.third_party_unique_id,
+                            'include_members_later': card_instance.include_members_later}
 
         if card_instance.is_secret:
             chatroom_context['secret_chatroom_participants'] = json.loads(card_instance.secret_chatroom_participants)

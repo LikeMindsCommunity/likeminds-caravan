@@ -24,7 +24,12 @@ url = settings.URL
 def trigger_event_comms(payload_for_whatsapp_comms, payload_for_app_and_email_notifications):
     trigger_whatsapp_communication_for_event.delay(payload_for_whatsapp_comms)
     trigger_app_notification_for_event.delay(payload_for_app_and_email_notifications)
-    trigger_email_communication_for_event.delay(payload_for_app_and_email_notifications)
+
+    args = [payload_for_app_and_email_notifications]
+    trigger_email_communication_for_event.apply_async(
+        args,
+        countdown=10
+    )
 
 
 @shared_task
@@ -85,6 +90,8 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
         active_user_ids = TasksHelper.get_active_members_of_community(community_instance.id)
         user_ids = []
 
+        template_name = None
+
         if event_type == EVENT_TYPE.CREATION:
             active_user_ids = TasksHelper.get_active_members_excluding_non_members_in_community(community_instance.id,
                                                                                                 active_user_ids)
@@ -107,8 +114,8 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
 
         elif event_type == EVENT_TYPE.ATTENDANCE_5_HRS:
             users_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
-                                                                                                    active_user_ids,
-                                                                                                    attending=True)
+                                                                                                     active_user_ids,
+                                                                                                     attending=True)
 
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_instance.id,
                                                                                             event_instance)
@@ -117,10 +124,14 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
             template_name = WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS
 
         elif event_type == EVENT_TYPE.ATTENDANCE_10_MIN:
+            users_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
+                                                                                                     active_user_ids,
+                                                                                                     attending=True)
+
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_instance.id,
                                                                                             event_instance)
 
-            user_ids = active_user_ids + community_managers
+            user_ids = users_attending_event + community_managers
             template_name = WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN
 
         is_non_member_access_event = TasksHelper.is_non_member_access_event(event_instance=event_instance)
@@ -138,14 +149,14 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
 
         is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
 
-        if send_allowed and not is_task_deleted:
+        if send_allowed and (not is_task_deleted) and template_name:
             NotificationImpl.send_wa_bulk_notitfications(user_data_for_wa_notification, template_name=template_name,
-                                                        broadcast_name=template_name)
+                                                         broadcast_name=template_name)
 
         else:
             info_logger.info("No whatsapp notification scheuduled for event_type = %s | chatroom_deleted = %s | \
-                is_task_deleted = %s | payload received = %s" % (event_type, not send_allowed, is_task_deleted, \
-                payload_for_whatsapp_comms))
+                is_task_deleted = %s | payload received = %s" % (event_type, not send_allowed, is_task_deleted,
+                                                                 payload_for_whatsapp_comms))
 
     except Exception as e:
         error_logger.exception("got error in schedule_whatsapp_notification | error - %s | payload received = %s | \
@@ -210,6 +221,8 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
         user_instances = []
 
         if event_type == EVENT_TYPE.CREATION:
+            active_user_ids = TasksHelper.get_active_members_excluding_non_members_in_community(community_id,
+                                                                                                active_user_ids)
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
                                                                                             event_instance,
                                                                                             add_event_creator=False)
@@ -220,7 +233,8 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
             users_not_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
                                                                                                             active_user_ids,
                                                                                                             attending=False)
-            user_instances = users_not_attending_event
+            user_instances = TasksHelper.get_members_excluding_non_members_in_community(community_id,
+                                                                                        users_not_attending_event)
 
         elif event_type == EVENT_TYPE.ATTENDANCE_15_MIN:
             users_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
@@ -256,6 +270,7 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
         is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
 
         if send_allowed and not is_task_deleted:
+            app_noti_dict = TasksHelper.add_community_info_to_notification_payload(app_noti_dict, community_id)
             notification_meta(user_details_list, app_noti_dict)
 
         else:
@@ -405,6 +420,8 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         user_instances = []
 
         if event_type == EVENT_TYPE.CREATION:
+            active_user_ids = TasksHelper.get_active_members_excluding_non_members_in_community(community_id,
+                                                                                                active_user_ids)
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
                                                                                             event_instance,
                                                                                             add_event_creator=False)
@@ -422,7 +439,8 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
                                                                                                             active_user_ids,
                                                                                                             attending=False)
 
-            user_instances = users_not_attending_event
+            user_instances = TasksHelper.get_members_excluding_non_members_in_community(community_id,
+                                                                                        users_not_attending_event)
 
         elif event_type == EVENT_TYPE.REGISTRATION:
 
@@ -518,6 +536,7 @@ def schedule_app_notification_on_event_attachment(event_id, app_noti_dict):
         send_allowed = TasksHelper.should_send_notification(event_instance)
 
         if send_allowed:
+            app_noti_dict = TasksHelper.add_community_info_to_notification_payload(app_noti_dict, community_id)
             notification_meta(user_details_list, app_noti_dict)
 
     except Exception as e:

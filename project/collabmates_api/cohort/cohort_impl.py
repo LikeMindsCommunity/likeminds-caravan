@@ -4,20 +4,22 @@ from celery import shared_task
 
 from collabmates_api.cohort.cohort_manager import CohortManager
 from external_services.logging.logging_wrapper import LoggingWrapper
-from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom
+from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom, send_chatroom_updated_analytics_data
 from utility.exception_utilities import InvalidMemberIdsException
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
-from ..chatroom.chatroom_impl import ChatroomImpl
+from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..search.sync import ElasticSearchSync
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
-    CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers
-from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list
-from ..rest_api import CohortSerializer, CohortMetaSerializer
+    CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers, \
+    Collabcard
+from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list, CohortAccess, member_rights
+from ..rest_api import CohortSerializer, CohortMetaSerializer, ChatroomCohortSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
-    respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, create_secret_chatroom_right
+    respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, \
+    create_secret_chatroom_right, ALL_MEMBER_COHORT_TEXT, members_can_dm_right
 from ..user.user_impl import UserImpl, UserHelper
 from ..user_moderation_rights import check_all_manager_rights, get_saved_member_rights_list, check_history_exists, \
     check_rights_history_existence, save_member_right, update_member_rights_in_conversation_engage, \
@@ -506,6 +508,90 @@ class CohortImpl(CohortManager):
             ElasticSearchSync.update_members.delay(member_ids=list(existing_cohort_members),
                                                    community_id=cohort_instance.community_id)
 
+    def fetch_all_cohort_access_for_chatroom(self, chatroom_id):
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return get_error_context(success=False, error_message="Invalid chatroom_id")
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return get_error_context(success=False, error_message="Invalid member_id passed in headers")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return get_error_context(success=False, error_message="You are not a member of community")
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return get_error_context(success=False,
+                                     error_message="You don’t have the ability to fetch access of cohorts")
+
+        chatroom_cohorts = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id})
+        chatroom_cohorts_data = ChatroomCohortSerializer(chatroom_cohorts, many=True).data
+
+        return {'success': True, 'cohort_data': chatroom_cohorts_data}
+
+    def update_cohort_access_for_chatroom(self, request_body) -> dict:
+        chatroom_id = request_body.get('chatroom_id', None)
+        cohort_id = request_body.get('cohort_id', None)
+        cohort_access = request_body.get('cohort_access', None)
+
+        if not cohort_id:
+            return {'success': False, 'error_message': "invalid parameter: cohort_id"}
+
+        if cohort_access is None:
+            return {'success': False, 'error_message': "invalid parameter: cohort_access"}
+
+        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+
+        if not user_instance:
+            return {'success': False, 'error_message': "invalid parameter: user_id"}
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return {'success': False, 'error_message': "invalid parameter: chatroom_id"}
+
+        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id,
+                                                                                  'cohort_id': cohort_id})
+
+        if not chatroom_cohort_filter:
+            return {'success': False, 'error_message': "Cohort is not added to this chatroom"}
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return {'success': False, 'error_message': "You are not a member of community"}
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if chatroom_instance.user_id != int(self.get_member_id()) and not is_cm:
+            return {'success': False, 'error_message': "You don’t have permission to update access of this chatroom!"}
+
+        chatroom_cohort_filter.update(cohort_access=cohort_access,
+                                      updated_at=TimeUtilities.current_time_in_milliseconds())
+
+        chatroom_cohorts = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id})
+
+        chatroom_update_analytics = {
+            'has_full_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.FULL_ACCESS.value) else False,
+            'has_restricted_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.RESTRICTED_ACCESS.value) else False,
+            'has_no_access': True if chatroom_cohorts.filter(cohort_access=CohortAccess.NO_ACCESS.value) else False
+        }
+
+        send_chatroom_updated_analytics_data.delay(chatroom_id, int(self.get_member_id()), chatroom_update_analytics)
+
+        return {'success': True}
+
 
 class CohortHelper:
 
@@ -570,7 +656,7 @@ class CohortHelper:
         return userinfo_dict
 
     @staticmethod
-    def get_all_the_cohort_rights(cohort_rights):
+    def get_all_the_cohort_rights(cohort_rights, is_m2cm_v2=False):
         rights = {
             "create_room": False,
             "create_poll": False,
@@ -578,7 +664,8 @@ class CohortHelper:
             "respond_in_rooms": False,
             "invite_private": False,
             "auto_approve": False,
-            "create_secret_chatroom": False
+            "create_secret_chatroom": False,
+            "members_can_dm": False
         }
 
         for right in cohort_rights:
@@ -604,6 +691,9 @@ class CohortHelper:
 
             elif right.state == create_secret_chatroom_right['state']:
                 rights['create_secret_chatroom'] = True
+
+            elif is_m2cm_v2 and right.state == members_can_dm_right['state']:
+                rights['members_can_dm'] = True
 
         return rights
 
@@ -1004,3 +1094,71 @@ class CohortHelper:
                     error_logger.error(e.args)
 
             cohort_member_filter.delete()
+
+    @staticmethod
+    def fetch_cohort_access_for_chatroom(chatroom_id, user_id):
+        cohort_access = None
+
+        # to check if we can optimize query count.
+        chatroom_cohorts = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id})
+
+        if not chatroom_cohorts:
+            return cohort_access
+
+        for chatroom_cohort in chatroom_cohorts:
+            is_cohort_member = ModelUtilities.is_model_filter_exists(CohortMember, {
+                'cohort_id': chatroom_cohort.cohort_id,
+                'user_id': user_id
+            })
+
+            if cohort_access is None and is_cohort_member:
+                cohort_access = chatroom_cohort.cohort_access
+
+            elif is_cohort_member:
+                cohort_access = max(cohort_access, chatroom_cohort.cohort_access)
+
+        return cohort_access
+
+    @staticmethod
+    def add_members_can_dm_right_in_all_member_cohort(community_instance):
+        member_can_dm_right_filter = ModelUtilities.get_model_filter(
+            memberRights, {'state': member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM})
+
+        if not member_can_dm_right_filter:
+            return {'success': False, 'error_message': 'Member can dm right not found!'}
+
+        all_member_cohort_filter = ModelUtilities.get_model_filter(Cohort,
+                                                                   {'community': community_instance,
+                                                                    'type': cohort_types.ALL_MEMBER})
+
+        if not all_member_cohort_filter:
+            return {'success': False, 'error_message': 'All member cohort not exists!'}
+
+        filter_dict = {
+            'cohort': all_member_cohort_filter[0],
+            'member_rights': member_can_dm_right_filter[0]
+        }
+
+        ModelUtilities.update_or_create_model(CohortRights, filter_dict, filter_dict)
+        return {'success': True}
+
+    @staticmethod
+    def get_cohorts_with_specific_right(community_instance,
+                                        right_state=member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM,
+                                        is_m2cm_v2=False):
+
+        cohort_right_filter = ModelUtilities.get_model_filter(CohortRights,
+                                                              {'cohort__community': community_instance,
+                                                               'member_rights__state': right_state})
+
+        cohort_data = []
+
+        if not cohort_right_filter:
+            return cohort_data
+
+        serialized_data_context = {'get_rights_data': True, 'is_m2cm_v2': is_m2cm_v2}
+        cohort_ids = list(cohort_right_filter.values_list('cohort_id', flat=True))
+        cohort_instance_objects = CohortSerializer(ModelUtilities.get_model_filter(Cohort, {'id__in': cohort_ids}),
+                                                   context=serialized_data_context, many=True).data
+
+        return cohort_instance_objects

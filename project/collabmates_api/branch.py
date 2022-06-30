@@ -6,12 +6,12 @@ from urllib.parse import urlparse
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community
 from .static_files import *
-from .static_text import CM_ONBOARDING_COMMUNITY_FEED_URL
+from .static_text import CM_ONBOARDING_COMMUNITY_FEED_URL, FREE_TRIAL_PUBLIC_URL, SINGLE_EVENT_URL, AUTO_REGISTER_PARAMS
 from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
                                BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK,
                                BRANCH_FEATURE_COMMUNITY_OTL_URL, BRANCH_FEATURE_PAYMENT_PAGE_URL,
                                BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL, COMMUNITY_HOOD_ID,
-                               COMMUNITY_HOOD_MARKETING_TITLE, BRANCH_LINK_TYPE)
+                               COMMUNITY_HOOD_MARKETING_TITLE, BRANCH_LINK_TYPE, BRANCH_SINGLE_EVENT_URL)
 from utility.api_client import ApiClient
 from .utility import free_link_and_freemium_community_version_check
 
@@ -52,16 +52,22 @@ def create_community_branch_links(community_id, member_id, platform_code, versio
     base_url = f'{host_url}/community/{community_instance.id}'
 
     is_free_trial = False
+    free_trial_public_url = base_url
 
-    if free_link_and_freemium_community_version_check(platform_code, version_code) and community_instance.is_paid:
+    if all([community_instance.is_paid,
+            free_link_and_freemium_community_version_check(platform_code, version_code),
+            community_instance.is_freemium_community]):
         is_free_trial = True
 
     if is_free_trial:
-        base_url = f'{host_url}/renewal/{community_instance.id}'
+        free_trial_public_url = FREE_TRIAL_PUBLIC_URL.format(host_url, community_instance.id)
 
     # create public url
     if member_id:
         public_url = base_url + f'?shared_by={member_id}'
+
+        if is_free_trial:
+            public_url = free_trial_public_url + f'?shared_by={member_id}'
 
         if (not is_free_trial) and community_instance.is_paid and community_instance.website_url:
             website_url = strip_scheme(community_instance.website_url)
@@ -70,23 +76,22 @@ def create_community_branch_links(community_id, member_id, platform_code, versio
     else:
         public_url = base_url
 
+        if is_free_trial:
+            public_url = free_trial_public_url
+
     long_url_item = create_link_item(public_url, community_instance, "AppBackend", "CommunityPublic")
     data.append(long_url_item)
 
     if aj:
         # if the user is owner or promoter
         # create private link
-        if is_free_trial and member_id:
-            private_url = base_url + f'?shared_by={member_id}&free=true'
+        private_url = base_url + f'?aj={aj}'
 
-        elif member_id:
+        if member_id:
             private_url = base_url + f'?shared_by={member_id}&aj={aj}'
 
-        else:
-            private_url = base_url + f'?aj={aj}'
-
         long_url_item = create_link_item(private_url, community_instance, "AppBackend", "CommunityPrivate",
-                                         private=True, is_free_trial=True)
+                                         private=True)
         data.append(long_url_item)
 
         directory_url = base_url + f'?aj={aj}&source=members_directory'
@@ -132,25 +137,22 @@ def create_community_branch_links(community_id, member_id, platform_code, versio
     if 'url' not in data[0]:
         data[0]['url'] = base_url + f'?shared_by={member_id}'
 
-        if community_instance.is_paid and community_instance.website_url:
+        if is_free_trial:
+            data[0]['url'] = free_trial_public_url + f'?shared_by={member_id}'
+
+        elif community_instance.is_paid and community_instance.website_url:
             data[0]['url'] = community_instance.website_url + f'?shared_by={member_id}'
 
     if 'url' not in data[1]:
         data[1]['url'] = base_url + f'?shared_by={member_id}'
 
-        if is_free_trial:
-            data[1]['url'] += f'&free=true'
-
-        elif aj:
+        if aj:
             data[1]['url'] += f'&aj={aj}'
 
     if 'url' not in data[2]:
         data[2]['url'] = base_url + f'?shared_by={member_id}&source=members_directory'
 
-        if is_free_trial:
-            data[1]['url'] += f'&free=true'
-
-        elif aj:
+        if aj:
             data[2]['url'] += f'&aj={aj}'
 
     return data
@@ -165,7 +167,7 @@ def get_community_image(community):
         return APP_LOGO
 
 
-def create_link_item(base_url, community, channel, feature, private=False, is_free_trial=False):
+def create_link_item(base_url, community, channel, feature, private=False):
     link_item = {
         "channel": channel,
         "feature": feature,
@@ -190,19 +192,11 @@ def create_link_item(base_url, community, channel, feature, private=False, is_fr
 
     fallback_url = desktop_url = 'https://%s' % base_url
 
-    if community.is_paid:
-
-        if feature == BRANCH_FEATURE_PUBLIC_LINK:
-            link_item["data"]['$web_only'] = True
-            link_item["data"]['$ios_url'] = fallback_url
-            link_item["data"]['$android_url'] = fallback_url
-            link_item["data"]['$android_deeplink_path'] = fallback_url
-
-        elif feature == BRANCH_FEATURE_PRIVATE_LINK and is_free_trial:
-            link_item["data"]['$web_only'] = True
-            link_item["data"]['$ios_url'] = fallback_url
-            link_item["data"]['$android_url'] = fallback_url
-            link_item["data"]['$android_deeplink_path'] = fallback_url
+    if community.is_paid and feature == BRANCH_FEATURE_PUBLIC_LINK:
+        link_item["data"]['$web_only'] = True
+        link_item["data"]['$ios_url'] = fallback_url
+        link_item["data"]['$android_url'] = fallback_url
+        link_item["data"]['$android_deeplink_path'] = fallback_url
 
     """
     redirect to web in case of member directory 
@@ -231,6 +225,9 @@ def create_link_item(base_url, community, channel, feature, private=False, is_fr
         link_item["data"]['$ios_url'] = fallback_url
         link_item['data']['$desktop_url'] = desktop_url
         link_item["data"]['$android_url'] = fallback_url
+
+    if feature == BRANCH_SINGLE_EVENT_URL:
+        link_item['data']['$fallback_url'] = fallback_url
 
     return link_item
 
@@ -346,5 +343,35 @@ def create_payment_page_url(community_instance, payment_id):
     # in case branch fails
     if 'url' not in data[0]:
         data[0]['url'] = f'https://{private_url}'
+
+    return data[0]['url']
+
+
+def create_single_event_branch_url(card_instance, should_register=False):
+    data = []
+
+    single_event_url = SINGLE_EVENT_URL.format(host_url, card_instance.id)
+
+    if should_register:
+        single_event_url = single_event_url + AUTO_REGISTER_PARAMS
+
+    long_url_item = create_link_item(single_event_url, card_instance.community, "AppBackend",
+                                     BRANCH_SINGLE_EVENT_URL)
+    data.append(long_url_item)
+
+    client = ApiClient()
+    client.update_request_url(api_endpoint)
+    client.update_body(data)
+    client.post()
+
+    if client.fetch_response_code() != 200:
+        data = [{}]
+        info_logger.info("Branch failed, sending normal links")
+    else:
+        data = client.fetch_response()
+
+    # in case branch fails
+    if 'url' not in data[0]:
+        data[0]['url'] = f'https://{single_event_url}'
 
     return data[0]['url']

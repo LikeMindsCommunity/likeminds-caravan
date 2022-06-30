@@ -5,7 +5,7 @@ from collabmates_api import views as api_views
 from cms.marketing_banner.banner_views_impl import FetchBannerView
 from django.views.generic import TemplateView
 from .notification import send_test_notification
-from .community.community_view_impl import ApproveOrDeclineCommunity, CommunityJoinView
+from .community.community_view_impl import ApproveOrDeclineCommunity, CommunityJoinView, EditCommunityView
 
 urlpatterns = [
 
@@ -90,7 +90,7 @@ urlpatterns = [
     path('collabcard_follow', api_views.collabcard_follow, name='collabcard_follow'),
 
     path('edit_community', views.edit_community, name='edit_community'),
-    path('v1/edit_community', views.edit_community_version_1, name='edit_community_version_1'),
+    path('v1/edit_community', EditCommunityView.as_view(), name='edit_community_version_1'),
     path('edit_community_questions', views.edit_community_questions, name='edit_community_questions'),
 
     # path('upload_attachment',api_views.upload_attachment,name='upload_attachment'),
@@ -196,6 +196,7 @@ urlpatterns = [
     path('notifications/', include('collabmates_api.notifications.urls'), name='notifications'),
     path('automate_message/', include('collabmates_api.automate_message.urls'), name='automate_message'),
     path('webhooks', include('collabmates_api.webhook.urls'), name="webhooks"),
+    path('sdk/', include('collabmates_api.sdk.urls'), name='sdk'),
     path('resources/', include('collabmates_api.resources.urls'), name="resources")
 ]
 

@@ -17,6 +17,10 @@ class RequestUtilities:
         return NumberUtilities.get_integer_from_string(request.META.get('HTTP_X_VERSION_CODE', 0))
 
     @staticmethod
+    def get_accept_version_from_headers(request: object) -> str:
+        return request.META.get('HTTP_X_ACCEPT_VERSION', None)
+
+    @staticmethod
     def fetch_request_body(request):
         request_body = json.loads(request.body)
 
@@ -84,6 +88,10 @@ class RequestUtilities:
         return request.META.get('HTTP_X_DEVICE_ID')
 
     @staticmethod
+    def get_api_key_from_headers(request: object) -> str:
+        return request.META.get('HTTP_X_API_KEY')
+
+    @staticmethod
     def load_request_body(request):
 
         try:
@@ -107,7 +115,12 @@ class RequestUtilities:
 
     @staticmethod
     def get_page_number(request: object, key: str = "page", default: int = 1) -> int:
-        return NumberUtilities.get_integer_from_string(request.query_params.get('page', default))
+        page = NumberUtilities.get_integer_from_string(request.query_params.get('page', default))
+
+        if page <= 0:
+            page = default
+
+        return page
 
     @staticmethod
     def get_page_size(request: object, key: str = "page_size", default: int = 100) -> int:

@@ -7,9 +7,11 @@ from utility.request_utilities import RequestUtilities
 from utility.number_utilities import NumberUtilities
 from utility.string_utilities import StringUtilities
 from utility.exception_utilities import InvalidHeaderException, CustomException
+from utility.response_utilities import ResponseUtilities
 
 from collabmates_api.views import get_error_context
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+from collabmates_api.member_community.member_community_view_helper import MemberCommunityViewHelper
 from collabmates_api.member_community.views_manager import ViewsManager
 
 
@@ -40,6 +42,7 @@ class FetchCommunityFeed(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         platform_code = RequestUtilities.get_platform_code(request)
+        api_version = RequestUtilities.get_accept_version_from_headers(request)
 
         if not member_id:
             context = get_error_context(False, "member id missing in request")
@@ -55,6 +58,8 @@ class FetchCommunityFeed(APIView):
                                                 platform_code=platform_code)
         chatroom_id = request.GET.get('chatroom_id')
         scroll_direction = request.GET.get('scroll_direction')
+        order_type = request.GET.get('order_type', 0)
+        page = RequestUtilities.get_page_number(request)
 
         if (chatroom_id and not scroll_direction) or (scroll_direction and not chatroom_id):
             return JsonResponse({'error_message': "Invalid request parameters", 'status': 400})
@@ -62,23 +67,29 @@ class FetchCommunityFeed(APIView):
         if scroll_direction is not None:
             scroll_direction = NumberUtilities.get_integer_from_string(scroll_direction)
 
+        if order_type:
+            order_type = NumberUtilities.get_integer_from_string(order_type)
+
         if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
 
-                chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
-                                                                scroll_direction=scroll_direction)
+            chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
+                                                            scroll_direction=scroll_direction,
+                                                            api_version=api_version, order_type=order_type,
+                                                            page=page)
+
         elif RequestUtilities.is_request_web(request):
 
-            chatroom_context = community_manager.fetch_feed_web(pin_status, chatroom_id, scroll_direction)
+            chatroom_context = community_manager.fetch_feed_web(pin_status, order_type,
+                                                                chatroom_id, scroll_direction, api_version=api_version,
+                                                                page=page)
 
         else:
-
-            return JsonResponse({'error_message': "Invalid platform", 'status': 400})
+            chatroom_context = ResponseUtilities.get_impl_error_context("Invalid platform",
+                                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         if 'error_message' in chatroom_context:
-            response_context = {'error_message': chatroom_context['error_message']}
-            status = chatroom_context['status']
-
-            return JsonResponse(response_context, status=status)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_context.get('error_message'),
+                                                                                chatroom_context.get('status')))
 
         return JsonResponse(chatroom_context)
 
@@ -344,3 +355,131 @@ class EditMemberProfileView(APIView):
             return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
         return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+
+
+class RequestDMLimitView(APIView):
+
+    @staticmethod
+    def _validate_request(member_id, req_body):
+
+        if not member_id:
+            return {'error_message': 'Send member_id'}
+
+        if not req_body.get('community_id'):
+            return {'error_message': 'Send community_id'}
+
+        if not req_body.get('member_id'):
+            return {'error_message': 'Send member_id'}
+
+        return {'success': True, 'community_id': req_body.get('community_id'), 'user_id': req_body.get('member_id')}
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.fetch_request_query_params(request)
+        validated_req_body = self._validate_request(member_id, req_body)
+
+        if not validated_req_body.get('success', False):
+            return JsonResponse({'success': False, 'error_message': "Invalid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        member_community_manager = MemberCommunityImpl(member_id, validated_req_body.get('community_id'))
+        community_context = member_community_manager.request_dm_limit(validated_req_body.get('user_id'))
+
+        if community_context.get('success'):
+            return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+
+class FetchDMChatroomsView(APIView):
+
+    @staticmethod
+    def _validate_request(member_id, req_body):
+
+        if not member_id:
+            return {'error_message': 'Send member_id'}
+
+        if not req_body.get('community_id'):
+            return {'error_message': 'Send community_id'}
+
+        return {'success': True, 'community_id': req_body.get('community_id')}
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.fetch_request_query_params(request)
+        validated_req_body = self._validate_request(member_id, req_body)
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+        page = req_body.get('page', 1)
+
+        if not validated_req_body.get('success', False):
+            return JsonResponse({'success': False, 'error_message': "Invalid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        member_community_manager = MemberCommunityImpl(member_id, validated_req_body.get('community_id'),
+                                                       device_id=device_id)
+        community_context = member_community_manager.fetch_dm_chatrooms(page=page)
+
+        if community_context.get('success'):
+            return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+
+class MemberCanDMView(APIView):
+
+    @staticmethod
+    def _validate_request(member_id, req_body):
+
+        if not member_id:
+            return {'error_message': 'Send member_id'}
+
+        if not req_body.get('community_id'):
+            return {'error_message': 'Send community_id'}
+
+        return {'success': True, 'community_id': req_body.get('community_id')}
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.fetch_request_query_params(request)
+        validated_req_body = self._validate_request(member_id, req_body)
+
+        if not validated_req_body.get('success', False):
+            return JsonResponse(validated_req_body, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        member_community_manager = MemberCommunityImpl(member_id, validated_req_body.get('community_id'))
+        community_context = member_community_manager.member_can_dm(req_body)
+
+        if community_context.get('success'):
+            return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+
+class JoinCommunitySDKView(APIView):
+
+    def post(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+        validated_req_body = MemberCommunityViewHelper.validate_join_community_request(member_id)
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        if validated_req_body.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_req_body.get('error_message'),
+                                                                                validated_req_body.get('status')))
+
+        member_community_manager = MemberCommunityImpl(member_id, community_id=req_body.get('community_id'),
+                                                       device_id=device_id, platform_code=platform_code,
+                                                       api_key=api_key)
+        community_context = member_community_manager.join_community_sdk(req_body=req_body)
+
+        if 'error_message' not in community_context:
+            return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                            community_context.get('status_code')))

@@ -1,9 +1,13 @@
 
 <div style="padding: 24px; padding-top: 48px; max-width: 500px; margin: auto; background: #fff; border-radius: 8px; border: 1px solid #eee; box-sizing: border-box;">
-  <img style="border-radius: 4px; margin-bottom: 32px;" src="https://betaweb.likeminds.community/assets/images/png/gradient.png" width="100%" height="200px">
+  {% if event_banner_url %}
+  <img style="object-fit: cover; border-radius: 4px; margin-bottom: 32px;" src="{{event_banner_url}}" width="100%" height="200px">
+  {% else %}
+  <img style="object-fit: cover; border-radius: 4px; margin-bottom: 32px;" src="https://betaweb.likeminds.community/assets/images/png/gradient.png" width="100%" height="200px">
+  {% endif %}
   <div style="font-size: 16px; color: #666; text-align: left; font-weight: bold; padding: 0px 16px;">Reminder to join us at</div>
   <div style="font-size: 36px; color: #666; text-align: left; font-weight: bold; padding: 16px 16px;">{{event_name}}</div>
-  <div style="font-size: 16px; color: #01897b; text-align: left; font-weight: 500; padding: 0px 16px;">On {{event_date}} at {{event_time}}}(India Standard Time)
+  <div style="font-size: 16px; color: #01897b; text-align: left; font-weight: 500; padding: 0px 16px;">On {{event_date}} at {{event_time}} (India Standard Time)
     <br>
     <br>
     <span style="color: #000000;">

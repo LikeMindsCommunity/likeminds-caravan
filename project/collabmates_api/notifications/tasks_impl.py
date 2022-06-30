@@ -7,15 +7,15 @@ from external_services.calender.calendar_impl import CalendarImpl
 from external_services.email.email_wrapper import MailHelper
 from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, \
     userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember, CommunityGetStarted, \
-     EventGoogleCalendarLogs, removedMembers
+     EventGoogleCalendarLogs, removedMembers, Card_Attachment
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
     user_email_send_status_types, event_access, card_types, get_started_types
-from collabmates_api.notification import get_token_for_fcm
 from utility.url_utilities import UrlUtilities
 from utility.celery_tasks import get_event_pricing
 from collabmates_api.static_text import CUSTOMISE_JOIN_FORM_MAIL_SUBJECT
+from collabmates_api.branch import create_single_event_branch_url
 
 from .constants import *
 from .tasks_manager import TaskManager
@@ -48,7 +48,7 @@ class TasksImpl(TaskManager):
         event_date = TimeUtilities.convert_epoch_time_to_date_month_year(payload.get('chatroom').date_time)
 
         cm_filter = ModelUtilities.get_model_filter(Members, {
-            'community_id' : payload.get('community').id,
+            'community_id': payload.get('community').id,
             'state': member_states.ADMIN,
             'is_owner': True
         })
@@ -59,22 +59,18 @@ class TasksImpl(TaskManager):
         else:
             cm_name = ""
 
-        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+        auto_register_link = create_single_event_branch_url(payload.get('chatroom'), should_register=True)
+        auto_register_link = UrlUtilities.extract_part_from_url(auto_register_link, 'path', init_slash_off=True)
 
-        share_url = ChatroomHelper.fetch_chatroom_link(payload.get('chatroom'))
+        link = UrlUtilities.extract_part_from_url(payload.get('chatroom').single_event_url, 'path', init_slash_off=True)
 
-        path = UrlUtilities.extract_part_from_url(share_url,'path', init_slash_off=True)
-        query_params = UrlUtilities.extract_part_from_url(share_url,'query', init_slash_off=False)
-
-        link = "%s?%s" % (path, query_params)
-
-        custom_params = self.process_whatsapp_notification_custom_params(event_name, community_name, event_time, event_date, \
-                                                                        cm_name, link)
+        custom_params = self.process_whatsapp_notification_custom_params(event_name, community_name, event_time,
+                                                                         event_date, cm_name, link, auto_register_link)
 
         return custom_params
 
-    def process_whatsapp_notification_custom_params(self, event_name, community_name, event_time, event_date, \
-                                                    cm_name, link):
+    def process_whatsapp_notification_custom_params(self, event_name, community_name, event_time, event_date,
+                                                    cm_name, link, auto_register_link):
 
         if self.get_event_type() == EVENT_TYPE.LAST_CALL or self.get_event_type() == EVENT_TYPE.CREATION:
 
@@ -101,7 +97,7 @@ class TasksImpl(TaskManager):
                 },
                 {
                     "name": "link",
-                    "value": link
+                    "value": auto_register_link
                 },
             ]
 
@@ -151,19 +147,21 @@ class TasksImpl(TaskManager):
         is_paid_event = payload.get('chatroom').is_paid
         online_link_enable_before = payload.get('chatroom').online_link_enable_before
         community_id = payload.get('chatroom').community.id
+        attending_status = payload.get('attending_status', True)
 
         online_link_enable_before_in_mins = TimeUtilities.convert_milliseconds_to_min(online_link_enable_before)
 
         member_name = payload.get('user').userinfo.name if payload.get('user') else None
 
         response_dict = self.process_app_notification_response_dict(event_name, is_paid_event, event_id,
-                                                                online_link_enable_before_in_mins, member_name,
-                                                                community_id)
+                                                                    online_link_enable_before_in_mins, member_name,
+                                                                    community_id, attending_status=attending_status)
 
         return response_dict
 
-    def process_app_notification_response_dict(self, event_name, is_paid_event, event_id, online_link_enable_before_in_mins, \
-                                            member_name, community_id):
+    def process_app_notification_response_dict(self, event_name, is_paid_event, event_id,
+                                               online_link_enable_before_in_mins, member_name, community_id,
+                                               attending_status=True):
 
         if self.get_event_type() == EVENT_TYPE.CREATION:
 
@@ -202,7 +200,7 @@ class TasksImpl(TaskManager):
             category = NotificationCategories.EVENT_ATTENDANCE
             subcategory = NotificationSubCategories.EVENT_REMINDER_15_MINUTES_SUBCATEGORY
 
-        elif self.get_event_type() == EVENT_TYPE.REGISTRATION:
+        elif (self.get_event_type() == EVENT_TYPE.REGISTRATION) and attending_status:
 
             title = TITLE_EVENT_REGISTRATION_APP_NOTIFICATION
             subtitle = SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION % (member_name, event_name)
@@ -270,6 +268,8 @@ class TasksImpl(TaskManager):
         if not user_email_list:
             return {}
 
+        event_metadata = {}
+
         if calendar_invite_type == CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION:
 
             from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
@@ -316,32 +316,29 @@ class TasksImpl(TaskManager):
         event_time = TimeUtilities.convert_epoch_time_in_hh_mm_am_pm(payload.get('chatroom').date_time)
         event_date = TimeUtilities.convert_epoch_time_to_date_month_year(payload.get('chatroom').date_time)
         community_id = payload.get('chatroom').community.id
-
-        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
-
-        link = ChatroomHelper.fetch_chatroom_link(payload.get('chatroom'))
+        link = payload.get('chatroom').single_event_url
+        event_banner_url = TasksHelper.fetch_event_banner(event=payload.get('chatroom'))
 
         is_paid_event = payload.get('chatroom').is_paid
 
         event_cost = None
 
-        if is_paid_event:
+        if is_paid_event and self.get_event_type() == EVENT_TYPE.CREATION:
+            event_cost = str(event_cost_in_event_creation_mail) + '/-'
 
-            if self.get_event_type() == EVENT_TYPE.CREATION:
-                event_cost = str(event_cost_in_event_creation_mail) + '/-'
+        elif self.get_event_type() == EVENT_TYPE.CREATION or self.get_event_type() == EVENT_TYPE.LAST_CALL:
+            branch_link = create_single_event_branch_url(payload.get('chatroom'), should_register=True)
 
-        else:
+            if branch_link:
+                link = branch_link
 
-            if self.get_event_type() == EVENT_TYPE.CREATION or self.get_event_type() == EVENT_TYPE.LAST_CALL:
-                link = link + '&cta=register'
-
-        response_dict = self.process_email_comms_response_dict(event_name, event_description, event_time, event_date, \
-                                                            link, event_cost, community_id)
+        response_dict = self.process_email_comms_response_dict(event_name, event_description, event_time, event_date,
+                                                               link, event_cost, community_id, event_banner_url)
 
         return response_dict
 
     def process_email_comms_response_dict(self, event_name, event_description, event_time, event_date, link,\
-                                        event_cost, community_id):
+                                        event_cost, community_id, event_banner_url):
 
         if self.get_event_type() == EVENT_TYPE.CREATION or self.get_event_type() == EVENT_TYPE.LAST_CALL:
 
@@ -385,6 +382,9 @@ class TasksImpl(TaskManager):
 
         else:
             response_dict = {}
+
+        if response_dict:
+            response_dict['event_banner_url'] = event_banner_url
 
         return response_dict
 
@@ -433,7 +433,7 @@ class TasksImpl(TaskManager):
             event_creation_time = TimeUtilities.get_current_datetime_in_IST()
 
             final_time = TasksHelper.calculate_notification_time(event_creation_time,
-                                                                        EVENT_COMM_SHOULD_HAPPEN_AFTER)
+                                                                 EVENT_COMM_SHOULD_HAPPEN_AFTER)
 
         elif self.get_event_type() == EVENT_TYPE.LAST_CALL:
 
@@ -599,6 +599,7 @@ class TasksHelper:
         payload_with_objects = {}
 
         payload_with_objects['chatroom'] = chatroom_instance
+        payload_with_objects['attending_status'] = payload.get('attending_status', True)
 
         if payload.get('user'):
             user_instance = ModelUtilities.get_model_instance_or_none(User, payload.get('user'))
@@ -724,6 +725,8 @@ class TasksHelper:
     def create_user_details_list_for_sending_app_notification(user_instances):
 
         notification_details_list = []
+
+        from collabmates_api.notification import get_token_for_fcm
 
         for user_id in user_instances:
             notification_details = get_token_for_fcm(user_id, True)
@@ -926,6 +929,12 @@ class TasksHelper:
         return removed_member_ids
 
     @staticmethod
+    def get_members_excluding_non_members_in_community(community_id, members_list):
+        removed_members = TasksHelper.get_removed_member_ids_in_community(community_id)
+
+        return list(set(members_list) - set(removed_members))
+
+    @staticmethod
     def get_active_members_excluding_non_members_in_community(community_instance: Community, active_members: list) -> \
             list:
         """
@@ -974,6 +983,17 @@ class TasksHelper:
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
         link = ChatroomHelper.fetch_chatroom_link(chatroom_instance)
+
+        utm_campaign = ''
+
+        if chatroom_not_opened_type == chatroom_not_opened_types.TAGGED_CHATROOM:
+            utm_campaign = 'tagged_email'
+
+        if chatroom_not_opened_type == chatroom_not_opened_types.DM_CHATROOM:
+            utm_campaign = 'dm_email'
+
+        link = link + "&utm_source=email&utm_campaign=" + utm_campaign
+
         data_dict = {
             'community_name': community_instance.name,
             'chatroom_name': chatroom_instance.header,
@@ -1138,3 +1158,29 @@ class TasksHelper:
             calendar_id = calendar_id_filter[0].calendar_id
 
         return calendar_id
+
+    @staticmethod
+    def add_community_info_to_notification_payload(message: dict, community_id: int) -> dict:
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if community_instance:
+            message['payload']['community_id'] = community_instance.id
+            message['payload']['community_name'] = community_instance.name
+            message['payload']['community_logo'] = community_instance.thumbnail
+
+        return message
+
+    @staticmethod
+    def fetch_event_banner(event):
+        filter_dict = {
+            'collabcard_id': event,
+            'type': 'image'
+        }
+
+        chatroom_attachment = ModelUtilities.get_model_filter(Card_Attachment, filter_dict)
+
+        if chatroom_attachment:
+            return chatroom_attachment[0].file_url
+
+        return None

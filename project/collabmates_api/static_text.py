@@ -225,7 +225,7 @@ unfollow_chatroom = {'id': 9, 'title': 'Leave chatroom'}
 
 report = {'id': 10, 'title': 'Report Spam/Abuse'}
 
-pin_chatroom = {'id': 13, 'title': "Pin chat room"}
+pin_chatroom = {'id': 13, 'title': "Pin this chatroom"}
 
 unpin_chatroom = {'id': 14, 'title': "Unpin chat room"}
 
@@ -235,15 +235,31 @@ add_all_members = {'id': 16, 'title': "Add all members"}
 
 chatroom_settings = {'id': 17, 'title': "Settings"}
 
-member_can_message = {'id': 18, 'title': "Members can send message"}
+member_can_message = {'id': 18, 'title': "Members can send messages"}
 
 accessible_without_subscription = {'id': 19, 'title': "Accessible without subscription"}
 
 view_profile = {'id': 21, 'title': "View profile"}
 
+edit_chatroom_pic = {'id': 22, 'title': "Edit chatroom pic"}
+
+edit_info = {'id': 23, 'title': "Edit info"}
+
+make_it_secret = {'id': 24, 'title': "Make it secret"}
+
+auto_joined_by_all_members = {'id': 25, 'title': "Auto joined by all members"}
+
+manage_permissions = {'id': 26, 'title': "Manage Permissions"}
+
+block_member_chatroom = {'id': 27, 'title': "Block"}
+
+unblock_member = {'id': 28, 'title': "Unblock"}
+
 settings_for_purpose_chatroom = [rename_chatroom, member_can_message, accessible_without_subscription]
 
 settings_for_chatroom = [rename_chatroom, member_can_message, pin_chatroom, accessible_without_subscription]
+
+settings_for_chatroom_with_revamp = [edit_chatroom_pic, edit_info, member_can_message, make_it_secret]
 
 # get onboarding examples
 INTRODUCTION_EXAMPLES = [
@@ -309,16 +325,17 @@ MENU = {
     'pending_member': ['Cancel joining request']
 }
 
-delete_room_manager_right = {'id': 1, 'title': 'Delete chat rooms/messages', 'sub_title': None, "state": 0}
+delete_room_manager_right = {'id': 1, 'title': 'Moderate chatrooms', 'sub_title': None, "state": 0, "rank": 5}
 
+approve_manager_right = {'id': 2, 'title': 'Moderate members', 'sub_title': None, "state": 1, "rank": 3}
 
-approve_manager_right = {'id': 2, 'title': 'Approve/remove members', 'sub_title': None, "state": 1}
+edit_community_manager_right = {'id': 3, 'title': "Edit community details", 'sub_title': None, "state": 2, "rank": 2}
 
-edit_community_manager_right = {'id': 3, 'title': "Edit community details", 'sub_title': None, "state": 2}
+view_contact_manager_right = {'id': 4, 'title': 'View member contact info', 'sub_title': None, "state": 3, "rank": 1}
 
-view_contact_manager_right = {'id': 4, 'title': 'View member contact info', 'sub_title': None, "state": 3}
+add_manager_manager_right = {'id': 5, 'title': "Add community managers", 'sub_title': None, "state": 4, "rank": 0}
 
-add_manager_manager_right = {'id': 5, 'title': "Add community managers", 'sub_title': None, "state": 4}
+moderate_dm_settings = {'id': 6, 'title': "Moderate DM settings", 'sub_title': None, "state": 5, "rank": 4}
 
 manager_rights_list = [delete_room_manager_right, edit_community_manager_right, approve_manager_right,
                        view_contact_manager_right, add_manager_manager_right]
@@ -342,6 +359,8 @@ create_secret_chatroom_right = {'id': 7, 'title': "create secret room rights", '
 show_direct_messages_right = {'id': 8, 'title': "Direct messages",
                               'sub_title': 'Direct messaging can happen only between a community manager and a community member (not among 2 members).',
                               "state": 7}
+
+members_can_dm_right = {'id': 9, 'title': "Members who can initiate DMs", 'sub_title': None, "state": 8}
 
 member_rights_list = [create_room_member_right, create_poll_member_right,
                       create_event_member_right, respond_in_rooms_member_right,
@@ -414,6 +433,7 @@ EVENT_ATTACHMENT_VERSION_CODE_AN = 151
 
 DM_CHATROOMS_VERSION_CODE_IOS = 213
 DM_CHATROOMS_VERSION_CODE_ANDROID = 156
+DM_CHATROOMS_VERSION_CODE_WEB = 1
 
 EVENT_CO_HOST_NOTIFICATION_TITLE = 'You are a co-host!'
 EVENT_CO_HOST_NOTIFICATION_SUB_TITLE = "%s added you as a host for %s in %s"
@@ -501,6 +521,9 @@ MEMBER_JOINING_COMMUNITY_DM_CHATROOM_MESSAGE = "{} is a member now"
 
 MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE = "{} is a community manager now"
 
+BLOCK_MEMBER_DM_CHATROOM_MESSAGE = "Direct messaging request rejected."
+UNBLOCK_MEMBER_DM_CHATROOM_MESSAGE = "{} and {} are now connected."
+
 ATTENDEES_FILTER_NAME = "attendees"
 CO_HOSTS_FILTER_NAME = "co_hosts"
 
@@ -555,6 +578,12 @@ SINGLE_COMMUNITY_VIEW_VERSION_CODE = {
 }
 
 FREE_LINK_VERSION_CODE = {
+    "an": 189 if settings.IS_BETA else 1001,
+    "ios": 338 if settings.IS_BETA else 1001,
+    "web": 1001
+}
+
+CREATE_CHATROOM_REVAMP_VERSION_CODE = {
     "an": 1001,
     "ios": 1001,
     "web": 1001
@@ -596,8 +625,12 @@ MEMBER_REPLY_EMAIL = "LikeMinds<hi@likeminds.community>"
 FIVE_DAYS_IN_HOURS = 24 * 5
 
 DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE = 185
-DIRECTORY_QUESTIONS_IOS_VERSION_CODE = 1101
+DIRECTORY_QUESTIONS_IOS_VERSION_CODE = 335
 DIRECTORY_QUESTIONS_WEB_VERSION_CODE = 1101
+
+M2CM_V2_ANDROID_VERSION_CODE = 1209
+M2CM_V2_IOS_VERSION_CODE = 1209
+M2CM_V2_WEB_VERSION_CODE = 1209
 
 DIRECTORY_QUESTIONS_MANAGEMENT_TOOLS_TITLE = "Customise join form"
 MEMBER_REQUEST_TOOL_ROUTE = "route://member_approve?community_id={}&community_name={}"
@@ -643,3 +676,10 @@ IMAGE_URLS_FOR_QUESTION_TITLES = ["Email", "Phone Number", "Phone No."]
 CREATE_COMMUNITY_QUESTION_NAME_TITLE = "Name"
 
 SIX_HOURS_IN_SECONDS = 6 * 60 * 60
+
+FREE_TRIAL_PUBLIC_URL = "{}/renewal/{}"
+
+SDK_GUEST_USER_DAYS_VALIDITY = 30
+
+SINGLE_EVENT_URL = "{}/single_event/{}"
+AUTO_REGISTER_PARAMS = "?cta=register"
