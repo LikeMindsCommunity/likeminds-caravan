@@ -52,7 +52,7 @@ User.add_to_class("get_user_or_none", get_user_or_none)
 
 
 class Community(models.Model):
-    name = models.CharField(max_length=200)
+    name = models.TextField()
     about = models.TextField(null=True)
     purpose = models.CharField(max_length=2048, null=True)
     location = models.CharField(max_length=200, null=True)
@@ -3354,7 +3354,7 @@ class CommunityDirectMessageSettings(models.Model):
 class SDKClientUsersInfo(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    user_unique_id = models.CharField(max_length=255, unique=True, null=True)
+    user_unique_id = models.CharField(max_length=255, null=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 

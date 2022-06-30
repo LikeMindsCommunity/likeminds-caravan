@@ -54,6 +54,7 @@ from external_services.caching.cache_impl import CacheImpl
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+from collabmates_api.sdk.models import (SdkClient)
 
 from collabmates_api.mails import send_created_community_email_to_team
 
@@ -958,6 +959,7 @@ class CommunityImpl(CommunityManager):
         community_instance = validated_req.get('community_instance')
 
         members = ChatroomImpl.compute_tagging_list_of_community_members(community_instance)
+        members = ChatroomImpl.remove_guest_user_from_participants_data_list(members)
 
         return {'success': True, 'members': members}
 
@@ -1593,6 +1595,7 @@ class CommunityImpl(CommunityManager):
     def edit_questions(self, req_body) -> {}:
         validated_req_body = CommunityHelper.validate_edit_question_request(self.get_member_id(),
                                                                             self.get_community_id(),
+                                                                            self.get_api_key(),
                                                                             req_body)
 
         if not validated_req_body.get('success'):
@@ -2603,7 +2606,7 @@ class CommunityHelper:
         return join_link_valid
 
     @staticmethod
-    def fetch_community_for_aj(aj, user_id, platform_code, version_code):
+    def fetch_community_for_aj(aj, platform_code, version_code):
         res = {
             'success': False
         }
@@ -2614,16 +2617,9 @@ class CommunityHelper:
             aj_instance = is_aj_present[0]
             is_cm_onboarding_enabled = cm_onboarding_version_check(platform_code, version_code)
 
-            if is_cm_onboarding_enabled and aj_instance.community.is_paid:
-                user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-                if not user_instance:
-                    res['error_message'] = 'Invalid member-id'
-                    return res
-
-                if aj_instance.user:
-                    res['error_message'] = 'Invite code already used!'
-                    return res
+            if is_cm_onboarding_enabled and aj_instance.community.is_paid and aj_instance.user:
+                res['error_message'] = 'Invite code already used!'
+                return res
 
             res['success'] = True
             res['community_id'] = aj_instance.community.id
@@ -2647,7 +2643,7 @@ class CommunityHelper:
 
         api_type = req_body.get('type', api_types.Non_SDK)
 
-        if 'name' not in req_body:
+        if not req_body.get('name'):
             return {'success': False, 'error_message': 'Empty name!'}
 
         if api_type == api_types.Non_SDK:
@@ -3263,13 +3259,13 @@ class CommunityHelper:
                                                   'is_completed': True})
     
     @staticmethod
-    def validate_edit_question_request(member_id, community_id, req_body):
+    def validate_edit_question_request(member_id, community_id, api_key, req_body):
         user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
         if not user_instance:
             return get_error_context(False, 'Invalid member_id')
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
         if not community_instance:
             return get_error_context(False, 'Invalid community_id')

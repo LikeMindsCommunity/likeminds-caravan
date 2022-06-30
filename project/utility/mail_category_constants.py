@@ -30,6 +30,8 @@ class EmailCategories:
 
     APP_LEVEL = "AppLevel"
 
+    OTP = "OTP"
+
 
 class EmailSubCategories:
     FREE_EVENT_CREATED = "Free Event created"
@@ -62,3 +64,5 @@ class EmailSubCategories:
     FEEDBACK = "Feedback"
     VERIFY_MAIL = "Verify email"
     NEW_COMMUNITY = "New Community"
+
+    INTERNATIONAL_LIMIT_EXCEEDED = "International Limit Exceeded"

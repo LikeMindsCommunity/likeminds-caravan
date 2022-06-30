@@ -59,7 +59,7 @@ class FetchCommunityFeed(APIView):
         chatroom_id = request.GET.get('chatroom_id')
         scroll_direction = request.GET.get('scroll_direction')
         order_type = request.GET.get('order_type', 0)
-        page = NumberUtilities.get_integer_from_string(request.GET.get('page'))
+        page = RequestUtilities.get_page_number(request)
 
         if (chatroom_id and not scroll_direction) or (scroll_direction and not chatroom_id):
             return JsonResponse({'error_message': "Invalid request parameters", 'status': 400})
@@ -84,14 +84,12 @@ class FetchCommunityFeed(APIView):
                                                                 page=page)
 
         else:
-
-            return JsonResponse({'error_message': "Invalid platform", 'status': 400})
+            chatroom_context = ResponseUtilities.get_impl_error_context("Invalid platform",
+                                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         if 'error_message' in chatroom_context:
-            response_context = {'error_message': chatroom_context['error_message']}
-            status = chatroom_context['status']
-
-            return JsonResponse(response_context, status=status)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_context.get('error_message'),
+                                                                                chatroom_context.get('status')))
 
         return JsonResponse(chatroom_context)
 

@@ -263,3 +263,22 @@ class TimeUtilities:
 
         """2020-10-11 01:56:24+05:30 --> 2020-10-11 00:00:00"""
         return int(date_time.replace(hour=23, minute=59, second=59, microsecond=999).timestamp()) * 1000
+
+    @staticmethod
+    def get_current_date(date_format: int = -1) -> str:
+        """
+            date formats
+            ------------
+            0       - ddmmyyyy <24062022 (24th June, 2022)>
+            1       - ddmmyyyyHH <2406202215 (24th June, 2022 3 PM)>
+            default - 2022-06-24 15:02:41.550114
+        """
+        now: datetime = datetime.now()
+
+        if date_format == 0:
+            return now.strftime("%d%m%Y")
+
+        if date_format == 1:
+            return now.strftime("%d%m%Y%H")
+
+        return now.__str__()

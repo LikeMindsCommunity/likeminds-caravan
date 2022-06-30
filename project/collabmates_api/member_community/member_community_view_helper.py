@@ -21,9 +21,21 @@ class MemberCommunityViewHelper:
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user ID")
 
-        community_id = community_id if community_id else api_key
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
-        community_instance = SdkClient.get_community_instance_or_none(community_id)
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community ID")
+
+        return {'user_instance': user_instance, 'community_instance': community_instance}
+
+    @staticmethod
+    def validate_fetch_feed_request(user_id, community_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid community ID")

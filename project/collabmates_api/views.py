@@ -20,7 +20,8 @@ from togther.models import *
 from utility.string_utilities import StringUtilities
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
-    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION
+    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
+    CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, INTERNATIONAL_OTP_GENERATE_CACHE_KEY
 from utility.celery_tasks import (
     update_last_unseen_in_engage_on_card_creation,
     update_last_unseen_in_engage, update_my_chatrooms_for_users,
@@ -56,7 +57,7 @@ from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, 
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from .mails import *
 from .sms import *
-from .sdk.models import SdkClient
+from collabmates_api.sdk.models import (SdkClient)
 
 from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
@@ -5410,6 +5411,8 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                            {'card': card_instance, 'user': user_instance, 'remove': None},
                                            {'external_seen': True})
 
+    update_last_unseen_in_engage(user=user_instance, community=card_instance.community)
+
     if chatroom_state:
         state_instance = chatroom_state[0]
     else:
@@ -5466,7 +5469,8 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
         else:
             context['participant_count'] = collabcardState.objects.filter(follow_status=True,
                                                                           card=card_instance, remove=None,
-                                                                          is_tagged=False).count()
+                                                                          is_tagged=False,
+                                                                          user__userinfo__is_guest=False).count()
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
 
     if not conversation_member_filter.exists():
@@ -6066,6 +6070,13 @@ def follow_chatroom_async(collabcard_id,
     # user cant unfollow his own collabcard
     if not status and card_instance.user_id == user_instance.id:
         return JsonResponse({'success': True})
+
+    cache_key = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(collabcard_id)
+    are_chatroom_participants_created = CacheImpl.get_cache(cache_key)
+
+    if all(['are_participants_created' in are_chatroom_participants_created,
+            not are_chatroom_participants_created.get('are_participants_created')]):
+        return {'success': False, "error_message": "Chatroom creation in progress. Try again after some time."}
 
     community_instance = card_instance.community
     member_state = Members.get_community_member_state(community_instance.id, user_instance.id)
@@ -7906,6 +7917,7 @@ def generate_otp(request):
     mobile_no = request.GET.get('mobile_no')
     country_code = request.GET.get('country_code')
     user_id = request.GET.get('user_id')
+    international: bool = False
 
     # check got retry
     retry = request.GET.get('retry')
@@ -7930,10 +7942,17 @@ def generate_otp(request):
             info_logger.info(context)
             return JsonResponse(context)
 
-        international = False
-
         if country_code != '91':
             international = True
+
+        if international and international_otp_limit_exceeded():
+            send_international_otp_limit_mail(str(country_code), str(mobile_no))
+
+            error_message: str = f"otp generate failed for={phone_no}, reason=international otp generate limit exceeded"
+            error_logger.error(error_message)
+            context: dict = get_error_context(False, error_message)
+
+            return JsonResponse(status=403, data=context)
 
         if retry:
             otp_manager = OTPApiClient()
@@ -7956,7 +7975,51 @@ def generate_otp(request):
 
         context['success'] = True
 
+    update_international_otp_generate_count(international, context)
+
     return JsonResponse(context)
+
+
+def send_international_otp_limit_mail(country_code: str, mobile: str) -> None:
+    subject = "International OTP limit exceeded"
+    template = get_template('mails/international_otp_limit.html').render({
+        "country_code": country_code,
+        "mobile": mobile
+    })
+    mail_to = ['himanshu@likeminds.community', 'backend@likeminds.community']
+    mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
+        EmailCategories.OTP,
+        EmailSubCategories.INTERNATIONAL_LIMIT_EXCEEDED
+    )
+
+    MailWrapper.send_email.delay(subject=subject,
+                                 template=template,
+                                 to_mails_list=mail_to,
+                                 categories=mail_categories)
+
+
+def international_otp_limit_exceeded() -> bool:
+    HOURLY_INTERNATIONAL_OTP_GENERATE_LIMIT: int = 10
+    key: str = INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=1)
+    current_count: int = CacheImpl.get_cache(key)
+    if isinstance(current_count, int) and current_count >= HOURLY_INTERNATIONAL_OTP_GENERATE_LIMIT:
+        return True
+
+    return False
+
+
+def update_international_otp_generate_count(international: bool, context: dict) -> None:
+    if not (international and context['success']):
+        return
+
+    key: str = (INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=1))
+    value: int = 1
+
+    current_count: int = CacheImpl.get_cache(key)
+    if isinstance(current_count, int):
+        value = current_count + 1
+
+    CacheImpl.set_cache(key, value)
 
 
 def send_otp_on_user_emails(user_id):
@@ -8428,7 +8491,6 @@ def members_state(request, req_dict=None):
 
     else:
         member_id = req_dict['member_id']
-        community_id = req_dict.get('community_id') if req_dict.get('community_id') else api_key
 
     state = 0
     tool_state = 0
@@ -8436,9 +8498,9 @@ def members_state(request, req_dict=None):
 
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
-    if community_instance is None:
+    if not community_instance:
         response = get_error_context(False, "Invalid API key/community ID")
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
@@ -9369,6 +9431,10 @@ class AllMembersVersion1(APIView):
             raise InvalidHeaderException()
 
         context = get_all_members_version_1(request)
+
+        if context.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
 
         if request.accepted_renderer.format == '*/*':
             info_logger.info("html format")
@@ -10431,9 +10497,7 @@ def fetch_intro_examples(request):
 
 ################################# moderation rights ###############################################
 def validate_community_id_or_api_key(community_id, api_key):
-    community_id = community_id if community_id else api_key
-
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
     if not community_instance:
         return ResponseUtilities.get_inner_error_context("Invalid API key/community ID")
@@ -10470,8 +10534,17 @@ def fetch_community_manager_rights(request):
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     community_instance = community_dict.get('community_instance')
-    current_user_instance = User.objects.get(pk=current_user_id)
-    user_instance = User.objects.get(pk=user_id)
+    current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
+
+    if not current_user_instance:
+        context = get_error_context(False, "Invalid member_id in headers")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        context = get_error_context(False, "Invalid user_id")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing

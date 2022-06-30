@@ -60,6 +60,7 @@ from utility.number_utilities import NumberUtilities
 from utility.celery_tasks import save_users_with_muted_chatrooms
 from utility.cache_keys import USER_MUTED_CHATROOM
 from external_services.caching.cache_impl import CacheImpl
+from collabmates_api.sdk.models import (SdkClient)
 
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 from external_services.wa_notification.constants import WATI_NOTIFICATION_CONST
@@ -107,20 +108,35 @@ def send_test_notification(request):
     return JsonResponse(context)
 
 
-def send_notification_for_android(token_list, message):
+def get_firebase_server_key_from_message_payload(message):
+    message_payload = message.get('payload', {})
+    community_id = message_payload.get('community_id', None)
+
+    if community_id:
+        sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
+
+        if sdk_client_filter and sdk_client_filter[0].firebase_server_key:
+            return sdk_client_filter[0].firebase_server_key
+
+        del message['payload']['community_id']
+
+    return server_key
+
+
+def send_notification_for_android(token_list, message, firebase_key=None):
     """function to send notification to android"""
 
     if not token_list:
         return
 
-    result = ""
+    firebase_key = firebase_key if firebase_key else server_key
 
     extra_kwargs = {
         "android": {
             "priority": "high"
         }
     }
-    push_service = FCMNotification(api_key=server_key)
+    push_service = FCMNotification(api_key=firebase_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'], extra_kwargs=extra_kwargs)
 
@@ -128,15 +144,15 @@ def send_notification_for_android(token_list, message):
     return result
 
 
-def send_notification_for_ios(token_list, message):
+def send_notification_for_ios(token_list, message, firebase_key=None):
     """function to send notification to android"""
-
-    result = ""
 
     if not token_list:
         return
 
-    push_service = FCMNotification(api_key=server_key)
+    firebase_key = firebase_key if firebase_key else server_key
+
+    push_service = FCMNotification(api_key=firebase_key)
 
     extra_kwargs = {
         "mutable_content": True
@@ -153,13 +169,15 @@ def send_notification_for_ios(token_list, message):
     return result
 
 
-def send_notification_for_web(token_list, message):
+def send_notification_for_web(token_list, message, firebase_key=None):
     """function to send notification to web"""
 
     if not token_list:
         return
 
-    push_service = FCMNotification(api_key=server_key)
+    firebase_key = firebase_key if firebase_key else server_key
+
+    push_service = FCMNotification(api_key=firebase_key)
 
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
@@ -281,11 +299,13 @@ def notification_meta(notification_list, message, calling_notification=""):
 
             notification_payload_list.append(notification_payload_dict)
 
-    send_notification_for_android(tokens['Android'], message)
+    firebase_key = get_firebase_server_key_from_message_payload(message)
 
-    send_notification_for_ios(tokens['iOS'], message)
+    send_notification_for_android(tokens['Android'], message, firebase_key)
 
-    send_notification_for_web(tokens['web'], message)
+    send_notification_for_ios(tokens['iOS'], message, firebase_key)
+
+    send_notification_for_web(tokens['web'], message, firebase_key)
 
     track_notification_with_notification_payload_list(notification_payload_list)
 

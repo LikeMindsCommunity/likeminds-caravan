@@ -109,13 +109,16 @@ def is_member_present(community_id,member_id):
     return is_member.exists()
 
 
-def get_members_count_in_community(community_id):
+def get_members_count_in_community(community_id, remove_guest_user=False):
 
     '''function to get members count in a community'''
 
     instance = Members.objects.filter(community_id=community_id).filter(
         Q(state=member_states.ADMIN) | Q(state=member_states.TEMP_ADMIN) |
         Q(state=member_states.MEMBER) | Q(state=member_states.PROFILE_UNAVAILABLE))
+
+    if remove_guest_user:
+        instance = instance.filter(member_id__userinfo__is_guest=False)
 
     return instance.count()
 

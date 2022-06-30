@@ -225,7 +225,7 @@ unfollow_chatroom = {'id': 9, 'title': 'Leave chatroom'}
 
 report = {'id': 10, 'title': 'Report Spam/Abuse'}
 
-pin_chatroom = {'id': 13, 'title': "Pin chat room"}
+pin_chatroom = {'id': 13, 'title': "Pin this chatroom"}
 
 unpin_chatroom = {'id': 14, 'title': "Unpin chat room"}
 
@@ -235,7 +235,7 @@ add_all_members = {'id': 16, 'title': "Add all members"}
 
 chatroom_settings = {'id': 17, 'title': "Settings"}
 
-member_can_message = {'id': 18, 'title': "Participants can send message"}
+member_can_message = {'id': 18, 'title': "Members can send messages"}
 
 accessible_without_subscription = {'id': 19, 'title': "Accessible without subscription"}
 
