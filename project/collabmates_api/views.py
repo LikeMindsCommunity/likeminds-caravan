@@ -4794,24 +4794,6 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         return dm_chatroom_actions
 
-    if api_type == api_types.SDK:
-        actions = [view_participants]
-
-        if creator or card_status.get('follow_status'):
-
-            if card_status.get('mute_status'):
-                actions.append(unMute_notifications)
-
-            else:
-                actions.append(mute_notifications)
-
-            actions.append(leave_chatroom)
-
-        elif not card_status.get('follow_status'):
-            actions.append(join_chatroom)
-
-        return actions
-
     purpose_card = False
     intro_card = False
     master_intro_card = False
@@ -4871,6 +4853,15 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     actions = []
 
     for action in final:
+
+        if (api_type == api_types.SDK) and any([action['id'] == chatroom_actions.ACTION_RENAME,
+                                                action['id'] == chatroom_actions.ACTION_INVITE,
+                                                action['id'] == chatroom_actions.ACTION_VIEW_COMMUNITY,
+                                                action['id'] == chatroom_actions.ACTION_ADD_ALL_MEMBERS,
+                                                action['id'] == chatroom_actions.ACTION_SETTINGS,
+                                                action['id'] == chatroom_actions.ACTION_DELETE,
+                                                action['id'] == chatroom_actions.ACTION_REPORT]):
+            continue
 
         if purpose_card or master_intro_card:
 
@@ -4940,7 +4931,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
             actions.insert(2, add_all_members)
 
-        else:
+        elif api_type != api_types.SDK:
             actions.append(add_all_members)
 
     if card_instance.is_secret and \
@@ -4966,7 +4957,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     if promoter and ((platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
                      or (
                              platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) or platform_code == "web") \
-            and not master_intro_card:
+            and not master_intro_card and (api_type != api_types.SDK):
         actions.append(chatroom_settings)
 
     if (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
