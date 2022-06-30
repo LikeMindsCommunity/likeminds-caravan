@@ -2659,19 +2659,16 @@ def fetch_user_communities_sorted_by_order_time(user_id, community_id=None, page
         conn = get_connection()
         curr = conn.cursor()
 
-        community_id_query = ""
-
         if community_id:
             community_id_query = "AND community_id_id = {}".format(community_id)
+
+        else:
+            community_id_query = "AND community_id_id NOT IN (SELECT community_id FROM collabmates_api_sdkclient)"
 
         sql = """
                 SELECT   id
                 FROM     togther_member_engage
-                WHERE    (member_id_id = %s %s
-                         AND      community_id_id NOT IN
-                                  (
-                                     SELECT community_id
-                                     FROM   collabmates_api_sdkclient) )
+                WHERE    (member_id_id = %s %s)
                 ORDER BY order_time DESC offset %s limit %s;""" % (str(user_id), community_id_query,
                                                                    str(offset), str(limit))
 
