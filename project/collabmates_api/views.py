@@ -4805,6 +4805,8 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
             else:
                 actions.append(mute_notifications)
 
+            actions.append(leave_chatroom)
+
         elif not card_status.get('follow_status'):
             actions.append(join_chatroom)
 
