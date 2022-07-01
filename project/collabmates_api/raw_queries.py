@@ -2654,7 +2654,7 @@ def get_all_chatrooms_of_community(community_id, page=1, limit=10):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def fetch_user_communities_sorted_by_order_time(user_id, page=1, limit=10):
+def fetch_user_communities_sorted_by_order_time(user_id, community_id=None, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -2662,15 +2662,18 @@ def fetch_user_communities_sorted_by_order_time(user_id, page=1, limit=10):
         conn = get_connection()
         curr = conn.cursor()
 
+        if community_id:
+            community_id_query = "AND community_id_id = {}".format(community_id)
+
+        else:
+            community_id_query = "AND community_id_id NOT IN (SELECT community_id FROM collabmates_api_sdkclient)"
+
         sql = """
                 SELECT   id
                 FROM     togther_member_engage
-                WHERE    (member_id_id = %s
-                         AND      community_id_id NOT IN
-                                  (
-                                     SELECT community_id
-                                     FROM   collabmates_api_sdkclient) )
-                ORDER BY order_time DESC offset %s limit %s;""" % (str(user_id), str(offset), str(limit))
+                WHERE    (member_id_id = %s %s)
+                ORDER BY order_time DESC offset %s limit %s;""" % (str(user_id), community_id_query,
+                                                                   str(offset), str(limit))
 
         curr.execute(sql)
         card_list = curr.fetchall()
