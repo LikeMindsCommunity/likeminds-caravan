@@ -13880,6 +13880,7 @@ def get_dictionary_of_user_profiles(user_filter):
                 'id': user_id,
                 'name': data.name,
                 'image_url': data.image_link if data.image_link else '',
+                'is_guest': data.is_guest,
             }
 
         max_last_updated = max(max_last_updated, data.updated_at)
@@ -13900,6 +13901,7 @@ def get_guest_list_of_chatrooms(user_data_dict, user_card_dict):
                 'id': value['id'],
                 'name': value['name'],
                 'image_url': value['image_url'],
+                'is_guest': value.get('is_guest'),
                 'chatroom_id': user_data.get('card_id'),
                 'community_id': user_data.get('community_id')
             }
@@ -14157,7 +14159,8 @@ class SyncMembers(APIView):
                                               updated_at__gt=last_updated).only('user_id_id',
                                                                                 'name',
                                                                                 'image_link',
-                                                                                'updated_at').order_by(
+                                                                                'updated_at',
+                                                                                'is_guest').order_by(
             'updated_at',
             'user_id')
         user_filter = ModelUtilities.paginate_queryset(user_filter, page, paginate_by)
@@ -14244,6 +14247,7 @@ def compute_response_of_members_data(members_data, responses_data):
         member_context['name'] = data['name']
         member_context['image_url'] = data['image_url']
         member_context['state'] = data['state']
+        member_context['is_guest'] = data['is_guest']
         member_context['is_owner'] = data['is_owner']
         community_name = data['community_name']
         locale_time = time.localtime(data['created_at'])

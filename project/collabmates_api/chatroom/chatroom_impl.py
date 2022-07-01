@@ -581,6 +581,7 @@ class ChatroomImpl(ChatroomManager):
             temp['id'] = data.user_id_id
             temp['name'] = data.name
             temp['image_url'] = data.image_link if data.image_link else ""
+            temp['is_guest'] = data.is_guest
 
             tag_list.append(temp)
 
@@ -1353,11 +1354,13 @@ class ChatroomImpl(ChatroomManager):
 
         if chatroom_instance.is_secret:
             participant_list = self.compute_tagging_list_for_secret_participants(chatroom_instance, community_instance)
+            participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
             return {'success': True, 'participants': participant_list, 'members': []}
 
         members = self.compute_tagging_list_of_community_members(community_instance)
         participant_list = self.compute_tagging_list_of_guest_members(chatroom_instance)
+        participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
         return {'success': True, 'members': members, 'participants': participant_list}
 
