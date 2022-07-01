@@ -89,7 +89,7 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     fetch_conversations_unread, create_chatroom_cohort_instances, convert_chatroom_to_secret_chatroom, \
     convert_chatroom_to_open_chatroom, send_chatroom_creation_analytics_data, \
     send_participants_added_in_chatroom_analytics_data, send_chatroom_updated_analytics_data, \
-    initial_message_dm_chatroom
+    initial_message_dm_chatroom, update_community_pin_chatrooms_list_in_cache
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException, InvalidSecretChatroomParticipantsException)
 from utility.time_utilities import TimeUtilities
@@ -1195,6 +1195,14 @@ class ChatroomImpl(ChatroomManager):
 
         send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()),
                                                    {'is_pinned': value})
+
+        cache_update_dict = {
+            'chatroom_id': self.get_chatroom_id(),
+            'community_id': chatroom_instance.community_id,
+            'pin_value': value
+        }
+
+        update_community_pin_chatrooms_list_in_cache.delay(cache_update_dict)
 
         return {'success': True}
 

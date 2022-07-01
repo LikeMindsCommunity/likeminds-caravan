@@ -26,6 +26,7 @@ from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from utility.utils import get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room
+from utility.cache_keys import (COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY)
 from .constants import *
 from .member_community_view_helper import MemberCommunityViewHelper
 from ..community.constants import ANSWER_PRIVACY_PUBLIC_VALUE, ANSWER_PRIVACY_KEY, ANSWER_PRIVACY_PRIVATE_VALUE, \
@@ -1531,33 +1532,41 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not intro_room_settings_enabled:
             excluded_card_types.append(card_types.CARD_MASTER_INTRO)
 
+        pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
+            self.get_community_id())
+
         ordered_card_ids = []
 
         if order_type == 0:
             ordered_card_ids = get_ordered_card_id_on_the_basis_newest_chatroom(self.get_member_id(),
                                                                                 self.get_community_id(),
                                                                                 pin_status, excluded_card_ids,
-                                                                                excluded_card_types, page, limit)
+                                                                                excluded_card_types,
+                                                                                pinned_chatrooms_list, page, limit)
         # Recently Active
         if order_type == 1:
             ordered_card_ids = get_ordered_card_id_on_the_basis_last_message(self.get_member_id(),
                                                                              self.get_community_id(),
                                                                              pin_status, excluded_card_ids,
-                                                                             excluded_card_types, page, limit)
+                                                                             excluded_card_types,
+                                                                             pinned_chatrooms_list, page, limit)
 
         # Most Messages
         if order_type == 2:
             ordered_card_ids = get_ordered_card_id_on_the_basis_of_message_count(self.get_member_id(),
                                                                                  self.get_community_id(),
                                                                                  pin_status, excluded_card_ids,
-                                                                                 excluded_card_types, page, limit)
+                                                                                 excluded_card_types,
+                                                                                 pinned_chatrooms_list, page, limit)
 
         # Most Participants
         if order_type == 3:
             ordered_card_ids = get_ordered_card_id_on_the_basis_of_participants_count(self.get_member_id(),
                                                                                       self.get_community_id(),
                                                                                       pin_status, excluded_card_ids,
-                                                                                      excluded_card_types, page, limit)
+                                                                                      excluded_card_types,
+                                                                                      pinned_chatrooms_list, page,
+                                                                                      limit)
 
         chatroom_queryset = MemberCommunityHelper.get_ordered_collabcard_state_list_based_on_card_ids(
             self.get_member_id(), ordered_card_ids)
@@ -2576,3 +2585,15 @@ class MemberCommunityHelper:
         queryset = ModelUtilities.get_model_filter(Member_Engage, {"id__in": member_engage_ids}).order_by(preserved)
 
         return queryset
+
+    @staticmethod
+    def get_pinned_chatrooms_in_community_from_cache(community_id):
+
+        key = COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY.format(community_id)
+        pinned_chatrooms_list = CacheImpl.get_cache(key)
+
+        if not pinned_chatrooms_list:
+            return []
+
+        else:
+            return pinned_chatrooms_list.get('pinned_chatrooms', [])

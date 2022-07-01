@@ -5,6 +5,7 @@ import logging
 import psycopg2
 from utility.states import card_types, conversation_states
 from utility.utils import is_version_code_supported_for_intro_room
+from .static_text import (MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP)
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -2212,8 +2213,16 @@ def get_last_seen_event_conversation_id_for_user(chatroom_list):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
+def create_pinned_query_for_feed_revamp(default_pinned_query, is_pinned):
+
+    if is_pinned:
+        return default_pinned_query.format("true")
+
+    return ""
+
+
 def get_ordered_card_id_on_the_basis_of_message_count(user_id, community_id, is_pinned, excluded_card_ids,
-                                                      excluded_card_types, page=1, limit=10):
+                                                      excluded_card_types, pinned_chatrooms_list, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -2225,7 +2234,13 @@ def get_ordered_card_id_on_the_basis_of_message_count(user_id, community_id, is_
             excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
 
         excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
-        is_pinned = "true" if is_pinned else "false"
+
+        pinned_chatrooms_query = create_pinned_query_for_feed_revamp("AND ca.is_pinned = {}", is_pinned)
+
+        order_by_query = "answer_count DESC"
+
+        if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
+            order_by_query = "cs.is_pinned DESC, answer_count DESC"
 
         conn = get_connection()
         curr = conn.cursor()
@@ -2234,7 +2249,7 @@ def get_ordered_card_id_on_the_basis_of_message_count(user_id, community_id, is_
             SELECT    cs.card_id,
                       COALESCE(cs2.answer_count, 0) AS answer_count
             FROM      (
-                                 SELECT     ca.id                   AS card_id
+                                 SELECT     ca.id AS card_id, ca.is_pinned
                                  FROM       togther_collabcardstate AS cs
                                  INNER JOIN togther_collabcard      AS ca
                                  ON         cs.card_id = ca.id
@@ -2245,7 +2260,7 @@ def get_ordered_card_id_on_the_basis_of_message_count(user_id, community_id, is_
                                             AND        ca.is_deleted = false
                                             AND        ca.is_private = false
                                             AND        ca.type NOT IN {}
-                                            AND        ca.is_pinned = {}
+                                            {}
                                             AND        cs.user_id = {} {} )) AS cs
             LEFT JOIN
                       (
@@ -2267,7 +2282,7 @@ def get_ordered_card_id_on_the_basis_of_message_count(user_id, community_id, is_
                                                                 AND        ca.is_deleted = false
                                                                 AND        ca.is_private = false
                                                                 AND        ca.type NOT IN {}
-                                                                AND        ca.is_pinned = {}
+                                                                {}
                                                                 AND        cs.user_id = {} {} ))
                                 AND       togther_card_answers.state IN (0)
                                 AND       (
@@ -2275,10 +2290,10 @@ def get_ordered_card_id_on_the_basis_of_message_count(user_id, community_id, is_
                                           OR        togther_card_answers.attachments_uploaded = true )
                                 GROUP BY  togther_collabcard.id) AS cs2
             ON        cs.card_id = cs2.card_id
-            ORDER BY  answer_count DESC limit {} offset {}; 
-        """.format(community_id, excluded_card_types_tuple, is_pinned, user_id, excluded_card_id_string,
-                   community_id, excluded_card_types_tuple, is_pinned, user_id, excluded_card_id_string,
-                   limit, offset)
+            ORDER BY  {} limit {} offset {}; 
+        """.format(community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id, excluded_card_id_string,
+                   community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id, excluded_card_id_string,
+                   order_by_query, limit, offset)
 
         curr.execute(sql)
         res = curr.fetchall()
@@ -2362,7 +2377,7 @@ def get_dm_chatrooms_of_user(user_id, community_id):
 
 
 def get_ordered_card_id_on_the_basis_newest_chatroom(user_id, community_id, is_pinned, excluded_card_ids,
-                                                     excluded_card_types, page=1, limit=10):
+                                                     excluded_card_types, pinned_chatrooms_list, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -2374,7 +2389,13 @@ def get_ordered_card_id_on_the_basis_newest_chatroom(user_id, community_id, is_p
             excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
 
         excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
-        is_pinned = "true" if is_pinned else "false"
+
+        pinned_chatrooms_query = create_pinned_query_for_feed_revamp("AND CA.is_pinned = {}", is_pinned)
+
+        order_by_query = "CA.created_at DESC"
+
+        if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
+            order_by_query = "CA.is_pinned DESC, CA.created_at DESC"
 
         conn = get_connection()
         curr = conn.cursor()
@@ -2389,12 +2410,14 @@ def get_ordered_card_id_on_the_basis_newest_chatroom(user_id, community_id, is_p
                              AND CA.is_deleted = false
                              AND CA.is_private = false
                              AND CA.type NOT IN {}
-                             AND CA.is_pinned = {}
+                             {}
                              AND CS.user_id = {}
                              {} )
                     GROUP  BY CA.id
-                    ORDER  BY CA.created_at DESC LIMIT {} OFFSET {} ;
-        """.format(community_id, excluded_card_types_tuple, is_pinned, user_id, excluded_card_id_string, limit, offset)
+                    ORDER  BY {} LIMIT {} OFFSET {} ;
+        """.format(community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id, excluded_card_id_string,
+                   order_by_query, limit, offset)
+
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
@@ -2409,7 +2432,7 @@ def get_ordered_card_id_on_the_basis_newest_chatroom(user_id, community_id, is_p
 
 
 def get_ordered_card_id_on_the_basis_last_message(user_id, community_id, is_pinned, excluded_card_ids,
-                                                  excluded_card_types, page=1, limit=10):
+                                                  excluded_card_types, pinned_chatrooms_list, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -2421,12 +2444,19 @@ def get_ordered_card_id_on_the_basis_last_message(user_id, community_id, is_pinn
             excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
 
         excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
-        is_pinned = "true" if is_pinned else "false"
+
+        pinned_chatrooms_query = create_pinned_query_for_feed_revamp("AND ca.is_pinned = {}", is_pinned)
+
+        order_by_query = "added_row_number.created_at DESC"
+
+        if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
+            order_by_query = "togther_collabcard.is_pinned DESC, added_row_number.created_at DESC"
 
         conn = get_connection()
         curr = conn.cursor()
 
-        sql = """WITH added_row_number AS
+        sql = """
+                WITH added_row_number AS
                 (
                          SELECT   ca.created_at,
                                   ca.id,
@@ -2446,13 +2476,16 @@ def get_ordered_card_id_on_the_basis_last_message(user_id, community_id, is_pinn
                                                         AND        ca.is_deleted = false
                                                         AND        ca.is_private = false
                                                         AND        ca.type NOT IN {}
-                                                        AND        ca.is_pinned = {}
+                                                        {}
                                                         AND        cs.user_id = {} {} )))
-                SELECT   card_id
-                FROM     added_row_number
-                WHERE    row_number = 1
-                ORDER BY created_at DESC limit {} offset {};
-        """.format(community_id, excluded_card_types_tuple, is_pinned, user_id, excluded_card_id_string, limit, offset)
+                SELECT     togther_collabcard.id
+                FROM       togther_collabcard
+                INNER JOIN added_row_number
+                ON         added_row_number.card_id=togther_collabcard.id
+                WHERE    added_row_number.row_number = 1
+                ORDER BY {} limit {} offset {};
+        """.format(community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id, excluded_card_id_string,
+                   order_by_query, limit, offset)
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
@@ -2467,7 +2500,8 @@ def get_ordered_card_id_on_the_basis_last_message(user_id, community_id, is_pinn
 
 
 def get_ordered_card_id_on_the_basis_of_participants_count(user_id, community_id, is_pinned, excluded_card_ids,
-                                                           excluded_card_types, page=1, limit=10):
+                                                           excluded_card_types, pinned_chatrooms_list, page=1,
+                                                           limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -2479,7 +2513,12 @@ def get_ordered_card_id_on_the_basis_of_participants_count(user_id, community_id
             excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
 
         excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
-        is_pinned = "true" if is_pinned else "false"
+        pinned_chatrooms_query = create_pinned_query_for_feed_revamp("AND ca.is_pinned = {}", is_pinned)
+
+        order_by_query = "count(togther_collabcardstate.id) DESC"
+
+        if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
+            order_by_query = "togther_collabcard.is_pinned DESC, count(togther_collabcardstate.id) DESC"
 
         conn = get_connection()
         curr = conn.cursor()
@@ -2502,14 +2541,15 @@ def get_ordered_card_id_on_the_basis_of_participants_count(user_id, community_id
                                             AND        ca.is_deleted = false
                                             AND        ca.is_private = false
                                             AND        ca.type NOT IN {}
-                                            AND        ca.is_pinned = {}
+                                            {}
                                             AND        cs.user_id = {} {} ))
             AND       togther_collabcardstate.follow_status = true
             AND       togther_collabcardstate.is_tagged = false
             AND       togther_collabcardstate.remove_id IS NULL
             GROUP BY  togther_collabcard.id
-            ORDER BY  count(togther_collabcardstate.id) DESC limit {} offset {};
-        """.format(community_id, excluded_card_types_tuple, is_pinned, user_id, excluded_card_id_string, limit, offset)
+            ORDER BY  {} limit {} offset {};
+        """.format(community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id, excluded_card_id_string,
+                   order_by_query, limit, offset)
 
         curr.execute(sql)
         res = curr.fetchall()
