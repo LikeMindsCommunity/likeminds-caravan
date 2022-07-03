@@ -7946,7 +7946,6 @@ def generate_otp(request):
             international = True
 
         if international and international_otp_limit_exceeded():
-            send_international_otp_limit_mail(str(country_code), str(mobile_no))
 
             error_message: str = f"otp generate failed for={phone_no}, reason=international otp generate limit exceeded"
             error_logger.error(error_message)
@@ -7978,24 +7977,6 @@ def generate_otp(request):
     update_international_otp_generate_count(international, context)
 
     return JsonResponse(context)
-
-
-def send_international_otp_limit_mail(country_code: str, mobile: str) -> None:
-    subject = "International OTP limit exceeded"
-    template = get_template('mails/international_otp_limit.html').render({
-        "country_code": country_code,
-        "mobile": mobile
-    })
-    mail_to = ['himanshu@likeminds.community', 'backend@likeminds.community']
-    mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
-        EmailCategories.OTP,
-        EmailSubCategories.INTERNATIONAL_LIMIT_EXCEEDED
-    )
-
-    MailWrapper.send_email.delay(subject=subject,
-                                 template=template,
-                                 to_mails_list=mail_to,
-                                 categories=mail_categories)
 
 
 def international_otp_limit_exceeded() -> bool:
