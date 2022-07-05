@@ -4794,22 +4794,6 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         return dm_chatroom_actions
 
-    if api_type == api_types.SDK:
-        actions = [view_participants]
-
-        if creator or card_status.get('follow_status'):
-
-            if card_status.get('mute_status'):
-                actions.append(unMute_notifications)
-
-            else:
-                actions.append(mute_notifications)
-
-        elif not card_status.get('follow_status'):
-            actions.append(join_chatroom)
-
-        return actions
-
     purpose_card = False
     intro_card = False
     master_intro_card = False
@@ -4869,6 +4853,15 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     actions = []
 
     for action in final:
+
+        if (api_type == api_types.SDK) and any([action['id'] == chatroom_actions.ACTION_RENAME,
+                                                action['id'] == chatroom_actions.ACTION_INVITE,
+                                                action['id'] == chatroom_actions.ACTION_VIEW_COMMUNITY,
+                                                action['id'] == chatroom_actions.ACTION_ADD_ALL_MEMBERS,
+                                                action['id'] == chatroom_actions.ACTION_SETTINGS,
+                                                action['id'] == chatroom_actions.ACTION_DELETE,
+                                                action['id'] == chatroom_actions.ACTION_REPORT]):
+            continue
 
         if purpose_card or master_intro_card:
 
@@ -4938,7 +4931,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
             actions.insert(2, add_all_members)
 
-        else:
+        elif api_type != api_types.SDK:
             actions.append(add_all_members)
 
     if card_instance.is_secret and \
@@ -4964,7 +4957,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     if promoter and ((platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
                      or (
                              platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) or platform_code == "web") \
-            and not master_intro_card:
+            and not master_intro_card and (api_type != api_types.SDK):
         actions.append(chatroom_settings)
 
     if (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
@@ -7946,7 +7939,6 @@ def generate_otp(request):
             international = True
 
         if international and international_otp_limit_exceeded():
-            send_international_otp_limit_mail(str(country_code), str(mobile_no))
 
             error_message: str = f"otp generate failed for={phone_no}, reason=international otp generate limit exceeded"
             error_logger.error(error_message)
@@ -7978,24 +7970,6 @@ def generate_otp(request):
     update_international_otp_generate_count(international, context)
 
     return JsonResponse(context)
-
-
-def send_international_otp_limit_mail(country_code: str, mobile: str) -> None:
-    subject = "International OTP limit exceeded"
-    template = get_template('mails/international_otp_limit.html').render({
-        "country_code": country_code,
-        "mobile": mobile
-    })
-    mail_to = ['himanshu@likeminds.community', 'backend@likeminds.community']
-    mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
-        EmailCategories.OTP,
-        EmailSubCategories.INTERNATIONAL_LIMIT_EXCEEDED
-    )
-
-    MailWrapper.send_email.delay(subject=subject,
-                                 template=template,
-                                 to_mails_list=mail_to,
-                                 categories=mail_categories)
 
 
 def international_otp_limit_exceeded() -> bool:
@@ -13887,6 +13861,7 @@ def get_dictionary_of_user_profiles(user_filter):
                 'id': user_id,
                 'name': data.name,
                 'image_url': data.image_link if data.image_link else '',
+                'is_guest': data.is_guest,
             }
 
         max_last_updated = max(max_last_updated, data.updated_at)
@@ -13907,6 +13882,7 @@ def get_guest_list_of_chatrooms(user_data_dict, user_card_dict):
                 'id': value['id'],
                 'name': value['name'],
                 'image_url': value['image_url'],
+                'is_guest': value.get('is_guest'),
                 'chatroom_id': user_data.get('card_id'),
                 'community_id': user_data.get('community_id')
             }
@@ -14164,7 +14140,8 @@ class SyncMembers(APIView):
                                               updated_at__gt=last_updated).only('user_id_id',
                                                                                 'name',
                                                                                 'image_link',
-                                                                                'updated_at').order_by(
+                                                                                'updated_at',
+                                                                                'is_guest').order_by(
             'updated_at',
             'user_id')
         user_filter = ModelUtilities.paginate_queryset(user_filter, page, paginate_by)
@@ -14251,6 +14228,7 @@ def compute_response_of_members_data(members_data, responses_data):
         member_context['name'] = data['name']
         member_context['image_url'] = data['image_url']
         member_context['state'] = data['state']
+        member_context['is_guest'] = data['is_guest']
         member_context['is_owner'] = data['is_owner']
         community_name = data['community_name']
         locale_time = time.localtime(data['created_at'])

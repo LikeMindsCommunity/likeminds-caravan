@@ -14,6 +14,8 @@ from .chatroom_view_helper import ChatroomViewHelper
 from ..mixins import TransactionMixin
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.response_utilities import ResponseUtilities
+from utility.states import (api_types)
+from utility.number_utilities import NumberUtilities
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -30,10 +32,12 @@ class FetchChatroomView(APIView):
         is_internal = StringUtilities.get_boolean_from_string(request.GET.get('is_internal'))
 
         chatroom_id = request.GET.get('chatroom_id')
+        api_type = NumberUtilities.get_integer_from_string(request.GET.get('api_type', api_types.Non_SDK),
+                                                           api_types.Non_SDK)
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, device_id=device_id,
                                         request_platform=request_platform, version_code=version_code)
-        chatroom_data = chatroom_manager.fetch_chatroom(is_internal=is_internal)
+        chatroom_data = chatroom_manager.fetch_chatroom(is_internal=is_internal, api_type=api_type)
 
         if 'error_message' in chatroom_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),

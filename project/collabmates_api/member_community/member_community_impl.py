@@ -356,7 +356,9 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not user_instance:
             return {'error_message': "Invalid user id", 'status': 400}
 
-        member_engage_ids = fetch_user_communities_sorted_by_order_time(self.get_member_id(), page=page)
+        member_engage_ids = fetch_user_communities_sorted_by_order_time(self.get_member_id(),
+                                                                        community_id=self.get_community_id(),
+                                                                        page=page)
         communities = MemberCommunityHelper.get_ordered_home_communities_list_based_on_engage_ids(member_engage_ids)
         community_ids_list = list(communities.values_list("community_id_id", flat=True))
 
@@ -1849,8 +1851,8 @@ class MemberCommunityHelper:
             temp['image_url'] = value['image_url']
             temp['user_unique_id'] = value['user_unique_id']
 
-            if value.get('is_guest'):
-                temp['is_guest'] = value['is_guest']
+            if value.get('is_guest') is not None:
+                temp['is_guest'] = value.get('is_guest')
 
             member_list.append(temp)
 

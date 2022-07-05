@@ -123,7 +123,8 @@ def get_secret_chatroom_tagging_list(chatroom_instance, community_instance, bloc
 
     secret_room_participants_list = Members.objects \
         .filter(community_id=community_instance,
-                member_id__id__in=secret_room_participants) \
+                member_id__id__in=secret_room_participants,
+                member_id__userinfo__is_guest=False) \
         .select_related('member_id__userinfo')
 
     for participant in secret_room_participants_list:
@@ -140,6 +141,7 @@ def get_secret_chatroom_tagging_list(chatroom_instance, community_instance, bloc
         member_dict = {'id': user_id,
                        'name': user_instance.userinfo.name,
                        'image_url': user_instance.userinfo.image_link,
+                       'is_guest': user_instance.userinfo.is_guest,
                        }
 
         if participant.image_url:
@@ -161,7 +163,8 @@ def get_secret_chatroom_tagging_list(chatroom_instance, community_instance, bloc
 
 def get_chatroom_participants_for_tagging(chatroom_id, blocked_users_list, current_member_id):
     participants_list = []
-    state_filter = collabcardState.objects.filter(card_id=chatroom_id, remove=None).select_related('user')
+    state_filter = collabcardState.objects.filter(card_id=chatroom_id, remove=None,
+                                                  user__userinfo__is_guest=False).select_related('user')
 
     for data in state_filter:
 
@@ -198,7 +201,7 @@ def get_chatroom_participants_for_tagging(chatroom_id, blocked_users_list, curre
 
 
 def get_community_members_for_tagging(community, blocked_users_list, current_member_id):
-    member_filter = Members.objects.filter(community_id=community).filter(
+    member_filter = Members.objects.filter(community_id=community, member_id__userinfo__is_guest=False).filter(
         Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) |
         Q(state=member_states.PROFILE_UNAVAILABLE)).select_related('member_id')
 
@@ -218,6 +221,7 @@ def get_community_members_for_tagging(community, blocked_users_list, current_mem
             'id': user_id,
             'name': user_instance.userinfo.name,
             'image_url': member.image_url if member.image_url else user_instance.userinfo.image_link,
+            'is_guest': user_instance.userinfo.is_guest,
             'state': member.state
         }
 
