@@ -1708,6 +1708,7 @@ def get_chatroom_count_based_on_community_list(community_id_list, member_id) -> 
                         AND "togther_collabcardstate"."user_id" = %s
                         AND NOT ("togther_collabcard"."type" in (%s, %s, %s))
                         AND ("togther_collabcard"."is_private" = FALSE)
+                        AND ("togther_collabcard"."is_pending" = FALSE)
                         AND ("togther_collabcard"."chatroom_with_user_id" is NULL))
                 GROUP BY  togther_collabcardstate.community_id
                 HAVING "togther_collabcardstate".community_id IN %s""" \
