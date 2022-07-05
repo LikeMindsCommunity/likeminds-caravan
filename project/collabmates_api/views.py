@@ -17,6 +17,7 @@ from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.otp.otp_api_client import OTPApiClient
 from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
+from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
@@ -51,7 +52,7 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     cm_onboarding_version_check, directory_questions_v2_version_check,
-                    get_user_email_preferred_verified)
+                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail)
 from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
     tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
@@ -7939,6 +7940,7 @@ def generate_otp(request):
             international = True
 
         if international and international_otp_limit_exceeded():
+            save_request_info(str(country_code), str(mobile_no), TimeUtilities.get_current_date())
 
             error_message: str = f"otp generate failed for={phone_no}, reason=international otp generate limit exceeded"
             error_logger.error(error_message)
@@ -7970,6 +7972,34 @@ def generate_otp(request):
     update_international_otp_generate_count(international, context)
 
     return JsonResponse(context)
+
+
+def save_request_info(country_code: str, mobile_no: str, timestamp: str) -> None:
+    international_otp_req_obj: list = [
+        bytes(country_code, 'utf-8'),
+        bytes(mobile_no, 'utf-8'),
+        bytes(timestamp, 'utf-8')
+    ]
+
+    file_name: str = INTERNATIONAL_OTP_LIMIT_FILE_NAME % TimeUtilities.get_current_date(date_format=0)
+    file_path: str = f'./../../international_otp_blocked_requests/{file_name}'
+
+    """
+        If, file does not exists
+        Create file and write header
+    """
+    if not FileUtilities.is_exists_file(file_path):
+        header: list = [
+            bytes('country code', 'utf-8'),
+            bytes('mobile number', 'utf-8'),
+            bytes('timestamp', 'utf-8')
+        ]
+        FileUtilities.write_file_csv(file_path, 'w', header)
+
+    """
+        write data row
+    """
+    FileUtilities.write_file_csv(file_path, 'a', international_otp_req_obj)
 
 
 def international_otp_limit_exceeded() -> bool:

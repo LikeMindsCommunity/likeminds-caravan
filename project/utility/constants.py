@@ -95,3 +95,8 @@ COMMUNITY_HOOD_MARKETING_TITLE = "CH onboarding beta" if settings.IS_BETA else "
 BRANCH_LINK_TYPE = 2
 
 PLATFORM_CODE_WEB = 'web'
+
+INTERNATIONAL_OTP_LIMIT_MAIL_SUBJECT = 'International OTP limit exceeded'
+INTERNATIONAL_OTP_LIMIT_MAIL_TEMPLATE = 'mails/international_otp_limit.html'
+INTERNATIONAL_OTP_LIMIT_MAIL_RECEIVERS = ['product@likeminds.community', 'backend@likeminds.community']
+INTERNATIONAL_OTP_LIMIT_FILE_NAME = 'international_otp_blocked_requests_%s.csv'
