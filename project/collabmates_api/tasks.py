@@ -15,7 +15,7 @@ from cms.models import MessageTemplate
 from project.celery import app
 
 from utility.constants import INTERNATIONAL_OTP_LIMIT_MAIL_SUBJECT, INTERNATIONAL_OTP_LIMIT_MAIL_TEMPLATE, \
-    INTERNATIONAL_OTP_LIMIT_MAIL_RECEIVERS
+    INTERNATIONAL_OTP_LIMIT_MAIL_RECEIVERS, INTERNATIONAL_OTP_LIMIT_API_PATH
 from utility.file_utilities import FileUtilities
 from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link,
@@ -882,13 +882,22 @@ def remove_guest_users_sdk():
 
 
 @app.task
-def international_otp_generate_requests_blocked_mail() -> None:
+def international_otp_generate_requests_blocked_task() -> None:
+    api_url: str = settings.URL + f'/api/{INTERNATIONAL_OTP_LIMIT_API_PATH}'
+    requests.request("GET", api_url)
+
+
+def international_otp_generate_requests_blocked_mail(request) -> JsonResponse:
     directory: str = './../../international_otp_blocked_requests/'
     file_list: list = os.listdir(directory)
 
     for file in file_list:
         send_international_otp_generate_requests_blocked_mail(directory, file)
         FileUtilities.remove_file(f'{directory}/{file}')
+
+    return JsonResponse({
+        'success': True
+    })
 
 
 def send_international_otp_generate_requests_blocked_mail(directory: str, file_name: str) -> None:
