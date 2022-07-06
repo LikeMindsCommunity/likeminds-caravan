@@ -7975,11 +7975,7 @@ def generate_otp(request):
 
 
 def save_request_info(country_code: str, mobile_no: str, timestamp: str) -> None:
-    international_otp_req_obj: list = [
-        bytes(country_code, 'utf-8'),
-        bytes(mobile_no, 'utf-8'),
-        bytes(timestamp, 'utf-8')
-    ]
+    international_otp_req_obj: list = [country_code, mobile_no, timestamp]
 
     file_name: str = INTERNATIONAL_OTP_LIMIT_FILE_NAME % TimeUtilities.get_current_date(date_format=0)
     file_path: str = f'./../../international_otp_blocked_requests/{file_name}'
@@ -7989,11 +7985,7 @@ def save_request_info(country_code: str, mobile_no: str, timestamp: str) -> None
         Create file and write header
     """
     if not FileUtilities.is_exists_file(file_path):
-        header: list = [
-            bytes('country code', 'utf-8'),
-            bytes('mobile number', 'utf-8'),
-            bytes('timestamp', 'utf-8')
-        ]
+        header: list = ['country code', 'mobile number', 'timestamp']
         FileUtilities.write_file_csv(file_path, 'w', header)
 
     """

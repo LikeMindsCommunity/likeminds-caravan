@@ -100,6 +100,7 @@ INTERNATIONAL_OTP_LIMIT_MAIL_SUBJECT = 'International OTP limit exceeded'
 INTERNATIONAL_OTP_LIMIT_MAIL_TEMPLATE = 'mails/international_otp_limit.html'
 INTERNATIONAL_OTP_LIMIT_MAIL_RECEIVERS = ['product@likeminds.community', 'backend@likeminds.community']
 INTERNATIONAL_OTP_LIMIT_FILE_NAME = 'international_otp_blocked_requests_%s.csv'
+INTERNATIONAL_OTP_LIMIT_API_PATH = 'otp_limit_mail'
 
 RESOURCES_TAB_PATH = 'resources/%s'
 RESOURCES_TAB_FEATURE = 'Resources Tab'

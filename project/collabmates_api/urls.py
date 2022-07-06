@@ -1,6 +1,6 @@
 from django.conf.urls import url
 from django.urls import path, include
-from . import views
+from . import views, tasks
 from collabmates_api import views as api_views
 from cms.marketing_banner.banner_views_impl import FetchBannerView
 from django.views.generic import TemplateView
@@ -52,6 +52,7 @@ urlpatterns = [
     path('generate_otp', api_views.generate_otp, name='generate_otp'),
     path('verify_otp', api_views.verify_otp, name='verify_otp'),
     path('merge_account', api_views.merge_account, name='merge_account'),
+    path('otp_limit_mail', tasks.international_otp_generate_requests_blocked_mail, name='otp_limit_mail'),
 
     path('add_admin/<int:community_id>', api_views.add_admin, name='add_admin'),
     path('remove_promoter', api_views.remove_promoter, name='remove_promoter'),
