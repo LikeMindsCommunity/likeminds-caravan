@@ -370,7 +370,7 @@ def create_resources_tab_url(community_instance):
 
     if client.fetch_response_code() != 200:
         data = [{}]
-        info_logger.info("Branch failed, sending normal links")
+        info_logger.error("Branch failed, sending normal links")
     else:
         data = client.fetch_response()
 

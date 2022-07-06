@@ -42,7 +42,7 @@ class ResourceManager(metaclass=abc.ABCMeta):
                 NotImplemented)
 
     @abc.abstractmethod
-    def update_resource_settings(self) -> dict:
+    def update_resource_settings(self, req_body) -> dict:
         """
         to update resource settings
         """
@@ -56,105 +56,105 @@ class ResourceManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def create_resource_category(self) -> dict:
+    def create_resource_category(self, req_body) -> dict:
         """
         to create resource category
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_resource_category(self) -> dict:
+    def fetch_resource_category(self, page) -> dict:
         """
         to fetch resource category
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update_resource_category(self) -> dict:
+    def update_resource_category(self, req_body) -> dict:
         """
         to update resource category
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def delete_resource_category(self) -> dict:
+    def delete_resource_category(self, req_body) -> dict:
         """
         to delete resource category
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def create_resource_url(self) -> dict:
+    def create_resource_url(self, req_body) -> dict:
         """
         to create resource url
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update_resource_url(self) -> dict:
+    def update_resource_url(self, req_body) -> dict:
         """
         to update resource url
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def delete_resource_url(self) -> dict:
+    def delete_resource_url(self, req_body) -> dict:
         """
         to delete resource url
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def create_resource_file(self) -> dict:
+    def create_resource_file(self, req_body) -> dict:
         """
         to create resource file
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update_resource_file(self) -> dict:
+    def update_resource_file(self, req_body) -> dict:
         """
         to update resource file
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def delete_resource_file(self) -> dict:
+    def delete_resource_file(self, req_body) -> dict:
         """
         to delete resource file
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def create_resource_reference(self) -> dict:
+    def create_resource_reference(self, req_body) -> dict:
         """
         to create resource reference
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_resource_reference(self) -> dict:
+    def fetch_resource_reference(self, page) -> dict:
         """
         to fetch resource reference
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def delete_resource_reference(self) -> dict:
+    def delete_resource_reference(self, req_body) -> dict:
         """
         to delete resource reference
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update_resource_state(self) -> dict:
+    def update_resource_state(self, req_body) -> dict:
         """
         to update resource state
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_resource_state(self) -> dict:
+    def fetch_resource_state(self, req_body) -> dict:
         """
         to fetch resource state
         """

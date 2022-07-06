@@ -24,7 +24,7 @@ class ResourceCategorySerializer(serializers.ModelSerializer):
         Check that parent_category_id instance is not deleted
         """
         if parent_category_instance.is_deleted:
-            raise serializers.ValidationError("Parent Category appears to be deleted. Please enter a valid parent_category_id")
+            raise serializers.ValidationError("Parent Category does not exist. Please enter a valid parent_category_id")
 
         return parent_category_instance
 
@@ -66,7 +66,7 @@ class ResourceURLSerializer(serializers.ModelSerializer):
         Check that category_id instance is not deleted
         """
         if category_instance.is_deleted:
-            raise serializers.ValidationError("Category appears to be deleted. Please enter a valid category_id")
+            raise serializers.ValidationError("Category does not exist. Please enter a valid category_id")
 
         return category_instance
 
@@ -121,7 +121,7 @@ class ResourceFileSerializer(serializers.ModelSerializer):
         Check that category_id instance is not deleted
         """
         if category_instance.is_deleted:
-            raise serializers.ValidationError("Category appears to be deleted. Please enter a valid category_id")
+            raise serializers.ValidationError("Category does not exist. Please enter a valid category_id")
 
         return category_instance
 
@@ -170,7 +170,7 @@ class ResourceReferenceSerializer(serializers.ModelSerializer):
         Check that category_id instance is not deleted
         """
         if category_instance.is_deleted:
-            raise serializers.ValidationError("Category appears to be deleted. Please enter a valid category_id")
+            raise serializers.ValidationError("Category does not exist. Please enter a valid category_id")
 
         return category_instance
 
@@ -179,7 +179,7 @@ class ResourceReferenceSerializer(serializers.ModelSerializer):
         Check that file_id instance is not deleted
         """
         if file_instance.is_deleted:
-            raise serializers.ValidationError("File appears to be deleted. Please enter a valid file_id")
+            raise serializers.ValidationError("File does not exist. Please enter a valid file_id")
 
         return file_instance
 
@@ -188,7 +188,7 @@ class ResourceReferenceSerializer(serializers.ModelSerializer):
         Check that url_id instance is not deleted
         """
         if url_instance.is_deleted:
-            raise serializers.ValidationError("URL appears to be deleted. Please enter a valid url_id")
+            raise serializers.ValidationError("URL does not exist. Please enter a valid url_id")
 
         return url_instance
 
@@ -197,7 +197,7 @@ class ResourceReferenceSerializer(serializers.ModelSerializer):
         Check that child_category_id instance is not deleted
         """
         if category_instance.is_deleted:
-            raise serializers.ValidationError("Child Category appears to be deleted. Please enter a valid child_category_id")
+            raise serializers.ValidationError("Child Category does not exist. Please enter a valid child_category_id")
 
         return category_instance
 

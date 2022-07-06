@@ -34,8 +34,8 @@ class ResourceSettings(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Resouce Setting'
-        verbose_name_plural = 'Resouce Settings'
+        verbose_name = 'Resource Setting'
+        verbose_name_plural = 'Resource Settings'
         db_table = 'togther_resource_settings'
 
     def save(self, *args, **kwargs):
@@ -107,8 +107,8 @@ class ResourceCategory(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Resouce Category'
-        verbose_name_plural = 'Resouce Categorys'
+        verbose_name = 'Resource Category'
+        verbose_name_plural = 'Resource Categorys'
         db_table = 'togther_resource_category'
 
     def save(self, *args, **kwargs):
@@ -151,8 +151,8 @@ class ResourceCategoryPermission(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Resouce Category Permission'
-        verbose_name_plural = 'Resouce Category Permissions'
+        verbose_name = 'Resource Category Permission'
+        verbose_name_plural = 'Resource Category Permissions'
         db_table = 'togther_resource_category_permission'
 
     def save(self, *args, **kwargs):
@@ -206,8 +206,8 @@ class ResourceURL(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Resouce URL'
-        verbose_name_plural = 'Resouce URLs'
+        verbose_name = 'Resource URL'
+        verbose_name_plural = 'Resource URLs'
         db_table = 'togther_resource_url'
 
     def save(self, *args, **kwargs):
@@ -250,8 +250,8 @@ class ResourceURLPermission(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Resouce URL Permission'
-        verbose_name_plural = 'Resouce URL Permissions'
+        verbose_name = 'Resource URL Permission'
+        verbose_name_plural = 'Resource URL Permissions'
         db_table = 'togther_resource_url_permission'
 
     def save(self, *args, **kwargs):
@@ -294,8 +294,8 @@ class ResourceURLState(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Resouce URL State'
-        verbose_name_plural = 'Resouce URL States'
+        verbose_name = 'Resource URL State'
+        verbose_name_plural = 'Resource URL States'
         db_table = 'togther_resource_url_state'
 
     def save(self, *args, **kwargs):
@@ -360,8 +360,8 @@ class ResourceFile(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Resouce File'
-        verbose_name_plural = 'Resouce Files'
+        verbose_name = 'Resource File'
+        verbose_name_plural = 'Resource Files'
         db_table = 'togther_resource_file'
 
     def save(self, *args, **kwargs):
@@ -404,8 +404,8 @@ class ResourceFilePermission(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Resouce File Permission'
-        verbose_name_plural = 'Resouce File Permissions'
+        verbose_name = 'Resource File Permission'
+        verbose_name_plural = 'Resource File Permissions'
         db_table = 'togther_resource_file_permission'
 
     def save(self, *args, **kwargs):
@@ -448,8 +448,8 @@ class ResourceFileState(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Resouce File State'
-        verbose_name_plural = 'Resouce File States'
+        verbose_name = 'Resource File State'
+        verbose_name_plural = 'Resource File States'
         db_table = 'togther_resource_file_state'
 
     def save(self, *args, **kwargs):
@@ -497,8 +497,8 @@ class ResourceReference(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Resouce Reference'
-        verbose_name_plural = 'Resouce References'
+        verbose_name = 'Resource Reference'
+        verbose_name_plural = 'Resource References'
         db_table = 'togther_resource_reference'
 
     def save(self, *args, **kwargs):
@@ -532,8 +532,8 @@ class ResourceCategoryParentCategory(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Resouce Category Parent Category'
-        verbose_name_plural = 'Resouce Category Parent Categories'
+        verbose_name = 'Resource Category Parent Category'
+        verbose_name_plural = 'Resource Category Parent Categories'
         db_table = 'togther_resource_category_parent_category'
 
     def save(self, *args, **kwargs):
@@ -567,8 +567,8 @@ class ResourceURLParentCategory(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Resouce URL Parent Category'
-        verbose_name_plural = 'Resouce URL Parent Categories'
+        verbose_name = 'Resource URL Parent Category'
+        verbose_name_plural = 'Resource URL Parent Categories'
         db_table = 'togther_resource_url_parent_category'
 
     def save(self, *args, **kwargs):
@@ -602,8 +602,8 @@ class ResourceFileParentCategory(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Resouce File Parent Category'
-        verbose_name_plural = 'Resouce file Parent Categories'
+        verbose_name = 'Resource File Parent Category'
+        verbose_name_plural = 'Resource file Parent Categories'
         db_table = 'togther_resource_file_parent_category'
 
     def save(self, *args, **kwargs):

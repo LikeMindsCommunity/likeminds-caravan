@@ -36,12 +36,12 @@ def fetch_child_url_ids_for_updating_permission(category_id, cohort_id, access_t
             access_type_query = "AND access_type in %s" % str(tuple(access_type_list))
 
         sql = """
-                SELECT DISTINCT(trup.url_id_id)
-                FROM togther_resource_url_parent_category trupc
+                SELECT      DISTINCT(trup.url_id_id)
+                FROM        togther_resource_url_parent_category trupc
                 INNER JOIN  togther_resource_url_permission trup
-                ON trupc.url_id_id = trup.url_id_id 
-                WHERE trupc.category_id_id='%s'
-                    AND cohort_id_id=%s
+                ON          trupc.url_id_id = trup.url_id_id 
+                WHERE       trupc.category_id_id='%s'
+                AND         cohort_id_id=%s
                     %s
             """ % (str(category_id), str(cohort_id), access_type_query)
 
@@ -67,12 +67,12 @@ def fetch_child_file_ids_for_updating_permission(category_id, cohort_id, access_
             access_type_query = "AND access_type in %s" % str(tuple(access_type_list))
 
         sql = """
-                SELECT DISTINCT(trfp.file_id_id)
-                FROM togther_resource_file_parent_category trfpc
+                SELECT      DISTINCT(trfp.file_id_id)
+                FROM        togther_resource_file_parent_category trfpc
                 INNER JOIN  togther_resource_file_permission trfp
-                ON trfpc.file_id_id = trfp.file_id_id 
-                WHERE trfpc.category_id_id='%s'
-                    AND cohort_id_id=%s
+                ON          trfpc.file_id_id = trfp.file_id_id 
+                WHERE       trfpc.category_id_id='%s'
+                AND         cohort_id_id=%s
                     %s 
             """ % (str(category_id), str(cohort_id), access_type_query)
 
@@ -98,12 +98,12 @@ def fetch_child_category_ids_for_updating_permission(category_id, cohort_id, acc
             access_type_query = "AND access_type in %s" % str(tuple(access_type_list))
 
         sql = """
-                SELECT DISTINCT(trcp.category_id_id)
-                FROM togther_resource_category_parent_category trcpc
+                SELECT      DISTINCT(trcp.category_id_id)
+                FROM        togther_resource_category_parent_category trcpc
                 INNER JOIN  togther_resource_category_permission trcp
-                ON trcpc.child_category_id_id = trcp.category_id_id 
-                WHERE trcpc.category_id_id='%s'
-                    AND cohort_id_id=%s
+                ON          trcpc.child_category_id_id = trcp.category_id_id 
+                WHERE       trcpc.category_id_id='%s'
+                AND         cohort_id_id=%s
                     %s 
             """ % (str(category_id), str(cohort_id), access_type_query)
 
@@ -141,12 +141,12 @@ def get_parent_categories_with_access_type(resource_type, resource_id, cohort_id
             filter_clause = "child.child_category_id_id='%s'" % resource_id
 
         sql = """
-                SELECT DISTINCT(child.category_id_id)
-                FROM %s child
+                SELECT      DISTINCT(child.category_id_id)
+                FROM        %s child
                 INNER JOIN  togther_resource_category_permission trcp
-                ON child.category_id_id = trcp.category_id_id
-                    WHERE %s
-                    AND cohort_id_id=%s
+                ON          child.category_id_id = trcp.category_id_id
+                WHERE       %s
+                AND         cohort_id_id=%s
                     %s
             """ % (
                 parent_mapping_schema,
@@ -186,15 +186,15 @@ def get_child_resource_state_for_category(resource_type, state, member_id, child
             parent_mapping_schema = "togther_resource_file_parent_category"
 
         sql = """
-                SELECT DISTINCT(%s)
-                FROM %s
-                WHERE user_id_id=%s
-                AND state=%s
-                AND %s in (
-                    SELECT %s
-                    FROM %s
-                    %s
-                )
+                SELECT  DISTINCT(%s)
+                FROM    %s
+                WHERE   user_id_id=%s
+                AND     state=%s
+                AND     %s in (
+                            SELECT  %s
+                            FROM    %s
+                            %s
+                        )
             """ % (
                 resource_id,
                 state_schema,

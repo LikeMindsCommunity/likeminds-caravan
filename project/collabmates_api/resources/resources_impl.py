@@ -64,7 +64,7 @@ class ResourcesImpl(ResourceManager):
         """
         return self.category_id
 
-    def update_community_id(self, community_id):
+    def set_community_id(self, community_id):
         """
         updates the community_id class variable
 
@@ -94,7 +94,7 @@ class ResourcesImpl(ResourceManager):
             if not resource_category_instance:
                 return get_error_context(False, 'incorrect category_id')
 
-            self.update_community_id(
+            self.set_community_id(
                 resource_category_instance.community_id.id
             )
 
@@ -109,7 +109,7 @@ class ResourcesImpl(ResourceManager):
             if not resource_url_instance:
                 return get_error_context(False, 'incorrect url_id')
 
-            self.update_community_id(
+            self.set_community_id(
                 resource_url_instance.category_id.community_id.id
             )
 
@@ -124,7 +124,7 @@ class ResourcesImpl(ResourceManager):
             if not resource_file_instance:
                 return get_error_context(False, 'incorrect file_id')
 
-            self.update_community_id(
+            self.set_community_id(
                 resource_file_instance.category_id.community_id.id
             )
 
@@ -139,7 +139,7 @@ class ResourcesImpl(ResourceManager):
             if not child_category_instance:
                 return get_error_context(False, 'incorrect child_category_id')
 
-            self.update_community_id(
+            self.set_community_id(
                 child_category_instance.community_id.id
             )
 
@@ -533,7 +533,7 @@ class ResourcesImpl(ResourceManager):
                 'The Resource Category has been deleted'
             )
 
-        self.update_community_id(resource_category_instance.community_id.id)
+        self.set_community_id(resource_category_instance.community_id.id)
 
         validation_check = ResourceHelper.is_user_cm_or_not(
             self.get_community_id(),
@@ -861,7 +861,7 @@ class ResourcesImpl(ResourceManager):
         if not resource_category_instance:
             return get_error_context(False, 'incorrect category_id')
 
-        self.update_community_id(resource_category_instance.community_id.id)
+        self.set_community_id(resource_category_instance.community_id.id)
 
         validation_check = ResourceHelper.is_user_cm_or_not(
             self.get_community_id(),
@@ -1103,7 +1103,7 @@ class ResourcesImpl(ResourceManager):
         if not resource_url_instance:
             return get_error_context(False, 'incorrect id')
 
-        self.update_community_id(
+        self.set_community_id(
             resource_url_instance.category_id.community_id.id
         )
 
@@ -1337,7 +1337,7 @@ class ResourcesImpl(ResourceManager):
         if not resource_url_instance:
             return get_error_context(False, 'incorrect id')
 
-        self.update_community_id(
+        self.set_community_id(
             resource_url_instance.category_id.community_id.id
         )
 
@@ -1399,7 +1399,7 @@ class ResourcesImpl(ResourceManager):
         if not resource_category_instance:
             return get_error_context(False, 'incorrect category_id')
 
-        self.update_community_id(resource_category_instance.community_id.id)
+        self.set_community_id(resource_category_instance.community_id.id)
 
         validation_check = ResourceHelper.is_user_cm_or_not(
             self.get_community_id(),
@@ -1603,7 +1603,7 @@ class ResourcesImpl(ResourceManager):
         if not resource_file_instance:
             return get_error_context(False, 'incorrect id')
 
-        self.update_community_id(
+        self.set_community_id(
             resource_file_instance.category_id.community_id.id
         )
 
@@ -1730,7 +1730,7 @@ class ResourcesImpl(ResourceManager):
         if not resource_file_instance:
             return get_error_context(False, 'incorrect id')
 
-        self.update_community_id(
+        self.set_community_id(
             resource_file_instance.category_id.community_id.id
         )
 
@@ -1792,7 +1792,7 @@ class ResourcesImpl(ResourceManager):
         if not resource_category_instance:
             return get_error_context(False, 'incorrect category_id')
 
-        self.update_community_id(resource_category_instance.community_id.id)
+        self.set_community_id(resource_category_instance.community_id.id)
 
         validation_check = ResourceHelper.is_user_cm_or_not(
             self.get_community_id(),
@@ -1983,7 +1983,7 @@ class ResourcesImpl(ResourceManager):
         if not resource_category_instance:
             return get_error_context(False, 'incorrect category_id')
 
-        self.update_community_id(
+        self.set_community_id(
             resource_category_instance.community_id.id
         )
 

@@ -176,4 +176,4 @@ TITLE_8_PM_RESOURCES_NOTI = 'New resource added!'
 SUB_TITLE_8_PM_RESOURCES_NOTI = '%s new resources were added in %s'
 ROUTE_8_PM_RESOURCES_NOTI = 'route://resources?community_id=%s'
 
-SUBJECT_WEEKLY_RESOURCES_EMAIL = 'We have added New resources in the %s'
+SUBJECT_WEEKLY_RESOURCES_EMAIL = 'We have added new resources in the %s'
