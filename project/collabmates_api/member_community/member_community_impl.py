@@ -45,7 +45,11 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            check_user_has_member_can_initiate_dm_right, get_dm_chatrooms_of_user,
                            get_last_conversation_id_corresponding_to_chatrooms_list,
                            get_ordered_card_id_on_the_basis_newest_chatroom,
-                           fetch_user_communities_sorted_by_order_time)
+                           fetch_user_communities_sorted_by_order_time,
+                           get_ordered_card_id_on_the_basis_of_message_count_v2,
+                           get_ordered_card_id_on_the_basis_last_message_v2,
+                           get_ordered_card_id_on_the_basis_of_participants_count_v2,
+                           get_ordered_card_id_on_the_basis_newest_chatroom_v2)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -850,10 +854,11 @@ class MemberCommunityImpl(MemberCommunityManager):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
                                                                                self.get_community_id())
 
-        if api_version == api_version_headers.V1:
+        if api_version in [api_version_headers.V1, api_version_headers.V2]:
             chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(intro_room_setting_enabled,
                                                                                    pin_status, excluded_card_ids,
-                                                                                   order_type, page=page)
+                                                                                   order_type, page=page,
+                                                                                   api_version=api_version)
 
         else:
 
@@ -926,10 +931,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         if create_chatroom_revamp_version_check(self.get_platform_code(), self.get_version_code()):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
                                                                                self.get_community_id())
-        if api_version == api_version_headers.V1:
+        if api_version in [api_version_headers.V1, api_version_headers.V2]:
             chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(intro_room_setting_enabled,
                                                                                    pin_status, excluded_card_ids,
-                                                                                   order_type, page=page)
+                                                                                   order_type, page=page,
+                                                                                   api_version=api_version)
 
         else:
 
@@ -1527,7 +1533,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         return {'success': True}
     
     def _get_sorted_chatroom_queryset_based_on_order_type(self, intro_room_settings_enabled, pin_status,
-                                                          excluded_card_ids, order_type, page=1, limit=10):
+                                                          excluded_card_ids, order_type, page=1,
+                                                          api_version=api_version_headers.V1, limit=10):
 
         excluded_card_types = [card_types.CARD_INTRO, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]
 
@@ -1539,36 +1546,60 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         ordered_card_ids = []
 
-        if order_type == 0:
+        if (order_type == 0) and (api_version == api_version_headers.V1):
             ordered_card_ids = get_ordered_card_id_on_the_basis_newest_chatroom(self.get_member_id(),
+                                                                                self.get_community_id(),
+                                                                                pin_status, excluded_card_ids,
+                                                                                excluded_card_types, page, limit)
+
+        if (order_type == 0) and (api_version == api_version_headers.V2):
+            ordered_card_ids = get_ordered_card_id_on_the_basis_newest_chatroom_v2(self.get_member_id(),
+                                                                                   self.get_community_id(),
+                                                                                   pin_status, excluded_card_ids,
+                                                                                   excluded_card_types,
+                                                                                   pinned_chatrooms_list, page, limit)
+        # Recently Active
+        if (order_type == 1) and (api_version == api_version_headers.V1):
+            ordered_card_ids = get_ordered_card_id_on_the_basis_last_message(self.get_member_id(),
+                                                                             self.get_community_id(),
+                                                                             pin_status, excluded_card_ids,
+                                                                             excluded_card_types, page, limit)
+
+        if (order_type == 1) and (api_version == api_version_headers.V2):
+            ordered_card_ids = get_ordered_card_id_on_the_basis_last_message_v2(self.get_member_id(),
                                                                                 self.get_community_id(),
                                                                                 pin_status, excluded_card_ids,
                                                                                 excluded_card_types,
                                                                                 pinned_chatrooms_list, page, limit)
-        # Recently Active
-        if order_type == 1:
-            ordered_card_ids = get_ordered_card_id_on_the_basis_last_message(self.get_member_id(),
-                                                                             self.get_community_id(),
-                                                                             pin_status, excluded_card_ids,
-                                                                             excluded_card_types,
-                                                                             pinned_chatrooms_list, page, limit)
 
         # Most Messages
-        if order_type == 2:
+        if (order_type == 2) and (api_version == api_version_headers.V1):
             ordered_card_ids = get_ordered_card_id_on_the_basis_of_message_count(self.get_member_id(),
                                                                                  self.get_community_id(),
                                                                                  pin_status, excluded_card_ids,
-                                                                                 excluded_card_types,
-                                                                                 pinned_chatrooms_list, page, limit)
+                                                                                 excluded_card_types, page, limit)
+
+        if (order_type == 2) and (api_version == api_version_headers.V2):
+            ordered_card_ids = get_ordered_card_id_on_the_basis_of_message_count_v2(self.get_member_id(),
+                                                                                    self.get_community_id(),
+                                                                                    pin_status, excluded_card_ids,
+                                                                                    excluded_card_types,
+                                                                                    pinned_chatrooms_list, page, limit)
 
         # Most Participants
-        if order_type == 3:
+        if (order_type == 3) and (api_version == api_version_headers.V1):
             ordered_card_ids = get_ordered_card_id_on_the_basis_of_participants_count(self.get_member_id(),
                                                                                       self.get_community_id(),
                                                                                       pin_status, excluded_card_ids,
-                                                                                      excluded_card_types,
-                                                                                      pinned_chatrooms_list, page,
-                                                                                      limit)
+                                                                                      excluded_card_types, page, limit)
+
+        if (order_type == 3) and (api_version == api_version_headers.V2):
+            ordered_card_ids = get_ordered_card_id_on_the_basis_of_participants_count_v2(self.get_member_id(),
+                                                                                         self.get_community_id(),
+                                                                                         pin_status, excluded_card_ids,
+                                                                                         excluded_card_types,
+                                                                                         pinned_chatrooms_list, page,
+                                                                                         limit)
 
         chatroom_queryset = MemberCommunityHelper.get_ordered_collabcard_state_list_based_on_card_ids(
             self.get_member_id(), ordered_card_ids)
