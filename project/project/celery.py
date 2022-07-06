@@ -59,8 +59,8 @@ app.conf.beat_schedule = {
         'task': 'collabmates_api.tasks.remove_guest_users_sdk',
         'schedule': crontab(hour=2, minute=0),
     },
-    'international_otp_generate_requests_blocked_mail': {
-        'task': 'collabmates_api.tasks.international_otp_generate_requests_blocked_mail',
+    'international_otp_generate_requests_blocked_task': {
+        'task': 'collabmates_api.tasks.international_otp_generate_requests_blocked_task',
         'schedule': crontab(hour=8, minute=0),
     }
 }
