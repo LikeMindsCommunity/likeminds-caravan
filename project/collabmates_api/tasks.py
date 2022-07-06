@@ -1,4 +1,7 @@
 from __future__ import absolute_import, unicode_literals
+
+import os
+
 from celery import shared_task
 from django.template.loader import get_template
 from django.shortcuts import render
@@ -10,6 +13,10 @@ from django.db.models import Q
 from togther.models import *
 from cms.models import MessageTemplate
 from project.celery import app
+
+from utility.constants import INTERNATIONAL_OTP_LIMIT_MAIL_SUBJECT, INTERNATIONAL_OTP_LIMIT_MAIL_TEMPLATE, \
+    INTERNATIONAL_OTP_LIMIT_MAIL_RECEIVERS, INTERNATIONAL_OTP_LIMIT_API_PATH
+from utility.file_utilities import FileUtilities
 from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link,
                            is_LG_or_LP_community, is_IG_community, angellist_link, linkedIn_link, get_user_email,
@@ -872,6 +879,43 @@ def remove_guest_users_sdk():
             "userinfo__in": user_infos
         }
     ).delete()
+
+
+@app.task
+def international_otp_generate_requests_blocked_task() -> None:
+    api_url: str = settings.URL + f'/api/{INTERNATIONAL_OTP_LIMIT_API_PATH}'
+    requests.request("GET", api_url)
+
+
+def international_otp_generate_requests_blocked_mail(request) -> JsonResponse:
+    directory: str = './../../international_otp_blocked_requests/'
+    file_list: list = os.listdir(directory)
+
+    for file in file_list:
+        send_international_otp_generate_requests_blocked_mail(directory, file)
+        FileUtilities.remove_file(f'{directory}/{file}')
+
+    return JsonResponse({
+        'success': True
+    })
+
+
+def send_international_otp_generate_requests_blocked_mail(directory: str, file_name: str) -> None:
+    subject: str = INTERNATIONAL_OTP_LIMIT_MAIL_SUBJECT
+    template = get_template(INTERNATIONAL_OTP_LIMIT_MAIL_TEMPLATE).render()
+    mail_to: list[str] = INTERNATIONAL_OTP_LIMIT_MAIL_RECEIVERS
+    mail_categories: list[str] = MailHelper.get_email_category_list_using_category_subcategory(
+        EmailCategories.OTP,
+        EmailSubCategories.INTERNATIONAL_LIMIT_EXCEEDED
+    )
+    file_path: str = FileUtilities.get_absolute_file_path(f'{directory}/{file_name}')
+    attachments: list[str] = [file_path]
+
+    MailWrapper.send_email(subject=subject,
+                           template=template,
+                           attachments=attachments,
+                           to_mails_list=mail_to,
+                           categories=mail_categories)
 
 
 def get_user_last_active_check_timestamp():

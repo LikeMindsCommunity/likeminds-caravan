@@ -25,7 +25,7 @@ class MailWrapper(MailManager):
 
     @staticmethod
     @shared_task
-    def send_email(subject, template, to_mails_list, from_email=None, categories=None, reply_to=None):
+    def send_email(subject, template, to_mails_list, attachments=[], from_email=None, categories=None, reply_to=None):
 
         if not from_email:
             from_email = MailWrapper.from_email
@@ -42,6 +42,9 @@ class MailWrapper(MailManager):
             reply_to=reply_to
         )
         email.attach_alternative(template, "text/html")
+
+        for file_path in attachments:
+            email.attach_file(file_path, mimetype='application/octet-stream')
 
         if categories is not None:
             email.categories = categories

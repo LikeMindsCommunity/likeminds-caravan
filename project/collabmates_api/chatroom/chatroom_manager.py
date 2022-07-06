@@ -81,7 +81,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 or NotImplemented)
 
     @abc.abstractmethod
-    def fetch_chatroom(self, is_internal=False) -> dict:
+    def fetch_chatroom(self, is_internal=False, api_type: int = 0) -> dict:
         """
         fetching the chatroom from chatroom id
         """

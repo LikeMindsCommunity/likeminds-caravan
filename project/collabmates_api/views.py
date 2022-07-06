@@ -17,6 +17,7 @@ from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.otp.otp_api_client import OTPApiClient
 from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
+from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
@@ -51,7 +52,7 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     cm_onboarding_version_check, directory_questions_v2_version_check,
-                    get_user_email_preferred_verified)
+                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail)
 from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
     tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
@@ -4794,22 +4795,6 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         return dm_chatroom_actions
 
-    if api_type == api_types.SDK:
-        actions = [view_participants]
-
-        if creator or card_status.get('follow_status'):
-
-            if card_status.get('mute_status'):
-                actions.append(unMute_notifications)
-
-            else:
-                actions.append(mute_notifications)
-
-        elif not card_status.get('follow_status'):
-            actions.append(join_chatroom)
-
-        return actions
-
     purpose_card = False
     intro_card = False
     master_intro_card = False
@@ -4869,6 +4854,15 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     actions = []
 
     for action in final:
+
+        if (api_type == api_types.SDK) and any([action['id'] == chatroom_actions.ACTION_RENAME,
+                                                action['id'] == chatroom_actions.ACTION_INVITE,
+                                                action['id'] == chatroom_actions.ACTION_VIEW_COMMUNITY,
+                                                action['id'] == chatroom_actions.ACTION_ADD_ALL_MEMBERS,
+                                                action['id'] == chatroom_actions.ACTION_SETTINGS,
+                                                action['id'] == chatroom_actions.ACTION_DELETE,
+                                                action['id'] == chatroom_actions.ACTION_REPORT]):
+            continue
 
         if purpose_card or master_intro_card:
 
@@ -4938,7 +4932,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
             actions.insert(2, add_all_members)
 
-        else:
+        elif api_type != api_types.SDK:
             actions.append(add_all_members)
 
     if card_instance.is_secret and \
@@ -4964,7 +4958,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     if promoter and ((platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
                      or (
                              platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) or platform_code == "web") \
-            and not master_intro_card:
+            and not master_intro_card and (api_type != api_types.SDK):
         actions.append(chatroom_settings)
 
     if (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
@@ -7946,6 +7940,7 @@ def generate_otp(request):
             international = True
 
         if international and international_otp_limit_exceeded():
+            save_request_info(str(country_code), str(mobile_no), TimeUtilities.get_current_date())
 
             error_message: str = f"otp generate failed for={phone_no}, reason=international otp generate limit exceeded"
             error_logger.error(error_message)
@@ -7977,6 +7972,26 @@ def generate_otp(request):
     update_international_otp_generate_count(international, context)
 
     return JsonResponse(context)
+
+
+def save_request_info(country_code: str, mobile_no: str, timestamp: str) -> None:
+    international_otp_req_obj: list = [country_code, mobile_no, timestamp]
+
+    file_name: str = INTERNATIONAL_OTP_LIMIT_FILE_NAME % TimeUtilities.get_current_date(date_format=0)
+    file_path: str = f'./../../international_otp_blocked_requests/{file_name}'
+
+    """
+        If, file does not exists
+        Create file and write header
+    """
+    if not FileUtilities.is_exists_file(file_path):
+        header: list = ['country code', 'mobile number', 'timestamp']
+        FileUtilities.write_file_csv(file_path, 'w', header)
+
+    """
+        write data row
+    """
+    FileUtilities.write_file_csv(file_path, 'a', international_otp_req_obj)
 
 
 def international_otp_limit_exceeded() -> bool:
@@ -13868,6 +13883,7 @@ def get_dictionary_of_user_profiles(user_filter):
                 'id': user_id,
                 'name': data.name,
                 'image_url': data.image_link if data.image_link else '',
+                'is_guest': data.is_guest,
             }
 
         max_last_updated = max(max_last_updated, data.updated_at)
@@ -13888,6 +13904,7 @@ def get_guest_list_of_chatrooms(user_data_dict, user_card_dict):
                 'id': value['id'],
                 'name': value['name'],
                 'image_url': value['image_url'],
+                'is_guest': value.get('is_guest'),
                 'chatroom_id': user_data.get('card_id'),
                 'community_id': user_data.get('community_id')
             }
@@ -14145,7 +14162,8 @@ class SyncMembers(APIView):
                                               updated_at__gt=last_updated).only('user_id_id',
                                                                                 'name',
                                                                                 'image_link',
-                                                                                'updated_at').order_by(
+                                                                                'updated_at',
+                                                                                'is_guest').order_by(
             'updated_at',
             'user_id')
         user_filter = ModelUtilities.paginate_queryset(user_filter, page, paginate_by)
@@ -14232,6 +14250,7 @@ def compute_response_of_members_data(members_data, responses_data):
         member_context['name'] = data['name']
         member_context['image_url'] = data['image_url']
         member_context['state'] = data['state']
+        member_context['is_guest'] = data['is_guest']
         member_context['is_owner'] = data['is_owner']
         community_name = data['community_name']
         locale_time = time.localtime(data['created_at'])
