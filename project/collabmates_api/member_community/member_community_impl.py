@@ -894,8 +894,11 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
         chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
+        pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
+            community_id=community_instance.id)
 
-        return {'chatrooms': chatroom_context_list}
+        return {'success': True, 'chatrooms': chatroom_context_list,
+                'pinned_chatrooms_count': len(pinned_chatrooms_list)}
 
     def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="",
                        page=1) -> {}:
@@ -958,8 +961,11 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
         chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
+        pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
+            community_id=community_instance.id)
 
-        return {'chatrooms': chatroom_context_list}
+        return {'success': True, 'chatrooms': chatroom_context_list,
+                'pinned_chatrooms_count': len(pinned_chatrooms_list)}
 
     @staticmethod
     def create_feed_actions(community_instance,
