@@ -824,6 +824,12 @@ class CommunityImpl(CommunityManager):
                                                                          community_id=community_instance.id)
 
         else:
+
+            member_state = Members.get_community_member_state(community_instance, user_instance)
+
+            if member_state != member_states.PENDING_MEMBER:
+                return {'success': False, 'error_message': "User is not a pending member!"}
+
             self._decline_community_join_request(community_instance, user_instance)
             members_count = Members.get_members_count_in_community(community_instance)
             self.set_members_count_in_community(community_instance.id, members_count)
