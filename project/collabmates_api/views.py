@@ -10239,7 +10239,17 @@ def fetch_poll_users(request):
         if member_instance.exists():
             members_list.append(MembersSerializer(member_instance[0], community_id, current_user_id=member_id))
         else:
-            members_list.append(get_user_profile(member.user, send_profile=True))
+            user_data = get_user_profile(member.user, send_profile=True)
+
+            removed_members = ModelUtilities.get_model_filter(removedMembers, {'community': community_id,
+                                                                               'member': member.user})
+
+            removed_member_custom_text = {}
+
+            if removed_members:
+                removed_member_custom_text = get_removed_member_custom_text(removed_members[0])
+
+            members_list.append({**user_data, **removed_member_custom_text})
 
     return JsonResponse({"members": members_list})
 

@@ -1351,38 +1351,29 @@ class MemberCommunityImpl(MemberCommunityManager):
             return get_error_context(False, "Invalid value of key 'from'.")
 
     def fetch_member_profile(self, user_id):
-        current_user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        validated_req = MemberCommunityViewHelper.validate_fetch_member_profile_request(self.get_member_id(), user_id,
+                                                                                        self.get_community_id())
 
-        if not current_user_instance:
-            return get_error_context(False, "Invalid x-member-id")
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community_id")
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid user_id")
-
-        filter_dict = {
-            'member': user_instance,
-            'community': community_instance,
-            'removed_state': deleted_members.MEMBERSHIP_EXPIRED
-        }
+        current_user_instance = validated_req.get('current_user_instance')
+        community_instance = validated_req.get('community_instance')
+        user_instance = validated_req.get('user_instance')
 
         removed_user_state = self.compute_removed_user_context(user_instance, community_instance)
 
         if removed_user_state.get('remove_state'):
-            removed_user_state['success'] = True
-            return removed_user_state
+            return ResponseUtilities.get_impl_error_context("Profile doesn't exists!",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         current_user_member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
                                                                                'member_id': current_user_instance})
 
         if not current_user_member_filter:
-            return get_error_context(False, "You are not part of the community!")
+            return ResponseUtilities.get_impl_error_context("You are not part of the community!",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         current_user_member_instance = current_user_member_filter[0]
 
@@ -1390,7 +1381,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                        'member_id': user_instance})
 
         if not user_member_filter:
-            return get_error_context(False, "Profile doesn't exists!")
+            return ResponseUtilities.get_impl_error_context("Profile doesn't exists!",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         user_member_instance = user_member_filter[0]
 
