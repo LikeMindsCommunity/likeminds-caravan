@@ -310,7 +310,7 @@ LOGGING = {
     },
     'loggers': {
         'file_logger': {
-            'handlers': ['file_handler'],
+            'handlers': ['file_handler', 'console'],
             'level': 'INFO',
             'propagate': False,
         },
