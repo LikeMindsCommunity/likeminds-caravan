@@ -529,6 +529,9 @@ class CommunityImpl(CommunityManager):
 
     def approve_community_join_request(self, community_instance, user_instance, promoter_instance):
 
+        ModelUtilities.delete_record_in_model(removedMembers, {'community': community_instance,
+                                                               'member': user_instance})
+
         ModelUtilities.model_update(
             Members,
             {"member_id": user_instance, "community_id": community_instance},
@@ -578,8 +581,6 @@ class CommunityImpl(CommunityManager):
                                                                     req_body.get(questions_list_key),
                                                                     req_body.get('is_directory_questions_v2'))
 
-        ModelUtilities.delete_record_in_model(removedMembers, {'community': community_instance,
-                                                               'member': user_instance})
         Members.create_instance({'user_instance': user_instance,
                                  'community_instance': community_instance,
                                  'state': member_states.PENDING_MEMBER,
