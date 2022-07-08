@@ -59,5 +59,8 @@ class MemberCommunityViewHelper:
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user ID")
 
-        return {'user_instance': user_instance, 'community_instance': community_instance,
-                'current_user_instance': current_user_instance}
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'current_user_instance': current_user_instance
+        }
