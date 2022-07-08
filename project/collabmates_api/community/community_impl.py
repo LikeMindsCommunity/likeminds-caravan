@@ -77,7 +77,8 @@ from utility.response_utilities import ResponseUtilities
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
 from utility.celery_tasks import (create_member_dm_chatroom, create_intro_room_disabled_text_for_community_members,
-                                  update_preview_for_account_image_change, update_multiple_previews_in_community)
+                                  update_preview_for_account_image_change, update_multiple_previews_in_community,
+                                  update_community_pin_chatrooms_list_in_cache)
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..search.sync import ElasticSearchSync
 from ..notifications.tasks import send_mail_for_first_time_edit_community_questions
@@ -3207,6 +3208,12 @@ class CommunityHelper:
 
         if len(member_filter):
             update_community_get_started(community_instance, get_started_types.JOIN_COMMUNITY_HOOD, is_enabled=True)
+
+        pin_chatroom_cache = {
+            'community_id': community_instance.id
+        }
+
+        update_community_pin_chatrooms_list_in_cache.delay(pin_chatroom_cache)
 
     @staticmethod
     @shared_task

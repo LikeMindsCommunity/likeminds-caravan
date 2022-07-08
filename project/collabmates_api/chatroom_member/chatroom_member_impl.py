@@ -642,6 +642,7 @@ class ChatroomMemberHelper:
                             'member_can_message': card_instance.member_can_message,
                             'is_private_member': card_instance.is_private_member,
                             'third_party_unique_id': card_instance.third_party_unique_id,
+                            'is_pinned': card_instance.is_pinned,
                             'include_members_later': card_instance.include_members_later}
 
         if card_instance.is_secret:
