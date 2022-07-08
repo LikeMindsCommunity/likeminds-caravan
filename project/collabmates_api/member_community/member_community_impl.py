@@ -13,7 +13,8 @@ from togther.models import (Member_Engage, Community, Members, collabcardState, 
                             communityRightsSettings, CommunitySettings, communityAnswers, questionFilters,
                             Card_Attachment, CommunityDirectMessageSettings, userMemberRights)
 from utility.celery_tasks import update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery, \
-    update_multiple_previews_in_chatroom, set_level_click_state, create_member_dm_chatroom
+    update_multiple_previews_in_chatroom, set_level_click_state, create_member_dm_chatroom, \
+    update_community_pin_chatrooms_list_in_cache
 from utility.constants import CONVERSATIONS_DISTINCT_CREATORS_KEY, CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, \
     CUSTOM_CLICK_TEXT
 from utility.exception_utilities import CustomException
@@ -897,8 +898,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
             community_id=community_instance.id)
 
-        return {'success': True, 'chatrooms': chatroom_context_list,
-                'pinned_chatrooms_count': len(pinned_chatrooms_list)}
+        return {
+            'success': True,
+            'chatrooms': chatroom_context_list,
+            'pinned_chatrooms_count': len(pinned_chatrooms_list)
+        }
 
     def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="",
                        page=1) -> {}:
@@ -964,8 +968,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
             community_id=community_instance.id)
 
-        return {'success': True, 'chatrooms': chatroom_context_list,
-                'pinned_chatrooms_count': len(pinned_chatrooms_list)}
+        return {
+            'success': True,
+            'chatrooms': chatroom_context_list,
+            'pinned_chatrooms_count': len(pinned_chatrooms_list)
+        }
 
     @staticmethod
     def create_feed_actions(community_instance,
@@ -2632,7 +2639,7 @@ class MemberCommunityHelper:
         pinned_chatrooms_list = CacheImpl.get_cache(key)
 
         if not pinned_chatrooms_list:
-            return []
+            return update_community_pin_chatrooms_list_in_cache({'community_id': community_id})
 
         else:
             return pinned_chatrooms_list.get('pinned_chatrooms', [])
