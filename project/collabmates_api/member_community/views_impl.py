@@ -321,9 +321,10 @@ class FetchMemberProfileView(APIView):
         community_context = member_community_manager.fetch_member_profile(validated_req_body.get('user_id'))
 
         if 'error_message' in community_context:
-            return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                                community_context.get('status')))
 
-        return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+        return JsonResponse(community_context)
 
 
 class EditMemberProfileView(APIView):
