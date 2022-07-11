@@ -2793,6 +2793,11 @@ def get_ordered_card_id_on_the_basis_of_participants_count_v2(user_id, community
                                             AND        ca.type NOT IN {}
                                             {}
                                             AND        cs.user_id = {} {} ))
+            AND       togther_collabcardstate.user_id IN 
+                      (
+                         SELECT user_id_id
+                         FROM   togther_userinfo
+                         WHERE  is_guest = false )
             AND       togther_collabcardstate.follow_status = true
             AND       togther_collabcardstate.is_tagged = false
             AND       togther_collabcardstate.remove_id IS NULL
