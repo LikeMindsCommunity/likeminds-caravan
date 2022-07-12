@@ -9,14 +9,11 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
-envir = False
-
 try:
     from collabmates_api.notification import get_connection
     from project.celery import app
 
 except:
-    envir = True
     import sys
 
     sys.path.append("..")
