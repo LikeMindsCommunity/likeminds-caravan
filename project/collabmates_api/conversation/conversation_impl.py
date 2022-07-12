@@ -622,11 +622,9 @@ class ConversationImpl(ConversationManager):
 
                     userinfo_instance = userinfo_filter[0]
 
-                    member_data = {
-                        'id': user_id,
-                        'name': userinfo_instance.name,
-                        'image_url': userinfo_instance.image_link if userinfo_instance.image_link else ""
-                    }
+                    member_data = MemberCommunityImpl(member_id=user_id, community_id=community_instance.id).\
+                        compute_removed_user_context(user_instance=userinfo_instance.user_id,
+                                                     community_instance=community_instance)
 
                 else:
                     continue

@@ -38,7 +38,7 @@ from utility.celery_tasks import (
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
     reset_unread_message_count_in_cache, fetch_conversations_unread, update_deferred_card_poll_updated_at_value,
     get_to_show_results_for_conversation_poll, send_chatroom_deleted_analytics_data, cm_removed_dm_chatroom,
-    member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data)
+    member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data, update_community_pin_chatrooms_list_in_cache)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -3608,6 +3608,14 @@ def delete_chatroom_async(member_id, chatroom_id=None, draft_id=None,
 
         send_sync_notification.delay({'chatroom_id': chatroom_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+        cache_dict = {
+            'chatroom_id': collabcard_instance.id,
+            'community_id': community_id,
+            'pin_value': False
+        }
+
+        update_community_pin_chatrooms_list_in_cache.delay(cache_dict)
 
         # update elastic search
         ElasticSearchSync.delete_chatroom.delay(chatroom_id)
@@ -10239,7 +10247,17 @@ def fetch_poll_users(request):
         if member_instance.exists():
             members_list.append(MembersSerializer(member_instance[0], community_id, current_user_id=member_id))
         else:
-            members_list.append(get_user_profile(member.user, send_profile=True))
+            user_data = get_user_profile(member.user, send_profile=True)
+
+            removed_members = ModelUtilities.get_model_filter(removedMembers, {'community': community_id,
+                                                                               'member': member.user})
+
+            removed_member_custom_text = {}
+
+            if removed_members:
+                removed_member_custom_text = get_removed_member_custom_text(removed_members[0])
+
+            members_list.append({**user_data, **removed_member_custom_text})
 
     return JsonResponse({"members": members_list})
 
