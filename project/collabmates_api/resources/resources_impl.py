@@ -79,7 +79,11 @@ class ResourcesImpl(ResourceManager):
         updates the community_id class variable while deleting reference
 
         Args:
-            community_id (int)
+            req_body (dict)
+                category_id (nullable)
+                url_id (nullable)
+                file_id (nullable)
+                child_category_id (nullable)
         Returns:
             response (dict)
         """
@@ -151,6 +155,11 @@ class ResourcesImpl(ResourceManager):
         """
         updating resource settings
 
+        Args:
+            req_body (dict)
+                community_id
+                day_of_weekly_email (nullable)
+                time_of_weekly_email (nullable)
         Returns:
             response (dict)
         """
@@ -242,6 +251,15 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             req_body (dict) - request body
+                community_id
+                title
+                icon_url
+                parent_category_id (nullable)
+                view_type (nullable)
+                banner_url (nullable)
+                is_deleted (nullable)
+                is_downloadable (nullable)
+                is_pinned (nullable)
         Returns:
             response (dict)
         """
@@ -516,6 +534,17 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             req_body (dict) - request body
+                id
+                title (nullable)
+                icon_url (nullable)
+                view_type (nullable)
+                banner_url (nullable)
+                is_deleted (nullable)
+                is_downloadable (nullable)
+                is_pinned (nullable)
+                category_permission (nullable) - JSON list that updates permission for cohorts
+                    cohort (required) - Cohort ID
+                    access_type (required) - access type for that particular cohort.
         Returns:
             response (dict)
         """
@@ -724,6 +753,7 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             req_body (dict) - request body
+                id
         Returns:
             response (dict)
         """
@@ -850,6 +880,14 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             req_body (dict) - request body
+                category_id
+                url
+                title (nullable) - customised title of resource url ( to be updated in og_tags )
+                banner_url - customised banner for resource url ( to be updated in image key of og_tags )
+                og_tags (nullable) - JSON of og tags
+                is_deleted (nullable)
+                is_downloadable (nullable)
+                is_pinned (nullable)
         Returns:
             response (dict)
         """
@@ -1092,6 +1130,17 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             req_body (dict) - request body
+                id
+                url (nullable)
+                og_tags (nullable) - JSON of og tags
+                title (nullable) - customised title of resource url ( to be updated in og_tags )
+                banner_url - customised banner for resource url ( to be updated in image key of og_tags)
+                is_deleted (nullable)
+                is_downloadable (nullable)
+                is_pinned (nullable)
+                url_permission (nullable): JSON List that updates permission for cohorts
+                    cohort (required) - Cohort ID
+                    access_type (required) - access type for that particular cohort. Options:-
         Returns:
             response (dict)
         """
@@ -1326,6 +1375,7 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             req_body (dict) - request body
+                id
         Returns:
             response (dict)
         """
@@ -1388,6 +1438,14 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             req_body (dict) - request body
+                category_id
+                url
+                name
+                type
+                meta (nullable)
+                is_deleted (nullable)
+                is_downloadable (nullable)
+                is_pinned (nullable)
         Returns:
             response (dict)
         """
@@ -1592,6 +1650,18 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             req_body (dict) - request body
+            id
+            url (nullable)
+            name (nullable)
+            type (nullable)
+            meta (nullable)
+            banner - banner_url of resource_file
+            is_deleted (nullable)
+            is_downloadable (nullable)
+            is_pinned (nullable)
+            file_permission (nullable): JSON List that updates permission for cohorts
+                cohort (required) - Cohort ID
+                access_type (required) - access type for that particular cohort. 
         Returns:
             response (dict)
         """
@@ -1719,6 +1789,7 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             req_body (dict) - request body
+                id
         Returns:
             response (dict)
         """
@@ -1781,6 +1852,10 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             req_body (dict) - request body
+                category_id
+                url_id (nullable)
+                file_id (nullable)
+                child_category_id (nullable)
         Returns:
             response (dict)
         """
@@ -1856,6 +1931,10 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             req_body (dict) - request body
+                category_id (nullable)
+                url_id (nullable)
+                file_id (nullable)
+                child_category_id (nullable)
         Returns:
             response (dict)
         """
@@ -2259,6 +2338,9 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             req_body (dict) - request body
+                state
+                file_id (nullable) - Resource File ID
+                url_id (nullable) - Resource URL ID
         Returns:
             response (dict)
         """
@@ -2362,6 +2444,8 @@ class ResourcesImpl(ResourceManager):
 
         Args:
             req_body (dict) - request body
+                community_id
+                state
         Returns:
             response (dict)
         """
