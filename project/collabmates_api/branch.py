@@ -12,7 +12,7 @@ from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
                                BRANCH_FEATURE_COMMUNITY_OTL_URL, BRANCH_FEATURE_PAYMENT_PAGE_URL,
                                BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL, COMMUNITY_HOOD_ID,
                                COMMUNITY_HOOD_MARKETING_TITLE, BRANCH_LINK_TYPE, RESOURCES_TAB_FEATURE,
-                               RESOURCES_TAB_PATH, BRANCH_SINGLE_EVENT_URL)
+                               RESOURCES_TAB_PATH, BRANCH_SINGLE_EVENT_URL, APP_BACKEND)
 from utility.api_client import ApiClient
 from .utility import free_link_and_freemium_community_version_check
 
@@ -80,7 +80,7 @@ def create_community_branch_links(community_id, member_id, platform_code, versio
         if is_free_trial:
             public_url = free_trial_public_url
 
-    long_url_item = create_link_item(public_url, community_instance, "AppBackend", "CommunityPublic")
+    long_url_item = create_link_item(public_url, community_instance, APP_BACKEND, "CommunityPublic")
     data.append(long_url_item)
 
     if aj:
@@ -91,7 +91,7 @@ def create_community_branch_links(community_id, member_id, platform_code, versio
         if member_id:
             private_url = base_url + f'?shared_by={member_id}&aj={aj}'
 
-        long_url_item = create_link_item(private_url, community_instance, "AppBackend", "CommunityPrivate",
+        long_url_item = create_link_item(private_url, community_instance, APP_BACKEND, "CommunityPrivate",
                                          private=True)
         data.append(long_url_item)
 
@@ -100,7 +100,7 @@ def create_community_branch_links(community_id, member_id, platform_code, versio
         if member_id:
             directory_url += f'&shared_by={member_id}'
 
-        long_url_item = create_link_item(directory_url, community_instance, "AppBackend", DIRECTORY_FEATURE,
+        long_url_item = create_link_item(directory_url, community_instance, APP_BACKEND, DIRECTORY_FEATURE,
                                          private=True)
         data.append(long_url_item)
 
@@ -111,7 +111,7 @@ def create_community_branch_links(community_id, member_id, platform_code, versio
         if member_id:
             directory_url += f'&shared_by={member_id}'
 
-        long_url_item = create_link_item(directory_url, community_instance, "AppBackend", DIRECTORY_FEATURE)
+        long_url_item = create_link_item(directory_url, community_instance, APP_BACKEND, DIRECTORY_FEATURE)
         data.append(long_url_item)
 
         # creating private expired link for non logged in user
@@ -120,7 +120,7 @@ def create_community_branch_links(community_id, member_id, platform_code, versio
         if member_id:
             private_expired_link += f'&shared_by={member_id}'
 
-        long_url_item = create_link_item(private_expired_link, community_instance, "AppBackend", "Web download button",
+        long_url_item = create_link_item(private_expired_link, community_instance, APP_BACKEND, "Web download button",
                                          private=True)
         data.append(long_url_item)
 
@@ -244,7 +244,7 @@ def create_community_feed_url(community_instance):
 
     feed_url = f'{host_url}/community_feed?community_id={community_instance.id}'
 
-    long_url_item = create_link_item(feed_url, community_instance, "AppBackend", "CommunityFeed", private=True)
+    long_url_item = create_link_item(feed_url, community_instance, APP_BACKEND, "CommunityFeed", private=True)
     data.append(long_url_item)
 
     client = ApiClient()
@@ -270,7 +270,7 @@ def create_community_feed_url_for_cm_onboarding(community_instance):
 
     feed_url = CM_ONBOARDING_COMMUNITY_FEED_URL.format(host_url, community_instance.id, community_instance.name)
 
-    long_url_item = create_link_item(feed_url, community_instance, "AppBackend",
+    long_url_item = create_link_item(feed_url, community_instance, APP_BACKEND,
                                      BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL,
                                      private=True)
     data.append(long_url_item)
@@ -304,7 +304,7 @@ def create_community_otl_url(community_instance, payment_id, shared_by=None):
     else:
         private_url = base_url + f'?payment_id={payment_id}'
 
-    long_url_item = create_link_item(private_url, community_instance, "AppBackend", BRANCH_FEATURE_COMMUNITY_OTL_URL,
+    long_url_item = create_link_item(private_url, community_instance, APP_BACKEND, BRANCH_FEATURE_COMMUNITY_OTL_URL,
                                      private=True)
     data.append(long_url_item)
 
@@ -333,7 +333,7 @@ def create_payment_page_url(community_instance, payment_id):
 
     private_url = base_url + f'?payment_page_id={payment_id}'
 
-    long_url_item = create_link_item(private_url, community_instance, "AppBackend", BRANCH_FEATURE_PAYMENT_PAGE_URL)
+    long_url_item = create_link_item(private_url, community_instance, APP_BACKEND, BRANCH_FEATURE_PAYMENT_PAGE_URL)
     data.append(long_url_item)
 
     client = ApiClient()
@@ -359,7 +359,7 @@ def create_resources_tab_url(community_instance):
 
     base_url = RESOURCES_TAB_PATH % community_instance.id
 
-    long_url_item = create_link_item(base_url, community_instance, "AppBackend", RESOURCES_TAB_FEATURE)
+    long_url_item = create_link_item(base_url, community_instance, APP_BACKEND, RESOURCES_TAB_FEATURE)
     
     data.append(long_url_item)
 
@@ -390,7 +390,7 @@ def create_single_event_branch_url(card_instance, should_register=False):
     if should_register:
         single_event_url = single_event_url + AUTO_REGISTER_PARAMS
 
-    long_url_item = create_link_item(single_event_url, card_instance.community, "AppBackend",
+    long_url_item = create_link_item(single_event_url, card_instance.community, APP_BACKEND,
                                      BRANCH_SINGLE_EVENT_URL)
     data.append(long_url_item)
 

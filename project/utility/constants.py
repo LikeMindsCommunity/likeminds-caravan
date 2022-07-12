@@ -104,3 +104,5 @@ INTERNATIONAL_OTP_LIMIT_API_PATH = 'otp_limit_mail'
 
 RESOURCES_TAB_PATH = 'resources/%s'
 RESOURCES_TAB_FEATURE = 'Resources Tab'
+
+APP_BACKEND = "AppBackend"
