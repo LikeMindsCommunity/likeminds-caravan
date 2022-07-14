@@ -579,6 +579,8 @@ class Collabcard(models.Model):
     single_event_url = models.TextField(null=True)
     third_party_unique_id = models.TextField(null=True, blank=True)
 
+    card_image_url = models.TextField(null=True)
+
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
         current_time_msec = TimeUtilities.current_time_in_milliseconds()

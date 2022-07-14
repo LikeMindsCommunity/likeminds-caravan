@@ -234,6 +234,10 @@ class CommunityImpl(CommunityManager):
         chatroom_context['id'] = chatroom_instance.id
         chatroom_context['title'] = chatroom_instance.title
         chatroom_context['header'] = chatroom_instance.header
+
+        if chatroom_instance.card_image_url:
+            chatroom_context['card_image_url'] = chatroom_instance.card_image_url
+
         chatroom_context['community_id'] = chatroom_instance.community_id
         chatroom_context['type'] = chatroom_instance.type
         chatroom_context['date'] = TimeUtilities.convert_epoch_time_in_date(chatroom_instance.date_epoch)
