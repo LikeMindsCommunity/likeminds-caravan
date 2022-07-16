@@ -1,5 +1,8 @@
 from .models import ResourceCategoryPermission, ResourceFilePermission, ResourceURLPermission
 
+DEFAULT_DAY_OF_WEEKLY_RESOURCES_EMAIL = 0
+DEFAULT_TIME_OF_WEEKLY_RESOURCES_EMAIL = 9
+
 FETCH_RESOURCE_CATEGORY_PAGE_SIZE = 50
 
 class RESOURCE_STATE:

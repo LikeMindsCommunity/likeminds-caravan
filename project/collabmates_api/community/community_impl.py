@@ -83,6 +83,7 @@ from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..search.sync import ElasticSearchSync
 from ..notifications.tasks import send_mail_for_first_time_edit_community_questions
 from ..user.user_impl import UserHelper, UserImpl
+from ..resources.resources_impl import ResourceHelper
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
     directory_questions_v2_version_check, get_user_phone
@@ -1503,6 +1504,8 @@ class CommunityImpl(CommunityManager):
         CommunityHelper.set_user_email_status.delay(user_instance.id, community_instance.id)
 
         CommunityHelper.set_community_data_in_cache(community_instance.id)
+
+        ResourceHelper.create_resource_settings_on_community_creation.delay(community_instance.id)
 
         community_serializer = CommunitySerializerV1(community_instance,
                                                      context={"current_user_id": self.get_member_id(),

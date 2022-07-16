@@ -676,7 +676,7 @@ def send_8_pm_noti_for_new_resources_added():
                         (member, community_id))
 
     except Exception as e:
-        error_logger.exception("got error in send_8_pm_noti_for_new_resources_added | error - %s" % (str(e)))
+        error_logger.error("got error in send_8_pm_noti_for_new_resources_added | error - %s" % (str(e)))
 
 
 @app.task
@@ -710,7 +710,7 @@ def trigger_weekly_emails_for_resources_tab():
                             (setting.get('community_id'), setting.get('time_of_weekly_email')))
 
     except Exception as e:
-        error_logger.exception("got error in schedule_weekly_emails_for_resources_tab | error - %s" % (str(e)))
+        error_logger.error("got error in schedule_weekly_emails_for_resources_tab | error - %s" % (str(e)))
 
 @shared_task
 def schedule_weekly_emails_for_resources_tab(community_id, time_of_weekly_email):
@@ -773,4 +773,4 @@ def schedule_weekly_emails_for_resources_tab(community_id, time_of_weekly_email)
                     (member, community_id))
 
     except Exception as e:
-        error_logger.exception("got error in schedule_weekly_emails_for_resources_tab | error - %s" % (str(e)))
+        error_logger.error("got error in schedule_weekly_emails_for_resources_tab | error - %s" % (str(e)))

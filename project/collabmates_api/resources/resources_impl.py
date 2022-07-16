@@ -3012,3 +3012,29 @@ class ResourceHelper:
             event_name,
             event_dict
         )
+
+    @staticmethod
+    @shared_task
+    def create_resource_settings_on_community_creation(community_id):
+        """
+        Creates Resource Settings instance against a community with default
+        values on community creation
+        """
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        community_instance = ModelUtilities.get_model_instance_or_none(
+            Community,
+            community_id
+        )
+
+        try:
+            ResourceSettings.objects.create(
+                community_id=community_instance,
+                day_of_weekly_email=DEFAULT_DAY_OF_WEEKLY_RESOURCES_EMAIL,
+                time_of_weekly_email=DEFAULT_TIME_OF_WEEKLY_RESOURCES_EMAIL,
+                created_at=current_time,
+                updated_at=current_time
+            )
+
+        except Exception as e:
+            error_logger.error("Exception occurred while creating ResourceSettings on community creation - %s" % e.args)
