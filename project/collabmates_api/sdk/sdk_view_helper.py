@@ -162,7 +162,8 @@ class SdkViewHelper:
         if request_params.get('screen_id', None):
             filters['id'] = request_params['screen_id']
 
-        onboarding_screens = ModelUtilities.get_model_filter(SdkOnboardingScreen, filters)
+        onboarding_screens = ModelUtilities.get_model_filter(SdkOnboardingScreen, filters).order_by('index',
+                                                                                                    'created_at')
 
         return {'onboarding_screens': onboarding_screens}
 
