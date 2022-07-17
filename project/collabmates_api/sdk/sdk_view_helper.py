@@ -1,6 +1,7 @@
 from utility.response_utilities import ResponseUtilities
 from togther.models import ModelUtilities
 from utility.states import (login_types)
+from .models import SdkClient, SdkOnboardingScreen
 
 
 class SdkViewHelper:
@@ -142,3 +143,118 @@ class SdkViewHelper:
             join_req_body['image_url'] = request_body.get('image_url')
 
         return {'login_req_body': login_req_body, 'join_req_body': join_req_body}
+
+    @staticmethod
+    def fetch_onboarding_screens_validator(request_params, api_key):
+
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context('Send api_key in headers')
+
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid API key!")
+
+        filters = {
+            'community': community_instance
+        }
+
+        if request_params.get('screen_id', None):
+            filters['id'] = request_params['screen_id']
+
+        onboarding_screens = ModelUtilities.get_model_filter(SdkOnboardingScreen, filters)
+
+        return {'onboarding_screens': onboarding_screens}
+
+    @staticmethod
+    def create_onboarding_screen_validator(request_body, api_key, member_id):
+
+        if not request_body:
+            return ResponseUtilities.get_inner_error_context('Invalid request body')
+
+        if not request_body.get('index'):
+            return ResponseUtilities.get_inner_error_context('Send valid screen index')
+
+        if not request_body.get('image'):
+            return ResponseUtilities.get_inner_error_context('Send valid image url')
+
+        member_validator = SdkViewHelper._member_id_validator(member_id)
+
+        if 'error_message' in member_validator:
+            return member_validator
+
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context('Send api_key in headers')
+
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid API key!")
+
+        return {'user_instance': member_validator.get('user_instance'), 'community_instance': community_instance}
+
+    @staticmethod
+    def edit_onboarding_screen_validator(request_body, api_key, member_id):
+
+        if not request_body:
+            return ResponseUtilities.get_inner_error_context('Invalid request body')
+
+        if not request_body.get('id'):
+            return ResponseUtilities.get_inner_error_context('Send valid id')
+
+        if 'index' in request_body and not request_body.get('index'):
+            return ResponseUtilities.get_inner_error_context('Send valid screen index')
+
+        if 'image' in request_body and not request_body.get('image'):
+            return ResponseUtilities.get_inner_error_context('Send valid image url')
+
+        member_validator = SdkViewHelper._member_id_validator(member_id)
+
+        if 'error_message' in member_validator:
+            return member_validator
+
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context('Send api_key in headers')
+
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid API key!")
+
+        screen = ModelUtilities.get_model_instance_or_none(SdkOnboardingScreen, request_body.get('id'))
+
+        if not screen:
+            return ResponseUtilities.get_inner_error_context("Invalid screen id sent")
+
+        return {'user_instance': member_validator.get('user_instance'), 'community_instance': community_instance,
+                'screen_instance': screen}
+
+    @staticmethod
+    def delete_onboarding_screen_validator(request_body, api_key, member_id):
+
+        if not request_body:
+            return ResponseUtilities.get_inner_error_context('Invalid request body')
+
+        if not request_body.get('id'):
+            return ResponseUtilities.get_inner_error_context('Send valid id')
+
+        member_validator = SdkViewHelper._member_id_validator(member_id)
+
+        if 'error_message' in member_validator:
+            return member_validator
+
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context('Send api_key in headers')
+
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid API key!")
+
+        screen = ModelUtilities.get_model_instance_or_none(SdkOnboardingScreen, request_body.get('id'))
+
+        if not screen:
+            return ResponseUtilities.get_inner_error_context("Invalid screen id sent")
+
+        return {'user_instance': member_validator.get('user_instance'), 'community_instance': community_instance,
+                'screen_instance': screen}
