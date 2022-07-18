@@ -111,8 +111,8 @@ class PinUnpinChatroomView(APIView):
         context = chatroom_manager.pin_or_unpin_chatroom(req_body)
 
         if context.get('error_message'):
-            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
-
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
         return JsonResponse(context)
 
 

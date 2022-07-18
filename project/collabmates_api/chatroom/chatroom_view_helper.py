@@ -1,7 +1,7 @@
 from utility.response_utilities import ResponseUtilities
 from togther.models import (ModelUtilities, Members, Collabcard)
 from rest_framework import status as status_codes
-from utility.states import (member_states)
+from utility.states import (member_states, card_types)
 from collabmates_api.sdk.models import (SdkClient)
 
 
@@ -168,5 +168,31 @@ class ChatroomViewHelper:
 
         if not is_cm:
             return ResponseUtilities.get_inner_error_context("You need to be Owner/CM of the community to enable auto follow")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def validate_pin_unpin_chatroom_request(chatroom_id, member_id):
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid chatroom id")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid user id")
+
+        if card_instance.is_secret:
+            return ResponseUtilities.get_inner_error_context("Secret chatroom cannot be pinned!")
+
+        if card_instance.type not in [card_types.CARD_NORMAL, card_types.CARD_POLL, card_types.CARD_PURPOSE]:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom type!")
+
+        if not ModelUtilities.is_model_filter_exists(Members, {'state': member_states.ADMIN,
+                                                               'member_id': member_id,
+                                                               'community_id': card_instance.community}):
+            return ResponseUtilities.get_inner_error_context("You need to be promoter in order to pin unpin!")
 
         return {'user_instance': user_instance, 'card_instance': card_instance}

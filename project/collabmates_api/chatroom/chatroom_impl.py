@@ -1158,26 +1158,18 @@ class ChatroomImpl(ChatroomManager):
             )
 
     def pin_or_unpin_chatroom(self, req_body: dict) -> dict:
+        validated_req = ChatroomViewHelper.validate_pin_unpin_chatroom_request(self.get_chatroom_id(),
+                                                                               self.get_member_id())
 
-        chatroom_id = self.get_chatroom_id()
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
         value = req_body['value']
         notify = req_body['notify']
 
-        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
-
-        if not chatroom_instance:
-            return {'error_message': "invalid chatroom id", 'success': False}
-
-        if chatroom_instance.is_secret:
-            return {'error_message': "secret chatroom cannot be pinned", 'success': False}
-
+        chatroom_instance = validated_req.get('card_instance')
         community_instance = chatroom_instance.community
-
-        if not ModelUtilities.is_model_filter_exists(Members, {'state': member_states.ADMIN,
-                                                               'member_id': self.get_member_id(),
-                                                               'community_id': community_instance}):
-            return {'error_message': "You need to be promoter in order to pin unpin", 'success': False}
-
         pinned_status = chatroom_instance.is_pinned
 
         if pinned_status is value:
