@@ -167,7 +167,8 @@ class ChatroomViewHelper:
         is_cm = member_instance.state == member_states.ADMIN
 
         if not is_cm:
-            return ResponseUtilities.get_inner_error_context("You need to be Owner/CM of the community to enable auto follow")
+            return ResponseUtilities.get_inner_error_context("You need to be Owner/CM of the community to enable auto "
+                                                             "follow")
 
         return {'user_instance': user_instance, 'card_instance': card_instance}
 
@@ -194,5 +195,31 @@ class ChatroomViewHelper:
                                                                'member_id': member_id,
                                                                'community_id': card_instance.community}):
             return ResponseUtilities.get_inner_error_context("You need to be promoter in order to pin unpin!")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def validate_fetch_chatroom_settings_request(member_id, chatroom_id):
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid chatroom id")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid user id")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("You are not a part of this community.")
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return ResponseUtilities.get_inner_error_context("You can’t view settings of this chatroom!")
 
         return {'user_instance': user_instance, 'card_instance': card_instance}
