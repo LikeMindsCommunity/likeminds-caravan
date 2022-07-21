@@ -132,7 +132,7 @@ collabcard_action_user_follow_mute = [
 
     {
         'id': 8,
-        'title': 'UnMute notifications'
+        'title': 'Unmute notifications'
     },
 
     {
@@ -201,7 +201,7 @@ collabcard_action_dm_user_mute = [
     },
     {
         'id': 8,
-        'title': 'UnMute notifications'
+        'title': 'Unmute notifications'
     }
 ]
 
@@ -219,7 +219,7 @@ mute_notifications = {'id': 6, 'title': 'Mute notifications'}
 
 delete_chatroom = {'id': 7, 'title': 'Delete chatroom'}
 
-unMute_notifications = {'id': 8, 'title': 'UnMute notifications'}
+unMute_notifications = {'id': 8, 'title': 'Unmute notifications'}
 
 unfollow_chatroom = {'id': 9, 'title': 'Leave chatroom'}
 
