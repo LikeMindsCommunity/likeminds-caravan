@@ -1035,7 +1035,7 @@ class collabcardState(models.Model):
         return chatroom_state_instance
 
     @staticmethod
-    def create_chatroom_state_instance(card_instance, user_instance, state=1,
+    def create_chatroom_state_instance(card_instance, user_instance, noti_state=1, state=1,
                                        expire_at=None, external_seen=True, is_guest=False, source=None,
                                        follow_status=False,
                                        mute_status=False, is_tagged=False, external_follow=False,
@@ -1058,6 +1058,7 @@ class collabcardState(models.Model):
             collabcard_state_instance.is_guest = is_guest
             collabcard_state_instance.source = source
             collabcard_state_instance.external_follow = external_follow
+            collabcard_state_instance.noti_state = noti_state
 
             collabcard_state_instance.save()
 
@@ -1068,7 +1069,7 @@ class collabcardState(models.Model):
             error_logger.error(e)
 
     @staticmethod
-    def create_chatroom_state_instances_for_bulk_create(card_instance, user_instance, noti_state, state=1,
+    def create_chatroom_state_instances_for_bulk_create(card_instance, user_instance, noti_state=1, state=1,
                                                         expire_at=None, external_seen=True, is_guest=False, source=None,
                                                         follow_status=False,
                                                         mute_status=False, is_tagged=False, external_follow=False,

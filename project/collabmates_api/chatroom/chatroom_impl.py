@@ -3807,6 +3807,11 @@ class ChatroomHelper:
             is_tagged = True
             mute_status = True
 
+        from collabmates_api.community.community_impl import CommunityHelper
+
+        community_noti_instance = CommunityHelper.fetch_community_noti_settings_instance(community_instance)
+        community_current_noti_state = community_noti_instance.noti_state if community_noti_instance else noti_states.ALL_MESSAGES
+
         chatroom_state_instance = None
         collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
                                                                                     'user': user_instance})
@@ -3815,6 +3820,7 @@ class ChatroomHelper:
 
             expiry_time = ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
             card_state_instance = collabcardState.create_chatroom_state_instance(card_instance, user_instance,
+                                                                                 noti_state=community_current_noti_state,
                                                                                  state=collabcard_states.COLLABCARD_STATE_SEEN,
                                                                                  expire_at=expiry_time,
                                                                                  is_guest=is_guest,
