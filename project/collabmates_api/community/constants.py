@@ -182,3 +182,5 @@ FREE_PLAN = "free"
 LEAST_MEMBER_RIGHT_STATE_VALUE = 0
 
 SDK_COMMUNITY_HEADLINE = "We will send all the announcements here on this chatroom."
+
+COMMUNITY_NOTIFICATION_SETTING_UPDATED_EVENT = "Default Chatroom Notification setting updated"

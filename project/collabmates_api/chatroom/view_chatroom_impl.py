@@ -1146,3 +1146,50 @@ class ScheduledChatroomFollow(APIView):
                 res,
                 status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class ChatroomNotificationSettings(APIView):
+
+    def _validate_request(self, member_id, req_body):
+
+        if not member_id:
+            return {'success': False, 'error_message': "Send x-member-id in headers"}
+
+        if not req_body:
+            return {'success': False, 'error_message': "Invalid request body"}
+
+        if not req_body.get('chatroom_id'):
+            return {'success': False, 'error_message': "Invalid Chatroom ID!"}
+
+        return {'success': True}
+
+    def put(self, request):
+        try:
+            req_body = RequestUtilities.load_request_body(request)
+            member_id = RequestUtilities.get_member_id_from_headers(request)
+
+            validated_request = self._validate_request(member_id, req_body)
+
+            if not validated_request.get('success'):
+                return JsonResponse(validated_request, status=status_codes.HTTP_400_BAD_REQUEST)
+
+            chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
+            response_context = chatroom_manager.update_chatroom_noti_settings(req_body.get('noti_state'),
+                                                                              req_body.get('is_noti_paused'),
+                                                                              req_body.get('pause_noti_for'))
+
+            if response_context.get('success'):
+                return JsonResponse(response_context, status=status_codes.HTTP_200_OK)
+
+            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            res = {
+                'success': False,
+                'Exception': str(e)
+            }
+            error_logger.error(e.args)
+            return JsonResponse(
+                res,
+                status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+            )
