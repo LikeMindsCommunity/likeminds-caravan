@@ -78,3 +78,26 @@ class SdkPlatform(models.Model):
         self.updated_at = current_time
 
         super(SdkPlatform, self).save(*args, **kwargs)
+
+
+class SdkOnboardingScreen(models.Model):
+
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    index = models.PositiveIntegerField()
+    image = models.TextField()
+    heading = models.TextField(null=True)
+    text = models.TextField(null=True)
+    cta_colour = models.CharField(max_length=7, null=True)
+    cta_text = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(SdkOnboardingScreen, self).save(*args, **kwargs)
