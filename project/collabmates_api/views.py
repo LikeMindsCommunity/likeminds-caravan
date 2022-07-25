@@ -7215,6 +7215,10 @@ def upload_conversation_attachments(body, member_id):
         ConversationHelper.update_homescreen_meta_on_conversation_creation(
             community_instance, chatroom_instance, conversation_instance)
 
+        update_conversation_engage_for_chatrooms(card_id=chatroom_instance.id, user_id=member_id,
+                                                 last_conversation_id=conversation_instance.id,
+                                                 unseen_count=0)
+
         send_follow_notification.delay(card_id=chatroom_instance.id, user_id=conversation_instance.user_id,
                                        conversation_id=conversation_instance.id)
 

@@ -1158,26 +1158,18 @@ class ChatroomImpl(ChatroomManager):
             )
 
     def pin_or_unpin_chatroom(self, req_body: dict) -> dict:
+        validated_req = ChatroomViewHelper.validate_pin_unpin_chatroom_request(self.get_chatroom_id(),
+                                                                               self.get_member_id())
 
-        chatroom_id = self.get_chatroom_id()
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
         value = req_body['value']
         notify = req_body['notify']
 
-        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
-
-        if not chatroom_instance:
-            return {'error_message': "invalid chatroom id", 'success': False}
-
-        if chatroom_instance.is_secret:
-            return {'error_message': "secret chatroom cannot be pinned", 'success': False}
-
+        chatroom_instance = validated_req.get('card_instance')
         community_instance = chatroom_instance.community
-
-        if not ModelUtilities.is_model_filter_exists(Members, {'state': member_states.ADMIN,
-                                                               'member_id': self.get_member_id(),
-                                                               'community_id': community_instance}):
-            return {'error_message': "You need to be promoter in order to pin unpin", 'success': False}
-
         pinned_status = chatroom_instance.is_pinned
 
         if pinned_status is value:
@@ -2343,30 +2335,16 @@ class ChatroomImpl(ChatroomManager):
         return {'success': True}
 
     def fetch_chatroom_settings(self) -> dict:
+        validated_req = ChatroomViewHelper.validate_fetch_chatroom_settings_request(self.get_member_id(),
+                                                                                    self.get_chatroom_id())
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not user_instance:
-            return {'success': False, 'error_message': "In-valid user id"}
-
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
-
-        if not card_instance:
-            return {'success': False, 'error_message': "In-valid chatroom id"}
-
+        user_instance = validated_req.get('user_instance')
+        card_instance = validated_req.get('card_instance')
         community_instance = card_instance.community
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
-                                                                  'member_id': user_instance})
-
-        if not member_filter:
-            return {'success': False, 'error_message': "User is not a member of community"}
-
-        member_instance = member_filter[0]
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if not is_cm:
-            return {'success': False, 'error_message': "User can’t view settings of this chatroom"}
 
         if create_chatroom_revamp_version_check(self.get_request_platform(), self.get_version_code()):
             chatroom_settings = settings_for_chatroom_with_revamp.copy()
@@ -2381,22 +2359,16 @@ class ChatroomImpl(ChatroomManager):
                 chatroom_settings.append(manage_permissions)
                 chatroom_settings.append(pin_chatroom)
 
-            settings_list = ChatroomHelper.get_settings_for_chatroom(chatroom_settings, card_instance)
-
-            return {'success': True, 'settings': settings_list}
-
-        if card_instance.type == card_types.CARD_PURPOSE:
-            chatroom_settings = settings_for_purpose_chatroom.copy()
-
         else:
             chatroom_settings = settings_for_chatroom.copy()
             admin_has_delete_right = check_admin_delete_right(user=user_instance,
                                                               community=community_instance)
 
-            if card_instance.is_secret or (card_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]):
+            if card_instance.is_secret or (card_instance.type not in [card_types.CARD_NORMAL, card_types.CARD_POLL,
+                                                                      card_types.CARD_PURPOSE]):
                 chatroom_settings.remove(pin_chatroom)
 
-            if admin_has_delete_right:
+            if admin_has_delete_right and (card_instance.type not in [card_types.CARD_PURPOSE]):
                 chatroom_settings.append(delete_chatroom)
 
         settings_list = ChatroomHelper.get_settings_for_chatroom(chatroom_settings, card_instance)
