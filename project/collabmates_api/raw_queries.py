@@ -731,7 +731,7 @@ def get_chatroom_query_meta_for_sync():
                     togther_collabcardState.chat_request_state,
                     togther_collabcardState.chat_requested_by_id,
                     togther_collabcardState.chat_request_created_at,
-                    togther_collabcard.card_image_url
+                    togther_collabcard.chatroom_image_url
                 """
 
     return meta_query

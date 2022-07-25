@@ -645,8 +645,8 @@ class ChatroomMemberHelper:
                             'is_pinned': card_instance.is_pinned,
                             'include_members_later': card_instance.include_members_later}
 
-        if card_instance.card_image_url:
-            chatroom_context['card_image_url'] = card_instance.card_image_url
+        if card_instance.chatroom_image_url:
+            chatroom_context['chatroom_image_url'] = card_instance.chatroom_image_url
 
         if card_instance.is_secret:
             chatroom_context['secret_chatroom_participants'] = json.loads(card_instance.secret_chatroom_participants)

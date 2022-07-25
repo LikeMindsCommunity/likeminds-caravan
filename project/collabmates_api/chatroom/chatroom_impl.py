@@ -1496,7 +1496,7 @@ class ChatroomImpl(ChatroomManager):
         card_image_url = req_body.get('card_image_url')
 
         if not (title or header or text or card_image_url):
-            return ResponseUtilities.get_impl_error_context("Send title/header/card_image_url to update",
+            return ResponseUtilities.get_impl_error_context("Send title/header/chatroom_image_url to update",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         update_analytics_data = {
@@ -1516,7 +1516,7 @@ class ChatroomImpl(ChatroomManager):
             update_analytics_data['updated_description'] = True
 
         if card_image_url:
-            update_dict['card_image_url'] = card_image_url
+            update_dict['chatroom_image_url'] = card_image_url
             update_analytics_data['updated_card_image'] = True
 
         ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, update_dict)

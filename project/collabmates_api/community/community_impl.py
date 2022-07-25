@@ -235,8 +235,8 @@ class CommunityImpl(CommunityManager):
         chatroom_context['title'] = chatroom_instance.title
         chatroom_context['header'] = chatroom_instance.header
 
-        if chatroom_instance.card_image_url:
-            chatroom_context['card_image_url'] = chatroom_instance.card_image_url
+        if chatroom_instance.chatroom_image_url:
+            chatroom_context['chatroom_image_url'] = chatroom_instance.chatroom_image_url
 
         chatroom_context['community_id'] = chatroom_instance.community_id
         chatroom_context['type'] = chatroom_instance.type
