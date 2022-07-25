@@ -240,6 +240,9 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'include_members_later': card.include_members_later
     }
 
+    if card.chatroom_image_url:
+        collabcard['chatroom_image_url'] = card.chatroom_image_url
+
     if card.secret_chatroom_participants:
         collabcard['secret_chatroom_participants'] = json.loads(card.secret_chatroom_participants)
 

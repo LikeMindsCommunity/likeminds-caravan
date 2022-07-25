@@ -12186,6 +12186,9 @@ class SyncChatrooms(APIView):
             if data[72]:
                 chatroom["chat_request_created_at"] = data[72]
 
+            if data[73]:
+                chatroom["chatroom_image_url"] = data[73]
+
             chatroom['unread_messages'] = fetch_conversations_unread(data[0], member_id)
 
             chatroom['cohorts'] = cohort_member_map.get(data[0], [])
