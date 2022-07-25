@@ -1493,7 +1493,7 @@ class ChatroomImpl(ChatroomManager):
         title = req_body.get('title')
         text = req_body.get('text')
         header = req_body.get('header')
-        card_image_url = req_body.get('card_image_url')
+        card_image_url = req_body.get('chatroom_image_url')
 
         if not (title or header or text or card_image_url):
             return ResponseUtilities.get_impl_error_context("Send title/header/chatroom_image_url to update",
