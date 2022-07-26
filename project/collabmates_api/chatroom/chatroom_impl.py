@@ -285,13 +285,14 @@ class ChatroomImpl(ChatroomManager):
                                               is_tagged=False).count()
 
     def _fill_chatroom_basic_info(self, card_content, title, community, user, chatroom_type, auto_follow_done=False,
-                                  include_members_later=False):
+                                  include_members_later=False, chatroom_image_url=None):
         card_content['title'] = title
         card_content['community'] = community
         card_content['user'] = user
         card_content['type'] = chatroom_type
         card_content['auto_follow_done'] = auto_follow_done
         card_content['include_members_later'] = include_members_later
+        card_content['chatroom_image_url'] = chatroom_image_url
 
         card_content['device_id'] = self.device_id
         card_content['platform'] = self.request_platform
@@ -1021,12 +1022,14 @@ class ChatroomImpl(ChatroomManager):
         is_intro_card = chatroom_type == card_types.CARD_INTRO
         auto_follow_done = req_body.get('auto_follow_done', False)
         include_members_later = req_body.get('include_members_later', False)
+        chatroom_image_url = req_body.get('chatroom_image_url', None)
 
         card_content = {}
 
         self._fill_chatroom_basic_info(card_content, chatroom_name,
                                        community_instance, user_instance, chatroom_type,
-                                       auto_follow_done=auto_follow_done, include_members_later=include_members_later)
+                                       auto_follow_done=auto_follow_done, include_members_later=include_members_later,
+                                       chatroom_image_url=chatroom_image_url)
         self._fill_chatroom_attachment_count(card_content, req_body)
         self._fill_chatroom_epoch_time(card_content, req_body)
 
