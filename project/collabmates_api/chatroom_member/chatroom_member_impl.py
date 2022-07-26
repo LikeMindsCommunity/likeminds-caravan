@@ -421,8 +421,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                                                                                                  community_instance)
 
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
-        participants_list = ChatroomHelper.chatroom_participants_count(card_instance)
-        chatroom_context['participants_count'] = len(participants_list)
+        chatroom_context['participants_count'] = ChatroomHelper.chatroom_participants_count(card_instance)
 
         return chatroom_context
 
