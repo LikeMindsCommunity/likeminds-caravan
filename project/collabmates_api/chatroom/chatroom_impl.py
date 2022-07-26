@@ -279,11 +279,6 @@ class ChatroomImpl(ChatroomManager):
 
         save_the_latest_conversation(card_instance, self.get_member_id())
 
-    def _chatroom_participants_count(self, card_instance):
-
-        return collabcardState.objects.filter(follow_status=True, card=card_instance, remove=None,
-                                              is_tagged=False).count()
-
     def _fill_chatroom_basic_info(self, card_content, title, community, user, chatroom_type, auto_follow_done=False,
                                   include_members_later=False):
         card_content['title'] = title
@@ -905,7 +900,7 @@ class ChatroomImpl(ChatroomManager):
                                                           context={"current_user_id": user_instance.id},
                                                           many=False).data
         chatroom_obj['unread_messages'] = fetch_conversations_unread(self.get_chatroom_id(), self.get_member_id())
-        chatroom_obj['participant_count'] = self._chatroom_participants_count(card_instance)
+        chatroom_obj['participant_count'] = ChatroomHelper.chatroom_participants_count(card_instance)
         chatroom_obj['conversation_users'] = self._latest_conversations_user_data()
         self._save_external_seen_in_chatroom_state(card_instance, user_instance)
 
@@ -4800,3 +4795,22 @@ class ChatroomHelper:
     def set_chatroom_participants_created_key_in_cache(chatroom_id, are_participants_created=False):
         key = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(chatroom_id)
         CacheImpl.set_cache(key, {"are_participants_created": are_participants_created})
+
+    @staticmethod
+    def chatroom_participants_count(card_instance):
+
+        filter_dict = {
+            'card': card_instance,
+            'follow_status': True,
+            'is_tagged': False,
+            'remove': None,
+            'user__userinfo__is_guest': False
+        }
+
+        total_participants_list = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',
+                                                                                                            flat=True)
+
+        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list,
+                                                                           card_instance.community)
+
+        return len(member_data)

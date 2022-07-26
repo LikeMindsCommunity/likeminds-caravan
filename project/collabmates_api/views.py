@@ -5469,10 +5469,9 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
             context['participant_count'] = len(get_members_based_on_user_list_query(secret_room_participants,
                                                                                     card_instance.community_id))
         else:
-            context['participant_count'] = collabcardState.objects.filter(follow_status=True,
-                                                                          card=card_instance, remove=None,
-                                                                          is_tagged=False,
-                                                                          user__userinfo__is_guest=False).count()
+            from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+            context['participant_count'] = ChatroomHelper.chatroom_participants_count(card_instance)
+
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
 
     if not conversation_member_filter.exists():
