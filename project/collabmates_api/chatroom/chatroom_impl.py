@@ -1442,15 +1442,19 @@ class ChatroomImpl(ChatroomManager):
         community_id = chatroom_instance.community_id
 
         user_list = []
+        auto_followed = False
 
         auto_follow_done = request_body.get('auto_follow_done', True)
         include_members_later = request_body.get('include_members_later', True)
 
-        chatroom_instance.auto_follow_done = auto_follow_done
+        if (not chatroom_instance.auto_follow_done) and auto_follow_done:
+            chatroom_instance.auto_follow_done = auto_follow_done
+            auto_followed = True
+
         chatroom_instance.include_members_later = include_members_later
         chatroom_instance.save()
 
-        if chatroom_instance.auto_follow_done:
+        if auto_followed:
             community_members = list(Members.get_members_of_community(community_id).values_list('member_id',
                                                                                                 flat=True))
 
@@ -1471,12 +1475,7 @@ class ChatroomImpl(ChatroomManager):
                 send_notification_for_auto_follow_chatroom_for_all_members.delay(self.get_chatroom_id(),
                                                                                  user_instance.id, user_list)
 
-            return {'success': True}
-
-        else:
-            return ResponseUtilities.get_impl_error_context(
-                'All members of this community are already added to this chat room',
-                status_code=status_codes.HTTP_400_BAD_REQUEST)
+        return {'success': True}
 
     def edit_chatroom(self, req_body) -> dict:
         validated_req = ChatroomViewHelper.validate_edit_chatroom_request(self.get_member_id(),
