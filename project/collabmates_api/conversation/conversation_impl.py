@@ -1199,8 +1199,9 @@ class ConversationImpl(ConversationManager):
 
         validation_dict = ConversationHelper.validate_set_topic_request(user_instance, chatroom_instance)
 
-        if not validation_dict['success']:
-            raise CustomException(validation_dict, status_code=status_codes.HTTP_400_BAD_REQUEST)
+        if validation_dict.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validation_dict.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_instance.topic = conversation_instance
         chatroom_instance.save()
@@ -1819,8 +1820,8 @@ class ConversationHelper:
 
         if all([chatroom_instance.user_id != user_instance.id,
                 not Members.is_member_community_promoter(chatroom_instance.community, user_instance)]):
-            response['success'] = False
-            response['error_message'] = "only chatroom creator can change the topic of chatroom"
+            return ResponseUtilities.get_inner_error_context('Only chatroom creator or CM can change the topic of '
+                                                             'chatroom')
 
         return response
 
