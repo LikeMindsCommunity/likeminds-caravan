@@ -1458,6 +1458,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         question_answers = req_body.get('question_answers', [])
         image_url = req_body.get('image_url')
+        user_name = req_body.get('user_name')
 
         if question_answers:
             ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
@@ -1505,6 +1506,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                                                  community_instance)
 
         user_member_filter.update(edit_required=False, updated_at=TimeUtilities.current_time_in_sec())
+
+        if user_name:
+            ModelUtilities.model_update(Members, {'member_id': user_instance, 'community': community_instance},
+                                        {'user_name': user_name})
 
         if image_url:
             MemberCommunityHelper.update_users_image_url_in_community(user_member_filter, image_url,

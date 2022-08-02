@@ -209,6 +209,8 @@ class Members(models.Model):
 
     has_onboarded = models.BooleanField(default=False)
 
+    user_name = models.TextField(null=True)
+
     @staticmethod
     def create_instance(create_info):
         member_instance = Members()
