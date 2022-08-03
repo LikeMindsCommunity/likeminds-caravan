@@ -235,6 +235,10 @@ class SetChatroomTopic(APIView):
                                                 conversation_id=conversation_id)
         response = conversation_manager.set_chatroom_topic()
 
+        if response.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
+                                                                                response.get('status')))
+
         return JsonResponse(response)
 
 
