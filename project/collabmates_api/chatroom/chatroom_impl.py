@@ -105,7 +105,7 @@ from collabmates_api.notifications.tasks import trigger_event_comms, send_app_no
 from collabmates_api.notifications.constants import EVENT_TYPE, CALENDAR_INVITE_TYPE
 
 from utility.response_utilities import ResponseUtilities
-from utility.cache_keys import (CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY)
+from utility.cache_keys import (CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, CHATROOM_TYPE_CONVERSION)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -3146,25 +3146,17 @@ class ChatroomImpl(ChatroomManager):
 
     def change_chatroom_type(self, req_body) -> dict:
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        validated_req = ChatroomViewHelper.validate_change_chatroom_type_request(self.get_member_id(),
+                                                                                 self.get_chatroom_id(),
+                                                                                 req_body)
 
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user id"}
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
-
-        if not card_instance:
-            return {'success': False, 'error_message': "Invalid chatroom id"}
-
-        is_cm = Members.is_member_community_promoter(card_instance.community, user_instance)
-
-        if card_instance.user_id != user_instance.id and not is_cm:
-            return {'success': False, 'error_message': "You don’t have ability to change chatroom type"}
+        card_instance = validated_req.get('card_instance')
 
         self.set_chatroom_id(req_body.get('chatroom_id'))
-
-        if 'is_secret' not in req_body:
-            return {'success': False, 'error_message': "Send chatroom type to update"}
 
         is_secret = req_body.get('is_secret')
 
@@ -3177,13 +3169,33 @@ class ChatroomImpl(ChatroomManager):
             last_conversion_time = conversion_filter[0].converted_at
 
             if last_conversion_time + TimeUtilities.MILLI_SEC_IN_A_DAY > TimeUtilities.current_time_in_milliseconds():
-                return {'success': False, 'error_message': 'Action not allowed, try again after a few hours.'}
+                return ResponseUtilities.get_impl_error_context('Action not allowed, try again after a few hours.',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        ChatroomHelper.set_chatroom_conversion_type_status_key_in_cache(self.get_chatroom_id(), True)
 
         if is_secret:
             convert_chatroom_to_secret_chatroom.delay(self.get_chatroom_id())
 
         else:
             convert_chatroom_to_open_chatroom.delay(self.get_chatroom_id())
+
+        return {'success': True}
+
+    def get_change_chatroom_type_status(self) -> dict:
+        validated_req = ChatroomViewHelper.validate_change_chatroom_type_status_request(self.get_member_id(),
+                                                                                        self.get_chatroom_id())
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        change_chatroom_status = ChatroomHelper.get_chatroom_conversion_type_status_of_chatroom_from_cache(
+            self.get_chatroom_id())
+
+        if change_chatroom_status:
+            return ResponseUtilities.get_impl_error_context('Chatroom conversion in progress!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         return {'success': True}
 
@@ -4816,3 +4828,16 @@ class ChatroomHelper:
                                                                            card_instance.community)
 
         return len(member_data)
+
+    @staticmethod
+    def set_chatroom_conversion_type_status_key_in_cache(chatroom_id, is_converting=False):
+        key = CHATROOM_TYPE_CONVERSION.format(chatroom_id)
+        CacheImpl.set_cache(key, {"is_converting": is_converting})
+
+    @staticmethod
+    def get_chatroom_conversion_type_status_of_chatroom_from_cache(chatroom_id):
+
+        key = CHATROOM_TYPE_CONVERSION.format(chatroom_id)
+        chatroom_conversion_type = CacheImpl.get_cache(key)
+
+        return chatroom_conversion_type.get('is_converting', False)

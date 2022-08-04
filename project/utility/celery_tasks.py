@@ -2405,6 +2405,9 @@ def convert_chatroom_to_secret_chatroom(chatroom_id):
     log_chatroom_secret_type_conversion_activity(chatroom_id, is_secret=True)
     update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': chatroom_instance}, {})
 
+    from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+    ChatroomHelper.set_chatroom_conversion_type_status_key_in_cache(chatroom_id)
+
 
 @shared_task
 @transaction.atomic()
@@ -2442,6 +2445,9 @@ def convert_chatroom_to_open_chatroom(chatroom_id):
     ModelUtilities.bulk_create_instances(collabcardState, bulk_create_instances)
     log_chatroom_secret_type_conversion_activity(chatroom_id, is_secret=False)
     update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': chatroom_instance}, {})
+
+    from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+    ChatroomHelper.set_chatroom_conversion_type_status_key_in_cache(chatroom_id)
 
 
 @shared_task
