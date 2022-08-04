@@ -11,7 +11,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
                             Collabcard, card_answers, conversationEngage, communityQuestions, CommunityUserDelete,
                             communityRightsSettings, CommunitySettings, communityAnswers, questionFilters,
-                            Card_Attachment, CommunityDirectMessageSettings, userMemberRights)
+                            Card_Attachment, CommunityDirectMessageSettings, userMemberRights, Userinfo)
 from utility.celery_tasks import update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery, \
     update_multiple_previews_in_chatroom, set_level_click_state, create_member_dm_chatroom, \
     update_community_pin_chatrooms_list_in_cache
@@ -1500,6 +1500,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                      'last_updated': TimeUtilities.current_time_in_milliseconds()})
                         update_preview = True
 
+                elif question_instance.question_state == question_states.NAME:
+                    MemberCommunityHelper.update_user_alias_name(self.get_member_id(), self.get_community_id(),
+                                                                 question.get(DIRECTORY_QUESTIONS_V2_ANSWER_KEY))
+
         question_answers_data = MemberCommunityHelper.get_question_answer_data_in_member_profile(user_member_instance,
                                                                                                  user_member_instance,
                                                                                                  community_instance)
@@ -1979,10 +1983,11 @@ class MemberCommunityHelper:
                 if not community_question_instance:
                     continue
 
-                if all([community_question_instance.question_title == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                if any([all([community_question_instance.question_title == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
                         community_question_instance.is_hidden,
                         community_question_instance.field,
-                        community_question_instance.question_state == question_states.PARAGRAPH]):
+                        community_question_instance.question_state == question_states.PARAGRAPH]),
+                        community_question_instance.question_state == question_states.NAME]):
                     continue
 
                 question_data = CommunityQuestionsSerializerV2(community_question_instance, many=False).data
@@ -2635,3 +2640,11 @@ class MemberCommunityHelper:
 
         else:
             return pinned_chatrooms_list.get('pinned_chatrooms', [])
+
+    @staticmethod
+    def update_user_alias_name(user_id, community_id, user_name):
+        ModelUtilities.model_update(Userinfo, {'user_id': user_id}, {'name': user_name})
+
+        ModelUtilities.model_update(Members,
+                                    {'member_id': user_id, 'community_id': community_id},
+                                    {'updated_at': TimeUtilities.current_time_in_sec()})

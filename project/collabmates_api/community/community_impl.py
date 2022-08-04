@@ -3116,8 +3116,22 @@ class CommunityHelper:
                 'is_compulsory': True,
                 'field': True,
                 'can_add_options': False
-            },
+            }
         ]
+
+        if is_sdk:
+            question_data_list.append({
+                'community': community_instance.id,
+                'question_title': CREATE_COMMUNITY_QUESTION_ALIAS_TITLE,
+                'question_state': question_states.NAME,
+                'value': None,
+                'optional': False,
+                'help_text': CREATE_COMMUNITY_QUESTION_NAME_HELP_TEXT,
+                'is_hidden': False,
+                'is_compulsory': False,
+                'field': False,
+                'can_add_options': False
+            })
 
         community_question_serializer = CommunityQuestionsSerializerV2(data=question_data_list, many=True)
 
