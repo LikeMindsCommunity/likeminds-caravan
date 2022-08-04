@@ -173,7 +173,7 @@ class SdkViewHelper:
         if not request_body:
             return ResponseUtilities.get_inner_error_context('Invalid request body')
 
-        if not request_body.get('index'):
+        if request_body.get('index', -1) < 0:
             return ResponseUtilities.get_inner_error_context('Send valid screen index')
 
         if not request_body.get('image'):
