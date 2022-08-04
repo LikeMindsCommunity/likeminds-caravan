@@ -5469,10 +5469,9 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
             context['participant_count'] = len(get_members_based_on_user_list_query(secret_room_participants,
                                                                                     card_instance.community_id))
         else:
-            context['participant_count'] = collabcardState.objects.filter(follow_status=True,
-                                                                          card=card_instance, remove=None,
-                                                                          is_tagged=False,
-                                                                          user__userinfo__is_guest=False).count()
+            from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+            context['participant_count'] = ChatroomHelper.chatroom_participants_count(card_instance)
+
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
 
     if not conversation_member_filter.exists():
@@ -7214,6 +7213,10 @@ def upload_conversation_attachments(body, member_id):
                                                                            conversation_instance.id)
         ConversationHelper.update_homescreen_meta_on_conversation_creation(
             community_instance, chatroom_instance, conversation_instance)
+
+        update_conversation_engage_for_chatrooms(card_id=chatroom_instance.id, user_id=member_id,
+                                                 last_conversation_id=conversation_instance.id,
+                                                 unseen_count=0)
 
         send_follow_notification.delay(card_id=chatroom_instance.id, user_id=conversation_instance.user_id,
                                        conversation_id=conversation_instance.id)
@@ -12181,6 +12184,9 @@ class SyncChatrooms(APIView):
 
             if data[72]:
                 chatroom["chat_request_created_at"] = data[72]
+
+            if data[73]:
+                chatroom["chatroom_image_url"] = data[73]
 
             chatroom['unread_messages'] = fetch_conversations_unread(data[0], member_id)
 

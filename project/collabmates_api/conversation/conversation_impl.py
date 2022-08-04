@@ -15,6 +15,7 @@ from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER,
 from utility.response_utilities import ResponseUtilities
 
 from .conversation_manager import ConversationManager
+from .conversation_view_helper import ConversationViewHelper
 from .reactions import fetch_chatroom_or_conversation_reactions
 from ..chatroom import chatroom_impl
 from ..notification import send_notification_to_message_creator_on_reaction, get_tagged_members_list, \
@@ -1184,15 +1185,23 @@ class ConversationImpl(ConversationManager):
 
     def set_chatroom_topic(self) -> dict:
 
-        user_instance = User.get_user_or_raise_exception(self.get_member_id())
-        conversation_instance = card_answers.get_conversation_or_raise_exception(self.get_conversation_id())
-        chatroom_instance = Collabcard.get_chatroom_or_raise_exception(self.get_chatroom_id())
+        validated_request = ConversationViewHelper.validate_set_topic_request(self.get_member_id(),
+                                                                              self.get_chatroom_id(),
+                                                                              self.get_conversation_id())
 
-        validation_dict = ConversationHelper.validate_set_topic_request(user_instance, conversation_instance,
-                                                                        chatroom_instance)
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not validation_dict['success']:
-            raise CustomException(validation_dict, status_code=status_codes.HTTP_400_BAD_REQUEST)
+        user_instance = validated_request.get('user_instance')
+        conversation_instance = validated_request.get('conversation_instance')
+        chatroom_instance = validated_request.get('chatroom_instance')
+
+        validation_dict = ConversationHelper.validate_set_topic_request(user_instance, chatroom_instance)
+
+        if validation_dict.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validation_dict.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_instance.topic = conversation_instance
         chatroom_instance.save()
@@ -1803,15 +1812,16 @@ class ConversationHelper:
                         topic_text=topic_text)
 
     @staticmethod
-    def validate_set_topic_request(user_instance, conversation_instance, chatroom_instance):
+    def validate_set_topic_request(user_instance, chatroom_instance):
 
         response = {
             "success": True,
         }
 
-        if chatroom_instance.user_id != user_instance.id:
-            response['success'] = False
-            response['error_message'] = "only chatroom creator can change the topic of chatroom"
+        if all([chatroom_instance.user_id != user_instance.id,
+                not Members.is_member_community_promoter(chatroom_instance.community, user_instance)]):
+            return ResponseUtilities.get_inner_error_context('Only chatroom creator or CM can change the topic of '
+                                                             'chatroom')
 
         return response
 
