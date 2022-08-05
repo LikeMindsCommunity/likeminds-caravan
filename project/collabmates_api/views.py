@@ -3934,6 +3934,8 @@ def fetch_share_url(request):
     '''api to share the url of community and chatroom'''
     member_id = get_member_id_from_headers(request)
 
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
     chatroom_id = request.GET.get('chatroom_id')
     community_id = request.GET.get('community_id')
     platform_code = RequestUtilities.get_platform_code(request)
@@ -3944,15 +3946,18 @@ def fetch_share_url(request):
     is_cm_onboarding_enabled = cm_onboarding_version_check(platform_code, version_code)
 
     if not user_instance:
-        context = get_error_context(False, "In-valid member id")
+        context = ResponseUtilities.get_view_impl_error_context("In-valid member id",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
 
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context)
 
     if chatroom_id:
-        try:
-            card_instance = Collabcard.objects.get(id=chatroom_id)
-        except Exception as e:
-            context = get_error_context(False, e.args)
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            context = ResponseUtilities.get_view_impl_error_context("In-valid card id",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
             return JsonResponse(context)
 
         if card_instance.type == card_types.CARD_MASTER_INTRO or card_instance.type == card_types.CARD_PURPOSE:
@@ -3973,13 +3978,17 @@ def fetch_share_url(request):
 
         return JsonResponse({'chatroom_share': chatroom_share, 'success': True})
 
-    if community_id:
+    if community_id or api_key:
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        community_instance = validate_community_id_or_api_key(community_id, api_key)
 
-        if not community_instance:
-            return JsonResponse({'success': False,
-                                 'error_message': "Invalid community id"}, status=status_codes.HTTP_400_BAD_REQUEST)
+        if community_instance.get('error_message'):
+            context = ResponseUtilities.get_view_impl_error_context(community_instance.get('error_message'),
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
+            return JsonResponse(context)
+
+        community_instance = community_instance.get('community_instance')
 
         community_share = {}
 
@@ -4004,12 +4013,15 @@ def fetch_share_url(request):
                 fill_share_context_for_unpaid_community(community_instance, share_context, community_share)
 
         if not community_share:
-            return JsonResponse({'error_message': "Error in generating link", 'success': False},
-                                status=status_codes.HTTP_400_BAD_REQUEST)
+            context = ResponseUtilities.get_view_impl_error_context("Error in generating link",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
+            return JsonResponse(context)
 
         return JsonResponse({'community_share': community_share, 'success': True})
 
-    return JsonResponse({'error_message': "Invalid request", 'success': False}, status=400)
+    return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Invalid request",
+                                                                        status_codes.HTTP_400_BAD_REQUEST))
 
 
 @csrf_exempt
