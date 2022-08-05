@@ -11466,31 +11466,39 @@ def fetch_pending_chatroom(request):
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     current_user_id = get_member_id_from_headers(request)
-    # user_instance = User.objects.get(id=current_user_id)
 
     community_id = request.GET.get('community_id', None)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
+    community_instance = validate_community_id_or_api_key(community_id, api_key)
 
     if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context('send member_id in headers',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+    if community_instance.get('error_message'):
+        context = ResponseUtilities.get_view_impl_error_context(community_instance.get('error_message'),
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
+
+    community_instance = community_instance.get('community_instance')
+    community_id = community_instance.id
 
     member_instance = Members.objects.filter(community_id=community_id, member_id=current_user_id,
                                              state=member_states.ADMIN)
     if member_instance.exists():
-        member = member_instance[0]
         has_right_0 = check_admin_delete_right(user=current_user_id, community=community_id)
 
         if not has_right_0:
-            context = get_error_context(False, "you doesnt have required right to view pending chat rooms")
-            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+            context = ResponseUtilities.get_view_impl_error_context('You doesnt have required right to view pending '
+                                                                    'chat rooms', status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**context)
 
     else:
-        context = get_error_context(False, "You are not a CM of this community")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context('You are not a CM of this community',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     pending_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=True,
                                                   is_deleted=False).order_by('id')
