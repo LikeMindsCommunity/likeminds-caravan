@@ -4840,4 +4840,7 @@ class ChatroomHelper:
         key = CHATROOM_TYPE_CONVERSION.format(chatroom_id)
         chatroom_conversion_type = CacheImpl.get_cache(key)
 
-        return chatroom_conversion_type.get('is_converting', False)
+        if chatroom_conversion_type:
+            return chatroom_conversion_type.get('is_converting', False)
+
+        return False

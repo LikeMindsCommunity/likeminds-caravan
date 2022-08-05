@@ -2406,7 +2406,7 @@ def convert_chatroom_to_secret_chatroom(chatroom_id):
     update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': chatroom_instance}, {})
 
     from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
-    ChatroomHelper.set_chatroom_conversion_type_status_key_in_cache(chatroom_id)
+    ChatroomHelper.set_chatroom_conversion_type_status_key_in_cache(chatroom_id, is_converting=False)
 
 
 @shared_task
@@ -2447,7 +2447,7 @@ def convert_chatroom_to_open_chatroom(chatroom_id):
     update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': chatroom_instance}, {})
 
     from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
-    ChatroomHelper.set_chatroom_conversion_type_status_key_in_cache(chatroom_id)
+    ChatroomHelper.set_chatroom_conversion_type_status_key_in_cache(chatroom_id, is_converting=False)
 
 
 @shared_task
