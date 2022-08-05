@@ -2646,5 +2646,10 @@ class MemberCommunityHelper:
         ModelUtilities.model_update(Userinfo, {'user_id': user_id}, {'name': user_name})
 
         ModelUtilities.model_update(Members,
-                                    {'member_id': user_id, 'community_id': community_id},
-                                    {'updated_at': TimeUtilities.current_time_in_sec()})
+                                    {
+                                        'member_id': user_id,
+                                        'community_id': community_id
+                                    },
+                                    {
+                                        'updated_at': TimeUtilities.current_time_in_sec()
+                                    })
