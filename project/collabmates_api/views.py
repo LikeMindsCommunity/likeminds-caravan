@@ -6262,38 +6262,54 @@ def collabcards_seen(request):
     params = request.GET
     community_id = None
     card_id = None
-    collabcard_type = None
     user_id = None
+
     if 'community_id' in params:
         community_id = params['community_id']
+
     if 'collabcard_id' in params:
         card_id = params['collabcard_id']
+
     if 'member_id' in params:
         user_id = params['member_id']
-    if 'collabcard_type' in params:
-        collabcard_type = params['collabcard_type']
 
-    try:
-        collabcards_seen_internal(community_id, card_id, collabcard_type, user_id)
-    except Exception as e:
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
-        error_logger.error(e.args)
+    community = validate_community_id_or_api_key(community_id, api_key)
 
-        return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
+    if community.get('error_message'):
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community.get('error_message'),
+                                                                            status_codes.HTTP_400_BAD_REQUEST))
 
-    send_sync_notification.delay({'community_id': community_id,
+    community_instance = community.get('community_instance')
+
+    context = collabcards_seen_internal(card_id, user_id, community_instance)
+
+    send_sync_notification.delay({'community_id': community_instance.id,
                                   'member_id': user_id,
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
 
-    return JsonResponse({'success': True})
+    if 'error_message' in context:
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                            context.get('status')))
+
+    return JsonResponse(context)
 
 
-def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
+def collabcards_seen_internal(card_id, user_id, community_instance):
     '''This internal functions stores the details of members who have seen the card'''
 
-    community = Community.objects.get(id=community_id)
-    user_instance = User.objects.get(id=user_id)
-    card_instance = Collabcard.objects.get(id=card_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        return ResponseUtilities.get_impl_error_context('Invalid x-member-id',
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+
+    if not card_instance:
+        return ResponseUtilities.get_impl_error_context('Invalid card id',
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     # saving the state in collabcard state table if it is not present
     is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
@@ -6301,7 +6317,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
     if not is_present.exists():
         create_chatroom_state_instance(card_instance, user_instance,
                                        function_called="collabcards_seen_internal")
-        update_last_unseen_in_engage(user=user_instance, community=community)
+        update_last_unseen_in_engage(user=user_instance, community=community_instance)
 
     else:
 
@@ -6320,7 +6336,9 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
             state_instance.updated_at = TimeUtilities.current_time_in_sec()
 
         state_instance.save()
-        update_last_unseen_in_engage(user=user_instance, community=community)
+        update_last_unseen_in_engage(user=user_instance, community=community_instance)
+
+    return {'success': True}
 
 
 @csrf_exempt
