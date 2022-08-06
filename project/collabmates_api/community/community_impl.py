@@ -3061,7 +3061,7 @@ class CommunityHelper:
         return receivers_list
 
     @staticmethod
-    def create_introduction_question_in_community_v2(community_instance):
+    def create_introduction_question_in_community_v2(community_instance, is_sdk=False):
         '''function to create introduction question in community and mobile information'''
 
         if ModelUtilities.is_model_filter_exists(communityQuestions,
@@ -3074,7 +3074,7 @@ class CommunityHelper:
                 'question_title': CREATE_COMMUNITY_QUESTION_INTRODUCTION_TITLE,
                 'question_state': question_states.INTRODUCTION,
                 'value': json.dumps(CREATE_COMMUNITY_QUESTION_INTRODUCTION_VALUE),
-                'optional': False,
+                'optional': True if is_sdk else False,
                 'help_text': None,
                 'is_hidden': False,
                 'is_compulsory': False,
@@ -3098,7 +3098,7 @@ class CommunityHelper:
                 'question_title': CREATE_COMMUNITY_QUESTION_EMAIL_TITLE,
                 'question_state': question_states.EMAIL_ID,
                 'value': json.dumps(CREATE_COMMUNITY_QUESTION_EMAIL_VALUE),
-                'optional': False,
+                'optional': True if is_sdk else False,
                 'help_text': CREATE_COMMUNITY_QUESTION_EMAIL_HELP_TEXT,
                 'is_hidden': False,
                 'is_compulsory': True,
@@ -3116,8 +3116,22 @@ class CommunityHelper:
                 'is_compulsory': True,
                 'field': True,
                 'can_add_options': False
-            },
+            }
         ]
+
+        if is_sdk:
+            question_data_list.append({
+                'community': community_instance.id,
+                'question_title': CREATE_COMMUNITY_QUESTION_ALIAS_TITLE,
+                'question_state': question_states.NAME,
+                'value': None,
+                'optional': False,
+                'help_text': CREATE_COMMUNITY_QUESTION_NAME_HELP_TEXT,
+                'is_hidden': False,
+                'is_compulsory': False,
+                'field': False,
+                'can_add_options': False
+            })
 
         community_question_serializer = CommunityQuestionsSerializerV2(data=question_data_list, many=True)
 
@@ -3190,7 +3204,8 @@ class CommunityHelper:
         add_community_settings_for_community(community_instance, user_instance)
 
         if req_body.get('is_directory_questions_version', False):
-            CommunityHelper.create_introduction_question_in_community_v2(community_instance)
+            CommunityHelper.create_introduction_question_in_community_v2(community_instance,
+                                                                         is_sdk=api_type == api_types.SDK)
 
         else:
             create_introduction_question_in_community(community_instance)
