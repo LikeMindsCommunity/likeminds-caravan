@@ -1501,7 +1501,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                         update_preview = True
 
                 elif question_instance.question_state == question_states.NAME:
-                    MemberCommunityHelper.update_user_alias_name(self.get_member_id(), self.get_community_id(),
+                    MemberCommunityHelper.update_user_alias_name(self.get_member_id(),
+                                                                 self.get_community_id(),
                                                                  question.get(DIRECTORY_QUESTIONS_V2_ANSWER_KEY))
 
         question_answers_data = MemberCommunityHelper.get_question_answer_data_in_member_profile(user_member_instance,
@@ -2643,7 +2644,13 @@ class MemberCommunityHelper:
 
     @staticmethod
     def update_user_alias_name(user_id, community_id, user_name):
-        ModelUtilities.model_update(Userinfo, {'user_id': user_id}, {'name': user_name})
+        ModelUtilities.model_update(Userinfo,
+                                    {
+                                        'user_id': user_id
+                                    },
+                                    {
+                                        'name': user_name
+                                    })
 
         ModelUtilities.model_update(Members,
                                     {
