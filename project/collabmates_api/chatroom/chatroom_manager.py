@@ -344,6 +344,14 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def get_change_chatroom_type_status(self) -> dict:
+        """
+        Get chatroom type(secret/open) change status
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def create_dm_chatroom(self, req_body) -> dict:
         """
         Creates a DM chatroom
