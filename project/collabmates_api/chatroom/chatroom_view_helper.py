@@ -278,3 +278,34 @@ class ChatroomViewHelper:
             return ResponseUtilities.get_inner_error_context("You are not CM/owner or chatroom creator!")
 
         return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def validate_get_tagging_list_request(member_id, chatroom_id):
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid chatroom id")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid user id")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def validate_update_files_request(member_id, chatroom_id):
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom id")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        if card_instance.user_id != user_instance.id:
+            return ResponseUtilities.get_inner_error_context("Only chatroom creator can update files")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
