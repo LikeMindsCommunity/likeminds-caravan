@@ -3406,7 +3406,7 @@ def update_seen_status_for_new_user_in_chatroom(community_instance, user_instanc
 def chatroom_mute(request):
     '''function to mute and unmute chatroom'''
     chatroom_id = request.POST.get('chatroom_id')
-    card_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
     if not card_instance:
         context = get_error_context(False, "send chatroom id as post parameters")
@@ -3415,7 +3415,7 @@ def chatroom_mute(request):
 
     member_id = get_member_id_from_headers(request)
 
-    user_instance = User.get_user_or_none(member_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
     if not user_instance:
         context = get_error_context(False, "send member id in headers")
@@ -6087,7 +6087,7 @@ def follow_chatroom_async(collabcard_id,
 
     # user cant unfollow his own collabcard
     if not status and card_instance.user_id == user_instance.id:
-        return JsonResponse({'success': True})
+        return {'success': True}
 
     cache_key = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(collabcard_id)
     are_chatroom_participants_created = CacheImpl.get_cache(cache_key)
@@ -6099,14 +6099,12 @@ def follow_chatroom_async(collabcard_id,
     community_instance = card_instance.community
     member_state = Members.get_community_member_state(community_instance.id, user_instance.id)
 
-    expiry_time = get_expiry_time_of_chatroom()
-
     collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
                                                                                 'user': user_instance})
 
     if not collabcard_state_filter:
         card_state_instance = collabcardState.create_chatroom_state_instance(card_instance, user_instance,
-                                                                             expire_at=expiry_time,
+                                                                             expire_at=None,
                                                                              follow_status=status, external_follow=True)
 
         if status:
