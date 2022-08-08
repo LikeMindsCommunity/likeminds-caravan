@@ -270,23 +270,23 @@ def my_chatrooms_version_1(request):
 
     member_id = get_member_id_from_headers(request)
     if not member_id:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context('send member id in headers',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
     if not user_instance:
         context = get_error_context(False, "Invalid user ID")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    page = request.GET.get('page', 1)
-    try:
-        page = int(page)
-    except:
-        context = get_error_context(False, "send page number correctly")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+    page = NumberUtilities.get_integer_from_string(request.GET.get('page', 1))
+
+    if page <= 1:
+        page = 1
 
     community_id = request.GET.get('community_id', None)
     community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+ 
     if community_id and not community_instance:
         context = get_error_context(False, "Invalid community ID")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -4381,30 +4381,33 @@ def fetch_chatroom(request):
 
 
 def fetch_chatroom_version_2(request):
-    is_ios = is_platform_ios(request)
     card_id = request.GET.get('chatroom_id', '')
-    if not card_id:
-        context = get_error_context(False, "send chat_room_id as a get params")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    conversation_id = request.GET.get('conversation_id')
-    scroll_direction = request.GET.get('scroll_direction')
+    if not card_id:
+        context = ResponseUtilities.get_view_impl_error_context('send chat_room_id as a get params',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     card_filter = Collabcard.objects.filter(id=card_id)
 
     if card_filter.exists():
         card_instance = card_filter[0]
-    else:
-        context = get_error_context(False, "Chat_room does not exist. Might have been deleted")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    page = request.GET.get('page', 1)
+    else:
+        context = ResponseUtilities.get_view_impl_error_context('Chat_room does not exist. Might have been deleted',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
+
     api_type = NumberUtilities.get_integer_from_string(request.GET.get('api_type', api_types.Non_SDK),
                                                        api_types.Non_SDK)
     current_user_id = get_member_id_from_headers(request)
 
-    context = get_chatroom_internal_version_2(request, card_instance, current_user_id, page, conversation_id,
-                                              scroll_direction, is_ios=is_ios, api_type=api_type)
+    context = get_chatroom_internal_version_2(request, card_instance, current_user_id, api_type=api_type)
+
+    if context.get('error_message'):
+        context = ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     # Reset Unseen message count cache key with 0
     reset_unread_message_count_in_cache.delay(card_id, current_user_id)
@@ -5395,8 +5398,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     return context
 
 
-def get_chatroom_internal_version_2(request, card_instance, user_id, page, conversation_id, scroll_direction,
-                                    is_ios=False, api_type=api_types.Non_SDK):
+def get_chatroom_internal_version_2(request, card_instance, user_id, api_type=api_types.Non_SDK):
     '''version 1 function for sending chatroom instance without conversations'''
 
     context = {}
@@ -5404,7 +5406,10 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
     user_instance = None
 
     if user_id:
-        user_instance = User.objects.get(id=user_id)
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        return ResponseUtilities.get_inner_error_context('Invalid user id')
 
     chatroom_state = collabcardState.objects.filter(card=card_instance, user=user_id)
     # if the user is seeing this chatroom from external link or notification
@@ -6531,55 +6536,6 @@ def get_chatrooms(chatroom_list, member_id, active=None, device_id=''):
     return chatrooms
 
 
-def get_chatrooms_version_1(chatroom_list, member_id, active=None, device_id=''):
-    '''function to get chatrooms'''
-    member_id = NumberUtilities.get_integer_from_string(member_id)
-    chatrooms = []
-
-    for data in chatroom_list:
-        card_instance = data.card
-
-        if is_draft_chatroom(card_instance, member_id, device_id):
-            continue
-
-        if card_instance.is_secret:
-            participants_list = json.loads(card_instance.secret_chatroom_participants)
-
-            if member_id not in participants_list:
-                continue
-
-        chatroom_instance = get_chatroom_instance(card_instance, member_id, state_instance=data, send_profile=False)
-
-        if chatroom_instance['secret_chatroom_left']:
-            continue
-
-        conversation_filter = card_answers.objects.filter(card=card_instance.id,
-                                                          state=conversation_states.ANSWER
-                                                          ).filter(Q(attachment_count=0) |
-                                                                   Q(attachments_uploaded=True)
-                                                                   ).order_by('id')
-        chatroom_instance['total_response_count'] = conversation_filter.count()
-
-        if card_instance.internal_link:
-            try:
-                preview = get_preview_for_url(member_id=member_id,
-                                              preview_url=card_instance.internal_link,
-                                              community_instance=card_instance.preview_community,
-                                              chatroom_instance=card_instance.preview_chatroom,
-                                              send_preview_text=False)
-                if preview:
-                    chatroom_instance['preview'] = preview
-            except Exception as e:
-                error_logger.error(e.args)
-        last_response_members = get_member_instances_for_footer_images_in_chatroom(card_instance)
-        # chatroom_instance['members_images'] = last_response_members['members_images']
-        chatroom_instance['last_response_members'] = last_response_members['last_response_members']
-
-        chatrooms.append(chatroom_instance)
-
-    return chatrooms
-
-
 def get_chatrooms_version_2(chatroom_list, member_id, active=None, device_id=''):
     '''function to get chatrooms'''
 
@@ -6685,128 +6641,6 @@ def fetch_chatroom_feed(request):
             chatrooms = get_chatrooms(downward, member_id, active, device_id=device_id)
 
     context['chatrooms'] = chatrooms
-
-    return JsonResponse(context)
-
-
-def fetch_chatroom_feed_version_1(request):
-    """ api to fetch chatroom feed """
-
-    community_id = request.GET.get('community_id')
-    page = request.GET.get('page', 1)
-
-    device_id = RequestUtilities.get_device_id_from_headers(request)
-
-    is_ios = is_platform_ios(request)
-    chatroom_id = request.GET.get('chatroom_id')
-    scroll_direction = request.GET.get('scroll_direction')
-
-    info_logger.info(request.GET)
-
-    if scroll_direction and not chatroom_id:
-        context = get_error_context(False, "send chatroom id with scroll direction")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
-
-    active = None
-
-    current_time = time.time()
-
-    member_id = get_member_id_from_headers(request)
-    if member_id is None:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
-
-    state_filter = collabcardState.objects.filter(community=community_id,
-                                                  card__is_pending=False,
-                                                  card__is_deleted=False,
-                                                  card__is_private=False,
-                                                  user=member_id,
-                                                  secret_chatroom_left=False) \
-        .exclude(card__type=card_types.CARD_INTRO).order_by('-card_id')
-
-    chatrooms = []
-
-    if not chatroom_id and not scroll_direction:
-
-        last_seen = state_filter.filter(~Q(state=0)).order_by('-card_id')
-
-        if not last_seen.exists():
-
-            chatroom_list = state_filter.order_by('card_id')[:5]
-
-            chatrooms = get_chatrooms_version_1(chatroom_list, member_id, device_id=device_id)
-        else:
-
-            last_seen = last_seen[0]
-
-            upward = state_filter.filter(card__lte=last_seen.card.id).order_by('-card')[:3]
-            downward = state_filter.filter(card__gt=last_seen.card.id).order_by('card')[:3]
-
-            chatroom_filter = upward | downward
-            chatroom_list = chatroom_filter.order_by('card_id')
-
-            chatrooms = get_chatrooms_version_1(chatroom_list, member_id, active, device_id=device_id)
-
-    else:
-        scroll_direction = int(scroll_direction)
-        if scroll_direction == 0:  # upward scroll
-
-            upward = state_filter.filter(card__lt=chatroom_id).order_by('-card')[:5]
-
-            upward = reverse_conversations_for_upward_pagination(upward)
-            chatrooms = get_chatrooms_version_1(upward, member_id, active, device_id=device_id)
-
-        elif scroll_direction == 1:  # downward scroll
-
-            downward = state_filter.filter(card__gt=chatroom_id, user=member_id).order_by('card')[:5]
-
-            chatrooms = get_chatrooms_version_1(downward, member_id, active, device_id=device_id)
-
-    context = {
-        'success': True,
-        'chatrooms': chatrooms
-    }
-
-    return JsonResponse(context)
-
-
-def fetch_community_chatroom_feed(request):
-    '''Version 1 community collabcards'''
-    context = {}
-    member_id = get_member_id_from_headers(request)
-    size = request.GET.get('size', 3)
-    size = int(size)
-    community_id = request.GET.get('community_id')
-    # if not member_id:
-    #     context = get_error_context(False, "send member id in request header")
-    #     return JsonResponse(context)
-
-    try:
-        community_instance = Community.objects.get(id=community_id)
-    except:
-        context = get_error_context(False, "send correct community id")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
-
-    chatroom_filter = \
-        Collabcard.objects.filter(community=community_instance,
-                                  is_pending=False,
-                                  is_deleted=False).filter(~Q(type=card_types.CARD_INTRO)).order_by('-id')
-
-    total_chatrooms = chatroom_filter.count()
-    chatroom_list = []
-    for chatroom in chatroom_filter:
-
-        chatroom_data = get_chatroom_instance(chatroom, member_id)
-        chatroom_list.append(chatroom_data)
-        size = size - 1
-        if size == 0:
-            break
-
-    context = {
-        'success': True,
-        'chatrooms': chatroom_list,
-        'total_chatrooms': total_chatrooms
-    }
 
     return JsonResponse(context)
 
