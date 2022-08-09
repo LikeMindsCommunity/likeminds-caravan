@@ -3409,18 +3409,18 @@ def chatroom_mute(request):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
     if not card_instance:
-        context = get_error_context(False, "send chatroom id as post parameters")
-
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context('Invalid chatroom id',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     member_id = get_member_id_from_headers(request)
 
     user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
     if not user_instance:
-        context = get_error_context(False, "send member id in headers")
-
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context('Invalid member id',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     value = request.POST.get('value', False)
     collabcard_state_filter = collabcardState.objects.filter(card_id=chatroom_id, user=member_id)
@@ -3432,15 +3432,14 @@ def chatroom_mute(request):
                                        {'card': chatroom_id, 'user': member_id},
                                        {'mute_status': True})
         mute_status = True
-    else:
-        if collabcard_state_filter.exists():
-            instance = collabcard_state_filter[0]
-            instance.mute_status = False
-            instance.updated_at = time.time()
-            instance.external_follow = True if instance.is_tagged else False
-            instance.is_tagged = False
-            instance.save()
-            # collabcard_state_filter.update(mute_status=False,is_tagged=False,updated_at=time.time())
+
+    elif collabcard_state_filter.exists():
+        instance = collabcard_state_filter[0]
+        instance.mute_status = False
+        instance.updated_at = time.time()
+        instance.external_follow = True if instance.is_tagged else False
+        instance.is_tagged = False
+        instance.save()
 
     save_users_with_muted_chatrooms.delay({'user_id': user_instance.id,
                                            'chatroom_id': card_instance.id,
@@ -3462,36 +3461,44 @@ def chatroom_rename(request):
 
     member_id = get_member_id_from_headers(request)
 
-    if not chatroom_id or not member_id:
-        context = get_error_context(False, "send params correctly")
-        return JsonResponse(context)
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+    if not user_instance:
+        context = ResponseUtilities.get_view_impl_error_context('Invalid member id',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     chatroom_name = request.POST.get("header", None)
 
-    collabcard_filter = Collabcard.objects.filter(id=chatroom_id)
-    if collabcard_filter.exists():
-        collabcard_filter.update(header=chatroom_name)
-        card_instance = collabcard_filter[0]
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
-        if first_time_rename == "true":
-            collabcard_filter.update(has_been_named=True)
-            user_instance = User.objects.get(id=member_id)
-            send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
+    if not card_instance:
+        context = ResponseUtilities.get_view_impl_error_context('Invalid chatroom id',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
-        update_models_for_syncing_apis(SyncTypes.CHATROOM,
-                                       {'card': card_instance},
-                                       {})
-        chatroom_preview_update_count = update_models_for_syncing_apis(SyncTypes.CONVERSATION,
-                                                                       {'preview_chatroom': card_instance,
-                                                                        'preview_type': "chatroom"}, {})
+    card_instance.header = chatroom_name
 
-        if chatroom_preview_update_count:
-            preview_chatroom_id = card_instance.id
-            update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
+    if first_time_rename == "true":
+        card_instance.has_been_named = True
+        card_instance.save()
+
+        send_chatroom_creation_notifications_and_mails(card_instance, user_instance)
 
     else:
-        context = get_error_context(False, "send correct chatroom id in post params")
-        return JsonResponse(context)
+        card_instance.save()
+
+    update_models_for_syncing_apis(SyncTypes.CHATROOM,
+                                   {'card': card_instance},
+                                   {})
+    chatroom_preview_update_count = update_models_for_syncing_apis(SyncTypes.CONVERSATION,
+                                                                   {'preview_chatroom': card_instance,
+                                                                    'preview_type': "chatroom"},
+                                                                   {})
+
+    if chatroom_preview_update_count:
+        preview_chatroom_id = card_instance.id
+        update_multiple_previews_in_chatroom.delay({'chatroom_id': preview_chatroom_id})
 
     send_sync_notification.delay({'chatroom_id': chatroom_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
@@ -3946,22 +3953,26 @@ def fetch_share_url(request):
     is_cm_onboarding_enabled = cm_onboarding_version_check(platform_code, version_code)
 
     if not user_instance:
-        context = ResponseUtilities.get_view_impl_error_context("In-valid member id",
+        context = ResponseUtilities.get_view_impl_error_context("Invalid member id",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
 
-        return JsonResponse(context)
+        return JsonResponse(**context)
 
     if chatroom_id:
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
         if not card_instance:
-            context = ResponseUtilities.get_view_impl_error_context("In-valid card id",
+            context = ResponseUtilities.get_view_impl_error_context("Invalid chatroom id",
                                                                     status_codes.HTTP_400_BAD_REQUEST)
 
-            return JsonResponse(context)
+            return JsonResponse(**context)
 
         if card_instance.type == card_types.CARD_MASTER_INTRO or card_instance.type == card_types.CARD_PURPOSE:
-            return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
+            context = ResponseUtilities.get_view_impl_error_context("You cannot generate link for master or purpose "
+                                                                    "chatrooms",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
+            return JsonResponse(**context)
 
         chatroom_share = {}
 
@@ -3986,7 +3997,7 @@ def fetch_share_url(request):
             context = ResponseUtilities.get_view_impl_error_context(community_instance.get('error_message'),
                                                                     status_codes.HTTP_400_BAD_REQUEST)
 
-            return JsonResponse(context)
+            return JsonResponse(**context)
 
         community_instance = community_instance.get('community_instance')
 
@@ -4016,7 +4027,7 @@ def fetch_share_url(request):
             context = ResponseUtilities.get_view_impl_error_context("Error in generating link",
                                                                     status_codes.HTTP_400_BAD_REQUEST)
 
-            return JsonResponse(context)
+            return JsonResponse(**context)
 
         return JsonResponse({'community_share': community_share, 'success': True})
 
@@ -11298,16 +11309,17 @@ def fetch_pending_chatroom(request):
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     current_user_id = get_member_id_from_headers(request)
+    user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
+
+    if not user_instance:
+        context = ResponseUtilities.get_view_impl_error_context('Invalid member id',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     community_id = request.GET.get('community_id', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
 
     community_instance = validate_community_id_or_api_key(community_id, api_key)
-
-    if not current_user_id:
-        context = ResponseUtilities.get_view_impl_error_context('send member_id in headers',
-                                                                status_codes.HTTP_400_BAD_REQUEST)
-        return JsonResponse(**context)
 
     if community_instance.get('error_message'):
         context = ResponseUtilities.get_view_impl_error_context(community_instance.get('error_message'),
@@ -11367,25 +11379,29 @@ class ActionPendingChatroom(APIView):
         value = request.POST.get('value', False)
         pre_approve = request.POST.get('pre_approve', None)
 
-        if not current_user_id:
-            context = get_error_context(False, "send member_id in headers")
-            return JsonResponse(context)
-        if not chatroom_id:
-            context = get_error_context(False, "send chatroom_id in params")
-            return JsonResponse(context)
+        user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
 
-        chatroom = Collabcard.get_chatroom_or_None(chatroom_id)
-        if chatroom is None:
-            context = get_error_context(False, "Pending chatroom id does not exist or already approved or rejected")
-            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        if not user_instance:
+            context = ResponseUtilities.get_view_impl_error_context('Invalid member id',
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**context)
+
+        chatroom = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom:
+            context = ResponseUtilities.get_view_impl_error_context('Invalid chatroom id',
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**context)
 
         community_instance = chatroom.community
         chatroom_creator = chatroom.user
         has_right_approve = check_admin_approve_right(user=current_user_id, community=community_instance)
-        if not has_right_approve:
-            context = get_error_context(False, "cannot approve chatroom, missing approval right.")
 
-            return JsonResponse(context)
+        if not has_right_approve:
+            context = ResponseUtilities.get_view_impl_error_context('You dont have right to approve.',
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
+            return JsonResponse(**context)
 
         is_approved = (value == "true" or value is True)
 
@@ -11771,11 +11787,12 @@ class SyncChatrooms(APIView):
     def get(self, request, *args, **kwargs):
 
         member_id = get_member_id_from_headers(request)
-        if not member_id:
-            context = get_error_context(False, "send member id in headers")
-            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+        if not user_instance:
+            context = ResponseUtilities.get_view_impl_error_context('Invalid member id',
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**context)
 
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
@@ -11789,12 +11806,9 @@ class SyncChatrooms(APIView):
 
         query_params = request.query_params
 
-        page = query_params.get('page', 1)
-        page = int(page)
-
-        paginate_by = query_params.get('page_size', 200)
-
-        last_updated = query_params.get('last_updated', 0)
+        page = RequestUtilities.get_page_number(request)
+        paginate_by = RequestUtilities.get_page_size(request, default=200)
+        last_updated = RequestUtilities.get_page_size(request, key='last_updated', default=0)
 
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
@@ -12512,28 +12526,25 @@ class SyncChatroomsDiff(APIView):
     def get(self, request, *args, **kwargs):
 
         member_id = get_member_id_from_headers(request)
+
         if not member_id:
-            raise InvalidHeaderException
+            context = ResponseUtilities.get_view_impl_error_context('Invalid member id',
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**context)
 
         device_id = RequestUtilities.get_device_id_from_headers(request)
-
         version_code = RequestUtilities.get_version_code_from_headers(request)
-
         query_params = request.query_params
 
         previous_app_version = query_params.get('previous_app_version', 0)
         previous_app_version = NumberUtilities.get_integer_from_string(previous_app_version)
 
-        page = query_params.get('page', 1)
-        page = int(page)
-
-        paginate_by = query_params.get('page_size', 200)
+        page = RequestUtilities.get_page_number(request)
+        paginate_by = RequestUtilities.get_page_size(request, default=200)
         is_synced = query_params.get('is_synced', "false").lower() == 'true'
 
         chatrooms = []
-
         chatroom_data = []
-
         poll_data = {}
         poll_votes = {}
 
@@ -12546,7 +12557,7 @@ class SyncChatroomsDiff(APIView):
 
         if not is_synced:
 
-            user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+            user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
             if not user_instance:
                 return JsonResponse({'success': True, 'chatrooms': []})
