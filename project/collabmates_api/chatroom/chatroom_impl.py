@@ -3185,10 +3185,13 @@ class ChatroomImpl(ChatroomManager):
             self.get_chatroom_id())
 
         if change_chatroom_status:
-            return ResponseUtilities.get_impl_error_context('Chatroom conversion in progress!',
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+            return {
+                'success': True,
+                'is_converting': change_chatroom_status,
+                'success_message': 'Chatroom conversion in progress!'
+            }
 
-        return {'success': True}
+        return {'success': True, 'is_converting': change_chatroom_status}
 
     def create_dm_chatroom(self, req_body) -> dict:
         validated_request = ChatroomHelper.validate_create_dm_chatroom_request(self.get_member_id(), req_body)

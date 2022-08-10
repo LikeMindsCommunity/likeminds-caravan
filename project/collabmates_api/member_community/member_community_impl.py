@@ -14,7 +14,7 @@ from togther.models import (Member_Engage, Community, Members, collabcardState, 
                             Card_Attachment, CommunityDirectMessageSettings, userMemberRights, Userinfo)
 from utility.celery_tasks import update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery, \
     update_multiple_previews_in_chatroom, set_level_click_state, create_member_dm_chatroom, \
-    update_community_pin_chatrooms_list_in_cache
+    update_community_pin_chatrooms_list_in_cache, update_preview_for_account_image_change
 from utility.constants import CONVERSATIONS_DISTINCT_CREATORS_KEY, CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, \
     CUSTOM_CLICK_TEXT
 from utility.exception_utilities import CustomException
@@ -1516,6 +1516,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                       user_intro_card_instance)
             update_preview = True
 
+            if req_body.get('type') == api_types.SDK:
+                MemberCommunityHelper.update_user_image_in_sdk(user_instance, image_url)
+
         if (not user_intro_card_instance) and (user_member_instance.state in [member_states.ADMIN,
                                                                               member_states.MEMBER,
                                                                               member_states.PROFILE_UNAVAILABLE]):
@@ -2660,3 +2663,16 @@ class MemberCommunityHelper:
                                     {
                                         'updated_at': TimeUtilities.current_time_in_sec()
                                     })
+
+    @staticmethod
+    def update_user_image_in_sdk(user_instance, image_url):
+
+        userinfo_instance = user_instance.userinfo
+        previous_image_url = userinfo_instance.image_link
+        userinfo_instance.image_link = image_url
+        userinfo_instance.updated_at = TimeUtilities.current_time_in_sec()
+        userinfo_instance.save()
+
+        update_preview_for_account_image_change.delay({'user_id': user_instance.id,
+                                                       'image_url': image_url,
+                                                       'previous_image_url': previous_image_url})
