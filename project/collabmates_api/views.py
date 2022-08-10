@@ -4495,25 +4495,27 @@ def conversation_meta(request):
     chatroom_id = request.GET.get('chatroom_id')
 
     if not conversation_id or not chatroom_id:
-        context = get_error_context(False, "send conversation_id and chatroom_id in post params")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context("send conversation_id and chatroom_id in post params",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     user_id = get_member_id_from_headers(request)
-    user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
     if not user_instance:
-        context = get_error_context(False, "In-valid user id")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context("Invalid user id",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     card_instance = Collabcard.get_chatroom_or_None(chatroom_id)
 
     if card_instance is None:
-        context = get_error_context(False, f"chatroom_id {chatroom_id} does not exist")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context(f"chatroom_id {chatroom_id} does not exist",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
-    answer_id = NumberUtilities.get_integer_from_string(conversation_id)
-    conversation_instances = card_answers.objects \
-        .filter(card=card_instance, id__gte=answer_id)
+    answer_id = NumberUtilities.get_integer_from_string(conversation_id, return_default=0)
+    conversation_instances = card_answers.objects.filter(card=card_instance, id__gte=answer_id)
 
     conversation_list = []
 
@@ -10143,10 +10145,17 @@ def delete_conversation(request):
     """ function to delete a conversation """
 
     if request.method == 'GET':
-        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+        context = ResponseUtilities.get_view_impl_error_context('Invalid method',
+                                                                status_codes.HTTP_405_METHOD_NOT_ALLOWED)
+        return JsonResponse(**context)
 
     member_id = get_member_id_from_headers(request)
-    current_user_instance = User.objects.get(pk=member_id)
+    current_user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+    if not current_user_instance:
+        context = ResponseUtilities.get_view_impl_error_context('Invalid member id',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     req_body = json.loads(request.body)
 
@@ -10155,22 +10164,23 @@ def delete_conversation(request):
     reason = req_body.get('reason', None)
 
     if not conversation_ids:
-        context = get_error_context(False, "send the conversation_ids in post params")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context('Send the conversation_ids in params',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     if not member_id:
-        context = get_error_context(False, "send the member_id in headers")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context('Send the member_id in headers',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     conversation_list = []
     community_id = None
 
     for conversation_id in conversation_ids:
 
-        try:
-            conversation = card_answers.objects.get(pk=conversation_id)
-        except Exception as e:
-            error_logger.error(e.args)
+        conversation = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+        if not conversation:
             continue
 
         update_conversation_delete_status(conversation, current_user_instance, reason=reason, tag_id=tag_id)
@@ -10215,13 +10225,22 @@ def edit_conversation(request):
     """ function to delete a conversation """
 
     if request.method == 'GET':
-        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+        context = ResponseUtilities.get_view_impl_error_context('Invalid method',
+                                                                status_codes.HTTP_405_METHOD_NOT_ALLOWED)
+        return JsonResponse(**context)
 
     member_id = get_member_id_from_headers(request)
     conversation_id = request.POST.get('conversation_id', None)
     edited_answer = request.POST.get('text', None)
     share_link = request.POST.get('share_link', None)
     og_tags = request.POST.get('og_tags', None)
+
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+    if not user_instance:
+        context = ResponseUtilities.get_view_impl_error_context('Invalid member id',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     if share_link:
         og_tags_payload = {
@@ -10237,22 +10256,26 @@ def edit_conversation(request):
         og_tags_payload = {}
 
     if not conversation_id:
-        context = get_error_context(False, "send the conversation_id in post params")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context('Send the conversation_ids in params',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     if not member_id:
-        context = get_error_context(False, "send the member_id in headers")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context('Send the member_id in headers',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
-    try:
-        conversation = card_answers.objects.get(pk=conversation_id)
-    except:
-        context = get_error_context(False, "conversation id does not exist")
-        return JsonResponse(context, status=400)
+    conversation = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+    if not conversation:
+        context = ResponseUtilities.get_view_impl_error_context('Invalid conversation id',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     if conversation.is_deleted:
-        context = get_error_context(False, "Cannot edit deleted conversation")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context('Cannot edit deleted conversation',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     elif int(conversation.user.id) == int(member_id):
 
@@ -10268,9 +10291,9 @@ def edit_conversation(request):
         ElasticSearchSync.update_conversations.delay([conversation_id])
 
     else:
-        context = get_error_context(False,
-                                    "you are not the conversation creator.Only conversation creator can edit his/her message")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context('Only conversation creator can edit their message',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     context = {"current_user_id": member_id, "fetch_reply": True}
     conversation_dict = CardAnswersDBSyncSerializer(conversation, context=context, many=False).data

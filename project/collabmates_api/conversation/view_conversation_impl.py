@@ -34,10 +34,9 @@ class FetchConversation(APIView):
         chatroom_id = query_params.get('chatroom_id')
         scroll_direction = query_params.get('scroll_direction')
         conversation_id = query_params.get('conversation_id')
-        page = query_params.get('page', 1)
-        paginate_by = query_params.get('paginate_by', 20)
-        top_navigate = query_params.get('top_navigate', False)
-        top_navigate = StringUtilities.get_boolean_from_string(top_navigate)
+        page = RequestUtilities.get_page_number(request)
+        paginate_by = RequestUtilities.get_page_size(request, key='paginate_by', default=20)
+        top_navigate = StringUtilities.get_boolean_from_string(query_params.get('top_navigate', False))
         include_conversation_id = StringUtilities.get_boolean_from_string(query_params.get('include', False))
 
         conversation_manager = ConversationImpl(member_id, chatroom_id, scroll_direction, conversation_id, page,
@@ -73,7 +72,8 @@ class CreateConversation(APIView):
         conversation_response = conversation_manager.create_conversation(req_body, is_ios)
 
         if conversation_response.get('error_message'):
-            return JsonResponse(conversation_response, status=400)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                conversation_response.get('error_message'), conversation_response.get('status')))
 
         return JsonResponse(conversation_response)
 
@@ -163,10 +163,6 @@ class AddReaction(TransactionMixin, APIView):
     def post(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
-        if not member_id:
-            raise InvalidHeaderException()
-
         post_data = RequestUtilities.fetch_request_post_data(request)
 
         chatroom_id = post_data.get('chatroom_id', None)
@@ -178,6 +174,10 @@ class AddReaction(TransactionMixin, APIView):
                                             conversation_id=conversation_id)
 
         response = chatroom_manager.add_reaction(reaction)
+
+        if response.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
+                                                                                response.get('status')))
 
         return JsonResponse(response)
 

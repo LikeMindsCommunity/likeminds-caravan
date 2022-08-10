@@ -784,52 +784,32 @@ class ConversationImpl(ConversationManager):
         chatroom_id = req_body.get('chatroom_id', None)
         has_files = req_body.get('has_files', False)
 
-        if not chatroom_id:
-            response = {
-                'success': False,
-                "error_message": "send chatroom id in body"
-            }
-            raise InvalidChatroomException(response)
+        validated_request = ConversationViewHelper.validate_create_conversation_request(user_instance,
+                                                                                        self.get_member_id(),
+                                                                                        chatroom_instance,
+                                                                                        chatroom_id)
 
-        if user_instance is None:
-            user_instance = ConversationHelper.fetch_user_instance(user_id=self.get_member_id())
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if chatroom_instance is None:
-            chatroom_instance = ConversationHelper.fetch_chatroom_instance(chatroom_id=chatroom_id)
+        user_instance = validated_request.get('user_instance')
+        chatroom_instance = validated_request.get('chatroom_instance')
+        member_state = validated_request.get('member_state')
+
+        community_instance = chatroom_instance.community
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         if chatroom_instance.is_secret and \
                 not ConversationHelper.is_user_secret_chatroom_participant(chatroom_instance, self.get_member_id()):
-            response = {
-                'success': False,
-                "error_message": "You are not a part of this secret chatroom"
-            }
-
-            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
-
-        if chatroom_instance.is_pending:
-            response = {
-                'success': False,
-                "error_message": "This is a pending chatroom, conversations cannot be created here"
-            }
-
-            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
-
-        community_id = chatroom_instance.community_id
-
-        community_instance = ConversationHelper.fetch_community_instance(community_id=community_id)
-
-        member_state = ConversationHelper.fetch_member_state(community=community_instance, user=user_instance)
-
-        if chatroom_instance.type == card_types.CARD_PURPOSE and \
-                member_state != member_states.ADMIN:
-            return {'success': False, 'error_message': ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM}
-
-        if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
-            return {'success': False, 'error_message': "Responding is disabled"}
+            return ResponseUtilities.get_impl_error_context('You are not a part of this secret chatroom',
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         if chatroom_instance.access_without_subscription:
-
-            status = is_member_verified(community_id, self.get_member_id())
+            status = is_member_verified(community_instance.id, self.get_member_id())
             state_filter = ModelUtilities.get_model_filter(collabcardState, {'card_id': chatroom_id,
                                                                              'user_id': self.get_member_id()})
 
@@ -907,37 +887,28 @@ class ConversationImpl(ConversationManager):
         return conversation_response
 
     def add_reaction(self, reaction: str) -> dict:
+        validated_request = ConversationViewHelper.validate_add_reaction_request(self.get_member_id(),
+                                                                                 self.get_chatroom_id(),
+                                                                                 self.get_conversation_id())
 
-        if self.get_conversation_id() is None and self.get_chatroom_id() is None:
-            response = {
-                'success': False,
-                'error_message': 'send conversation_id or chatroom_id in post params'
-            }
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+        user_instance = validated_request.get('user_instance')
+        chatroom_instance = validated_request.get('chatroom_instance')
+        conversation_instance = validated_request.get('conversation_instance')
 
-        user_instance = ConversationHelper.fetch_user_instance(self.get_member_id())
-
-        chatroom_instance = None
-        conversation_instance = None
-
-        if self.get_conversation_id() is not None:
-            conversation_instance = ConversationHelper.fetch_conversation_instance(self.get_conversation_id())
+        if conversation_instance:
             chatroom_instance = conversation_instance.card
-
             conversation_instance.has_reactions = True
             conversation_instance.save()
 
-        if self.get_chatroom_id() is not None and \
-                chatroom_instance is None:
-            chatroom_instance = ConversationHelper.fetch_chatroom_instance(self.get_chatroom_id())
-
+        if chatroom_instance:
             chatroom_instance.has_reactions = True
             chatroom_instance.save()
 
-        current_time = TimeUtilities.current_time_in_milliseconds()
-
-        update_context = {'reaction': reaction, 'updated_at': current_time}
+        update_context = {'reaction': reaction, 'updated_at': TimeUtilities.current_time_in_milliseconds()}
 
         MessageReactions.objects.update_or_create(user=user_instance,
                                                   chatroom=chatroom_instance,
@@ -954,17 +925,14 @@ class ConversationImpl(ConversationManager):
                                                                reaction)
 
         if self.get_chatroom_id():
-
             ModelUtilities.model_update(collabcardState,
                                         {'card': chatroom_instance},
-                                        {'updated_at': TimeUtilities.current_time_in_sec()}
-                                        )
+                                        {'updated_at': TimeUtilities.current_time_in_sec()})
 
         else:
             ModelUtilities.model_update(card_answers,
                                         {'pk': self.get_conversation_id()},
-                                        {'last_updated': TimeUtilities.current_time_in_milliseconds()}
-                                        )
+                                        {'last_updated': TimeUtilities.current_time_in_milliseconds()})
 
         context = {
             "success": True
@@ -1550,10 +1518,6 @@ class ConversationHelper:
         else:
             return
         return og_tags
-
-    @staticmethod
-    def fetch_member_state(community, user) -> int:
-        return Members.get_community_member_state(community, user)
 
     @staticmethod
     def fetch_auto_follow_dict(member_id, chatroom_id, status, source):
