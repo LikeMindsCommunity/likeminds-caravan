@@ -941,27 +941,20 @@ class ConversationImpl(ConversationManager):
         return context
 
     def remove_reaction(self) -> dict:
+        validated_request = ConversationViewHelper.validate_remove_reaction_request(self.get_member_id(),
+                                                                                    self.get_chatroom_id(),
+                                                                                    self.get_conversation_id())
 
-        if self.get_conversation_id() is None and self.get_chatroom_id() is None:
-            response = {
-                'success': False,
-                'error_message': 'send conversation_id or chatroom_id in post params'
-            }
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+        user_instance = validated_request.get('user_instance')
+        chatroom_instance = validated_request.get('chatroom_instance')
+        conversation_instance = validated_request.get('conversation_instance')
 
-        user_instance = ConversationHelper.fetch_user_instance(self.get_member_id())
-
-        chatroom_instance = None
-        conversation_instance = None
-
-        if self.get_conversation_id() is not None:
-            conversation_instance = ConversationHelper.fetch_conversation_instance(self.get_conversation_id())
+        if conversation_instance:
             chatroom_instance = conversation_instance.card
-
-        if self.get_chatroom_id() is not None and \
-                chatroom_instance is None:
-            chatroom_instance = ConversationHelper.fetch_chatroom_instance(self.get_chatroom_id())
 
         MessageReactions.objects.filter(user=user_instance,
                                         chatroom=chatroom_instance,
@@ -972,17 +965,14 @@ class ConversationImpl(ConversationManager):
                                                  update_cache=True)
 
         if self.get_chatroom_id():
-
             ModelUtilities.model_update(collabcardState,
                                         {'card': chatroom_instance},
-                                        {'updated_at': TimeUtilities.current_time_in_sec()}
-                                        )
+                                        {'updated_at': TimeUtilities.current_time_in_sec()})
 
         else:
             ModelUtilities.model_update(card_answers,
                                         {'pk': self.get_conversation_id()},
-                                        {'last_updated': TimeUtilities.current_time_in_milliseconds()}
-                                        )
+                                        {'last_updated': TimeUtilities.current_time_in_milliseconds()})
 
         context = {
             "success": True
@@ -991,20 +981,15 @@ class ConversationImpl(ConversationManager):
         return context
 
     def add_poll(self, request_body):
+        validated_request = ConversationViewHelper.validate_add_poll_request(self.get_member_id(),
+                                                                             request_body)
 
-        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
-                                                                          request_body.get('conversation_id'))
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not conversation_instance:
-            return {'status': False, 'error_message': "send correct conversation id"}
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return {'status': False, 'error_message': "incorrect user id"}
-
-        if not conversation_instance.allow_add_option:
-            return {'status': False, 'error_message': "new option cannot be added"}
+        user_instance = validated_request.get('user_instance')
+        conversation_instance = validated_request.get('conversation_instance')
 
         poll = request_body.get('poll', {})
 
@@ -1024,40 +1009,34 @@ class ConversationImpl(ConversationManager):
         return {'success': True, 'poll': poll_response}
 
     def submit_poll(self, request_body):
+        validated_request = ConversationViewHelper.validate_submit_poll_request(self.get_member_id(),
+                                                                                request_body)
 
-        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
-                                                                          request_body.get('conversation_id'))
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not conversation_instance:
-            return {'status': False, 'error_message': "send correct conversation id"}
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return {'status': False, 'error_message': "incorrect user id"}
+        user_instance = validated_request.get('user_instance')
+        conversation_instance = validated_request.get('conversation_instance')
 
         polls = request_body.get('polls', [])
-
-        if conversation_instance.expiry_time < TimeUtilities.current_time_in_milliseconds():
-            return {'success': False, 'error_message': "poll has been ended"}
 
         poll_filter = ModelUtilities.get_model_filter(conversationPollMembers, {'user': user_instance,
                                                                                 'conversation': conversation_instance})
         poll_filter.delete()
 
         for poll in polls:
-
             poll_filter = ModelUtilities.get_model_filter(conversationPolls, {'id': poll.get('id'),
                                                                               'conversation': conversation_instance})
 
             if not poll_filter:
-                return {'success': False, 'error_message': "invalid poll id"}
+                return ResponseUtilities.get_impl_error_context('Invalid poll id',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
 
             poll_instance = poll_filter[0]
-            poll_member_instance = conversationPollMembers.create_instance({'user_instance': user_instance,
-                                                                            'poll_instance': poll_instance,
-                                                                            'conversation_instance':
-                                                                                conversation_instance})
+            conversationPollMembers.create_instance({'user_instance': user_instance,
+                                                     'poll_instance': poll_instance,
+                                                     'conversation_instance': conversation_instance})
 
         conversation_instance.poll_answer_text = ConversationHelper.compute_conversation_poll_answer_text(
             conversation_instance)
@@ -1069,28 +1048,23 @@ class ConversationImpl(ConversationManager):
         return {'success': True}
 
     def poll_users(self, poll_id, page, page_size):
+        validated_request = ConversationViewHelper.validate_poll_users_request(self.get_member_id(),
+                                                                               self.get_conversation_id())
 
-        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, self.get_conversation_id())
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not conversation_instance:
-            return ResponseUtilities.get_impl_error_context("Send correct conversation id",
-                                                            status_codes.HTTP_400_BAD_REQUEST)
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return ResponseUtilities.get_impl_error_context("Incorrect user id", status_codes.HTTP_400_BAD_REQUEST)
+        conversation_instance = validated_request.get('conversation_instance')
 
         poll_filter = ModelUtilities.get_model_filter(conversationPolls, {'id': poll_id,
                                                                           'conversation': conversation_instance})
-        poll_instance = None
 
-        if poll_filter:
-            poll_instance = poll_filter[0]
-
-        if not poll_instance:
-            return ResponseUtilities.get_impl_error_context("incorrect poll_id conversation pair",
+        if not poll_filter:
+            return ResponseUtilities.get_impl_error_context("Incorrect poll_id conversation pair",
                                                             status_codes.HTTP_400_BAD_REQUEST)
+
+        poll_instance = poll_filter[0]
 
         community_instance = conversation_instance.community
         user_list = self._fetch_member_list_for_poll_conversation(conversation_instance, poll_instance,
@@ -1152,7 +1126,6 @@ class ConversationImpl(ConversationManager):
         return topic_text
 
     def set_chatroom_topic(self) -> dict:
-
         validated_request = ConversationViewHelper.validate_set_topic_request(self.get_member_id(),
                                                                               self.get_chatroom_id(),
                                                                               self.get_conversation_id())
@@ -1176,6 +1149,7 @@ class ConversationImpl(ConversationManager):
 
         if len(conversation_instance.answer) == 0:
             topic_text = self._fetch_chatroom_topic_text()
+
         else:
             topic_text = TOPIC_TEXT_NORMAL + conversation_instance.answer
 
@@ -1185,8 +1159,8 @@ class ConversationImpl(ConversationManager):
 
         ModelUtilities.model_update(collabcardState,
                                     {'card': chatroom_instance},
-                                    {'updated_at': TimeUtilities.current_time_in_sec()}
-                                    )
+                                    {'updated_at': TimeUtilities.current_time_in_sec()})
+
         send_notification_on_chatroom_topic_update.delay(chatroom_instance.id)
 
         return {'success': True}

@@ -83,20 +83,18 @@ class AddConversationPollOptions(APIView):
     def post(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
-        if not member_id:
-            raise InvalidHeaderException()
-
         req_body = RequestUtilities.load_request_body(request)
 
-        if not request:
-            return JsonResponse({'success': False, 'error_message': "Invalid request body"}, status=400)
+        if not req_body:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid request body',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         conversation_manager = ConversationImpl(member_id=member_id)
         conversation_response = conversation_manager.add_poll(req_body)
 
         if conversation_response.get('error_message'):
-            return JsonResponse(conversation_response, status=400)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                conversation_response.get('error_message'), conversation_response.get('status')))
 
         return JsonResponse(conversation_response)
 
@@ -106,20 +104,18 @@ class SubmitConversationPoll(APIView):
     def post(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
-        if not member_id:
-            raise InvalidHeaderException()
-
         req_body = RequestUtilities.load_request_body(request)
 
         if not req_body:
-            return JsonResponse({'success': False, 'error_message': "Invalid request body"}, status=400)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid request body',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         conversation_manager = ConversationImpl(member_id=member_id)
         conversation_response = conversation_manager.submit_poll(req_body)
 
         if conversation_response.get('error_message'):
-            return JsonResponse(conversation_response, status=400)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                conversation_response.get('error_message'), conversation_response.get('status')))
 
         return JsonResponse(conversation_response)
 
@@ -130,19 +126,14 @@ class FetchConversationPollUsers(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
-        if not member_id:
-            raise InvalidHeaderException()
-
         poll_id = request.GET.get('poll_id')
         conversation_id = request.GET.get('conversation_id')
-        page = request.GET.get('page', 1)
-        page_size = request.GET.get('page_size', 20)
-
-        page = NumberUtilities.get_integer_from_string(page)
-        page_size = NumberUtilities.get_integer_from_string(page_size)
+        page = RequestUtilities.get_page_number(request, default=1)
+        page_size = RequestUtilities.get_page_size(request, default=20)
 
         if not request:
-            return JsonResponse({'success': False, 'error_message': "Invalid request body"}, status=400)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid request body',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         conversation_manager = ConversationImpl(member_id=member_id, conversation_id=conversation_id)
         poll_conversation_response = conversation_manager.poll_users(poll_id, page, page_size)
@@ -191,10 +182,6 @@ class RemoveReaction(TransactionMixin, APIView):
     def post(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
-        if not member_id:
-            raise InvalidHeaderException()
-
         post_data = RequestUtilities.fetch_request_post_data(request)
 
         chatroom_id = post_data.get('chatroom_id', None)
@@ -206,6 +193,10 @@ class RemoveReaction(TransactionMixin, APIView):
 
         response = chatroom_manager.remove_reaction()
 
+        if response.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
+                                                                                response.get('status')))
+
         return JsonResponse(response)
 
 
@@ -214,22 +205,10 @@ class SetChatroomTopic(APIView):
     def post(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
-        if not member_id:
-            raise InvalidHeaderException()
-
         req_body = RequestUtilities.load_request_body(request)
 
         chatroom_id = req_body.get('chatroom_id')
         conversation_id = req_body.get('conversation_id')
-
-        if not conversation_id or not chatroom_id:
-            response = {
-                "success": False,
-                "error_message": "chatroom id or conversation id missing in request body"
-            }
-
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         conversation_manager = ConversationImpl(member_id=member_id, chatroom_id=chatroom_id,
                                                 conversation_id=conversation_id)
