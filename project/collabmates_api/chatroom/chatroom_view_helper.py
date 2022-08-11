@@ -225,8 +225,8 @@ class ChatroomViewHelper:
         return {'user_instance': user_instance, 'card_instance': card_instance}
 
     @staticmethod
-    def validate_change_chatroom_type_request(member_id, chatroom_id, req_body):
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+    def validate_change_chatroom_type_request(member_id, req_body):
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return ResponseUtilities.get_inner_error_context("In-valid chatroom id")

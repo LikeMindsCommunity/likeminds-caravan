@@ -3147,7 +3147,6 @@ class ChatroomImpl(ChatroomManager):
     def change_chatroom_type(self, req_body) -> dict:
 
         validated_req = ChatroomViewHelper.validate_change_chatroom_type_request(self.get_member_id(),
-                                                                                 self.get_chatroom_id(),
                                                                                  req_body)
 
         if validated_req.get('error_message'):
