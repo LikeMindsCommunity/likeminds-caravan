@@ -1166,26 +1166,19 @@ class ConversationImpl(ConversationManager):
         return {'success': True}
 
     def attend_event(self, req_body):
+        validated_request = ConversationViewHelper.validate_event_attend_request(self.get_member_id(),
+                                                                                 req_body.get('conversation_id'))
 
-        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
-                                                                          req_body.get('conversation_id'))
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not conversation_instance:
-            return {'success': False,
-                    'error_message': "In-valid conversation id"}
-
-        if conversation_instance.state != conversation_states.CONVERSATION_EVENT:
-            return {'success': False, 'error_message': "Not a event conversation"}
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return {'error_message': "In-valid user id", 'success': False}
+        user_instance = validated_request.get('user_instance')
+        conversation_instance = validated_request.get('conversation_instance')
 
         attending_status = req_body.get('attending_status', False)
 
-        ConversationHelper.attend_conversation_event(conversation_instance, user_instance,
-                                                     attending_status)
+        ConversationHelper.attend_conversation_event(conversation_instance, user_instance, attending_status)
 
         update_event_attendees_for_micro_event.delay({'conversation_id': conversation_instance.id,
                                                       'user_id': user_instance.id,
@@ -1194,21 +1187,15 @@ class ConversationImpl(ConversationManager):
         return {'success': True}
 
     def set_event_attended(self, req_body):
+        validated_request = ConversationViewHelper.validate_event_attended_request(self.get_member_id(),
+                                                                                   req_body.get('conversation_id'))
 
-        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
-                                                                          req_body.get('conversation_id'))
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not conversation_instance:
-            return {'success': False,
-                    'error_message': "In-valid conversation id"}
-
-        if conversation_instance.state != conversation_states.CONVERSATION_EVENT:
-            return {'success': False, 'error_message': "Not a event conversation"}
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return {'error_message': "In-valid user id", 'success': False}
+        user_instance = validated_request.get('user_instance')
+        conversation_instance = validated_request.get('conversation_instance')
 
         ModelUtilities.model_update(conversationEventMembers,
                                     {'conversation': conversation_instance,
@@ -1220,10 +1207,10 @@ class ConversationImpl(ConversationManager):
 
     def update_last_seen_event(self) -> dict:
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        user_instance = ModelUtilities.get_user_instance_or_none(self.get_member_id())
 
         if not user_instance:
-            return {'success': False, 'error_message': "Invalid user-id"}
+            return ResponseUtilities.get_impl_error_context("Invalid user id", status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_list = list(ModelUtilities.get_model_filter(collabcardState,
                                                              {'user': user_instance, 'remove': None}).
@@ -1257,10 +1244,10 @@ class ConversationImpl(ConversationManager):
 
     def fetch_unseen_count_in_event(self) -> dict:
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        user_instance = ModelUtilities.get_user_instance_or_none(self.get_member_id())
 
         if not user_instance:
-            return ResponseUtilities.get_impl_error_context("Invalid user-id", status_codes.HTTP_400_BAD_REQUEST)
+            return ResponseUtilities.get_impl_error_context("Invalid user id", status_codes.HTTP_400_BAD_REQUEST)
 
         unseen_count = 0
 
@@ -1276,17 +1263,14 @@ class ConversationImpl(ConversationManager):
         return {'success': True, 'count': unseen_count}
 
     def fetch_link_for_event(self) -> dict:
+        validated_request = ConversationViewHelper.validate_event_fetch_link_request(self.get_member_id(),
+                                                                                     self.get_conversation_id())
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user-id"}
-
-        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
-                                                                          self.get_conversation_id())
-
-        if not conversation_instance:
-            return {'success': False, 'error_message': "Invalid conversation id"}
+        conversation_instance = validated_request.get('conversation_instance')
 
         if TimeUtilities.current_time_in_milliseconds() >= \
                 (conversation_instance.start_time - conversation_instance.online_link_enable_before):
@@ -1296,14 +1280,15 @@ class ConversationImpl(ConversationManager):
 
             return conversation_context
 
-        return {'success': False, 'error_message': "Link doesn’t exists"}
+        return ResponseUtilities.get_impl_error_context("Link doesn't exists",
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def fetch_user_all_events(self, page, attending_status, past_events=False) -> dict:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
-            return ResponseUtilities.get_impl_error_context("Invalid user-id", status_codes.HTTP_400_BAD_REQUEST)
+            return ResponseUtilities.get_impl_error_context("Invalid user id", status_codes.HTTP_400_BAD_REQUEST)
 
         conversation_queryset = self.fetch_conversation_events_queryset(user_instance,
                                                                         attending_status=attending_status,
@@ -1315,50 +1300,29 @@ class ConversationImpl(ConversationManager):
         return {'success': True, 'events': conversations}
 
     def fetch_unread_previews(self):
+        validated_request = ConversationViewHelper.validate_fetch_unread_previews_request(self.get_member_id(),
+                                                                                          self.get_chatroom_id())
 
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
-
-        if not card_instance:
-            return {'success': False, 'error_message': "Invalid chatroom-id"}
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user-id"}
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
-                                                                  'member_id': user_instance})
-
-        if not member_filter:
-            return {'success': False, 'error_message': "User is not a member of community"}
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         conversations = self._fetch_unread_preview_queryset()
         conversations = ModelUtilities.paginate_queryset(conversations, self.get_page(),
                                                          paginate_by=self.get_paginate_by())
         conversations = self._create_conversation_list(conversations)
-        return conversations
+        return {'success': True, 'conversations': conversations}
 
     def fetch_preview_unread_message_count(self):
+        validated_request = ConversationViewHelper.validate_fetch_preview_unread_messages_count_request(
+            self.get_member_id(), self.get_chatroom_id())
 
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not card_instance:
-            return {'success': False, 'error_message': "Invalid chatroom-id"}
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user-id"}
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
-                                                                  'member_id': user_instance})
-
-        if not member_filter:
-            return {'success': False, 'error_message': "User is not a member of community"}
-
-        conversations = card_answers.objects.select_related('reply', 'preview_community',
-                                                            'preview_chatroom').filter(card=self.get_chatroom_id()
-                                                                                       ).order_by('-created_at')
+        conversations = card_answers.objects.select_related('reply', 'preview_community', 'preview_chatroom').filter(
+            card=self.get_chatroom_id()).order_by('-created_at')
 
         total_unread_message_count = self.calculate_preview_unread_message_count(conversations)
 
@@ -1885,7 +1849,6 @@ class ConversationHelper:
             })
 
         else:
-
             instance = attend_filter[0]
             instance.attending_status = attending_status
             instance.save()

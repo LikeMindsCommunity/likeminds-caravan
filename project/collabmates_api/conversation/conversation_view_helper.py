@@ -1,6 +1,6 @@
 from utility.response_utilities import ResponseUtilities
 from togther.models import (ModelUtilities, Collabcard, card_answers, Members)
-from utility.states import (member_states, card_types)
+from utility.states import (member_states, card_types, conversation_states)
 from .constants import (ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
 from utility.time_utilities import TimeUtilities
 
@@ -179,3 +179,107 @@ class ConversationViewHelper:
             'user_instance': user_instance,
             'conversation_instance': conversation_instance
         }
+
+    @staticmethod
+    def validate_event_attend_request(user_id, conversation_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid member id')
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+        if not conversation_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid conversation id')
+
+        if conversation_instance.state != conversation_states.CONVERSATION_EVENT:
+            return ResponseUtilities.get_inner_error_context('Not an event conversation')
+
+        return {
+            'user_instance': user_instance,
+            'conversation_instance': conversation_instance
+        }
+
+    @staticmethod
+    def validate_event_attended_request(user_id, conversation_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid member id')
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+        if not conversation_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid conversation id')
+
+        if conversation_instance.state != conversation_states.CONVERSATION_EVENT:
+            return ResponseUtilities.get_inner_error_context('Not an event conversation')
+
+        return {
+            'user_instance': user_instance,
+            'conversation_instance': conversation_instance
+        }
+
+    @staticmethod
+    def validate_event_fetch_link_request(user_id, conversation_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid member id')
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+        if not conversation_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid conversation id')
+
+        return {
+            'user_instance': user_instance,
+            'conversation_instance': conversation_instance
+        }
+
+    @staticmethod
+    def validate_fetch_unread_previews_request(user_id, chatroom_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid member id')
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid chatroom id')
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context('User is not a member of community')
+
+        return {
+            'user_instance': user_instance,
+            'chatroom_instance': chatroom_instance
+        }
+
+    @staticmethod
+    def validate_fetch_preview_unread_messages_count_request(user_id, chatroom_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid member id')
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid chatroom id')
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context('User is not a member of community')
+
+        return {
+            'user_instance': user_instance,
+            'chatroom_instance': chatroom_instance
+        }
+

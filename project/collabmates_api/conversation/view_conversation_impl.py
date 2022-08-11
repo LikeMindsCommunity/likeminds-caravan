@@ -226,22 +226,18 @@ class ConversationEventAttendView(APIView):
     def post(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
-        if not member_id:
-            raise InvalidHeaderException()
-
         req_body = RequestUtilities.load_request_body(request)
 
         if not req_body:
-            return JsonResponse({'success': False, 'error_message': "In-valid request body"},
-                                status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid request body',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         conversation_manager = ConversationImpl(member_id=member_id)
         response = conversation_manager.attend_event(req_body)
 
         if response.get('error_message'):
-
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
+                                                                                response.get('status')))
 
         return JsonResponse(response)
 
@@ -251,21 +247,18 @@ class SetConversationEventAttendedView(APIView):
     def post(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
-        if not member_id:
-            raise InvalidHeaderException()
-
         req_body = RequestUtilities.load_request_body(request)
 
         if not req_body:
-            return JsonResponse({'success': False, 'error_message': "In-valid request body"},
-                                status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid request body',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         conversation_manager = ConversationImpl(member_id=member_id)
         response = conversation_manager.set_event_attended(req_body)
 
         if response.get('error_message'):
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
+                                                                                response.get('status')))
 
         return JsonResponse(response)
 
@@ -294,7 +287,8 @@ class UpdateLastSeenEventChatroom(APIView):
         response_context = conversation_manager.update_last_seen_event()
 
         if response_context.get('error_message'):
-            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
 
         return JsonResponse(response_context)
 
@@ -304,11 +298,13 @@ class FetchLinkForEvent(APIView):
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         conversation_id = request.GET.get('conversation_id')
+
         conversation_manager = ConversationImpl(member_id=member_id, conversation_id=conversation_id)
         response_context = conversation_manager.fetch_link_for_event()
 
         if response_context.get('error_message'):
-            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
 
         return JsonResponse(response_context)
 
@@ -329,21 +325,23 @@ class FetchUserAllEvents(APIView):
 
         return JsonResponse(response_context)
 
+
 class FetchUnreadPreview(APIView):
 
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         page = RequestUtilities.get_page_number(request)
         chatroom_id = request.GET.get('chatroom_id', None)
-        paginate_by = request.GET.get('paginate_by', 20)
+        paginate_by = RequestUtilities.get_page_size(request, key='paginate_by', default=20)
         conversation_manager = ConversationImpl(member_id=member_id, chatroom_id=chatroom_id, page=page,
                                                 paginate_by=paginate_by)
         response = conversation_manager.fetch_unread_previews()
 
-        if isinstance(response, dict) and response.get('error_message'):
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+        if response.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
+                                                                                response.get('status')))
 
-        return JsonResponse({'success': True, 'conversations': response})
+        return JsonResponse(response)
 
 
 class FetchPreviewUnreadMessageCount(APIView):
@@ -351,17 +349,12 @@ class FetchPreviewUnreadMessageCount(APIView):
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         chatroom_id = request.GET.get('chatroom_id', None)
+
         conversation_manager = ConversationImpl(member_id=member_id, chatroom_id=chatroom_id)
         response = conversation_manager.fetch_preview_unread_message_count()
 
         if response.get('error_message'):
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
+                                                                                response.get('status')))
 
         return JsonResponse(response)
-
-
-class ConversationViewsHelper:
-
-    @staticmethod
-    def is_user_guest(req_body):
-        return req_body.get('aj') and req_body.get('source_id')
