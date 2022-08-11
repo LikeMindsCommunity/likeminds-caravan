@@ -12960,16 +12960,16 @@ class SyncConversation(APIView):
         member_id = get_member_id_from_headers(request)
 
         if not member_id:
-            context = get_error_context(False, "send member id in headers")
-            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+            context = ResponseUtilities.get_view_impl_error_context("Send member id in headers",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**context)
 
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
         query_params = request.query_params
-        page = query_params.get('page', 1)
-        paginate_by = query_params.get('page_size', 200)
-        last_updated = query_params.get('last_updated', 0)
-        paginate_by = int(paginate_by)
+        page = RequestUtilities.get_page_number(request)
+        paginate_by = RequestUtilities.get_page_size(request, default=200)
+        last_updated = RequestUtilities.get_page_number(request, key='last_updated', default=0)
         chatroom_status = query_params.get('chatroom_status', '')
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
@@ -12980,9 +12980,8 @@ class SyncConversation(APIView):
             seen_conversation = request.GET.get('seen_conversation')
 
             if seen_conversation:
-
-                conversation_filter = card_answers.objects.filter(card=chatroom_id, id__gt=seen_conversation).order_by(
-                    'id')
+                conversation_filter = card_answers.objects.filter(card=chatroom_id,
+                                                                  id__gt=seen_conversation).order_by('id')
                 conversation_filter = pagination(conversation_filter, page, paginate_by)
                 context = {"current_user_id": member_id, "fetch_reply": True}
                 conversations_data = CardAnswersDBSyncSerializer(conversation_filter, context=context, many=True)
@@ -13515,31 +13514,28 @@ class SyncConversationDiff(APIView):
         version_code = RequestUtilities.get_version_code_from_headers(request)
 
         if not member_id:
-            raise InvalidHeaderException
+            context = ResponseUtilities.get_view_impl_error_context("Send member id in headers",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**context)
 
         query_params = request.query_params
 
         previous_app_version = query_params.get('previous_app_version', 0)
         previous_app_version = NumberUtilities.get_integer_from_string(previous_app_version)
 
-        page = query_params.get('page', 1)
-        page = int(page)
-
-        paginate_by = query_params.get('page_size', 200)
+        page = RequestUtilities.get_page_number(request)
+        paginate_by = RequestUtilities.get_page_size(request, default=200)
         is_synced = query_params.get('is_synced', "false").lower() == 'true'
 
-        ans_list = []
         conversations = []
-
         common_list = []
-
         video_conversations_list = set()
         conversations_with_reactions_list = set()
         conversation_with_reply_chatroom_id_list = set()
 
         if not is_synced:
 
-            user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+            user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
             if not user_instance:
                 return JsonResponse({'success': True, 'conversations': []})
