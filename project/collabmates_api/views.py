@@ -3946,22 +3946,25 @@ def fetch_share_url(request):
     is_cm_onboarding_enabled = cm_onboarding_version_check(platform_code, version_code)
 
     if not user_instance:
-        context = ResponseUtilities.get_view_impl_error_context("In-valid member id",
+        context = ResponseUtilities.get_view_impl_error_context("Invalid member id",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
 
-        return JsonResponse(context)
+        return JsonResponse(**context)
 
     if chatroom_id:
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
         if not card_instance:
-            context = ResponseUtilities.get_view_impl_error_context("In-valid card id",
+            context = ResponseUtilities.get_view_impl_error_context("Invalid card id",
                                                                     status_codes.HTTP_400_BAD_REQUEST)
 
-            return JsonResponse(context)
+            return JsonResponse(**context)
 
         if card_instance.type == card_types.CARD_MASTER_INTRO or card_instance.type == card_types.CARD_PURPOSE:
-            return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
+            context = ResponseUtilities.get_view_impl_error_context("Invalid card type",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
+            return JsonResponse(**context)
 
         chatroom_share = {}
 
@@ -3986,7 +3989,7 @@ def fetch_share_url(request):
             context = ResponseUtilities.get_view_impl_error_context(community_instance.get('error_message'),
                                                                     status_codes.HTTP_400_BAD_REQUEST)
 
-            return JsonResponse(context)
+            return JsonResponse(**context)
 
         community_instance = community_instance.get('community_instance')
 
@@ -4016,7 +4019,7 @@ def fetch_share_url(request):
             context = ResponseUtilities.get_view_impl_error_context("Error in generating link",
                                                                     status_codes.HTTP_400_BAD_REQUEST)
 
-            return JsonResponse(context)
+            return JsonResponse(**context)
 
         return JsonResponse({'community_share': community_share, 'success': True})
 
