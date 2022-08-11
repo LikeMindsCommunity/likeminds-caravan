@@ -3162,14 +3162,14 @@ class ChatroomImpl(ChatroomManager):
         if is_secret == card_instance.is_secret:
             return {'success': True}
 
-        conversion_filter = ModelUtilities.get_model_filter(ChatroomSecretTypeConversion, {'chatroom': card_instance})
+        # conversion_filter = ModelUtilities.get_model_filter(ChatroomSecretTypeConversion, {'chatroom': card_instance})
 
-        if conversion_filter:
-            last_conversion_time = conversion_filter[0].converted_at
-
-            if last_conversion_time + TimeUtilities.MILLI_SEC_IN_A_DAY > TimeUtilities.current_time_in_milliseconds():
-                return ResponseUtilities.get_impl_error_context('Action not allowed, try again after a few hours.',
-                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+        # if conversion_filter:
+        #     last_conversion_time = conversion_filter[0].converted_at
+        #
+        #     if last_conversion_time + TimeUtilities.MILLI_SEC_IN_A_DAY > TimeUtilities.current_time_in_milliseconds():
+        #         return ResponseUtilities.get_impl_error_context('Action not allowed, try again after a few hours.',
+        #                                                         status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         ChatroomHelper.set_chatroom_conversion_type_status_key_in_cache(self.get_chatroom_id(), True)
 
