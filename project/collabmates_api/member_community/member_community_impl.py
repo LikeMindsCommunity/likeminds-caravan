@@ -11,10 +11,10 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
                             Collabcard, card_answers, conversationEngage, communityQuestions, CommunityUserDelete,
                             communityRightsSettings, CommunitySettings, communityAnswers, questionFilters,
-                            Card_Attachment, CommunityDirectMessageSettings, userMemberRights)
+                            Card_Attachment, CommunityDirectMessageSettings, userMemberRights, Userinfo)
 from utility.celery_tasks import update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery, \
     update_multiple_previews_in_chatroom, set_level_click_state, create_member_dm_chatroom, \
-    update_community_pin_chatrooms_list_in_cache
+    update_community_pin_chatrooms_list_in_cache, update_preview_for_account_image_change
 from utility.constants import CONVERSATIONS_DISTINCT_CREATORS_KEY, CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, \
     CUSTOM_CLICK_TEXT
 from utility.exception_utilities import CustomException
@@ -1500,6 +1500,11 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                      'last_updated': TimeUtilities.current_time_in_milliseconds()})
                         update_preview = True
 
+                elif question_instance.question_state == question_states.NAME:
+                    MemberCommunityHelper.update_user_alias_name(self.get_member_id(),
+                                                                 self.get_community_id(),
+                                                                 question.get(DIRECTORY_QUESTIONS_V2_ANSWER_KEY))
+
         question_answers_data = MemberCommunityHelper.get_question_answer_data_in_member_profile(user_member_instance,
                                                                                                  user_member_instance,
                                                                                                  community_instance)
@@ -1510,6 +1515,9 @@ class MemberCommunityImpl(MemberCommunityManager):
             MemberCommunityHelper.update_users_image_url_in_community(user_member_filter, image_url,
                                                                       user_intro_card_instance)
             update_preview = True
+
+            if req_body.get('type') == api_types.SDK:
+                MemberCommunityHelper.update_user_image_in_sdk(user_instance, image_url)
 
         if (not user_intro_card_instance) and (user_member_instance.state in [member_states.ADMIN,
                                                                               member_states.MEMBER,
@@ -1979,10 +1987,11 @@ class MemberCommunityHelper:
                 if not community_question_instance:
                     continue
 
-                if all([community_question_instance.question_title == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                if any([all([community_question_instance.question_title == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
                         community_question_instance.is_hidden,
                         community_question_instance.field,
-                        community_question_instance.question_state == question_states.PARAGRAPH]):
+                        community_question_instance.question_state == question_states.PARAGRAPH]),
+                        community_question_instance.question_state == question_states.NAME]):
                     continue
 
                 question_data = CommunityQuestionsSerializerV2(community_question_instance, many=False).data
@@ -2635,3 +2644,35 @@ class MemberCommunityHelper:
 
         else:
             return pinned_chatrooms_list.get('pinned_chatrooms', [])
+
+    @staticmethod
+    def update_user_alias_name(user_id, community_id, user_name):
+        ModelUtilities.model_update(Userinfo,
+                                    {
+                                        'user_id': user_id
+                                    },
+                                    {
+                                        'name': user_name
+                                    })
+
+        ModelUtilities.model_update(Members,
+                                    {
+                                        'member_id': user_id,
+                                        'community_id': community_id
+                                    },
+                                    {
+                                        'updated_at': TimeUtilities.current_time_in_sec()
+                                    })
+
+    @staticmethod
+    def update_user_image_in_sdk(user_instance, image_url):
+
+        userinfo_instance = user_instance.userinfo
+        previous_image_url = userinfo_instance.image_link
+        userinfo_instance.image_link = image_url
+        userinfo_instance.updated_at = TimeUtilities.current_time_in_sec()
+        userinfo_instance.save()
+
+        update_preview_for_account_image_change.delay({'user_id': user_instance.id,
+                                                       'image_url': image_url,
+                                                       'previous_image_url': previous_image_url})

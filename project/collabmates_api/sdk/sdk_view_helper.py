@@ -173,7 +173,7 @@ class SdkViewHelper:
         if not request_body:
             return ResponseUtilities.get_inner_error_context('Invalid request body')
 
-        if not request_body.get('index'):
+        if request_body.get('index', -1) < 0:
             return ResponseUtilities.get_inner_error_context('Send valid screen index')
 
         if not request_body.get('image'):
@@ -191,6 +191,12 @@ class SdkViewHelper:
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key!")
+
+        screen = ModelUtilities.get_model_filter(SdkOnboardingScreen, {'community': community_instance,
+                                                                       'index': request_body.get('index')})
+
+        if screen:
+            return ResponseUtilities.get_inner_error_context("Screen already exists with given index")
 
         return {'user_instance': member_validator.get('user_instance'), 'community_instance': community_instance}
 
