@@ -3872,7 +3872,7 @@ class CommunityHelper:
 
         try:
             CommunityNotificationSettings.objects.create(
-                community_id=community_instance,
+                community=community_instance,
                 created_at=current_time,
                 updated_at=current_time
             )
@@ -3884,7 +3884,7 @@ class CommunityHelper:
     def fetch_community_noti_settings_instance(community_instance):
 
         noti_setting_instance = ModelUtilities.get_model_filter(CommunityNotificationSettings,
-                                                                {'community_id': community_instance})
+                                                                {'community': community_instance})
 
         return noti_setting_instance[0] if noti_setting_instance else None
 

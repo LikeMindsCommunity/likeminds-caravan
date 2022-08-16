@@ -3430,7 +3430,7 @@ class CommunityNotificationSettings(models.Model):
     )
 
     id = models.UUIDField(default=uuid.uuid4, primary_key=True)
-    community_id = models.ForeignKey(Community, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
     noti_state = models.IntegerField(
         default=noti_states.ALL_MESSAGES,
         choices=NOTI_STATE_CHOICES,
