@@ -709,7 +709,8 @@ class ChangeChatroomTypeView(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
         if not member_id:
-            raise InvalidHeaderException()
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid member-id',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         req_body = RequestUtilities.load_request_body(request)
 
@@ -719,6 +720,32 @@ class ChangeChatroomTypeView(APIView):
         chatroom_manager = ChatroomImpl(member_id, device_id=device_id,
                                         request_platform=request_platform)
         context = chatroom_manager.change_chatroom_type(req_body)
+
+        if context.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
+
+        return JsonResponse(context)
+
+    def get(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid member-id',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
+
+        chatroom_id = request.GET.get('chatroom_id')
+
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+        request_platform = RequestUtilities.get_platform_code(request)
+
+        chatroom_manager = ChatroomImpl(member_id, chatroom_id=chatroom_id, device_id=device_id,
+                                        request_platform=request_platform)
+        context = chatroom_manager.get_change_chatroom_type_status()
+
+        if context.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
 
         return JsonResponse(context)
 

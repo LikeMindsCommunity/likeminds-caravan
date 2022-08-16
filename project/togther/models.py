@@ -581,6 +581,8 @@ class Collabcard(models.Model):
     single_event_url = models.TextField(null=True)
     third_party_unique_id = models.TextField(null=True, blank=True)
 
+    chatroom_image_url = models.TextField(null=True)
+
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
         current_time_msec = TimeUtilities.current_time_in_milliseconds()
@@ -3057,7 +3059,7 @@ class EventRecordingsURL(models.Model):
 class ChatroomCohort(models.Model):
     cohort = models.ForeignKey(Cohort, on_delete=models.CASCADE)
     chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
-    cohort_access = models.IntegerField(default=0)
+    cohort_access = models.IntegerField(default=2)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 

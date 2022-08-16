@@ -223,3 +223,58 @@ class ChatroomViewHelper:
             return ResponseUtilities.get_inner_error_context("You can’t view settings of this chatroom!")
 
         return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def validate_change_chatroom_type_request(member_id, req_body):
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid chatroom id")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid user id")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("You are not a part of this community.")
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return ResponseUtilities.get_inner_error_context("You don’t have ability to change chatroom type")
+
+        if 'is_secret' not in req_body:
+            return ResponseUtilities.get_inner_error_context("Send chatroom type to update")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def validate_change_chatroom_type_status_request(member_id, chatroom_id):
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid chatroom id")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid user id")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("You are not a part of this community.")
+
+        member_instance = member_filter[0]
+        is_cm = member_instance.state == member_states.ADMIN
+
+        if not is_cm:
+            return ResponseUtilities.get_inner_error_context("You are not CM/owner or chatroom creator!")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
