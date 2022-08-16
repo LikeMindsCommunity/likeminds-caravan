@@ -32,6 +32,7 @@ DM_CHATROOM_NAME = "Direct Message"
 CHATROOM_NOTIFICATION_PAUSE_EVENT = "Notification paused"
 CHATROOM_NOTIFICATION_SETTING_UPDATED_EVENT = "User Notification setting updated"
 
+
 class PauseChatroomNotificationTime:
     EIGHT_HR = 8
     TWENTY_FOUR_HR = 24

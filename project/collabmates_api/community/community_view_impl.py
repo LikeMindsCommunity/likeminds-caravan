@@ -932,13 +932,10 @@ class CommunityNotificationSettings(APIView):
         community_manager = CommunityImpl(member_id=member_id, community_id=req_body.get('community_id'))
         res = community_manager.update_community_noti_settings(req_body)
 
-        if res.get('success'):
-            return JsonResponse(res, status=status_codes.HTTP_200_OK)
-
-        return JsonResponse(
-            res,
-            status=status_codes.HTTP_400_BAD_REQUEST
-        )
+        if res.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)
 
     def get(self, request):
 
@@ -948,10 +945,7 @@ class CommunityNotificationSettings(APIView):
         community_manager = CommunityImpl(member_id=member_id, community_id=req_body.get('community_id'))
         res = community_manager.fetch_community_noti_settings(req_body)
 
-        if res.get('success'):
-            return JsonResponse(res, status=status_codes.HTTP_200_OK)
-
-        return JsonResponse(
-            res,
-            status=status_codes.HTTP_400_BAD_REQUEST
-        )
+        if res.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)

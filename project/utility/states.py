@@ -635,4 +635,5 @@ class NotificationStates:
     ALL_MESSAGES_ANALYTICS = "all_messages"
     ONLY_MENTIONS_AND_REPLIES_ANALYTICS = "mentions_replies"
 
+
 noti_states = NotificationStates()

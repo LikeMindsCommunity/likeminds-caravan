@@ -1976,17 +1976,13 @@ class CommunityImpl(CommunityManager):
                                                                                          req_body)
 
         if validated_req_body.get('error_message'):
-            return get_error_context(False, validated_req_body.get('error_message'))
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         noti_setting_instance = CommunityHelper.fetch_community_noti_settings_instance(
-            validated_req_body.get('community_instance')
-        )
+            validated_req_body.get('community_instance'))
 
-        serializer = CommunityNotificationSettingsSerializer(
-            noti_setting_instance,
-            req_body,
-            partial=True
-        )
+        serializer = CommunityNotificationSettingsSerializer(noti_setting_instance, req_body, partial=True)
 
         if serializer.is_valid():
             serializer.save()
@@ -2004,12 +2000,7 @@ class CommunityImpl(CommunityManager):
 
             return res
 
-        res = {
-            'success': False,
-            'error_message': serializer.errors,
-        }
-
-        return res
+        return ResponseUtilities.get_impl_error_context(serializer.errors, status_codes.HTTP_400_BAD_REQUEST)
 
     def fetch_community_noti_settings(self, req_body):
         
@@ -2018,15 +2009,13 @@ class CommunityImpl(CommunityManager):
                                                                                         req_body)
 
         if validated_req_body.get('error_message'):
-            return get_error_context(False, validated_req_body.get('error_message'))
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         noti_setting_instance = CommunityHelper.fetch_community_noti_settings_instance(
-            validated_req_body.get('community_instance')
-        )
+            validated_req_body.get('community_instance'))
 
-        serializer = CommunityNotificationSettingsSerializer(
-            noti_setting_instance
-        )
+        serializer = CommunityNotificationSettingsSerializer(noti_setting_instance)
 
         res = {
             'success': True,
@@ -3879,10 +3868,7 @@ class CommunityHelper:
 
         current_time = TimeUtilities.current_time_in_milliseconds()
 
-        community_instance = ModelUtilities.get_model_instance_or_none(
-            Community,
-            community_id
-        )
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
         try:
             CommunityNotificationSettings.objects.create(
@@ -3897,25 +3883,17 @@ class CommunityHelper:
     @staticmethod
     def fetch_community_noti_settings_instance(community_instance):
 
-        noti_setting_instance = ModelUtilities.get_model_filter(
-            CommunityNotificationSettings,
-            {
-                'community_id': community_instance
-            }
-        )
+        noti_setting_instance = ModelUtilities.get_model_filter(CommunityNotificationSettings,
+                                                                {'community_id': community_instance})
 
         return noti_setting_instance[0] if noti_setting_instance else None
 
     @staticmethod
     @shared_task
     def trigger_event_analytics_on_updating_community_noti_settings(user_id, community_id, noti_state):
-
         event_name = COMMUNITY_NOTIFICATION_SETTING_UPDATED_EVENT
 
-        community = ModelUtilities.get_model_instance_or_none(
-            Community,
-            community_id
-        )
+        community = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
         community_name = community.name if community else ""
 
@@ -3931,8 +3909,4 @@ class CommunityHelper:
             'setting': setting
         }
 
-        SegmentImpl.track_event(
-            user_id,
-            event_name,
-            event_dict
-        )
+        SegmentImpl.track_event(user_id, event_name, event_dict)
