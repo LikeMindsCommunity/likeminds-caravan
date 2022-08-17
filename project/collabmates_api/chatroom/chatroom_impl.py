@@ -3884,6 +3884,10 @@ class ChatroomHelper:
         bulk_create_list = []
         auto_follow_chatroom_list = []
 
+        from collabmates_api.community.community_impl import CommunityHelper
+        community_noti_instance = CommunityHelper.fetch_community_noti_settings_instance(community_instance)
+        community_current_noti_state = community_noti_instance.noti_state if community_noti_instance else noti_states.ALL_MESSAGES
+
         for card_instance in chatroom_filter:
 
             if chatroom_state_dict.get(card_instance.id) is False:
@@ -3895,11 +3899,10 @@ class ChatroomHelper:
 
                 follow_status = card_instance.auto_follow_done and card_instance.include_members_later
 
-                instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
-                                                                                           user_instance,
-                                                                                           follow_status=follow_status,
-                                                                                           expire_at=expire_at,
-                                                                                           community_instance=community_instance)
+                instance = collabcardState.create_chatroom_state_instances_for_bulk_create(
+                    card_instance, user_instance, follow_status=follow_status, expire_at=expire_at,
+                    community_instance=community_instance, noti_state=community_current_noti_state)
+
                 if instance:
                     bulk_create_list.append(instance)
 
