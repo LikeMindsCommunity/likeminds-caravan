@@ -3480,6 +3480,9 @@ class ChatroomImpl(ChatroomManager):
                 return ResponseUtilities.get_impl_error_context('pause_noti_for key cannot be empty',
                                                                 status_codes.HTTP_400_BAD_REQUEST)
 
+        elif collabcard_state_instance.is_noti_paused:
+            collabcard_state_instance.update(is_noti_paused=is_noti_paused)
+
         if noti_state:
             collabcard_state_instance.update(noti_state=noti_state)
 
