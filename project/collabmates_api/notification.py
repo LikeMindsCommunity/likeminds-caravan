@@ -1045,7 +1045,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
         user_context = dict()
 
-        user_context['id'] = user_id
+        user_context['id'] = obj[0]
 
         notification_list.append(user_context)
 
