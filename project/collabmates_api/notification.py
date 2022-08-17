@@ -1003,7 +1003,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
         ).filter(
             ~Q(user=user_id)
         ).filter(
-            Q(is_noti_paused=False) | ( Q(is_noti_paused=True) & Q(unpause_noti_at__lte=current_time) )
+            Q(is_noti_paused=False) | (Q(is_noti_paused=True) & Q(unpause_noti_at__lte=current_time))
         ).values_list(
             'user_id',
             'noti_state'
@@ -1020,8 +1020,6 @@ def send_follow_notification(card_id, user_id, conversation_id):
         icon_string = get_icon_for_notification(conversation_instance)
 
     notification_list = []
-
-    message = dict()
 
     custom_conversation_notification_payload = \
         get_notification_payload_metadata_for_conversation_creation(community_instance,
@@ -1040,12 +1038,9 @@ def send_follow_notification(card_id, user_id, conversation_id):
         }
     }
 
-    for obj in chatroom_follower_list: # obj -> (user_id, noti_state)
+    for obj in chatroom_follower_list:
 
-        if str(obj[0]) in tagged_users_list:
-            continue
-
-        if obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES:
+        if obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES and (str(obj[0]) not in tagged_users_list):
             continue
 
         user_context = dict()
