@@ -3292,7 +3292,7 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
 def create_chatroom_state_instance(card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_SEEN,
                                    expire_at=None, external_seen=True, is_guest=False, source=None, follow_status=False,
                                    mute_status=False, is_tagged=False, external_follow=False,
-                                   attending_status=False, **kwargs):
+                                   attending_status=False, noti_state=noti_states.ALL_MESSAGES, **kwargs):
     '''function to create chatroom state instance'''
 
     try:
@@ -3310,6 +3310,7 @@ def create_chatroom_state_instance(card_instance, user_instance, state=collabcar
         collabcard_state_instance.is_tagged = is_tagged
         collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.source = source
+        collabcard_state_instance.noti_state = noti_state
         collabcard_state_instance.external_follow = external_follow
 
         collabcard_state_instance.save()
@@ -6251,11 +6252,17 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
         else:
             mute_status = False
         expiry_time = get_expiry_time_of_chatroom() if not set_expiry_time_none else None
+
+        from collabmates_api.community.community_impl import CommunityHelper
+        community_noti_instance = CommunityHelper.fetch_community_noti_settings_instance(card_instance.community)
+        community_current_noti_state = community_noti_instance.noti_state if community_noti_instance else noti_states.ALL_MESSAGES
+
         create_chatroom_state_instance(card_instance, user_instance, state=0,
                                        expire_at=expiry_time, external_seen=external_seen, is_guest=is_guest,
                                        source=ref_instance, follow_status=status,
                                        mute_status=mute_status, is_tagged=is_tagged,
-                                       function_called="collabcard_follow_internal")
+                                       function_called="collabcard_follow_internal",
+                                       noti_state=community_current_noti_state)
 
     if status:
         member_state = 0
