@@ -23,7 +23,8 @@ from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_P
     SUB_TITLE_FOR_MEMBER_VIEW_NO_UPCOMING_EVENTS_FOUND, SUB_TITLE_FOR_CM_VIEW_NO_UPCOMING_EVENTS_FOUND, \
     SUB_TITLE_FOR_NO_PAST_EVENTS_FOUND, FIRST_EVENT_CM_MAIL_SUBJECT, FIRST_EVENT_CM_MAIL_BUTTON_TEXT, \
     FIRST_EVENT_CM_REPLY_EMAIL, DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR, CHATROOM_URL_WITH_COMMUNITY_ID, \
-    DM_CHATROOM_NAME
+    DM_CHATROOM_NAME, CHATROOM_NOTIFICATION_PAUSE_EVENT, CHATROOM_NOTIFICATION_SETTING_UPDATED_EVENT , \
+    PauseChatroomNotificationTime
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 from .chatroom_view_helper import ChatroomViewHelper
@@ -74,7 +75,7 @@ from external_services.webflow.webflow_impl import WebflowImpl
 from external_services.email.email_wrapper import MailWrapper, MailHelper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
-    event_online_link_types, block_chatroom_states, chat_request_states, api_types
+    event_online_link_types, block_chatroom_states, chat_request_states, api_types, noti_states
 
 from utility.utils import check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -1136,7 +1137,7 @@ class ChatroomImpl(ChatroomManager):
 
         if req_body.get('end_time_after'):
             data_dict['end_time_after'] = req_body.get('end_time_after')
-        
+
         serializer = ScheduledChatroomFollowSerializer(data=data_dict)
 
         if serializer.is_valid():
@@ -3430,7 +3431,7 @@ class ChatroomImpl(ChatroomManager):
                 follow_chatroom_async.delay(
                     self.get_chatroom_id(),
                     self.get_member_id()
-                    
+
                 )
 
             else:
@@ -3450,6 +3451,45 @@ class ChatroomImpl(ChatroomManager):
             }
 
         return res
+
+    def update_chatroom_noti_settings(self, noti_state, is_noti_paused, pause_noti_for):
+        validated_request = ChatroomViewHelper.validate_update_chatroom_notification_setting_request(
+            self.get_member_id(), self.get_chatroom_id())
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        collabcard_state_instance = validated_request.get('collabcard_state_instance')
+
+        if is_noti_paused:
+
+            if pause_noti_for:
+                current_time = TimeUtilities.current_time_in_milliseconds()
+                unpause_noti_at = current_time + pause_noti_for
+
+                collabcard_state_instance.update(is_noti_paused=is_noti_paused, unpause_noti_at=unpause_noti_at)
+
+                ChatroomHelper.trigger_event_analytics_on_pausing_chatroom_noti.delay(
+                    self.get_member_id(),
+                    self.get_chatroom_id(),
+                    pause_noti_for
+                )
+
+            else:
+                return ResponseUtilities.get_impl_error_context('pause_noti_for key cannot be empty',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+
+        if noti_state:
+            collabcard_state_instance.update(noti_state=noti_state)
+
+            ChatroomHelper.trigger_event_analytics_on_updating_chatroom_noti_settings.delay(
+                self.get_member_id(),
+                self.get_chatroom_id(),
+                noti_state
+            )
+
+        return {'success': True}
 
 
 class ChatroomHelper:
@@ -3742,6 +3782,11 @@ class ChatroomHelper:
             is_tagged = True
             mute_status = True
 
+        from collabmates_api.community.community_impl import CommunityHelper
+
+        community_noti_instance = CommunityHelper.fetch_community_noti_settings_instance(community_instance)
+        community_current_noti_state = community_noti_instance.noti_state if community_noti_instance else noti_states.ALL_MESSAGES
+
         chatroom_state_instance = None
         collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
                                                                                     'user': user_instance})
@@ -3750,6 +3795,7 @@ class ChatroomHelper:
 
             expiry_time = ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
             card_state_instance = collabcardState.create_chatroom_state_instance(card_instance, user_instance,
+                                                                                 noti_state=community_current_noti_state,
                                                                                  state=collabcard_states.COLLABCARD_STATE_SEEN,
                                                                                  expire_at=expiry_time,
                                                                                  is_guest=is_guest,
@@ -3896,6 +3942,11 @@ class ChatroomHelper:
         event_creator_and_community_owner = TasksHelper.get_community_owner_and_event_creator(community_instance,
                                                                                               card_instance)
 
+        from collabmates_api.community.community_impl import CommunityHelper
+
+        community_noti_instance = CommunityHelper.fetch_community_noti_settings_instance(community_instance)
+        community_current_noti_state = community_noti_instance.noti_state if community_noti_instance else noti_states.ALL_MESSAGES
+
         for data in member_filter:
             user_instance = data.member_id
 
@@ -3909,6 +3960,7 @@ class ChatroomHelper:
 
                 instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
                                                                                            user_instance,
+                                                                                           noti_state=community_current_noti_state,
                                                                                            state=state,
                                                                                            follow_status=follow_status,
                                                                                            community_instance=community_instance,
@@ -4811,6 +4863,61 @@ class ChatroomHelper:
     def set_chatroom_participants_created_key_in_cache(chatroom_id, are_participants_created=False):
         key = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(chatroom_id)
         CacheImpl.set_cache(key, {"are_participants_created": are_participants_created})
+
+    @staticmethod
+    @shared_task
+    def trigger_event_analytics_on_pausing_chatroom_noti(user_id, chatroom_id, pause_noti_for):
+        event_name = CHATROOM_NOTIFICATION_PAUSE_EVENT
+
+        chatroom = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        community_name = chatroom.community.name if chatroom else ""
+        community_id = chatroom.community.id if chatroom else ""
+
+        pause_noti_time = TimeUtilities.convert_milliseconds_to_hrs(pause_noti_for)
+
+        if pause_noti_time == PauseChatroomNotificationTime.EIGHT_HR:
+            duration = PauseChatroomNotificationTime.EIGHT_HOURS
+
+        elif pause_noti_time == PauseChatroomNotificationTime.TWENTY_FOUR_HR:
+            duration = PauseChatroomNotificationTime.TWENTY_FOUR_HOURS
+
+        else:
+            duration = PauseChatroomNotificationTime.ONE_WEEK
+
+        event_dict = {
+            'chatroom_id': chatroom_id,
+            'community_id': community_id,
+            'community_name': community_name,
+            'duration': duration
+        }
+
+        SegmentImpl.track_event(user_id, event_name, event_dict)
+
+    @staticmethod
+    @shared_task
+    def trigger_event_analytics_on_updating_chatroom_noti_settings(user_id, chatroom_id, noti_state):
+        event_name = CHATROOM_NOTIFICATION_SETTING_UPDATED_EVENT
+
+        chatroom = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        community_name = chatroom.community.name if chatroom else ""
+        community_id = chatroom.community.id if chatroom else ""
+
+        if noti_state == noti_states.ALL_MESSAGES:
+            setting = noti_states.ALL_MESSAGES_ANALYTICS
+
+        else:
+            setting = noti_states.ONLY_MENTIONS_AND_REPLIES_ANALYTICS
+
+        event_dict = {
+            'chatroom_id': chatroom_id,
+            'community_id': community_id,
+            'community_name': community_name,
+            'setting': setting
+        }
+
+        SegmentImpl.track_event(user_id, event_name, event_dict)
 
     @staticmethod
     def chatroom_participants_count(card_instance):

@@ -1475,3 +1475,10 @@ class SDKClientUsersInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = SDKClientUsersInfo
         fields = ('user', 'community', 'user_unique_id')
+
+
+class CommunityNotificationSettingsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CommunityNotificationSettings
+        fields = '__all__'

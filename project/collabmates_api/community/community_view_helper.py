@@ -2,6 +2,7 @@ from togther.models import (ModelUtilities, Community, Members)
 from utility.response_utilities import ResponseUtilities
 from cms.cms_auth_utilities import CMSAuthUtilities
 from collabmates_api.sdk.models import (SdkClient)
+from utility.states import noti_states
 
 
 class CommunityViewHelper:
@@ -124,3 +125,57 @@ class CommunityViewHelper:
 
         return {'user_instance': user_instance, 'community_instance': community_instance,
                 'member_instance': member_instance}
+
+    @staticmethod
+    def validate_update_community_noti_settings(user_id, community_id, req_body):
+
+        if not req_body:
+            return ResponseUtilities.get_inner_error_context("Invalid request body")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community_id")
+
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
+
+        if not is_admin:
+            return ResponseUtilities.get_inner_error_context("You are not CM/Owner of this community")
+
+        noti_state = int(req_body.get('noti_state'))
+
+        if not noti_state:
+            return ResponseUtilities.get_inner_error_context("noti_state is required")
+
+        if noti_state not in [ noti_states.ALL_MESSAGES, noti_states.ONLY_MENTIONS_AND_REPLIES ]:
+            return ResponseUtilities.get_inner_error_context("invalid noti_state")
+
+        return {'noti_state': noti_state, 'community_instance': community_instance}
+
+    @staticmethod
+    def validate_fetch_community_noti_settings(user_id, community_id, req_body):
+
+        if not req_body:
+            return ResponseUtilities.get_inner_error_context("Invalid request body")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community_id")
+
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
+
+        if not is_admin:
+            return ResponseUtilities.get_inner_error_context("You are not CM/Owner of this community")
+
+        return {'community_instance': community_instance}

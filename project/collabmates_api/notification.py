@@ -19,9 +19,6 @@ from togther.models import (Community_Rank, collabcardState,
                             moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers,
                             userDevices, ModelUtilities, answerAttachment)
 
-from utility.states import (member_states, manager_rights, member_rights, moderation_history_types,
-                            )
-
 from utility.utils import *
 from utility.time_utilities import TimeUtilities
 from utility.celery_beat_tasks import CeleryBeatTask
@@ -995,9 +992,25 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     community_instance = card_instance.community
 
-    chatroom_follower_list = list(collabcardState.objects.filter(card=card_instance, follow_status=True,
-                                                                 remove=None, mute_status=False).
-                                  filter(~Q(user=user_id)).values_list('user_id', flat=True).order_by('-user_id'))
+    current_time = TimeUtilities.current_time_in_milliseconds()
+
+    chatroom_follower_list = list(
+        collabcardState.objects.filter(
+            card=card_instance,
+            follow_status=True,
+            remove=None,
+            mute_status=False
+        ).filter(
+            ~Q(user=user_id)
+        ).filter(
+            Q(is_noti_paused=False) | ( Q(is_noti_paused=True) & Q(unpause_noti_at__lte=current_time) )
+        ).values_list(
+            'user_id',
+            'noti_state'
+        ).order_by(
+            '-user_id'
+        )
+    )
 
     tagged_users_list, answer_text, user_names = get_tagged_members_list(answer)
 
@@ -1027,9 +1040,12 @@ def send_follow_notification(card_id, user_id, conversation_id):
         }
     }
 
-    for user_id in chatroom_follower_list:
+    for obj in chatroom_follower_list: # obj -> (user_id, noti_state)
 
-        if str(user_id) in tagged_users_list:
+        if str(obj[0]) in tagged_users_list:
+            continue
+
+        if obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES:
             continue
 
         user_context = dict()

@@ -10,7 +10,7 @@ from cms.models import NewAnswer
 from collabmates_api.community.constants import *
 from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSerializer, CommunityToastV1Serializer, \
     CommunityGetStartedSerializer, CommunityQuestionsSerializerV2, CommunityAnswersSerializer, get_error_context, \
-    CommunityDMSettingsSerializer
+    CommunityDMSettingsSerializer, CommunityNotificationSettingsSerializer
 
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
     give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage, \
@@ -33,7 +33,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityLevels, conversationEngage, userMemberRights, moderationHistory, communityQuestions, questionFilters, \
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, CommunityJoinDefaultEmail, \
     userEmails, ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
-    communityFieldSubTypes, CommunityDirectMessageSettings
+    communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST
@@ -66,7 +66,7 @@ from utility.states import member_states, card_types, click_states, member_right
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
-    api_types, login_types
+    api_types, login_types, noti_states
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -1505,6 +1505,8 @@ class CommunityImpl(CommunityManager):
 
         CommunityHelper.set_community_data_in_cache(community_instance.id)
 
+        CommunityHelper.create_community_noti_settings_instance_on_community_creation.delay(community_instance.id)
+
         community_serializer = CommunitySerializerV1(community_instance,
                                                      context={"current_user_id": self.get_member_id(),
                                                               "is_sdk": is_sdk},
@@ -1966,6 +1968,61 @@ class CommunityImpl(CommunityManager):
                                                            'previous_image_url': previous_image_url})
 
         return {'success': True}
+
+    def update_community_noti_settings(self, req_body):
+        
+        validated_req_body = CommunityViewHelper.validate_update_community_noti_settings(self.get_member_id(),
+                                                                                         self.get_community_id(),
+                                                                                         req_body)
+
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        noti_setting_instance = CommunityHelper.fetch_community_noti_settings_instance(
+            validated_req_body.get('community_instance'))
+
+        serializer = CommunityNotificationSettingsSerializer(noti_setting_instance, req_body, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+
+            CommunityHelper.trigger_event_analytics_on_updating_community_noti_settings.delay(
+                self.get_member_id(),
+                self.get_community_id(),
+                req_body.get('noti_state')
+            )
+
+            res = {
+                'success': True,
+                'community_notification_settings': serializer.data
+            }
+
+            return res
+
+        return ResponseUtilities.get_impl_error_context(serializer.errors, status_codes.HTTP_400_BAD_REQUEST)
+
+    def fetch_community_noti_settings(self, req_body):
+        
+        validated_req_body = CommunityViewHelper.validate_fetch_community_noti_settings(self.get_member_id(),
+                                                                                        self.get_community_id(),
+                                                                                        req_body)
+
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        noti_setting_instance = CommunityHelper.fetch_community_noti_settings_instance(
+            validated_req_body.get('community_instance'))
+
+        serializer = CommunityNotificationSettingsSerializer(noti_setting_instance)
+
+        res = {
+            'success': True,
+            'community_notification_settings': serializer.data
+        }
+
+        return res
 
 
 class CommunityHelper:
@@ -3804,3 +3861,52 @@ class CommunityHelper:
 
         return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
                 'state': state}
+
+    @staticmethod
+    @shared_task
+    def create_community_noti_settings_instance_on_community_creation(community_id):
+
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        try:
+            CommunityNotificationSettings.objects.create(
+                community=community_instance,
+                created_at=current_time,
+                updated_at=current_time
+            )
+
+        except Exception as e:
+            error_logger.error("Exception occurred while creating ResourceSettings on community creation - %s" % e.args)
+
+    @staticmethod
+    def fetch_community_noti_settings_instance(community_instance):
+
+        noti_setting_instance = ModelUtilities.get_model_filter(CommunityNotificationSettings,
+                                                                {'community': community_instance})
+
+        return noti_setting_instance[0] if noti_setting_instance else None
+
+    @staticmethod
+    @shared_task
+    def trigger_event_analytics_on_updating_community_noti_settings(user_id, community_id, noti_state):
+        event_name = COMMUNITY_NOTIFICATION_SETTING_UPDATED_EVENT
+
+        community = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        community_name = community.name if community else ""
+
+        if noti_state == noti_states.ALL_MESSAGES:
+            setting = noti_states.ALL_MESSAGES_ANALYTICS
+
+        else:
+            setting = noti_states.ONLY_MENTIONS_AND_REPLIES_ANALYTICS
+
+        event_dict = {
+            'community_id': community_id,
+            'community_name': community_name,
+            'setting': setting
+        }
+
+        SegmentImpl.track_event(user_id, event_name, event_dict)

@@ -45,6 +45,10 @@ class TimeUtilities:
         return millisec // 60000
 
     @staticmethod
+    def convert_milliseconds_to_hrs(millisec):
+        return millisec // 3600000
+
+    @staticmethod
     def convert_sec_to_milliseconds(sec):
         return int(sec * 1000)
 
