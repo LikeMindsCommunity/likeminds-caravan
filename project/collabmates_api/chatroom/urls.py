@@ -69,5 +69,5 @@ urlpatterns = [
     path('block', BlockMemberView.as_view(), name='block_member'),
     path('request_dm', RequestDMView.as_view(), name='request_dm'),
     path('schedule_follow', ScheduledChatroomFollow.as_view(), name='schedule_follow'),
-    path('notifications/settings', ChatroomNotificationSettings.as_view(), name='notifications_settings')
+    path('notification_settings', ChatroomNotificationSettings.as_view(), name='notifications_settings')
 ]
