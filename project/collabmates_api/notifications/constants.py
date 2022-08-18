@@ -149,6 +149,7 @@ class NotificationSubCategories:
     USER_REACTED = "User Reacted"
     CO_HOST_ADDED = "Cohost added"
     POLL_ROOM_CREATED = "Poll room created"
+    MICRO_POLL_CREATED = "Micro poll created"
     EVENT_STARTING_IN_2M = "Event starting in 2m"
     EVENT_STARTING_IN_24H = "Event starting in 24h"
     EVENT_STARTING_IN_30M = "Event starting in 30m"

@@ -2979,12 +2979,17 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
 
     notification_list = []
 
-    message = {'payload': {
-        "title": "Time to vote",
-        "sub_title": POLL_CONVERSATION_SUBTITLE % (userinfo_instance[0].name, card_instance.header,
-                                                   community_instance.name),
-        'route': POLL_CONVERSATION_ROUTE % (community_instance.id, card_instance.id, conversation_id)
-    }
+    message = {
+        'payload': {
+            'title': "Time to vote",
+            'sub_title': POLL_CONVERSATION_SUBTITLE % (userinfo_instance[0].name, card_instance.header,
+                                                       community_instance.name),
+            'route': POLL_CONVERSATION_ROUTE % (community_instance.id, card_instance.id, conversation_id)
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MICRO_POLL_CREATED
+        }
     }
 
     for member in member_filter:
