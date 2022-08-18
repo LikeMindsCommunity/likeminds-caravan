@@ -50,5 +50,5 @@ urlpatterns = [
     path('fetch_community_dm_settings', FetchCommunityDMSettingsView.as_view(), name="fetch_community_dm_settings"),
     path('fetch_community_dm_right', FetchCommunityDMRightView.as_view(), name="fetch_community_dm_right"),
     path('member', CommunityMemberView.as_view(), name="community_member"),
-    path('notifications/settings', CommunityNotificationSettings.as_view(), name="community_notifications_settings")
+    path('notification_settings', CommunityNotificationSettings.as_view(), name="community_notifications_settings")
 ]
