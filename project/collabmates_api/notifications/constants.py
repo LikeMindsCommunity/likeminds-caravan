@@ -146,6 +146,7 @@ class NotificationSubCategories:
 
     USER_TAGGED = "User Tagged"
     USER_RESPONDED = "User Responded"
+    USER_REACTED = "User Reacted"
     CO_HOST_ADDED = "Cohost added"
     POLL_ROOM_CREATED = "Poll room created"
     EVENT_STARTING_IN_2M = "Event starting in 2m"

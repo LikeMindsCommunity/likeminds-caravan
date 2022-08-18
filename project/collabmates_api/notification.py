@@ -2930,11 +2930,16 @@ def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conve
     else:
         route = MESSAGE_REACTIONS_CHATROOM_NOTIFICATION_ROUTE % chatroom_id
 
-    message = {'payload': {
-        "title": title,
-        "sub_title": sub_title,
-        'route': route
-    }
+    message = {
+        'payload': {
+            'title': title,
+            'sub_title': sub_title,
+            'route': route
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.USER_REACTED
+        }
     }
 
     notification_list = [creator_dict]
