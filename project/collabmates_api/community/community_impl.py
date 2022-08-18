@@ -1689,7 +1689,8 @@ class CommunityImpl(CommunityManager):
 
         community_meta_data['questions'] = CommunityHelper.get_community_questions_data(user_instance,
                                                                                         community_instance,
-                                                                                        self.get_request_platform())
+                                                                                        self.get_request_platform(),
+                                                                                        self.get_version_code())
 
         community_meta_data['success'] = True
 
