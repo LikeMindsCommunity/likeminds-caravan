@@ -903,17 +903,21 @@ def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list
     if not tagged_users_list:
         return
 
-    message = dict()
-
     custom_conversation_notification_payload = \
         get_notification_payload_metadata_for_conversation_creation(community_instance,
                                                                     card_instance, userinfo_instance,
                                                                     conversation_instance)
-    message['payload'] = {
-        'title': card_instance.header,
-        'sub_title': userinfo_instance.name + ": " + answer_text,
-        'route': f"route://collabcard?collabcard_id={str(card_instance.id)}&community_id={str(community_instance.id)}",
-        'unread_follow_notification': custom_conversation_notification_payload
+    message = {
+        'payload': {
+            'title': card_instance.header,
+            'sub_title': userinfo_instance.name + ": " + answer_text,
+            'route': f"route://collabcard?collabcard_id={str(card_instance.id)}&community_id={str(community_instance.id)}",
+            'unread_follow_notification': custom_conversation_notification_payload
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.USER_TAGGED
+        }
     }
 
     notification_list = []
