@@ -85,7 +85,7 @@ from ..notifications.tasks import send_mail_for_first_time_edit_community_questi
 from ..user.user_impl import UserHelper, UserImpl
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
-    directory_questions_v2_version_check, get_user_phone
+    directory_questions_v2_version_check, get_user_phone, fetch_alias_question_version_check
 
 from ..sms import send_community_confirmation_sms
 from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check, \
@@ -1689,7 +1689,8 @@ class CommunityImpl(CommunityManager):
 
         community_meta_data['questions'] = CommunityHelper.get_community_questions_data(user_instance,
                                                                                         community_instance,
-                                                                                        self.get_request_platform())
+                                                                                        self.get_request_platform(),
+                                                                                        self.get_version_code())
 
         community_meta_data['success'] = True
 
@@ -3592,7 +3593,7 @@ class CommunityHelper:
         return context
 
     @staticmethod
-    def get_community_questions_data(user_instance, community_instance, platform_code='web'):
+    def get_community_questions_data(user_instance, community_instance, platform_code='web', version_code=0):
         data = ModelUtilities.get_model_filter(communityQuestions,
                                                {"community": community_instance}).order_by('-rank', 'id')
 
@@ -3607,6 +3608,10 @@ class CommunityHelper:
                     serialized_question['is_hidden'],
                     serialized_question['field'],
                     serialized_question['question_state'] == question_states.PARAGRAPH]):
+                continue
+
+            if all([serialized_question['question_state'] == question_states.NAME,
+                    not fetch_alias_question_version_check(platform_code, version_code)]):
                 continue
 
             serialized_question['state'] = serialized_question['question_state']
