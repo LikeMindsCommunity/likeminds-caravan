@@ -3104,7 +3104,8 @@ class CommunityHelper:
                 'is_hidden': False,
                 'is_compulsory': False,
                 'field': False,
-                'can_add_options': False
+                'can_add_options': False,
+                'rank': 1
             })
 
         else:
