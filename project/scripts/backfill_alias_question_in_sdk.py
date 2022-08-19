@@ -31,7 +31,8 @@ def backfill_alias_question_in_sdk_communities():
                 'is_hidden': False,
                 'is_compulsory': False,
                 'field': False,
-                'can_add_options': False
+                'can_add_options': False,
+                'rank': 1
             }
 
             community_question_serializer = CommunityQuestionsSerializerV2(data=question_data, many=False)
