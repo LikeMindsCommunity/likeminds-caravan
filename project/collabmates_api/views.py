@@ -429,7 +429,13 @@ def my_chatrooms_version_1(request):
                 chatroom['second_last_conversation'] = second_last_conversation_dict
 
         chatroom['unseen_conversation_count'] = instance.unseen_count
-        chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
+
+        last_conversation_creation_epoch = get_last_conversation_id_corresponding_to_chatrooms_list(
+            chatrooms_list=[card_instance.id], fetch_conversation_creation_epoch=True)
+
+        if last_conversation_creation_epoch:
+            chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(
+                TimeUtilities.convert_milliseconds_to_sec(last_conversation_creation_epoch.get(card_instance.id)))
 
         last_conversation_member = instance.last_conversation_member
         second_last_conversation_member = instance.second_last_conversation_member

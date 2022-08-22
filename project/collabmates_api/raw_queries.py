@@ -2821,7 +2821,8 @@ def get_ordered_card_id_on_the_basis_of_participants_count_v2(user_id, community
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, page=1, limit=10):
+def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, page=1, limit=10,
+                                                             fetch_conversation_creation_epoch=False):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -2841,7 +2842,7 @@ def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, pag
                                 ORDER BY CA.created_at DESC) AS row_number
                                 FROM togther_card_answers as CA
                                 WHERE  CA.card_id IN %s)
-            SELECT card_id, id
+            SELECT card_id, id, created_at
             FROM   added_row_number
             WHERE  row_number = 1
             ORDER  BY created_at DESC LIMIT %s OFFSET %s; 
@@ -2849,6 +2850,9 @@ def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, pag
         curr.execute(sql)
         card_list = curr.fetchall()
         curr.close()
+
+        if fetch_conversation_creation_epoch:
+            return {data[0]: data[2] for data in card_list}
 
         return {data[0]: data[1] for data in card_list}
 
