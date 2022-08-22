@@ -345,7 +345,7 @@ def my_chatrooms_version_1(request):
 
     page_count = get_total_pages(joined_chatroom_count, limit=10)
 
-    total_pages = page_count 
+    total_pages = page_count
 
     engage_list = get_followed_chatrooms(member_id,
                                         page, 
@@ -357,7 +357,7 @@ def my_chatrooms_version_1(request):
                                         community_id=community_id,
                                         intro_room_community_list=intro_room_community_list)
 
-    for id in engage_list:
+    for id, _ in engage_list.items():
         instance = conversationEngage.objects.get(pk=id)
         instance_list.append(instance)
 
@@ -429,13 +429,11 @@ def my_chatrooms_version_1(request):
                 chatroom['second_last_conversation'] = second_last_conversation_dict
 
         chatroom['unseen_conversation_count'] = instance.unseen_count
+        chatroom['last_conversation_time'] = instance.updated_at
 
-        last_conversation_creation_epoch = get_last_conversation_id_corresponding_to_chatrooms_list(
-            chatrooms_list=[card_instance.id], fetch_conversation_creation_epoch=True)
-
-        if last_conversation_creation_epoch:
+        if engage_list.get(instance.id):
             chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(
-                TimeUtilities.convert_milliseconds_to_sec(last_conversation_creation_epoch.get(card_instance.id)))
+                TimeUtilities.convert_milliseconds_to_sec(engage_list.get(instance.id)))
 
         last_conversation_member = instance.last_conversation_member
         second_last_conversation_member = instance.second_last_conversation_member

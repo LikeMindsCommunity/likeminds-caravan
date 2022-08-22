@@ -111,6 +111,7 @@ def get_my_chatrooms_count(user_id,
                                                               FROM   togther_collabcard
                                                               WHERE  (is_private = %s
                                                                      AND is_private_member = FALSE
+                                                                     AND is_deleted = FALSE
                                                                      AND not (%s)
                                                                      AND chatroom_with_user_id
                                                                          IS %s %s) %s)
@@ -241,6 +242,7 @@ def get_followed_chatrooms(user_id,
                                               WHERE  (
                                                             is_private = %s
                                                      AND    is_private_member = false
+                                                     AND    is_deleted = FALSE
                                                      AND    NOT (
                                                                    %s)
                                                      AND    chatroom_with_user_id IS %s %s) %s)""" % (
@@ -262,7 +264,7 @@ def get_followed_chatrooms(user_id,
         card_ids = get_tuple_from_array(card_ids_list)
 
         sql = """
-                SELECT     togther_conversationengage.id
+                SELECT     togther_conversationengage.id, lca.created_at
                 FROM       togther_conversationengage
                 INNER JOIN (WITH added_row_number AS
                            (
@@ -290,9 +292,7 @@ def get_followed_chatrooms(user_id,
         curr.execute(sql)
         res = curr.fetchall()
 
-        engage_list = []
-        for id in res:
-            engage_list.append(id[0])
+        engage_list = {id[0]: id[1] for id in res}
 
         curr.close()
 
@@ -2849,8 +2849,7 @@ def get_ordered_card_id_on_the_basis_of_participants_count_v2(user_id, community
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, page=1, limit=10,
-                                                             fetch_conversation_creation_epoch=False):
+def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -2878,9 +2877,6 @@ def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, pag
         curr.execute(sql)
         card_list = curr.fetchall()
         curr.close()
-
-        if fetch_conversation_creation_epoch:
-            return {data[0]: data[2] for data in card_list}
 
         return {data[0]: data[1] for data in card_list}
 
