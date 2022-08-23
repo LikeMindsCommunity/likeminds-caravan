@@ -3494,7 +3494,7 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def fetch_community_noti_settings(self):
+    def fetch_chatroom_noti_settings(self):
         validated_req_body = ChatroomViewHelper.validate_fetch_chatroom_notification_setting_request(
             self.get_member_id(), self.get_chatroom_id())
 
