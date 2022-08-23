@@ -4620,7 +4620,7 @@ class ChatroomHelper:
         return secret_chatroom_participants
 
     @staticmethod
-    def fetch_chatroom_link(chatroom_instance):
+    def fetch_chatroom_link(chatroom_instance, domain_url=None):
 
         if chatroom_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
             chatroom_url = chatroom_instance.single_event_url
@@ -4629,7 +4629,9 @@ class ChatroomHelper:
                 chatroom_url = ChatroomHelper.create_or_update_single_event_branch_link(chatroom_instance.id)
 
         else:
-            chatroom_url = CHATROOM_URL_WITH_COMMUNITY_ID % (url, str(chatroom_instance.id),
+
+            domain_url = domain_url if domain_url else url
+            chatroom_url = CHATROOM_URL_WITH_COMMUNITY_ID % (domain_url, str(chatroom_instance.id),
                                                              str(chatroom_instance.community.id))
 
         return chatroom_url
