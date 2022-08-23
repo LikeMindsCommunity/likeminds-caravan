@@ -3943,7 +3943,6 @@ def fetch_share_url(request):
 
     chatroom_id = request.GET.get('chatroom_id')
     community_id = request.GET.get('community_id')
-    domain_url = request.GET.get('domain_url')
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
@@ -3975,7 +3974,7 @@ def fetch_share_url(request):
         chatroom_share = {}
 
         if not card_instance.is_secret:
-            share = get_share_url_text(card_instance, domain_url=domain_url)
+            share = get_share_url_text(card_instance, member_id)
             chatroom_share['share_url'] = share['share_url']
             chatroom_share['creator_share_url'] = share['creator_share_url']
             chatroom_share['link_created_at'] = share['link_created_at']

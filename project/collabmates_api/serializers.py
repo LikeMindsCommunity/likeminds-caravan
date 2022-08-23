@@ -774,7 +774,7 @@ def get_collabcard_files(card_id, draft=False):
     return img_list, pdf, audio_list, video_list, attachments
 
 
-def get_share_url_text(card, domain_url=None):
+def get_share_url_text(card, user_id):
     '''function to share url text'''
 
     share = {}
@@ -782,7 +782,7 @@ def get_share_url_text(card, domain_url=None):
 
     from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
-    card_url = ChatroomHelper.fetch_chatroom_link(card, domain_url=domain_url)
+    card_url = ChatroomHelper.fetch_chatroom_link(card)
 
     share['share_url'] = card_url
     share['creator_share_url'] = card_url
