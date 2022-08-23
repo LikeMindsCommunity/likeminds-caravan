@@ -345,7 +345,7 @@ def my_chatrooms_version_1(request):
 
     page_count = get_total_pages(joined_chatroom_count, limit=10)
 
-    total_pages = page_count 
+    total_pages = page_count
 
     engage_list = get_followed_chatrooms(member_id,
                                         page, 
@@ -357,7 +357,7 @@ def my_chatrooms_version_1(request):
                                         community_id=community_id,
                                         intro_room_community_list=intro_room_community_list)
 
-    for id in engage_list:
+    for id, _ in engage_list.items():
         instance = conversationEngage.objects.get(pk=id)
         instance_list.append(instance)
 
@@ -429,7 +429,11 @@ def my_chatrooms_version_1(request):
                 chatroom['second_last_conversation'] = second_last_conversation_dict
 
         chatroom['unseen_conversation_count'] = instance.unseen_count
-        chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
+        chatroom['last_conversation_time'] = instance.updated_at
+
+        if engage_list.get(instance.id):
+            chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(
+                TimeUtilities.convert_milliseconds_to_sec(engage_list.get(instance.id)))
 
         last_conversation_member = instance.last_conversation_member
         second_last_conversation_member = instance.second_last_conversation_member
@@ -3939,6 +3943,7 @@ def fetch_share_url(request):
 
     chatroom_id = request.GET.get('chatroom_id')
     community_id = request.GET.get('community_id')
+    domain_url = request.GET.get('domain_url')
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
@@ -3970,7 +3975,7 @@ def fetch_share_url(request):
         chatroom_share = {}
 
         if not card_instance.is_secret:
-            share = get_share_url_text(card_instance, member_id)
+            share = get_share_url_text(card_instance, domain_url=domain_url)
             chatroom_share['share_url'] = share['share_url']
             chatroom_share['creator_share_url'] = share['creator_share_url']
             chatroom_share['link_created_at'] = share['link_created_at']

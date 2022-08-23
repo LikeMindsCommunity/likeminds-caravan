@@ -903,17 +903,21 @@ def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list
     if not tagged_users_list:
         return
 
-    message = dict()
-
     custom_conversation_notification_payload = \
         get_notification_payload_metadata_for_conversation_creation(community_instance,
                                                                     card_instance, userinfo_instance,
                                                                     conversation_instance)
-    message['payload'] = {
-        'title': card_instance.header,
-        'sub_title': userinfo_instance.name + ": " + answer_text,
-        'route': f"route://collabcard?collabcard_id={str(card_instance.id)}&community_id={str(community_instance.id)}",
-        'unread_follow_notification': custom_conversation_notification_payload
+    message = {
+        'payload': {
+            'title': card_instance.header,
+            'sub_title': userinfo_instance.name + ": " + answer_text,
+            'route': f"route://collabcard?collabcard_id={str(card_instance.id)}&community_id={str(community_instance.id)}",
+            'unread_follow_notification': custom_conversation_notification_payload
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.USER_TAGGED
+        }
     }
 
     notification_list = []
@@ -2930,11 +2934,16 @@ def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conve
     else:
         route = MESSAGE_REACTIONS_CHATROOM_NOTIFICATION_ROUTE % chatroom_id
 
-    message = {'payload': {
-        "title": title,
-        "sub_title": sub_title,
-        'route': route
-    }
+    message = {
+        'payload': {
+            'title': title,
+            'sub_title': sub_title,
+            'route': route
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.USER_REACTED
+        }
     }
 
     notification_list = [creator_dict]
@@ -2974,12 +2983,17 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
 
     notification_list = []
 
-    message = {'payload': {
-        "title": "Time to vote",
-        "sub_title": POLL_CONVERSATION_SUBTITLE % (userinfo_instance[0].name, card_instance.header,
-                                                   community_instance.name),
-        'route': POLL_CONVERSATION_ROUTE % (community_instance.id, card_instance.id, conversation_id)
-    }
+    message = {
+        'payload': {
+            'title': "Time to vote",
+            'sub_title': POLL_CONVERSATION_SUBTITLE % (userinfo_instance[0].name, card_instance.header,
+                                                       community_instance.name),
+            'route': POLL_CONVERSATION_ROUTE % (community_instance.id, card_instance.id, conversation_id)
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MICRO_POLL_CREATED
+        }
     }
 
     for member in member_filter:
