@@ -3505,7 +3505,7 @@ class ChatroomImpl(ChatroomManager):
         state_instance = validated_req_body.get('collabcard_state_instance')
 
         settings_data = {
-            'chatroom_id': self.get_chatroom_id(),
+            'chatroom_id': state_instance.card_id,
             'member_id': self.get_member_id(),
             'notification_state': state_instance.noti_state if state_instance.noti_state
             else noti_states.ALL_MESSAGES,
