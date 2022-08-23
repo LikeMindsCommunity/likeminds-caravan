@@ -3514,7 +3514,7 @@ class ChatroomImpl(ChatroomManager):
 
         return {
             'success': True,
-            'community_notification_settings': settings_data
+            'chatroom_notification_settings': settings_data
         }
 
 
