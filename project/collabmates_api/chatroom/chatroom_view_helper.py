@@ -319,4 +319,4 @@ class ChatroomViewHelper:
         if not collabcard_state_instance:
             return ResponseUtilities.get_inner_error_context("You are not part of the chatroom.")
 
-        return {'collabcard_state_instance': collabcard_state_instance}
+        return {'collabcard_state_instance': collabcard_state_instance[0]}
