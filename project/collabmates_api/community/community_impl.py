@@ -2003,11 +2003,10 @@ class CommunityImpl(CommunityManager):
 
         return ResponseUtilities.get_impl_error_context(serializer.errors, status_codes.HTTP_400_BAD_REQUEST)
 
-    def fetch_community_noti_settings(self, req_body):
+    def fetch_community_noti_settings(self):
         
         validated_req_body = CommunityViewHelper.validate_fetch_community_noti_settings(self.get_member_id(),
-                                                                                        self.get_community_id(),
-                                                                                        req_body)
+                                                                                        self.get_community_id())
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
