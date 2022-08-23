@@ -3494,6 +3494,29 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
+    def fetch_community_noti_settings(self):
+        validated_req_body = ChatroomViewHelper.validate_fetch_chatroom_notification_setting_request(
+            self.get_member_id(), self.get_chatroom_id())
+
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        state_instance = validated_req_body.get('collabcard_state_instance')
+
+        settings_data = {
+            'chatroom_id': self.get_chatroom_id(),
+            'member_id': self.get_member_id(),
+            'notification_state': state_instance.noti_state if state_instance.noti_state
+            else noti_states.ALL_MESSAGES,
+            'unpause_notification_at': state_instance.unpause_noti_at
+        }
+
+        return {
+            'success': True,
+            'community_notification_settings': settings_data
+        }
+
 
 class ChatroomHelper:
 
