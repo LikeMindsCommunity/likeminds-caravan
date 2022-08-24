@@ -158,11 +158,7 @@ class CommunityViewHelper:
         return {'noti_state': noti_state, 'community_instance': community_instance}
 
     @staticmethod
-    def validate_fetch_community_noti_settings(user_id, community_id, req_body):
-
-        if not req_body:
-            return ResponseUtilities.get_inner_error_context("Invalid request body")
-
+    def validate_fetch_community_noti_settings(user_id, community_id):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:

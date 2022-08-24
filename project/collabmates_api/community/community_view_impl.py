@@ -940,10 +940,10 @@ class CommunityNotificationSettings(APIView):
     def get(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        req_body = RequestUtilities.load_request_body(request)
+        req_body = RequestUtilities.fetch_request_query_params(request)
 
         community_manager = CommunityImpl(member_id=member_id, community_id=req_body.get('community_id'))
-        res = community_manager.fetch_community_noti_settings(req_body)
+        res = community_manager.fetch_community_noti_settings()
 
         if res.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
