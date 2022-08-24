@@ -1219,7 +1219,7 @@ class ConversationImpl(ConversationManager):
                                     {'card': chatroom_instance},
                                     {'updated_at': TimeUtilities.current_time_in_sec()}
                                     )
-        send_notification_on_chatroom_topic_update.delay(chatroom_instance.id)
+        send_notification_on_chatroom_topic_update.delay(chatroom_instance.id, user_instance.id)
 
         return {'success': True}
 
