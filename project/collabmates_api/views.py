@@ -2732,6 +2732,14 @@ def create_poll(request):
         context = get_error_context(False, "You cannot create a chatroom")
         return JsonResponse(context)
 
+    has_right = ModelUtilities.get_model_filter(userMemberRights,
+                                                {'user_id': member_id, 'community_id': community_id,
+                                                 'right__state': member_rights.MEMBER_RIGHT_CREATE_POLL})
+
+    if not has_right:
+        context = get_error_context(False, "You don't have the rights to create a poll")
+        return JsonResponse(context)
+
     context = create_card_internal(member_id, community_id, res)
 
     # sending local
