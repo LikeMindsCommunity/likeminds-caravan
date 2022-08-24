@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -14,6 +15,7 @@ from typing import Union
 from external_services.logging.logging_wrapper import LoggingWrapper
 from django.core import serializers as core_serializer
 from django.utils.translation import gettext_lazy as _
+from utility.states import noti_states
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -971,6 +973,12 @@ class conversationEventNudge(models.Model):
 
 
 class collabcardState(models.Model):
+
+    NOTI_STATE_CHOICES = NOTI_STATE_CHOICES = (
+        (1,1),
+        (2,2)
+    )
+
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -1003,6 +1011,16 @@ class collabcardState(models.Model):
     chat_requested_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='chat_requested_by')
     chat_request_created_at = models.BigIntegerField(null=True)
 
+    noti_state = models.IntegerField(
+        default=noti_states.ALL_MESSAGES,
+        choices=NOTI_STATE_CHOICES,
+        help_text=_(
+            '1 - All messages, 2 - Only @mentions and replies'
+        )
+    )
+    is_noti_paused = models.BooleanField(default=False)
+    unpause_noti_at = models.BigIntegerField(default=0)
+
     class Meta:
         unique_together = (('card', 'user'),)
 
@@ -1019,7 +1037,7 @@ class collabcardState(models.Model):
         return chatroom_state_instance
 
     @staticmethod
-    def create_chatroom_state_instance(card_instance, user_instance, state=1,
+    def create_chatroom_state_instance(card_instance, user_instance, noti_state=1, state=1,
                                        expire_at=None, external_seen=True, is_guest=False, source=None,
                                        follow_status=False,
                                        mute_status=False, is_tagged=False, external_follow=False,
@@ -1042,6 +1060,7 @@ class collabcardState(models.Model):
             collabcard_state_instance.is_guest = is_guest
             collabcard_state_instance.source = source
             collabcard_state_instance.external_follow = external_follow
+            collabcard_state_instance.noti_state = noti_state
 
             collabcard_state_instance.save()
 
@@ -1052,7 +1071,7 @@ class collabcardState(models.Model):
             error_logger.error(e)
 
     @staticmethod
-    def create_chatroom_state_instances_for_bulk_create(card_instance, user_instance, state=1,
+    def create_chatroom_state_instances_for_bulk_create(card_instance, user_instance, noti_state=1, state=1,
                                                         expire_at=None, external_seen=True, is_guest=False, source=None,
                                                         follow_status=False,
                                                         mute_status=False, is_tagged=False, external_follow=False,
@@ -1081,6 +1100,7 @@ class collabcardState(models.Model):
             collabcard_state_instance.is_guest = is_guest
             collabcard_state_instance.source = source
             collabcard_state_instance.external_follow = external_follow
+            collabcard_state_instance.noti_state = noti_state
 
             return collabcard_state_instance
 
@@ -3400,3 +3420,39 @@ class ScheduledChatroomFollow(models.Model):
         self.updated_at = current_time_in_ms
 
         super(ScheduledChatroomFollow, self).save(*args, **kwargs)
+
+
+class CommunityNotificationSettings(models.Model):
+
+    NOTI_STATE_CHOICES = (
+        (1,1),
+        (2,2)
+    )
+
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    noti_state = models.IntegerField(
+        default=noti_states.ALL_MESSAGES,
+        choices=NOTI_STATE_CHOICES,
+        help_text=_(
+            '1 - All messages, 2 - Only @mentions and replies'
+        )
+    )
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'community notification setting'
+        verbose_name_plural = 'community notification settings'
+        db_table = 'togther_community_notification_settings'
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(CommunityNotificationSettings, self).save(*args, **kwargs)

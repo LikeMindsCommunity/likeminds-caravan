@@ -626,3 +626,14 @@ class APITypes:
 
 
 api_types = APITypes()
+
+
+class NotificationStates:
+    ALL_MESSAGES = 1
+    ONLY_MENTIONS_AND_REPLIES = 2
+
+    ALL_MESSAGES_ANALYTICS = "all_messages"
+    ONLY_MENTIONS_AND_REPLIES_ANALYTICS = "mentions_replies"
+
+
+noti_states = NotificationStates()

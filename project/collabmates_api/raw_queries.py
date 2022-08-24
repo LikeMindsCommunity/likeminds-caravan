@@ -111,6 +111,7 @@ def get_my_chatrooms_count(user_id,
                                                               FROM   togther_collabcard
                                                               WHERE  (is_private = %s
                                                                      AND is_private_member = FALSE
+                                                                     AND is_deleted = FALSE
                                                                      AND not (%s)
                                                                      AND chatroom_with_user_id
                                                                          IS %s %s) %s)
@@ -227,12 +228,7 @@ def get_followed_chatrooms(user_id,
         conn = get_connection()
         curr = conn.cursor()
 
-        sql = """SELECT   id
-                FROM     togther_conversationengage
-                WHERE    user_id=%s
-                AND      card_id IN
-                         (
-                                SELECT card_id
+        fetch_card_ids_sql = """SELECT card_id
                                 FROM   togther_collabcardstate
                                 WHERE  user_id = %s
                                 AND    follow_status = true
@@ -243,28 +239,60 @@ def get_followed_chatrooms(user_id,
                                        (
                                               SELECT id
                                               FROM   togther_collabcard
-                                              WHERE  (is_private = %s
-                                              AND is_private_member = FALSE
-                                              AND not (%s)
-                                              AND    chatroom_with_user_id IS %s %s) %s))
-                ORDER BY updated_at DESC,
-                         id DESC limit %s offset %s""" % (
-            str(user_id),
+                                              WHERE  (
+                                                            is_private = %s
+                                                     AND    is_private_member = false
+                                                     AND    is_deleted = FALSE
+                                                     AND    NOT (
+                                                                   %s)
+                                                     AND    chatroom_with_user_id IS %s %s) %s)""" % (
             str(user_id),
             str(is_private_val),
             str(filter_intro_rooms_query),
             str(chatroom_with_user_val),
             str(dm_chatrooms_communities_filter),
-            str(excluded_card_ids_filter),
+            str(excluded_card_ids_filter))
+
+        curr.execute(fetch_card_ids_sql)
+        card_ids_res = curr.fetchall()
+
+        card_ids_list = []
+
+        for id in card_ids_res:
+            card_ids_list.append(id[0])
+
+        card_ids = get_tuple_from_array(card_ids_list)
+
+        sql = """
+                SELECT     togther_conversationengage.id, lca.created_at
+                FROM       togther_conversationengage
+                INNER JOIN (WITH added_row_number AS
+                           (
+                                    SELECT   ca.created_at,
+                                             ca.id,
+                                             ca.card_id,
+                                             Row_number() OVER( partition BY ca.card_id ORDER BY ca.created_at DESC) AS row_number
+                                    FROM     togther_card_answers                                                    AS ca
+                                    WHERE    ca.card_id IN %s)SELECT   card_id,
+                           id,
+                           created_at
+                  FROM     added_row_number
+                  WHERE    row_number = 1) AS lca
+                  ON       togther_conversationengage.card_id = lca.card_id
+                  WHERE    togther_conversationengage.user_id=%s
+                  AND      togther_conversationengage.card_id IN %s
+                  ORDER BY lca.created_at DESC,
+                           id DESC limit %s offset %s""" % (
+            card_ids,
+            str(user_id),
+            card_ids,
             str(limit),
             str(offset))
 
         curr.execute(sql)
         res = curr.fetchall()
 
-        engage_list = []
-        for id in res:
-            engage_list.append(id[0])
+        engage_list = {id[0]: id[1] for id in res}
 
         curr.close()
 
@@ -2841,7 +2869,7 @@ def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, pag
                                 ORDER BY CA.created_at DESC) AS row_number
                                 FROM togther_card_answers as CA
                                 WHERE  CA.card_id IN %s)
-            SELECT card_id, id
+            SELECT card_id, id, created_at
             FROM   added_row_number
             WHERE  row_number = 1
             ORDER  BY created_at DESC LIMIT %s OFFSET %s; 
