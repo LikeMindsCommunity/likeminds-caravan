@@ -1044,7 +1044,13 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     for obj in chatroom_follower_list:
 
-        if obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES and (str(obj[0]) not in tagged_users_list):
+        if all([obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES,
+                str(obj[0]) not in tagged_users_list,
+                not conversation_instance.reply]):
+            continue
+
+        if obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES and conversation_instance.reply and (
+                conversation_instance.reply.user_id != obj[0]):
             continue
 
         user_context = dict()
@@ -3046,7 +3052,7 @@ def send_notification_for_auto_follow_chatroom_for_all_members(chatroom_id, cm_i
 
 
 @shared_task
-def send_notification_on_chatroom_topic_update(chatroom_id):
+def send_notification_on_chatroom_topic_update(chatroom_id, current_user_id):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
     if not card_instance:
@@ -3061,7 +3067,7 @@ def send_notification_on_chatroom_topic_update(chatroom_id):
 
     for user_id in user_list:
 
-        if user_id == card_instance.user_id:
+        if user_id == current_user_id:
             continue
 
         notification_list.append({'id': user_id})
