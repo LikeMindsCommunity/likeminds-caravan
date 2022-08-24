@@ -1044,7 +1044,12 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     for obj in chatroom_follower_list:
 
-        if obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES and (str(obj[0]) not in tagged_users_list):
+        if obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES and (
+                (str(obj[0]) not in tagged_users_list) or not conversation_instance.reply):
+            continue
+
+        if obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES and conversation_instance.reply and (
+                str(conversation_instance.reply.user_id) != str(obj[0])):
             continue
 
         user_context = dict()
