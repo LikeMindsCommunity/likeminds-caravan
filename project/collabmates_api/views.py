@@ -52,7 +52,8 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     cm_onboarding_version_check, directory_questions_v2_version_check,
-                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail)
+                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail,
+                    invite_setting_version_check)
 from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
     tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
@@ -4892,6 +4893,11 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                                                 action['id'] == chatroom_actions.ACTION_REPORT]):
             continue
 
+        if all([api_type == api_types.SDK,
+                action['id'] == chatroom_actions.ACTION_INVITE,
+                not invite_setting_version_check(platform_code, version_code)]):
+            continue
+
         if purpose_card or master_intro_card:
 
             if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM or action[
@@ -4946,7 +4952,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         actions.append(action)
 
-    if promoter and len(actions) and not card_instance.is_secret:
+    if (api_type != api_types.SDK) and promoter and len(actions) and not card_instance.is_secret:
 
         if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
                 or (
@@ -4960,7 +4966,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
             actions.insert(2, add_all_members)
 
-        elif api_type != api_types.SDK:
+        else:
             actions.append(add_all_members)
 
     if card_instance.is_secret and \
