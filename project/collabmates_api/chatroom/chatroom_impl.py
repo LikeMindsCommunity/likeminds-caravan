@@ -4022,6 +4022,10 @@ class ChatroomHelper:
                 "status": True
             })
 
+        if chatroom_participants_list:
+            ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
+                card_instance.id, chatroom_participants_list)
+
         if card_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
             ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
                 card_instance.id, community_admins_list)
