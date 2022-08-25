@@ -6,6 +6,7 @@ from togther.models import (ModelUtilities, card_answers, collabcardState, conve
 from collabmates_api.sdk.models import (SdkClient)
 from collabmates_api.conversation.conversation_impl import ConversationHelper
 from utility.states import (conversation_states, member_states, member_rights)
+from utility.time_utilities import TimeUtilities
 
 
 def backfill_conversation_engage_followed_members_in_sdk():
@@ -90,6 +91,10 @@ def backfill_conversation_engage_followed_members_in_sdk():
             }
 
         engage_params = {**engage_params, **last_conversation_user_member.get(user_community_key)}
+
+        engage_params['created_at'] = TimeUtilities.current_time_in_sec()
+        engage_params['updated_at'] = TimeUtilities.current_time_in_sec()
+
         bulk_conversation_engage.append(conversationEngage(**engage_params))
 
         count -= 1
