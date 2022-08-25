@@ -8556,6 +8556,9 @@ def members_state(request, req_dict=None):
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+    member_id = user_instance.id if user_instance else member_id
 
     if not community_instance:
         response = get_error_context(False, "Invalid API key/community ID")
