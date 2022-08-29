@@ -655,7 +655,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
                 if str(member[0]) not in tagged_users_list and int(member[0]) not in blocked_by_user_list:
                     notification_list_member.append(temp)
 
-            custom_payload = get_custom_data_for_new_chatroom_created(card)
+            custom_payload = get_custom_data_for_new_chatroom_created(card, kwargs['set_default_unread_count'])
 
         collabcard_title = get_title_from_collabcard(card)
 
@@ -813,7 +813,7 @@ def should_send_notification(card_instance: object):
     return True, ""
 
 
-def get_custom_data_for_new_chatroom_created(card):
+def get_custom_data_for_new_chatroom_created(card, set_default_unread_count=False):
     """ function to get data for custom notification """
 
     unread_conversation = {}
@@ -825,6 +825,9 @@ def get_custom_data_for_new_chatroom_created(card):
     unread_conversation['chatroom_name'] = get_title_from_collabcard(chatroom_instance) + " (New Chatroom)"
     unread_conversation['chatroom_title'] = chatroom_instance.title
     unread_conversation['chatroom_user_name'] = userinfo_instance.name
+
+    if set_default_unread_count:
+        unread_conversation['chatroom_unread_conversation_count'] = 0
 
     collabcard_files = get_collabcard_files(card_id=card.id)
     unread_conversation['images'] = collabcard_files[0]
