@@ -4910,11 +4910,10 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
             if not invite_setting_version_check(platform_code, version_code):
                 continue
 
-            else:
-                action = {
-                    'id': action['id'],
-                    'title': INVITE_ACTION_TITLE_SDK
-                }
+            action = {
+                'id': action['id'],
+                'title': INVITE_ACTION_TITLE_SDK
+            }
 
         if purpose_card or master_intro_card:
 
