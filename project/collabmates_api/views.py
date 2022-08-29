@@ -3052,16 +3052,17 @@ def create_card_internal(user_id, community_id, res):
     return context
 
 
-def send_chatroom_creation_notifications_and_mails(card_instance, user_instance):
+def send_chatroom_creation_notifications_and_mails(card_instance, user_instance, set_default_unread_count=False):
     """ function to send mail and notifications for chatroom creations """
 
     # sending the mails and notification of simple chat rooms without files
     if not card_instance.has_files or \
             not card_instance.attachment_count > 0:
-        send_chatroom_creation_notification(card_instance, user_instance)
+        send_chatroom_creation_notification(card_instance, user_instance,
+                                            set_default_unread_count=set_default_unread_count)
 
 
-def send_chatroom_creation_notification(card_instance, user_instance):
+def send_chatroom_creation_notification(card_instance, user_instance, set_default_unread_count=False):
     date_time = card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time
 
     """
@@ -3080,7 +3081,8 @@ def send_chatroom_creation_notification(card_instance, user_instance):
                                                           date_time=date_time,
                                                           card_id=card_instance.id,
                                                           community_name=card_instance.community.name,
-                                                          community_state=card_instance.community.hide_community)
+                                                          community_state=card_instance.community.hide_community,
+                                                          set_default_unread_count=set_default_unread_count)
 
 
 @csrf_exempt
