@@ -4905,9 +4905,16 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
             continue
 
         if all([api_type == api_types.SDK,
-                action['id'] == chatroom_actions.ACTION_INVITE,
-                not invite_setting_version_check(platform_code, version_code)]):
-            continue
+                action['id'] == chatroom_actions.ACTION_INVITE]):
+
+            if not invite_setting_version_check(platform_code, version_code):
+                continue
+
+            else:
+                action = {
+                    'id': action['id'],
+                    'title': INVITE_ACTION_TITLE_SDK
+                }
 
         if purpose_card or master_intro_card:
 
