@@ -28,3 +28,15 @@ DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR = "#00897B"
 CHATROOM_URL_WITH_COMMUNITY_ID = "%s/collabcard/%s?community_id=%s"
 
 DM_CHATROOM_NAME = "Direct Message"
+
+CHATROOM_NOTIFICATION_PAUSE_EVENT = "Notification paused"
+CHATROOM_NOTIFICATION_SETTING_UPDATED_EVENT = "User Notification setting updated"
+
+
+class PauseChatroomNotificationTime:
+    EIGHT_HR = 8
+    TWENTY_FOUR_HR = 24
+    
+    EIGHT_HOURS = "8 hours"
+    TWENTY_FOUR_HOURS = "24 hours"
+    ONE_WEEK = "1 week"

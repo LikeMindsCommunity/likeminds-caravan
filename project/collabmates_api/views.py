@@ -17,6 +17,7 @@ from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.otp.otp_api_client import OTPApiClient
 from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
+from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
@@ -37,7 +38,7 @@ from utility.celery_tasks import (
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
     reset_unread_message_count_in_cache, fetch_conversations_unread, update_deferred_card_poll_updated_at_value,
     get_to_show_results_for_conversation_poll, send_chatroom_deleted_analytics_data, cm_removed_dm_chatroom,
-    member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data)
+    member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data, update_community_pin_chatrooms_list_in_cache)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -51,7 +52,8 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     cm_onboarding_version_check, directory_questions_v2_version_check,
-                    get_user_email_preferred_verified)
+                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail,
+                    invite_setting_version_check)
 from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
     tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
@@ -344,7 +346,7 @@ def my_chatrooms_version_1(request):
 
     page_count = get_total_pages(joined_chatroom_count, limit=10)
 
-    total_pages = page_count 
+    total_pages = page_count
 
     engage_list = get_followed_chatrooms(member_id,
                                         page, 
@@ -356,7 +358,7 @@ def my_chatrooms_version_1(request):
                                         community_id=community_id,
                                         intro_room_community_list=intro_room_community_list)
 
-    for id in engage_list:
+    for id, _ in engage_list.items():
         instance = conversationEngage.objects.get(pk=id)
         instance_list.append(instance)
 
@@ -428,7 +430,11 @@ def my_chatrooms_version_1(request):
                 chatroom['second_last_conversation'] = second_last_conversation_dict
 
         chatroom['unseen_conversation_count'] = instance.unseen_count
-        chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
+        chatroom['last_conversation_time'] = instance.updated_at
+
+        if engage_list.get(instance.id):
+            chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(
+                TimeUtilities.convert_milliseconds_to_sec(engage_list.get(instance.id)))
 
         last_conversation_member = instance.last_conversation_member
         second_last_conversation_member = instance.second_last_conversation_member
@@ -2727,6 +2733,14 @@ def create_poll(request):
         context = get_error_context(False, "You cannot create a chatroom")
         return JsonResponse(context)
 
+    has_right = ModelUtilities.get_model_filter(userMemberRights,
+                                                {'user_id': member_id, 'community_id': community_id,
+                                                 'right__state': member_rights.MEMBER_RIGHT_CREATE_POLL})
+
+    if not has_right:
+        context = get_error_context(False, "You don't have the rights to create a poll")
+        return JsonResponse(context)
+
     context = create_card_internal(member_id, community_id, res)
 
     # sending local
@@ -3038,16 +3052,17 @@ def create_card_internal(user_id, community_id, res):
     return context
 
 
-def send_chatroom_creation_notifications_and_mails(card_instance, user_instance):
+def send_chatroom_creation_notifications_and_mails(card_instance, user_instance, set_default_unread_count=False):
     """ function to send mail and notifications for chatroom creations """
 
     # sending the mails and notification of simple chat rooms without files
     if not card_instance.has_files or \
             not card_instance.attachment_count > 0:
-        send_chatroom_creation_notification(card_instance, user_instance)
+        send_chatroom_creation_notification(card_instance, user_instance,
+                                            set_default_unread_count=set_default_unread_count)
 
 
-def send_chatroom_creation_notification(card_instance, user_instance):
+def send_chatroom_creation_notification(card_instance, user_instance, set_default_unread_count=False):
     date_time = card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time
 
     """
@@ -3066,7 +3081,8 @@ def send_chatroom_creation_notification(card_instance, user_instance):
                                                           date_time=date_time,
                                                           card_id=card_instance.id,
                                                           community_name=card_instance.community.name,
-                                                          community_state=card_instance.community.hide_community)
+                                                          community_state=card_instance.community.hide_community,
+                                                          set_default_unread_count=set_default_unread_count)
 
 
 @csrf_exempt
@@ -3291,7 +3307,7 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
 def create_chatroom_state_instance(card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_SEEN,
                                    expire_at=None, external_seen=True, is_guest=False, source=None, follow_status=False,
                                    mute_status=False, is_tagged=False, external_follow=False,
-                                   attending_status=False, **kwargs):
+                                   attending_status=False, noti_state=noti_states.ALL_MESSAGES, **kwargs):
     '''function to create chatroom state instance'''
 
     try:
@@ -3309,6 +3325,7 @@ def create_chatroom_state_instance(card_instance, user_instance, state=collabcar
         collabcard_state_instance.is_tagged = is_tagged
         collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.source = source
+        collabcard_state_instance.noti_state = noti_state
         collabcard_state_instance.external_follow = external_follow
 
         collabcard_state_instance.save()
@@ -3607,6 +3624,14 @@ def delete_chatroom_async(member_id, chatroom_id=None, draft_id=None,
 
         send_sync_notification.delay({'chatroom_id': chatroom_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+        cache_dict = {
+            'chatroom_id': collabcard_instance.id,
+            'community_id': community_id,
+            'pin_value': False
+        }
+
+        update_community_pin_chatrooms_list_in_cache.delay(cache_dict)
 
         # update elastic search
         ElasticSearchSync.delete_chatroom.delay(chatroom_id)
@@ -3925,34 +3950,44 @@ def fetch_share_url(request):
     '''api to share the url of community and chatroom'''
     member_id = get_member_id_from_headers(request)
 
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
     chatroom_id = request.GET.get('chatroom_id')
     community_id = request.GET.get('community_id')
+    domain_url = request.GET.get('domain')
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    api_type = NumberUtilities.get_integer_from_string(request.GET.get('api_type'), return_default=api_types.Non_SDK)
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     is_cm_onboarding_enabled = cm_onboarding_version_check(platform_code, version_code)
 
     if not user_instance:
-        context = get_error_context(False, "In-valid member id")
+        context = ResponseUtilities.get_view_impl_error_context("Invalid member id",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
 
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     if chatroom_id:
-        try:
-            card_instance = Collabcard.objects.get(id=chatroom_id)
-        except Exception as e:
-            context = get_error_context(False, e.args)
-            return JsonResponse(context)
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            context = ResponseUtilities.get_view_impl_error_context("Invalid card id",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
+            return JsonResponse(**context)
 
         if card_instance.type == card_types.CARD_MASTER_INTRO or card_instance.type == card_types.CARD_PURPOSE:
-            return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
+            context = ResponseUtilities.get_view_impl_error_context("Invalid card type",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
+            return JsonResponse(**context)
 
         chatroom_share = {}
 
         if not card_instance.is_secret:
-            share = get_share_url_text(card_instance, member_id)
+            share = get_share_url_text(card_instance, domain_url=domain_url, api_type=api_type)
             chatroom_share['share_url'] = share['share_url']
             chatroom_share['creator_share_url'] = share['creator_share_url']
             chatroom_share['link_created_at'] = share['link_created_at']
@@ -3964,13 +3999,17 @@ def fetch_share_url(request):
 
         return JsonResponse({'chatroom_share': chatroom_share, 'success': True})
 
-    if community_id:
+    if community_id or api_key:
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        community_instance = validate_community_id_or_api_key(community_id, api_key)
 
-        if not community_instance:
-            return JsonResponse({'success': False,
-                                 'error_message': "Invalid community id"}, status=status_codes.HTTP_400_BAD_REQUEST)
+        if community_instance.get('error_message'):
+            context = ResponseUtilities.get_view_impl_error_context(community_instance.get('error_message'),
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
+            return JsonResponse(**context)
+
+        community_instance = community_instance.get('community_instance')
 
         community_share = {}
 
@@ -3995,12 +4034,15 @@ def fetch_share_url(request):
                 fill_share_context_for_unpaid_community(community_instance, share_context, community_share)
 
         if not community_share:
-            return JsonResponse({'error_message': "Error in generating link", 'success': False},
-                                status=status_codes.HTTP_400_BAD_REQUEST)
+            context = ResponseUtilities.get_view_impl_error_context("Error in generating link",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
+            return JsonResponse(**context)
 
         return JsonResponse({'community_share': community_share, 'success': True})
 
-    return JsonResponse({'error_message': "Invalid request", 'success': False}, status=400)
+    return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Invalid request",
+                                                                        status_codes.HTTP_400_BAD_REQUEST))
 
 
 @csrf_exempt
@@ -4855,13 +4897,23 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     for action in final:
 
         if (api_type == api_types.SDK) and any([action['id'] == chatroom_actions.ACTION_RENAME,
-                                                action['id'] == chatroom_actions.ACTION_INVITE,
                                                 action['id'] == chatroom_actions.ACTION_VIEW_COMMUNITY,
                                                 action['id'] == chatroom_actions.ACTION_ADD_ALL_MEMBERS,
                                                 action['id'] == chatroom_actions.ACTION_SETTINGS,
                                                 action['id'] == chatroom_actions.ACTION_DELETE,
                                                 action['id'] == chatroom_actions.ACTION_REPORT]):
             continue
+
+        if all([api_type == api_types.SDK,
+                action['id'] == chatroom_actions.ACTION_INVITE]):
+
+            if not invite_setting_version_check(platform_code, version_code):
+                continue
+
+            action = {
+                'id': action['id'],
+                'title': INVITE_ACTION_TITLE_SDK
+            }
 
         if purpose_card or master_intro_card:
 
@@ -4917,7 +4969,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         actions.append(action)
 
-    if promoter and len(actions) and not card_instance.is_secret:
+    if (api_type != api_types.SDK) and promoter and len(actions) and not card_instance.is_secret:
 
         if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
                 or (
@@ -4931,7 +4983,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
             actions.insert(2, add_all_members)
 
-        elif api_type != api_types.SDK:
+        else:
             actions.append(add_all_members)
 
     if card_instance.is_secret and \
@@ -5460,10 +5512,9 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
             context['participant_count'] = len(get_members_based_on_user_list_query(secret_room_participants,
                                                                                     card_instance.community_id))
         else:
-            context['participant_count'] = collabcardState.objects.filter(follow_status=True,
-                                                                          card=card_instance, remove=None,
-                                                                          is_tagged=False,
-                                                                          user__userinfo__is_guest=False).count()
+            from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+            context['participant_count'] = ChatroomHelper.chatroom_participants_count(card_instance)
+
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
 
     if not conversation_member_filter.exists():
@@ -6228,11 +6279,17 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
         else:
             mute_status = False
         expiry_time = get_expiry_time_of_chatroom() if not set_expiry_time_none else None
+
+        from collabmates_api.community.community_impl import CommunityHelper
+        community_noti_instance = CommunityHelper.fetch_community_noti_settings_instance(card_instance.community)
+        community_current_noti_state = community_noti_instance.noti_state if community_noti_instance else noti_states.ALL_MESSAGES
+
         create_chatroom_state_instance(card_instance, user_instance, state=0,
                                        expire_at=expiry_time, external_seen=external_seen, is_guest=is_guest,
                                        source=ref_instance, follow_status=status,
                                        mute_status=mute_status, is_tagged=is_tagged,
-                                       function_called="collabcard_follow_internal")
+                                       function_called="collabcard_follow_internal",
+                                       noti_state=community_current_noti_state)
 
     if status:
         member_state = 0
@@ -6254,38 +6311,54 @@ def collabcards_seen(request):
     params = request.GET
     community_id = None
     card_id = None
-    collabcard_type = None
     user_id = None
+
     if 'community_id' in params:
         community_id = params['community_id']
+
     if 'collabcard_id' in params:
         card_id = params['collabcard_id']
+
     if 'member_id' in params:
         user_id = params['member_id']
-    if 'collabcard_type' in params:
-        collabcard_type = params['collabcard_type']
 
-    try:
-        collabcards_seen_internal(community_id, card_id, collabcard_type, user_id)
-    except Exception as e:
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
-        error_logger.error(e.args)
+    community = validate_community_id_or_api_key(community_id, api_key)
 
-        return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
+    if community.get('error_message'):
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community.get('error_message'),
+                                                                            status_codes.HTTP_400_BAD_REQUEST))
 
-    send_sync_notification.delay({'community_id': community_id,
+    community_instance = community.get('community_instance')
+
+    context = collabcards_seen_internal(card_id, user_id, community_instance)
+
+    send_sync_notification.delay({'community_id': community_instance.id,
                                   'member_id': user_id,
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
 
-    return JsonResponse({'success': True})
+    if 'error_message' in context:
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                            context.get('status')))
+
+    return JsonResponse(context)
 
 
-def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
+def collabcards_seen_internal(card_id, user_id, community_instance):
     '''This internal functions stores the details of members who have seen the card'''
 
-    community = Community.objects.get(id=community_id)
-    user_instance = User.objects.get(id=user_id)
-    card_instance = Collabcard.objects.get(id=card_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        return ResponseUtilities.get_impl_error_context('Invalid x-member-id',
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+
+    if not card_instance:
+        return ResponseUtilities.get_impl_error_context('Invalid card id',
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     # saving the state in collabcard state table if it is not present
     is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
@@ -6293,7 +6366,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
     if not is_present.exists():
         create_chatroom_state_instance(card_instance, user_instance,
                                        function_called="collabcards_seen_internal")
-        update_last_unseen_in_engage(user=user_instance, community=community)
+        update_last_unseen_in_engage(user=user_instance, community=community_instance)
 
     else:
 
@@ -6312,7 +6385,9 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
             state_instance.updated_at = TimeUtilities.current_time_in_sec()
 
         state_instance.save()
-        update_last_unseen_in_engage(user=user_instance, community=community)
+        update_last_unseen_in_engage(user=user_instance, community=community_instance)
+
+    return {'success': True}
 
 
 @csrf_exempt
@@ -7206,6 +7281,10 @@ def upload_conversation_attachments(body, member_id):
         ConversationHelper.update_homescreen_meta_on_conversation_creation(
             community_instance, chatroom_instance, conversation_instance)
 
+        update_conversation_engage_for_chatrooms(card_id=chatroom_instance.id, user_id=member_id,
+                                                 last_conversation_id=conversation_instance.id,
+                                                 unseen_count=0)
+
         send_follow_notification.delay(card_id=chatroom_instance.id, user_id=conversation_instance.user_id,
                                        conversation_id=conversation_instance.id)
 
@@ -7939,7 +8018,7 @@ def generate_otp(request):
             international = True
 
         if international and international_otp_limit_exceeded():
-            send_international_otp_limit_mail(str(country_code), str(mobile_no))
+            save_request_info(str(country_code), str(mobile_no), TimeUtilities.get_current_date())
 
             error_message: str = f"otp generate failed for={phone_no}, reason=international otp generate limit exceeded"
             error_logger.error(error_message)
@@ -7973,22 +8052,24 @@ def generate_otp(request):
     return JsonResponse(context)
 
 
-def send_international_otp_limit_mail(country_code: str, mobile: str) -> None:
-    subject = "International OTP limit exceeded"
-    template = get_template('mails/international_otp_limit.html').render({
-        "country_code": country_code,
-        "mobile": mobile
-    })
-    mail_to = ['himanshu@likeminds.community', 'backend@likeminds.community']
-    mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
-        EmailCategories.OTP,
-        EmailSubCategories.INTERNATIONAL_LIMIT_EXCEEDED
-    )
+def save_request_info(country_code: str, mobile_no: str, timestamp: str) -> None:
+    international_otp_req_obj: list = [country_code, mobile_no, timestamp]
 
-    MailWrapper.send_email.delay(subject=subject,
-                                 template=template,
-                                 to_mails_list=mail_to,
-                                 categories=mail_categories)
+    file_name: str = INTERNATIONAL_OTP_LIMIT_FILE_NAME % TimeUtilities.get_current_date(date_format=0)
+    file_path: str = f'./../../international_otp_blocked_requests/{file_name}'
+
+    """
+        If, file does not exists
+        Create file and write header
+    """
+    if not FileUtilities.is_exists_file(file_path):
+        header: list = ['country code', 'mobile number', 'timestamp']
+        FileUtilities.write_file_csv(file_path, 'w', header)
+
+    """
+        write data row
+    """
+    FileUtilities.write_file_csv(file_path, 'a', international_otp_req_obj)
 
 
 def international_otp_limit_exceeded() -> bool:
@@ -8492,6 +8573,9 @@ def members_state(request, req_dict=None):
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+    member_id = user_instance.id if user_instance else member_id
 
     if not community_instance:
         response = get_error_context(False, "Invalid API key/community ID")
@@ -10236,7 +10320,17 @@ def fetch_poll_users(request):
         if member_instance.exists():
             members_list.append(MembersSerializer(member_instance[0], community_id, current_user_id=member_id))
         else:
-            members_list.append(get_user_profile(member.user, send_profile=True))
+            user_data = get_user_profile(member.user, send_profile=True)
+
+            removed_members = ModelUtilities.get_model_filter(removedMembers, {'community': community_id,
+                                                                               'member': member.user})
+
+            removed_member_custom_text = {}
+
+            if removed_members:
+                removed_member_custom_text = get_removed_member_custom_text(removed_members[0])
+
+            members_list.append({**user_data, **removed_member_custom_text})
 
     return JsonResponse({"members": members_list})
 
@@ -11412,31 +11506,39 @@ def fetch_pending_chatroom(request):
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     current_user_id = get_member_id_from_headers(request)
-    # user_instance = User.objects.get(id=current_user_id)
 
     community_id = request.GET.get('community_id', None)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
+    community_instance = validate_community_id_or_api_key(community_id, api_key)
 
     if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context('send member_id in headers',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+    if community_instance.get('error_message'):
+        context = ResponseUtilities.get_view_impl_error_context(community_instance.get('error_message'),
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
+
+    community_instance = community_instance.get('community_instance')
+    community_id = community_instance.id
 
     member_instance = Members.objects.filter(community_id=community_id, member_id=current_user_id,
                                              state=member_states.ADMIN)
     if member_instance.exists():
-        member = member_instance[0]
         has_right_0 = check_admin_delete_right(user=current_user_id, community=community_id)
 
         if not has_right_0:
-            context = get_error_context(False, "you doesnt have required right to view pending chat rooms")
-            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+            context = ResponseUtilities.get_view_impl_error_context('You doesnt have required right to view pending '
+                                                                    'chat rooms', status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**context)
 
     else:
-        context = get_error_context(False, "You are not a CM of this community")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context('You are not a CM of this community',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     pending_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=True,
                                                   is_deleted=False).order_by('id')
@@ -12160,6 +12262,9 @@ class SyncChatrooms(APIView):
 
             if data[72]:
                 chatroom["chat_request_created_at"] = data[72]
+
+            if data[73]:
+                chatroom["chatroom_image_url"] = data[73]
 
             chatroom['unread_messages'] = fetch_conversations_unread(data[0], member_id)
 

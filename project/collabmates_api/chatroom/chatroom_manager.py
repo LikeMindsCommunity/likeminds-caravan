@@ -77,7 +77,11 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'request_dm') and
                  callable(subclass.request_dm)) and
                 (hasattr(subclass, 'scheduled_chatroom_follow') and
-                 callable(subclass.scheduled_chatroom_follow))
+                 callable(subclass.scheduled_chatroom_follow)) and
+                (hasattr(subclass, 'fetch_chatroom_noti_settings') and
+                 callable(subclass.fetch_chatroom_noti_settings)) and
+                (hasattr(subclass, 'update_chatroom_noti_settings') and
+                 callable(subclass.update_chatroom_noti_settings))
                 or NotImplemented)
 
     @abc.abstractmethod
@@ -344,6 +348,14 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def get_change_chatroom_type_status(self) -> dict:
+        """
+        Get chatroom type(secret/open) change status
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def create_dm_chatroom(self, req_body) -> dict:
         """
         Creates a DM chatroom
@@ -372,5 +384,17 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         """
         Follow chatroom for a user async
         """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_chatroom_noti_settings(self) -> {}:
+        """Fetches notification settings of chatroom"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_chatroom_noti_settings(self, req_body: dict) -> {}:
+        """Updates notification settings of chatroom"""
 
         raise NotImplementedError

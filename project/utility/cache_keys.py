@@ -19,3 +19,6 @@ CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY = "chatroom_participants_created_{}"
 
 INTERNATIONAL_OTP_GENERATE_CACHE_KEY = "international_otp_generate_%s"
 
+COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY = "pin_chatrooms_list_{}"
+
+CHATROOM_TYPE_CONVERSION = "chatroom_type_conversion_{}"
