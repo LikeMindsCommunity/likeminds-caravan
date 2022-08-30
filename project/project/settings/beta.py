@@ -1,3 +1,5 @@
+import os
+
 from .base import *
 
 DEBUG = False
@@ -27,7 +29,7 @@ TIME_ZONE = 'Asia/Kolkata'
 # variable to check for beta server
 IS_BETA = True
 
-ALLOWED_HOSTS = [os.getenv("BETA_ALLOWED_HOST_2"), os.getenv("BETA_ALLOWED_HOST_3")]
+ALLOWED_HOSTS = [os.getenv("BETA_ALLOWED_HOST_2"), os.getenv("BETA_ALLOWED_HOST_3"), os.getenv("BETA_ALLOWED_HOST_ELB")]
 
 FCM_SERVER_KEY = os.getenv('BETA_FCM_SERVER_KEY')
 
