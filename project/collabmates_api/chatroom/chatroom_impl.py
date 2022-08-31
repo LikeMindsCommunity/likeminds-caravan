@@ -494,11 +494,12 @@ class ChatroomImpl(ChatroomManager):
 
     def _send_chatroom_creation_notifications(self, user_instance, community_id, community_name,
                                               chatroom_instance, card_content, user_has_auto_approve_right,
-                                              chatroom_type, is_intro_chatroom):
+                                              chatroom_type, is_intro_chatroom, set_default_unread_count=False):
 
         if chatroom_type == card_types.CARD_POLL and user_has_auto_approve_right:
             # sending polls notification
-            send_chatroom_creation_notifications_and_mails(chatroom_instance, user_instance)
+            send_chatroom_creation_notifications_and_mails(chatroom_instance, user_instance,
+                                                           set_default_unread_count=set_default_unread_count)
 
         if user_has_auto_approve_right or is_intro_chatroom:
             # create relevant flags for first time conversation
@@ -510,7 +511,8 @@ class ChatroomImpl(ChatroomManager):
 
         # send notification to new chatroom posted
         if card_content['has_been_named']:
-            send_chatroom_creation_notifications_and_mails(chatroom_instance, user_instance)
+            send_chatroom_creation_notifications_and_mails(chatroom_instance, user_instance,
+                                                           set_default_unread_count=set_default_unread_count)
 
     def _send_additional_notifications_and_tasks_after_room_creation(self, user_instance, community_instance,
                                                                      chatroom_instance, req_body,
@@ -1061,7 +1063,7 @@ class ChatroomImpl(ChatroomManager):
 
         self._send_chatroom_creation_notifications(user_instance, community_id, community_instance.name,
                                                    chatroom_instance, card_content, user_has_auto_approve_right,
-                                                   chatroom_type, is_intro_card)
+                                                   chatroom_type, is_intro_card, set_default_unread_count=True)
 
         cohort_ids = req_body['cohort_ids'] if ('cohort_ids' in req_body) else None
 
@@ -1358,6 +1360,7 @@ class ChatroomImpl(ChatroomManager):
             return {'success': True, 'participants': participant_list, 'members': []}
 
         members = self.compute_tagging_list_of_community_members(community_instance)
+        members = self.remove_guest_user_from_participants_data_list(members)
         participant_list = self.compute_tagging_list_of_guest_members(chatroom_instance)
         participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 

@@ -6,8 +6,7 @@ from utility.utils import (generate_private_link, get_time_text, eligibility_cou
                            get_members_count_in_community, generate_private_link_for_chatroom,
                            get_date_time_from_timestamp, get_community_members_count_for_preview)
 
-from utility.states import (card_types, question_states, poll_types,
-                            deleted_members, conversation_states)
+from utility.states import (card_types, question_states, poll_types, deleted_members, conversation_states, api_types)
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .member_community.constants import CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED, CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED, \
     CUSTOM_CLICK_TEXT_DELETED, CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_LEFT, CUSTOM_INTRO_TEXT_LEFT
@@ -774,7 +773,7 @@ def get_collabcard_files(card_id, draft=False):
     return img_list, pdf, audio_list, video_list, attachments
 
 
-def get_share_url_text(card, domain_url=None):
+def get_share_url_text(card, domain_url=None, api_type=api_types.Non_SDK):
     '''function to share url text'''
 
     share = {}
@@ -787,7 +786,10 @@ def get_share_url_text(card, domain_url=None):
     share['share_url'] = card_url
     share['creator_share_url'] = card_url
 
-    if card.type == card_types.CARD_PUBLIC_EVENT:
+    if api_type == api_types.SDK:
+        pass
+
+    elif card.type == card_types.CARD_PUBLIC_EVENT:
 
         share['share_url'] = """Check out this event on LikeMinds: %s""" % card_url
         share[

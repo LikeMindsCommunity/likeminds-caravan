@@ -2733,6 +2733,14 @@ def create_poll(request):
         context = get_error_context(False, "You cannot create a chatroom")
         return JsonResponse(context)
 
+    has_right = ModelUtilities.get_model_filter(userMemberRights,
+                                                {'user_id': member_id, 'community_id': community_id,
+                                                 'right__state': member_rights.MEMBER_RIGHT_CREATE_POLL})
+
+    if not has_right:
+        context = get_error_context(False, "You don't have the rights to create a poll")
+        return JsonResponse(context)
+
     context = create_card_internal(member_id, community_id, res)
 
     # sending local
@@ -3044,16 +3052,17 @@ def create_card_internal(user_id, community_id, res):
     return context
 
 
-def send_chatroom_creation_notifications_and_mails(card_instance, user_instance):
+def send_chatroom_creation_notifications_and_mails(card_instance, user_instance, set_default_unread_count=False):
     """ function to send mail and notifications for chatroom creations """
 
     # sending the mails and notification of simple chat rooms without files
     if not card_instance.has_files or \
             not card_instance.attachment_count > 0:
-        send_chatroom_creation_notification(card_instance, user_instance)
+        send_chatroom_creation_notification(card_instance, user_instance,
+                                            set_default_unread_count=set_default_unread_count)
 
 
-def send_chatroom_creation_notification(card_instance, user_instance):
+def send_chatroom_creation_notification(card_instance, user_instance, set_default_unread_count=False):
     date_time = card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time
 
     """
@@ -3072,7 +3081,8 @@ def send_chatroom_creation_notification(card_instance, user_instance):
                                                           date_time=date_time,
                                                           card_id=card_instance.id,
                                                           community_name=card_instance.community.name,
-                                                          community_state=card_instance.community.hide_community)
+                                                          community_state=card_instance.community.hide_community,
+                                                          set_default_unread_count=set_default_unread_count)
 
 
 @csrf_exempt
@@ -3947,6 +3957,7 @@ def fetch_share_url(request):
     domain_url = request.GET.get('domain')
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    api_type = NumberUtilities.get_integer_from_string(request.GET.get('api_type'), return_default=api_types.Non_SDK)
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
@@ -3976,7 +3987,7 @@ def fetch_share_url(request):
         chatroom_share = {}
 
         if not card_instance.is_secret:
-            share = get_share_url_text(card_instance, domain_url=domain_url)
+            share = get_share_url_text(card_instance, domain_url=domain_url, api_type=api_type)
             chatroom_share['share_url'] = share['share_url']
             chatroom_share['creator_share_url'] = share['creator_share_url']
             chatroom_share['link_created_at'] = share['link_created_at']
@@ -4894,9 +4905,15 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
             continue
 
         if all([api_type == api_types.SDK,
-                action['id'] == chatroom_actions.ACTION_INVITE,
-                not invite_setting_version_check(platform_code, version_code)]):
-            continue
+                action['id'] == chatroom_actions.ACTION_INVITE]):
+
+            if not invite_setting_version_check(platform_code, version_code):
+                continue
+
+            action = {
+                'id': action['id'],
+                'title': INVITE_ACTION_TITLE_SDK
+            }
 
         if purpose_card or master_intro_card:
 
@@ -8556,6 +8573,9 @@ def members_state(request, req_dict=None):
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+    member_id = user_instance.id if user_instance else member_id
 
     if not community_instance:
         response = get_error_context(False, "Invalid API key/community ID")
