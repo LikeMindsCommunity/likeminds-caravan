@@ -1821,18 +1821,19 @@ def remove_from_member(request):
         return JsonResponse({'success': False, 'error_message': "Invalid member_id"})
 
     community_id = request.POST.get('community_id')
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
-    if not community_id:
-        return JsonResponse({'success': False, 'error_message': "Invalid community_id"})
+    if not community_id or not api_key:
+        return JsonResponse({'success': False, 'error_message': "Invalid community_id or api_key"})
 
     member_ids = request.POST.get('member_ids', False)
     tag_id = request.POST.get('tag_id', None)
     reason = request.POST.get('reason', '')
 
-    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
     if not community_instance:
-        return JsonResponse(get_error_context(False, "Invalid community_id"))
+        return JsonResponse(get_error_context(False, "Invalid community_id or api_key"))
 
     current_user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
@@ -10878,6 +10879,7 @@ def remove_community_manager(request):
 
     current_user_id = get_member_id_from_headers(request)
     community_id = request.POST.get('community_id', None)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
     user_id = request.POST.get('user_id', None)
 
     if not current_user_id:
@@ -10886,11 +10888,16 @@ def remove_community_manager(request):
     if not user_id:
         context = get_error_context(False, "send user_id in params")
         return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
+    if not community_id and not api_key:
+        context = get_error_context(False, "send community_id in params or api_key in headers")
         return JsonResponse(context)
 
-    community_instance = Community.objects.get(pk=community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+    if not community_instance:
+        context = get_error_context(False, "invalid community_id or api_key")
+        return JsonResponse(context)
+
     current_user_instance = User.objects.get(pk=current_user_id)
     user_instance = User.objects.get(pk=user_id)
 
@@ -11424,12 +11431,19 @@ def fetch_reports(request):
     # user_instance = User.objects.get(id=current_user_id)
 
     community_id = request.GET.get('community_id', None)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
+    if not community_id and not api_key:
+        context = get_error_context(False, "send community_id in params or api_key in headers")
+        return JsonResponse(context)
+
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+    if not community_instance:
+        context = get_error_context(False, "invalid community_id or api_key")
         return JsonResponse(context)
 
     is_promoter = False
@@ -11439,15 +11453,15 @@ def fetch_reports(request):
     has_right_2 = False  # right to edit community
     parent_cm_list = []
 
-    member_instance = Members.objects.filter(community_id=community_id, member_id=current_user_id)
+    member_instance = Members.objects.filter(community_id=community_instance.id, member_id=current_user_id)
 
     if member_instance.exists():
         member = member_instance[0]
         is_owner = member.is_owner
         is_promoter = member.state == member_states.ADMIN
-        has_right_0 = check_admin_delete_right(user=current_user_id, community=community_id)
-        has_right_1 = check_admin_approve_right(user=current_user_id, community=community_id)
-        has_right_2 = check_admin_edit_community_right(user=current_user_id, community=community_id)
+        has_right_0 = check_admin_delete_right(user=current_user_id, community=community_instance.id)
+        has_right_1 = check_admin_approve_right(user=current_user_id, community=community_instance.id)
+        has_right_2 = check_admin_edit_community_right(user=current_user_id, community=community_instance.id)
 
         if member.parent_cm_list:
             parent_cm_list = json.loads(member.parent_cm_list)
@@ -11461,9 +11475,9 @@ def fetch_reports(request):
         context = get_error_context(False, "user has not Owner or CM")
         return JsonResponse(context)
 
-    reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
-                                           is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
-                                           parent_cm_list=parent_cm_list)
+    reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_instance.id,
+                                           has_right_0=has_right_0, is_owner=is_owner, has_right_1=has_right_1,
+                                           has_right_2=has_right_2, parent_cm_list=parent_cm_list)
 
     report_list = []
 
@@ -11690,12 +11704,19 @@ def fetch_management_tools(request):
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_id = request.GET.get('community_id', None)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
+    if not community_id and not api_key:
+        context = get_error_context(False, "send community_id in params or api_key in headers")
+        return JsonResponse(context)
+
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+    if not community_instance:
+        context = get_error_context(False, "invalid community_id or api_key")
         return JsonResponse(context)
 
     is_promoter = False
@@ -11704,16 +11725,16 @@ def fetch_management_tools(request):
     has_right_1 = False  # right to approve or reject pending requests
     has_right_2 = False  # right to edit community
     parent_cm_list = []
-    member_instance = Members.objects.filter(community_id=community_id,
+    member_instance = Members.objects.filter(community_id=community_instance.id,
                                              member_id=current_user_id, state=member_states.ADMIN)
 
     if member_instance.exists():
         member = member_instance[0]
         is_owner = member.is_owner
         is_promoter = member.state == member_states.ADMIN
-        has_right_0 = check_admin_delete_right(user=current_user_id, community=community_id)
-        has_right_1 = check_admin_approve_right(user=current_user_id, community=community_id)
-        has_right_2 = check_admin_edit_community_right(user=current_user_id, community=community_id)
+        has_right_0 = check_admin_delete_right(user=current_user_id, community=community_instance.id)
+        has_right_1 = check_admin_approve_right(user=current_user_id, community=community_instance.id)
+        has_right_2 = check_admin_edit_community_right(user=current_user_id, community=community_instance.id)
 
         if member.parent_cm_list:
             parent_cm_list = json.loads(member.parent_cm_list)
@@ -11722,7 +11743,6 @@ def fetch_management_tools(request):
         context = get_error_context(False, "you are not CM for this community")
         return JsonResponse(context)
 
-    community_instance = Community.objects.get(pk=community_id)
     community_name = community_instance.name
     header = MANAGEMENT_TOOLS_HEADER.format(community_name)
     management_tools = []
@@ -11735,23 +11755,23 @@ def fetch_management_tools(request):
 
     # cause to do this multiple duplicate checks is to send lkst in tool order as per design
     if has_right_1:
-        member_request_tool = get_tool_member_requests(user_id=current_user_id, community_id=community_id)
+        member_request_tool = get_tool_member_requests(user_id=current_user_id, community_id=community_instance.id)
 
-        member_request_tool["route"] = MEMBER_REQUEST_TOOL_ROUTE.format(community_id, community_name)
+        member_request_tool["route"] = MEMBER_REQUEST_TOOL_ROUTE.format(community_instance.id, community_name)
 
         management_tools.append(member_request_tool)
 
     if has_right_0:
-        pending_chatrooms_tool = get_tool_pending_chat_rooms(user_id=current_user_id, community_id=community_id)
-        pending_chatrooms_tool["route"] = PENDING_CHATROOM_TOOL_ROUTE.format(community_id, community_name)
+        pending_chatrooms_tool = get_tool_pending_chat_rooms(user_id=current_user_id, community_id=community_instance.id)
+        pending_chatrooms_tool["route"] = PENDING_CHATROOM_TOOL_ROUTE.format(community_instance.id, community_name)
         management_tools.append(pending_chatrooms_tool)
 
     if has_right_0 or has_right_1:
-        reports_tool = get_tool_review_reports(user_id=current_user_id, community_id=community_id,
+        reports_tool = get_tool_review_reports(user_id=current_user_id, community_id=community_instance.id,
                                                has_right_0=has_right_0, has_right_1=has_right_1,
                                                has_right_2=has_right_2, parent_cm_list=parent_cm_list,
                                                is_owner=is_owner)
-        reports_tool["route"] = REPORTS_TOOL_ROUTE.format(community_id, community_name)
+        reports_tool["route"] = REPORTS_TOOL_ROUTE.format(community_instance.id, community_name)
         management_tools.append(reports_tool)
 
     if has_right_2:
@@ -11761,9 +11781,10 @@ def fetch_management_tools(request):
         if directory_questions_v2_version_check(platform_code, version_code):
             tool_edit_directory_question['title'] = DIRECTORY_QUESTIONS_MANAGEMENT_TOOLS_TITLE
 
-        tool_edit_directory_question["route"] = tool_edit_directory_question["route"].format(community_id,
+        tool_edit_directory_question["route"] = tool_edit_directory_question["route"].format(community_instance.id,
                                                                                              community_name)
-        tool_edit_community_detail["route"] = tool_edit_community_detail["route"].format(community_id, community_name)
+        tool_edit_community_detail["route"] = tool_edit_community_detail["route"].format(community_instance.id,
+                                                                                         community_name)
 
         if has_right_1:
             management_tools.append(tool_edit_directory_question)
@@ -11771,13 +11792,13 @@ def fetch_management_tools(request):
 
     if is_platform_web and (version_code >= CM_ONBOARDING_WEB_VERSION_CODE):
         tool_membership_plans = MEMBERSHIP_PLANS_MANAGEMENT_TOOLS.copy()
-        tool_membership_plans['route'] = tool_membership_plans['route'].format(community_id)
+        tool_membership_plans['route'] = tool_membership_plans['route'].format(community_instance.id)
 
         management_tools.append(tool_membership_plans)
 
     if has_right_0 or has_right_1:
         tool_community_setting = tool_community_settings.copy()
-        tool_community_setting["route"] = tool_community_setting["route"].format(community_id, community_name)
+        tool_community_setting["route"] = tool_community_setting["route"].format(community_instance.id, community_name)
         management_tools.append(tool_community_setting)
 
     return JsonResponse(tools, status=status_codes.HTTP_200_OK)
