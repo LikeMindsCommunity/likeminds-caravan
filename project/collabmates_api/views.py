@@ -11446,6 +11446,7 @@ def fetch_reports(request):
         context = get_error_context(False, "invalid community_id or api_key")
         return JsonResponse(context)
 
+    community_id = community_instance.id
     is_promoter = False
     is_owner = False
     has_right_0 = False  # right to delete chat rooms or conversations
@@ -11453,15 +11454,15 @@ def fetch_reports(request):
     has_right_2 = False  # right to edit community
     parent_cm_list = []
 
-    member_instance = Members.objects.filter(community_id=community_instance.id, member_id=current_user_id)
+    member_instance = Members.objects.filter(community_id=community_id, member_id=current_user_id)
 
     if member_instance.exists():
         member = member_instance[0]
         is_owner = member.is_owner
         is_promoter = member.state == member_states.ADMIN
-        has_right_0 = check_admin_delete_right(user=current_user_id, community=community_instance.id)
-        has_right_1 = check_admin_approve_right(user=current_user_id, community=community_instance.id)
-        has_right_2 = check_admin_edit_community_right(user=current_user_id, community=community_instance.id)
+        has_right_0 = check_admin_delete_right(user=current_user_id, community=community_id)
+        has_right_1 = check_admin_approve_right(user=current_user_id, community=community_id)
+        has_right_2 = check_admin_edit_community_right(user=current_user_id, community=community_id)
 
         if member.parent_cm_list:
             parent_cm_list = json.loads(member.parent_cm_list)
@@ -11475,9 +11476,9 @@ def fetch_reports(request):
         context = get_error_context(False, "user has not Owner or CM")
         return JsonResponse(context)
 
-    reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_instance.id,
-                                           has_right_0=has_right_0, is_owner=is_owner, has_right_1=has_right_1,
-                                           has_right_2=has_right_2, parent_cm_list=parent_cm_list)
+    reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
+                                           is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                           parent_cm_list=parent_cm_list)
 
     report_list = []
 
@@ -11719,22 +11720,23 @@ def fetch_management_tools(request):
         context = get_error_context(False, "invalid community_id or api_key")
         return JsonResponse(context)
 
+    community_id = community_instance.id
     is_promoter = False
     is_owner = False
     has_right_0 = False  # right to delete chat rooms or conversations
     has_right_1 = False  # right to approve or reject pending requests
     has_right_2 = False  # right to edit community
     parent_cm_list = []
-    member_instance = Members.objects.filter(community_id=community_instance.id,
+    member_instance = Members.objects.filter(community_id=community_id,
                                              member_id=current_user_id, state=member_states.ADMIN)
 
     if member_instance.exists():
         member = member_instance[0]
         is_owner = member.is_owner
         is_promoter = member.state == member_states.ADMIN
-        has_right_0 = check_admin_delete_right(user=current_user_id, community=community_instance.id)
-        has_right_1 = check_admin_approve_right(user=current_user_id, community=community_instance.id)
-        has_right_2 = check_admin_edit_community_right(user=current_user_id, community=community_instance.id)
+        has_right_0 = check_admin_delete_right(user=current_user_id, community=community_id)
+        has_right_1 = check_admin_approve_right(user=current_user_id, community=community_id)
+        has_right_2 = check_admin_edit_community_right(user=current_user_id, community=community_id)
 
         if member.parent_cm_list:
             parent_cm_list = json.loads(member.parent_cm_list)
@@ -11755,23 +11757,23 @@ def fetch_management_tools(request):
 
     # cause to do this multiple duplicate checks is to send lkst in tool order as per design
     if has_right_1:
-        member_request_tool = get_tool_member_requests(user_id=current_user_id, community_id=community_instance.id)
+        member_request_tool = get_tool_member_requests(user_id=current_user_id, community_id=community_id)
 
-        member_request_tool["route"] = MEMBER_REQUEST_TOOL_ROUTE.format(community_instance.id, community_name)
+        member_request_tool["route"] = MEMBER_REQUEST_TOOL_ROUTE.format(community_id, community_name)
 
         management_tools.append(member_request_tool)
 
     if has_right_0:
-        pending_chatrooms_tool = get_tool_pending_chat_rooms(user_id=current_user_id, community_id=community_instance.id)
-        pending_chatrooms_tool["route"] = PENDING_CHATROOM_TOOL_ROUTE.format(community_instance.id, community_name)
+        pending_chatrooms_tool = get_tool_pending_chat_rooms(user_id=current_user_id, community_id=community_id)
+        pending_chatrooms_tool["route"] = PENDING_CHATROOM_TOOL_ROUTE.format(community_id, community_name)
         management_tools.append(pending_chatrooms_tool)
 
     if has_right_0 or has_right_1:
-        reports_tool = get_tool_review_reports(user_id=current_user_id, community_id=community_instance.id,
+        reports_tool = get_tool_review_reports(user_id=current_user_id, community_id=community_id,
                                                has_right_0=has_right_0, has_right_1=has_right_1,
                                                has_right_2=has_right_2, parent_cm_list=parent_cm_list,
                                                is_owner=is_owner)
-        reports_tool["route"] = REPORTS_TOOL_ROUTE.format(community_instance.id, community_name)
+        reports_tool["route"] = REPORTS_TOOL_ROUTE.format(community_id, community_name)
         management_tools.append(reports_tool)
 
     if has_right_2:
@@ -11781,9 +11783,9 @@ def fetch_management_tools(request):
         if directory_questions_v2_version_check(platform_code, version_code):
             tool_edit_directory_question['title'] = DIRECTORY_QUESTIONS_MANAGEMENT_TOOLS_TITLE
 
-        tool_edit_directory_question["route"] = tool_edit_directory_question["route"].format(community_instance.id,
+        tool_edit_directory_question["route"] = tool_edit_directory_question["route"].format(community_id,
                                                                                              community_name)
-        tool_edit_community_detail["route"] = tool_edit_community_detail["route"].format(community_instance.id,
+        tool_edit_community_detail["route"] = tool_edit_community_detail["route"].format(community_id,
                                                                                          community_name)
 
         if has_right_1:
@@ -11792,13 +11794,13 @@ def fetch_management_tools(request):
 
     if is_platform_web and (version_code >= CM_ONBOARDING_WEB_VERSION_CODE):
         tool_membership_plans = MEMBERSHIP_PLANS_MANAGEMENT_TOOLS.copy()
-        tool_membership_plans['route'] = tool_membership_plans['route'].format(community_instance.id)
+        tool_membership_plans['route'] = tool_membership_plans['route'].format(community_id)
 
         management_tools.append(tool_membership_plans)
 
     if has_right_0 or has_right_1:
         tool_community_setting = tool_community_settings.copy()
-        tool_community_setting["route"] = tool_community_setting["route"].format(community_instance.id, community_name)
+        tool_community_setting["route"] = tool_community_setting["route"].format(community_id, community_name)
         management_tools.append(tool_community_setting)
 
     return JsonResponse(tools, status=status_codes.HTTP_200_OK)
