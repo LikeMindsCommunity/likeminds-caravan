@@ -20,12 +20,14 @@ class MixpanelImpl(MixpanelManager):
 
     def track_notification(self, distinct_id, properties) -> None:
         payload = properties.get('payload')
-        community_id = payload.get('community_id')
 
-        community_instance = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
+        if payload and isinstance(payload, dict):
+            community_id = payload.get('community_id')
 
-        if community_instance:
-            return
+            community_instance = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
+
+            if community_instance:
+                return
 
         try:
             self.mixpanel_instance.track(distinct_id=distinct_id,
