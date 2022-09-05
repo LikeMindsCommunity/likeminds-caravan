@@ -1825,7 +1825,7 @@ def remove_from_member(request):
     community_id = request.POST.get('community_id')
     api_key = RequestUtilities.get_api_key_from_headers(request)
 
-    if not community_id or not api_key:
+    if not community_id and not api_key:
         context = ResponseUtilities.get_view_impl_error_context("Invalid community_id or api_key",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
