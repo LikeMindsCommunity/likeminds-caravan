@@ -1818,26 +1818,35 @@ def remove_from_member(request):
     member_id = get_member_id_from_headers(request)
 
     if not member_id:
-        return JsonResponse({'success': False, 'error_message': "Invalid member_id"})
+        context = ResponseUtilities.get_view_impl_error_context("Invalid member_id",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     community_id = request.POST.get('community_id')
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
-    if not community_id:
-        return JsonResponse({'success': False, 'error_message': "Invalid community_id"})
+    if not community_id or not api_key:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid community_id or api_key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     member_ids = request.POST.get('member_ids', False)
     tag_id = request.POST.get('tag_id', None)
     reason = request.POST.get('reason', '')
 
-    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
     if not community_instance:
-        return JsonResponse(get_error_context(False, "Invalid community_id"))
+        context = ResponseUtilities.get_view_impl_error_context("Invalid community_id or api_key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     current_user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not current_user_instance:
-        return JsonResponse(get_error_context(False, "Invalid member_id"))
+        context = ResponseUtilities.get_view_impl_error_context("Invalid member_id",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     is_promoter = Members.objects.filter(state=member_states.ADMIN,
                                          community_id=community_instance,
@@ -1914,11 +1923,14 @@ def remove_from_member(request):
                         ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, member)
 
                     else:
-                        return JsonResponse(
-                            {'success': False, 'error_message': "Cannot remove the Owner of this community"})
+                        context = ResponseUtilities.get_view_impl_error_context(
+                            "Cannot remove the Owner of this community", status_codes.HTTP_400_BAD_REQUEST)
+                        return JsonResponse(context['data'], status=context['status'])
             return JsonResponse({'success': True})
         else:
-            return JsonResponse({'success': False, 'error_message': "You are not the promoter of this community"})
+            context = ResponseUtilities.get_view_impl_error_context(
+                "You are not the promoter of this community", status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(context['data'], status=context['status'])
 
     # pending member check
     if member_ids is False:
@@ -1983,8 +1995,10 @@ def remove_from_member(request):
 
             return JsonResponse({'success': True})
         else:
-            return JsonResponse({'success': False,
-                                 'error_message': "You are promoter of this community. You can be removed by other promoter"})
+            context = ResponseUtilities.get_view_impl_error_context(
+                "You are promoter of this community. You can be removed by other promoter",
+                status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(context['data'], status=context['status'])
 
     return JsonResponse({'success': False})
 
@@ -10874,23 +10888,35 @@ def remove_community_manager(request):
     """ function to remove a communtiy manager as manager """
 
     if request.method == 'GET':
-        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+        context = ResponseUtilities.get_view_impl_error_context("Change HTTP method to POST",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     current_user_id = get_member_id_from_headers(request)
     community_id = request.POST.get('community_id', None)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
     user_id = request.POST.get('user_id', None)
 
     if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
     if not user_id:
-        context = get_error_context(False, "send user_id in params")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("send user_id in params",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+    if not community_id and not api_key:
+        context = ResponseUtilities.get_view_impl_error_context("send community_id in params or api_key in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
-    community_instance = Community.objects.get(pk=community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+    if not community_instance:
+        context = ResponseUtilities.get_view_impl_error_context("invalid community_id or api_key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
     current_user_instance = User.objects.get(pk=current_user_id)
     user_instance = User.objects.get(pk=user_id)
 
@@ -10952,8 +10978,9 @@ def remove_community_manager(request):
         return JsonResponse({'success': True})
 
     else:
-        context = get_error_context(False, "you are not a admin")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("you are not a admin",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
 
 @csrf_exempt
@@ -11417,21 +11444,33 @@ def fetch_moderation_history(request):
 
 def fetch_reports(request):
     if request.method == "POST":
-        context = get_error_context(False, "change HTTP method to GET")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("change HTTP method to GET",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     current_user_id = get_member_id_from_headers(request)
     # user_instance = User.objects.get(id=current_user_id)
 
     community_id = request.GET.get('community_id', None)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
     if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+    if not community_id and not api_key:
+        context = ResponseUtilities.get_view_impl_error_context("send community_id in params or api_key in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+    if not community_instance:
+        context = ResponseUtilities.get_view_impl_error_context("invalid community_id or api_key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    community_id = community_instance.id
     is_promoter = False
     is_owner = False
     has_right_0 = False  # right to delete chat rooms or conversations
@@ -11458,8 +11497,9 @@ def fetch_reports(request):
         return JsonResponse({"reports": []})
 
     elif not is_owner and not is_promoter:
-        context = get_error_context(False, "user has not Owner or CM")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("user has not Owner or CM",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
                                            is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
@@ -11680,8 +11720,9 @@ class ActionPendingChatroom(APIView):
 
 def fetch_management_tools(request):
     if request.method == "POST":
-        context = get_error_context(False, "change HTTP method to GET")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("change HTTP method to GET",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     current_user_id = get_member_id_from_headers(request)
     # user_instance = User.objects.get(id=current_user_id)
@@ -11690,14 +11731,25 @@ def fetch_management_tools(request):
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_id = request.GET.get('community_id', None)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
     if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+    if not community_id and not api_key:
+        context = ResponseUtilities.get_view_impl_error_context("send community_id in params or api_key in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+    if not community_instance:
+        context = ResponseUtilities.get_view_impl_error_context("invalid community_id or api_key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    community_id = community_instance.id
     is_promoter = False
     is_owner = False
     has_right_0 = False  # right to delete chat rooms or conversations
@@ -11719,10 +11771,10 @@ def fetch_management_tools(request):
             parent_cm_list = json.loads(member.parent_cm_list)
 
     else:
-        context = get_error_context(False, "you are not CM for this community")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("you are not CM for this community",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
-    community_instance = Community.objects.get(pk=community_id)
     community_name = community_instance.name
     header = MANAGEMENT_TOOLS_HEADER.format(community_name)
     management_tools = []
