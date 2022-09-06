@@ -2000,8 +2000,10 @@ def remove_from_member(request):
                 status_codes.HTTP_400_BAD_REQUEST)
             return JsonResponse(context['data'], status=context['status'])
 
-    return JsonResponse({'success': False})
-
+    context = ResponseUtilities.get_view_impl_error_context(
+        "Failed to remove member(s)",
+        status_codes.HTTP_400_BAD_REQUEST)
+    return JsonResponse(context['data'], status=context['status'])
 
 @csrf_exempt
 def remove_members(community_instance, user_instance, removed_state, current_user_instance):
@@ -11511,7 +11513,7 @@ def fetch_reports(request):
         report_dict = report_serializer(report, current_user_id)
         report_list.append(report_dict)
 
-    return JsonResponse({"reports": report_list})
+    return JsonResponse({"success": True, "reports": report_list})
 
 
 @csrf_exempt
@@ -11779,8 +11781,10 @@ def fetch_management_tools(request):
     header = MANAGEMENT_TOOLS_HEADER.format(community_name)
     management_tools = []
 
-    tools = {"header": header,
-             "management_tools": management_tools}
+    tools = {
+        "success": True,
+        "header": header,
+        "management_tools": management_tools}
 
     if not has_right_0 and not has_right_1 and not has_right_2:
         return JsonResponse(tools, status=status_codes.HTTP_200_OK)
