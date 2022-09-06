@@ -2,6 +2,6 @@ version: 0.0
 os: linux
 hooks:
   ApplicationStart:
-    - location: project/deployment/deploy-caravan-beta.sh
+    - location: project/deployment/deploy-caravan.sh
       timeout: 300
       runas: ec2-user
