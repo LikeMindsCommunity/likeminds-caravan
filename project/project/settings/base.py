@@ -366,3 +366,5 @@ WEBFLOW_KEYS = {
     'api_key': os.getenv('WEBFLOW_API_KEY'),
     'web_url': os.getenv('WEBFLOW_URL')
 }
+
+APP_VERSION = '1.0.1'
