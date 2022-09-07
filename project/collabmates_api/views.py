@@ -1841,6 +1841,7 @@ def remove_from_member(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
 
+    community_id = community_instance.id
     current_user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not current_user_instance:
@@ -10918,6 +10919,8 @@ def remove_community_manager(request):
         context = ResponseUtilities.get_view_impl_error_context("invalid community_id or api_key",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
+
+    community_id = community_instance.id
 
     current_user_instance = User.objects.get(pk=current_user_id)
     user_instance = User.objects.get(pk=user_id)
