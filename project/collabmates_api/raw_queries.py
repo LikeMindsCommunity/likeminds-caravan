@@ -225,6 +225,10 @@ def get_followed_chatrooms(user_id,
             if excluded_card_ids:
                 excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
 
+        included_conversation_states = get_tuple_from_array([conversation_states.ANSWER,
+                                                             conversation_states.CONVERSATION_POLL,
+                                                             conversation_states.CONVERSATION_EVENT])
+
         conn = get_connection()
         curr = conn.cursor()
 
@@ -264,30 +268,32 @@ def get_followed_chatrooms(user_id,
         card_ids = get_tuple_from_array(card_ids_list)
 
         sql = """
-                SELECT     togther_conversationengage.id, lca.created_at
+                SELECT     togther_conversationengage.id,
+                           lca.created_at
                 FROM       togther_conversationengage
                 INNER JOIN (WITH added_row_number AS
                            (
-                                    SELECT   ca.created_at,
-                                             ca.id,
-                                             ca.card_id,
-                                             Row_number() OVER( partition BY ca.card_id ORDER BY ca.created_at DESC) AS row_number
-                                    FROM     togther_card_answers                                                    AS ca
-                                    WHERE    ca.card_id IN %s)SELECT   card_id,
-                           id,
-                           created_at
-                  FROM     added_row_number
-                  WHERE    row_number = 1) AS lca
+                                  SELECT ca.created_at,
+                                         ca.id,
+                                         ca.card_id,
+                                         row_number() OVER( partition BY ca.card_id ORDER BY (
+                                         CASE
+                                                WHEN ca.state     IN %s THEN 1
+                                                WHEN ca.state NOT IN %s THEN 2
+                                         END), ca.created_at DESC) AS row_number
+                                  FROM   togther_card_answers      AS ca
+                                  WHERE  ca.card_id IN %s)SELECT   card_id,
+                             id,
+                             created_at
+                    FROM     added_row_number
+                    WHERE    row_number = 1) AS lca
                   ON       togther_conversationengage.card_id = lca.card_id
                   WHERE    togther_conversationengage.user_id=%s
                   AND      togther_conversationengage.card_id IN %s
                   ORDER BY lca.created_at DESC,
-                           id DESC limit %s offset %s""" % (
-            card_ids,
-            str(user_id),
-            card_ids,
-            str(limit),
-            str(offset))
+                           id DESC limit %s offset %s""" % (included_conversation_states, included_conversation_states,
+                                                            card_ids, str(user_id), card_ids, str(limit),
+                                                            str(offset))
 
         curr.execute(sql)
         res = curr.fetchall()
