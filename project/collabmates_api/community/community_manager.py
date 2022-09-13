@@ -47,7 +47,11 @@ class CommunityManager(metaclass=abc.ABCMeta):
                  callable(subclass.fetch_community_id_from_domain)) and
                 (hasattr(subclass, 'edit_community') and callable(subclass.edit_community)) and
                 (hasattr(subclass, 'add_community_member') and callable(subclass.add_community_member)) and
-                (hasattr(subclass, 'update_community_member') and callable(subclass.update_community_member)) or
+                (hasattr(subclass, 'update_community_member') and callable(subclass.update_community_member)) and
+                (hasattr(subclass, 'update_community_noti_settings') and
+                 callable(subclass.update_community_noti_settings)) and
+                (hasattr(subclass, 'fetch_community_noti_settings') and
+                 callable(subclass.fetch_community_noti_settings)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -235,7 +239,13 @@ class CommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update_community_member(self, req_body: dict) -> {}:
-        """ Updates member data in community using SDK dashboard"""
+    def fetch_community_noti_settings(self) -> {}:
+        """Fetches notification settings of community"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_community_noti_settings(self, req_body: dict) -> {}:
+        """Updates notification settings of community"""
 
         raise NotImplementedError

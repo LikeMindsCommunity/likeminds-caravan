@@ -920,3 +920,32 @@ class CommunityMemberView(APIView):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_data.get('error_message'),
                                                                                 community_data.get('status')))
         return JsonResponse(community_data)
+
+
+class CommunityNotificationSettings(APIView):
+
+    def put(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        community_manager = CommunityImpl(member_id=member_id, community_id=req_body.get('community_id'))
+        res = community_manager.update_community_noti_settings(req_body)
+
+        if res.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.fetch_request_query_params(request)
+
+        community_manager = CommunityImpl(member_id=member_id, community_id=req_body.get('community_id'))
+        res = community_manager.fetch_community_noti_settings()
+
+        if res.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)

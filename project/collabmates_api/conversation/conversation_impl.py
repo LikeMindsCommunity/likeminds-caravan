@@ -43,14 +43,15 @@ from .constants import *
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
                             conversationPollMembers, Userinfo, conversationEngage, answerAttachment,
-                            conversationEventMembers, conversationEventNudge, UserEmailsSendStatus, userDevices)
+                            conversationEventMembers, conversationEventNudge, UserEmailsSendStatus, userDevices,
+                            userMemberRights)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
-    conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types
+    conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types, member_rights
 from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
     is_member_verified
 from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase
@@ -808,6 +809,14 @@ class ConversationImpl(ConversationManager):
             return ResponseUtilities.get_impl_error_context('You are not a part of this secret chatroom',
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
+        if req_body.get('state') and req_body['state'] == conversation_states.CONVERSATION_POLL:
+            has_right = ModelUtilities.get_model_filter(userMemberRights,
+                                                        {'user': user_instance, 'community': community_instance,
+                                                         'right__state': member_rights.MEMBER_RIGHT_CREATE_POLL})
+
+            if not has_right:
+                return {'success': False, 'error_message': "You don't have the rights to create a poll"}
+
         if chatroom_instance.access_without_subscription:
             status = is_member_verified(community_instance.id, self.get_member_id())
             state_filter = ModelUtilities.get_model_filter(collabcardState, {'card_id': chatroom_id,
@@ -1162,6 +1171,7 @@ class ConversationImpl(ConversationManager):
                                     {'updated_at': TimeUtilities.current_time_in_sec()})
 
         send_notification_on_chatroom_topic_update.delay(chatroom_instance.id)
+
 
         return {'success': True}
 

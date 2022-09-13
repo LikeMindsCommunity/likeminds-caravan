@@ -1,5 +1,5 @@
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, Members, Collabcard)
+from togther.models import (ModelUtilities, Members, Collabcard, collabcardState)
 from rest_framework import status as status_codes
 from utility.states import (member_states, card_types)
 from collabmates_api.sdk.models import (SdkClient)
@@ -225,8 +225,8 @@ class ChatroomViewHelper:
         return {'user_instance': user_instance, 'card_instance': card_instance}
 
     @staticmethod
-    def validate_change_chatroom_type_request(member_id, chatroom_id, req_body):
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+    def validate_change_chatroom_type_request(member_id, req_body):
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return ResponseUtilities.get_inner_error_context("In-valid chatroom id")
@@ -309,3 +309,24 @@ class ChatroomViewHelper:
             return ResponseUtilities.get_inner_error_context("Only chatroom creator can update files")
 
         return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def validate_fetch_chatroom_notification_setting_request(user_id, chatroom_id):
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid chatroom id")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid user id")
+
+        collabcard_state_instance = ModelUtilities.get_model_filter(collabcardState,
+                                                                    {'card': card_instance,
+                                                                     'user': user_instance})
+
+        if not collabcard_state_instance:
+            return ResponseUtilities.get_inner_error_context("You are not part of the chatroom.")
+
+        return {'collabcard_state_instance': collabcard_state_instance[0]}
