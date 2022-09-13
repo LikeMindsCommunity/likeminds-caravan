@@ -2574,6 +2574,9 @@ def send_intro_room_evening_notifications():
                 user_instance = member.member_id
                 message = get_message_for_evening_notification(community_intro_rooms, user_instance, community)
 
+                if not message:
+                    continue
+
                 if member.id not in new_members:
                     notification_list = get_notification_list_intro_notification(user_instance)
                     message = TasksHelper.add_community_info_to_notification_payload(message, community_id)
@@ -2605,10 +2608,17 @@ def get_message_for_evening_notification(community_intro_rooms, user_instance, c
         route = INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR % community_intro_rooms[0].id
 
     else:
+        master_intro_chatroom_filter = ModelUtilities.get_model_filter(Collabcard,
+                                                                       {'community': community,
+                                                                        'type': card_types.CARD_MASTER_INTRO})
+
+        if not master_intro_chatroom_filter:
+            return
+
         title = INTRO_ROOM_NOTIFICATION_TITLE_PLURAL
         sub_title = INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL % (
             user_instance.userinfo.name, community.name, community_intro_rooms_count)
-        route = INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL % (community.id, community.name)
+        route = INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL % master_intro_chatroom_filter[0].id
 
     message = {
         'payload': {
