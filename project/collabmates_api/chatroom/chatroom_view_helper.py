@@ -280,6 +280,27 @@ class ChatroomViewHelper:
         return {'user_instance': user_instance, 'card_instance': card_instance}
 
     @staticmethod
+    def validate_update_chatroom_notification_setting_request(user_id, chatroom_id):
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid chatroom id")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid user id")
+
+        collabcard_state_instance = ModelUtilities.get_model_filter(collabcardState,
+                                                                    {'card': card_instance,
+                                                                     'user': user_instance})
+
+        if not collabcard_state_instance:
+            return ResponseUtilities.get_inner_error_context("You are not part of the chatroom.")
+
+        return {'collabcard_state_instance': collabcard_state_instance}
+
+    @staticmethod
     def validate_get_tagging_list_request(member_id, chatroom_id):
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
