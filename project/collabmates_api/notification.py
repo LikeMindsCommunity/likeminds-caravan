@@ -2555,9 +2555,22 @@ def send_intro_room_evening_notifications():
     all_communities = Community.objects.all()
     all_members = Members.objects.all()
 
+    # Intro settings ON
+    enabled_intro_settings = ModelUtilities.get_model_filter(CommunitySettings,
+                                                             {'setting_type': community_setting_types.INTRO_ROOM,
+                                                              'enabled': True})
+
+    if not enabled_intro_settings:
+        return
+
+    communities = list(enabled_intro_settings.values_list('community_id', flat=True))
+
     # get intro rooms in last 24 hours (86400 seconds)
-    new_intro_rooms = Collabcard.objects.filter(date_epoch__gte=current_time - INTRO_ROOM_LOOKBACK_PERIOD,
-                                                type=CollabcardTypes.CARD_INTRO)
+    new_intro_rooms = ModelUtilities.get_model_filter(Collabcard,
+                                                      {'date_epoch__gte': current_time - INTRO_ROOM_LOOKBACK_PERIOD,
+                                                       'type': card_types.CARD_INTRO,
+                                                       'is_deleted': False,
+                                                       'community__in': communities})
 
     communities = new_intro_rooms.values('community').distinct()
 
