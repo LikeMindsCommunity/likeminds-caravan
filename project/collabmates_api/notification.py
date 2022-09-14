@@ -2555,9 +2555,22 @@ def send_intro_room_evening_notifications():
     all_communities = Community.objects.all()
     all_members = Members.objects.all()
 
+    # Intro settings ON
+    enabled_intro_settings = ModelUtilities.get_model_filter(CommunitySettings,
+                                                             {'setting_type': community_setting_types.INTRO_ROOM,
+                                                              'enabled': True})
+
+    if not enabled_intro_settings:
+        return
+
+    communities = list(enabled_intro_settings.values_list('community_id', flat=True))
+
     # get intro rooms in last 24 hours (86400 seconds)
-    new_intro_rooms = Collabcard.objects.filter(date_epoch__gte=current_time - INTRO_ROOM_LOOKBACK_PERIOD,
-                                                type=CollabcardTypes.CARD_INTRO)
+    new_intro_rooms = ModelUtilities.get_model_filter(Collabcard,
+                                                      {'date_epoch__gte': current_time - INTRO_ROOM_LOOKBACK_PERIOD,
+                                                       'type': card_types.CARD_INTRO,
+                                                       'is_deleted': False,
+                                                       'community__in': communities})
 
     communities = new_intro_rooms.values('community').distinct()
 
@@ -2571,16 +2584,19 @@ def send_intro_room_evening_notifications():
             new_members = get_new_member_list(community_intro_rooms)
 
             for member in community_members:
+
+                if member.member_id_id in new_members:
+                    continue
+
                 user_instance = member.member_id
                 message = get_message_for_evening_notification(community_intro_rooms, user_instance, community)
 
                 if not message:
                     continue
 
-                if member.id not in new_members:
-                    notification_list = get_notification_list_intro_notification(user_instance)
-                    message = TasksHelper.add_community_info_to_notification_payload(message, community_id)
-                    notification_meta(notification_list, message)
+                notification_list = get_notification_list_intro_notification(user_instance)
+                message = TasksHelper.add_community_info_to_notification_payload(message, community_id)
+                notification_meta(notification_list, message)
 
 
 def get_new_member_list(community_intro_rooms):
@@ -2618,7 +2634,7 @@ def get_message_for_evening_notification(community_intro_rooms, user_instance, c
         title = INTRO_ROOM_NOTIFICATION_TITLE_PLURAL
         sub_title = INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL % (
             user_instance.userinfo.name, community.name, community_intro_rooms_count)
-        route = INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL % master_intro_chatroom_filter[0].id
+        route = INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR % master_intro_chatroom_filter[0].id
 
     message = {
         'payload': {
