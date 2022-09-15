@@ -284,20 +284,30 @@ def get_followed_chatrooms(user_id,
                                                       OR       (
                                                                         ca.state IN %s
                                                                AND      ca.user_id = %s) THEN 1
-                                                      WHEN ca.state NOT IN %s THEN 2
-                                             END), ca.created_at DESC) AS row_number
-                                    FROM     togther_card_answers      AS ca
+                                                      ELSE 2
+                                             END), ca.created_at DESC) AS row_number,
+                                             CASE
+                                                      WHEN ca.state IN %s
+                                                      OR       (
+                                                                        ca.state IN %s
+                                                               AND      ca.user_id = %s) THEN 1
+                                                      ELSE 2
+                                             END                  AS cond_row
+                                    FROM     togther_card_answers AS ca
                                     WHERE    ca.card_id IN %s)SELECT   card_id,
                            id,
-                           created_at
+                           created_at,
+                           cond_row
                   FROM     added_row_number
                   WHERE    row_number = 1) AS lca
                   ON       togther_conversationengage.card_id = lca.card_id
                   WHERE    togther_conversationengage.user_id=%s
                   AND      togther_conversationengage.card_id IN %s
-                  ORDER BY lca.created_at DESC,
+                  ORDER BY lca.cond_row,
+                           lca.created_at DESC,
                            id DESC limit %s offset %s""" % (included_conversation_states, follow_conversation_state,
-                                                            user_id, included_conversation_states, card_ids,
+                                                            user_id, included_conversation_states,
+                                                            follow_conversation_state, user_id, card_ids,
                                                             str(user_id), card_ids, str(limit), str(offset))
 
         curr.execute(sql)

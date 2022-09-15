@@ -358,9 +358,11 @@ def my_chatrooms_version_1(request):
                                         community_id=community_id,
                                         intro_room_community_list=intro_room_community_list)
 
-    for id, _ in engage_list.items():
-        instance = conversationEngage.objects.get(pk=id)
-        instance_list.append(instance)
+    if engage_list:
+
+        for id, _ in engage_list.items():
+            instance = conversationEngage.objects.get(pk=id)
+            instance_list.append(instance)
 
     draft_list = get_draft_chatrooms_on_home_screen(member_id, page, community_id)
 
