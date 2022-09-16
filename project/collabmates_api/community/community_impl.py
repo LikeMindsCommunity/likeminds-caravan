@@ -31,8 +31,8 @@ from external_services.airtable.airtable_wrapper import AirtableWrapper
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
     card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
     communityLevels, conversationEngage, userMemberRights, moderationHistory, communityQuestions, questionFilters, \
-    communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, CommunityJoinDefaultEmail, \
-    userEmails, ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
+    communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, userEmails,\
+    ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
     communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
@@ -1350,9 +1350,9 @@ class CommunityImpl(CommunityManager):
         if len(user_emails) > 0:
             mail_to.append(user_emails[0].email)
 
-        mail_data = CommunityImpl._fetch_join_email_data(community_id, community_instance)
+        mail_data, should_send_email = CommunityImpl._fetch_join_email_data(community_id, community_instance)
 
-        if mail_data.get('body') and mail_data.get('body') != DEFAULT_JOIN_EMAIL_BODY:
+        if should_send_email:
             mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.WELCOME,
                                                                                             EmailSubCategories.WELCOME)
 
@@ -1367,6 +1367,8 @@ class CommunityImpl(CommunityManager):
             "subject": None,
             "body": None
         }
+
+        should_send_email = False
 
         join_email_instances = ModelUtilities.get_model_filter(CommunityJoinEmail, {'community_id': community_id})
 
@@ -1387,18 +1389,15 @@ class CommunityImpl(CommunityManager):
             data["subject"] = community_instance.name
             data["body"] = DEFAULT_JOIN_EMAIL_BODY
 
-            default_body = ModelUtilities.get_model_filter(CommunityJoinDefaultEmail, {})
-
-            if default_body:
-                data["body"] = default_body[0].body
-
         else:
             join_email_instance = join_email_instances[0]
             data["reply_to"] = [join_email_instance.reply_to]
             data["subject"] = join_email_instance.subject
             data["body"] = join_email_instance.body
 
-        return data
+            should_send_email = True
+
+        return data, should_send_email
 
     def fetch_join_email(self) -> {}:
 
@@ -1417,7 +1416,7 @@ class CommunityImpl(CommunityManager):
         if not is_promoter:
             return {'success': False, 'error_message': "You are not the owner/cm of community."}
 
-        join_email_data = self._fetch_join_email_data(self.get_community_id(), community_instance)
+        join_email_data, _ = self._fetch_join_email_data(self.get_community_id(), community_instance)
 
         return {"success": True, "join_email": join_email_data}
 
