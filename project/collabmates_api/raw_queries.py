@@ -227,7 +227,8 @@ def get_followed_chatrooms(user_id,
 
         included_conversation_states = get_tuple_from_array([conversation_states.ANSWER,
                                                              conversation_states.CONVERSATION_POLL,
-                                                             conversation_states.CONVERSATION_EVENT])
+                                                             conversation_states.CONVERSATION_EVENT,
+                                                             conversation_states.CONVERSATION_HEADER])
 
         follow_conversation_state = get_tuple_from_array([conversation_states.CONVERSATION_FOLLOW])
 
