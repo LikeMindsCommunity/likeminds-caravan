@@ -1352,12 +1352,12 @@ class CommunityImpl(CommunityManager):
 
         mail_data = CommunityImpl._fetch_join_email_data(community_id, community_instance)
 
+        if mail_data.get('body') and mail_data.get('body') != DEFAULT_JOIN_EMAIL_BODY:
+            mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.WELCOME,
+                                                                                            EmailSubCategories.WELCOME)
 
-        mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.WELCOME,
-                                                                                        EmailSubCategories.WELCOME)
-
-        MailWrapper.send_email.delay(mail_data["subject"], mail_data["body"], mail_to, categories=mail_categories,
-                                     reply_to=mail_data["reply_to"])
+            MailWrapper.send_email.delay(mail_data["subject"], mail_data["body"], mail_to, categories=mail_categories,
+                                         reply_to=mail_data["reply_to"])
 
     @staticmethod
     def _fetch_join_email_data(community_id, community_instance) -> {}:
@@ -1385,8 +1385,12 @@ class CommunityImpl(CommunityManager):
                 data["reply_to"] = [user_emails[0].email]
 
             data["subject"] = community_instance.name
+            data["body"] = DEFAULT_JOIN_EMAIL_BODY
+
             default_body = ModelUtilities.get_model_filter(CommunityJoinDefaultEmail, {})
-            data["body"] = default_body[0].body
+
+            if default_body:
+                data["body"] = default_body[0].body
 
         else:
             join_email_instance = join_email_instances[0]
