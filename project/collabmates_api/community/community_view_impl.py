@@ -763,9 +763,6 @@ class UpdateCommunityDMSettingsView(APIView):
         if not member_id:
             return {'success': False, 'error_message': 'Send member_id'}
 
-        if not req_body.get('community_id'):
-            return {'success': False, 'error_message': 'Send community_id'}
-
         req_body['success'] = True
         req_body['member_id'] = member_id
         return req_body
@@ -773,6 +770,7 @@ class UpdateCommunityDMSettingsView(APIView):
     def post(self, request):
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         validated_body = self._validate_request(request)
 
         if not validated_body.get('success'):
@@ -781,7 +779,8 @@ class UpdateCommunityDMSettingsView(APIView):
         community_manager = CommunityImpl(member_id=validated_body.get('member_id'),
                                           community_id=validated_body.get('community_id'),
                                           version_code=version_code,
-                                          request_platform=platform_code)
+                                          request_platform=platform_code,
+                                          api_key=api_key)
 
         res = community_manager.update_community_dm_settings(validated_body)
 
@@ -800,9 +799,6 @@ class FetchCommunityDMSettingsView(APIView):
         if not member_id:
             return {'success': False, 'error_message': 'Send member_id'}
 
-        if not req_body.get('community_id'):
-            return {'success': False, 'error_message': 'Send community_id'}
-
         validated_req['success'] = True
         validated_req['member_id'] = member_id
         validated_req['community_id'] = req_body.get('community_id')
@@ -813,6 +809,7 @@ class FetchCommunityDMSettingsView(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         req_body = RequestUtilities.fetch_request_query_params(request)
         validated_body = self._validate_request(member_id, req_body)
 
@@ -822,7 +819,8 @@ class FetchCommunityDMSettingsView(APIView):
         community_manager = CommunityImpl(member_id=validated_body.get('member_id'),
                                           community_id=validated_body.get('community_id'),
                                           version_code=version_code,
-                                          request_platform=platform_code)
+                                          request_platform=platform_code,
+                                          api_key=api_key)
 
         res = community_manager.fetch_community_dm_settings()
 

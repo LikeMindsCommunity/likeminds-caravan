@@ -1764,6 +1764,7 @@ class CommunityImpl(CommunityManager):
     def update_community_dm_settings(self, req_body) -> {}:
         validated_req_body = CommunityHelper.validate_update_community_dm_settings_request(self.get_member_id(),
                                                                                            self.get_community_id(),
+                                                                                           self.get_api_key(),
                                                                                            req_body)
 
         if not validated_req_body.get('success'):
@@ -1780,7 +1781,8 @@ class CommunityImpl(CommunityManager):
 
     def fetch_community_dm_settings(self) -> {}:
         validated_req_body = CommunityHelper.validate_fetch_community_dm_settings_request(self.get_member_id(),
-                                                                                          self.get_community_id())
+                                                                                          self.get_community_id(),
+                                                                                          self.get_api_key())
 
         if not validated_req_body.get('success'):
             return validated_req_body
@@ -3774,16 +3776,16 @@ class CommunityHelper:
                 'aj': req_body.get('aj', None), 'shared_by': req_body.get('shared_by', None)}
 
     @staticmethod
-    def validate_update_community_dm_settings_request(user_id, community_id, req_body):
+    def validate_update_community_dm_settings_request(user_id, community_id, api_key, req_body):
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
         if not user_instance:
             return {'success': False, 'error_message': 'Invalid member-id'}
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
         if not community_instance:
-            return {'success': False, 'error_message': 'Invalid community_id'}
+            return {'success': False, 'error_message': 'Invalid community ID/API Key!'}
 
         if not Members.is_member_community_promoter(community_instance, user_instance):
             return {'success': False, 'error_message': 'You are not CM/Owner of this community!'}
@@ -3828,16 +3830,16 @@ class CommunityHelper:
                 'update_dict': update_dict}
 
     @staticmethod
-    def validate_fetch_community_dm_settings_request(user_id, community_id):
+    def validate_fetch_community_dm_settings_request(user_id, community_id, api_key):
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
         if not user_instance:
             return {'success': False, 'error_message': 'Invalid member-id'}
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
         if not community_instance:
-            return {'success': False, 'error_message': 'Invalid community_id'}
+            return {'success': False, 'error_message': 'Invalid community ID/API Key!'}
 
         if not Members.is_member_community_promoter(community_instance, user_instance):
             return {'success': False, 'error_message': 'You are not CM/Owner of this community!'}

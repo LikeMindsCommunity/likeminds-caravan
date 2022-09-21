@@ -11906,19 +11906,33 @@ def update_community_rights(request):
     req_body = json.loads(request.body)
     community_id = req_body['community_id'] if "community_id" in req_body else None
     selected_rights = req_body['rights'] if "rights" in req_body else None
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
     if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in body")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("Send member_id in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
-    community_instance = Community.objects.get(pk=community_id)
-    current_user_instance = User.objects.get(pk=current_user_id)
+    if not community_id and not api_key:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid community_id or api_key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
-    admin = Members.objects.filter(member_id=current_user_instance,
-                                   community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+    community_dict = validate_community_id_or_api_key(community_id, api_key)
+
+    if community_dict.get('error_message'):
+        context = ResponseUtilities.get_view_impl_error_context(community_dict.get('error_message'),
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
+
+    community_instance = community_dict.get('community_instance')
+    community_id = community_instance.id
+
+    current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
+
+    admin = Members.objects.filter(member_id=current_user_instance, community_id=community_instance,
+                                   state=member_states.ADMIN)
+
     # checking if the logged in user is Manager of the community or not
     if admin.exists():
 
