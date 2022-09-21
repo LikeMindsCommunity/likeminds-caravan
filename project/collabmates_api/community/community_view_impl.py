@@ -381,6 +381,7 @@ class FetchCommunitySettings(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not member_id:
             raise InvalidHeaderException()
@@ -388,7 +389,7 @@ class FetchCommunitySettings(APIView):
         community_id = request.GET.get('community_id', None)
 
         community_manager = CommunityImpl(member_id=member_id, community_id=community_id, version_code=version_code,
-                                          request_platform=platform_code)
+                                          request_platform=platform_code, api_key=api_key)
 
         response = community_manager.fetch_community_settings()
 
@@ -401,15 +402,13 @@ class FetchCommunitySettings(APIView):
 class UpdateCommunitySettings(APIView):
     def post(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        if not member_id:
-            raise InvalidHeaderException()
-
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         req_body = RequestUtilities.load_request_body(request)
 
         community_settings = req_body.get('community_settings', [])
         community_id = req_body.get('community_id', None)
 
-        community_manager = CommunityImpl(member_id=member_id, community_id=community_id)
+        community_manager = CommunityImpl(member_id=member_id, community_id=community_id, api_key=api_key)
 
         response = community_manager.update_community_settings(community_settings)
 

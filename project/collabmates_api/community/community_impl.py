@@ -1100,19 +1100,19 @@ class CommunityImpl(CommunityManager):
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user ID"}
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
+        community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
+                                                                      api_key=self.get_api_key())
 
         if not community_instance:
-            return {'success': False, 'error_message': "Invalid community ID"}
+            return {'success': False, 'error_message': "Invalid community ID/API Key!"}
 
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': self.get_community_id(),
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
                                                                   'member_id': user_instance})
 
         if not member_filter:
             return {'success': False, 'error_message': "User is not a member of this community"}
 
-        community_settings_list = ModelUtilities.get_model_filter(CommunitySettings,
-                                                                  {"community_id": community_instance.id})
+        community_settings_list = ModelUtilities.get_model_filter(CommunitySettings, {"community": community_instance})
 
         community_settings_serializer = CommunitySettingsSerializer(community_settings_list, many=True)
 
@@ -1148,12 +1148,15 @@ class CommunityImpl(CommunityManager):
         if not user_instance:
             return {'success': False, 'error_message': "Invalid User ID"}
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
+        community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
+                                                                      api_key=self.get_api_key())
 
         if not community_instance:
-            return {'success': False, 'error_message': "Invalid Community ID"}
+            return {'success': False, 'error_message': "Invalid Community ID/API key!"}
 
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': self.get_community_id(),
+        self.set_community_id(community_instance.id)
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
                                                                   'member_id': user_instance})
 
         if not member_filter:
