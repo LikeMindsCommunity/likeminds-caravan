@@ -9,7 +9,8 @@ from rest_framework import status as status_codes
 from django.template.loader import get_template
 from celery import shared_task
 
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, CharField
+from django.db.models.functions import Concat
 from django.contrib.auth.models import User
 from django.conf import settings
 
@@ -19,13 +20,20 @@ from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices
                             DirectMessageTutorial, communityRightsSettings, card_answers, collabcardState,
                             conversationEngage, CommunitySettings, SDKClientUsersInfo)
 from collabmates_api.user.user_manager import UserManager
+from collabmates_api.notifications.models import (WhatsappSubscription)
 from collabmates_api.sdk.models import (SdkClient)
+from collabmates_api.notifications.constants import (
+    WHATSAPP_TEMPLATE_NAME_FOR_WHATSAPP_UNSUBSCRIBE_SUCCESS,
+    WHATSAPP_TEMPLATE_NAME_FOR_WHATSAPP_RESUBSCRIBE_SUCCESS
+)
+from collabmates_api.notifications.tasks_impl import TasksHelper
 
 from utility.exception_utilities import InvalidUserException
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import email_states, mobile_states, member_states, login_types, deleted_members, \
-    conversation_states, member_rights, community_setting_types, chat_request_states, api_types
+    conversation_states, member_rights, community_setting_types, chat_request_states, api_types, \
+    whatsapp_subscription_state_actions
 from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
@@ -48,6 +56,8 @@ from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSIO
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper, MailHelper
+from external_services.wa_notification.wa_notification_impl import NotificationImpl
+
 
 host_url = settings.URL
 subscription_url = settings.SUBSCRIPTION_SERVER_URL
@@ -530,7 +540,6 @@ class UserImpl(UserManager):
         user_email_exists_object = self.create_user_context_for_email_exists(user_context.get('email'))
 
         if user_email_exists_object:
-
             return user_email_exists_object
 
         mobile_context = UserHelper.compute_mobile_no(req_body)
@@ -616,7 +625,8 @@ class UserImpl(UserManager):
             community_name = expired_communities[0]['name']
 
             context = CONTEXT_ACCESS_ONE_EXPIRED_COMMUNITY.copy()
-            context['sub_title_1'] = SUB_TITLE_ACCESS_ONE_EXPIRED_COMMUNITY % (community_name, community_id, community_id)
+            context['sub_title_1'] = SUB_TITLE_ACCESS_ONE_EXPIRED_COMMUNITY % (
+            community_name, community_id, community_id)
             context['cta'] = CTA_ACCESS_ONE_EXPIRED_COMMUNITY % (community_id, self.get_user_id())
             context['membership_expired_communities'] = expired_communities
 
@@ -634,7 +644,8 @@ class UserImpl(UserManager):
             community_name = expired_communities[0]['name']
 
             context = CONTEXT_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITIES.copy()
-            context['sub_title_1'] = SUB_TITLE_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITY % (community_name, community_id)
+            context['sub_title_1'] = SUB_TITLE_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITY % (
+            community_name, community_id)
             context['pending_communities'] = pending_communities
             context['membership_expired_communities'] = expired_communities
 
@@ -684,7 +695,7 @@ class UserImpl(UserManager):
 
         if not self.get_user_id():
             return CONTEXT_ACCESS_NOT_PART_OF_COMMUNITIES
-        
+
         user_communities = Members.fetch_all_user_communties(self.get_user_id())
 
         user_community_data = self._process_user_communties_for_access(user_communities)
@@ -700,7 +711,8 @@ class UserImpl(UserManager):
 
         member_data = UserHelper.fetch_community_members_data(total_community_ids)
 
-        pending_communities = UserHelper.serialize_community_for_access(user_community_data['pending_communities'], member_data)
+        pending_communities = UserHelper.serialize_community_for_access(user_community_data['pending_communities'],
+                                                                        member_data)
 
         expired_community_instances = Community.objects.filter(pk__in=expired_community_ids)
         expired_communities = UserHelper.serialize_community_for_access(expired_community_instances, member_data)
@@ -767,7 +779,6 @@ class UserImpl(UserManager):
                 if all([direct_message_tutorial.clicked, not direct_message_tutorial.messaged, not communities,
                         TimeUtilities.current_time_in_sec() >= TimeUtilities.add_hours_to_epoch_time(
                             direct_message_tutorial.updated_at, 168)]):
-
                     return {
                         "success": True,
                         "is_cm": is_cm
@@ -793,7 +804,8 @@ class UserImpl(UserManager):
                     unseen_count = get_conversations_after_last_seen_messages_in_chatrooms(get_dm_chatrooms_list)
 
                 if self.get_community_id():
-                    hide_dm_tab = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id()).hide_dm_tab
+                    hide_dm_tab = ModelUtilities.get_model_instance_or_none(Community,
+                                                                            self.get_community_id()).hide_dm_tab
 
                 return {
                     "success": True,
@@ -935,7 +947,6 @@ class UserImpl(UserManager):
 
         return filter_dict
 
-
     @staticmethod
     def fetch_all_users(page, user_ids):
 
@@ -1030,6 +1041,55 @@ class UserImpl(UserManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         return {'success': True, 'user': get_logged_in_user(user_instance)}
+
+    @staticmethod
+    def send_wa_subscription_status_message(user_id: int, subscription_action: str):
+        template_name = None
+        user_data_for_wa_notification = TasksHelper.create_user_data_for_wa_notification(user_ids=[user_id])
+
+        if subscription_action == whatsapp_subscription_state_actions.START:
+            template_name = WHATSAPP_TEMPLATE_NAME_FOR_WHATSAPP_RESUBSCRIBE_SUCCESS
+
+        if subscription_action == whatsapp_subscription_state_actions.STOP:
+            template_name = WHATSAPP_TEMPLATE_NAME_FOR_WHATSAPP_UNSUBSCRIBE_SUCCESS
+
+        NotificationImpl.send_wa_bulk_notitfications(user_data_for_wa_notification,
+                                                     template_name=template_name,
+                                                     broadcast_name=template_name)
+
+    def whatsapp_subscription(self, request_body: dict) -> dict:
+        validated_request = UserViewHelper.validate_whatsapp_subscription_request(request_body)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        if request_body.get('type', '') == 'text' and request_body.get('waId') and request_body.get('text', '') in [
+            whatsapp_subscription_state_actions.START, whatsapp_subscription_state_actions.STOP]:
+            user_mobile_instances = userMobiles.objects.annotate(
+                number=Concat('country_code', 'mobile_no', output_field=CharField())).filter(
+                number__icontains=request_body.get('waId'))
+
+            if user_mobile_instances:
+                user_instance = user_mobile_instances[0].user
+                wa_subscription_instance = ModelUtilities.get_model_filter(WhatsappSubscription,
+                                                                           {'user': user_instance})
+                if not wa_subscription_instance:
+                    wa_subscription_instance = WhatsappSubscription(user=user_instance)
+
+                if request_body.get('text') == whatsapp_subscription_state_actions.START:
+                    wa_subscription_instance.subscribed = True
+                    wa_subscription_instance.save()
+                    self.send_wa_subscription_status_message(user_instance.id,
+                                                             whatsapp_subscription_state_actions.START)
+
+                if request_body.get('text') == whatsapp_subscription_state_actions.STOP:
+                    wa_subscription_instance.subscribed = False
+                    wa_subscription_instance.save()
+                    self.send_wa_subscription_status_message(user_instance.id,
+                                                             whatsapp_subscription_state_actions.STOP)
+
+        return {'success': True}
 
 
 class UserHelper:
@@ -1529,8 +1589,10 @@ class UserHelper:
                 task_expiry_time = TimeUtilities.add_hours_to_epoch_time(TimeUtilities.current_time_in_sec(), hours=2)
 
                 UserHelper.cm_send_email_for_creating_community.apply_async(args=[instance.user_id], kwargs={},
-                                                                            eta=TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_time),
-                                                                            expires=TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_time))
+                                                                            eta=TimeUtilities.convert_epoch_to_datetime_in_IST(
+                                                                                task_begin_time),
+                                                                            expires=TimeUtilities.convert_epoch_to_datetime_in_IST(
+                                                                                task_expiry_time))
 
     @staticmethod
     @shared_task
@@ -1571,12 +1633,12 @@ class UserHelper:
     def emailSerializer(email_instance):
 
         return {
-                'id': email_instance.id,
-                'user_id': email_instance.user_id,
-                'email': email_instance.email,
-                'state': email_instance.email_state,
-                'verified': email_instance.verified
-            }
+            'id': email_instance.id,
+            'user_id': email_instance.user_id,
+            'email': email_instance.email,
+            'state': email_instance.email_state,
+            'verified': email_instance.verified
+        }
 
     @staticmethod
     def mobilesSerializer(mobile_instance):
@@ -1622,7 +1684,6 @@ class UserHelper:
         for community in communities:
 
             if current_community_id != community.community_id_id:
-
                 creator = None
                 manager_count = 0
                 members_count = 0

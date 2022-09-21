@@ -2,12 +2,15 @@ import json
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.template.loader import get_template
+from django.db.models import CharField
+from django.db.models.functions import Concat
 
 from external_services.calender.calendar_impl import CalendarImpl
 from external_services.email.email_wrapper import MailHelper
 from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, \
     userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember, CommunityGetStarted, \
-     EventGoogleCalendarLogs, removedMembers, Card_Attachment
+    EventGoogleCalendarLogs, removedMembers, Card_Attachment
+from collabmates_api.notifications.models import (WhatsappSubscription)
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
@@ -21,6 +24,7 @@ from .constants import *
 from .tasks_manager import TaskManager
 
 from external_services.logging.logging_wrapper import LoggingWrapper
+
 error_logger = LoggingWrapper.get_instance()
 
 url = settings.WEB_URL
@@ -233,7 +237,6 @@ class TasksImpl(TaskManager):
         }
 
         if self.get_event_type() == EVENT_TYPE.REGISTRATION and is_paid_event:
-
             response_dict['payload']['sound'] = PAID_EVENT_REGISTRATION_SOUND
 
         return response_dict
@@ -252,13 +255,13 @@ class TasksImpl(TaskManager):
 
         user_email_filter = ModelUtilities.get_model_filter(userEmails,
                                                             {'user__in': member_list,
-                                                            'email_state': email_states.PRIMARY,
-                                                            'verified': True}).order_by('created_at')
+                                                             'email_state': email_states.PRIMARY,
+                                                             'verified': True}).order_by('created_at')
 
         user_email_list = [{'email': instance.email} for instance in user_email_filter if instance.email]
 
         event_metadata = TasksImpl.process_calendar_invite_event_metadata(card_instance, user_email_list,
-                                                                        calendar_invite_type)
+                                                                          calendar_invite_type)
 
         return event_metadata
 
@@ -300,7 +303,7 @@ class TasksImpl(TaskManager):
 
         elif calendar_invite_type == CALENDAR_INVITE_TYPE.APPEND_ATTENDEES:
 
-            attendees_list = TasksHelper.get_final_attendees_list_for_calendar_event(card_instance, 
+            attendees_list = TasksHelper.get_final_attendees_list_for_calendar_event(card_instance,
                                                                                      user_email_list)
 
             event_metadata = {
@@ -337,8 +340,8 @@ class TasksImpl(TaskManager):
 
         return response_dict
 
-    def process_email_comms_response_dict(self, event_name, event_description, event_time, event_date, link,\
-                                        event_cost, community_id, event_banner_url):
+    def process_email_comms_response_dict(self, event_name, event_description, event_time, event_date, link, \
+                                          event_cost, community_id, event_banner_url):
 
         if self.get_event_type() == EVENT_TYPE.CREATION or self.get_event_type() == EVENT_TYPE.LAST_CALL:
 
@@ -402,7 +405,8 @@ class TasksImpl(TaskManager):
             online_link_enable_before = event_instance.online_link_enable_before
             online_link_enable_before_in_mins = TimeUtilities.convert_milliseconds_to_min(online_link_enable_before)
 
-            final_time = self.process_app_notification_final_time(event_date_time_in_IST, online_link_enable_before_in_mins)
+            final_time = self.process_app_notification_final_time(event_date_time_in_IST,
+                                                                  online_link_enable_before_in_mins)
 
         elif self.get_comm_type() == COMM_TYPE.EMAIL:
 
@@ -446,14 +450,14 @@ class TasksImpl(TaskManager):
             event_attendance_5_hrs_time = event_date_time_in_IST - EVENT_COMM_FREQUENCY.ATTENDANCE_5_HRS_WHATSAPP
 
             final_time = TasksHelper.calculate_notification_time(event_attendance_5_hrs_time,
-                                                                        EVENT_COMM_SHOULD_HAPPEN_AFTER)
+                                                                 EVENT_COMM_SHOULD_HAPPEN_AFTER)
 
         elif self.get_event_type() == EVENT_TYPE.ATTENDANCE_10_MIN:
 
             event_attendance_10_min_time = event_date_time_in_IST - EVENT_COMM_FREQUENCY.ATTENDANCE_10_MIN_WHATSAPP
 
             final_time = TasksHelper.calculate_notification_time(event_attendance_10_min_time,
-                                                                        EVENT_COMM_SHOULD_HAPPEN_AFTER)
+                                                                 EVENT_COMM_SHOULD_HAPPEN_AFTER)
 
         return final_time
 
@@ -463,7 +467,7 @@ class TasksImpl(TaskManager):
 
             event_creation_time = TimeUtilities.get_current_datetime_in_IST()
             final_time = TasksHelper.calculate_notification_time(event_creation_time,
-                                                                        EVENT_COMM_SHOULD_HAPPEN_AFTER)
+                                                                 EVENT_COMM_SHOULD_HAPPEN_AFTER)
 
         elif self.get_event_type() == EVENT_TYPE.LAST_CALL:
 
@@ -474,7 +478,7 @@ class TasksImpl(TaskManager):
 
             event_attendance_15_min_time = event_date_time_in_IST - timedelta(minutes=online_link_enable_before_in_mins)
             final_time = TasksHelper.calculate_notification_time(event_attendance_15_min_time,
-                                                                        EVENT_COMM_SHOULD_HAPPEN_AFTER)
+                                                                 EVENT_COMM_SHOULD_HAPPEN_AFTER)
 
         elif self.get_event_type() == EVENT_TYPE.REGISTRATION:
 
@@ -486,7 +490,6 @@ class TasksImpl(TaskManager):
     def process_calendar_invite_final_time(self, event_date_time_in_IST):
 
         if self.get_event_type() == EVENT_TYPE.REGISTRATION:
-
             current_date_time_in_IST = TimeUtilities.get_current_datetime_in_IST()
             final_time = current_date_time_in_IST
 
@@ -495,7 +498,7 @@ class TasksImpl(TaskManager):
     def process_email_comms_final_time(self, event_date_time_in_IST, event_end_date_time_in_IST):
 
         if self.get_event_type() == EVENT_TYPE.CREATION or self.get_event_type() == EVENT_TYPE.REGISTRATION or \
-            self.get_event_type() == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
+                self.get_event_type() == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
 
             event_creation_time = TimeUtilities.get_current_datetime_in_IST()
 
@@ -560,7 +563,7 @@ class TasksImpl(TaskManager):
             'is_deleted': False
         }
 
-        is_task_already_created = ModelUtilities.is_model_filter_exists(EventCommsCeleryTasks , filter_dict)
+        is_task_already_created = ModelUtilities.is_model_filter_exists(EventCommsCeleryTasks, filter_dict)
 
         if is_task_already_created:
             task_instances = ModelUtilities.get_model_filter(EventCommsCeleryTasks, filter_dict)
@@ -573,6 +576,7 @@ class TasksImpl(TaskManager):
         if task_id:
             filter_dict['task_id'] = task_id
             EventCommsCeleryTasks.create_instance(filter_dict)
+
 
 class TasksHelper:
 
@@ -645,8 +649,8 @@ class TasksHelper:
 
         event_creator = event_instance.user
 
-        users_list = ModelUtilities.get_model_filter(User,{
-            'id__in':[owner.id, event_creator.id]
+        users_list = ModelUtilities.get_model_filter(User, {
+            'id__in': [owner.id, event_creator.id]
         }).values_list('id', flat=True)
 
         return list(users_list)
@@ -673,7 +677,7 @@ class TasksHelper:
 
         if noti_time.time() >= EVENT_COMM_SHOULD_HAPPEN_BEFORE.time():
             final_time = datetime.combine(noti_time.date() + timedelta(days=1), \
-                                        alternate_noti_time.time())
+                                          alternate_noti_time.time())
 
         elif noti_time.time() < EVENT_COMM_SHOULD_HAPPEN_AFTER.time():
             final_time = datetime.combine(noti_time.date(), alternate_noti_time.time())
@@ -685,7 +689,7 @@ class TasksHelper:
 
         if event_date_time_in_IST.time() < TIME_9_AM.time():
             final_time = datetime.combine(event_date_time_in_IST.date() - timedelta(days=1), \
-                                        TIME_9_AM.time())
+                                          TIME_9_AM.time())
 
         else:
             final_time = datetime.combine(event_date_time_in_IST.date(), TIME_9_AM.time())
@@ -837,8 +841,8 @@ class TasksHelper:
     def get_emails_list_for_user_instances(user_instances):
         user_email_filter = ModelUtilities.get_model_filter(userEmails,
                                                             {'user__in': user_instances,
-                                                            'email_state': email_states.PRIMARY,
-                                                            'verified': True}).order_by('created_at')
+                                                             'email_state': email_states.PRIMARY,
+                                                             'verified': True}).order_by('created_at')
 
         email_list = [instance.email for instance in user_email_filter if instance.email]
 
@@ -870,7 +874,7 @@ class TasksHelper:
             'is_deleted': True
         }
 
-        is_event_comms_task_deleted = ModelUtilities.is_model_filter_exists(EventCommsCeleryTasks , filter_dict)
+        is_event_comms_task_deleted = ModelUtilities.is_model_filter_exists(EventCommsCeleryTasks, filter_dict)
 
         return is_event_comms_task_deleted
 
@@ -1118,7 +1122,7 @@ class TasksHelper:
             'is_deleted': False
         }
 
-        calendar_instance_filter = ModelUtilities.get_model_filter(EventGoogleCalendarLogs , filter_dict)
+        calendar_instance_filter = ModelUtilities.get_model_filter(EventGoogleCalendarLogs, filter_dict)
 
         if calendar_instance_filter:
             calender_id = calendar_instance_filter[0].calendar_id
@@ -1184,3 +1188,81 @@ class TasksHelper:
             return chatroom_attachment[0].file_url
 
         return None
+
+    @staticmethod
+    def update_wa_subscription_user_data(user_data_list, template_name, broadcase_name):
+        final_user_data_list = [
+            {
+                'user_data_list': [],
+                'template_name': template_name,
+                'broadcast_name': broadcase_name
+            }
+        ]
+
+        mobile_instances = userMobiles.objects.annotate(
+            number=Concat('country_code', 'mobile_no', output_field=CharField()))
+
+        for user_data in user_data_list:
+            user_mobile_instances = mobile_instances.filter(number=user_data['whatsappNumber'])
+
+            if user_mobile_instances:
+                user_instance = user_mobile_instances[0].user
+                wa_subscription_instances = ModelUtilities.get_model_filter(WhatsappSubscription,
+                                                                            {'user': user_instance})
+
+                if not wa_subscription_instances:
+                    wa_subscription_instance = WhatsappSubscription(user=user_instance)
+                    wa_subscription_instance.save()
+
+                else:
+                    wa_subscription_instance = wa_subscription_instances[0]
+
+                if wa_subscription_instance.subscribed:
+                    template_data = None
+
+                    # created or added user data if EVENT_CREATION template is there
+                    if template_name == WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION:
+                        # created or added user data for EVENT_CREATED_WA_UNSUBSCRIBE template
+                        if (wa_subscription_instance.event_registration_whatsapp - 1)//3 == 0:
+                            for final_user_data in final_user_data_list:
+                                if (final_user_data["template_name"] ==
+                                        WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATED_WA_UNSUBSCRIBE):
+                                    template_data = final_user_data
+
+                            if template_data is not None:
+                                template_data['user_data_list'].append(user_data)
+
+                            else:
+                                final_user_data_list.append({
+                                    'user_data_list': [user_data],
+                                    'template_name': WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATED_WA_UNSUBSCRIBE,
+                                    'broadcast_name': WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATED_WA_UNSUBSCRIBE
+                                })
+
+                        # created or added user data for EVENT_CREATION template
+                        else:
+                            for final_user_data in final_user_data_list:
+                                if final_user_data["template_name"] == WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION:
+                                    template_data = final_user_data
+
+                            if template_data is not None:
+                                template_data['user_data_list'].append(user_data)
+
+                            else:
+                                final_user_data_list.append({
+                                    'user_data_list': [user_data],
+                                    'template_name': WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION,
+                                    'broadcast_name': WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION
+                                })
+
+                        # incremented the message count for the user
+                        wa_subscription_instance.event_registration_whatsapp += 1
+                        wa_subscription_instance.save()
+
+                    # created or added user data remaining templates
+                    else:
+                        for final_user_data in final_user_data_list:
+                            if final_user_data["template_name"] == template_name:
+                                final_user_data["user_data_list"].append(user_data)
+
+        return final_user_data_list

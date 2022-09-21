@@ -42,3 +42,16 @@ class UserViewHelper:
             return ResponseUtilities.get_inner_error_context('Invalid API key!')
 
         return {'community_instance': community_instance}
+
+    @staticmethod
+    def validate_whatsapp_subscription_request(req_body):
+        if not req_body.get('type'):
+            return ResponseUtilities.get_inner_error_context('Invalid request body, send text field')
+
+        if not req_body.get('conversationId'):
+            return ResponseUtilities.get_inner_error_context('Invalid request body, send conversationId field')
+
+        if not req_body.get('waId'):
+            return ResponseUtilities.get_inner_error_context('Invalid request body, send waId field')
+
+        return {}
