@@ -7,8 +7,8 @@ from .constants import CHATROOM_SEARCHABLE_FIELDS, CHATROOM_FIELD_HEADER
 from .constants import MEMBER_DIRECTORY_SEARCHABLE_FIELDS, MEMBER_DIRECTORY_FIELD_NAME
 
 # ------------  do not remove these imports --------------
-from .chatroom_index import ChatroomDocument
-from .conversation_index import ConversationDocument
+# from .chatroom_index import ChatroomDocument
+# from .conversation_index import ConversationDocument
 from .member_directory_index import MemberDirectoryDocument
 # --------------------------------------------------------
 
