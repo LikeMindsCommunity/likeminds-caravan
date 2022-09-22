@@ -141,12 +141,13 @@ class FetchDmHome(APIView):
         community_id = request.GET.get('community_id', None)
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not member_id:
             raise InvalidHeaderException()
 
         if single_community_view_version_check(platform_code, version_code):
-            if not community_id:
+            if not (community_id or api_key):
                 return JsonResponse({
                     'status': status_codes.HTTP_400_BAD_REQUEST,
                     'success': False,
@@ -156,7 +157,8 @@ class FetchDmHome(APIView):
         user_manager = UserImpl(user_id=member_id,
                                 community_id=community_id,
                                 platform_code=platform_code,
-                                version_code=version_code)
+                                version_code=version_code,
+                                api_key=api_key)
         user_context = user_manager.fetch_dm_home()
 
         if 'error_message' in user_context:
@@ -194,13 +196,12 @@ class FetchDmFeed(APIView):
     def get(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        if not member_id:
-            raise InvalidHeaderException()
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         community_id: str = request.GET.get('community_id')
 
-        user_manager = UserImpl(user_id=member_id)
-        user_context = user_manager.fetch_dm_feed(community_id)
+        user_manager = UserImpl(user_id=member_id, community_id=community_id, api_key=api_key)
+        user_context = user_manager.fetch_dm_feed()
 
         if 'error_message' in user_context:
             response_context = user_context
