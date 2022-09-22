@@ -864,17 +864,17 @@ class ConversationImpl(ConversationManager):
         conversation_content['og_tags'] = ConversationHelper.fetch_og_tags(req_body)
         conversation_content['created_at'] = created_at
         conversation_instance = self._create_conversation_instance(conversation_content)
-        self._set_preview_for_conversation(conversation_instance, req_body)
+        # self._set_preview_for_conversation(conversation_instance, req_body)
         self._fill_poll_options(user_instance, conversation_instance, req_body)
 
         attachment_count = req_body.get('attachment_count', 0)
 
         has_files = has_files or attachment_count > 0
 
-        self._auto_follow_and_save_last_conversation(chatroom_instance,
-                                                     chatroom_state_instance,
-                                                     conversation_instance,
-                                                     user_instance, member_state)
+        # self._auto_follow_and_save_last_conversation(chatroom_instance,
+        #                                              chatroom_state_instance,
+        #                                              conversation_instance,
+        #                                              user_instance, member_state)
 
         self._update_home_page(community_instance, chatroom_instance, conversation_instance)
 
