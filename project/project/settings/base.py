@@ -68,7 +68,7 @@ MIDDLEWARE = [
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'utility.custom_middleware.AppendOrRemoveSlashMiddleware',
     'middleware.CustomAuthenticateUserID.CustomAuthenticateUserIDMiddleware',
-    # 'middleware.api_logger.ApiLogger',
+    'middleware.api_logger.ApiLogger',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 

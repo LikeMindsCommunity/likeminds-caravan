@@ -1728,6 +1728,8 @@ class ConversationHelper:
         last_conversation_user, second_last_conversation_user = \
             ConversationHelper.compute_member_images_for_homescreen(chatroom_instance, community_instance)
 
+        return
+
         if user_id:
 
             conversationEngage.objects.filter(card=chatroom_instance,
