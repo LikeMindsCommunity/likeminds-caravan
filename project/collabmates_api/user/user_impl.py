@@ -1072,10 +1072,13 @@ class UserImpl(UserManager):
 
             if user_mobile_instances:
                 user_instance = user_mobile_instances[0].user
-                wa_subscription_instance = ModelUtilities.get_model_filter(WhatsappSubscription,
-                                                                           {'user': user_instance})
-                if not wa_subscription_instance:
+                wa_subscription_instances = ModelUtilities.get_model_filter(WhatsappSubscription,
+                                                                            {'user': user_instance})
+                if not wa_subscription_instances:
                     wa_subscription_instance = WhatsappSubscription(user=user_instance)
+
+                else:
+                    wa_subscription_instance = wa_subscription_instances[0]
 
                 if request_body.get('text') == whatsapp_subscription_state_actions.START:
                     wa_subscription_instance.subscribed = True

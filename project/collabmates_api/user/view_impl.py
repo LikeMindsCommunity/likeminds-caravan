@@ -327,7 +327,7 @@ class WhatsappSubscriptionView(APIView):
 
     def post(self, request):
         req_body = RequestUtilities.load_request_body(request)
-        user_manager = UserImpl()
+        user_manager = UserImpl(user_id="")
         response_data = user_manager.whatsapp_subscription(req_body)
 
         if 'error_message' in response_data:

@@ -1223,7 +1223,7 @@ class TasksHelper:
                     # created or added user data if EVENT_CREATION template is there
                     if template_name == WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION:
                         # created or added user data for EVENT_CREATED_WA_UNSUBSCRIBE template
-                        if (wa_subscription_instance.event_registration_whatsapp - 1)//3 == 0:
+                        if (wa_subscription_instance.event_registration_whatsapp % 3) == 0:
                             for final_user_data in final_user_data_list:
                                 if (final_user_data["template_name"] ==
                                         WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATED_WA_UNSUBSCRIBE):
