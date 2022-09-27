@@ -105,9 +105,14 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
         if validated_wa_req_body.get('error_message'):
             return {'success': False, 'error_message': validated_wa_req_body.get('error_message')}
 
-        NotificationImpl.send_bulk_wa_notification.delay(receivers_list=req_body.get('receivers_list'),
-                                                         template_name=req_body.get('template_name'),
-                                                         broadcast_name=req_body.get('broadcast_name'))
+        updated_user_data = TasksHelper.update_wa_subscription_user_data(req_body.get('receivers_list'),
+                                                                         req_body.get('template_name'),
+                                                                         req_body.get('broadcast_name'))
+
+        for user_data in updated_user_data:
+            NotificationImpl.send_bulk_wa_notitfication.delay(receivers_list=user_data["user_data_list"],
+                                                              template_name=user_data["template_name"],
+                                                              broadcast_name=user_data["broadcast_name"])
 
         return {'success': True}
 

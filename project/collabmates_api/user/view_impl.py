@@ -318,3 +318,24 @@ class FetchUser(APIView):
 
         return JsonResponse(**ResponseUtilities.get_view_impl_error_context(user_response.get('error_message'),
                                                                             user_response.get('status')))
+
+
+class WhatsappSubscriptionView(APIView):
+    """
+    Manage Whatsapp Subscription of a user
+    """
+
+    def post(self, request):
+        req_body = RequestUtilities.load_request_body(request)
+        user_manager = UserImpl(user_id="")
+        response_data = user_manager.whatsapp_subscription(req_body)
+
+        if 'error_message' in response_data:
+            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
+                                                                    response_data['status'])
+            return JsonResponse(context['data'], status=context['status'])
+
+        return JsonResponse(
+            {'success': True},
+            status=status_codes.HTTP_200_OK
+        )

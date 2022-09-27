@@ -82,6 +82,7 @@ from utility.celery_tasks import (create_member_dm_chatroom, create_intro_room_d
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..search.sync import ElasticSearchSync
 from ..notifications.tasks import send_mail_for_first_time_edit_community_questions
+from ..notifications.tasks_impl import TasksHelper
 from ..user.user_impl import UserHelper, UserImpl
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
@@ -1597,7 +1598,12 @@ class CommunityImpl(CommunityManager):
                                                                                self.get_request_platform(),
                                                                                self.get_version_code())
 
-            NotificationImpl.send_bulk_wa_notification.delay(receivers_list, template_name, template_name)
+            updated_user_data = TasksHelper.update_wa_subscription_user_data(receivers_list, template_name)
+
+            for user_data in updated_user_data:
+                NotificationImpl.send_bulk_wa_notitfication.delay(user_data["user_data_list"],
+                                                                  user_data["template_name"],
+                                                                  user_data["broadcast_name"])
 
             update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
 
@@ -2817,8 +2823,14 @@ class CommunityHelper:
                                                                                          cm_primary_mobile,
                                                                                          community_dash_link_path)
 
-        template_name = broadcast_name = WHATSAPP_COMMUNITY_CREATED_TEMPLATE_FOR_CM_NAME
-        NotificationImpl.send_bulk_wa_notification.delay(receivers_list, template_name, broadcast_name)
+        template_name = WHATSAPP_COMMUNITY_CREATED_TEMPLATE_FOR_CM_NAME
+
+        updated_user_data = TasksHelper.update_wa_subscription_user_data(receivers_list, template_name)
+
+        for user_data in updated_user_data:
+            NotificationImpl.send_bulk_wa_notitfication.delay(user_data["user_data_list"],
+                                                              user_data["template_name"],
+                                                              user_data["broadcast_name"])
 
         return
 
