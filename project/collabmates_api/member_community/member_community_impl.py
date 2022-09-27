@@ -1620,12 +1620,14 @@ class MemberCommunityImpl(MemberCommunityManager):
         return chatroom_queryset
 
     def request_dm_limit(self, member_id: str) -> {}:
-        validated_request = MemberCommunityHelper.validate_request_dm_limit_request(self.get_member_id(),
-                                                                                    self.get_community_id(),
-                                                                                    member_id)
+        validated_request = MemberCommunityViewHelper.validate_request_dm_limit_request(self.get_member_id(),
+                                                                                        self.get_community_id(),
+                                                                                        self.get_api_key(),
+                                                                                        member_id)
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
@@ -1636,7 +1638,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                              'setting_type': community_setting_types.DIRECT_MESSAGES})
 
         if all([dm_setting_filter, not dm_setting_filter[0].enabled]):
-            return get_error_context(False, 'Direct message is disabled for the community!')
+            return ResponseUtilities.get_impl_error_context('Direct message is disabled for the community!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
@@ -1660,23 +1663,24 @@ class MemberCommunityImpl(MemberCommunityManager):
         return response
 
     def fetch_dm_chatrooms(self, page: int = 1) -> {}:
-        validated_request = MemberCommunityHelper.validate_fetch_dm_chatrooms_request(self.get_member_id(),
-                                                                                      self.get_community_id(),
-                                                                                      page)
+        validated_request = MemberCommunityViewHelper.validate_fetch_dm_chatrooms_request(self.get_member_id(),
+                                                                                          self.get_community_id(),
+                                                                                          self.get_api_key())
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
-        page = validated_request.get('page')
 
         dm_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
                                                             {'community': community_instance,
                                                              'setting_type': community_setting_types.DIRECT_MESSAGES})
 
         if all([dm_setting_filter, not dm_setting_filter[0].enabled]):
-            return get_error_context(False, 'Direct message is disabled!')
+            return ResponseUtilities.get_impl_error_context('Direct message is disabled!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         total_pages = 0
 
@@ -2179,47 +2183,6 @@ class MemberCommunityHelper:
         queryset = collabcardState.objects.filter(card_id__in=card_ids, user_id=user_id).order_by(preserved)
 
         return queryset
-
-    @staticmethod
-    def validate_request_dm_limit_request(user_id, community_id, member_id):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid x-member-id")
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community_id")
-
-        member_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
-
-        if not member_instance:
-            return get_error_context(False, "Invalid member_id")
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
-                'member_instance': member_instance}
-
-    @staticmethod
-    def validate_fetch_dm_chatrooms_request(user_id, community_id, page_no):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid x-member-id")
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community_id")
-
-        if not isinstance(page_no, int):
-            page_no = NumberUtilities.get_integer_from_string(page_no, 0)
-
-            if not page_no:
-                return get_error_context(False, "Page must be integer")
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
-                'page': page_no}
 
     @staticmethod
     def validate_member_can_dm_request(user_id, community_id, req_body):

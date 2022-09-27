@@ -64,3 +64,43 @@ class MemberCommunityViewHelper:
             'community_instance': community_instance,
             'current_user_instance': current_user_instance
         }
+
+    @staticmethod
+    def validate_request_dm_limit_request(user_id, community_id, api_key, member_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community ID/API key")
+
+        member_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not member_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid member ID")
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'member_instance': member_instance
+        }
+
+    @staticmethod
+    def validate_fetch_dm_chatrooms_request(user_id, community_id, api_key):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community ID/API key")
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance
+        }
