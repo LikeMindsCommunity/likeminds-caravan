@@ -637,3 +637,11 @@ class NotificationStates:
 
 
 noti_states = NotificationStates()
+
+
+class WhatsappSubscriptionStateActions:
+    START = "START"
+    STOP = "STOP"
+
+
+whatsapp_subscription_state_actions = WhatsappSubscriptionStateActions()
