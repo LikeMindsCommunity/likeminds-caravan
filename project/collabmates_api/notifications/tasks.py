@@ -154,9 +154,9 @@ def schedule_whatsapp_notification_for_event_comms(self, payload_for_whatsapp_co
                                                                              template_name)
 
             for user_data in updated_user_data:
-                NotificationImpl.send_wa_bulk_notitfications(user_data["user_data_list"],
-                                                             template_name=user_data["template_name"],
-                                                             broadcast_name=user_data["broadcast_name"])
+                NotificationImpl.send_wa_bulk_notifications(user_data["user_data_list"],
+                                                            template_name=user_data["template_name"],
+                                                            broadcast_name=user_data["broadcast_name"])
 
         else:
             info_logger.info("No whatsapp notification scheuduled for event_type = %s | chatroom_deleted = %s | \

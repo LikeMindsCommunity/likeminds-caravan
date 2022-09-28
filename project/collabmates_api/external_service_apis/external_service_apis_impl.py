@@ -110,9 +110,9 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
                                                                          req_body.get('broadcast_name'))
 
         for user_data in updated_user_data:
-            NotificationImpl.send_bulk_wa_notitfication.delay(receivers_list=user_data["user_data_list"],
-                                                              template_name=user_data["template_name"],
-                                                              broadcast_name=user_data["broadcast_name"])
+            NotificationImpl.send_bulk_wa_notification.delay(receivers_list=user_data["user_data_list"],
+                                                             template_name=user_data["template_name"],
+                                                             broadcast_name=user_data["broadcast_name"])
 
         return {'success': True}
 

@@ -1601,9 +1601,9 @@ class CommunityImpl(CommunityManager):
             updated_user_data = TasksHelper.update_wa_subscription_user_data(receivers_list, template_name)
 
             for user_data in updated_user_data:
-                NotificationImpl.send_bulk_wa_notitfication.delay(user_data["user_data_list"],
-                                                                  user_data["template_name"],
-                                                                  user_data["broadcast_name"])
+                NotificationImpl.send_bulk_wa_notification.delay(user_data["user_data_list"],
+                                                                 user_data["template_name"],
+                                                                 user_data["broadcast_name"])
 
             update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
 
@@ -2828,9 +2828,9 @@ class CommunityHelper:
         updated_user_data = TasksHelper.update_wa_subscription_user_data(receivers_list, template_name)
 
         for user_data in updated_user_data:
-            NotificationImpl.send_bulk_wa_notitfication.delay(user_data["user_data_list"],
-                                                              user_data["template_name"],
-                                                              user_data["broadcast_name"])
+            NotificationImpl.send_bulk_wa_notification.delay(user_data["user_data_list"],
+                                                             user_data["template_name"],
+                                                             user_data["broadcast_name"])
 
         return
 

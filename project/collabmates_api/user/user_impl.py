@@ -1043,6 +1043,7 @@ class UserImpl(UserManager):
         return {'success': True, 'user': get_logged_in_user(user_instance)}
 
     @staticmethod
+    @shared_task
     def send_wa_subscription_status_message(user_id: int, subscription_action: str):
         template_name = None
         user_data_for_wa_notification = TasksHelper.create_user_data_for_wa_notification(user_ids=[user_id])
@@ -1053,9 +1054,9 @@ class UserImpl(UserManager):
         if subscription_action == whatsapp_subscription_state_actions.STOP:
             template_name = WHATSAPP_TEMPLATE_NAME_FOR_WHATSAPP_UNSUBSCRIBE_SUCCESS
 
-        NotificationImpl.send_wa_bulk_notitfications(user_data_for_wa_notification,
-                                                     template_name=template_name,
-                                                     broadcast_name=template_name)
+        NotificationImpl.send_wa_bulk_notifications(user_data_for_wa_notification,
+                                                    template_name=template_name,
+                                                    broadcast_name=template_name)
 
     def whatsapp_subscription(self, request_body: dict) -> dict:
         validated_request = UserViewHelper.validate_whatsapp_subscription_request(request_body)
@@ -1083,14 +1084,14 @@ class UserImpl(UserManager):
                 if request_body.get('text') == whatsapp_subscription_state_actions.START:
                     wa_subscription_instance.subscribed = True
                     wa_subscription_instance.save()
-                    self.send_wa_subscription_status_message(user_instance.id,
-                                                             whatsapp_subscription_state_actions.START)
+                    self.send_wa_subscription_status_message.delay(user_instance.id,
+                                                                   whatsapp_subscription_state_actions.START)
 
                 if request_body.get('text') == whatsapp_subscription_state_actions.STOP:
                     wa_subscription_instance.subscribed = False
                     wa_subscription_instance.save()
-                    self.send_wa_subscription_status_message(user_instance.id,
-                                                             whatsapp_subscription_state_actions.STOP)
+                    self.send_wa_subscription_status_message.delay(user_instance.id,
+                                                                   whatsapp_subscription_state_actions.STOP)
 
         return {'success': True}
 
