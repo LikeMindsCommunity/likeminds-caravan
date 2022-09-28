@@ -1190,12 +1190,16 @@ class TasksHelper:
         return None
 
     @staticmethod
-    def update_wa_subscription_user_data(user_data_list, template_name, broadcase_name):
+    def update_wa_subscription_user_data(user_data_list, template_name, broadcast_name=None):
+
+        if not broadcast_name:
+            broadcast_name = template_name
+
         final_user_data_list = [
             {
                 'user_data_list': [],
                 'template_name': template_name,
-                'broadcast_name': broadcase_name
+                'broadcast_name': broadcast_name
             }
         ]
 
