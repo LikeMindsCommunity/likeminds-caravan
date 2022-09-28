@@ -1728,12 +1728,14 @@ class MemberCommunityImpl(MemberCommunityManager):
         return {'success': True, 'dm_chatrooms': dm_chatrooms, 'total_pages': total_pages}
 
     def member_can_dm(self, req_body: dict) -> {}:
-        validated_request = MemberCommunityHelper.validate_member_can_dm_request(self.get_member_id(),
-                                                                                 self.get_community_id(),
-                                                                                 req_body)
+        validated_request = MemberCommunityViewHelper.validate_member_can_dm_request(self.get_member_id(),
+                                                                                     self.get_community_id(),
+                                                                                     self.get_api_key(),
+                                                                                     req_body)
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
@@ -2183,45 +2185,6 @@ class MemberCommunityHelper:
         queryset = collabcardState.objects.filter(card_id__in=card_ids, user_id=user_id).order_by(preserved)
 
         return queryset
-
-    @staticmethod
-    def validate_member_can_dm_request(user_id, community_id, req_body):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid x-member-id")
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community_id")
-
-        if not req_body.get('req_from'):
-            return get_error_context(False, "Send req_from")
-
-        if req_body.get('req_from') not in [dm_icon_from_states.MEMBER_PROFILE, dm_icon_from_states.COMMUNITY_DETAIL,
-                                            dm_icon_from_states.DM_FEED, dm_icon_from_states.MEMBER_DIRECTORY,
-                                            dm_icon_from_states.CHATROOM]:
-            return get_error_context(False, "Invalid req_from")
-
-        member_instance = None
-        chatroom_instance = None
-
-        if req_body.get('member_id'):
-            member_instance = ModelUtilities.get_model_instance_or_none(User, req_body.get('member_id'))
-
-            if not member_instance:
-                return get_error_context(False, "Invalid member_id")
-
-        if req_body.get('chatroom_id'):
-            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
-
-            if not chatroom_instance:
-                return get_error_context(False, "Invalid chatroom_id")
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
-                'member_instance': member_instance, 'req_from': req_body.get('req_from'),
-                'chatroom_instance': chatroom_instance}
 
     @staticmethod
     def member_request_dm_limit(user_instance, community_instance, response):

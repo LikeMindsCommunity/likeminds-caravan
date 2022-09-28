@@ -436,27 +436,27 @@ class MemberCanDMView(APIView):
         if not member_id:
             return {'error_message': 'Send member_id'}
 
-        if not req_body.get('community_id'):
-            return {'error_message': 'Send community_id'}
-
         return {'success': True, 'community_id': req_body.get('community_id')}
 
     def get(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         req_body = RequestUtilities.fetch_request_query_params(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         validated_req_body = self._validate_request(member_id, req_body)
 
         if not validated_req_body.get('success', False):
             return JsonResponse(validated_req_body, status=status_codes.HTTP_400_BAD_REQUEST)
 
-        member_community_manager = MemberCommunityImpl(member_id, validated_req_body.get('community_id'))
+        member_community_manager = MemberCommunityImpl(member_id, validated_req_body.get('community_id'),
+                                                       api_key=api_key)
         community_context = member_community_manager.member_can_dm(req_body)
 
-        if community_context.get('success'):
-            return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+        if 'error_message' in community_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                                community_context.get('status')))
 
-        return JsonResponse(community_context, status=status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(community_context)
 
 
 class JoinCommunitySDKView(APIView):
