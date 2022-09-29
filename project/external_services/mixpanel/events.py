@@ -2,8 +2,10 @@ from django.conf import settings
 from celery import shared_task
 
 from togther.models import Community
-from .constants import MIXPANEL_EVENT_MEMBER_APPROVED, MIXPANEL_EVENT_LEAVE_COMMUNITY, MIXPANEL_EVENT_MEMBER_REJECTED
-from .mixpanel_impl import MixpanelImpl
+from collabmates_api.static_text import (SEGMENT_EVENT_MEMBER_APPROVED,
+                                         SEGMENT_EVENT_LEAVE_COMMUNITY,
+                                         SEGMENT_EVENT_MEMBER_REJECTED)
+from external_services.segment.segment_impl import SegmentImpl
 
 from collabmates_api.user.constants import SUBSCRIPTION_FETCH_API_PATH
 
@@ -37,9 +39,9 @@ class MixpanelEvents:
         properties = MixpanelEventHelper.prepare_properties(community_id=community_id, community_name=community_name,
                                                             subscription_status=subscription_status, reason=reason)
 
-        MixpanelImpl().track_event(event_name=MIXPANEL_EVENT_LEAVE_COMMUNITY,
-                                   distinct_id=str(user_id),
-                                   properties=properties)
+        SegmentImpl.track_event(str(user_id),
+                                event_name=SEGMENT_EVENT_LEAVE_COMMUNITY,
+                                event_data=properties)
 
     @staticmethod
     @shared_task
@@ -55,9 +57,9 @@ class MixpanelEvents:
         properties = MixpanelEventHelper.prepare_properties(community_id=community_id, community_name=community_name,
                                                             approved_by_id=approved_by_id)
 
-        MixpanelImpl().track_event(event_name=MIXPANEL_EVENT_MEMBER_APPROVED,
-                                   distinct_id=str(user_id),
-                                   properties=properties)
+        SegmentImpl.track_event(str(user_id),
+                                event_name=SEGMENT_EVENT_MEMBER_APPROVED,
+                                event_data=properties)
 
     @staticmethod
     @shared_task
@@ -73,9 +75,9 @@ class MixpanelEvents:
         properties = MixpanelEventHelper.prepare_properties(community_id=community_id, community_name=community_name,
                                                             rejected_by_id=rejected_by_id)
 
-        MixpanelImpl().track_event(event_name=MIXPANEL_EVENT_MEMBER_REJECTED,
-                                   distinct_id=str(user_id),
-                                   properties=properties)
+        SegmentImpl.track_event(str(user_id),
+                                event_name=SEGMENT_EVENT_MEMBER_REJECTED,
+                                event_data=properties)
 
 
 class MixpanelEventHelper:

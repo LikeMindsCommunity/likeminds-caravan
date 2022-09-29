@@ -31,8 +31,8 @@ from external_services.airtable.airtable_wrapper import AirtableWrapper
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
     card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
     communityLevels, conversationEngage, userMemberRights, moderationHistory, communityQuestions, questionFilters, \
-    communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, CommunityJoinDefaultEmail, \
-    userEmails, ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
+    communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, userEmails,\
+    ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
     communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
@@ -82,6 +82,7 @@ from utility.celery_tasks import (create_member_dm_chatroom, create_intro_room_d
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..search.sync import ElasticSearchSync
 from ..notifications.tasks import send_mail_for_first_time_edit_community_questions
+from ..notifications.tasks_impl import TasksHelper
 from ..user.user_impl import UserHelper, UserImpl
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
@@ -1353,14 +1354,14 @@ class CommunityImpl(CommunityManager):
         if len(user_emails) > 0:
             mail_to.append(user_emails[0].email)
 
-        mail_data = CommunityImpl._fetch_join_email_data(community_id, community_instance)
+        mail_data, should_send_email = CommunityImpl._fetch_join_email_data(community_id, community_instance)
 
+        if should_send_email:
+            mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.WELCOME,
+                                                                                            EmailSubCategories.WELCOME)
 
-        mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.WELCOME,
-                                                                                        EmailSubCategories.WELCOME)
-
-        MailWrapper.send_email.delay(mail_data["subject"], mail_data["body"], mail_to, categories=mail_categories,
-                                     reply_to=mail_data["reply_to"])
+            MailWrapper.send_email.delay(mail_data["subject"], mail_data["body"], mail_to, categories=mail_categories,
+                                         reply_to=mail_data["reply_to"])
 
     @staticmethod
     def _fetch_join_email_data(community_id, community_instance) -> {}:
@@ -1370,6 +1371,8 @@ class CommunityImpl(CommunityManager):
             "subject": None,
             "body": None
         }
+
+        should_send_email = False
 
         join_email_instances = ModelUtilities.get_model_filter(CommunityJoinEmail, {'community_id': community_id})
 
@@ -1388,8 +1391,7 @@ class CommunityImpl(CommunityManager):
                 data["reply_to"] = [user_emails[0].email]
 
             data["subject"] = community_instance.name
-            default_body = ModelUtilities.get_model_filter(CommunityJoinDefaultEmail, {})
-            data["body"] = default_body[0].body
+            data["body"] = DEFAULT_JOIN_EMAIL_BODY
 
         else:
             join_email_instance = join_email_instances[0]
@@ -1397,7 +1399,9 @@ class CommunityImpl(CommunityManager):
             data["subject"] = join_email_instance.subject
             data["body"] = join_email_instance.body
 
-        return data
+            should_send_email = True
+
+        return data, should_send_email
 
     def fetch_join_email(self) -> {}:
 
@@ -1416,7 +1420,7 @@ class CommunityImpl(CommunityManager):
         if not is_promoter:
             return {'success': False, 'error_message': "You are not the owner/cm of community."}
 
-        join_email_data = self._fetch_join_email_data(self.get_community_id(), community_instance)
+        join_email_data, _ = self._fetch_join_email_data(self.get_community_id(), community_instance)
 
         return {"success": True, "join_email": join_email_data}
 
@@ -1597,7 +1601,12 @@ class CommunityImpl(CommunityManager):
                                                                                self.get_request_platform(),
                                                                                self.get_version_code())
 
-            NotificationImpl.send_bulk_wa_notification.delay(receivers_list, template_name, template_name)
+            updated_user_data = TasksHelper.update_wa_subscription_user_data(receivers_list, template_name)
+
+            for user_data in updated_user_data:
+                NotificationImpl.send_bulk_wa_notification.delay(user_data["user_data_list"],
+                                                                 user_data["template_name"],
+                                                                 user_data["broadcast_name"])
 
             update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
 
@@ -2819,8 +2828,14 @@ class CommunityHelper:
                                                                                          cm_primary_mobile,
                                                                                          community_dash_link_path)
 
-        template_name = broadcast_name = WHATSAPP_COMMUNITY_CREATED_TEMPLATE_FOR_CM_NAME
-        NotificationImpl.send_bulk_wa_notification.delay(receivers_list, template_name, broadcast_name)
+        template_name = WHATSAPP_COMMUNITY_CREATED_TEMPLATE_FOR_CM_NAME
+
+        updated_user_data = TasksHelper.update_wa_subscription_user_data(receivers_list, template_name)
+
+        for user_data in updated_user_data:
+            NotificationImpl.send_bulk_wa_notification.delay(user_data["user_data_list"],
+                                                             user_data["template_name"],
+                                                             user_data["broadcast_name"])
 
         return
 

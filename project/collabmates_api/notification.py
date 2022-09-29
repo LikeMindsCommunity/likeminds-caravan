@@ -50,7 +50,7 @@ from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
                                SYNC_NOTIFICATION_SUBTITLE,
                                SYNC_NOTIFICATION_ROUTE)
 
-from external_services.mixpanel.mixpanel_impl import MixpanelImpl
+from external_services.segment.segment_impl import SegmentImpl
 from django.db import connection
 from utility.number_utilities import NumberUtilities
 
@@ -214,8 +214,9 @@ def get_devices_of_users(user_id):
 
 
 def track_notification(user_id, notification_payload):
-    MixpanelImpl().track_notification(str(user_id),
-                                      properties=notification_payload)
+    SegmentImpl.track_event(str(user_id),
+                            event_name=SEGMENT_NOTIFICATION_TRACKING_EVENT_NAME,
+                            event_data=notification_payload)
 
 
 def track_notification_with_notification_payload_list(notification_payload_list):
@@ -223,7 +224,9 @@ def track_notification_with_notification_payload_list(notification_payload_list)
     for notification in notification_payload_list:
 
         if notification.get('user_id') and notification.get('payload'):
-            MixpanelImpl().track_notification(str(notification['user_id']), properties=notification['payload'])
+            SegmentImpl.track_event(str(notification['user_id']),
+                                    event_name=SEGMENT_NOTIFICATION_TRACKING_EVENT_NAME,
+                                    event_data=notification['payload'])
 
 
 def pre_compute_user_devices_by_user_list(user_list):
