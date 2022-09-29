@@ -270,14 +270,18 @@ def my_chatrooms_version_1(request):
     '''functions to get chatrooms for users'''
 
     member_id = get_member_id_from_headers(request)
-    if not member_id:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+    if not member_id:
+        context = ResponseUtilities.get_view_impl_error_context("send member id in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
+
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
     if not user_instance:
-        context = get_error_context(False, "Invalid user ID")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context("Invalid user ID",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     page = request.GET.get('page', 1)
     try:
@@ -286,11 +290,18 @@ def my_chatrooms_version_1(request):
         context = get_error_context(False, "send page number correctly")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
     community_id = request.GET.get('community_id', None)
-    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-    if community_id and not community_instance:
-        context = get_error_context(False, "Invalid community ID")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+    community_instance = SdkClient.get_community_instance_or_none(community_id, api_key)
+
+    if (community_id or api_key) and not community_instance:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid community ID/API key!",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
+
+    if community_instance:
+        community_id = community_instance.id
 
     show_dm = request.GET.get('show_dm', False)
 
@@ -314,8 +325,10 @@ def my_chatrooms_version_1(request):
         show_dm = False
 
     member_filter = ModelUtilities.get_model_filter(Members, {'member_id': user_instance})
+
     if community_id:
         user_community_ids.append(community_id)
+
     else:
         user_community_ids = list(member_filter.values_list("community_id_id", flat=True))
 
@@ -336,27 +349,38 @@ def my_chatrooms_version_1(request):
             is_dm_message = True
             dm_instance_community_ids_list = list(dm_right_instance.values_list("community_id", flat=True))
 
-    joined_chatroom_count = get_my_chatrooms_count(member_id, 
-                                                version_code, 
-                                                platform_code,
-                                                consider_dm_chatrooms=consider_dm_chatrooms,
-                                                dm_instance_community_ids_list=dm_instance_community_ids_list,
-                                                community_id=community_id,
-                                                intro_room_community_list=intro_room_community_list)
+    should_add_dm_chatrooms = False
+
+    dm_community_settings_filter = ModelUtilities.get_model_filter(
+        CommunitySettings, {'setting_type': community_setting_types.DIRECT_MSGS_GROUP_MSGS,
+                            'community': community_instance})
+
+    if dm_community_settings_filter:
+        should_add_dm_chatrooms = dm_community_settings_filter[0].enabled
+
+    joined_chatroom_count = get_my_chatrooms_count(member_id,
+                                                   version_code,
+                                                   platform_code,
+                                                   consider_dm_chatrooms=consider_dm_chatrooms,
+                                                   dm_instance_community_ids_list=dm_instance_community_ids_list,
+                                                   community_id=community_id,
+                                                   intro_room_community_list=intro_room_community_list,
+                                                   should_add_dm_chatrooms=should_add_dm_chatrooms)
 
     page_count = get_total_pages(joined_chatroom_count, limit=10)
 
     total_pages = page_count
 
     engage_list = get_followed_chatrooms(member_id,
-                                        page, 
-                                        version_code, 
-                                        platform_code, 
-                                        limit=10,
-                                        consider_dm_chatrooms=consider_dm_chatrooms,
-                                        dm_instance_community_ids_list=dm_instance_community_ids_list,
-                                        community_id=community_id,
-                                        intro_room_community_list=intro_room_community_list)
+                                         page,
+                                         version_code,
+                                         platform_code,
+                                         limit=10,
+                                         consider_dm_chatrooms=consider_dm_chatrooms,
+                                         dm_instance_community_ids_list=dm_instance_community_ids_list,
+                                         community_id=community_id,
+                                         intro_room_community_list=intro_room_community_list,
+                                         should_add_dm_chatrooms=should_add_dm_chatrooms)
 
     if engage_list:
 
@@ -374,7 +398,8 @@ def my_chatrooms_version_1(request):
     for instance in instance_list:
         is_dm_private_instance = instance.card.is_private
 
-        if all([is_dm_message,
+        if all([not should_add_dm_chatrooms,
+                is_dm_message,
                 is_dm_private_instance,
                 instance.card.chatroom_with_user,
                 instance.card.community_id in dm_instance_community_ids_list]):
@@ -383,8 +408,12 @@ def my_chatrooms_version_1(request):
         elif (not instance.card.chatroom_with_user) and (not is_dm_private_instance):
             non_dm_instance_list.append(instance)
 
+        elif should_add_dm_chatrooms:
+            non_dm_instance_list.append(instance)
+
     if show_dm and is_dm_message:
         instance_list = dm_instance_list
+
     else:
         instance_list = non_dm_instance_list
 
@@ -10724,6 +10753,8 @@ def update_community_manager_rights(request):
     selected_rights = req_body['rights'] if "rights" in req_body else []
     custom_title = req_body['custom_title'] if "custom_title" in req_body else None
     api_key = RequestUtilities.get_api_key_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -10849,7 +10880,8 @@ def update_community_manager_rights(request):
                 update_attending_status_for_paid_events_for_new_community_manager(user_instance, community_instance)
 
                 # DM chatroom add new CM
-                member_becomes_cm_dm_chatroom.delay(user_id, community_id)
+                is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code)
+                member_becomes_cm_dm_chatroom.delay(user_id, community_id, is_m2cm_v2=is_m2cm_v2)
 
             elif custom_title_changed:
                 member_title_changed = True
@@ -10901,6 +10933,8 @@ def remove_community_manager(request):
     community_id = request.POST.get('community_id', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
     user_id = request.POST.get('user_id', None)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     if not current_user_id:
         context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
@@ -10977,7 +11011,8 @@ def remove_community_manager(request):
 
         # Add Message in DM Chatrooms
         if is_user_cm:
-            cm_removed_dm_chatroom.delay(user_id, community_id)
+            is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code)
+            cm_removed_dm_chatroom.delay(user_id, community_id, is_m2cm_v2=is_m2cm_v2)
 
         # Update Members Index
         ElasticSearchSync.update_member.delay(user_id, community_id)
@@ -14702,7 +14737,8 @@ def add_community_settings_for_community(community_instance, user_instance):
     for setting_type, setting_title in COMMUNITY_SETTING_TYPE_TITLE_MAPPING.items():
         is_enabled = True
 
-        if setting_type in [community_setting_types.DIRECT_MESSAGES, community_setting_types.MEMBERS_CAN_DM]:
+        if setting_type in [community_setting_types.DIRECT_MESSAGES, community_setting_types.MEMBERS_CAN_DM,
+                            community_setting_types.DIRECT_MSGS_GROUP_MSGS]:
             is_enabled = False
 
         community_settings_data = {

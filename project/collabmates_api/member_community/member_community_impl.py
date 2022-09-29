@@ -62,7 +62,8 @@ from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
     check_admin_add_community_managers_right
-from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check
+from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check, \
+    m2cm_v2_version_check
 from utility.response_utilities import ResponseUtilities
 from ..views import get_home_screen_community_actions, generate_internal_link_preview_for_conversation, \
     get_latest_conversation_members, post_introduction_card_for_community, update_community_get_started
@@ -1693,23 +1694,27 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         total_pages = int(math.ceil(len(card_state_map) / CHATROOMS_RECORD_LIMIT))
 
-        card_ans_map = get_last_conversation_id_corresponding_to_chatrooms_list(list(card_state_map.keys()), page=page)
+        convsersation_states_to_consider = [
+            conversation_states.ANSWER,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT
+        ]
+
+        conversation_states_excluded = [
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_REMOVED_OR_LEFT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT
+        ]
+
+        card_ans_map = get_last_conversation_id_corresponding_to_chatrooms_list(
+            list(card_state_map.keys()), excluded_conversation_state=conversation_states_excluded, page=page)
 
         if not card_ans_map:
             return {'success': True, 'dm_chatrooms': [], 'total_pages': total_pages}
 
         dm_chatrooms = []
-
-        convsersation_states_to_consider = [
-            conversation_states.ANSWER,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_REMOVED_OR_LEFT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT
-        ]
 
         rights_list = list(ModelUtilities.get_model_filter(userMemberRights,
                                                            {'user': user_instance,
@@ -1778,7 +1783,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not members_filter:
             MemberCommunityHelper.make_requesting_user_as_member_of_community(user_instance, community_instance,
                                                                               req_body, device_id=self.get_device_id(),
-                                                                              platform=self.get_platform_code())
+                                                                              platform=self.get_platform_code(),
+                                                                              version_code=self.get_version_code())
 
         user_has_access = Members.user_has_app_access(user_instance.id)
 
@@ -2486,7 +2492,7 @@ class MemberCommunityHelper:
 
     @staticmethod
     def make_requesting_user_as_member_of_community(user_instance, community_instance, req_body, device_id=None,
-                                                    platform=None):
+                                                    platform=None, version_code=None):
         Members.create_instance({'user_instance': user_instance,
                                  'community_instance': community_instance,
                                  'state': member_states.MEMBER,
@@ -2532,8 +2538,11 @@ class MemberCommunityHelper:
             CommunityHelper.update_community_level_actions(community_instance,
                                                            action_required_by_promoter, members_count)
 
+        is_m2cm_v2 = m2cm_v2_version_check(platform, version_code)
+
         create_member_dm_chatroom.delay(community_impl.get_member_id(), community_impl.get_community_id(),
-                                        device_id=device_id, request_platform=platform, is_joining=True)
+                                        device_id=device_id, request_platform=platform, is_joining=True,
+                                        is_m2cm_v2=is_m2cm_v2)
 
         from collabmates_api.cohort.cohort_impl import CohortHelper
         CohortHelper.add_all_member_to_cohort(community_impl.get_community_id(), [community_impl.get_member_id()])
