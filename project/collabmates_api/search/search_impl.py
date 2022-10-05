@@ -306,6 +306,7 @@ class SearchImpl(SearchManager):
         res = Search.from_dict(search_query_dict).execute()
 
         context = {
+            'success': True,
             'chatrooms': [hit.to_dict() for hit in res]
         }
 
@@ -329,6 +330,7 @@ class SearchImpl(SearchManager):
         res = Search.from_dict(self._get_conversation_search_ngram_query_dict(chatroom_id_list)).execute()
 
         context = {
+            'success': True,
             'conversations': [hit.to_dict() for hit in res]
         }
 
