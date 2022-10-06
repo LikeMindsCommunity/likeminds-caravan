@@ -1,17 +1,20 @@
 import time
-from togther.models import (ModelUtilities, Community, CommunitySettings)
+from togther.models import (ModelUtilities, CommunitySettings)
+from collabmates_api.sdk.models import (SdkClient)
 from utility.states import (community_setting_types)
 from collabmates_api.community.constants import COMMUNITY_SETTING_TYPE_TITLE_MAPPING, \
     COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING, DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED
 
 
 def backfill_community_settings_for_direct_messages():
-    all_communities_filter = ModelUtilities.get_model_filter(Community, {})
+    all_sdk_communities_filter = ModelUtilities.get_model_filter(SdkClient, {})
     community_settings_list = []
 
     setting_type = community_setting_types.DIRECT_MSGS_GROUP_MSGS
 
-    for community_instance in all_communities_filter:
+    for community_instance in all_sdk_communities_filter:
+
+        community_instance = community_instance.community
 
         community_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
                                                                    {'setting_type': setting_type,
