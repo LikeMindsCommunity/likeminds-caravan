@@ -1052,11 +1052,13 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
         if all([obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES,
                 str(obj[0]) not in tagged_users_list,
-                not conversation_instance.reply]):
+                not conversation_instance.reply,
+                conversation_instance.card.type != card_types.CARD_DIRECT_MESSAGE]):
             continue
 
         if obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES and conversation_instance.reply and (
-                conversation_instance.reply.user_id != obj[0]):
+                conversation_instance.reply.user_id != obj[0]) and (
+                conversation_instance.card.type != card_types.CARD_DIRECT_MESSAGE):
             continue
 
         user_context = dict()

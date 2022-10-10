@@ -1,7 +1,8 @@
 from rest_framework import status as status_codes
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, Community)
+from togther.models import (ModelUtilities, Community, Collabcard)
 from collabmates_api.sdk.models import (SdkClient)
+from utility.states import (dm_icon_from_states)
 
 
 class MemberCommunityViewHelper:
@@ -63,4 +64,87 @@ class MemberCommunityViewHelper:
             'user_instance': user_instance,
             'community_instance': community_instance,
             'current_user_instance': current_user_instance
+        }
+
+    @staticmethod
+    def validate_request_dm_limit_request(user_id, community_id, api_key, member_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community ID/API key")
+
+        member_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not member_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid member ID")
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'member_instance': member_instance
+        }
+
+    @staticmethod
+    def validate_fetch_dm_chatrooms_request(user_id, community_id, api_key):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community ID/API key")
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance
+        }
+
+    @staticmethod
+    def validate_member_can_dm_request(user_id, community_id, api_key, req_body):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community ID/API key")
+
+        if not req_body.get('req_from'):
+            return ResponseUtilities.get_inner_error_context("Send req_from")
+
+        if req_body.get('req_from') not in [dm_icon_from_states.MEMBER_PROFILE, dm_icon_from_states.COMMUNITY_DETAIL,
+                                            dm_icon_from_states.DM_FEED, dm_icon_from_states.MEMBER_DIRECTORY,
+                                            dm_icon_from_states.CHATROOM]:
+            return ResponseUtilities.get_inner_error_context("Invalid req_from")
+
+        member_instance = None
+        chatroom_instance = None
+
+        if req_body.get('member_id'):
+            member_instance = ModelUtilities.get_user_instance_or_none(req_body.get('member_id'))
+
+            if not member_instance:
+                return ResponseUtilities.get_inner_error_context("Invalid member ID")
+
+        if req_body.get('chatroom_id'):
+            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
+
+            if not chatroom_instance:
+                return ResponseUtilities.get_inner_error_context("Invalid chatroom ID")
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'member_instance': member_instance,
+            'req_from': req_body.get('req_from'),
+            'chatroom_instance': chatroom_instance
         }
