@@ -1945,7 +1945,8 @@ class CommunityImpl(CommunityManager):
         member_community_manager = MemberCommunityImpl(user_object.get('id'),
                                                        community_id=community_instance.id,
                                                        device_id=self.get_device_id(),
-                                                       platform_code=self.get_request_platform())
+                                                       platform_code=self.get_request_platform(),
+                                                       version_code=self.get_version_code())
 
         community_req_body = {
             "image_url": validated_req_body['user_body'].get('image_url')
