@@ -58,7 +58,6 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper, MailHelper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 
-
 host_url = settings.URL
 subscription_url = settings.SUBSCRIPTION_SERVER_URL
 
@@ -631,7 +630,7 @@ class UserImpl(UserManager):
 
             context = CONTEXT_ACCESS_ONE_EXPIRED_COMMUNITY.copy()
             context['sub_title_1'] = SUB_TITLE_ACCESS_ONE_EXPIRED_COMMUNITY % (
-            community_name, community_id, community_id)
+                community_name, community_id, community_id)
             context['cta'] = CTA_ACCESS_ONE_EXPIRED_COMMUNITY % (community_id, self.get_user_id())
             context['membership_expired_communities'] = expired_communities
 
@@ -650,7 +649,7 @@ class UserImpl(UserManager):
 
             context = CONTEXT_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITIES.copy()
             context['sub_title_1'] = SUB_TITLE_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITY % (
-            community_name, community_id)
+                community_name, community_id)
             context['pending_communities'] = pending_communities
             context['membership_expired_communities'] = expired_communities
 
@@ -1065,22 +1064,7 @@ class UserImpl(UserManager):
         return {'success': True, 'user': get_logged_in_user(user_instance)}
 
     @staticmethod
-    @shared_task
-    def send_wa_subscription_status_message(user_id: int, subscription_action: str):
-        template_name = None
-        user_data_for_wa_notification = TasksHelper.create_user_data_for_wa_notification(user_ids=[user_id])
-
-        if subscription_action == whatsapp_subscription_state_actions.START:
-            template_name = WHATSAPP_TEMPLATE_NAME_FOR_WHATSAPP_RESUBSCRIBE_SUCCESS
-
-        if subscription_action == whatsapp_subscription_state_actions.STOP:
-            template_name = WHATSAPP_TEMPLATE_NAME_FOR_WHATSAPP_UNSUBSCRIBE_SUCCESS
-
-        NotificationImpl.send_wa_bulk_notifications(user_data_for_wa_notification,
-                                                    template_name=template_name,
-                                                    broadcast_name=template_name)
-
-    def whatsapp_subscription(self, request_body: dict) -> dict:
+    def whatsapp_subscription(request_body: dict) -> dict:
         validated_request = UserViewHelper.validate_whatsapp_subscription_request(request_body)
 
         if validated_request.get('error_message'):
@@ -1106,14 +1090,10 @@ class UserImpl(UserManager):
                 if request_body.get('text') == whatsapp_subscription_state_actions.START:
                     wa_subscription_instance.subscribed = True
                     wa_subscription_instance.save()
-                    self.send_wa_subscription_status_message.delay(user_instance.id,
-                                                                   whatsapp_subscription_state_actions.START)
 
                 if request_body.get('text') == whatsapp_subscription_state_actions.STOP:
                     wa_subscription_instance.subscribed = False
                     wa_subscription_instance.save()
-                    self.send_wa_subscription_status_message.delay(user_instance.id,
-                                                                   whatsapp_subscription_state_actions.STOP)
 
         return {'success': True}
 
