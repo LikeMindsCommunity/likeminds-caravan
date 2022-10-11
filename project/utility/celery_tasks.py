@@ -2097,10 +2097,6 @@ def create_member_dm_chatroom(member_id, community_id, device_id=None, request_p
                                                                         message_template_instance.message)
 
             else:
-
-                if is_m2cm_v2:
-                    return
-
                 card_content = {}
                 chatroom_name = "Direct Message"
                 chatroom_type = card_types.CARD_DIRECT_MESSAGE
