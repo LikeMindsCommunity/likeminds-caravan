@@ -44,16 +44,16 @@ class MemberCommunityViewHelper:
         return {'user_instance': user_instance, 'community_instance': community_instance}
 
     @staticmethod
-    def validate_fetch_member_profile_request(current_user_id, user_id, community_id):
+    def validate_fetch_member_profile_request(current_user_id, user_id, community_id, api_key):
         current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
 
         if not current_user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid x-member-id")
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
         if not community_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid community ID")
+            return ResponseUtilities.get_inner_error_context("Invalid community ID or x-api-key")
 
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
