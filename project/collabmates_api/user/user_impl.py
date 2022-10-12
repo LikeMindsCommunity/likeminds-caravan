@@ -75,12 +75,14 @@ class UserImpl(UserManager):
                  community_id: str = None,
                  mobile_no: str = None,
                  platform_code: str = None,
-                 version_code: int = 0):
+                 version_code: int = 0,
+                 api_key=None):
         self.user_id = user_id
         self.community_id = community_id
         self.mobile_no = mobile_no
         self.platform_code = platform_code
         self.version_code = version_code
+        self.api_key = api_key
 
     def get_user_id(self):
         return self.user_id
@@ -90,6 +92,9 @@ class UserImpl(UserManager):
 
     def get_community_id(self):
         return self.community_id
+
+    def get_api_key(self):
+        return self.api_key
 
     def set_community_id(self, community_id):
         self.community_id = community_id
@@ -734,6 +739,14 @@ class UserImpl(UserManager):
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user id"}
 
+        community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
+                                                                      api_key=self.get_api_key())
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid community ID/API Key!"}
+
+        self.set_community_id(community_instance.id)
+
         admin = ModelUtilities.get_model_filter(Members, {"member_id": user_instance, "state": member_states.ADMIN})
 
         # Check whether member_id present in DirectMessageTutorial Table
@@ -892,19 +905,28 @@ class UserImpl(UserManager):
 
         return {'success': True}
 
-    def fetch_dm_feed(self, community_id: str) -> dict:
+    def fetch_dm_feed(self) -> dict:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_user_id())
+
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user id"}
 
-        filter_dict: dict = self._get_member_filter_for_dm_feed(self.get_user_id(), community_id)
+        community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
+                                                                      api_key=self.get_api_key())
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid community ID/API Key!"}
+
+        self.set_community_id(community_id=community_instance.id)
+
+        filter_dict: dict = self._get_member_filter_for_dm_feed(self.get_user_id(), self.get_community_id())
         member_filter = ModelUtilities.get_model_filter(Members, filter_dict)
 
         if not member_filter.exists():
             error_message: str = 'User not a part of any community'
-            if community_id:
-                error_message: str = f'User not a part of community, id={str(community_id)}'
+            if self.get_community_id():
+                error_message: str = f'User not a part of community, id={str(self.get_community_id())}'
 
             return {"success": False, "error_message": error_message}
 

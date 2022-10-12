@@ -90,7 +90,7 @@ class UserManager(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def fetch_dm_feed(self, community_id: str) -> dict:
+    def fetch_dm_feed(self) -> dict:
         """
         Check whether the Direct Message Right Enabled or not
         """

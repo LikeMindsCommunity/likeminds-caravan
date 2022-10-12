@@ -9,13 +9,14 @@ from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
 from .constants import CUSTOM_INTRO_TEXT_FOR_ADMIN, CUSTOM_INTRO_TEXT_FOR_MEMBERS, CUSTOM_CLICK_TEXT_FOR_MEMBERS
 from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING
+from collabmates_api.sdk.models import SdkClient
 
 
 class SearchImpl(SearchManager):
 
     def __init__(self, member_id: str, search_term: str, search_field: str = None,
                  follow_status: bool = False, page: int = 1, page_size: int = 300,
-                 device_id: str = None, community_id: str = None):
+                 device_id: str = None, community_id: str = None, api_key: str = None):
         self.member_id = member_id
         self.search_term = search_term
         self.search_field = search_field
@@ -24,6 +25,7 @@ class SearchImpl(SearchManager):
         self.page_size = page_size
         self.device_id = device_id
         self.community_id = community_id
+        self.api_key = api_key
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -47,7 +49,13 @@ class SearchImpl(SearchManager):
         return self.page_size
 
     def get_community_id(self) -> Union[str, int]:
-        return NumberUtilities.get_integer_from_string(self.community_id)
+        return NumberUtilities.get_integer_from_string(self.community_id, return_default=0)
+
+    def get_api_key(self) -> str:
+        return self.api_key
+
+    def set_community_id(self, community_id):
+        self.community_id = community_id
 
     def _get_chatroom_search_query_dict(self):
         """
@@ -390,6 +398,12 @@ class SearchImpl(SearchManager):
 
     def search_member_directory(self):
 
+        community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
+                                                                      api_key=self.get_api_key())
+
+        if community_instance:
+            self.set_community_id(community_instance.id)
+
         res = Search.from_dict(self._get_member_directory_search_ngram_query_dict(
             self.get_search_field())).execute()
 
@@ -451,6 +465,7 @@ class SearchImpl(SearchManager):
             members_list.append(member_introduction_dict)
 
         context = {
+            'success': True,
             'members': members_list
         }
 

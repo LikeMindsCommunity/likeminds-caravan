@@ -1615,7 +1615,7 @@ def member_left_removed_dm_chatroom(user_id, community_id, removed_members_id, r
 
 
 @shared_task
-def cm_removed_dm_chatroom(user_id, community_id):
+def cm_removed_dm_chatroom(user_id, community_id, is_m2cm_v2=False):
     user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
     if not user_instance:
@@ -1691,11 +1691,11 @@ def cm_removed_dm_chatroom(user_id, community_id):
         conversation_engage_instance.exclude(user=user_instance).update(unseen_count=F('unseen_count') + 1)
 
     # Create DM chatroom for new member
-    create_member_dm_chatroom(user_id, community_id, is_cm_member=True)
+    create_member_dm_chatroom(user_id, community_id, is_cm_member=True, is_m2cm_v2=is_m2cm_v2)
 
 
 @shared_task
-def member_becomes_cm_dm_chatroom(user_id, community_id):
+def member_becomes_cm_dm_chatroom(user_id, community_id, is_m2cm_v2=False):
     user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
     if not user_instance:
@@ -1791,7 +1791,8 @@ def member_becomes_cm_dm_chatroom(user_id, community_id):
             "member_id_id", flat=True)
 
         for user_id in user_ids_list:
-            create_member_dm_chatroom(user_id, community_id, cm_list=[member_instance.id], is_member_cm=True)
+            create_member_dm_chatroom(user_id, community_id, cm_list=[member_instance.id], is_member_cm=True,
+                                      is_m2cm_v2=is_m2cm_v2)
 
 
 def compute_member_images_for_homescreen_celery(chatroom_instance, community_instance):
@@ -1998,7 +1999,7 @@ def fill_chatroom_basic_info(card_content, chatroom_name, chatroom_type, communi
 
 @shared_task
 def create_member_dm_chatroom(member_id, community_id, device_id=None, request_platform=None, is_cm_member=False,
-                              cm_list=[], is_script=False, is_joining=False, is_member_cm=False):
+                              cm_list=[], is_script=False, is_joining=False, is_member_cm=False, is_m2cm_v2=False):
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not user_instance:
