@@ -315,8 +315,8 @@ class FetchMemberProfileView(APIView):
         validated_req_body = self._validate_request(member_id, req_body, api_key)
 
         if not validated_req_body.get('success', False):
-            return JsonResponse({'success': False, 'error_message': validated_req_body.get('error_message')},
-                                status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_req_body.get('error_message'),
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         member_community_manager = MemberCommunityImpl(member_id, validated_req_body.get('community_id'),
                                                        api_key=api_key)
@@ -350,8 +350,8 @@ class EditMemberProfileView(APIView):
         validated_req_body = self._validate_request(member_id, req_body, api_key)
 
         if not validated_req_body.get('success', False):
-            return JsonResponse({'success': False, 'error_message': validated_req_body.get('error_message')},
-                                status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_req_body.get('error_message'),
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         member_community_manager = MemberCommunityImpl(member_id, req_body.get('community_id'), api_key=api_key)
         community_context = member_community_manager.edit_member_profile(req_body)

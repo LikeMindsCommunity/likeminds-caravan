@@ -2260,14 +2260,7 @@ def fetch_user_chatrooms(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
 
-    try:
-        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
-        user_instance = User.objects.get(id=user_id)
-        current_user_instance = User.objects.get(id=current_user_id)
-
-    except Exception as e:
-        context = ResponseUtilities.get_view_impl_error_context(e.args, status_codes.HTTP_400_BAD_REQUEST)
-        return JsonResponse(context['data'], status=context['status'])
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
     if not community_instance:
         context = ResponseUtilities.get_view_impl_error_context("Invalid community ID or x-api-key",

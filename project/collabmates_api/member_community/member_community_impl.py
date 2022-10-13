@@ -77,10 +77,6 @@ error_logger = LoggingWrapper.get_instance()
 class MemberCommunityImpl(MemberCommunityManager):
     member_id = None
     community_id = None
-    api_key = None
-    device_id = None
-    platform_code = None
-    version_code = None
 
     def __init__(self, member_id: str, community_id: str, device_id: str = None, platform_code: str = "",
                  version_code: int = 0, api_key: str = None):
