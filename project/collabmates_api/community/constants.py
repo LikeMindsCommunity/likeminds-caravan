@@ -73,7 +73,8 @@ COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
     "members_auto_join": "Members auto-join",
     "direct_messages": "Enable direct messages",
     "members_can_dm": "Members can DM other members",
-    "direct_messages_setting": "Direct message"
+    "direct_messages_setting": "Direct message",
+    "direct_messages_with_group_messages": "DMs appear with group messages"
 }
 
 COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
@@ -82,7 +83,8 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
     "members_auto_join": "If disabled, members will need approval from the community manager to join the community.",
     "direct_messages": "If enabled, community managers will be able to message all  members and vice-versa.",
     "members_can_dm": "Members would have option to accept or reject another member’s DM request.",
-    "direct_messages_setting": ""
+    "direct_messages_setting": "",
+    "direct_messages_with_group_messages": "If disabled, DMs would appear in a separate tab"
 }
 
 DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED = "Community managers will be able to message all members and vice-versa."
@@ -185,3 +187,5 @@ LEAST_MEMBER_RIGHT_STATE_VALUE = 0
 SDK_COMMUNITY_HEADLINE = "We will send all the announcements here on this chatroom."
 
 COMMUNITY_NOTIFICATION_SETTING_UPDATED_EVENT = "Default Chatroom Notification setting updated"
+
+DEFAULT_JOIN_EMAIL_BODY = ""

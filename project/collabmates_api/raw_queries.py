@@ -54,7 +54,8 @@ def get_my_chatrooms_count(user_id,
                            consider_dm_chatrooms=False,
                            dm_instance_community_ids_list=[],
                            community_id=None,
-                           intro_room_community_list=[]):
+                           intro_room_community_list=[],
+                           should_add_dm_chatrooms=False):
     '''function to give the count of active my chatrooms'''
     try:
         is_private = "FALSE"
@@ -95,6 +96,14 @@ def get_my_chatrooms_count(user_id,
             if excluded_card_ids:
                 excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
 
+        dm_chatrooms_filter = """is_private = {} 
+                                 AND is_private_member = FALSE 
+                                 AND chatroom_with_user_id IS {} AND""".format(is_private, chatroom_with_user_id_val)
+
+        if should_add_dm_chatrooms:
+            dm_chatrooms_filter = ""
+
+
         conn = get_connection()
         curr = conn.cursor()
 
@@ -109,19 +118,14 @@ def get_my_chatrooms_count(user_id,
                                               AND secret_chatroom_left = FALSE
                                               AND card_id IN (SELECT id
                                                               FROM   togther_collabcard
-                                                              WHERE  (is_private = %s
-                                                                     AND is_private_member = FALSE
-                                                                     AND is_deleted = FALSE
-                                                                     AND not (%s)
-                                                                     AND chatroom_with_user_id
-                                                                         IS %s %s) %s)
+                                                              WHERE  (%s is_deleted = FALSE
+                                                                     AND not (%s) %s) %s)
 
                   ) """ % (
             str(user_id),
             str(user_id),
-            is_private,
+            dm_chatrooms_filter,
             str(filter_intro_rooms_query),
-            chatroom_with_user_id_val,
             dm_chatrooms_communities_filter,
             excluded_card_ids_filter
         )
@@ -181,7 +185,8 @@ def get_followed_chatrooms(user_id,
                            consider_dm_chatrooms=False,
                            dm_instance_community_ids_list=[],
                            community_id=None,
-                           intro_room_community_list=[]):
+                           intro_room_community_list=[],
+                           should_add_dm_chatrooms=False):
     '''function to get the active followed chatroom count'''
     try:
         page_number = int(page)
@@ -225,9 +230,19 @@ def get_followed_chatrooms(user_id,
             if excluded_card_ids:
                 excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
 
-        included_conversation_states = get_tuple_from_array([conversation_states.ANSWER,
-                                                             conversation_states.CONVERSATION_POLL,
-                                                             conversation_states.CONVERSATION_EVENT])
+        dm_chatrooms_filter = """is_private = {}
+                                 AND is_private_member = FALSE
+                                 AND chatroom_with_user_id IS {} AND""".format(is_private_val, chatroom_with_user_val)
+
+        if should_add_dm_chatrooms:
+            dm_chatrooms_filter = ""
+
+        included_conversation_states = get_tuple_from_array([
+            conversation_states.ANSWER, conversation_states.CONVERSATION_POLL, conversation_states.CONVERSATION_EVENT,
+            conversation_states.CONVERSATION_HEADER,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT
+        ])
 
         follow_conversation_state = get_tuple_from_array([conversation_states.CONVERSATION_FOLLOW])
 
@@ -245,17 +260,12 @@ def get_followed_chatrooms(user_id,
                                        (
                                               SELECT id
                                               FROM   togther_collabcard
-                                              WHERE  (
-                                                            is_private = %s
-                                                     AND    is_private_member = false
-                                                     AND    is_deleted = FALSE
-                                                     AND    NOT (
-                                                                   %s)
-                                                     AND    chatroom_with_user_id IS %s %s) %s)""" % (
+                                              WHERE  (%s    is_deleted = FALSE
+                                                     AND    NOT (%s)
+                                                    %s) %s)""" % (
             str(user_id),
-            str(is_private_val),
+            str(dm_chatrooms_filter),
             str(filter_intro_rooms_query),
-            str(chatroom_with_user_val),
             str(dm_chatrooms_communities_filter),
             str(excluded_card_ids_filter))
 
@@ -284,20 +294,30 @@ def get_followed_chatrooms(user_id,
                                                       OR       (
                                                                         ca.state IN %s
                                                                AND      ca.user_id = %s) THEN 1
-                                                      WHEN ca.state NOT IN %s THEN 2
-                                             END), ca.created_at DESC) AS row_number
-                                    FROM     togther_card_answers      AS ca
+                                                      ELSE 2
+                                             END), ca.created_at DESC) AS row_number,
+                                             CASE
+                                                      WHEN ca.state IN %s
+                                                      OR       (
+                                                                        ca.state IN %s
+                                                               AND      ca.user_id = %s) THEN 1
+                                                      ELSE 2
+                                             END                  AS cond_row
+                                    FROM     togther_card_answers AS ca
                                     WHERE    ca.card_id IN %s)SELECT   card_id,
                            id,
-                           created_at
+                           created_at,
+                           cond_row
                   FROM     added_row_number
                   WHERE    row_number = 1) AS lca
                   ON       togther_conversationengage.card_id = lca.card_id
                   WHERE    togther_conversationengage.user_id=%s
                   AND      togther_conversationengage.card_id IN %s
-                  ORDER BY lca.created_at DESC,
+                  ORDER BY lca.cond_row,
+                           lca.created_at DESC,
                            id DESC limit %s offset %s""" % (included_conversation_states, follow_conversation_state,
-                                                            user_id, included_conversation_states, card_ids,
+                                                            user_id, included_conversation_states,
+                                                            follow_conversation_state, user_id, card_ids,
                                                             str(user_id), card_ids, str(limit), str(offset))
 
         curr.execute(sql)
@@ -2860,31 +2880,37 @@ def get_ordered_card_id_on_the_basis_of_participants_count_v2(user_id, community
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, page=1, limit=10):
+def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, excluded_conversation_state=[], page=1,
+                                                             limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
-        
+
         card_tuple = get_tuple_from_array(chatrooms_list)
-        
+        excluded_conv_states = get_tuple_from_array(excluded_conversation_state)
+
         conn = get_connection()
         curr = conn.cursor()
 
-        sql = """WITH added_row_number
-                 AS (SELECT CA.created_at,
-                            CA.id,
-                            CA.card_id,
-                            Row_number()
-                              OVER(
-                                partition BY CA.card_id
-                                ORDER BY CA.created_at DESC) AS row_number
-                                FROM togther_card_answers as CA
-                                WHERE  CA.card_id IN %s)
-            SELECT card_id, id, created_at
-            FROM   added_row_number
-            WHERE  row_number = 1
-            ORDER  BY created_at DESC LIMIT %s OFFSET %s; 
-        """ % (card_tuple, str(limit), str(offset))
+        sql = """WITH added_row_number AS
+                (
+                         SELECT   ca.created_at,
+                                  ca.id,
+                                  ca.card_id,
+                                  row_number() OVER( partition BY ca.card_id ORDER BY (
+                                  CASE
+                                           WHEN ca.state NOT IN %s THEN 1
+                                           ELSE 2
+                                  END), ca.created_at DESC) AS row_number
+                         FROM     togther_card_answers      AS ca
+                         WHERE    ca.card_id IN %s)
+                SELECT   card_id,
+                         id,
+                         created_at
+                FROM     added_row_number
+                WHERE    row_number = 1
+                ORDER BY created_at DESC limit %s offset %s; 
+        """ % (excluded_conv_states, card_tuple, str(limit), str(offset))
         curr.execute(sql)
         card_list = curr.fetchall()
         curr.close()

@@ -1033,9 +1033,6 @@ class CreateDMChatroomView(APIView):
         if not req_body:
             return {'success': False, 'error_message': "Invalid request body"}
 
-        if not req_body.get('community_id'):
-            return {'success': False, 'error_message': "Empty Community ID!"}
-
         if not req_body.get('member_id'):
             return {'success': False, 'error_message': "Empty Member ID!"}
 
@@ -1044,6 +1041,7 @@ class CreateDMChatroomView(APIView):
     def post(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         req_body = RequestUtilities.load_request_body(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         validated_request = self._validate_request(member_id, req_body)
 
@@ -1053,14 +1051,14 @@ class CreateDMChatroomView(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
         request_platform = RequestUtilities.get_platform_code(request)
 
-        chatroom_manager = ChatroomImpl(member_id, device_id=device_id,
-                                        request_platform=request_platform)
+        chatroom_manager = ChatroomImpl(member_id, device_id=device_id, request_platform=request_platform,
+                                        api_key=api_key)
         response_context = chatroom_manager.create_dm_chatroom(req_body)
 
-        if response_context.get('success'):
-            return JsonResponse(response_context, status=status_codes.HTTP_200_OK)
-
-        return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+        if 'error_message' in response_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
+        return JsonResponse(response_context)
 
 
 class BlockMemberView(APIView):

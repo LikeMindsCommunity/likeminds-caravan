@@ -50,7 +50,7 @@ from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
                                SYNC_NOTIFICATION_SUBTITLE,
                                SYNC_NOTIFICATION_ROUTE)
 
-from external_services.mixpanel.mixpanel_impl import MixpanelImpl
+from external_services.segment.segment_impl import SegmentImpl
 from django.db import connection
 from utility.number_utilities import NumberUtilities
 
@@ -214,8 +214,9 @@ def get_devices_of_users(user_id):
 
 
 def track_notification(user_id, notification_payload):
-    MixpanelImpl().track_notification(str(user_id),
-                                      properties=notification_payload)
+    SegmentImpl.track_event(str(user_id),
+                            event_name=SEGMENT_NOTIFICATION_TRACKING_EVENT_NAME,
+                            event_data=notification_payload)
 
 
 def track_notification_with_notification_payload_list(notification_payload_list):
@@ -223,7 +224,9 @@ def track_notification_with_notification_payload_list(notification_payload_list)
     for notification in notification_payload_list:
 
         if notification.get('user_id') and notification.get('payload'):
-            MixpanelImpl().track_notification(str(notification['user_id']), properties=notification['payload'])
+            SegmentImpl.track_event(str(notification['user_id']),
+                                    event_name=SEGMENT_NOTIFICATION_TRACKING_EVENT_NAME,
+                                    event_data=notification['payload'])
 
 
 def pre_compute_user_devices_by_user_list(user_list):
@@ -1049,11 +1052,13 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
         if all([obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES,
                 str(obj[0]) not in tagged_users_list,
-                not conversation_instance.reply]):
+                not conversation_instance.reply,
+                conversation_instance.card.type != card_types.CARD_DIRECT_MESSAGE]):
             continue
 
         if obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES and conversation_instance.reply and (
-                conversation_instance.reply.user_id != obj[0]):
+                conversation_instance.reply.user_id != obj[0]) and (
+                conversation_instance.card.type != card_types.CARD_DIRECT_MESSAGE):
             continue
 
         user_context = dict()
@@ -2555,9 +2560,22 @@ def send_intro_room_evening_notifications():
     all_communities = Community.objects.all()
     all_members = Members.objects.all()
 
+    # Intro settings ON
+    enabled_intro_settings = ModelUtilities.get_model_filter(CommunitySettings,
+                                                             {'setting_type': community_setting_types.INTRO_ROOM,
+                                                              'enabled': True})
+
+    if not enabled_intro_settings:
+        return
+
+    communities = list(enabled_intro_settings.values_list('community_id', flat=True))
+
     # get intro rooms in last 24 hours (86400 seconds)
-    new_intro_rooms = Collabcard.objects.filter(date_epoch__gte=current_time - INTRO_ROOM_LOOKBACK_PERIOD,
-                                                type=CollabcardTypes.CARD_INTRO)
+    new_intro_rooms = ModelUtilities.get_model_filter(Collabcard,
+                                                      {'date_epoch__gte': current_time - INTRO_ROOM_LOOKBACK_PERIOD,
+                                                       'type': card_types.CARD_INTRO,
+                                                       'is_deleted': False,
+                                                       'community__in': communities})
 
     communities = new_intro_rooms.values('community').distinct()
 
@@ -2571,13 +2589,19 @@ def send_intro_room_evening_notifications():
             new_members = get_new_member_list(community_intro_rooms)
 
             for member in community_members:
+
+                if member.member_id_id in new_members:
+                    continue
+
                 user_instance = member.member_id
                 message = get_message_for_evening_notification(community_intro_rooms, user_instance, community)
 
-                if member.id not in new_members:
-                    notification_list = get_notification_list_intro_notification(user_instance)
-                    message = TasksHelper.add_community_info_to_notification_payload(message, community_id)
-                    notification_meta(notification_list, message)
+                if not message:
+                    continue
+
+                notification_list = get_notification_list_intro_notification(user_instance)
+                message = TasksHelper.add_community_info_to_notification_payload(message, community_id)
+                notification_meta(notification_list, message)
 
 
 def get_new_member_list(community_intro_rooms):
@@ -2605,10 +2629,17 @@ def get_message_for_evening_notification(community_intro_rooms, user_instance, c
         route = INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR % community_intro_rooms[0].id
 
     else:
+        master_intro_chatroom_filter = ModelUtilities.get_model_filter(Collabcard,
+                                                                       {'community': community,
+                                                                        'type': card_types.CARD_MASTER_INTRO})
+
+        if not master_intro_chatroom_filter:
+            return
+
         title = INTRO_ROOM_NOTIFICATION_TITLE_PLURAL
         sub_title = INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL % (
             user_instance.userinfo.name, community.name, community_intro_rooms_count)
-        route = INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL % (community.id, community.name)
+        route = INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR % master_intro_chatroom_filter[0].id
 
     message = {
         'payload': {

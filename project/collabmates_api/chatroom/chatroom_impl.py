@@ -3197,10 +3197,12 @@ class ChatroomImpl(ChatroomManager):
         return {'success': True, 'is_converting': change_chatroom_status}
 
     def create_dm_chatroom(self, req_body) -> dict:
-        validated_request = ChatroomHelper.validate_create_dm_chatroom_request(self.get_member_id(), req_body)
+        validated_request = ChatroomViewHelper.validate_create_dm_chatroom_request(self.get_member_id(), req_body,
+                                                                                   self.get_api_key())
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = validated_request.get('user_instance')
         community_instance = validated_request.get('community_instance')
@@ -4689,36 +4691,6 @@ class ChatroomHelper:
             cohort_context_list.append(cohort_context)
 
         return cohort_context_list
-
-    @staticmethod
-    def validate_create_dm_chatroom_request(user_id, req_body):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid user id")
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, req_body.get('community_id'))
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community id")
-
-        member_instance = ModelUtilities.get_model_instance_or_none(User, req_body.get('member_id'))
-
-        if not member_instance:
-            return get_error_context(False, "Invalid member id")
-
-        is_user_member = Members.is_community_member(community=community_instance, member=user_instance)
-
-        if not is_user_member:
-            return get_error_context(False, "You are not a member")
-
-        is_member = Members.is_community_member(community=community_instance, member=member_instance)
-
-        if not is_member:
-            return get_error_context(False, "User with member-id is not member of community")
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
-                'member_instance': member_instance}
 
     @staticmethod
     def validate_block_member_request(user_id, chatroom_id, req_body):

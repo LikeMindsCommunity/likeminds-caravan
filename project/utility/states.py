@@ -452,6 +452,7 @@ class CommunitySettingTypes:
     DIRECT_MESSAGES = "direct_messages"
     MEMBERS_CAN_DM = "members_can_dm"
     DIRECT_MESSAGE_SETTING = "direct_messages_setting"
+    DIRECT_MSGS_GROUP_MSGS = "direct_messages_with_group_messages"
 
 
 community_setting_types = CommunitySettingTypes()
@@ -637,3 +638,11 @@ class NotificationStates:
 
 
 noti_states = NotificationStates()
+
+
+class WhatsappSubscriptionStateActions:
+    START = "START"
+    STOP = "STOP"
+
+
+whatsapp_subscription_state_actions = WhatsappSubscriptionStateActions()

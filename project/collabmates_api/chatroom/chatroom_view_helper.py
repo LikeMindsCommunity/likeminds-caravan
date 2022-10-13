@@ -351,3 +351,37 @@ class ChatroomViewHelper:
             return ResponseUtilities.get_inner_error_context("You are not part of the chatroom.")
 
         return {'collabcard_state_instance': collabcard_state_instance[0]}
+
+    @staticmethod
+    def validate_create_dm_chatroom_request(user_id, req_body, api_key):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=req_body.get('community_id'),
+                                                                      api_key=api_key)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community id")
+
+        member_instance = ModelUtilities.get_user_instance_or_none(req_body.get('member_id'))
+
+        if not member_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid member id")
+
+        is_user_member = Members.is_community_member(community=community_instance, member=user_instance)
+
+        if not is_user_member:
+            return ResponseUtilities.get_inner_error_context("You are not a member")
+
+        is_member = Members.is_community_member(community=community_instance, member=member_instance)
+
+        if not is_member:
+            return ResponseUtilities.get_inner_error_context("User with member-id is not member of community")
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'member_instance': member_instance
+        }

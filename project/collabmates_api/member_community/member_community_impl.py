@@ -62,7 +62,8 @@ from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
     check_admin_add_community_managers_right
-from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check
+from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check, \
+    m2cm_v2_version_check
 from utility.response_utilities import ResponseUtilities
 from ..views import get_home_screen_community_actions, generate_internal_link_preview_for_conversation, \
     get_latest_conversation_members, post_introduction_card_for_community, update_community_get_started
@@ -1620,12 +1621,14 @@ class MemberCommunityImpl(MemberCommunityManager):
         return chatroom_queryset
 
     def request_dm_limit(self, member_id: str) -> {}:
-        validated_request = MemberCommunityHelper.validate_request_dm_limit_request(self.get_member_id(),
-                                                                                    self.get_community_id(),
-                                                                                    member_id)
+        validated_request = MemberCommunityViewHelper.validate_request_dm_limit_request(self.get_member_id(),
+                                                                                        self.get_community_id(),
+                                                                                        self.get_api_key(),
+                                                                                        member_id)
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
@@ -1636,7 +1639,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                              'setting_type': community_setting_types.DIRECT_MESSAGES})
 
         if all([dm_setting_filter, not dm_setting_filter[0].enabled]):
-            return get_error_context(False, 'Direct message is disabled for the community!')
+            return ResponseUtilities.get_impl_error_context('Direct message is disabled for the community!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
@@ -1660,23 +1664,24 @@ class MemberCommunityImpl(MemberCommunityManager):
         return response
 
     def fetch_dm_chatrooms(self, page: int = 1) -> {}:
-        validated_request = MemberCommunityHelper.validate_fetch_dm_chatrooms_request(self.get_member_id(),
-                                                                                      self.get_community_id(),
-                                                                                      page)
+        validated_request = MemberCommunityViewHelper.validate_fetch_dm_chatrooms_request(self.get_member_id(),
+                                                                                          self.get_community_id(),
+                                                                                          self.get_api_key())
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
-        page = validated_request.get('page')
 
         dm_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
                                                             {'community': community_instance,
                                                              'setting_type': community_setting_types.DIRECT_MESSAGES})
 
         if all([dm_setting_filter, not dm_setting_filter[0].enabled]):
-            return get_error_context(False, 'Direct message is disabled!')
+            return ResponseUtilities.get_impl_error_context('Direct message is disabled!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         total_pages = 0
 
@@ -1689,23 +1694,27 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         total_pages = int(math.ceil(len(card_state_map) / CHATROOMS_RECORD_LIMIT))
 
-        card_ans_map = get_last_conversation_id_corresponding_to_chatrooms_list(list(card_state_map.keys()), page=page)
+        convsersation_states_to_consider = [
+            conversation_states.ANSWER,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT
+        ]
+
+        conversation_states_excluded = [
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_REMOVED_OR_LEFT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT
+        ]
+
+        card_ans_map = get_last_conversation_id_corresponding_to_chatrooms_list(
+            list(card_state_map.keys()), excluded_conversation_state=conversation_states_excluded, page=page)
 
         if not card_ans_map:
             return {'success': True, 'dm_chatrooms': [], 'total_pages': total_pages}
 
         dm_chatrooms = []
-
-        convsersation_states_to_consider = [
-            conversation_states.ANSWER,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_REMOVED_OR_LEFT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT
-        ]
 
         rights_list = list(ModelUtilities.get_model_filter(userMemberRights,
                                                            {'user': user_instance,
@@ -1724,12 +1733,14 @@ class MemberCommunityImpl(MemberCommunityManager):
         return {'success': True, 'dm_chatrooms': dm_chatrooms, 'total_pages': total_pages}
 
     def member_can_dm(self, req_body: dict) -> {}:
-        validated_request = MemberCommunityHelper.validate_member_can_dm_request(self.get_member_id(),
-                                                                                 self.get_community_id(),
-                                                                                 req_body)
+        validated_request = MemberCommunityViewHelper.validate_member_can_dm_request(self.get_member_id(),
+                                                                                     self.get_community_id(),
+                                                                                     self.get_api_key(),
+                                                                                     req_body)
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
@@ -1772,7 +1783,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not members_filter:
             MemberCommunityHelper.make_requesting_user_as_member_of_community(user_instance, community_instance,
                                                                               req_body, device_id=self.get_device_id(),
-                                                                              platform=self.get_platform_code())
+                                                                              platform=self.get_platform_code(),
+                                                                              version_code=self.get_version_code())
 
         user_has_access = Members.user_has_app_access(user_instance.id)
 
@@ -2181,86 +2193,6 @@ class MemberCommunityHelper:
         return queryset
 
     @staticmethod
-    def validate_request_dm_limit_request(user_id, community_id, member_id):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid x-member-id")
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community_id")
-
-        member_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
-
-        if not member_instance:
-            return get_error_context(False, "Invalid member_id")
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
-                'member_instance': member_instance}
-
-    @staticmethod
-    def validate_fetch_dm_chatrooms_request(user_id, community_id, page_no):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid x-member-id")
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community_id")
-
-        if not isinstance(page_no, int):
-            page_no = NumberUtilities.get_integer_from_string(page_no, 0)
-
-            if not page_no:
-                return get_error_context(False, "Page must be integer")
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
-                'page': page_no}
-
-    @staticmethod
-    def validate_member_can_dm_request(user_id, community_id, req_body):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid x-member-id")
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community_id")
-
-        if not req_body.get('req_from'):
-            return get_error_context(False, "Send req_from")
-
-        if req_body.get('req_from') not in [dm_icon_from_states.MEMBER_PROFILE, dm_icon_from_states.COMMUNITY_DETAIL,
-                                            dm_icon_from_states.DM_FEED, dm_icon_from_states.MEMBER_DIRECTORY,
-                                            dm_icon_from_states.CHATROOM]:
-            return get_error_context(False, "Invalid req_from")
-
-        member_instance = None
-        chatroom_instance = None
-
-        if req_body.get('member_id'):
-            member_instance = ModelUtilities.get_model_instance_or_none(User, req_body.get('member_id'))
-
-            if not member_instance:
-                return get_error_context(False, "Invalid member_id")
-
-        if req_body.get('chatroom_id'):
-            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
-
-            if not chatroom_instance:
-                return get_error_context(False, "Invalid chatroom_id")
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
-                'member_instance': member_instance, 'req_from': req_body.get('req_from'),
-                'chatroom_instance': chatroom_instance}
-
-    @staticmethod
     def member_request_dm_limit(user_instance, community_instance, response):
         members_can_dm_filter = ModelUtilities.get_model_filter(CommunitySettings,
                                                                 {'community': community_instance,
@@ -2560,7 +2492,7 @@ class MemberCommunityHelper:
 
     @staticmethod
     def make_requesting_user_as_member_of_community(user_instance, community_instance, req_body, device_id=None,
-                                                    platform=None):
+                                                    platform=None, version_code=None):
         Members.create_instance({'user_instance': user_instance,
                                  'community_instance': community_instance,
                                  'state': member_states.MEMBER,
@@ -2606,8 +2538,11 @@ class MemberCommunityHelper:
             CommunityHelper.update_community_level_actions(community_instance,
                                                            action_required_by_promoter, members_count)
 
+        is_m2cm_v2 = m2cm_v2_version_check(platform, version_code)
+
         create_member_dm_chatroom.delay(community_impl.get_member_id(), community_impl.get_community_id(),
-                                        device_id=device_id, request_platform=platform, is_joining=True)
+                                        device_id=device_id, request_platform=platform, is_joining=True,
+                                        is_m2cm_v2=is_m2cm_v2)
 
         from collabmates_api.cohort.cohort_impl import CohortHelper
         CohortHelper.add_all_member_to_cohort(community_impl.get_community_id(), [community_impl.get_member_id()])

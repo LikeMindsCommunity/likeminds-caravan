@@ -18,7 +18,8 @@ class UserManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'create_user_bot') and callable(subclass.create_user_bot)) and
                 (hasattr(subclass, 'update_user_bot') and callable(subclass.update_user_bot)) and
                 (hasattr(subclass, 'fetch_user_bot') and callable(subclass.fetch_user_bot)) and
-                (hasattr(subclass, 'fetch_user_info') and callable(subclass.fetch_user_info)) or
+                (hasattr(subclass, 'fetch_user_info') and callable(subclass.fetch_user_info)) and
+                (hasattr(subclass, 'whatsapp_subscription') and callable(subclass.whatsapp_subscription)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -89,7 +90,7 @@ class UserManager(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def fetch_dm_feed(self, community_id: str) -> dict:
+    def fetch_dm_feed(self) -> dict:
         """
         Check whether the Direct Message Right Enabled or not
         """
@@ -130,4 +131,9 @@ class UserManager(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-
+    @abc.abstractmethod
+    def whatsapp_subscription(self, req_body: dict) -> dict:
+        """
+        Manages whatsapp subscription of users
+        """
+        raise NotImplementedError
