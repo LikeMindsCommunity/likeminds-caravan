@@ -17,10 +17,12 @@ from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from external_services.otp.otp_api_client import OTPApiClient
 from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
+from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
-    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION
+    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
+    CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, INTERNATIONAL_OTP_GENERATE_CACHE_KEY
 from utility.celery_tasks import (
     update_last_unseen_in_engage_on_card_creation,
     update_last_unseen_in_engage, update_my_chatrooms_for_users,
@@ -36,7 +38,7 @@ from utility.celery_tasks import (
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
     reset_unread_message_count_in_cache, fetch_conversations_unread, update_deferred_card_poll_updated_at_value,
     get_to_show_results_for_conversation_poll, send_chatroom_deleted_analytics_data, cm_removed_dm_chatroom,
-    member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data)
+    member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data, update_community_pin_chatrooms_list_in_cache)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -50,13 +52,14 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     cm_onboarding_version_check, directory_questions_v2_version_check,
-                    get_user_email_preferred_verified)
+                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail,
+                    invite_setting_version_check)
 from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
     tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from .mails import *
 from .sms import *
-from .sdk.models import SdkClient
+from collabmates_api.sdk.models import (SdkClient)
 
 from .chatroom_backup import create_chatroom_delete_backup, create_chatroom_participants_backup
 
@@ -267,14 +270,18 @@ def my_chatrooms_version_1(request):
     '''functions to get chatrooms for users'''
 
     member_id = get_member_id_from_headers(request)
-    if not member_id:
-        context = get_error_context(False, "send member id in headers")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+    if not member_id:
+        context = ResponseUtilities.get_view_impl_error_context("send member id in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
+
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
     if not user_instance:
-        context = get_error_context(False, "Invalid user ID")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context("Invalid user ID",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     page = request.GET.get('page', 1)
     try:
@@ -283,11 +290,18 @@ def my_chatrooms_version_1(request):
         context = get_error_context(False, "send page number correctly")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
     community_id = request.GET.get('community_id', None)
-    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-    if community_id and not community_instance:
-        context = get_error_context(False, "Invalid community ID")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+    community_instance = SdkClient.get_community_instance_or_none(community_id, api_key)
+
+    if (community_id or api_key) and not community_instance:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid community ID/API key!",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
+
+    if community_instance:
+        community_id = community_instance.id
 
     show_dm = request.GET.get('show_dm', False)
 
@@ -311,8 +325,10 @@ def my_chatrooms_version_1(request):
         show_dm = False
 
     member_filter = ModelUtilities.get_model_filter(Members, {'member_id': user_instance})
+
     if community_id:
         user_community_ids.append(community_id)
+
     else:
         user_community_ids = list(member_filter.values_list("community_id_id", flat=True))
 
@@ -333,31 +349,44 @@ def my_chatrooms_version_1(request):
             is_dm_message = True
             dm_instance_community_ids_list = list(dm_right_instance.values_list("community_id", flat=True))
 
-    joined_chatroom_count = get_my_chatrooms_count(member_id, 
-                                                version_code, 
-                                                platform_code,
-                                                consider_dm_chatrooms=consider_dm_chatrooms,
-                                                dm_instance_community_ids_list=dm_instance_community_ids_list,
-                                                community_id=community_id,
-                                                intro_room_community_list=intro_room_community_list)
+    should_add_dm_chatrooms = False
+
+    dm_community_settings_filter = ModelUtilities.get_model_filter(
+        CommunitySettings, {'setting_type': community_setting_types.DIRECT_MSGS_GROUP_MSGS,
+                            'community': community_instance})
+
+    if dm_community_settings_filter:
+        should_add_dm_chatrooms = dm_community_settings_filter[0].enabled
+
+    joined_chatroom_count = get_my_chatrooms_count(member_id,
+                                                   version_code,
+                                                   platform_code,
+                                                   consider_dm_chatrooms=consider_dm_chatrooms,
+                                                   dm_instance_community_ids_list=dm_instance_community_ids_list,
+                                                   community_id=community_id,
+                                                   intro_room_community_list=intro_room_community_list,
+                                                   should_add_dm_chatrooms=should_add_dm_chatrooms)
 
     page_count = get_total_pages(joined_chatroom_count, limit=10)
 
-    total_pages = page_count 
+    total_pages = page_count
 
     engage_list = get_followed_chatrooms(member_id,
-                                        page, 
-                                        version_code, 
-                                        platform_code, 
-                                        limit=10,
-                                        consider_dm_chatrooms=consider_dm_chatrooms,
-                                        dm_instance_community_ids_list=dm_instance_community_ids_list,
-                                        community_id=community_id,
-                                        intro_room_community_list=intro_room_community_list)
+                                         page,
+                                         version_code,
+                                         platform_code,
+                                         limit=10,
+                                         consider_dm_chatrooms=consider_dm_chatrooms,
+                                         dm_instance_community_ids_list=dm_instance_community_ids_list,
+                                         community_id=community_id,
+                                         intro_room_community_list=intro_room_community_list,
+                                         should_add_dm_chatrooms=should_add_dm_chatrooms)
 
-    for id in engage_list:
-        instance = conversationEngage.objects.get(pk=id)
-        instance_list.append(instance)
+    if engage_list:
+
+        for id, _ in engage_list.items():
+            instance = conversationEngage.objects.get(pk=id)
+            instance_list.append(instance)
 
     draft_list = get_draft_chatrooms_on_home_screen(member_id, page, community_id)
 
@@ -369,7 +398,8 @@ def my_chatrooms_version_1(request):
     for instance in instance_list:
         is_dm_private_instance = instance.card.is_private
 
-        if all([is_dm_message,
+        if all([not should_add_dm_chatrooms,
+                is_dm_message,
                 is_dm_private_instance,
                 instance.card.chatroom_with_user,
                 instance.card.community_id in dm_instance_community_ids_list]):
@@ -378,8 +408,12 @@ def my_chatrooms_version_1(request):
         elif (not instance.card.chatroom_with_user) and (not is_dm_private_instance):
             non_dm_instance_list.append(instance)
 
+        elif should_add_dm_chatrooms:
+            non_dm_instance_list.append(instance)
+
     if show_dm and is_dm_message:
         instance_list = dm_instance_list
+
     else:
         instance_list = non_dm_instance_list
 
@@ -427,7 +461,11 @@ def my_chatrooms_version_1(request):
                 chatroom['second_last_conversation'] = second_last_conversation_dict
 
         chatroom['unseen_conversation_count'] = instance.unseen_count
-        chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(instance.updated_at)
+        chatroom['last_conversation_time'] = instance.updated_at
+
+        if engage_list.get(instance.id):
+            chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(
+                TimeUtilities.convert_milliseconds_to_sec(engage_list.get(instance.id)))
 
         last_conversation_member = instance.last_conversation_member
         second_last_conversation_member = instance.second_last_conversation_member
@@ -1811,26 +1849,36 @@ def remove_from_member(request):
     member_id = get_member_id_from_headers(request)
 
     if not member_id:
-        return JsonResponse({'success': False, 'error_message': "Invalid member_id"})
+        context = ResponseUtilities.get_view_impl_error_context("Invalid member_id",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     community_id = request.POST.get('community_id')
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
-    if not community_id:
-        return JsonResponse({'success': False, 'error_message': "Invalid community_id"})
+    if not community_id and not api_key:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid community_id or api_key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     member_ids = request.POST.get('member_ids', False)
     tag_id = request.POST.get('tag_id', None)
     reason = request.POST.get('reason', '')
 
-    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
     if not community_instance:
-        return JsonResponse(get_error_context(False, "Invalid community_id"))
+        context = ResponseUtilities.get_view_impl_error_context("Invalid community_id or api_key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
+    community_id = community_instance.id
     current_user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not current_user_instance:
-        return JsonResponse(get_error_context(False, "Invalid member_id"))
+        context = ResponseUtilities.get_view_impl_error_context("Invalid member_id",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     is_promoter = Members.objects.filter(state=member_states.ADMIN,
                                          community_id=community_instance,
@@ -1907,11 +1955,14 @@ def remove_from_member(request):
                         ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, member)
 
                     else:
-                        return JsonResponse(
-                            {'success': False, 'error_message': "Cannot remove the Owner of this community"})
+                        context = ResponseUtilities.get_view_impl_error_context(
+                            "Cannot remove the Owner of this community", status_codes.HTTP_400_BAD_REQUEST)
+                        return JsonResponse(context['data'], status=context['status'])
             return JsonResponse({'success': True})
         else:
-            return JsonResponse({'success': False, 'error_message': "You are not the promoter of this community"})
+            context = ResponseUtilities.get_view_impl_error_context(
+                "You are not the promoter of this community", status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(context['data'], status=context['status'])
 
     # pending member check
     if member_ids is False:
@@ -1976,11 +2027,15 @@ def remove_from_member(request):
 
             return JsonResponse({'success': True})
         else:
-            return JsonResponse({'success': False,
-                                 'error_message': "You are promoter of this community. You can be removed by other promoter"})
+            context = ResponseUtilities.get_view_impl_error_context(
+                "You are promoter of this community. You can be removed by other promoter",
+                status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(context['data'], status=context['status'])
 
-    return JsonResponse({'success': False})
-
+    context = ResponseUtilities.get_view_impl_error_context(
+        "Failed to remove member(s)",
+        status_codes.HTTP_400_BAD_REQUEST)
+    return JsonResponse(context['data'], status=context['status'])
 
 @csrf_exempt
 def remove_members(community_instance, user_instance, removed_state, current_user_instance):
@@ -2191,16 +2246,28 @@ def fetch_user_chatrooms(request):
     state = request.GET.get('state', 0)
     user_id = request.GET.get('user_id')
     community_id = request.GET.get('community_id')
+    api_key = RequestUtilities.get_api_key_from_headers(request)
     current_user_id = get_member_id_from_headers(request)
     chatrooms = []
 
-    try:
-        community_instance = Community.objects.get(id=community_id)
-        user_instance = User.objects.get(id=user_id)
-        current_user_instance = User.objects.get(id=current_user_id)
+    if not page.isdigit():
+        context = ResponseUtilities.get_view_impl_error_context("Send valid page",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
-    except Exception as e:
-        return JsonResponse({'error_message': e.args}, status=status_codes.HTTP_400_BAD_REQUEST)
+    if not state.isdigit():
+        context = ResponseUtilities.get_view_impl_error_context("Send valid state",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+    if not community_instance:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid community ID or x-api-key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    community_id = community_instance.id
 
     # chatrooms created by user
     if int(state) == 0:
@@ -2221,7 +2288,9 @@ def fetch_user_chatrooms(request):
 
             chatrooms.append(temp)
 
-        return JsonResponse({'chatrooms': chatrooms, 'total_chatrooms_created': created_chatroom_count})
+        return JsonResponse({'success': True,
+                             'chatrooms': chatrooms,
+                             'total_chatrooms_created': created_chatroom_count})
 
     # chatrooms not created by user but  followed by users
     elif int(state) == 1:
@@ -2251,10 +2320,13 @@ def fetch_user_chatrooms(request):
                 temp['conversation_users'] = get_conversation_users(engage_filter[0])
             chatrooms.append(temp)
 
-        return JsonResponse({'chatrooms': chatrooms, 'total_chatrooms_followed': followed_chatroom_count})
+        return JsonResponse({'success': True,
+                             'chatrooms': chatrooms,
+                             'total_chatrooms_followed': followed_chatroom_count})
 
-    return JsonResponse({'error_message': "Send correct state"})
-
+    context = ResponseUtilities.get_view_impl_error_context("Send correct state",
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+    return JsonResponse(context['data'], status=context['status'])
 
 def fetch_common_communities(request):
     '''api to fetch common communities of user'''
@@ -2726,6 +2798,14 @@ def create_poll(request):
         context = get_error_context(False, "You cannot create a chatroom")
         return JsonResponse(context)
 
+    has_right = ModelUtilities.get_model_filter(userMemberRights,
+                                                {'user_id': member_id, 'community_id': community_id,
+                                                 'right__state': member_rights.MEMBER_RIGHT_CREATE_POLL})
+
+    if not has_right:
+        context = get_error_context(False, "You don't have the rights to create a poll")
+        return JsonResponse(context)
+
     context = create_card_internal(member_id, community_id, res)
 
     # sending local
@@ -3037,16 +3117,17 @@ def create_card_internal(user_id, community_id, res):
     return context
 
 
-def send_chatroom_creation_notifications_and_mails(card_instance, user_instance):
+def send_chatroom_creation_notifications_and_mails(card_instance, user_instance, set_default_unread_count=False):
     """ function to send mail and notifications for chatroom creations """
 
     # sending the mails and notification of simple chat rooms without files
     if not card_instance.has_files or \
             not card_instance.attachment_count > 0:
-        send_chatroom_creation_notification(card_instance, user_instance)
+        send_chatroom_creation_notification(card_instance, user_instance,
+                                            set_default_unread_count=set_default_unread_count)
 
 
-def send_chatroom_creation_notification(card_instance, user_instance):
+def send_chatroom_creation_notification(card_instance, user_instance, set_default_unread_count=False):
     date_time = card_instance.end_date if card_instance.type == card_types.CARD_POLL else card_instance.date_time
 
     """
@@ -3065,7 +3146,8 @@ def send_chatroom_creation_notification(card_instance, user_instance):
                                                           date_time=date_time,
                                                           card_id=card_instance.id,
                                                           community_name=card_instance.community.name,
-                                                          community_state=card_instance.community.hide_community)
+                                                          community_state=card_instance.community.hide_community,
+                                                          set_default_unread_count=set_default_unread_count)
 
 
 @csrf_exempt
@@ -3290,7 +3372,7 @@ def create_chatroom(card_instance, user_instance, state, current_user_id=None, a
 def create_chatroom_state_instance(card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_SEEN,
                                    expire_at=None, external_seen=True, is_guest=False, source=None, follow_status=False,
                                    mute_status=False, is_tagged=False, external_follow=False,
-                                   attending_status=False, **kwargs):
+                                   attending_status=False, noti_state=noti_states.ALL_MESSAGES, **kwargs):
     '''function to create chatroom state instance'''
 
     try:
@@ -3308,6 +3390,7 @@ def create_chatroom_state_instance(card_instance, user_instance, state=collabcar
         collabcard_state_instance.is_tagged = is_tagged
         collabcard_state_instance.is_guest = is_guest
         collabcard_state_instance.source = source
+        collabcard_state_instance.noti_state = noti_state
         collabcard_state_instance.external_follow = external_follow
 
         collabcard_state_instance.save()
@@ -3606,6 +3689,14 @@ def delete_chatroom_async(member_id, chatroom_id=None, draft_id=None,
 
         send_sync_notification.delay({'chatroom_id': chatroom_id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+        cache_dict = {
+            'chatroom_id': collabcard_instance.id,
+            'community_id': community_id,
+            'pin_value': False
+        }
+
+        update_community_pin_chatrooms_list_in_cache.delay(cache_dict)
 
         # update elastic search
         ElasticSearchSync.delete_chatroom.delay(chatroom_id)
@@ -3924,34 +4015,44 @@ def fetch_share_url(request):
     '''api to share the url of community and chatroom'''
     member_id = get_member_id_from_headers(request)
 
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
     chatroom_id = request.GET.get('chatroom_id')
     community_id = request.GET.get('community_id')
+    domain_url = request.GET.get('domain')
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    api_type = NumberUtilities.get_integer_from_string(request.GET.get('api_type'), return_default=api_types.Non_SDK)
 
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     is_cm_onboarding_enabled = cm_onboarding_version_check(platform_code, version_code)
 
     if not user_instance:
-        context = get_error_context(False, "In-valid member id")
+        context = ResponseUtilities.get_view_impl_error_context("Invalid member id",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
 
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     if chatroom_id:
-        try:
-            card_instance = Collabcard.objects.get(id=chatroom_id)
-        except Exception as e:
-            context = get_error_context(False, e.args)
-            return JsonResponse(context)
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            context = ResponseUtilities.get_view_impl_error_context("Invalid card id",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
+            return JsonResponse(**context)
 
         if card_instance.type == card_types.CARD_MASTER_INTRO or card_instance.type == card_types.CARD_PURPOSE:
-            return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
+            context = ResponseUtilities.get_view_impl_error_context("Invalid card type",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
+            return JsonResponse(**context)
 
         chatroom_share = {}
 
         if not card_instance.is_secret:
-            share = get_share_url_text(card_instance, member_id)
+            share = get_share_url_text(card_instance, domain_url=domain_url, api_type=api_type)
             chatroom_share['share_url'] = share['share_url']
             chatroom_share['creator_share_url'] = share['creator_share_url']
             chatroom_share['link_created_at'] = share['link_created_at']
@@ -3963,13 +4064,17 @@ def fetch_share_url(request):
 
         return JsonResponse({'chatroom_share': chatroom_share, 'success': True})
 
-    if community_id:
+    if community_id or api_key:
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        community_instance = validate_community_id_or_api_key(community_id, api_key)
 
-        if not community_instance:
-            return JsonResponse({'success': False,
-                                 'error_message': "Invalid community id"}, status=status_codes.HTTP_400_BAD_REQUEST)
+        if community_instance.get('error_message'):
+            context = ResponseUtilities.get_view_impl_error_context(community_instance.get('error_message'),
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
+            return JsonResponse(**context)
+
+        community_instance = community_instance.get('community_instance')
 
         community_share = {}
 
@@ -3994,12 +4099,15 @@ def fetch_share_url(request):
                 fill_share_context_for_unpaid_community(community_instance, share_context, community_share)
 
         if not community_share:
-            return JsonResponse({'error_message': "Error in generating link", 'success': False},
-                                status=status_codes.HTTP_400_BAD_REQUEST)
+            context = ResponseUtilities.get_view_impl_error_context("Error in generating link",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+
+            return JsonResponse(**context)
 
         return JsonResponse({'community_share': community_share, 'success': True})
 
-    return JsonResponse({'error_message': "Invalid request", 'success': False}, status=400)
+    return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Invalid request",
+                                                                        status_codes.HTTP_400_BAD_REQUEST))
 
 
 @csrf_exempt
@@ -4793,22 +4901,6 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         return dm_chatroom_actions
 
-    if api_type == api_types.SDK:
-        actions = [view_participants]
-
-        if creator or card_status.get('follow_status'):
-
-            if card_status.get('mute_status'):
-                actions.append(unMute_notifications)
-
-            else:
-                actions.append(mute_notifications)
-
-        elif not card_status.get('follow_status'):
-            actions.append(join_chatroom)
-
-        return actions
-
     purpose_card = False
     intro_card = False
     master_intro_card = False
@@ -4869,6 +4961,25 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
     for action in final:
 
+        if (api_type == api_types.SDK) and any([action['id'] == chatroom_actions.ACTION_RENAME,
+                                                action['id'] == chatroom_actions.ACTION_VIEW_COMMUNITY,
+                                                action['id'] == chatroom_actions.ACTION_ADD_ALL_MEMBERS,
+                                                action['id'] == chatroom_actions.ACTION_SETTINGS,
+                                                action['id'] == chatroom_actions.ACTION_DELETE,
+                                                action['id'] == chatroom_actions.ACTION_REPORT]):
+            continue
+
+        if all([api_type == api_types.SDK,
+                action['id'] == chatroom_actions.ACTION_INVITE]):
+
+            if not invite_setting_version_check(platform_code, version_code):
+                continue
+
+            action = {
+                'id': action['id'],
+                'title': INVITE_ACTION_TITLE_SDK
+            }
+
         if purpose_card or master_intro_card:
 
             if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM or action[
@@ -4923,7 +5034,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         actions.append(action)
 
-    if promoter and len(actions) and not card_instance.is_secret:
+    if (api_type != api_types.SDK) and promoter and len(actions) and not card_instance.is_secret:
 
         if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
                 or (
@@ -4963,7 +5074,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     if promoter and ((platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
                      or (
                              platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) or platform_code == "web") \
-            and not master_intro_card:
+            and not master_intro_card and (api_type != api_types.SDK):
         actions.append(chatroom_settings)
 
     if (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
@@ -5410,6 +5521,8 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
                                            {'card': card_instance, 'user': user_instance, 'remove': None},
                                            {'external_seen': True})
 
+    update_last_unseen_in_engage(user=user_instance, community=card_instance.community)
+
     if chatroom_state:
         state_instance = chatroom_state[0]
     else:
@@ -5464,9 +5577,9 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, page, conve
             context['participant_count'] = len(get_members_based_on_user_list_query(secret_room_participants,
                                                                                     card_instance.community_id))
         else:
-            context['participant_count'] = collabcardState.objects.filter(follow_status=True,
-                                                                          card=card_instance, remove=None,
-                                                                          is_tagged=False).count()
+            from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+            context['participant_count'] = ChatroomHelper.chatroom_participants_count(card_instance)
+
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
 
     if not conversation_member_filter.exists():
@@ -6067,6 +6180,13 @@ def follow_chatroom_async(collabcard_id,
     if not status and card_instance.user_id == user_instance.id:
         return JsonResponse({'success': True})
 
+    cache_key = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(collabcard_id)
+    are_chatroom_participants_created = CacheImpl.get_cache(cache_key)
+
+    if all(['are_participants_created' in are_chatroom_participants_created,
+            not are_chatroom_participants_created.get('are_participants_created')]):
+        return {'success': False, "error_message": "Chatroom creation in progress. Try again after some time."}
+
     community_instance = card_instance.community
     member_state = Members.get_community_member_state(community_instance.id, user_instance.id)
 
@@ -6224,11 +6344,17 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
         else:
             mute_status = False
         expiry_time = get_expiry_time_of_chatroom() if not set_expiry_time_none else None
+
+        from collabmates_api.community.community_impl import CommunityHelper
+        community_noti_instance = CommunityHelper.fetch_community_noti_settings_instance(card_instance.community)
+        community_current_noti_state = community_noti_instance.noti_state if community_noti_instance else noti_states.ALL_MESSAGES
+
         create_chatroom_state_instance(card_instance, user_instance, state=0,
                                        expire_at=expiry_time, external_seen=external_seen, is_guest=is_guest,
                                        source=ref_instance, follow_status=status,
                                        mute_status=mute_status, is_tagged=is_tagged,
-                                       function_called="collabcard_follow_internal")
+                                       function_called="collabcard_follow_internal",
+                                       noti_state=community_current_noti_state)
 
     if status:
         member_state = 0
@@ -6250,38 +6376,54 @@ def collabcards_seen(request):
     params = request.GET
     community_id = None
     card_id = None
-    collabcard_type = None
     user_id = None
+
     if 'community_id' in params:
         community_id = params['community_id']
+
     if 'collabcard_id' in params:
         card_id = params['collabcard_id']
+
     if 'member_id' in params:
         user_id = params['member_id']
-    if 'collabcard_type' in params:
-        collabcard_type = params['collabcard_type']
 
-    try:
-        collabcards_seen_internal(community_id, card_id, collabcard_type, user_id)
-    except Exception as e:
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
-        error_logger.error(e.args)
+    community = validate_community_id_or_api_key(community_id, api_key)
 
-        return JsonResponse({'success': False}, status=status_codes.HTTP_400_BAD_REQUEST)
+    if community.get('error_message'):
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community.get('error_message'),
+                                                                            status_codes.HTTP_400_BAD_REQUEST))
 
-    send_sync_notification.delay({'community_id': community_id,
+    community_instance = community.get('community_instance')
+
+    context = collabcards_seen_internal(card_id, user_id, community_instance)
+
+    send_sync_notification.delay({'community_id': community_instance.id,
                                   'member_id': user_id,
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
 
-    return JsonResponse({'success': True})
+    if 'error_message' in context:
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                            context.get('status')))
+
+    return JsonResponse(context)
 
 
-def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
+def collabcards_seen_internal(card_id, user_id, community_instance):
     '''This internal functions stores the details of members who have seen the card'''
 
-    community = Community.objects.get(id=community_id)
-    user_instance = User.objects.get(id=user_id)
-    card_instance = Collabcard.objects.get(id=card_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        return ResponseUtilities.get_impl_error_context('Invalid x-member-id',
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+
+    if not card_instance:
+        return ResponseUtilities.get_impl_error_context('Invalid card id',
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     # saving the state in collabcard state table if it is not present
     is_present = collabcardState.objects.filter(card=card_instance, user=user_instance)
@@ -6289,7 +6431,7 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
     if not is_present.exists():
         create_chatroom_state_instance(card_instance, user_instance,
                                        function_called="collabcards_seen_internal")
-        update_last_unseen_in_engage(user=user_instance, community=community)
+        update_last_unseen_in_engage(user=user_instance, community=community_instance)
 
     else:
 
@@ -6308,7 +6450,9 @@ def collabcards_seen_internal(community_id, card_id, collabcard_type, user_id):
             state_instance.updated_at = TimeUtilities.current_time_in_sec()
 
         state_instance.save()
-        update_last_unseen_in_engage(user=user_instance, community=community)
+        update_last_unseen_in_engage(user=user_instance, community=community_instance)
+
+    return {'success': True}
 
 
 @csrf_exempt
@@ -7202,6 +7346,10 @@ def upload_conversation_attachments(body, member_id):
         ConversationHelper.update_homescreen_meta_on_conversation_creation(
             community_instance, chatroom_instance, conversation_instance)
 
+        update_conversation_engage_for_chatrooms(card_id=chatroom_instance.id, user_id=member_id,
+                                                 last_conversation_id=conversation_instance.id,
+                                                 unseen_count=0)
+
         send_follow_notification.delay(card_id=chatroom_instance.id, user_id=conversation_instance.user_id,
                                        conversation_id=conversation_instance.id)
 
@@ -7906,6 +8054,7 @@ def generate_otp(request):
     mobile_no = request.GET.get('mobile_no')
     country_code = request.GET.get('country_code')
     user_id = request.GET.get('user_id')
+    international: bool = False
 
     # check got retry
     retry = request.GET.get('retry')
@@ -7930,10 +8079,17 @@ def generate_otp(request):
             info_logger.info(context)
             return JsonResponse(context)
 
-        international = False
-
         if country_code != '91':
             international = True
+
+        if international and international_otp_limit_exceeded():
+            save_request_info(str(country_code), str(mobile_no), TimeUtilities.get_current_date())
+
+            error_message: str = f"otp generate failed for={phone_no}, reason=international otp generate limit exceeded"
+            error_logger.error(error_message)
+            context: dict = get_error_context(False, error_message)
+
+            return JsonResponse(status=403, data=context)
 
         if retry:
             otp_manager = OTPApiClient()
@@ -7956,7 +8112,53 @@ def generate_otp(request):
 
         context['success'] = True
 
+    update_international_otp_generate_count(international, context)
+
     return JsonResponse(context)
+
+
+def save_request_info(country_code: str, mobile_no: str, timestamp: str) -> None:
+    international_otp_req_obj: list = [country_code, mobile_no, timestamp]
+
+    file_name: str = INTERNATIONAL_OTP_LIMIT_FILE_NAME % TimeUtilities.get_current_date(date_format=0)
+    file_path: str = f'./../../international_otp_blocked_requests/{file_name}'
+
+    """
+        If, file does not exists
+        Create file and write header
+    """
+    if not FileUtilities.is_exists_file(file_path):
+        header: list = ['country code', 'mobile number', 'timestamp']
+        FileUtilities.write_file_csv(file_path, 'w', header)
+
+    """
+        write data row
+    """
+    FileUtilities.write_file_csv(file_path, 'a', international_otp_req_obj)
+
+
+def international_otp_limit_exceeded() -> bool:
+    HOURLY_INTERNATIONAL_OTP_GENERATE_LIMIT: int = 10
+    key: str = INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=1)
+    current_count: int = CacheImpl.get_cache(key)
+    if isinstance(current_count, int) and current_count >= HOURLY_INTERNATIONAL_OTP_GENERATE_LIMIT:
+        return True
+
+    return False
+
+
+def update_international_otp_generate_count(international: bool, context: dict) -> None:
+    if not (international and context['success']):
+        return
+
+    key: str = (INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=1))
+    value: int = 1
+
+    current_count: int = CacheImpl.get_cache(key)
+    if isinstance(current_count, int):
+        value = current_count + 1
+
+    CacheImpl.set_cache(key, value)
 
 
 def send_otp_on_user_emails(user_id):
@@ -8428,7 +8630,6 @@ def members_state(request, req_dict=None):
 
     else:
         member_id = req_dict['member_id']
-        community_id = req_dict.get('community_id') if req_dict.get('community_id') else api_key
 
     state = 0
     tool_state = 0
@@ -8436,9 +8637,12 @@ def members_state(request, req_dict=None):
 
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
-    if community_instance is None:
+    member_id = user_instance.id if user_instance else member_id
+
+    if not community_instance:
         response = get_error_context(False, "Invalid API key/community ID")
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
@@ -9368,17 +9572,11 @@ class AllMembersVersion1(APIView):
         if not member_id:
             raise InvalidHeaderException()
 
-        platform_code = RequestUtilities.get_request_type(request)
-
-        if platform_code == INVALID_PLATFORM:
-            response = {
-                'success': False,
-                'error_message': 'Invalid platform code'
-            }
-
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
-
         context = get_all_members_version_1(request)
+
+        if context.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
 
         if request.accepted_renderer.format == '*/*':
             info_logger.info("html format")
@@ -10187,7 +10385,17 @@ def fetch_poll_users(request):
         if member_instance.exists():
             members_list.append(MembersSerializer(member_instance[0], community_id, current_user_id=member_id))
         else:
-            members_list.append(get_user_profile(member.user, send_profile=True))
+            user_data = get_user_profile(member.user, send_profile=True)
+
+            removed_members = ModelUtilities.get_model_filter(removedMembers, {'community': community_id,
+                                                                               'member': member.user})
+
+            removed_member_custom_text = {}
+
+            if removed_members:
+                removed_member_custom_text = get_removed_member_custom_text(removed_members[0])
+
+            members_list.append({**user_data, **removed_member_custom_text})
 
     return JsonResponse({"members": members_list})
 
@@ -10441,9 +10649,7 @@ def fetch_intro_examples(request):
 
 ################################# moderation rights ###############################################
 def validate_community_id_or_api_key(community_id, api_key):
-    community_id = community_id if community_id else api_key
-
-    community_instance = SdkClient.get_community_instance_or_none(community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
     if not community_instance:
         return ResponseUtilities.get_inner_error_context("Invalid API key/community ID")
@@ -10480,8 +10686,17 @@ def fetch_community_manager_rights(request):
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     community_instance = community_dict.get('community_instance')
-    current_user_instance = User.objects.get(pk=current_user_id)
-    user_instance = User.objects.get(pk=user_id)
+    current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
+
+    if not current_user_instance:
+        context = get_error_context(False, "Invalid member_id in headers")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        context = get_error_context(False, "Invalid user_id")
+        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
@@ -10555,6 +10770,8 @@ def update_community_manager_rights(request):
     selected_rights = req_body['rights'] if "rights" in req_body else []
     custom_title = req_body['custom_title'] if "custom_title" in req_body else None
     api_key = RequestUtilities.get_api_key_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -10680,7 +10897,8 @@ def update_community_manager_rights(request):
                 update_attending_status_for_paid_events_for_new_community_manager(user_instance, community_instance)
 
                 # DM chatroom add new CM
-                member_becomes_cm_dm_chatroom.delay(user_id, community_id)
+                is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code)
+                member_becomes_cm_dm_chatroom.delay(user_id, community_id, is_m2cm_v2=is_m2cm_v2)
 
             elif custom_title_changed:
                 member_title_changed = True
@@ -10724,23 +10942,39 @@ def remove_community_manager(request):
     """ function to remove a communtiy manager as manager """
 
     if request.method == 'GET':
-        return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
+        context = ResponseUtilities.get_view_impl_error_context("Change HTTP method to POST",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     current_user_id = get_member_id_from_headers(request)
     community_id = request.POST.get('community_id', None)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
     user_id = request.POST.get('user_id', None)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
     if not user_id:
-        context = get_error_context(False, "send user_id in params")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("send user_id in params",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+    if not community_id and not api_key:
+        context = ResponseUtilities.get_view_impl_error_context("send community_id in params or api_key in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
-    community_instance = Community.objects.get(pk=community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+    if not community_instance:
+        context = ResponseUtilities.get_view_impl_error_context("invalid community_id or api_key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    community_id = community_instance.id
+
     current_user_instance = User.objects.get(pk=current_user_id)
     user_instance = User.objects.get(pk=user_id)
 
@@ -10794,7 +11028,8 @@ def remove_community_manager(request):
 
         # Add Message in DM Chatrooms
         if is_user_cm:
-            cm_removed_dm_chatroom.delay(user_id, community_id)
+            is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code)
+            cm_removed_dm_chatroom.delay(user_id, community_id, is_m2cm_v2=is_m2cm_v2)
 
         # Update Members Index
         ElasticSearchSync.update_member.delay(user_id, community_id)
@@ -10802,8 +11037,9 @@ def remove_community_manager(request):
         return JsonResponse({'success': True})
 
     else:
-        context = get_error_context(False, "you are not a admin")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("you are not a admin",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
 
 @csrf_exempt
@@ -11017,6 +11253,8 @@ def fetch_community_member_rights(request):
         user_rights = check_all_member_rights(user_instance, community_instance)
 
         rights_context = get_saved_member_rights_list(user_rights, admin_rights)
+
+        rights_context = update_member_rights_for_sdk(rights_context, community_instance)
 
     else:
         context = get_error_context(False, "user is not a admin")
@@ -11267,21 +11505,33 @@ def fetch_moderation_history(request):
 
 def fetch_reports(request):
     if request.method == "POST":
-        context = get_error_context(False, "change HTTP method to GET")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("change HTTP method to GET",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     current_user_id = get_member_id_from_headers(request)
     # user_instance = User.objects.get(id=current_user_id)
 
     community_id = request.GET.get('community_id', None)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
     if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+    if not community_id and not api_key:
+        context = ResponseUtilities.get_view_impl_error_context("send community_id in params or api_key in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+    if not community_instance:
+        context = ResponseUtilities.get_view_impl_error_context("invalid community_id or api_key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    community_id = community_instance.id
     is_promoter = False
     is_owner = False
     has_right_0 = False  # right to delete chat rooms or conversations
@@ -11308,8 +11558,9 @@ def fetch_reports(request):
         return JsonResponse({"reports": []})
 
     elif not is_owner and not is_promoter:
-        context = get_error_context(False, "user has not Owner or CM")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("user has not Owner or CM",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
                                            is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
@@ -11321,7 +11572,7 @@ def fetch_reports(request):
         report_dict = report_serializer(report, current_user_id)
         report_list.append(report_dict)
 
-    return JsonResponse({"reports": report_list})
+    return JsonResponse({"success": True, "reports": report_list})
 
 
 @csrf_exempt
@@ -11356,31 +11607,39 @@ def fetch_pending_chatroom(request):
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     current_user_id = get_member_id_from_headers(request)
-    # user_instance = User.objects.get(id=current_user_id)
 
     community_id = request.GET.get('community_id', None)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
+    community_instance = validate_community_id_or_api_key(community_id, api_key)
 
     if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context('send member_id in headers',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+    if community_instance.get('error_message'):
+        context = ResponseUtilities.get_view_impl_error_context(community_instance.get('error_message'),
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
+
+    community_instance = community_instance.get('community_instance')
+    community_id = community_instance.id
 
     member_instance = Members.objects.filter(community_id=community_id, member_id=current_user_id,
                                              state=member_states.ADMIN)
     if member_instance.exists():
-        member = member_instance[0]
         has_right_0 = check_admin_delete_right(user=current_user_id, community=community_id)
 
         if not has_right_0:
-            context = get_error_context(False, "you doesnt have required right to view pending chat rooms")
-            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+            context = ResponseUtilities.get_view_impl_error_context('You doesnt have required right to view pending '
+                                                                    'chat rooms', status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**context)
 
     else:
-        context = get_error_context(False, "You are not a CM of this community")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context('You are not a CM of this community',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
     pending_chatrooms = Collabcard.objects.filter(community=community_id, is_pending=True,
                                                   is_deleted=False).order_by('id')
@@ -11522,8 +11781,9 @@ class ActionPendingChatroom(APIView):
 
 def fetch_management_tools(request):
     if request.method == "POST":
-        context = get_error_context(False, "change HTTP method to GET")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("change HTTP method to GET",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
     current_user_id = get_member_id_from_headers(request)
     # user_instance = User.objects.get(id=current_user_id)
@@ -11532,14 +11792,25 @@ def fetch_management_tools(request):
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_id = request.GET.get('community_id', None)
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
     if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+    if not community_id and not api_key:
+        context = ResponseUtilities.get_view_impl_error_context("send community_id in params or api_key in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+    if not community_instance:
+        context = ResponseUtilities.get_view_impl_error_context("invalid community_id or api_key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    community_id = community_instance.id
     is_promoter = False
     is_owner = False
     has_right_0 = False  # right to delete chat rooms or conversations
@@ -11561,16 +11832,18 @@ def fetch_management_tools(request):
             parent_cm_list = json.loads(member.parent_cm_list)
 
     else:
-        context = get_error_context(False, "you are not CM for this community")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("you are not CM for this community",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
-    community_instance = Community.objects.get(pk=community_id)
     community_name = community_instance.name
     header = MANAGEMENT_TOOLS_HEADER.format(community_name)
     management_tools = []
 
-    tools = {"header": header,
-             "management_tools": management_tools}
+    tools = {
+        "success": True,
+        "header": header,
+        "management_tools": management_tools}
 
     if not has_right_0 and not has_right_1 and not has_right_2:
         return JsonResponse(tools, status=status_codes.HTTP_200_OK)
@@ -11687,19 +11960,33 @@ def update_community_rights(request):
     req_body = json.loads(request.body)
     community_id = req_body['community_id'] if "community_id" in req_body else None
     selected_rights = req_body['rights'] if "rights" in req_body else None
+    api_key = RequestUtilities.get_api_key_from_headers(request)
 
     if not current_user_id:
-        context = get_error_context(False, "send member_id in headers")
-        return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in body")
-        return JsonResponse(context)
+        context = ResponseUtilities.get_view_impl_error_context("Send member_id in headers",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
-    community_instance = Community.objects.get(pk=community_id)
-    current_user_instance = User.objects.get(pk=current_user_id)
+    if not community_id and not api_key:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid community_id or api_key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
 
-    admin = Members.objects.filter(member_id=current_user_instance,
-                                   community_id=community_instance, state=member_states.ADMIN)  # who is viewing
+    community_dict = validate_community_id_or_api_key(community_id, api_key)
+
+    if community_dict.get('error_message'):
+        context = ResponseUtilities.get_view_impl_error_context(community_dict.get('error_message'),
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
+
+    community_instance = community_dict.get('community_instance')
+    community_id = community_instance.id
+
+    current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
+
+    admin = Members.objects.filter(member_id=current_user_instance, community_id=community_instance,
+                                   state=member_states.ADMIN)
+
     # checking if the logged in user is Manager of the community or not
     if admin.exists():
 
@@ -12104,6 +12391,9 @@ class SyncChatrooms(APIView):
 
             if data[72]:
                 chatroom["chat_request_created_at"] = data[72]
+
+            if data[73]:
+                chatroom["chatroom_image_url"] = data[73]
 
             chatroom['unread_messages'] = fetch_conversations_unread(data[0], member_id)
 
@@ -13824,6 +14114,7 @@ def get_dictionary_of_user_profiles(user_filter):
                 'id': user_id,
                 'name': data.name,
                 'image_url': data.image_link if data.image_link else '',
+                'is_guest': data.is_guest,
             }
 
         max_last_updated = max(max_last_updated, data.updated_at)
@@ -13844,6 +14135,7 @@ def get_guest_list_of_chatrooms(user_data_dict, user_card_dict):
                 'id': value['id'],
                 'name': value['name'],
                 'image_url': value['image_url'],
+                'is_guest': value.get('is_guest'),
                 'chatroom_id': user_data.get('card_id'),
                 'community_id': user_data.get('community_id')
             }
@@ -14101,7 +14393,8 @@ class SyncMembers(APIView):
                                               updated_at__gt=last_updated).only('user_id_id',
                                                                                 'name',
                                                                                 'image_link',
-                                                                                'updated_at').order_by(
+                                                                                'updated_at',
+                                                                                'is_guest').order_by(
             'updated_at',
             'user_id')
         user_filter = ModelUtilities.paginate_queryset(user_filter, page, paginate_by)
@@ -14188,6 +14481,7 @@ def compute_response_of_members_data(members_data, responses_data):
         member_context['name'] = data['name']
         member_context['image_url'] = data['image_url']
         member_context['state'] = data['state']
+        member_context['is_guest'] = data['is_guest']
         member_context['is_owner'] = data['is_owner']
         community_name = data['community_name']
         locale_time = time.localtime(data['created_at'])
@@ -14462,7 +14756,8 @@ def add_community_settings_for_community(community_instance, user_instance):
     for setting_type, setting_title in COMMUNITY_SETTING_TYPE_TITLE_MAPPING.items():
         is_enabled = True
 
-        if setting_type in [community_setting_types.DIRECT_MESSAGES, community_setting_types.MEMBERS_CAN_DM]:
+        if setting_type in [community_setting_types.DIRECT_MESSAGES, community_setting_types.MEMBERS_CAN_DM,
+                            community_setting_types.DIRECT_MSGS_GROUP_MSGS]:
             is_enabled = False
 
         community_settings_data = {

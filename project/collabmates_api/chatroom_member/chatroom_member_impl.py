@@ -420,12 +420,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             chatroom_context['last_response_members'] = self.create_last_response_members_images(card_instance,
                                                                                                  community_instance)
 
-        total_participants_list = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
-                                                                                    'follow_status': True,
-                                                                                    'is_tagged': False,
-                                                                                    'remove': None})
-
-        chatroom_context['participants_count'] = total_participants_list.count()
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+        chatroom_context['participants_count'] = ChatroomHelper.chatroom_participants_count(card_instance)
 
         return chatroom_context
 
@@ -640,7 +636,12 @@ class ChatroomMemberHelper:
                             'access_without_subscription': card_instance.access_without_subscription,
                             'member_can_message': card_instance.member_can_message,
                             'is_private_member': card_instance.is_private_member,
-                            'third_party_unique_id': card_instance.third_party_unique_id}
+                            'third_party_unique_id': card_instance.third_party_unique_id,
+                            'is_pinned': card_instance.is_pinned,
+                            'include_members_later': card_instance.include_members_later}
+
+        if card_instance.chatroom_image_url:
+            chatroom_context['chatroom_image_url'] = card_instance.chatroom_image_url
 
         if card_instance.is_secret:
             chatroom_context['secret_chatroom_participants'] = json.loads(card_instance.secret_chatroom_participants)

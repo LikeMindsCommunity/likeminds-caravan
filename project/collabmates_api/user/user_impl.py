@@ -9,7 +9,8 @@ from rest_framework import status as status_codes
 from django.template.loader import get_template
 from celery import shared_task
 
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, CharField
+from django.db.models.functions import Concat
 from django.contrib.auth.models import User
 from django.conf import settings
 
@@ -19,13 +20,20 @@ from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices
                             DirectMessageTutorial, communityRightsSettings, card_answers, collabcardState,
                             conversationEngage, CommunitySettings, SDKClientUsersInfo)
 from collabmates_api.user.user_manager import UserManager
+from collabmates_api.notifications.models import (WhatsappSubscription)
 from collabmates_api.sdk.models import (SdkClient)
+from collabmates_api.notifications.constants import (
+    WHATSAPP_TEMPLATE_NAME_FOR_WHATSAPP_UNSUBSCRIBE_SUCCESS,
+    WHATSAPP_TEMPLATE_NAME_FOR_WHATSAPP_RESUBSCRIBE_SUCCESS
+)
+from collabmates_api.notifications.tasks_impl import TasksHelper
 
 from utility.exception_utilities import InvalidUserException
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import email_states, mobile_states, member_states, login_types, deleted_members, \
-    conversation_states, member_rights, community_setting_types, chat_request_states, api_types
+    conversation_states, member_rights, community_setting_types, chat_request_states, api_types, \
+    whatsapp_subscription_state_actions
 from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
@@ -41,13 +49,14 @@ from ..raw_queries import get_community_id_list, get_conversations_after_last_se
 from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
 from ..tasks import send_verification_mail_for_email_sync, cm_onboarding_version_check
 from ..utility import m2cm_v1_version_check, m2cm_v2_version_check
-from ..rest_api import CommunitySerializerV1
-from ..serializers import get_logged_in_user
+from ..rest_api import CommunitySerializerV1, SDKClientUsersInfoSerializer
+from ..serializers import get_logged_in_user, UserinfoSerializer
 from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS, \
     CM_ONBOARDING_CREATE_COMMUNITY_BRANCH_LINK
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper, MailHelper
+from external_services.wa_notification.wa_notification_impl import NotificationImpl
 
 host_url = settings.URL
 subscription_url = settings.SUBSCRIPTION_SERVER_URL
@@ -66,12 +75,14 @@ class UserImpl(UserManager):
                  community_id: str = None,
                  mobile_no: str = None,
                  platform_code: str = None,
-                 version_code: int = 0):
+                 version_code: int = 0,
+                 api_key=None):
         self.user_id = user_id
         self.community_id = community_id
         self.mobile_no = mobile_no
         self.platform_code = platform_code
         self.version_code = version_code
+        self.api_key = api_key
 
     def get_user_id(self):
         return self.user_id
@@ -81,6 +92,9 @@ class UserImpl(UserManager):
 
     def get_community_id(self):
         return self.community_id
+
+    def get_api_key(self):
+        return self.api_key
 
     def set_community_id(self, community_id):
         self.community_id = community_id
@@ -275,14 +289,16 @@ class UserImpl(UserManager):
 
         return user_instance
 
-    def create_user_context_for_sdk(self, user_instance, is_exisiting_user=False):
+    def create_user_context_for_sdk(self, user_instance, is_exisiting_user=False, sdk_client_user_info_instance=None,
+                                    app_access=True):
 
         user_object = {
             'success': True,
-            'user': self.compute_logged_in_user(user_instance.userinfo),
+            'user': self.compute_logged_in_user(user_instance.userinfo, sdk_client_user_info_instance),
             'email_exists': False,
             'access': UserHelper.is_user_belong_to_any_community(user_instance),
-            'existing_user': is_exisiting_user
+            'existing_user': is_exisiting_user,
+            'app_access': app_access
         }
 
         return user_object
@@ -295,6 +311,8 @@ class UserImpl(UserManager):
         unique_id = str(uuid.uuid4())
         sdk_client_user_info_instance = None
         community_instance = None
+        existing_user = False
+        app_access = True
 
         if not user_unique_id:
             should_create_user = True
@@ -316,22 +334,45 @@ class UserImpl(UserManager):
                                                                             'user_unique_id': user_unique_id})
 
             if sdk_client_users_info_filter:
+                existing_user = True
                 sdk_client_user_info_instance = sdk_client_users_info_filter[0]
+
+                removed_member = ModelUtilities.get_model_filter(removedMembers,
+                                                                 {'community': community_instance,
+                                                                  'member': sdk_client_user_info_instance.user})
+
+                if len(removed_member):
+                    app_access = False
+
                 return {'user_instance': sdk_client_user_info_instance.user,
                         'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                        'existing_user': True}
+                        'existing_user': existing_user,
+                        'app_access': app_access}
 
             user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_unique_id': user_unique_id})
 
             if user_info_filter:
+                existing_user = True
                 user_instance = user_info_filter[0].user_id
+
+                removed_member = ModelUtilities.get_model_filter(removedMembers,
+                                                                 {'community': community_instance,
+                                                                  'member': user_instance})
+
+                if len(removed_member):
+                    app_access = False
+
                 return {'user_instance': user_instance,
                         'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                        'existing_user': True}
+                        'existing_user': existing_user,
+                        'app_access': app_access}
 
             should_create_user = True
 
         if should_create_user:
+            if not user_context.get('name'):
+                return ResponseUtilities.get_inner_error_context("Invalid user name!")
+
             user_instance = User()
             user_instance.username = unique_id
             user_instance.save()
@@ -366,7 +407,8 @@ class UserImpl(UserManager):
 
         return {'user_instance': user_instance,
                 'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                'existing_user': False}
+                'existing_user': existing_user,
+                'app_access': app_access}
 
     @staticmethod
     def create_user_primary_email(user_instance, user_context, email_state=email_states.PRIMARY):
@@ -411,19 +453,13 @@ class UserImpl(UserManager):
             instance.created_at = TimeUtilities.current_time_in_sec()
             instance.save()
 
-    @staticmethod
-    def userinfo_serializer(userinfo_instance):
+    def compute_logged_in_user(self, userinfo_instance, sdk_client_user_info_instance=None):
 
-        return {'id': userinfo_instance.user_id_id,
-                'name': userinfo_instance.name,
-                'is_guest': userinfo_instance.is_guest,
-                'image_url': userinfo_instance.image_link,
-                'user_unique_id': userinfo_instance.user_unique_id,
-                'organisation_name': userinfo_instance.organisation_name}
+        userinfo_context = UserinfoSerializer(userinfo_instance)
 
-    def compute_logged_in_user(self, userinfo_instance):
-
-        userinfo_context = self.userinfo_serializer(userinfo_instance)
+        if sdk_client_user_info_instance:
+            userinfo_context['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client_user_info_instance,
+                                                                               many=False).data
 
         email_list = self.create_user_email_list(userinfo_instance)
         mobile_list = self.create_user_mobile_list(userinfo_instance)
@@ -520,10 +556,12 @@ class UserImpl(UserManager):
             sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context, api_key=api_key)
 
             if sdk_user_context.get('error_message'):
-                return sdk_user_context
+                return {'success': False, 'error_message': sdk_user_context.get('error_message')}
 
             return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'),
-                                                    sdk_user_context.get('existing_user'))
+                                                    sdk_user_context.get('existing_user'),
+                                                    sdk_user_context.get('sdk_client_user_info_instance'),
+                                                    sdk_user_context.get('app_access'))
 
         if (not login_type == login_types.SDK) and not user_context.get('has_profile_image'):
             return {'success': False, 'user': user_context,
@@ -532,7 +570,6 @@ class UserImpl(UserManager):
         user_email_exists_object = self.create_user_context_for_email_exists(user_context.get('email'))
 
         if user_email_exists_object:
-
             return user_email_exists_object
 
         mobile_context = UserHelper.compute_mobile_no(req_body)
@@ -618,7 +655,8 @@ class UserImpl(UserManager):
             community_name = expired_communities[0]['name']
 
             context = CONTEXT_ACCESS_ONE_EXPIRED_COMMUNITY.copy()
-            context['sub_title_1'] = SUB_TITLE_ACCESS_ONE_EXPIRED_COMMUNITY % (community_name, community_id, community_id)
+            context['sub_title_1'] = SUB_TITLE_ACCESS_ONE_EXPIRED_COMMUNITY % (
+                community_name, community_id, community_id)
             context['cta'] = CTA_ACCESS_ONE_EXPIRED_COMMUNITY % (community_id, self.get_user_id())
             context['membership_expired_communities'] = expired_communities
 
@@ -636,7 +674,8 @@ class UserImpl(UserManager):
             community_name = expired_communities[0]['name']
 
             context = CONTEXT_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITIES.copy()
-            context['sub_title_1'] = SUB_TITLE_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITY % (community_name, community_id)
+            context['sub_title_1'] = SUB_TITLE_ACCESS_MORE_PENDING_ONE_EXPIRED_COMMUNITY % (
+                community_name, community_id)
             context['pending_communities'] = pending_communities
             context['membership_expired_communities'] = expired_communities
 
@@ -686,7 +725,7 @@ class UserImpl(UserManager):
 
         if not self.get_user_id():
             return CONTEXT_ACCESS_NOT_PART_OF_COMMUNITIES
-        
+
         user_communities = Members.fetch_all_user_communties(self.get_user_id())
 
         user_community_data = self._process_user_communties_for_access(user_communities)
@@ -702,7 +741,8 @@ class UserImpl(UserManager):
 
         member_data = UserHelper.fetch_community_members_data(total_community_ids)
 
-        pending_communities = UserHelper.serialize_community_for_access(user_community_data['pending_communities'], member_data)
+        pending_communities = UserHelper.serialize_community_for_access(user_community_data['pending_communities'],
+                                                                        member_data)
 
         expired_community_instances = Community.objects.filter(pk__in=expired_community_ids)
         expired_communities = UserHelper.serialize_community_for_access(expired_community_instances, member_data)
@@ -724,6 +764,14 @@ class UserImpl(UserManager):
 
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user id"}
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
+                                                                      api_key=self.get_api_key())
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid community ID/API Key!"}
+
+        self.set_community_id(community_instance.id)
 
         admin = ModelUtilities.get_model_filter(Members, {"member_id": user_instance, "state": member_states.ADMIN})
 
@@ -769,7 +817,6 @@ class UserImpl(UserManager):
                 if all([direct_message_tutorial.clicked, not direct_message_tutorial.messaged, not communities,
                         TimeUtilities.current_time_in_sec() >= TimeUtilities.add_hours_to_epoch_time(
                             direct_message_tutorial.updated_at, 168)]):
-
                     return {
                         "success": True,
                         "is_cm": is_cm
@@ -795,7 +842,8 @@ class UserImpl(UserManager):
                     unseen_count = get_conversations_after_last_seen_messages_in_chatrooms(get_dm_chatrooms_list)
 
                 if self.get_community_id():
-                    hide_dm_tab = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id()).hide_dm_tab
+                    hide_dm_tab = ModelUtilities.get_model_instance_or_none(Community,
+                                                                            self.get_community_id()).hide_dm_tab
 
                 return {
                     "success": True,
@@ -883,19 +931,28 @@ class UserImpl(UserManager):
 
         return {'success': True}
 
-    def fetch_dm_feed(self, community_id: str) -> dict:
+    def fetch_dm_feed(self) -> dict:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_user_id())
+
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user id"}
 
-        filter_dict: dict = self._get_member_filter_for_dm_feed(self.get_user_id(), community_id)
+        community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
+                                                                      api_key=self.get_api_key())
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid community ID/API Key!"}
+
+        self.set_community_id(community_id=community_instance.id)
+
+        filter_dict: dict = self._get_member_filter_for_dm_feed(self.get_user_id(), self.get_community_id())
         member_filter = ModelUtilities.get_model_filter(Members, filter_dict)
 
         if not member_filter.exists():
             error_message: str = 'User not a part of any community'
-            if community_id:
-                error_message: str = f'User not a part of community, id={str(community_id)}'
+            if self.get_community_id():
+                error_message: str = f'User not a part of community, id={str(self.get_community_id())}'
 
             return {"success": False, "error_message": error_message}
 
@@ -937,7 +994,6 @@ class UserImpl(UserManager):
 
         return filter_dict
 
-
     @staticmethod
     def fetch_all_users(page, user_ids):
 
@@ -967,7 +1023,7 @@ class UserImpl(UserManager):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        community_name = validated_request.get('community_name')
+        community_name = validated_request.get('name')
 
         user_context = {
             'name': CREATE_USER_BOT_NAME.format(community_name),
@@ -989,7 +1045,7 @@ class UserImpl(UserManager):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        community_name = validated_request.get('community_name')
+        community_name = validated_request.get('name')
 
         filter_dict = {
             'user_id': validated_request.get('user_instance')
@@ -1032,6 +1088,40 @@ class UserImpl(UserManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         return {'success': True, 'user': get_logged_in_user(user_instance)}
+
+    @staticmethod
+    def whatsapp_subscription(request_body: dict) -> dict:
+        validated_request = UserViewHelper.validate_whatsapp_subscription_request(request_body)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        if request_body.get('type', '') == 'text' and request_body.get('waId') and request_body.get('text', '') in [
+            whatsapp_subscription_state_actions.START, whatsapp_subscription_state_actions.STOP]:
+            user_mobile_instances = userMobiles.objects.annotate(
+                number=Concat('country_code', 'mobile_no', output_field=CharField())).filter(
+                number__icontains=request_body.get('waId'))
+
+            if user_mobile_instances:
+                user_instance = user_mobile_instances[0].user
+                wa_subscription_instances = ModelUtilities.get_model_filter(WhatsappSubscription,
+                                                                            {'user': user_instance})
+                if not wa_subscription_instances:
+                    wa_subscription_instance = WhatsappSubscription(user=user_instance)
+
+                else:
+                    wa_subscription_instance = wa_subscription_instances[0]
+
+                if request_body.get('text') == whatsapp_subscription_state_actions.START:
+                    wa_subscription_instance.subscribed = True
+                    wa_subscription_instance.save()
+
+                if request_body.get('text') == whatsapp_subscription_state_actions.STOP:
+                    wa_subscription_instance.subscribed = False
+                    wa_subscription_instance.save()
+
+        return {'success': True}
 
 
 class UserHelper:
@@ -1201,7 +1291,7 @@ class UserHelper:
 
         custom_meta = req_body.get('user', {})
 
-        if not custom_meta.get('name'):
+        if not (custom_meta.get('name') or custom_meta.get('user_unique_id')):
             return {}
 
         user_context = {
@@ -1531,8 +1621,10 @@ class UserHelper:
                 task_expiry_time = TimeUtilities.add_hours_to_epoch_time(TimeUtilities.current_time_in_sec(), hours=2)
 
                 UserHelper.cm_send_email_for_creating_community.apply_async(args=[instance.user_id], kwargs={},
-                                                                            eta=TimeUtilities.convert_epoch_to_datetime_in_IST(task_begin_time),
-                                                                            expires=TimeUtilities.convert_epoch_to_datetime_in_IST(task_expiry_time))
+                                                                            eta=TimeUtilities.convert_epoch_to_datetime_in_IST(
+                                                                                task_begin_time),
+                                                                            expires=TimeUtilities.convert_epoch_to_datetime_in_IST(
+                                                                                task_expiry_time))
 
     @staticmethod
     @shared_task
@@ -1573,12 +1665,12 @@ class UserHelper:
     def emailSerializer(email_instance):
 
         return {
-                'id': email_instance.id,
-                'user_id': email_instance.user_id,
-                'email': email_instance.email,
-                'state': email_instance.email_state,
-                'verified': email_instance.verified
-            }
+            'id': email_instance.id,
+            'user_id': email_instance.user_id,
+            'email': email_instance.email,
+            'state': email_instance.email_state,
+            'verified': email_instance.verified
+        }
 
     @staticmethod
     def mobilesSerializer(mobile_instance):
@@ -1624,7 +1716,6 @@ class UserHelper:
         for community in communities:
 
             if current_community_id != community.community_id_id:
-
                 creator = None
                 manager_count = 0
                 members_count = 0

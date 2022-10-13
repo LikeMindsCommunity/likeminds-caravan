@@ -1,6 +1,7 @@
 import json
 
 import time
+from collections import Iterable
 from typing import Union
 from rest_framework import status as status_codes
 from django.contrib.auth.models import User
@@ -12,6 +13,7 @@ from django.conf import settings
 
 from external_services.calender.calendar_impl import CalendarImpl
 from external_services.segment.segment_impl import SegmentImpl
+from external_services.caching.cache_impl import CacheImpl
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.api_client import ApiClient
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
@@ -21,7 +23,8 @@ from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_P
     SUB_TITLE_FOR_MEMBER_VIEW_NO_UPCOMING_EVENTS_FOUND, SUB_TITLE_FOR_CM_VIEW_NO_UPCOMING_EVENTS_FOUND, \
     SUB_TITLE_FOR_NO_PAST_EVENTS_FOUND, FIRST_EVENT_CM_MAIL_SUBJECT, FIRST_EVENT_CM_MAIL_BUTTON_TEXT, \
     FIRST_EVENT_CM_REPLY_EMAIL, DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR, CHATROOM_URL_WITH_COMMUNITY_ID, \
-    DM_CHATROOM_NAME
+    DM_CHATROOM_NAME, CHATROOM_NOTIFICATION_PAUSE_EVENT, CHATROOM_NOTIFICATION_SETTING_UPDATED_EVENT , \
+    PauseChatroomNotificationTime
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 from .chatroom_view_helper import ChatroomViewHelper
@@ -31,7 +34,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_last_seen_non_member_access_event_for_user, \
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
     get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right, \
-    get_participant_counts_on_basis_of_chatroom_ids
+    get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, ScheduledChatroomFollowSerializer
@@ -72,7 +75,7 @@ from external_services.webflow.webflow_impl import WebflowImpl
 from external_services.email.email_wrapper import MailWrapper, MailHelper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
-    event_online_link_types, block_chatroom_states, chat_request_states
+    event_online_link_types, block_chatroom_states, chat_request_states, api_types, noti_states
 
 from utility.utils import check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -87,7 +90,7 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     fetch_conversations_unread, create_chatroom_cohort_instances, convert_chatroom_to_secret_chatroom, \
     convert_chatroom_to_open_chatroom, send_chatroom_creation_analytics_data, \
     send_participants_added_in_chatroom_analytics_data, send_chatroom_updated_analytics_data, \
-    initial_message_dm_chatroom
+    initial_message_dm_chatroom, update_community_pin_chatrooms_list_in_cache
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException, InvalidSecretChatroomParticipantsException)
 from utility.time_utilities import TimeUtilities
@@ -103,6 +106,7 @@ from collabmates_api.notifications.tasks import trigger_event_comms, send_app_no
 from collabmates_api.notifications.constants import EVENT_TYPE, CALENDAR_INVITE_TYPE
 
 from utility.response_utilities import ResponseUtilities
+from utility.cache_keys import (CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, CHATROOM_TYPE_CONVERSION)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -208,7 +212,7 @@ class ChatroomImpl(ChatroomManager):
 
         return card_status
 
-    def _fetch_chatroom_actions(self, card_instance, chatroom_data):
+    def _fetch_chatroom_actions(self, card_instance, chatroom_data, api_type=api_types.Non_SDK):
 
         card_status = self._fetch_card_status(chatroom_data)
         is_promoter = False
@@ -234,8 +238,7 @@ class ChatroomImpl(ChatroomManager):
                                                 current_user_instance=self.get_member_id(),
                                                 community_instance=card_instance.community, is_child=is_child,
                                                 parent_list=parent_list, platform_code=self.get_request_platform(),
-                                                version_code=self.get_version_code()
-                                                )
+                                                version_code=self.get_version_code(), api_type=api_type)
         return chatroom_actions
 
     def _save_external_seen_in_chatroom_state(self, card_instance, user_instance):
@@ -252,6 +255,8 @@ class ChatroomImpl(ChatroomManager):
             if not instance.external_seen:
                 instance.external_seen = True
                 instance.save()
+
+        update_last_unseen_in_engage(user=user_instance, community=card_instance.community)
 
     def _fetch_icon_states_for_chatroom(self, card_instance, chatroom_data):
 
@@ -275,16 +280,15 @@ class ChatroomImpl(ChatroomManager):
 
         save_the_latest_conversation(card_instance, self.get_member_id())
 
-    def _chatroom_participants_count(self, card_instance):
-
-        return collabcardState.objects.filter(follow_status=True, card=card_instance, remove=None,
-                                              is_tagged=False).count()
-
-    def _fill_chatroom_basic_info(self, card_content, title, community, user, chatroom_type):
+    def _fill_chatroom_basic_info(self, card_content, title, community, user, chatroom_type, auto_follow_done=False,
+                                  include_members_later=False, chatroom_image_url=None):
         card_content['title'] = title
         card_content['community'] = community
         card_content['user'] = user
         card_content['type'] = chatroom_type
+        card_content['auto_follow_done'] = auto_follow_done
+        card_content['include_members_later'] = include_members_later
+        card_content['chatroom_image_url'] = chatroom_image_url
 
         card_content['device_id'] = self.device_id
         card_content['platform'] = self.request_platform
@@ -361,7 +365,10 @@ class ChatroomImpl(ChatroomManager):
         card_content['location_long'] = req_body.get('location_long', None)
 
         card_content['about'] = req_body.get('about', None)
-        card_content['co_hosts'] = json.dumps(req_body['co_hosts']) if ('co_hosts' in req_body) else None
+        card_content['co_hosts'] = json.dumps(req_body['co_hosts']) if \
+            ('co_hosts' in req_body and
+             req_body['co_hosts'] is not None and
+             isinstance(req_body['co_hosts'], Iterable)) else []
         card_content['online_link'] = req_body.get('online_link', None)
 
     def _fill_chatroom_poll_details(self, card_content, req_body):
@@ -487,11 +494,12 @@ class ChatroomImpl(ChatroomManager):
 
     def _send_chatroom_creation_notifications(self, user_instance, community_id, community_name,
                                               chatroom_instance, card_content, user_has_auto_approve_right,
-                                              chatroom_type, is_intro_chatroom):
+                                              chatroom_type, is_intro_chatroom, set_default_unread_count=False):
 
         if chatroom_type == card_types.CARD_POLL and user_has_auto_approve_right:
             # sending polls notification
-            send_chatroom_creation_notifications_and_mails(chatroom_instance, user_instance)
+            send_chatroom_creation_notifications_and_mails(chatroom_instance, user_instance,
+                                                           set_default_unread_count=set_default_unread_count)
 
         if user_has_auto_approve_right or is_intro_chatroom:
             # create relevant flags for first time conversation
@@ -503,12 +511,13 @@ class ChatroomImpl(ChatroomManager):
 
         # send notification to new chatroom posted
         if card_content['has_been_named']:
-            send_chatroom_creation_notifications_and_mails(chatroom_instance, user_instance)
+            send_chatroom_creation_notifications_and_mails(chatroom_instance, user_instance,
+                                                           set_default_unread_count=set_default_unread_count)
 
     def _send_additional_notifications_and_tasks_after_room_creation(self, user_instance, community_instance,
                                                                      chatroom_instance, req_body,
                                                                      is_intro_chatroom, user_has_auto_approve_right,
-                                                                     community_id):
+                                                                     community_id, chatroom_participants_list=None):
         create_intro = 'create_intro' in req_body
         if create_intro:
             update_seen_status_for_new_user_in_chatroom(community_instance, user_instance)
@@ -529,9 +538,9 @@ class ChatroomImpl(ChatroomManager):
 
             # batch update for already existing users and saving their unseen count
             if not chatroom_instance.is_secret:
-                ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting.delay(chatroom_instance.id,
-                                                                                            user_instance.id,
-                                                                                            community_instance.id)
+                ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting.delay(
+                    chatroom_instance.id, user_instance.id, community_instance.id,
+                    chatroom_participants_list=chatroom_participants_list)
             else:
                 update_last_answer_id(chatroom_instance.id, "")
 
@@ -571,10 +580,22 @@ class ChatroomImpl(ChatroomManager):
             temp['id'] = data.user_id_id
             temp['name'] = data.name
             temp['image_url'] = data.image_link if data.image_link else ""
+            temp['is_guest'] = data.is_guest
 
             tag_list.append(temp)
 
         return tag_list
+
+    @staticmethod
+    def remove_guest_user_from_participants_data_list(participants_data):
+        participants_list = []
+
+        for member_data in participants_data:
+
+            if not member_data.get('is_guest'):
+                participants_list.append(member_data)
+
+        return participants_list
 
     @staticmethod
     def compute_tagging_list_for_secret_participants(chatroom_instance, community_instance):
@@ -825,7 +846,7 @@ class ChatroomImpl(ChatroomManager):
         if card_instance.online_link_password:
             chatroom_context['online_link_password'] = card_instance.online_link_password
 
-    def fetch_chatroom(self, is_internal=False) -> dict:
+    def fetch_chatroom(self, is_internal=False, api_type: int = api_types.Non_SDK) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
 
@@ -878,12 +899,12 @@ class ChatroomImpl(ChatroomManager):
 
         chatroom_obj = dict()
         chatroom_obj['chatroom'] = chatroom_data
-        chatroom_obj['chatroom_actions'] = self._fetch_chatroom_actions(card_instance, chatroom_data)
+        chatroom_obj['chatroom_actions'] = self._fetch_chatroom_actions(card_instance, chatroom_data, api_type=api_type)
         chatroom_obj['community'] = CommunitySerializerV1(community_instance,
                                                           context={"current_user_id": user_instance.id},
                                                           many=False).data
         chatroom_obj['unread_messages'] = fetch_conversations_unread(self.get_chatroom_id(), self.get_member_id())
-        chatroom_obj['participant_count'] = self._chatroom_participants_count(card_instance)
+        chatroom_obj['participant_count'] = ChatroomHelper.chatroom_participants_count(card_instance)
         chatroom_obj['conversation_users'] = self._latest_conversations_user_data()
         self._save_external_seen_in_chatroom_state(card_instance, user_instance)
 
@@ -945,7 +966,7 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_obj
 
-    def fetch_all_chatroom(self) -> dict:
+    def fetch_all_chatroom(self, page: int = 1) -> dict:
         validated_req = ChatroomViewHelper.validate_fetch_all_chatroom_request(self.get_member_id(),
                                                                                api_key=self.get_api_key())
 
@@ -953,29 +974,25 @@ class ChatroomImpl(ChatroomManager):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        user_instance = validated_req.get('user_instance')
         community_instance = validated_req.get('community_instance')
 
-        chatrooms_filter = ModelUtilities.get_model_filter(Collabcard, {'user': user_instance,
-                                                                        'community': community_instance})
+        card_ids = get_all_chatrooms_of_community(community_instance.id, page)
+        chatroom_list = ModelUtilities.get_model_filter(collabcardState,
+                                                        {'card_id__in': card_ids,
+                                                         'user': self.get_member_id(),
+                                                         'secret_chatroom_left': False}).select_related('card',
+                                                                                                        'card__user')
 
-        chatroom_object_list = []
+        chatroom_context_list = []
 
-        if chatrooms_filter:
-            card_ids = list(chatrooms_filter.values_list('id', flat=True))
-            card_participants_count_map = get_participant_counts_on_basis_of_chatroom_ids(card_ids)
+        if chatroom_list:
 
-            context = {
-                'member_id': self.get_member_id(),
-                'current_user_id': self.get_member_id()
-            }
-            chatroom_objects = GetChatroomInstanceSerializer(chatrooms_filter, context=context, many=True).data
+            from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
-            for chatroom_object in chatroom_objects:
-                chatroom_object['participants_count'] = card_participants_count_map.get(chatroom_object.get('id'), 0)
-                chatroom_object_list.append(chatroom_object)
+            chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
+            chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
 
-        return {'success': True, 'chatrooms': chatroom_object_list}
+        return {'success': True, 'chatrooms': chatroom_context_list}
 
     def create_chatroom(self, req_body: dict) -> dict:
         validated_req = ChatroomViewHelper.validate_create_chatroom_request(self.get_member_id(),
@@ -1001,11 +1018,16 @@ class ChatroomImpl(ChatroomManager):
 
         chatroom_type = int(req_body.get('type', card_types.CARD_NORMAL))
         is_intro_card = chatroom_type == card_types.CARD_INTRO
+        auto_follow_done = req_body.get('auto_follow_done', False)
+        include_members_later = req_body.get('include_members_later', False)
+        chatroom_image_url = req_body.get('chatroom_image_url', None)
 
         card_content = {}
 
         self._fill_chatroom_basic_info(card_content, chatroom_name,
-                                       community_instance, user_instance, chatroom_type)
+                                       community_instance, user_instance, chatroom_type,
+                                       auto_follow_done=auto_follow_done, include_members_later=include_members_later,
+                                       chatroom_image_url=chatroom_image_url)
         self._fill_chatroom_attachment_count(card_content, req_body)
         self._fill_chatroom_epoch_time(card_content, req_body)
 
@@ -1035,12 +1057,13 @@ class ChatroomImpl(ChatroomManager):
         self._add_preview_from_internal_link(chatroom_instance, req_body)
         self._create_chatroom_polls(user_instance, chatroom_instance, req_body)
         self._delete_draft(req_body)
+        ChatroomHelper.set_chatroom_participants_created_key_in_cache(self.get_chatroom_id(), False)
 
         send_chatroom_creation_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()))
 
         self._send_chatroom_creation_notifications(user_instance, community_id, community_instance.name,
                                                    chatroom_instance, card_content, user_has_auto_approve_right,
-                                                   chatroom_type, is_intro_card)
+                                                   chatroom_type, is_intro_card, set_default_unread_count=True)
 
         cohort_ids = req_body['cohort_ids'] if ('cohort_ids' in req_body) else None
 
@@ -1066,10 +1089,12 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_instance.co_hosts:
             ChatroomHelper.auto_follow_event_co_hosts_and_send_notification(chatroom_instance, user_instance.userinfo)
 
+        open_chatroom_participants = req_body.get('chatroom_participants', [])
+
         self._send_additional_notifications_and_tasks_after_room_creation(user_instance, community_instance,
                                                                           chatroom_instance, req_body,
                                                                           is_intro_card, user_has_auto_approve_right,
-                                                                          community_id)
+                                                                          community_id, open_chatroom_participants)
 
         ChatroomHelper.update_time_for_community_members_on_card_creation(community_instance)
 
@@ -1114,7 +1139,7 @@ class ChatroomImpl(ChatroomManager):
 
         if req_body.get('end_time_after'):
             data_dict['end_time_after'] = req_body.get('end_time_after')
-        
+
         serializer = ScheduledChatroomFollowSerializer(data=data_dict)
 
         if serializer.is_valid():
@@ -1134,26 +1159,18 @@ class ChatroomImpl(ChatroomManager):
             )
 
     def pin_or_unpin_chatroom(self, req_body: dict) -> dict:
+        validated_req = ChatroomViewHelper.validate_pin_unpin_chatroom_request(self.get_chatroom_id(),
+                                                                               self.get_member_id())
 
-        chatroom_id = self.get_chatroom_id()
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
         value = req_body['value']
         notify = req_body['notify']
 
-        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
-
-        if not chatroom_instance:
-            return {'error_message': "invalid chatroom id", 'success': False}
-
-        if chatroom_instance.is_secret:
-            return {'error_message': "secret chatroom cannot be pinned", 'success': False}
-
+        chatroom_instance = validated_req.get('card_instance')
         community_instance = chatroom_instance.community
-
-        if not ModelUtilities.is_model_filter_exists(Members, {'state': member_states.ADMIN,
-                                                               'member_id': self.get_member_id(),
-                                                               'community_id': community_instance}):
-            return {'error_message': "You need to be promoter in order to pin unpin", 'success': False}
-
         pinned_status = chatroom_instance.is_pinned
 
         if pinned_status is value:
@@ -1171,6 +1188,14 @@ class ChatroomImpl(ChatroomManager):
 
         send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()),
                                                    {'is_pinned': value})
+
+        cache_update_dict = {
+            'chatroom_id': self.get_chatroom_id(),
+            'community_id': chatroom_instance.community_id,
+            'pin_value': value
+        }
+
+        update_community_pin_chatrooms_list_in_cache.delay(cache_update_dict)
 
         return {'success': True}
 
@@ -1246,24 +1271,22 @@ class ChatroomImpl(ChatroomManager):
             send_notification_for_removed_secret_room_participant.delay(member_id, self.get_chatroom_id())
 
     def add_secret_chatroom_participant(self, req_body: dict) -> dict:
+        validated_req_body = ChatroomViewHelper.validate_add_secret_chatroom_participants_request(self.get_member_id(),
+                                                                                                  self.get_chatroom_id(),
+                                                                                                  req_body)
 
-        secret_chatroom_participants = req_body.get('secret_chatroom_participants', None)
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if secret_chatroom_participants is None:
-            response = {
-                'success': False,
-                'error_message': 'send secret_chatroom_participants in body'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+        chatroom_instance = validated_req_body.get('card_instance')
+        secret_chatroom_participants = validated_req_body.get('secret_chatroom_participants')
 
         secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
-            secret_chatroom_participants
-        )
+            secret_chatroom_participants)
 
         if len(secret_chatroom_participants) <= 0:
             return {'success': True}
-
-        chatroom_instance = Collabcard.get_chatroom_or_raise_exception(self.get_chatroom_id())
 
         existing_participants = json.loads(chatroom_instance.secret_chatroom_participants)
 
@@ -1332,11 +1355,14 @@ class ChatroomImpl(ChatroomManager):
 
         if chatroom_instance.is_secret:
             participant_list = self.compute_tagging_list_for_secret_participants(chatroom_instance, community_instance)
+            participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
             return {'success': True, 'participants': participant_list, 'members': []}
 
         members = self.compute_tagging_list_of_community_members(community_instance)
+        members = self.remove_guest_user_from_participants_data_list(members)
         participant_list = self.compute_tagging_list_of_guest_members(chatroom_instance)
+        participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
         return {'success': True, 'members': members, 'participants': participant_list}
 
@@ -1400,48 +1426,39 @@ class ChatroomImpl(ChatroomManager):
 
     def follow_chatroom_automatically_for_all_members_of_community(self, member_id, request_body) -> dict:
 
-        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+        validated_req = ChatroomViewHelper.validate_chatroom_auto_follow_for_all_members_request(
+            self.get_chatroom_id(), member_id)
 
-        if not chatroom_instance:
-            return {'success': False, 'error_message': "invalid chatroom id"}
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+        cache_key = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(self.get_chatroom_id())
+        are_chatroom_participants_created = CacheImpl.get_cache(cache_key)
 
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user id"}
+        if all(['are_participants_created' in are_chatroom_participants_created,
+                not are_chatroom_participants_created.get('are_participants_created')]):
+            return ResponseUtilities.get_impl_error_context('Chatroom creation in progress. Try again after some time.',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
+        user_instance = validated_req.get('user_instance')
+        chatroom_instance = validated_req.get('card_instance')
         community_id = chatroom_instance.community_id
 
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_id,
-                                                                  'member_id': user_instance})
-
         user_list = []
-
-        if not member_filter:
-            response = {
-                'success': False,
-                'error_message': 'You are not a part of this community.'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
-
-        member_instance = member_filter[0]
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if not is_cm:
-            response = {
-                'success': False,
-                'error_message': 'You need to be Owner/CM of the community to enable auto follow'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_403_FORBIDDEN)
+        auto_followed = False
 
         auto_follow_done = request_body.get('auto_follow_done', True)
         include_members_later = request_body.get('include_members_later', True)
 
-        chatroom_instance.auto_follow_done = auto_follow_done
+        if (not chatroom_instance.auto_follow_done) and auto_follow_done:
+            chatroom_instance.auto_follow_done = auto_follow_done
+            auto_followed = True
+
         chatroom_instance.include_members_later = include_members_later
         chatroom_instance.save()
 
-        if chatroom_instance.auto_follow_done:
+        if auto_followed:
             community_members = list(Members.get_members_of_community(community_id).values_list('member_id',
                                                                                                 flat=True))
 
@@ -1462,14 +1479,7 @@ class ChatroomImpl(ChatroomManager):
                 send_notification_for_auto_follow_chatroom_for_all_members.delay(self.get_chatroom_id(),
                                                                                  user_instance.id, user_list)
 
-            return {'success': True}
-
-        else:
-            response = {
-                'success': False,
-                'error_message': 'All members of this community are already added to this chat room'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+        return {'success': True}
 
     def edit_chatroom(self, req_body) -> dict:
         validated_req = ChatroomViewHelper.validate_edit_chatroom_request(self.get_member_id(),
@@ -1484,14 +1494,16 @@ class ChatroomImpl(ChatroomManager):
         title = req_body.get('title')
         text = req_body.get('text')
         header = req_body.get('header')
+        card_image_url = req_body.get('chatroom_image_url')
 
-        if not title and not header and not text:
-            return ResponseUtilities.get_impl_error_context("Send title or header to update",
+        if not (title or header or text or card_image_url):
+            return ResponseUtilities.get_impl_error_context("Send title/header/chatroom_image_url to update",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         update_analytics_data = {
             'updated_title': False,
-            'updated_description': False
+            'updated_description': False,
+            'updated_card_image': False
         }
 
         update_dict = {'is_edited': True, 'updated_at': TimeUtilities.current_time_in_milliseconds()}
@@ -1503,6 +1515,10 @@ class ChatroomImpl(ChatroomManager):
         if header:
             update_dict['header'] = header
             update_analytics_data['updated_description'] = True
+
+        if card_image_url:
+            update_dict['chatroom_image_url'] = card_image_url
+            update_analytics_data['updated_card_image'] = True
 
         ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, update_dict)
 
@@ -1549,6 +1565,7 @@ class ChatroomImpl(ChatroomManager):
                         })
 
             participant_list = self.compute_tagging_list_for_secret_participants(card_instance, community_instance)
+            participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
             return {'success': True, 'participants': participant_list, 'can_edit_participant': can_edit_participant}
 
@@ -2319,30 +2336,16 @@ class ChatroomImpl(ChatroomManager):
         return {'success': True}
 
     def fetch_chatroom_settings(self) -> dict:
+        validated_req = ChatroomViewHelper.validate_fetch_chatroom_settings_request(self.get_member_id(),
+                                                                                    self.get_chatroom_id())
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not user_instance:
-            return {'success': False, 'error_message': "In-valid user id"}
-
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
-
-        if not card_instance:
-            return {'success': False, 'error_message': "In-valid chatroom id"}
-
+        user_instance = validated_req.get('user_instance')
+        card_instance = validated_req.get('card_instance')
         community_instance = card_instance.community
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
-                                                                  'member_id': user_instance})
-
-        if not member_filter:
-            return {'success': False, 'error_message': "User is not a member of community"}
-
-        member_instance = member_filter[0]
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if not is_cm:
-            return {'success': False, 'error_message': "User can’t view settings of this chatroom"}
 
         if create_chatroom_revamp_version_check(self.get_request_platform(), self.get_version_code()):
             chatroom_settings = settings_for_chatroom_with_revamp.copy()
@@ -2357,22 +2360,16 @@ class ChatroomImpl(ChatroomManager):
                 chatroom_settings.append(manage_permissions)
                 chatroom_settings.append(pin_chatroom)
 
-            settings_list = ChatroomHelper.get_settings_for_chatroom(chatroom_settings, card_instance)
-
-            return {'success': True, 'settings': settings_list}
-
-        if card_instance.type == card_types.CARD_PURPOSE:
-            chatroom_settings = settings_for_purpose_chatroom.copy()
-
         else:
             chatroom_settings = settings_for_chatroom.copy()
             admin_has_delete_right = check_admin_delete_right(user=user_instance,
                                                               community=community_instance)
 
-            if card_instance.is_secret or (card_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]):
+            if card_instance.is_secret or (card_instance.type not in [card_types.CARD_NORMAL, card_types.CARD_POLL,
+                                                                      card_types.CARD_PURPOSE]):
                 chatroom_settings.remove(pin_chatroom)
 
-            if admin_has_delete_right:
+            if admin_has_delete_right and (card_instance.type not in [card_types.CARD_PURPOSE]):
                 chatroom_settings.append(delete_chatroom)
 
         settings_list = ChatroomHelper.get_settings_for_chatroom(chatroom_settings, card_instance)
@@ -2380,31 +2377,24 @@ class ChatroomImpl(ChatroomManager):
         return {'success': True, 'settings': settings_list}
 
     def add_members_to_chatroom(self, chatroom_participants) -> dict:
+        validated_req = ChatroomViewHelper.validate_add_members_to_open_chatroom(self.get_member_id(),
+                                                                                 self.get_chatroom_id(),
+                                                                                 chatroom_participants)
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not user_instance:
-            return {'success': False, 'error_message': "In-valid user id"}
+        cache_key = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(self.get_chatroom_id())
+        are_chatroom_participants_created = CacheImpl.get_cache(cache_key)
 
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
+        if all(['are_participants_created' in are_chatroom_participants_created,
+                not are_chatroom_participants_created.get('are_participants_created')]):
+            return ResponseUtilities.get_impl_error_context('Chatroom creation in progress. Try again after some time.',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not card_instance:
-            return {'success': False, 'error_message': "In-valid chatroom id"}
-
-        if not chatroom_participants:
-            return {'success': False, 'error_message': "Invalid Chatroom participants"}
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
-                                                                  'member_id': user_instance})
-
-        if not member_filter:
-            return {'success': False, 'error_message': "User is not a member of community"}
-
-        member_instance = member_filter[0]
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if not is_cm:
-            return {'success': False, 'error_message': "User doesn't have the ability to perform this operation"}
+        user_instance = validated_req.get('user_instance')
+        card_instance = validated_req.get('card_instance')
 
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants)
 
@@ -2683,8 +2673,8 @@ class ChatroomImpl(ChatroomManager):
 
     def fetch_chatroom_participants(self):
 
-        validated_req = ChatroomViewHelper.validate_edit_chatroom_request(self.get_member_id(),
-                                                                          self.get_chatroom_id())
+        validated_req = ChatroomViewHelper.validate_fetch_participants_meta(self.get_member_id(),
+                                                                            self.get_chatroom_id())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -3160,25 +3150,16 @@ class ChatroomImpl(ChatroomManager):
 
     def change_chatroom_type(self, req_body) -> dict:
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        validated_req = ChatroomViewHelper.validate_change_chatroom_type_request(self.get_member_id(),
+                                                                                 req_body)
 
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user id"}
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
-
-        if not card_instance:
-            return {'success': False, 'error_message': "Invalid chatroom id"}
-
-        is_cm = Members.is_member_community_promoter(card_instance.community, user_instance)
-
-        if card_instance.user_id != user_instance.id and not is_cm:
-            return {'success': False, 'error_message': "You don’t have ability to change chatroom type"}
+        card_instance = validated_req.get('card_instance')
 
         self.set_chatroom_id(req_body.get('chatroom_id'))
-
-        if 'is_secret' not in req_body:
-            return {'success': False, 'error_message': "Send chatroom type to update"}
 
         is_secret = req_body.get('is_secret')
 
@@ -3191,7 +3172,10 @@ class ChatroomImpl(ChatroomManager):
             last_conversion_time = conversion_filter[0].converted_at
 
             if last_conversion_time + TimeUtilities.MILLI_SEC_IN_A_DAY > TimeUtilities.current_time_in_milliseconds():
-                return {'success': False, 'error_message': 'Action not allowed, try again after a few hours.'}
+                return ResponseUtilities.get_impl_error_context('Action not allowed, try again after a few hours.',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        ChatroomHelper.set_chatroom_conversion_type_status_key_in_cache(self.get_chatroom_id(), True)
 
         if is_secret:
             convert_chatroom_to_secret_chatroom.delay(self.get_chatroom_id())
@@ -3201,11 +3185,33 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def create_dm_chatroom(self, req_body) -> dict:
-        validated_request = ChatroomHelper.validate_create_dm_chatroom_request(self.get_member_id(), req_body)
+    def get_change_chatroom_type_status(self) -> dict:
+        validated_req = ChatroomViewHelper.validate_change_chatroom_type_status_request(self.get_member_id(),
+                                                                                        self.get_chatroom_id())
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        change_chatroom_status = ChatroomHelper.get_chatroom_conversion_type_status_of_chatroom_from_cache(
+            self.get_chatroom_id())
+
+        if change_chatroom_status:
+            return {
+                'success': True,
+                'is_converting': change_chatroom_status,
+                'success_message': 'Chatroom conversion in progress!'
+            }
+
+        return {'success': True, 'is_converting': change_chatroom_status}
+
+    def create_dm_chatroom(self, req_body) -> dict:
+        validated_request = ChatroomViewHelper.validate_create_dm_chatroom_request(self.get_member_id(), req_body,
+                                                                                   self.get_api_key())
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = validated_request.get('user_instance')
         community_instance = validated_request.get('community_instance')
@@ -3430,7 +3436,7 @@ class ChatroomImpl(ChatroomManager):
                 follow_chatroom_async.delay(
                     self.get_chatroom_id(),
                     self.get_member_id()
-                    
+
                 )
 
             else:
@@ -3450,6 +3456,71 @@ class ChatroomImpl(ChatroomManager):
             }
 
         return res
+
+    def update_chatroom_noti_settings(self, noti_state, is_noti_paused, pause_noti_for):
+        validated_request = ChatroomViewHelper.validate_update_chatroom_notification_setting_request(
+            self.get_member_id(), self.get_chatroom_id())
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        collabcard_state_instance = validated_request.get('collabcard_state_instance')
+
+        if is_noti_paused:
+
+            if pause_noti_for:
+                current_time = TimeUtilities.current_time_in_milliseconds()
+                unpause_noti_at = current_time + pause_noti_for
+
+                collabcard_state_instance.update(is_noti_paused=is_noti_paused, unpause_noti_at=unpause_noti_at)
+
+                ChatroomHelper.trigger_event_analytics_on_pausing_chatroom_noti.delay(
+                    self.get_member_id(),
+                    self.get_chatroom_id(),
+                    pause_noti_for
+                )
+
+            else:
+                return ResponseUtilities.get_impl_error_context('pause_noti_for key cannot be empty',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+
+        elif collabcard_state_instance[0].is_noti_paused:
+            collabcard_state_instance.update(is_noti_paused=is_noti_paused)
+
+        if noti_state:
+            collabcard_state_instance.update(noti_state=noti_state)
+
+            ChatroomHelper.trigger_event_analytics_on_updating_chatroom_noti_settings.delay(
+                self.get_member_id(),
+                self.get_chatroom_id(),
+                noti_state
+            )
+
+        return {'success': True}
+
+    def fetch_chatroom_noti_settings(self):
+        validated_req_body = ChatroomViewHelper.validate_fetch_chatroom_notification_setting_request(
+            self.get_member_id(), self.get_chatroom_id())
+
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        state_instance = validated_req_body.get('collabcard_state_instance')
+
+        settings_data = {
+            'chatroom_id': state_instance.card_id,
+            'member_id': self.get_member_id(),
+            'notification_state': state_instance.noti_state if state_instance.noti_state
+            else noti_states.ALL_MESSAGES,
+            'unpause_notification_at': state_instance.unpause_noti_at
+        }
+
+        return {
+            'success': True,
+            'chatroom_notification_settings': settings_data
+        }
 
 
 class ChatroomHelper:
@@ -3577,6 +3648,7 @@ class ChatroomHelper:
                     bulk_create_list.append(instance)
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
+        ChatroomHelper.set_chatroom_participants_created_key_in_cache(chatroom_id, True)
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
             card_instance.id, user_list)
 
@@ -3741,6 +3813,11 @@ class ChatroomHelper:
             is_tagged = True
             mute_status = True
 
+        from collabmates_api.community.community_impl import CommunityHelper
+
+        community_noti_instance = CommunityHelper.fetch_community_noti_settings_instance(community_instance)
+        community_current_noti_state = community_noti_instance.noti_state if community_noti_instance else noti_states.ALL_MESSAGES
+
         chatroom_state_instance = None
         collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
                                                                                     'user': user_instance})
@@ -3749,6 +3826,7 @@ class ChatroomHelper:
 
             expiry_time = ChatroomHelper.get_chatroom_expiry_time(chatroom_state_instance)
             card_state_instance = collabcardState.create_chatroom_state_instance(card_instance, user_instance,
+                                                                                 noti_state=community_current_noti_state,
                                                                                  state=collabcard_states.COLLABCARD_STATE_SEEN,
                                                                                  expire_at=expiry_time,
                                                                                  is_guest=is_guest,
@@ -3834,6 +3912,10 @@ class ChatroomHelper:
         bulk_create_list = []
         auto_follow_chatroom_list = []
 
+        from collabmates_api.community.community_impl import CommunityHelper
+        community_noti_instance = CommunityHelper.fetch_community_noti_settings_instance(community_instance)
+        community_current_noti_state = community_noti_instance.noti_state if community_noti_instance else noti_states.ALL_MESSAGES
+
         for card_instance in chatroom_filter:
 
             if chatroom_state_dict.get(card_instance.id) is False:
@@ -3845,11 +3927,10 @@ class ChatroomHelper:
 
                 follow_status = card_instance.auto_follow_done and card_instance.include_members_later
 
-                instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
-                                                                                           user_instance,
-                                                                                           follow_status=follow_status,
-                                                                                           expire_at=expire_at,
-                                                                                           community_instance=community_instance)
+                instance = collabcardState.create_chatroom_state_instances_for_bulk_create(
+                    card_instance, user_instance, follow_status=follow_status, expire_at=expire_at,
+                    community_instance=community_instance, noti_state=community_current_noti_state)
+
                 if instance:
                     bulk_create_list.append(instance)
 
@@ -3872,7 +3953,8 @@ class ChatroomHelper:
         return member_dict
 
     @staticmethod
-    def set_state_for_all_chatroom_members_in_community(card_instance, community_instance):
+    def set_state_for_all_chatroom_members_in_community(card_instance, community_instance,
+                                                        chatroom_participants_list=None):
 
         member_filter = Members.get_members_of_community(community_instance).select_related('member_id')
         member_list = list(member_filter.values_list('member_id_id', flat=True))
@@ -3886,13 +3968,18 @@ class ChatroomHelper:
                             card_types.CARD_PUBLIC_EVENT
 
         community_admins_list = []
-
         event_attendees_list = []
+        chatroom_participants_list = chatroom_participants_list if chatroom_participants_list else []
 
         from collabmates_api.notifications.tasks_impl import TasksHelper
 
         event_creator_and_community_owner = TasksHelper.get_community_owner_and_event_creator(community_instance,
-                                                                                            card_instance)
+                                                                                              card_instance)
+
+        from collabmates_api.community.community_impl import CommunityHelper
+
+        community_noti_instance = CommunityHelper.fetch_community_noti_settings_instance(community_instance)
+        community_current_noti_state = community_noti_instance.noti_state if community_noti_instance else noti_states.ALL_MESSAGES
 
         for data in member_filter:
             user_instance = data.member_id
@@ -3902,10 +3989,12 @@ class ChatroomHelper:
             if not member_dict.get(user_instance.id):
 
                 attending_status = is_event_chatroom and (user_instance.id in event_creator_and_community_owner)
-                follow_status = True if attending_status else card_instance.auto_follow_done
+                follow_status = True if (attending_status or user_instance.id in chatroom_participants_list) else \
+                    card_instance.auto_follow_done
 
                 instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
                                                                                            user_instance,
+                                                                                           noti_state=community_current_noti_state,
                                                                                            state=state,
                                                                                            follow_status=follow_status,
                                                                                            community_instance=community_instance,
@@ -3929,6 +4018,7 @@ class ChatroomHelper:
                                                 calendar_invite_type=CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION)
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
+        ChatroomHelper.set_chatroom_participants_created_key_in_cache(card_instance.id, True)
 
         if event_attendees_list:
             update_event_attendees({
@@ -3936,6 +4026,10 @@ class ChatroomHelper:
                 "user_id": event_attendees_list,
                 "status": True
             })
+
+        if chatroom_participants_list:
+            ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
+                card_instance.id, chatroom_participants_list)
 
         if card_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
             ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
@@ -3957,7 +4051,8 @@ class ChatroomHelper:
     @staticmethod
     @shared_task
     def run_async_tasks_related_to_member_for_chatroom_posting(card_id, user_id, community_id,
-                                                               is_intro_chatroom=False):
+                                                               is_intro_chatroom=False,
+                                                               chatroom_participants_list=None):
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
@@ -3968,7 +4063,9 @@ class ChatroomHelper:
                 or not community_instance:
             return
 
-        ChatroomHelper.set_state_for_all_chatroom_members_in_community(card_instance, community_instance)
+        ChatroomHelper.set_state_for_all_chatroom_members_in_community(
+            card_instance, community_instance, chatroom_participants_list=chatroom_participants_list)
+
         ChatroomHelper.update_unseen_count_for_homescreen_communitites(card_instance, community_instance)
         update_last_answer_id(card_instance.id, "")
 
@@ -4018,9 +4115,9 @@ class ChatroomHelper:
         ElasticSearchSync.update_chatroom_for_user(master_intro_instance.id, user_instance.id)
 
     @staticmethod
-    def pre_compute_chatroom_state_of_members(card_instance, member_list, follow_status):
-        state_filter = collabcardState.objects.filter(card=card_instance, user__in=member_list,
-                                                      follow_status=follow_status)
+    def pre_compute_chatroom_state_of_members(card_instance, member_list):
+        state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                         'user__in': member_list})
 
         chatroom_state_dict = {int(user_id): None for user_id in member_list if str(user_id).isdigit()}
 
@@ -4124,25 +4221,45 @@ class ChatroomHelper:
     @staticmethod
     def bulk_follow_chatroom_users(card_instance, user_list):
 
-        chatroom_state_dict = ChatroomHelper.pre_compute_chatroom_state_of_members(card_instance,
-                                                                                   user_list,
-                                                                                   follow_status=False)
-        bulk_update_list = []
-        chatroom_member_list = []
-
         user_list = [int(user_id) for user_id in user_list if str(user_id).isdigit()]
+
+        community_members = list(Members.get_members_of_community(card_instance.community).values_list('member_id',
+                                                                                                       flat=True))
+
+        user_list = list(set(user_list).intersection(set(community_members)))
+
+        chatroom_state_dict = ChatroomHelper.pre_compute_chatroom_state_of_members(card_instance, user_list)
+
+        bulk_update_list = []
+        bulk_create_list = []
+        chatroom_member_list = []
 
         for community_member in user_list:
 
-            if chatroom_state_dict.get(community_member) is not None:
+            collabcard_state = chatroom_state_dict.get(community_member)
+
+            if all([collabcard_state is not None, not collabcard_state.follow_status]):
                 chatroom_member_list.append(community_member)
-                collabcard_state = chatroom_state_dict.get(community_member)
                 collabcard_state.follow_status = True
                 collabcard_state.updated_at = TimeUtilities.current_time_in_sec()
                 bulk_update_list.append(collabcard_state)
 
-        ModelUtilities.bulk_update_instances(collabcardState, bulk_update_list,
-                                             ['follow_status', 'updated_at'])
+            elif collabcard_state is None:
+                chatroom_member_list.append(community_member)
+                user_instance = ModelUtilities.get_user_instance_or_none(community_member)
+
+                if not user_instance:
+                    continue
+
+                bulk_create_list.appen(collabcardState.create_chatroom_state_instances_for_bulk_create(
+                    card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_UNSEEN, follow_status=True))
+
+        if bulk_update_list:
+            ModelUtilities.bulk_update_instances(collabcardState, bulk_update_list,
+                                                 ['follow_status', 'updated_at'])
+
+        if bulk_create_list:
+            ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
 
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list \
             .delay(card_instance.id, chatroom_member_list)
@@ -4535,7 +4652,7 @@ class ChatroomHelper:
         return secret_chatroom_participants
 
     @staticmethod
-    def fetch_chatroom_link(chatroom_instance):
+    def fetch_chatroom_link(chatroom_instance, domain_url=None):
 
         if chatroom_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
             chatroom_url = chatroom_instance.single_event_url
@@ -4544,7 +4661,9 @@ class ChatroomHelper:
                 chatroom_url = ChatroomHelper.create_or_update_single_event_branch_link(chatroom_instance.id)
 
         else:
-            chatroom_url = CHATROOM_URL_WITH_COMMUNITY_ID % (url, str(chatroom_instance.id),
+
+            domain_url = domain_url if domain_url else url
+            chatroom_url = CHATROOM_URL_WITH_COMMUNITY_ID % (domain_url, str(chatroom_instance.id),
                                                              str(chatroom_instance.community.id))
 
         return chatroom_url
@@ -4581,36 +4700,6 @@ class ChatroomHelper:
             cohort_context_list.append(cohort_context)
 
         return cohort_context_list
-
-    @staticmethod
-    def validate_create_dm_chatroom_request(user_id, req_body):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid user id")
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, req_body.get('community_id'))
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community id")
-
-        member_instance = ModelUtilities.get_model_instance_or_none(User, req_body.get('member_id'))
-
-        if not member_instance:
-            return get_error_context(False, "Invalid member id")
-
-        is_user_member = Members.is_community_member(community=community_instance, member=user_instance)
-
-        if not is_user_member:
-            return get_error_context(False, "You are not a member")
-
-        is_member = Members.is_community_member(community=community_instance, member=member_instance)
-
-        if not is_member:
-            return get_error_context(False, "User with member-id is not member of community")
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
-                'member_instance': member_instance}
 
     @staticmethod
     def validate_block_member_request(user_id, chatroom_id, req_body):
@@ -4779,3 +4868,98 @@ class ChatroomHelper:
             card_instance.save()
 
         return branch_link
+
+    @staticmethod
+    def set_chatroom_participants_created_key_in_cache(chatroom_id, are_participants_created=False):
+        key = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(chatroom_id)
+        CacheImpl.set_cache(key, {"are_participants_created": are_participants_created})
+
+    @staticmethod
+    @shared_task
+    def trigger_event_analytics_on_pausing_chatroom_noti(user_id, chatroom_id, pause_noti_for):
+        event_name = CHATROOM_NOTIFICATION_PAUSE_EVENT
+
+        chatroom = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        community_name = chatroom.community.name if chatroom else ""
+        community_id = chatroom.community.id if chatroom else ""
+
+        pause_noti_time = TimeUtilities.convert_milliseconds_to_hrs(pause_noti_for)
+
+        if pause_noti_time == PauseChatroomNotificationTime.EIGHT_HR:
+            duration = PauseChatroomNotificationTime.EIGHT_HOURS
+
+        elif pause_noti_time == PauseChatroomNotificationTime.TWENTY_FOUR_HR:
+            duration = PauseChatroomNotificationTime.TWENTY_FOUR_HOURS
+
+        else:
+            duration = PauseChatroomNotificationTime.ONE_WEEK
+
+        event_dict = {
+            'chatroom_id': chatroom_id,
+            'community_id': community_id,
+            'community_name': community_name,
+            'duration': duration
+        }
+
+        SegmentImpl.track_event(user_id, event_name, event_dict)
+
+    @staticmethod
+    @shared_task
+    def trigger_event_analytics_on_updating_chatroom_noti_settings(user_id, chatroom_id, noti_state):
+        event_name = CHATROOM_NOTIFICATION_SETTING_UPDATED_EVENT
+
+        chatroom = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        community_name = chatroom.community.name if chatroom else ""
+        community_id = chatroom.community.id if chatroom else ""
+
+        if noti_state == noti_states.ALL_MESSAGES:
+            setting = noti_states.ALL_MESSAGES_ANALYTICS
+
+        else:
+            setting = noti_states.ONLY_MENTIONS_AND_REPLIES_ANALYTICS
+
+        event_dict = {
+            'chatroom_id': chatroom_id,
+            'community_id': community_id,
+            'community_name': community_name,
+            'setting': setting
+        }
+
+        SegmentImpl.track_event(user_id, event_name, event_dict)
+
+    @staticmethod
+    def chatroom_participants_count(card_instance):
+
+        filter_dict = {
+            'card': card_instance,
+            'follow_status': True,
+            'is_tagged': False,
+            'remove': None,
+            'user__userinfo__is_guest': False
+        }
+
+        total_participants_list = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',
+                                                                                                            flat=True)
+
+        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list,
+                                                                           card_instance.community)
+
+        return len(member_data)
+
+    @staticmethod
+    def set_chatroom_conversion_type_status_key_in_cache(chatroom_id, is_converting=False):
+        key = CHATROOM_TYPE_CONVERSION.format(chatroom_id)
+        CacheImpl.set_cache(key, {"is_converting": is_converting})
+
+    @staticmethod
+    def get_chatroom_conversion_type_status_of_chatroom_from_cache(chatroom_id):
+
+        key = CHATROOM_TYPE_CONVERSION.format(chatroom_id)
+        chatroom_conversion_type = CacheImpl.get_cache(key)
+
+        if chatroom_conversion_type:
+            return chatroom_conversion_type.get('is_converting', False)
+
+        return False

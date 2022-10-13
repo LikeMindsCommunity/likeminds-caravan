@@ -201,7 +201,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
         if self.restrict_members_count:
             return None
 
-        return get_members_count_in_community(instance)
+        return get_members_count_in_community(instance, remove_guest_user=True)
 
     def to_representation(self, community):
         data = super(CommunitySerializerV1, self).to_representation(community)
@@ -299,8 +299,8 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'testimonials', 'faq', 'online_link_enable_before', 'is_paid', 'access', 'online_link_type',
                   'online_link', 'online_link_id', 'online_link_password', 'event_payment_link', 'event_web_page',
                   'webflow_item_id', 'is_private', 'chatroom_with_user_id', 'member_can_message', 'cohorts',
-                  'has_event_recording', 'unread_messages', 'access_without_subscription', 'third_party_unique_id'
-                  )
+                  'has_event_recording', 'unread_messages', 'access_without_subscription', 'third_party_unique_id',
+                  'include_members_later')
 
     def __init__(self, *args, **kwargs):
         super(GetChatroomInstanceSerializer, self).__init__(*args, **kwargs)
@@ -1467,4 +1467,18 @@ class ScheduledChatroomFollowSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ScheduledChatroomFollow
+        fields = '__all__'
+
+
+class SDKClientUsersInfoSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = SDKClientUsersInfo
+        fields = ('user', 'community', 'user_unique_id')
+
+
+class CommunityNotificationSettingsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CommunityNotificationSettings
         fields = '__all__'

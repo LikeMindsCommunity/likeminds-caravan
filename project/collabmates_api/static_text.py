@@ -132,7 +132,7 @@ collabcard_action_user_follow_mute = [
 
     {
         'id': 8,
-        'title': 'UnMute notifications'
+        'title': 'Unmute notifications'
     },
 
     {
@@ -201,7 +201,7 @@ collabcard_action_dm_user_mute = [
     },
     {
         'id': 8,
-        'title': 'UnMute notifications'
+        'title': 'Unmute notifications'
     }
 ]
 
@@ -219,13 +219,13 @@ mute_notifications = {'id': 6, 'title': 'Mute notifications'}
 
 delete_chatroom = {'id': 7, 'title': 'Delete chatroom'}
 
-unMute_notifications = {'id': 8, 'title': 'UnMute notifications'}
+unMute_notifications = {'id': 8, 'title': 'Unmute notifications'}
 
 unfollow_chatroom = {'id': 9, 'title': 'Leave chatroom'}
 
 report = {'id': 10, 'title': 'Report Spam/Abuse'}
 
-pin_chatroom = {'id': 13, 'title': "Pin chat room"}
+pin_chatroom = {'id': 13, 'title': "Pin this chatroom"}
 
 unpin_chatroom = {'id': 14, 'title': "Unpin chat room"}
 
@@ -235,7 +235,7 @@ add_all_members = {'id': 16, 'title': "Add all members"}
 
 chatroom_settings = {'id': 17, 'title': "Settings"}
 
-member_can_message = {'id': 18, 'title': "Participants can send message"}
+member_can_message = {'id': 18, 'title': "Members can send messages"}
 
 accessible_without_subscription = {'id': 19, 'title': "Accessible without subscription"}
 
@@ -586,7 +586,7 @@ FREE_LINK_VERSION_CODE = {
 CREATE_CHATROOM_REVAMP_VERSION_CODE = {
     "an": 1001,
     "ios": 1001,
-    "web": 1001
+    "web": 14
 }
 
 MEMBERSHIP_PLANS_MANAGEMENT_TOOLS = {
@@ -631,6 +631,14 @@ DIRECTORY_QUESTIONS_WEB_VERSION_CODE = 1101
 M2CM_V2_ANDROID_VERSION_CODE = 1209
 M2CM_V2_IOS_VERSION_CODE = 1209
 M2CM_V2_WEB_VERSION_CODE = 1209
+
+ALIAS_QUESTION_ANDROID_VERSION_CODE = 188
+ALIAS_QUESTION_IOS_VERSION_CODE = 360
+ALIAS_QUESTION_WEB_VERSION_CODE = 1209
+
+INVITE_SETTING_ANDROID_VERSION_CODE = 190
+INVITE_SETTING_IOS_VERSION_CODE = 360
+INVITE_SETTING_WEB_VERSION_CODE = 1209
 
 DIRECTORY_QUESTIONS_MANAGEMENT_TOOLS_TITLE = "Customise join form"
 MEMBER_REQUEST_TOOL_ROUTE = "route://member_approve?community_id={}&community_name={}"
@@ -683,3 +691,12 @@ SDK_GUEST_USER_DAYS_VALIDITY = 30
 
 SINGLE_EVENT_URL = "{}/single_event/{}"
 AUTO_REGISTER_PARAMS = "?cta=register"
+
+MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP = 3
+
+INVITE_ACTION_TITLE_SDK = "Share"
+
+SEGMENT_NOTIFICATION_TRACKING_EVENT_NAME = "Notification Sent"
+SEGMENT_EVENT_MEMBER_APPROVED = "Member approved by cm"
+SEGMENT_EVENT_MEMBER_REJECTED = "Member rejected by cm"
+SEGMENT_EVENT_LEAVE_COMMUNITY = "Leave community"

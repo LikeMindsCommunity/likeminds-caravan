@@ -11,9 +11,11 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
                             Collabcard, card_answers, conversationEngage, communityQuestions, CommunityUserDelete,
                             communityRightsSettings, CommunitySettings, communityAnswers, questionFilters,
-                            Card_Attachment, CommunityDirectMessageSettings, userMemberRights)
+                            Card_Attachment, CommunityDirectMessageSettings, userMemberRights, Userinfo)
+from collabmates_api.sdk.models import (SdkClient)
 from utility.celery_tasks import update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery, \
-    update_multiple_previews_in_chatroom, set_level_click_state, create_member_dm_chatroom
+    update_multiple_previews_in_chatroom, set_level_click_state, create_member_dm_chatroom, \
+    update_community_pin_chatrooms_list_in_cache, update_preview_for_account_image_change
 from utility.constants import CONVERSATIONS_DISTINCT_CREATORS_KEY, CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, \
     CUSTOM_CLICK_TEXT
 from utility.exception_utilities import CustomException
@@ -27,6 +29,7 @@ from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from utility.utils import (get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room,
                            create_notification_flag)
+from utility.cache_keys import (COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY)
 from .constants import *
 from .member_community_view_helper import MemberCommunityViewHelper
 from ..community.constants import ANSWER_PRIVACY_PUBLIC_VALUE, ANSWER_PRIVACY_KEY, ANSWER_PRIVACY_PRIVATE_VALUE, \
@@ -43,7 +46,13 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_ordered_card_id_on_the_basis_last_message,
                            get_ordered_card_id_on_the_basis_of_participants_count,
                            check_user_has_member_can_initiate_dm_right, get_dm_chatrooms_of_user,
-                           get_last_conversation_id_corresponding_to_chatrooms_list)
+                           get_last_conversation_id_corresponding_to_chatrooms_list,
+                           get_ordered_card_id_on_the_basis_newest_chatroom,
+                           fetch_user_communities_sorted_by_order_time,
+                           get_ordered_card_id_on_the_basis_of_message_count_v2,
+                           get_ordered_card_id_on_the_basis_last_message_v2,
+                           get_ordered_card_id_on_the_basis_of_participants_count_v2,
+                           get_ordered_card_id_on_the_basis_newest_chatroom_v2)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -55,7 +64,8 @@ from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
     check_admin_add_community_managers_right
-from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check
+from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check, \
+    m2cm_v2_version_check
 from utility.response_utilities import ResponseUtilities
 from ..views import get_home_screen_community_actions, generate_internal_link_preview_for_conversation, \
     get_latest_conversation_members, post_introduction_card_for_community, update_community_get_started
@@ -68,9 +78,6 @@ error_logger = LoggingWrapper.get_instance()
 class MemberCommunityImpl(MemberCommunityManager):
     member_id = None
     community_id = None
-    device_id = None
-    platform_code = None
-    version_code = None
 
     def __init__(self, member_id: str, community_id: str, device_id: str = None, platform_code: str = "",
                  version_code: int = 0, api_key: str = None):
@@ -354,7 +361,10 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not user_instance:
             return {'error_message': "Invalid user id", 'status': 400}
 
-        communities = self._find_member_communities(self.get_member_id())
+        member_engage_ids = fetch_user_communities_sorted_by_order_time(self.get_member_id(),
+                                                                        community_id=self.get_community_id(),
+                                                                        page=page)
+        communities = MemberCommunityHelper.get_ordered_home_communities_list_based_on_engage_ids(member_engage_ids)
         community_ids_list = list(communities.values_list("community_id_id", flat=True))
 
         if is_cm and (is_cm == 'true'):
@@ -390,9 +400,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         else:
             total_communities_count = len(community_ids_list)
 
-        community_queryset = self._paged_queryset(communities, page)
-        community_id_list = self.compute_community_id_list_from_queryset(community_queryset)
-        community_list = self._process_communities(community_queryset, community_id_list, user_instance)
+        community_id_list = self.compute_community_id_list_from_queryset(communities)
+        community_list = self._process_communities(communities, community_id_list, user_instance)
 
         return {'your_communities': community_list, 'total_communities_count': total_communities_count}
 
@@ -643,7 +652,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                     'is_owner': data['is_owner'],
                     'community_id': data['community_id'],
                     'route': MEMBER_COMMUNITY_PROFILE_ROUTE % (str(data['community_id']), str(data['member_id'])),
-                    'created_at': data['created_at']
+                    'created_at': data['created_at'],
+                    'user_unique_id': data['user_unique_id'],
+                    'is_guest': data['is_guest']
                 }
 
                 if member['state'] == member_states.ADMIN or \
@@ -812,10 +823,14 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1) -> {}:
 
-        community_instance = Community.get_community_or_None(self.get_community_id())
+        validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
+                                                                              self.get_community_id())
 
-        if not community_instance:
-            return {'error_message': "Invalid community_id", 'status': 400}
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_req.get('community_instance')
 
         filter_dict = {
             'community_id': self.get_community_id(),
@@ -840,12 +855,11 @@ class MemberCommunityImpl(MemberCommunityManager):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
                                                                                self.get_community_id())
 
-        if api_version == api_version_headers.V1:
-            chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
-                pin_status, intro_room_setting_enabled, excluded_card_ids)
-
-            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type,
-                                                                                   page=page)
+        if api_version in [api_version_headers.V1, api_version_headers.V2]:
+            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(intro_room_setting_enabled,
+                                                                                   pin_status, excluded_card_ids,
+                                                                                   order_type, page=page,
+                                                                                   api_version=api_version)
 
         else:
 
@@ -865,10 +879,11 @@ class MemberCommunityImpl(MemberCommunityManager):
                         pin_status, last_seen_chatroom_id, intro_room_setting_enabled, excluded_card_ids, limit_size=5)
             else:
 
-                chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+                chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
                 if not chatroom_instance:
-                    return {'error_message': "Invalid chatroom id", 'status': 400}
+                    return ResponseUtilities.get_impl_error_context("Invalid chatroom ID",
+                                                                    status_code=status_codes.HTTP_400_BAD_REQUEST)
 
                 chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
                     pin_status, intro_room_setting_enabled, excluded_card_ids)
@@ -880,16 +895,26 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
         chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
+        pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
+            community_id=community_instance.id)
 
-        return {'chatrooms': chatroom_context_list}
+        return {
+            'success': True,
+            'chatrooms': chatroom_context_list,
+            'pinned_chatrooms_count': len(pinned_chatrooms_list)
+        }
 
     def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="",
                        page=1) -> {}:
 
-        community_instance = Community.get_community_or_None(self.get_community_id())
+        validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
+                                                                              self.get_community_id())
 
-        if not community_instance:
-            return {'error_message': "Invalid community_id", 'status': 400}
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_req.get('community_instance')
 
         filter_dict = {
             'community_id': self.get_community_id(),
@@ -913,12 +938,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         if create_chatroom_revamp_version_check(self.get_platform_code(), self.get_version_code()):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
                                                                                self.get_community_id())
-        if api_version == api_version_headers.V1:
-            chatroom_queryset = self.fetch_community_chatrooms_queryset_without_last_seen(
-                pin_status, intro_room_setting_enabled, excluded_card_ids)
-
-            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(chatroom_queryset, order_type,
-                                                                                   page=page)
+        if api_version in [api_version_headers.V1, api_version_headers.V2]:
+            chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(intro_room_setting_enabled,
+                                                                                   pin_status, excluded_card_ids,
+                                                                                   order_type, page=page,
+                                                                                   api_version=api_version)
 
         else:
 
@@ -927,10 +951,11 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                      excluded_card_ids)
                 chatroom_list = chatroom_list[:5]
             else:
-                chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+                chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
                 if not chatroom_instance:
-                    return {'error_message': "Invalid chatroom id", 'status': 400}
+                    return ResponseUtilities.get_impl_error_context("Invalid chatroom ID",
+                                                                    status_code=status_codes.HTTP_400_BAD_REQUEST)
 
                 chatroom_list = self.fetch_community_chatrooms_queryset_with_web_scroll(pin_status, chatroom_instance,
                                                                                         intro_room_setting_enabled,
@@ -940,8 +965,14 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
         chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
+        pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
+            community_id=community_instance.id)
 
-        return {'chatrooms': chatroom_context_list}
+        return {
+            'success': True,
+            'chatrooms': chatroom_context_list,
+            'pinned_chatrooms_count': len(pinned_chatrooms_list)
+        }
 
     @staticmethod
     def create_feed_actions(community_instance,
@@ -1340,38 +1371,30 @@ class MemberCommunityImpl(MemberCommunityManager):
             return get_error_context(False, "Invalid value of key 'from'.")
 
     def fetch_member_profile(self, user_id):
-        current_user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        validated_req = MemberCommunityViewHelper.validate_fetch_member_profile_request(self.get_member_id(), user_id,
+                                                                                        self.get_community_id(),
+                                                                                        self.get_api_key())
 
-        if not current_user_instance:
-            return get_error_context(False, "Invalid x-member-id")
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community_id")
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid user_id")
-
-        filter_dict = {
-            'member': user_instance,
-            'community': community_instance,
-            'removed_state': deleted_members.MEMBERSHIP_EXPIRED
-        }
+        current_user_instance = validated_req.get('current_user_instance')
+        community_instance = validated_req.get('community_instance')
+        user_instance = validated_req.get('user_instance')
 
         removed_user_state = self.compute_removed_user_context(user_instance, community_instance)
 
         if removed_user_state.get('remove_state'):
-            removed_user_state['success'] = True
-            return removed_user_state
+            return ResponseUtilities.get_impl_error_context("Profile doesn't exists!",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         current_user_member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
                                                                                'member_id': current_user_instance})
 
         if not current_user_member_filter:
-            return get_error_context(False, "You are not part of the community!")
+            return ResponseUtilities.get_impl_error_context("You are not part of the community!",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         current_user_member_instance = current_user_member_filter[0]
 
@@ -1379,7 +1402,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                        'member_id': user_instance})
 
         if not user_member_filter:
-            return get_error_context(False, "Profile doesn't exists!")
+            return ResponseUtilities.get_impl_error_context("Profile doesn't exists!",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         user_member_instance = user_member_filter[0]
 
@@ -1394,6 +1418,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         user_menu = MemberCommunityHelper.get_member_profile_menu(user_member_instance, community_instance,
                                                                   current_user_member_instance)
+
+        user_menu = MemberCommunityHelper.update_member_profile_menu_for_sdk(user_member_instance, community_instance,
+                                                                             current_user_member_instance, user_menu)
 
         member_profile_response = {
             'success': True,
@@ -1411,10 +1438,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not user_instance:
             return get_error_context(False, "Invalid x-member-id")
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
+        community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
+                                                                      api_key=self.get_api_key())
 
         if not community_instance:
-            return get_error_context(False, "Invalid community_id")
+            return ResponseUtilities.get_inner_error_context("Invalid community ID or x-api-key")
 
         user_member_filter = ModelUtilities.get_model_filter(Members,
                                                              {'member_id': user_instance,
@@ -1477,6 +1505,11 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                      'last_updated': TimeUtilities.current_time_in_milliseconds()})
                         update_preview = True
 
+                elif question_instance.question_state == question_states.NAME:
+                    MemberCommunityHelper.update_user_alias_name(self.get_member_id(),
+                                                                 self.get_community_id(),
+                                                                 question.get(DIRECTORY_QUESTIONS_V2_ANSWER_KEY))
+
         question_answers_data = MemberCommunityHelper.get_question_answer_data_in_member_profile(user_member_instance,
                                                                                                  user_member_instance,
                                                                                                  community_instance)
@@ -1487,6 +1520,9 @@ class MemberCommunityImpl(MemberCommunityManager):
             MemberCommunityHelper.update_users_image_url_in_community(user_member_filter, image_url,
                                                                       user_intro_card_instance)
             update_preview = True
+
+            if req_body.get('type') == api_types.SDK:
+                MemberCommunityHelper.update_user_image_in_sdk(user_instance, image_url)
 
         if (not user_intro_card_instance) and (user_member_instance.state in [member_states.ADMIN,
                                                                               member_states.MEMBER,
@@ -1514,25 +1550,74 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True}
     
-    def _get_sorted_chatroom_queryset_based_on_order_type(self, chatroom_queryset, order_type, page=1, limit=10):
-        card_ids = chatroom_queryset.values_list('card_id', flat=True)
+    def _get_sorted_chatroom_queryset_based_on_order_type(self, intro_room_settings_enabled, pin_status,
+                                                          excluded_card_ids, order_type, page=1,
+                                                          api_version=api_version_headers.V1, limit=10):
+
+        excluded_card_types = [card_types.CARD_INTRO, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]
+
+        if not intro_room_settings_enabled:
+            excluded_card_types.append(card_types.CARD_MASTER_INTRO)
+
+        pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
+            self.get_community_id())
+
         ordered_card_ids = []
 
-        if order_type == 0:
-            return ModelUtilities.paginate_queryset(chatroom_queryset.order_by('-card__created_at'), page=page,
-                                                    paginate_by=limit)
+        if (order_type == 0) and (api_version == api_version_headers.V1):
+            ordered_card_ids = get_ordered_card_id_on_the_basis_newest_chatroom(self.get_member_id(),
+                                                                                self.get_community_id(),
+                                                                                pin_status, excluded_card_ids,
+                                                                                excluded_card_types, page, limit)
 
+        if (order_type == 0) and (api_version == api_version_headers.V2):
+            ordered_card_ids = get_ordered_card_id_on_the_basis_newest_chatroom_v2(self.get_member_id(),
+                                                                                   self.get_community_id(),
+                                                                                   pin_status, excluded_card_ids,
+                                                                                   excluded_card_types,
+                                                                                   pinned_chatrooms_list, page, limit)
         # Recently Active
-        if order_type == 1:
-            ordered_card_ids = get_ordered_card_id_on_the_basis_last_message(card_ids, page, limit)
+        if (order_type == 1) and (api_version == api_version_headers.V1):
+            ordered_card_ids = get_ordered_card_id_on_the_basis_last_message(self.get_member_id(),
+                                                                             self.get_community_id(),
+                                                                             pin_status, excluded_card_ids,
+                                                                             excluded_card_types, page, limit)
+
+        if (order_type == 1) and (api_version == api_version_headers.V2):
+            ordered_card_ids = get_ordered_card_id_on_the_basis_last_message_v2(self.get_member_id(),
+                                                                                self.get_community_id(),
+                                                                                pin_status, excluded_card_ids,
+                                                                                excluded_card_types,
+                                                                                pinned_chatrooms_list, page, limit)
 
         # Most Messages
-        if order_type == 2:
-            ordered_card_ids = get_ordered_card_id_on_the_basis_of_message_count(card_ids, page, limit)
+        if (order_type == 2) and (api_version == api_version_headers.V1):
+            ordered_card_ids = get_ordered_card_id_on_the_basis_of_message_count(self.get_member_id(),
+                                                                                 self.get_community_id(),
+                                                                                 pin_status, excluded_card_ids,
+                                                                                 excluded_card_types, page, limit)
+
+        if (order_type == 2) and (api_version == api_version_headers.V2):
+            ordered_card_ids = get_ordered_card_id_on_the_basis_of_message_count_v2(self.get_member_id(),
+                                                                                    self.get_community_id(),
+                                                                                    pin_status, excluded_card_ids,
+                                                                                    excluded_card_types,
+                                                                                    pinned_chatrooms_list, page, limit)
 
         # Most Participants
-        if order_type == 3:
-            ordered_card_ids = get_ordered_card_id_on_the_basis_of_participants_count(card_ids, page, limit)
+        if (order_type == 3) and (api_version == api_version_headers.V1):
+            ordered_card_ids = get_ordered_card_id_on_the_basis_of_participants_count(self.get_member_id(),
+                                                                                      self.get_community_id(),
+                                                                                      pin_status, excluded_card_ids,
+                                                                                      excluded_card_types, page, limit)
+
+        if (order_type == 3) and (api_version == api_version_headers.V2):
+            ordered_card_ids = get_ordered_card_id_on_the_basis_of_participants_count_v2(self.get_member_id(),
+                                                                                         self.get_community_id(),
+                                                                                         pin_status, excluded_card_ids,
+                                                                                         excluded_card_types,
+                                                                                         pinned_chatrooms_list, page,
+                                                                                         limit)
 
         chatroom_queryset = MemberCommunityHelper.get_ordered_collabcard_state_list_based_on_card_ids(
             self.get_member_id(), ordered_card_ids)
@@ -1540,12 +1625,14 @@ class MemberCommunityImpl(MemberCommunityManager):
         return chatroom_queryset
 
     def request_dm_limit(self, member_id: str) -> {}:
-        validated_request = MemberCommunityHelper.validate_request_dm_limit_request(self.get_member_id(),
-                                                                                    self.get_community_id(),
-                                                                                    member_id)
+        validated_request = MemberCommunityViewHelper.validate_request_dm_limit_request(self.get_member_id(),
+                                                                                        self.get_community_id(),
+                                                                                        self.get_api_key(),
+                                                                                        member_id)
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
@@ -1556,7 +1643,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                              'setting_type': community_setting_types.DIRECT_MESSAGES})
 
         if all([dm_setting_filter, not dm_setting_filter[0].enabled]):
-            return get_error_context(False, 'Direct message is disabled for the community!')
+            return ResponseUtilities.get_impl_error_context('Direct message is disabled for the community!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
@@ -1580,23 +1668,24 @@ class MemberCommunityImpl(MemberCommunityManager):
         return response
 
     def fetch_dm_chatrooms(self, page: int = 1) -> {}:
-        validated_request = MemberCommunityHelper.validate_fetch_dm_chatrooms_request(self.get_member_id(),
-                                                                                      self.get_community_id(),
-                                                                                      page)
+        validated_request = MemberCommunityViewHelper.validate_fetch_dm_chatrooms_request(self.get_member_id(),
+                                                                                          self.get_community_id(),
+                                                                                          self.get_api_key())
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
-        page = validated_request.get('page')
 
         dm_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
                                                             {'community': community_instance,
                                                              'setting_type': community_setting_types.DIRECT_MESSAGES})
 
         if all([dm_setting_filter, not dm_setting_filter[0].enabled]):
-            return get_error_context(False, 'Direct message is disabled!')
+            return ResponseUtilities.get_impl_error_context('Direct message is disabled!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         total_pages = 0
 
@@ -1609,23 +1698,27 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         total_pages = int(math.ceil(len(card_state_map) / CHATROOMS_RECORD_LIMIT))
 
-        card_ans_map = get_last_conversation_id_corresponding_to_chatrooms_list(list(card_state_map.keys()), page=page)
+        convsersation_states_to_consider = [
+            conversation_states.ANSWER,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT
+        ]
+
+        conversation_states_excluded = [
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_REMOVED_OR_LEFT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT
+        ]
+
+        card_ans_map = get_last_conversation_id_corresponding_to_chatrooms_list(
+            list(card_state_map.keys()), excluded_conversation_state=conversation_states_excluded, page=page)
 
         if not card_ans_map:
             return {'success': True, 'dm_chatrooms': [], 'total_pages': total_pages}
 
         dm_chatrooms = []
-
-        convsersation_states_to_consider = [
-            conversation_states.ANSWER,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_REMOVED_OR_LEFT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT,
-            conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT
-        ]
 
         rights_list = list(ModelUtilities.get_model_filter(userMemberRights,
                                                            {'user': user_instance,
@@ -1644,12 +1737,14 @@ class MemberCommunityImpl(MemberCommunityManager):
         return {'success': True, 'dm_chatrooms': dm_chatrooms, 'total_pages': total_pages}
 
     def member_can_dm(self, req_body: dict) -> {}:
-        validated_request = MemberCommunityHelper.validate_member_can_dm_request(self.get_member_id(),
-                                                                                 self.get_community_id(),
-                                                                                 req_body)
+        validated_request = MemberCommunityViewHelper.validate_member_can_dm_request(self.get_member_id(),
+                                                                                     self.get_community_id(),
+                                                                                     self.get_api_key(),
+                                                                                     req_body)
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
@@ -1692,7 +1787,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not members_filter:
             MemberCommunityHelper.make_requesting_user_as_member_of_community(user_instance, community_instance,
                                                                               req_body, device_id=self.get_device_id(),
-                                                                              platform=self.get_platform_code())
+                                                                              platform=self.get_platform_code(),
+                                                                              version_code=self.get_version_code())
 
         user_has_access = Members.user_has_app_access(user_instance.id)
 
@@ -1835,6 +1931,10 @@ class MemberCommunityHelper:
             temp['id'] = value['id']
             temp['name'] = value['name']
             temp['image_url'] = value['image_url']
+            temp['user_unique_id'] = value['user_unique_id']
+
+            if value.get('is_guest') is not None:
+                temp['is_guest'] = value.get('is_guest')
 
             member_list.append(temp)
 
@@ -1925,10 +2025,11 @@ class MemberCommunityHelper:
                 if not community_question_instance:
                     continue
 
-                if all([community_question_instance.question_title == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                if any([all([community_question_instance.question_title == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
                         community_question_instance.is_hidden,
                         community_question_instance.field,
-                        community_question_instance.question_state == question_states.PARAGRAPH]):
+                        community_question_instance.question_state == question_states.PARAGRAPH]),
+                        community_question_instance.question_state == question_states.NAME]):
                     continue
 
                 question_data = CommunityQuestionsSerializerV2(community_question_instance, many=False).data
@@ -2085,6 +2186,29 @@ class MemberCommunityHelper:
         return menu
 
     @staticmethod
+    def update_member_profile_menu_for_sdk(user_member_instance, community_instance, current_user_member_instance, menu):
+
+        community = ModelUtilities.get_model_filter(SdkClient, {"community": community_instance, "is_deleted": False})
+
+        if not community:
+            return menu
+
+        if (current_user_member_instance.state == member_states.ADMIN and
+                user_member_instance.state == member_states.MEMBER):
+            all_menu_items = {key: {k1: v1 for k1, v1 in value.items()} for key, value in
+                              MEMBER_PROFILE_MENU_ITEMS.items()}
+            allowed_menu_items = [all_menu_items.get("EDIT_PERMISSIONS"), all_menu_items.get("REMOVE_FROM_COMMUNITY")]
+            updated_menu = []
+
+            for menu_item in menu:
+                if menu_item.get("title") in [item.get("title") for item in allowed_menu_items]:
+                    updated_menu.append(menu_item)
+
+            return updated_menu
+
+        return []
+
+    @staticmethod
     def update_users_image_url_in_community(user_member_filter, image_url, user_intro_card_instance):
         user_member_filter.update(image_url=image_url, updated_at=TimeUtilities.current_time_in_sec())
 
@@ -2116,86 +2240,6 @@ class MemberCommunityHelper:
         queryset = collabcardState.objects.filter(card_id__in=card_ids, user_id=user_id).order_by(preserved)
 
         return queryset
-
-    @staticmethod
-    def validate_request_dm_limit_request(user_id, community_id, member_id):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid x-member-id")
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community_id")
-
-        member_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
-
-        if not member_instance:
-            return get_error_context(False, "Invalid member_id")
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
-                'member_instance': member_instance}
-
-    @staticmethod
-    def validate_fetch_dm_chatrooms_request(user_id, community_id, page_no):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid x-member-id")
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community_id")
-
-        if not isinstance(page_no, int):
-            page_no = NumberUtilities.get_integer_from_string(page_no, 0)
-
-            if not page_no:
-                return get_error_context(False, "Page must be integer")
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
-                'page': page_no}
-
-    @staticmethod
-    def validate_member_can_dm_request(user_id, community_id, req_body):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            return get_error_context(False, "Invalid x-member-id")
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return get_error_context(False, "Invalid community_id")
-
-        if not req_body.get('req_from'):
-            return get_error_context(False, "Send req_from")
-
-        if req_body.get('req_from') not in [dm_icon_from_states.MEMBER_PROFILE, dm_icon_from_states.COMMUNITY_DETAIL,
-                                            dm_icon_from_states.DM_FEED, dm_icon_from_states.MEMBER_DIRECTORY,
-                                            dm_icon_from_states.CHATROOM]:
-            return get_error_context(False, "Invalid req_from")
-
-        member_instance = None
-        chatroom_instance = None
-
-        if req_body.get('member_id'):
-            member_instance = ModelUtilities.get_model_instance_or_none(User, req_body.get('member_id'))
-
-            if not member_instance:
-                return get_error_context(False, "Invalid member_id")
-
-        if req_body.get('chatroom_id'):
-            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
-
-            if not chatroom_instance:
-                return get_error_context(False, "Invalid chatroom_id")
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
-                'member_instance': member_instance, 'req_from': req_body.get('req_from'),
-                'chatroom_instance': chatroom_instance}
 
     @staticmethod
     def member_request_dm_limit(user_instance, community_instance, response):
@@ -2497,7 +2541,7 @@ class MemberCommunityHelper:
 
     @staticmethod
     def make_requesting_user_as_member_of_community(user_instance, community_instance, req_body, device_id=None,
-                                                    platform=None):
+                                                    platform=None, version_code=None):
         Members.create_instance({'user_instance': user_instance,
                                  'community_instance': community_instance,
                                  'state': member_states.MEMBER,
@@ -2543,8 +2587,11 @@ class MemberCommunityHelper:
             CommunityHelper.update_community_level_actions(community_instance,
                                                            action_required_by_promoter, members_count)
 
+        is_m2cm_v2 = m2cm_v2_version_check(platform, version_code)
+
         create_member_dm_chatroom.delay(community_impl.get_member_id(), community_impl.get_community_id(),
-                                        device_id=device_id, request_platform=platform, is_joining=True)
+                                        device_id=device_id, request_platform=platform, is_joining=True,
+                                        is_m2cm_v2=is_m2cm_v2)
 
         from collabmates_api.cohort.cohort_impl import CohortHelper
         CohortHelper.add_all_member_to_cohort(community_impl.get_community_id(), [community_impl.get_member_id()])
@@ -2561,3 +2608,55 @@ class MemberCommunityHelper:
         update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
 
         CommunityHelper.send_community_moderation_mail_to_cm.delay(community_instance.id)
+
+    @staticmethod
+    def get_ordered_home_communities_list_based_on_engage_ids(member_engage_ids):
+
+        preserved = Case(*[When(id=id, then=pos) for pos, id in enumerate(member_engage_ids)])
+        queryset = ModelUtilities.get_model_filter(Member_Engage, {"id__in": member_engage_ids}).order_by(preserved)
+
+        return queryset
+
+    @staticmethod
+    def get_pinned_chatrooms_in_community_from_cache(community_id):
+
+        key = COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY.format(community_id)
+        pinned_chatrooms_list = CacheImpl.get_cache(key)
+
+        if not pinned_chatrooms_list:
+            return update_community_pin_chatrooms_list_in_cache({'community_id': community_id})
+
+        else:
+            return pinned_chatrooms_list.get('pinned_chatrooms', [])
+
+    @staticmethod
+    def update_user_alias_name(user_id, community_id, user_name):
+        ModelUtilities.model_update(Userinfo,
+                                    {
+                                        'user_id': user_id
+                                    },
+                                    {
+                                        'name': user_name
+                                    })
+
+        ModelUtilities.model_update(Members,
+                                    {
+                                        'member_id': user_id,
+                                        'community_id': community_id
+                                    },
+                                    {
+                                        'updated_at': TimeUtilities.current_time_in_sec()
+                                    })
+
+    @staticmethod
+    def update_user_image_in_sdk(user_instance, image_url):
+
+        userinfo_instance = user_instance.userinfo
+        previous_image_url = userinfo_instance.image_link
+        userinfo_instance.image_link = image_url
+        userinfo_instance.updated_at = TimeUtilities.current_time_in_sec()
+        userinfo_instance.save()
+
+        update_preview_for_account_image_change.delay({'user_id': user_instance.id,
+                                                       'image_url': image_url,
+                                                       'previous_image_url': previous_image_url})

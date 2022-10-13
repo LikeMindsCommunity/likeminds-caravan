@@ -160,13 +160,14 @@ class ApproveOrDeclineCommunity(APIView):
 
         device_id = RequestUtilities.get_device_id_from_headers(request)
         request_platform = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
 
         if not req_body:
             return JsonResponse({'success': False, 'error_message': "Invalid community"},
                                 status=status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(member_id, req_body.get('community_id'), device_id=device_id,
-                                          request_platform=request_platform)
+                                          request_platform=request_platform, version_code=version_code)
         community_context = community_manager.approve_or_decline_community(req_body)
 
         if 'error_message' in community_context:
@@ -381,6 +382,7 @@ class FetchCommunitySettings(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not member_id:
             raise InvalidHeaderException()
@@ -388,7 +390,7 @@ class FetchCommunitySettings(APIView):
         community_id = request.GET.get('community_id', None)
 
         community_manager = CommunityImpl(member_id=member_id, community_id=community_id, version_code=version_code,
-                                          request_platform=platform_code)
+                                          request_platform=platform_code, api_key=api_key)
 
         response = community_manager.fetch_community_settings()
 
@@ -401,15 +403,13 @@ class FetchCommunitySettings(APIView):
 class UpdateCommunitySettings(APIView):
     def post(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        if not member_id:
-            raise InvalidHeaderException()
-
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         req_body = RequestUtilities.load_request_body(request)
 
         community_settings = req_body.get('community_settings', [])
         community_id = req_body.get('community_id', None)
 
-        community_manager = CommunityImpl(member_id=member_id, community_id=community_id)
+        community_manager = CommunityImpl(member_id=member_id, community_id=community_id, api_key=api_key)
 
         response = community_manager.update_community_settings(community_settings)
 
@@ -520,14 +520,13 @@ class FetchCommunityMeta(APIView):
     def _validate_request(self, aj):
         res = {}
 
-        if not aj:
+        if not (aj and str(aj).isdigit()):
             res = get_error_context(False, "Invalid aj")
 
         return res
 
     def post(self, request):
         try:
-            member_id = RequestUtilities.get_member_id_from_headers(request)
             aj = request.query_params.get('aj')
             platform_code = RequestUtilities.get_platform_code(request)
             version_code = RequestUtilities.get_version_code_from_headers(request)
@@ -539,7 +538,7 @@ class FetchCommunityMeta(APIView):
 
             from .community_impl import CommunityHelper
 
-            res = CommunityHelper.fetch_community_for_aj(aj, member_id, platform_code, version_code)
+            res = CommunityHelper.fetch_community_for_aj(aj, platform_code, version_code)
 
             if res.get('success'):
                 return JsonResponse(res, status=status_codes.HTTP_200_OK)
@@ -610,9 +609,6 @@ class EditCommunityQuestionsView(APIView):
         if not member_id:
             return {'success': False, 'error_message': 'Send member_id'}
 
-        if not req_body.get('community_id'):
-            return {'success': False, 'error_message': 'Send community_id'}
-
         req_body['success'] = True
         req_body['member_id'] = member_id
         return req_body
@@ -620,6 +616,7 @@ class EditCommunityQuestionsView(APIView):
     def post(self, request):
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         validated_body = self._validate_request(request)
 
         if not validated_body.get('success'):
@@ -628,7 +625,8 @@ class EditCommunityQuestionsView(APIView):
         community_manager = CommunityImpl(member_id=validated_body.get('member_id'),
                                           community_id=validated_body.get('community_id'),
                                           version_code=version_code,
-                                          request_platform=platform_code)
+                                          request_platform=platform_code,
+                                          api_key=api_key)
 
         res = community_manager.edit_questions(validated_body)
 
@@ -766,9 +764,6 @@ class UpdateCommunityDMSettingsView(APIView):
         if not member_id:
             return {'success': False, 'error_message': 'Send member_id'}
 
-        if not req_body.get('community_id'):
-            return {'success': False, 'error_message': 'Send community_id'}
-
         req_body['success'] = True
         req_body['member_id'] = member_id
         return req_body
@@ -776,6 +771,7 @@ class UpdateCommunityDMSettingsView(APIView):
     def post(self, request):
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         validated_body = self._validate_request(request)
 
         if not validated_body.get('success'):
@@ -784,7 +780,8 @@ class UpdateCommunityDMSettingsView(APIView):
         community_manager = CommunityImpl(member_id=validated_body.get('member_id'),
                                           community_id=validated_body.get('community_id'),
                                           version_code=version_code,
-                                          request_platform=platform_code)
+                                          request_platform=platform_code,
+                                          api_key=api_key)
 
         res = community_manager.update_community_dm_settings(validated_body)
 
@@ -803,9 +800,6 @@ class FetchCommunityDMSettingsView(APIView):
         if not member_id:
             return {'success': False, 'error_message': 'Send member_id'}
 
-        if not req_body.get('community_id'):
-            return {'success': False, 'error_message': 'Send community_id'}
-
         validated_req['success'] = True
         validated_req['member_id'] = member_id
         validated_req['community_id'] = req_body.get('community_id')
@@ -816,6 +810,7 @@ class FetchCommunityDMSettingsView(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         req_body = RequestUtilities.fetch_request_query_params(request)
         validated_body = self._validate_request(member_id, req_body)
 
@@ -825,7 +820,8 @@ class FetchCommunityDMSettingsView(APIView):
         community_manager = CommunityImpl(member_id=validated_body.get('member_id'),
                                           community_id=validated_body.get('community_id'),
                                           version_code=version_code,
-                                          request_platform=platform_code)
+                                          request_platform=platform_code,
+                                          api_key=api_key)
 
         res = community_manager.fetch_community_dm_settings()
 
@@ -881,7 +877,8 @@ class EditCommunityView(APIView):
     def post(self, request):
         request_body = RequestUtilities.load_request_body(request)
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        username, password = CMSAuthUtilities.get_username_and_password_from_headers(request)
+        username = RequestUtilities.get_user_name_from_headers(request)
+        password = RequestUtilities.get_password_from_headers(request)
 
         community_manager = CommunityImpl(member_id=member_id, community_id=request_body.get('community_id'))
         community_data = community_manager.edit_community(request_body, username, password)
@@ -921,3 +918,32 @@ class CommunityMemberView(APIView):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_data.get('error_message'),
                                                                                 community_data.get('status')))
         return JsonResponse(community_data)
+
+
+class CommunityNotificationSettings(APIView):
+
+    def put(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        community_manager = CommunityImpl(member_id=member_id, community_id=req_body.get('community_id'))
+        res = community_manager.update_community_noti_settings(req_body)
+
+        if res.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.fetch_request_query_params(request)
+
+        community_manager = CommunityImpl(member_id=member_id, community_id=req_body.get('community_id'))
+        res = community_manager.fetch_community_noti_settings()
+
+        if res.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)

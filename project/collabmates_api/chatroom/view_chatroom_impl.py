@@ -14,6 +14,8 @@ from .chatroom_view_helper import ChatroomViewHelper
 from ..mixins import TransactionMixin
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.response_utilities import ResponseUtilities
+from utility.states import (api_types)
+from utility.number_utilities import NumberUtilities
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -30,10 +32,12 @@ class FetchChatroomView(APIView):
         is_internal = StringUtilities.get_boolean_from_string(request.GET.get('is_internal'))
 
         chatroom_id = request.GET.get('chatroom_id')
+        api_type = NumberUtilities.get_integer_from_string(request.GET.get('api_type', api_types.Non_SDK),
+                                                           api_types.Non_SDK)
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, device_id=device_id,
                                         request_platform=request_platform, version_code=version_code)
-        chatroom_data = chatroom_manager.fetch_chatroom(is_internal=is_internal)
+        chatroom_data = chatroom_manager.fetch_chatroom(is_internal=is_internal, api_type=api_type)
 
         if 'error_message' in chatroom_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
@@ -50,10 +54,11 @@ class FetchAllChatroomView(APIView):
         request_platform = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
+        page = RequestUtilities.get_page_number(request)
 
         chatroom_manager = ChatroomImpl(member_id, device_id=device_id, request_platform=request_platform,
                                         version_code=version_code, api_key=api_key)
-        chatroom_data = chatroom_manager.fetch_all_chatroom()
+        chatroom_data = chatroom_manager.fetch_all_chatroom(page=page)
 
         if chatroom_data.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
@@ -106,8 +111,8 @@ class PinUnpinChatroomView(APIView):
         context = chatroom_manager.pin_or_unpin_chatroom(req_body)
 
         if context.get('error_message'):
-            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
-
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
         return JsonResponse(context)
 
 
@@ -167,30 +172,17 @@ class AddSecretChatroomParticipantView(APIView):
 
     def post(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
-        if not member_id:
-            raise InvalidHeaderException()
-
         req_body = RequestUtilities.fetch_request_body(request)
-
         chatroom_id = req_body.get('chatroom_id', None)
 
-        if chatroom_id is None:
-            response = {
-                'success': False,
-                'error_message': 'send chatroom id in body'
-            }
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
-
         chatroom_manager = ChatroomImpl(member_id, chatroom_id=chatroom_id)
+        chatroom_data = chatroom_manager.add_secret_chatroom_participant(req_body)
 
-        chatroom_manager.add_secret_chatroom_participant(req_body)
+        if 'error_message' in chatroom_data:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
+                                                                                chatroom_data.get('status')))
 
-        context = {
-            "success": True
-        }
-
-        return JsonResponse(context)
+        return JsonResponse(chatroom_data)
 
 
 class GetTaggingList(APIView):
@@ -237,8 +229,9 @@ class AutoFollowChatroomForAllMembersView(APIView):
         response = chatroom_manager.follow_chatroom_automatically_for_all_members_of_community(header_member_id,
                                                                                                request_body)
 
-        if response.get('error_message'):
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+        if 'error_message' in response:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
+                                                                                response.get('status')))
 
         return JsonResponse(response)
 
@@ -275,9 +268,7 @@ class FetchParticipantsOfSecretChatroom(APIView):
     def get(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
         chatroom_id = request.GET.get('chatroom_id')
-
         chatroom_manager = ChatroomImpl(member_id, chatroom_id)
 
         try:
@@ -614,7 +605,8 @@ class FetchChatroomSettingsView(APIView):
         response_context = chatroom_manager.fetch_chatroom_settings()
 
         if response_context.get('error_message'):
-            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
 
         return JsonResponse(response_context)
 
@@ -635,7 +627,8 @@ class AddMembersToChatroomView(APIView):
         response_context = chatroom_manager.add_members_to_chatroom(chatroom_participants)
 
         if response_context.get('error_message'):
-            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
 
         return JsonResponse(response_context)
 
@@ -716,7 +709,8 @@ class ChangeChatroomTypeView(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
         if not member_id:
-            raise InvalidHeaderException()
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid member-id',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         req_body = RequestUtilities.load_request_body(request)
 
@@ -726,6 +720,32 @@ class ChangeChatroomTypeView(APIView):
         chatroom_manager = ChatroomImpl(member_id, device_id=device_id,
                                         request_platform=request_platform)
         context = chatroom_manager.change_chatroom_type(req_body)
+
+        if context.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
+
+        return JsonResponse(context)
+
+    def get(self, request, *args, **kwargs):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        if not member_id:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid member-id',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
+
+        chatroom_id = request.GET.get('chatroom_id')
+
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+        request_platform = RequestUtilities.get_platform_code(request)
+
+        chatroom_manager = ChatroomImpl(member_id, chatroom_id=chatroom_id, device_id=device_id,
+                                        request_platform=request_platform)
+        context = chatroom_manager.get_change_chatroom_type_status()
+
+        if context.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
 
         return JsonResponse(context)
 
@@ -953,9 +973,7 @@ class FetchChatroomParticipantsView(APIView):
     def get(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-
         chatroom_id = request.GET.get('chatroom_id')
-
         chatroom_manager = ChatroomImpl(member_id, chatroom_id)
 
         try:
@@ -1014,9 +1032,6 @@ class CreateDMChatroomView(APIView):
         if not req_body:
             return {'success': False, 'error_message': "Invalid request body"}
 
-        if not req_body.get('community_id'):
-            return {'success': False, 'error_message': "Empty Community ID!"}
-
         if not req_body.get('member_id'):
             return {'success': False, 'error_message': "Empty Member ID!"}
 
@@ -1025,6 +1040,7 @@ class CreateDMChatroomView(APIView):
     def post(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         req_body = RequestUtilities.load_request_body(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         validated_request = self._validate_request(member_id, req_body)
 
@@ -1034,14 +1050,14 @@ class CreateDMChatroomView(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
         request_platform = RequestUtilities.get_platform_code(request)
 
-        chatroom_manager = ChatroomImpl(member_id, device_id=device_id,
-                                        request_platform=request_platform)
+        chatroom_manager = ChatroomImpl(member_id, device_id=device_id, request_platform=request_platform,
+                                        api_key=api_key)
         response_context = chatroom_manager.create_dm_chatroom(req_body)
 
-        if response_context.get('success'):
-            return JsonResponse(response_context, status=status_codes.HTTP_200_OK)
-
-        return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+        if 'error_message' in response_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
+        return JsonResponse(response_context)
 
 
 class BlockMemberView(APIView):
@@ -1156,3 +1172,51 @@ class ScheduledChatroomFollow(APIView):
                 res,
                 status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class ChatroomNotificationSettings(APIView):
+
+    def _validate_request(self, member_id, req_body):
+
+        if not member_id:
+            return {'success': False, 'error_message': "Send x-member-id in headers"}
+
+        if not req_body:
+            return {'success': False, 'error_message': "Invalid request body"}
+
+        if not req_body.get('chatroom_id'):
+            return {'success': False, 'error_message': "Invalid Chatroom ID!"}
+
+        return {'success': True}
+
+    def put(self, request):
+        req_body = RequestUtilities.load_request_body(request)
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        validated_request = self._validate_request(member_id, req_body)
+
+        if not validated_request.get('success'):
+            return JsonResponse(validated_request, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
+        response_context = chatroom_manager.update_chatroom_noti_settings(req_body.get('noti_state'),
+                                                                          req_body.get('is_noti_paused'),
+                                                                          req_body.get('pause_noti_for'))
+
+        if 'error_message' in response_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
+        return JsonResponse(response_context)
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.fetch_request_query_params(request)
+
+        community_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
+        res = community_manager.fetch_chatroom_noti_settings()
+
+        if res.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)

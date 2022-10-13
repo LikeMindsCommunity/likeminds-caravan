@@ -5,6 +5,7 @@ import logging
 import psycopg2
 from utility.states import card_types, conversation_states
 from utility.utils import is_version_code_supported_for_intro_room
+from .static_text import (MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP)
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -53,7 +54,8 @@ def get_my_chatrooms_count(user_id,
                            consider_dm_chatrooms=False,
                            dm_instance_community_ids_list=[],
                            community_id=None,
-                           intro_room_community_list=[]):
+                           intro_room_community_list=[],
+                           should_add_dm_chatrooms=False):
     '''function to give the count of active my chatrooms'''
     try:
         is_private = "FALSE"
@@ -94,6 +96,14 @@ def get_my_chatrooms_count(user_id,
             if excluded_card_ids:
                 excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
 
+        dm_chatrooms_filter = """is_private = {} 
+                                 AND is_private_member = FALSE 
+                                 AND chatroom_with_user_id IS {} AND""".format(is_private, chatroom_with_user_id_val)
+
+        if should_add_dm_chatrooms:
+            dm_chatrooms_filter = ""
+
+
         conn = get_connection()
         curr = conn.cursor()
 
@@ -108,18 +118,14 @@ def get_my_chatrooms_count(user_id,
                                               AND secret_chatroom_left = FALSE
                                               AND card_id IN (SELECT id
                                                               FROM   togther_collabcard
-                                                              WHERE  (is_private = %s
-                                                                     AND is_private_member = FALSE
-                                                                     AND not (%s)
-                                                                     AND chatroom_with_user_id
-                                                                         IS %s %s) %s)
+                                                              WHERE  (%s is_deleted = FALSE
+                                                                     AND not (%s) %s) %s)
 
                   ) """ % (
             str(user_id),
             str(user_id),
-            is_private,
+            dm_chatrooms_filter,
             str(filter_intro_rooms_query),
-            chatroom_with_user_id_val,
             dm_chatrooms_communities_filter,
             excluded_card_ids_filter
         )
@@ -179,7 +185,8 @@ def get_followed_chatrooms(user_id,
                            consider_dm_chatrooms=False,
                            dm_instance_community_ids_list=[],
                            community_id=None,
-                           intro_room_community_list=[]):
+                           intro_room_community_list=[],
+                           should_add_dm_chatrooms=False):
     '''function to get the active followed chatroom count'''
     try:
         page_number = int(page)
@@ -223,15 +230,26 @@ def get_followed_chatrooms(user_id,
             if excluded_card_ids:
                 excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
 
+        dm_chatrooms_filter = """is_private = {}
+                                 AND is_private_member = FALSE
+                                 AND chatroom_with_user_id IS {} AND""".format(is_private_val, chatroom_with_user_val)
+
+        if should_add_dm_chatrooms:
+            dm_chatrooms_filter = ""
+
+        included_conversation_states = get_tuple_from_array([
+            conversation_states.ANSWER, conversation_states.CONVERSATION_POLL, conversation_states.CONVERSATION_EVENT,
+            conversation_states.CONVERSATION_HEADER,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT
+        ])
+
+        follow_conversation_state = get_tuple_from_array([conversation_states.CONVERSATION_FOLLOW])
+
         conn = get_connection()
         curr = conn.cursor()
 
-        sql = """SELECT   id
-                FROM     togther_conversationengage
-                WHERE    user_id=%s
-                AND      card_id IN
-                         (
-                                SELECT card_id
+        fetch_card_ids_sql = """SELECT card_id
                                 FROM   togther_collabcardstate
                                 WHERE  user_id = %s
                                 AND    follow_status = true
@@ -242,28 +260,70 @@ def get_followed_chatrooms(user_id,
                                        (
                                               SELECT id
                                               FROM   togther_collabcard
-                                              WHERE  (is_private = %s
-                                              AND is_private_member = FALSE
-                                              AND not (%s)
-                                              AND    chatroom_with_user_id IS %s %s) %s))
-                ORDER BY updated_at DESC,
-                         id DESC limit %s offset %s""" % (
+                                              WHERE  (%s    is_deleted = FALSE
+                                                     AND    NOT (%s)
+                                                    %s) %s)""" % (
             str(user_id),
-            str(user_id),
-            str(is_private_val),
+            str(dm_chatrooms_filter),
             str(filter_intro_rooms_query),
-            str(chatroom_with_user_val),
             str(dm_chatrooms_communities_filter),
-            str(excluded_card_ids_filter),
-            str(limit),
-            str(offset))
+            str(excluded_card_ids_filter))
+
+        curr.execute(fetch_card_ids_sql)
+        card_ids_res = curr.fetchall()
+
+        card_ids_list = []
+
+        for id in card_ids_res:
+            card_ids_list.append(id[0])
+
+        card_ids = get_tuple_from_array(card_ids_list)
+
+        sql = """
+                SELECT     togther_conversationengage.id,
+                           lca.created_at
+                FROM       togther_conversationengage
+                INNER JOIN (WITH added_row_number AS
+                           (
+                                    SELECT   ca.created_at,
+                                             ca.id,
+                                             ca.card_id,
+                                             row_number() OVER( partition BY ca.card_id ORDER BY (
+                                             CASE
+                                                      WHEN ca.state IN %s
+                                                      OR       (
+                                                                        ca.state IN %s
+                                                               AND      ca.user_id = %s) THEN 1
+                                                      ELSE 2
+                                             END), ca.created_at DESC) AS row_number,
+                                             CASE
+                                                      WHEN ca.state IN %s
+                                                      OR       (
+                                                                        ca.state IN %s
+                                                               AND      ca.user_id = %s) THEN 1
+                                                      ELSE 2
+                                             END                  AS cond_row
+                                    FROM     togther_card_answers AS ca
+                                    WHERE    ca.card_id IN %s)SELECT   card_id,
+                           id,
+                           created_at,
+                           cond_row
+                  FROM     added_row_number
+                  WHERE    row_number = 1) AS lca
+                  ON       togther_conversationengage.card_id = lca.card_id
+                  WHERE    togther_conversationengage.user_id=%s
+                  AND      togther_conversationengage.card_id IN %s
+                  ORDER BY lca.cond_row,
+                           lca.created_at DESC,
+                           id DESC limit %s offset %s""" % (included_conversation_states, follow_conversation_state,
+                                                            user_id, included_conversation_states,
+                                                            follow_conversation_state, user_id, card_ids,
+                                                            str(user_id), card_ids, str(limit), str(offset))
 
         curr.execute(sql)
         res = curr.fetchall()
 
-        engage_list = []
-        for id in res:
-            engage_list.append(id[0])
+        engage_list = {id[0]: id[1] for id in res}
 
         curr.close()
 
@@ -729,7 +789,8 @@ def get_chatroom_query_meta_for_sync():
                     togther_collabcard.is_private_member,
                     togther_collabcardState.chat_request_state,
                     togther_collabcardState.chat_requested_by_id,
-                    togther_collabcardState.chat_request_created_at
+                    togther_collabcardState.chat_request_created_at,
+                    togther_collabcard.chatroom_image_url
                 """
 
     return meta_query
@@ -1128,7 +1189,8 @@ def get_members_of_community_based_on_community_list_for_sync(community_id_list,
                      togther_userinfo.image_link,
                      togther_userinfo.name,
                      togther_members.custom_title,
-                     togther_community.name
+                     togther_community.name,
+                     togther_userinfo.is_guest
             FROM togther_members
             INNER JOIN togther_userinfo
                 ON togther_members.member_id_id = togther_userinfo.user_id_id
@@ -1173,7 +1235,8 @@ def get_members_of_community_based_on_user_list_for_sync(user_id_list, community
                      togther_userinfo.image_link,
                      togther_userinfo.name,
                      togther_members.custom_title,
-                     togther_community.name
+                     togther_community.name,
+                     togther_userinfo.is_guest
             FROM togther_members
             INNER JOIN togther_userinfo
                 ON togther_members.member_id_id = togther_userinfo.user_id_id
@@ -1250,6 +1313,7 @@ def process_member_data(res):
         temp['name'] = data[8]
         temp['custom_title'] = data[9]
         temp['community_name'] = data[10]
+        temp['is_guest'] = data[11]
         member_data.append(temp)
 
     return member_data
@@ -1567,7 +1631,9 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
                          "togther_members"."custom_title",
                          "togther_userinfo"."name",
                          "togther_userinfo"."image_link",
-                         "togther_members"."created_at"
+                         "togther_members"."created_at",
+                         "togther_userinfo"."user_unique_id",
+                         "togther_userinfo"."is_guest"
                 FROM "togther_members"
                 INNER JOIN "togther_userinfo"
                     ON ("togther_members"."member_id_id" = "togther_userinfo"."user_id_id")
@@ -1594,6 +1660,8 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
             member_dict['name'] = data[6]
             member_dict['image_link'] = data[7]
             member_dict['created_at'] = data[8]
+            member_dict['user_unique_id'] = data[9]
+            member_dict['is_guest'] = data[10]
             member_list.append(member_dict)
 
         return member_list
@@ -1703,6 +1771,7 @@ def get_chatroom_count_based_on_community_list(community_id_list, member_id) -> 
                         AND "togther_collabcardstate"."user_id" = %s
                         AND NOT ("togther_collabcard"."type" in (%s, %s, %s))
                         AND ("togther_collabcard"."is_private" = FALSE)
+                        AND ("togther_collabcard"."is_pending" = FALSE)
                         AND ("togther_collabcard"."chatroom_with_user_id" is NULL))
                 GROUP BY  togther_collabcardstate.community_id
                 HAVING "togther_collabcardstate".community_id IN %s""" \
@@ -2208,29 +2277,169 @@ def get_last_seen_event_conversation_id_for_user(chatroom_list):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_ordered_card_id_on_the_basis_of_message_count(chatroom_ids, page=1, limit=10):
+def create_pinned_query_for_feed_revamp(default_pinned_query, is_pinned):
+
+    if is_pinned:
+        return default_pinned_query.format("true")
+
+    return ""
+
+
+def get_ordered_card_id_on_the_basis_of_message_count(user_id, community_id, is_pinned, excluded_card_ids,
+                                                      excluded_card_types, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
 
+        excluded_card_id_string = ""
+
+        if excluded_card_ids:
+            excluded_card_ids_tuple = get_tuple_from_array(excluded_card_ids)
+            excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
+
+        excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
+        is_pinned = "true" if is_pinned else "false"
+
         conn = get_connection()
         curr = conn.cursor()
 
-        card_tuple = get_tuple_from_array(chatroom_ids)
+        sql = """
+            SELECT    cs.card_id,
+                      COALESCE(cs2.answer_count, 0) AS answer_count
+            FROM      (
+                                 SELECT     ca.id                   AS card_id
+                                 FROM       togther_collabcardstate AS cs
+                                 INNER JOIN togther_collabcard      AS ca
+                                 ON         cs.card_id = ca.id
+                                 WHERE      (
+                                                       cs.secret_chatroom_left = false
+                                            AND        ca.community_id = {}
+                                            AND        ca.is_pending = false
+                                            AND        ca.is_deleted = false
+                                            AND        ca.is_private = false
+                                            AND        ca.type NOT IN {}
+                                            AND        ca.is_pinned = {}
+                                            AND        cs.user_id = {} {} )) AS cs
+            LEFT JOIN
+                      (
+                                SELECT    togther_collabcard.id               AS card_id,
+                                          count(togther_card_answers.card_id) AS answer_count
+                                FROM      togther_collabcard
+                                LEFT JOIN togther_card_answers
+                                ON        togther_collabcard.id = togther_card_answers.card_id
+                                WHERE     togther_collabcard.id IN
+                                          (
+                                                     SELECT     ca.id
+                                                     FROM       togther_collabcardstate AS cs
+                                                     INNER JOIN togther_collabcard      AS ca
+                                                     ON         cs.card_id = ca.id
+                                                     WHERE      (
+                                                                           cs.secret_chatroom_left = false
+                                                                AND        ca.community_id = {}
+                                                                AND        ca.is_pending = false
+                                                                AND        ca.is_deleted = false
+                                                                AND        ca.is_private = false
+                                                                AND        ca.type NOT IN {}
+                                                                AND        ca.is_pinned = {}
+                                                                AND        cs.user_id = {} {} ))
+                                AND       togther_card_answers.state IN (0)
+                                AND       (
+                                                    togther_card_answers.attachment_count = 0
+                                          OR        togther_card_answers.attachments_uploaded = true )
+                                GROUP BY  togther_collabcard.id) AS cs2
+            ON        cs.card_id = cs2.card_id
+            ORDER BY  answer_count DESC limit {} offset {}; 
+        """.format(community_id, excluded_card_types_tuple, is_pinned, user_id, excluded_card_id_string,
+                   community_id, excluded_card_types_tuple, is_pinned, user_id, excluded_card_id_string,
+                   limit, offset)
 
-        if not card_tuple:
-            return 0
+        curr.execute(sql)
+        res = curr.fetchall()
+        curr.close()
+
+        ordered_card_ids = []
+        for card_id in res:
+            ordered_card_ids.append(card_id[0])
+
+        return ordered_card_ids
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_ordered_card_id_on_the_basis_of_message_count_v2(user_id, community_id, is_pinned, excluded_card_ids,
+                                                         excluded_card_types, pinned_chatrooms_list, page=1, limit=10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        excluded_card_id_string = ""
+
+        if excluded_card_ids:
+            excluded_card_ids_tuple = get_tuple_from_array(excluded_card_ids)
+            excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
+
+        excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
+
+        pinned_chatrooms_query = create_pinned_query_for_feed_revamp("AND ca.is_pinned = {}", is_pinned)
+
+        order_by_query = "answer_count DESC"
+
+        if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
+            order_by_query = "cs.is_pinned DESC, answer_count DESC"
+
+        conn = get_connection()
+        curr = conn.cursor()
 
         sql = """
-            SELECT togther_collabcard.id
-            FROM   togther_collabcard
-                   LEFT JOIN togther_card_answers
-                          ON togther_collabcard.id = togther_card_answers.card_id
-            WHERE  togther_collabcard.id IN %s
-            GROUP  BY togther_collabcard.id
-            ORDER  BY Count(togther_card_answers.card_id) DESC 
-            LIMIT %s OFFSET %s;
-        """ % (str(card_tuple), str(limit), str(offset))
+            SELECT    cs.card_id,
+                      COALESCE(cs2.answer_count, 0) AS answer_count
+            FROM      (
+                                 SELECT     ca.id AS card_id, ca.is_pinned
+                                 FROM       togther_collabcardstate AS cs
+                                 INNER JOIN togther_collabcard      AS ca
+                                 ON         cs.card_id = ca.id
+                                 WHERE      (
+                                                       cs.secret_chatroom_left = false
+                                            AND        ca.community_id = {}
+                                            AND        ca.is_pending = false
+                                            AND        ca.is_deleted = false
+                                            AND        ca.is_private = false
+                                            AND        ca.type NOT IN {}
+                                            {}
+                                            AND        cs.user_id = {} {} )) AS cs
+            LEFT JOIN
+                      (
+                                SELECT    togther_collabcard.id               AS card_id,
+                                          count(togther_card_answers.card_id) AS answer_count
+                                FROM      togther_collabcard
+                                LEFT JOIN togther_card_answers
+                                ON        togther_collabcard.id = togther_card_answers.card_id
+                                WHERE     togther_collabcard.id IN
+                                          (
+                                                     SELECT     ca.id
+                                                     FROM       togther_collabcardstate AS cs
+                                                     INNER JOIN togther_collabcard      AS ca
+                                                     ON         cs.card_id = ca.id
+                                                     WHERE      (
+                                                                           cs.secret_chatroom_left = false
+                                                                AND        ca.community_id = {}
+                                                                AND        ca.is_pending = false
+                                                                AND        ca.is_deleted = false
+                                                                AND        ca.is_private = false
+                                                                AND        ca.type NOT IN {}
+                                                                {}
+                                                                AND        cs.user_id = {} {} ))
+                                AND       togther_card_answers.state IN (0)
+                                AND       (
+                                                    togther_card_answers.attachment_count = 0
+                                          OR        togther_card_answers.attachments_uploaded = true )
+                                GROUP BY  togther_collabcard.id) AS cs2
+            ON        cs.card_id = cs2.card_id
+            ORDER BY  {} limit {} offset {}; 
+        """.format(community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id, excluded_card_id_string,
+                   community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id, excluded_card_id_string,
+                   order_by_query, limit, offset)
 
         curr.execute(sql)
         res = curr.fetchall()
@@ -2313,31 +2522,40 @@ def get_dm_chatrooms_of_user(user_id, community_id):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_ordered_card_id_on_the_basis_last_message(chatroom_ids, page=1, limit=10):
+def get_ordered_card_id_on_the_basis_newest_chatroom(user_id, community_id, is_pinned, excluded_card_ids,
+                                                     excluded_card_types, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
-        
-        card_tuple = get_tuple_from_array(chatroom_ids)
-        
+
+        excluded_card_id_string = ""
+
+        if excluded_card_ids:
+            excluded_card_ids_tuple = get_tuple_from_array(excluded_card_ids)
+            excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
+
+        excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
+        is_pinned = "true" if is_pinned else "false"
+
         conn = get_connection()
         curr = conn.cursor()
 
-        sql = """WITH added_row_number
-                 AS (SELECT CA.created_at,
-                            CA.id,
-                            CA.card_id,
-                            Row_number()
-                              OVER(
-                                partition BY CA.card_id
-                                ORDER BY CA.created_at DESC) AS row_number
-                     FROM   togther_card_answers AS CA
-                     WHERE  CA.card_id IN %s)
-            SELECT card_id
-            FROM   added_row_number
-            WHERE  row_number = 1
-            ORDER  BY created_at DESC LIMIT %s OFFSET %s;
-        """ % (str(card_tuple), str(limit), str(offset))
+        sql = """SELECT CA.id
+                    FROM   togther_collabcardstate AS CS
+                           INNER JOIN togther_collabcard AS CA
+                                   ON CS.card_id = CA.id
+                    WHERE  ( CS.secret_chatroom_left = false
+                             AND CA.community_id = {}
+                             AND CA.is_pending = false
+                             AND CA.is_deleted = false
+                             AND CA.is_private = false
+                             AND CA.type NOT IN {}
+                             AND CA.is_pinned = {}
+                             AND CS.user_id = {}
+                             {} )
+                    GROUP  BY CA.id
+                    ORDER  BY CA.created_at DESC LIMIT {} OFFSET {} ;
+        """.format(community_id, excluded_card_types_tuple, is_pinned, user_id, excluded_card_id_string, limit, offset)
         curr.execute(sql)
         res = curr.fetchall()
         curr.close()
@@ -2351,29 +2569,108 @@ def get_ordered_card_id_on_the_basis_last_message(chatroom_ids, page=1, limit=10
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_ordered_card_id_on_the_basis_of_participants_count(chatroom_ids, page=1, limit=10):
+def get_ordered_card_id_on_the_basis_last_message(user_id, community_id, is_pinned, excluded_card_ids,
+                                                  excluded_card_types, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
-        
+
+        excluded_card_id_string = ""
+
+        if excluded_card_ids:
+            excluded_card_ids_tuple = get_tuple_from_array(excluded_card_ids)
+            excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
+
+        excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
+        is_pinned = "true" if is_pinned else "false"
+
         conn = get_connection()
         curr = conn.cursor()
-        
-        card_tuple = get_tuple_from_array(chatroom_ids)
 
-        if not card_tuple:
-            return 0
+        sql = """WITH added_row_number AS
+                (
+                         SELECT   ca.created_at,
+                                  ca.id,
+                                  ca.card_id,
+                                  Row_number() OVER( partition BY ca.card_id ORDER BY ca.created_at DESC) AS row_number
+                         FROM     togther_card_answers                                                    AS ca
+                         WHERE    ca.card_id IN
+                                  (
+                                             SELECT     ca.id
+                                             FROM       togther_collabcardstate AS cs
+                                             INNER JOIN togther_collabcard      AS ca
+                                             ON         cs.card_id = ca.id
+                                             WHERE      (
+                                                                   cs.secret_chatroom_left = false
+                                                        AND        ca.community_id = {}
+                                                        AND        ca.is_pending = false
+                                                        AND        ca.is_deleted = false
+                                                        AND        ca.is_private = false
+                                                        AND        ca.type NOT IN {}
+                                                        AND        ca.is_pinned = {}
+                                                        AND        cs.user_id = {} {} )))
+                SELECT   card_id
+                FROM     added_row_number
+                WHERE    row_number = 1
+                ORDER BY created_at DESC limit {} offset {};
+        """.format(community_id, excluded_card_types_tuple, is_pinned, user_id, excluded_card_id_string, limit, offset)
+        curr.execute(sql)
+        res = curr.fetchall()
+        curr.close()
+
+        ordered_card_ids = []
+        for card_id in res:
+            ordered_card_ids.append(card_id[0])
+
+        return ordered_card_ids
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_ordered_card_id_on_the_basis_of_participants_count(user_id, community_id, is_pinned, excluded_card_ids,
+                                                           excluded_card_types, page=1, limit=10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        excluded_card_id_string = ""
+
+        if excluded_card_ids:
+            excluded_card_ids_tuple = get_tuple_from_array(excluded_card_ids)
+            excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
+
+        excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
+        is_pinned = "true" if is_pinned else "false"
+
+        conn = get_connection()
+        curr = conn.cursor()
 
         sql = """
-            SELECT togther_collabcard.id
-            FROM   togther_collabcard
-                   LEFT JOIN togther_collabcardState
-                          ON togther_collabcard.id = togther_collabcardState.card_id
-            WHERE  togther_collabcard.id IN %s
-            GROUP  BY togther_collabcard.id
-            ORDER  BY count(togther_collabcardState.card_id) DESC 
-            LIMIT %s OFFSET %s
-        """ % (str(card_tuple), str(limit), str(offset))
+            SELECT    togther_collabcard.id
+            FROM      togther_collabcard
+            LEFT JOIN togther_collabcardstate
+            ON        togther_collabcard.id = togther_collabcardstate.card_id
+            WHERE     togther_collabcard.id IN
+                      (
+                                 SELECT     ca.id
+                                 FROM       togther_collabcardstate AS cs
+                                 INNER JOIN togther_collabcard      AS ca
+                                 ON         cs.card_id = ca.id
+                                 WHERE      (
+                                                       cs.secret_chatroom_left = false
+                                            AND        ca.community_id = {}
+                                            AND        ca.is_pending = false
+                                            AND        ca.is_deleted = false
+                                            AND        ca.is_private = false
+                                            AND        ca.type NOT IN {}
+                                            AND        ca.is_pinned = {}
+                                            AND        cs.user_id = {} {} ))
+            AND       togther_collabcardstate.follow_status = true
+            AND       togther_collabcardstate.is_tagged = false
+            AND       togther_collabcardstate.remove_id IS NULL
+            GROUP BY  togther_collabcard.id
+            ORDER BY  count(togther_collabcardstate.id) DESC limit {} offset {};
+        """.format(community_id, excluded_card_types_tuple, is_pinned, user_id, excluded_card_id_string, limit, offset)
 
         curr.execute(sql)
         res = curr.fetchall()
@@ -2389,31 +2686,231 @@ def get_ordered_card_id_on_the_basis_of_participants_count(chatroom_ids, page=1,
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, page=1, limit=10):
+def get_ordered_card_id_on_the_basis_newest_chatroom_v2(user_id, community_id, is_pinned, excluded_card_ids,
+                                                        excluded_card_types, pinned_chatrooms_list, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
-        
-        card_tuple = get_tuple_from_array(chatrooms_list)
-        
+
+        excluded_card_id_string = ""
+
+        if excluded_card_ids:
+            excluded_card_ids_tuple = get_tuple_from_array(excluded_card_ids)
+            excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
+
+        excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
+
+        pinned_chatrooms_query = create_pinned_query_for_feed_revamp("AND CA.is_pinned = {}", is_pinned)
+
+        order_by_query = "CA.created_at DESC"
+
+        if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
+            order_by_query = "CA.is_pinned DESC, CA.created_at DESC"
+
         conn = get_connection()
         curr = conn.cursor()
 
-        sql = """WITH added_row_number
-                 AS (SELECT CA.created_at,
-                            CA.id,
-                            CA.card_id,
-                            Row_number()
-                              OVER(
-                                partition BY CA.card_id
-                                ORDER BY CA.created_at DESC) AS row_number
-                                FROM togther_card_answers as CA
-                                WHERE  CA.card_id IN %s)
-            SELECT card_id, id
-            FROM   added_row_number
-            WHERE  row_number = 1
-            ORDER  BY created_at DESC LIMIT %s OFFSET %s; 
-        """ % (card_tuple, str(limit), str(offset))
+        sql = """SELECT CA.id
+                    FROM   togther_collabcardstate AS CS
+                           INNER JOIN togther_collabcard AS CA
+                                   ON CS.card_id = CA.id
+                    WHERE  ( CS.secret_chatroom_left = false
+                             AND CA.community_id = {}
+                             AND CA.is_pending = false
+                             AND CA.is_deleted = false
+                             AND CA.is_private = false
+                             AND CA.type NOT IN {}
+                             {}
+                             AND CS.user_id = {}
+                             {} )
+                    GROUP  BY CA.id
+                    ORDER  BY {} LIMIT {} OFFSET {} ;
+        """.format(community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id, excluded_card_id_string,
+                   order_by_query, limit, offset)
+
+        curr.execute(sql)
+        res = curr.fetchall()
+        curr.close()
+
+        ordered_card_ids = []
+        for card_id in res:
+            ordered_card_ids.append(card_id[0])
+
+        return ordered_card_ids
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_ordered_card_id_on_the_basis_last_message_v2(user_id, community_id, is_pinned, excluded_card_ids,
+                                                     excluded_card_types, pinned_chatrooms_list, page=1, limit=10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        excluded_card_id_string = ""
+
+        if excluded_card_ids:
+            excluded_card_ids_tuple = get_tuple_from_array(excluded_card_ids)
+            excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
+
+        excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
+
+        pinned_chatrooms_query = create_pinned_query_for_feed_revamp("AND ca.is_pinned = {}", is_pinned)
+
+        order_by_query = "added_row_number.created_at DESC"
+
+        if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
+            order_by_query = "togther_collabcard.is_pinned DESC, added_row_number.created_at DESC"
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+                WITH added_row_number AS
+                (
+                         SELECT   ca.created_at,
+                                  ca.id,
+                                  ca.card_id,
+                                  Row_number() OVER( partition BY ca.card_id ORDER BY ca.created_at DESC) AS row_number
+                         FROM     togther_card_answers                                                    AS ca
+                         WHERE    ca.card_id IN
+                                  (
+                                             SELECT     ca.id
+                                             FROM       togther_collabcardstate AS cs
+                                             INNER JOIN togther_collabcard      AS ca
+                                             ON         cs.card_id = ca.id
+                                             WHERE      (
+                                                                   cs.secret_chatroom_left = false
+                                                        AND        ca.community_id = {}
+                                                        AND        ca.is_pending = false
+                                                        AND        ca.is_deleted = false
+                                                        AND        ca.is_private = false
+                                                        AND        ca.type NOT IN {}
+                                                        {}
+                                                        AND        cs.user_id = {} {} )))
+                SELECT     togther_collabcard.id
+                FROM       togther_collabcard
+                INNER JOIN added_row_number
+                ON         added_row_number.card_id=togther_collabcard.id
+                WHERE    added_row_number.row_number = 1
+                ORDER BY {} limit {} offset {};
+        """.format(community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id, excluded_card_id_string,
+                   order_by_query, limit, offset)
+        curr.execute(sql)
+        res = curr.fetchall()
+        curr.close()
+
+        ordered_card_ids = []
+        for card_id in res:
+            ordered_card_ids.append(card_id[0])
+
+        return ordered_card_ids
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_ordered_card_id_on_the_basis_of_participants_count_v2(user_id, community_id, is_pinned, excluded_card_ids,
+                                                              excluded_card_types, pinned_chatrooms_list, page=1,
+                                                              limit=10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        excluded_card_id_string = ""
+
+        if excluded_card_ids:
+            excluded_card_ids_tuple = get_tuple_from_array(excluded_card_ids)
+            excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
+
+        excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
+        pinned_chatrooms_query = create_pinned_query_for_feed_revamp("AND ca.is_pinned = {}", is_pinned)
+
+        order_by_query = "count(togther_collabcardstate.id) DESC"
+
+        if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
+            order_by_query = "togther_collabcard.is_pinned DESC, count(togther_collabcardstate.id) DESC"
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+            SELECT    togther_collabcard.id
+            FROM      togther_collabcard
+            LEFT JOIN togther_collabcardstate
+            ON        togther_collabcard.id = togther_collabcardstate.card_id
+            WHERE     togther_collabcard.id IN
+                      (
+                                 SELECT     ca.id
+                                 FROM       togther_collabcardstate AS cs
+                                 INNER JOIN togther_collabcard      AS ca
+                                 ON         cs.card_id = ca.id
+                                 WHERE      (
+                                                       cs.secret_chatroom_left = false
+                                            AND        ca.community_id = {}
+                                            AND        ca.is_pending = false
+                                            AND        ca.is_deleted = false
+                                            AND        ca.is_private = false
+                                            AND        ca.type NOT IN {}
+                                            {}
+                                            AND        cs.user_id = {} {} ))
+            AND       togther_collabcardstate.user_id IN 
+                      (
+                         SELECT user_id_id
+                         FROM   togther_userinfo
+                         WHERE  is_guest = false )
+            AND       togther_collabcardstate.follow_status = true
+            AND       togther_collabcardstate.is_tagged = false
+            AND       togther_collabcardstate.remove_id IS NULL
+            GROUP BY  togther_collabcard.id
+            ORDER BY  {} limit {} offset {};
+        """.format(community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id, excluded_card_id_string,
+                   order_by_query, limit, offset)
+
+        curr.execute(sql)
+        res = curr.fetchall()
+        curr.close()
+
+        ordered_card_ids = []
+        for card_id in res:
+            ordered_card_ids.append(card_id[0])
+
+        return ordered_card_ids
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, excluded_conversation_state=[], page=1,
+                                                             limit=10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        card_tuple = get_tuple_from_array(chatrooms_list)
+        excluded_conv_states = get_tuple_from_array(excluded_conversation_state)
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """WITH added_row_number AS
+                (
+                         SELECT   ca.created_at,
+                                  ca.id,
+                                  ca.card_id,
+                                  row_number() OVER( partition BY ca.card_id ORDER BY (
+                                  CASE
+                                           WHEN ca.state NOT IN %s THEN 1
+                                           ELSE 2
+                                  END), ca.created_at DESC) AS row_number
+                         FROM     togther_card_answers      AS ca
+                         WHERE    ca.card_id IN %s)
+                SELECT   card_id,
+                         id,
+                         created_at
+                FROM     added_row_number
+                WHERE    row_number = 1
+                ORDER BY created_at DESC limit %s offset %s; 
+        """ % (excluded_conv_states, card_tuple, str(limit), str(offset))
         curr.execute(sql)
         card_list = curr.fetchall()
         curr.close()
@@ -2484,6 +2981,63 @@ def get_participant_counts_on_basis_of_chatroom_ids(card_ids_list):
         curr.close()
 
         return {data[0]: data[1] for data in card_list}
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_all_chatrooms_of_community(community_id, page=1, limit=10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """SELECT id
+                 FROM  togther_collabcard
+                 WHERE (is_deleted = false
+                       AND is_private = false
+                       AND community_id = %s 
+                       AND type NOT IN (10))
+                 OFFSET %s LIMIT %s;""" % (str(community_id), str(offset), str(limit))
+
+        curr.execute(sql)
+        card_list = curr.fetchall()
+        curr.close()
+
+        return [data[0] for data in card_list]
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def fetch_user_communities_sorted_by_order_time(user_id, community_id=None, page=1, limit=10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        if community_id:
+            community_id_query = "AND community_id_id = {}".format(community_id)
+
+        else:
+            community_id_query = "AND community_id_id NOT IN (SELECT community_id FROM collabmates_api_sdkclient)"
+
+        sql = """
+                SELECT   id
+                FROM     togther_member_engage
+                WHERE    (member_id_id = %s %s)
+                ORDER BY order_time DESC offset %s limit %s;""" % (str(user_id), community_id_query,
+                                                                   str(offset), str(limit))
+
+        curr.execute(sql)
+        card_list = curr.fetchall()
+        curr.close()
+
+        return [data[0] for data in card_list]
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)

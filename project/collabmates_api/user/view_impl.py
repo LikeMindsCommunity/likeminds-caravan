@@ -117,10 +117,10 @@ class UserLoginView(APIView):
                                           RequestUtilities.get_version_code_from_headers(request),
                                           api_key=RequestUtilities.get_api_key_from_headers(request))
 
-        if user_context.get('success'):
-            return JsonResponse(user_context)
+        if user_context.get('error_message'):
+            return JsonResponse(user_context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-        return JsonResponse(user_context, status=status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(user_context)
 
 
 class FetchUserAccess(APIView):
@@ -141,12 +141,13 @@ class FetchDmHome(APIView):
         community_id = request.GET.get('community_id', None)
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not member_id:
             raise InvalidHeaderException()
 
         if single_community_view_version_check(platform_code, version_code):
-            if not community_id:
+            if not (community_id or api_key):
                 return JsonResponse({
                     'status': status_codes.HTTP_400_BAD_REQUEST,
                     'success': False,
@@ -156,7 +157,8 @@ class FetchDmHome(APIView):
         user_manager = UserImpl(user_id=member_id,
                                 community_id=community_id,
                                 platform_code=platform_code,
-                                version_code=version_code)
+                                version_code=version_code,
+                                api_key=api_key)
         user_context = user_manager.fetch_dm_home()
 
         if 'error_message' in user_context:
@@ -194,13 +196,12 @@ class FetchDmFeed(APIView):
     def get(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        if not member_id:
-            raise InvalidHeaderException()
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         community_id: str = request.GET.get('community_id')
 
-        user_manager = UserImpl(user_id=member_id)
-        user_context = user_manager.fetch_dm_feed(community_id)
+        user_manager = UserImpl(user_id=member_id, community_id=community_id, api_key=api_key)
+        user_context = user_manager.fetch_dm_feed()
 
         if 'error_message' in user_context:
             response_context = user_context
@@ -318,3 +319,24 @@ class FetchUser(APIView):
 
         return JsonResponse(**ResponseUtilities.get_view_impl_error_context(user_response.get('error_message'),
                                                                             user_response.get('status')))
+
+
+class WhatsappSubscriptionView(APIView):
+    """
+    Manage Whatsapp Subscription of a user
+    """
+
+    def post(self, request):
+        req_body = RequestUtilities.load_request_body(request)
+        user_manager = UserImpl(user_id="")
+        response_data = user_manager.whatsapp_subscription(req_body)
+
+        if 'error_message' in response_data:
+            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
+                                                                    response_data['status'])
+            return JsonResponse(context['data'], status=context['status'])
+
+        return JsonResponse(
+            {'success': True},
+            status=status_codes.HTTP_200_OK
+        )

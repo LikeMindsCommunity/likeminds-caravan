@@ -15,6 +15,7 @@ from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER,
 from utility.response_utilities import ResponseUtilities
 
 from .conversation_manager import ConversationManager
+from .conversation_view_helper import ConversationViewHelper
 from .reactions import fetch_chatroom_or_conversation_reactions
 from ..chatroom import chatroom_impl
 from ..notification import send_notification_to_message_creator_on_reaction, get_tagged_members_list, \
@@ -42,7 +43,8 @@ from .constants import *
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
                             conversationPollMembers, Userinfo, conversationEngage, answerAttachment,
-                            conversationEventMembers, conversationEventNudge, UserEmailsSendStatus, userDevices)
+                            conversationEventMembers, conversationEventNudge, UserEmailsSendStatus, userDevices,
+                            userMemberRights)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
@@ -50,7 +52,7 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
     conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types, \
-    unsubscribe_types
+    member_rights, unsubscribe_types
 from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
     is_member_verified, filter_user_instances_based_on_notification_flag
 from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase
@@ -623,11 +625,9 @@ class ConversationImpl(ConversationManager):
 
                     userinfo_instance = userinfo_filter[0]
 
-                    member_data = {
-                        'id': user_id,
-                        'name': userinfo_instance.name,
-                        'image_url': userinfo_instance.image_link if userinfo_instance.image_link else ""
-                    }
+                    member_data = MemberCommunityImpl(member_id=user_id, community_id=community_instance.id).\
+                        compute_removed_user_context(user_instance=userinfo_instance.user_id,
+                                                     community_instance=community_instance)
 
                 else:
                     continue
@@ -828,6 +828,14 @@ class ConversationImpl(ConversationManager):
 
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return {'success': False, 'error_message': "Responding is disabled"}
+
+        if req_body.get('state') and req_body['state'] == conversation_states.CONVERSATION_POLL:
+            has_right = ModelUtilities.get_model_filter(userMemberRights,
+                                                        {'user': user_instance, 'community': community_instance,
+                                                         'right__state': member_rights.MEMBER_RIGHT_CREATE_POLL})
+
+            if not has_right:
+                return {'success': False, 'error_message': "You don't have the rights to create a poll"}
 
         if chatroom_instance.access_without_subscription:
 
@@ -1187,15 +1195,23 @@ class ConversationImpl(ConversationManager):
 
     def set_chatroom_topic(self) -> dict:
 
-        user_instance = User.get_user_or_raise_exception(self.get_member_id())
-        conversation_instance = card_answers.get_conversation_or_raise_exception(self.get_conversation_id())
-        chatroom_instance = Collabcard.get_chatroom_or_raise_exception(self.get_chatroom_id())
+        validated_request = ConversationViewHelper.validate_set_topic_request(self.get_member_id(),
+                                                                              self.get_chatroom_id(),
+                                                                              self.get_conversation_id())
 
-        validation_dict = ConversationHelper.validate_set_topic_request(user_instance, conversation_instance,
-                                                                        chatroom_instance)
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not validation_dict['success']:
-            raise CustomException(validation_dict, status_code=status_codes.HTTP_400_BAD_REQUEST)
+        user_instance = validated_request.get('user_instance')
+        conversation_instance = validated_request.get('conversation_instance')
+        chatroom_instance = validated_request.get('chatroom_instance')
+
+        validation_dict = ConversationHelper.validate_set_topic_request(user_instance, chatroom_instance)
+
+        if validation_dict.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validation_dict.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_instance.topic = conversation_instance
         chatroom_instance.save()
@@ -1213,7 +1229,7 @@ class ConversationImpl(ConversationManager):
                                     {'card': chatroom_instance},
                                     {'updated_at': TimeUtilities.current_time_in_sec()}
                                     )
-        send_notification_on_chatroom_topic_update.delay(chatroom_instance.id)
+        send_notification_on_chatroom_topic_update.delay(chatroom_instance.id, user_instance.id)
 
         return {'success': True}
 
@@ -1816,15 +1832,16 @@ class ConversationHelper:
                         topic_text=topic_text)
 
     @staticmethod
-    def validate_set_topic_request(user_instance, conversation_instance, chatroom_instance):
+    def validate_set_topic_request(user_instance, chatroom_instance):
 
         response = {
             "success": True,
         }
 
-        if chatroom_instance.user_id != user_instance.id:
-            response['success'] = False
-            response['error_message'] = "only chatroom creator can change the topic of chatroom"
+        if all([chatroom_instance.user_id != user_instance.id,
+                not Members.is_member_community_promoter(chatroom_instance.community, user_instance)]):
+            return ResponseUtilities.get_inner_error_context('Only chatroom creator or CM can change the topic of '
+                                                             'chatroom')
 
         return response
 

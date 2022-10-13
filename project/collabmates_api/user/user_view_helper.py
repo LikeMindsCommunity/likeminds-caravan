@@ -17,10 +17,10 @@ class UserViewHelper:
 
     @staticmethod
     def validate_create_user_bot_request(req_body):
-        if 'community_name' not in req_body:
-            return ResponseUtilities.get_inner_error_context('Empty community name!')
+        if 'name' not in req_body:
+            return ResponseUtilities.get_inner_error_context('Empty name!')
 
-        return {'community_name': req_body.get('community_name')}
+        return {'name': req_body.get('name')}
 
     @staticmethod
     def validate_update_user_bot_request(user_id, req_body):
@@ -29,16 +29,29 @@ class UserViewHelper:
         if not user_instance:
             return ResponseUtilities.get_inner_error_context('Invalid user id!')
 
-        if not req_body.get('community_name'):
-            return ResponseUtilities.get_inner_error_context('Empty community name!')
+        if not req_body.get('name'):
+            return ResponseUtilities.get_inner_error_context('Empty name!')
 
-        return {'user_instance': user_instance, 'community_name': req_body.get('community_name')}
+        return {'user_instance': user_instance, 'name': req_body.get('name')}
 
     @staticmethod
     def validate_fetch_user_bot_request(api_key):
-        community_instance = SdkClient.get_community_instance_or_none(api_key)
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context('Invalid API key!')
 
         return {'community_instance': community_instance}
+
+    @staticmethod
+    def validate_whatsapp_subscription_request(req_body):
+        if not req_body.get('type'):
+            return ResponseUtilities.get_inner_error_context('Invalid request body, send text field')
+
+        if not req_body.get('conversationId'):
+            return ResponseUtilities.get_inner_error_context('Invalid request body, send conversationId field')
+
+        if not req_body.get('waId'):
+            return ResponseUtilities.get_inner_error_context('Invalid request body, send waId field')
+
+        return {}

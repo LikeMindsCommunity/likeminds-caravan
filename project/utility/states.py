@@ -247,6 +247,7 @@ class QuestionStates:
     MOBILE_NO = 9
     EMAIL_ID = 10
     GOOGLE_CITY_FETCH = 11
+    NAME = 12
 
 
 question_states = QuestionStates()
@@ -451,6 +452,7 @@ class CommunitySettingTypes:
     DIRECT_MESSAGES = "direct_messages"
     MEMBERS_CAN_DM = "members_can_dm"
     DIRECT_MESSAGE_SETTING = "direct_messages_setting"
+    DIRECT_MSGS_GROUP_MSGS = "direct_messages_with_group_messages"
 
 
 community_setting_types = CommunitySettingTypes()
@@ -568,6 +570,7 @@ class CohortAccess(enum.Enum):
 
 class APIVersionHeaders:
     V1 = "v1"
+    V2 = "v2"
 
 
 api_version_headers = APIVersionHeaders()
@@ -624,6 +627,25 @@ class APITypes:
 
 
 api_types = APITypes()
+
+
+class NotificationStates:
+    ALL_MESSAGES = 1
+    ONLY_MENTIONS_AND_REPLIES = 2
+
+    ALL_MESSAGES_ANALYTICS = "all_messages"
+    ONLY_MENTIONS_AND_REPLIES_ANALYTICS = "mentions_replies"
+
+
+noti_states = NotificationStates()
+
+
+class WhatsappSubscriptionStateActions:
+    START = "START"
+    STOP = "STOP"
+
+
+whatsapp_subscription_state_actions = WhatsappSubscriptionStateActions()
 
 
 class UnsubscribeTypes:

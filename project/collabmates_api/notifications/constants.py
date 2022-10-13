@@ -47,9 +47,12 @@ TIME_10_AM = datetime.strptime("10:0", "%H:%M")  # 10:00 AM
 TIME_9_AM = datetime.strptime("9:0", "%H:%M")  # 9:00 AM
 
 WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATION = 'event_created_v6'
+WHATSAPP_TEMPLATE_NAME_FOR_EVENT_CREATED_WA_UNSUBSCRIBE = 'event_created_v6_wa_unsub'
 WHATSAPP_TEMPLATE_NAME_FOR_EVENT_LAST_CALL = 'event_registration_last_cal_v4'
 WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_5_HRS = 'attend_5_hrs_before_v5'
 WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN = 'attend_10_mins_before_v2'
+WHATSAPP_TEMPLATE_NAME_FOR_WHATSAPP_UNSUBSCRIBE_SUCCESS = 'unsubscribed_successful'
+WHATSAPP_TEMPLATE_NAME_FOR_WHATSAPP_RESUBSCRIBE_SUCCESS = 'resubscribed_successful'
 
 TITLE_NEW_EVENT_ATTACHMENT_APP_NOTIICATION = "New attachments & recordings have been added to %s event in your community"
 TITLE_UPDATE_EVENT_ATTACHMENT_APP_NOTIICATION = "Attachments & recordings have been updated in %s event."
@@ -146,8 +149,10 @@ class NotificationSubCategories:
 
     USER_TAGGED = "User Tagged"
     USER_RESPONDED = "User Responded"
+    USER_REACTED = "User Reacted"
     CO_HOST_ADDED = "Cohost added"
     POLL_ROOM_CREATED = "Poll room created"
+    MICRO_POLL_CREATED = "Micro poll created"
     EVENT_STARTING_IN_2M = "Event starting in 2m"
     EVENT_STARTING_IN_24H = "Event starting in 24h"
     EVENT_STARTING_IN_30M = "Event starting in 30m"

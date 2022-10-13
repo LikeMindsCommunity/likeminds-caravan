@@ -19,9 +19,6 @@ from togther.models import (Community_Rank, collabcardState,
                             moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers,
                             userDevices, ModelUtilities, answerAttachment)
 
-from utility.states import (member_states, manager_rights, member_rights, moderation_history_types,
-                            )
-
 from utility.utils import *
 from utility.time_utilities import TimeUtilities
 from utility.celery_beat_tasks import CeleryBeatTask
@@ -53,13 +50,14 @@ from utility.constants import (INTRO_ROOM_NOTIFICATION_TITLE_PLURAL,
                                SYNC_NOTIFICATION_SUBTITLE,
                                SYNC_NOTIFICATION_ROUTE)
 
-from external_services.mixpanel.mixpanel_impl import MixpanelImpl
+from external_services.segment.segment_impl import SegmentImpl
 from django.db import connection
 from utility.number_utilities import NumberUtilities
 
 from utility.celery_tasks import save_users_with_muted_chatrooms
 from utility.cache_keys import USER_MUTED_CHATROOM
 from external_services.caching.cache_impl import CacheImpl
+from collabmates_api.sdk.models import (SdkClient)
 
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 from external_services.wa_notification.constants import WATI_NOTIFICATION_CONST
@@ -107,20 +105,35 @@ def send_test_notification(request):
     return JsonResponse(context)
 
 
-def send_notification_for_android(token_list, message):
+def get_firebase_server_key_from_message_payload(message):
+    message_payload = message.get('payload', {})
+    community_id = message_payload.get('community_id', None)
+
+    if community_id:
+        sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
+
+        if sdk_client_filter and sdk_client_filter[0].firebase_server_key:
+            return sdk_client_filter[0].firebase_server_key
+
+        del message['payload']['community_id']
+
+    return server_key
+
+
+def send_notification_for_android(token_list, message, firebase_key=None):
     """function to send notification to android"""
 
     if not token_list:
         return
 
-    result = ""
+    firebase_key = firebase_key if firebase_key else server_key
 
     extra_kwargs = {
         "android": {
             "priority": "high"
         }
     }
-    push_service = FCMNotification(api_key=server_key)
+    push_service = FCMNotification(api_key=firebase_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'], extra_kwargs=extra_kwargs)
 
@@ -128,15 +141,15 @@ def send_notification_for_android(token_list, message):
     return result
 
 
-def send_notification_for_ios(token_list, message):
+def send_notification_for_ios(token_list, message, firebase_key=None):
     """function to send notification to android"""
-
-    result = ""
 
     if not token_list:
         return
 
-    push_service = FCMNotification(api_key=server_key)
+    firebase_key = firebase_key if firebase_key else server_key
+
+    push_service = FCMNotification(api_key=firebase_key)
 
     extra_kwargs = {
         "mutable_content": True
@@ -153,13 +166,15 @@ def send_notification_for_ios(token_list, message):
     return result
 
 
-def send_notification_for_web(token_list, message):
+def send_notification_for_web(token_list, message, firebase_key=None):
     """function to send notification to web"""
 
     if not token_list:
         return
 
-    push_service = FCMNotification(api_key=server_key)
+    firebase_key = firebase_key if firebase_key else server_key
+
+    push_service = FCMNotification(api_key=firebase_key)
 
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'])
@@ -199,8 +214,9 @@ def get_devices_of_users(user_id):
 
 
 def track_notification(user_id, notification_payload):
-    MixpanelImpl().track_notification(str(user_id),
-                                      properties=notification_payload)
+    SegmentImpl.track_event(str(user_id),
+                            event_name=SEGMENT_NOTIFICATION_TRACKING_EVENT_NAME,
+                            event_data=notification_payload)
 
 
 def track_notification_with_notification_payload_list(notification_payload_list):
@@ -208,7 +224,9 @@ def track_notification_with_notification_payload_list(notification_payload_list)
     for notification in notification_payload_list:
 
         if notification.get('user_id') and notification.get('payload'):
-            MixpanelImpl().track_notification(str(notification['user_id']), properties=notification['payload'])
+            SegmentImpl.track_event(str(notification['user_id']),
+                                    event_name=SEGMENT_NOTIFICATION_TRACKING_EVENT_NAME,
+                                    event_data=notification['payload'])
 
 
 def pre_compute_user_devices_by_user_list(user_list):
@@ -281,11 +299,13 @@ def notification_meta(notification_list, message, calling_notification=""):
 
             notification_payload_list.append(notification_payload_dict)
 
-    send_notification_for_android(tokens['Android'], message)
+    firebase_key = get_firebase_server_key_from_message_payload(message)
 
-    send_notification_for_ios(tokens['iOS'], message)
+    send_notification_for_android(tokens['Android'], message, firebase_key)
 
-    send_notification_for_web(tokens['web'], message)
+    send_notification_for_ios(tokens['iOS'], message, firebase_key)
+
+    send_notification_for_web(tokens['web'], message, firebase_key)
 
     track_notification_with_notification_payload_list(notification_payload_list)
 
@@ -638,7 +658,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
                 if str(member[0]) not in tagged_users_list and int(member[0]) not in blocked_by_user_list:
                     notification_list_member.append(temp)
 
-            custom_payload = get_custom_data_for_new_chatroom_created(card)
+            custom_payload = get_custom_data_for_new_chatroom_created(card, kwargs['set_default_unread_count'])
 
         collabcard_title = get_title_from_collabcard(card)
 
@@ -796,7 +816,7 @@ def should_send_notification(card_instance: object):
     return True, ""
 
 
-def get_custom_data_for_new_chatroom_created(card):
+def get_custom_data_for_new_chatroom_created(card, set_default_unread_count=False):
     """ function to get data for custom notification """
 
     unread_conversation = {}
@@ -808,6 +828,9 @@ def get_custom_data_for_new_chatroom_created(card):
     unread_conversation['chatroom_name'] = get_title_from_collabcard(chatroom_instance) + " (New Chatroom)"
     unread_conversation['chatroom_title'] = chatroom_instance.title
     unread_conversation['chatroom_user_name'] = userinfo_instance.name
+
+    if set_default_unread_count:
+        unread_conversation['chatroom_unread_conversation_count'] = 0
 
     collabcard_files = get_collabcard_files(card_id=card.id)
     unread_conversation['images'] = collabcard_files[0]
@@ -886,17 +909,21 @@ def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list
     if not tagged_users_list:
         return
 
-    message = dict()
-
     custom_conversation_notification_payload = \
         get_notification_payload_metadata_for_conversation_creation(community_instance,
                                                                     card_instance, userinfo_instance,
                                                                     conversation_instance)
-    message['payload'] = {
-        'title': card_instance.header,
-        'sub_title': userinfo_instance.name + ": " + answer_text,
-        'route': f"route://collabcard?collabcard_id={str(card_instance.id)}&community_id={str(community_instance.id)}",
-        'unread_follow_notification': custom_conversation_notification_payload
+    message = {
+        'payload': {
+            'title': card_instance.header,
+            'sub_title': userinfo_instance.name + ": " + answer_text,
+            'route': f"route://collabcard?collabcard_id={str(card_instance.id)}&community_id={str(community_instance.id)}",
+            'unread_follow_notification': custom_conversation_notification_payload
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.USER_TAGGED
+        }
     }
 
     notification_list = []
@@ -975,9 +1002,25 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     community_instance = card_instance.community
 
-    chatroom_follower_list = list(collabcardState.objects.filter(card=card_instance, follow_status=True,
-                                                                 remove=None, mute_status=False).
-                                  filter(~Q(user=user_id)).values_list('user_id', flat=True).order_by('-user_id'))
+    current_time = TimeUtilities.current_time_in_milliseconds()
+
+    chatroom_follower_list = list(
+        collabcardState.objects.filter(
+            card=card_instance,
+            follow_status=True,
+            remove=None,
+            mute_status=False
+        ).filter(
+            ~Q(user=user_id)
+        ).filter(
+            Q(is_noti_paused=False) | (Q(is_noti_paused=True) & Q(unpause_noti_at__lte=current_time))
+        ).values_list(
+            'user_id',
+            'noti_state'
+        ).order_by(
+            '-user_id'
+        )
+    )
 
     tagged_users_list, answer_text, user_names = get_tagged_members_list(answer)
 
@@ -987,8 +1030,6 @@ def send_follow_notification(card_id, user_id, conversation_id):
         icon_string = get_icon_for_notification(conversation_instance)
 
     notification_list = []
-
-    message = dict()
 
     custom_conversation_notification_payload = \
         get_notification_payload_metadata_for_conversation_creation(community_instance,
@@ -1007,14 +1048,22 @@ def send_follow_notification(card_id, user_id, conversation_id):
         }
     }
 
-    for user_id in chatroom_follower_list:
+    for obj in chatroom_follower_list:
 
-        if str(user_id) in tagged_users_list:
+        if all([obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES,
+                str(obj[0]) not in tagged_users_list,
+                not conversation_instance.reply,
+                conversation_instance.card.type != card_types.CARD_DIRECT_MESSAGE]):
+            continue
+
+        if obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES and conversation_instance.reply and (
+                conversation_instance.reply.user_id != obj[0]) and (
+                conversation_instance.card.type != card_types.CARD_DIRECT_MESSAGE):
             continue
 
         user_context = dict()
 
-        user_context['id'] = user_id
+        user_context['id'] = obj[0]
 
         notification_list.append(user_context)
 
@@ -2511,9 +2560,22 @@ def send_intro_room_evening_notifications():
     all_communities = Community.objects.all()
     all_members = Members.objects.all()
 
+    # Intro settings ON
+    enabled_intro_settings = ModelUtilities.get_model_filter(CommunitySettings,
+                                                             {'setting_type': community_setting_types.INTRO_ROOM,
+                                                              'enabled': True})
+
+    if not enabled_intro_settings:
+        return
+
+    communities = list(enabled_intro_settings.values_list('community_id', flat=True))
+
     # get intro rooms in last 24 hours (86400 seconds)
-    new_intro_rooms = Collabcard.objects.filter(date_epoch__gte=current_time - INTRO_ROOM_LOOKBACK_PERIOD,
-                                                type=CollabcardTypes.CARD_INTRO)
+    new_intro_rooms = ModelUtilities.get_model_filter(Collabcard,
+                                                      {'date_epoch__gte': current_time - INTRO_ROOM_LOOKBACK_PERIOD,
+                                                       'type': card_types.CARD_INTRO,
+                                                       'is_deleted': False,
+                                                       'community__in': communities})
 
     communities = new_intro_rooms.values('community').distinct()
 
@@ -2527,13 +2589,19 @@ def send_intro_room_evening_notifications():
             new_members = get_new_member_list(community_intro_rooms)
 
             for member in community_members:
+
+                if member.member_id_id in new_members:
+                    continue
+
                 user_instance = member.member_id
                 message = get_message_for_evening_notification(community_intro_rooms, user_instance, community)
 
-                if member.id not in new_members:
-                    notification_list = get_notification_list_intro_notification(user_instance)
-                    message = TasksHelper.add_community_info_to_notification_payload(message, community_id)
-                    notification_meta(notification_list, message)
+                if not message:
+                    continue
+
+                notification_list = get_notification_list_intro_notification(user_instance)
+                message = TasksHelper.add_community_info_to_notification_payload(message, community_id)
+                notification_meta(notification_list, message)
 
 
 def get_new_member_list(community_intro_rooms):
@@ -2561,10 +2629,17 @@ def get_message_for_evening_notification(community_intro_rooms, user_instance, c
         route = INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR % community_intro_rooms[0].id
 
     else:
+        master_intro_chatroom_filter = ModelUtilities.get_model_filter(Collabcard,
+                                                                       {'community': community,
+                                                                        'type': card_types.CARD_MASTER_INTRO})
+
+        if not master_intro_chatroom_filter:
+            return
+
         title = INTRO_ROOM_NOTIFICATION_TITLE_PLURAL
         sub_title = INTRO_ROOM_NOTIFICATION_SUBTITLE_PLURAL % (
             user_instance.userinfo.name, community.name, community_intro_rooms_count)
-        route = INTRO_ROOM_NOTIFICATION_ROUTE_PLURAL % (community.id, community.name)
+        route = INTRO_ROOM_NOTIFICATION_ROUTE_SINGULAR % master_intro_chatroom_filter[0].id
 
     message = {
         'payload': {
@@ -2899,11 +2974,16 @@ def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conve
     else:
         route = MESSAGE_REACTIONS_CHATROOM_NOTIFICATION_ROUTE % chatroom_id
 
-    message = {'payload': {
-        "title": title,
-        "sub_title": sub_title,
-        'route': route
-    }
+    message = {
+        'payload': {
+            'title': title,
+            'sub_title': sub_title,
+            'route': route
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.USER_REACTED
+        }
     }
 
     notification_list = [creator_dict]
@@ -2943,12 +3023,17 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
 
     notification_list = []
 
-    message = {'payload': {
-        "title": "Time to vote",
-        "sub_title": POLL_CONVERSATION_SUBTITLE % (userinfo_instance[0].name, card_instance.header,
-                                                   community_instance.name),
-        'route': POLL_CONVERSATION_ROUTE % (community_instance.id, card_instance.id, conversation_id)
-    }
+    message = {
+        'payload': {
+            'title': "Time to vote",
+            'sub_title': POLL_CONVERSATION_SUBTITLE % (userinfo_instance[0].name, card_instance.header,
+                                                       community_instance.name),
+            'route': POLL_CONVERSATION_ROUTE % (community_instance.id, card_instance.id, conversation_id)
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MICRO_POLL_CREATED
+        }
     }
 
     for member in member_filter:
@@ -3001,7 +3086,7 @@ def send_notification_for_auto_follow_chatroom_for_all_members(chatroom_id, cm_i
 
 
 @shared_task
-def send_notification_on_chatroom_topic_update(chatroom_id):
+def send_notification_on_chatroom_topic_update(chatroom_id, current_user_id):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
     if not card_instance:
@@ -3016,7 +3101,7 @@ def send_notification_on_chatroom_topic_update(chatroom_id):
 
     for user_id in user_list:
 
-        if user_id == card_instance.user_id:
+        if user_id == current_user_id:
             continue
 
         notification_list.append({'id': user_id})

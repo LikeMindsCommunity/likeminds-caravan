@@ -5,9 +5,9 @@ from utility.response_utilities import ResponseUtilities
 from utility.states import (api_types, login_types)
 from utility.auth_utilities import AuthUtilities
 from togther.models import ModelUtilities
-from .models import SdkClient, SdkPlatform
+from .models import SdkClient, SdkPlatform, SdkOnboardingScreen
 from .sdk_view_helper import SdkViewHelper
-from .serializers import SdkProjectSerializer
+from .serializers import SdkProjectSerializer, OnboardingScreenSerializer
 from collabmates_api.community.community_impl import CommunityImpl
 from collabmates_api.user.view_impl import UserImpl
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -62,12 +62,21 @@ class SdkImpl(SdkManager):
         api_key = self.get_api_key()
 
         if api_key:
-            filters['api_key'] = api_key
+            api_key_validation = AuthUtilities.validate_api_key(self.get_api_key())
 
-        projects = ModelUtilities.get_model_filter(SdkClient, filters)
+            if 'error_message' in api_key_validation:
+                return ResponseUtilities.get_impl_error_context(api_key_validation.get('error_message'),
+                                                                api_key_validation.get('status'))
 
-        if not projects:
-            return ResponseUtilities.get_impl_error_context('No projects found', status_codes.HTTP_404_NOT_FOUND)
+            sdk_client = api_key_validation.get('sdk_client')
+
+            if sdk_client.project_creator != validated_request.get('project_creator'):
+                return ResponseUtilities.get_impl_error_context('No projects found', status_codes.HTTP_404_NOT_FOUND)
+
+            projects = [sdk_client]
+
+        else:
+            projects = ModelUtilities.get_model_filter(SdkClient, filters)
 
         return {'success': True, 'projects': SdkProjectSerializer(projects, many=True).data}
 
@@ -92,9 +101,11 @@ class SdkImpl(SdkManager):
 
         unique_id = str(uuid.uuid4())
         community_id = create_community['community'].get('id')
+        firebase_server_key = req_body.get('firebase_server_key', None)
 
         sdk_client = SdkClient(community_id=community_id, api_key=unique_id,
-                               project_creator=validated_request_body.get('project_creator'))
+                               project_creator=validated_request_body.get('project_creator'),
+                               firebase_server_key=firebase_server_key)
         sdk_client.save()
 
         platforms = req_body.get('platform')
@@ -136,6 +147,10 @@ class SdkImpl(SdkManager):
         if 'error_message' in is_cm:
             return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
 
+        if req_body.get('firebase_server_key'):
+            sdk_client.firebase_server_key = req_body.get('firebase_server_key')
+            sdk_client.save()
+
         platforms = req_body.get('platform')
 
         if platforms:
@@ -163,13 +178,15 @@ class SdkImpl(SdkManager):
             return ResponseUtilities.get_impl_error_context(edit_community['error_message'],
                                                             edit_community['status'])
 
-        user_manager = UserImpl(user_id=self.get_member_id(), platform_code=self.get_request_platform(),
-                                version_code=self.get_version_code())
-        update_bot = user_manager.update_user_bot({'community_name': req_body.get('name')})
+        if req_body.get('name'):
 
-        if 'error_message' in update_bot:
-            return ResponseUtilities.get_impl_error_context(update_bot['error_message'],
-                                                            update_bot['status'])
+            user_manager = UserImpl(user_id=self.get_member_id(), platform_code=self.get_request_platform(),
+                                    version_code=self.get_version_code())
+            update_bot = user_manager.update_user_bot({'name': req_body.get('name')})
+
+            if 'error_message' in update_bot:
+                return ResponseUtilities.get_impl_error_context(update_bot['error_message'],
+                                                                update_bot['status'])
 
         return {'success': True}
 
@@ -237,7 +254,8 @@ class SdkImpl(SdkManager):
             return ResponseUtilities.get_impl_error_context(join_community_context.get('error_message'),
                                                             join_community_context.get('status'))
 
-        return {'user': user_instance, 'community': CommunitySerializerV1(sdk_client.community).data}
+        return {'user': user_instance, 'community': CommunitySerializerV1(sdk_client.community).data,
+                'app_access': login_user.get('app_access')}
 
     def authenticate_sdk(self) -> dict:
 
@@ -250,3 +268,95 @@ class SdkImpl(SdkManager):
         sdk_client = api_key_validation.get('sdk_client')
 
         return {'success': True, 'community_id': sdk_client.community_id}
+
+    def fetch_onboarding_screens(self, req_params) -> dict:
+
+        validated_request = SdkViewHelper.fetch_onboarding_screens_validator(req_params, self.get_api_key())
+
+        if 'error_message' in validated_request:
+            return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        screens = validated_request.get('onboarding_screens')
+
+        return {'success': True, 'screens': OnboardingScreenSerializer(screens, many=True).data}
+
+    def create_onboarding_screen(self, req_body) -> dict:
+
+        validated_request = SdkViewHelper.create_onboarding_screen_validator(req_body, self.get_api_key(),
+                                                                             self.get_member_id())
+
+        if 'error_message' in validated_request:
+            return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        community = validated_request.get('community_instance')
+        user = validated_request.get('user_instance')
+
+        is_cm = AuthUtilities.is_cm(community.id, user.id)
+
+        if 'error_message' in is_cm:
+            return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
+
+        screen = SdkOnboardingScreen(community=community, index=req_body.get('index'), image=req_body.get('image'),
+                                     heading=req_body.get('heading'), text=req_body.get('text'),
+                                     cta_colour=req_body.get('cta_colour'), cta_text=req_body.get('cta_text'))
+
+        screen.save()
+
+        return {'success': True}
+
+    @staticmethod
+    def _edit_onboarding_screen_instance(screen: SdkOnboardingScreen, req_body: dict):
+
+        screen.index = req_body.get('index') if req_body.get('index') else screen.index
+        screen.image = req_body.get('image') if req_body.get('image') else screen.image
+        screen.heading = req_body.get('heading') if req_body.get('heading') else screen.heading
+        screen.text = req_body.get('text') if req_body.get('text') else screen.text
+        screen.cta_text = req_body.get('cta_text') if req_body.get('cta_text') else screen.cta_text
+        screen.cta_colour = req_body.get('cta_colour') if req_body.get('cta_colour') else screen.cta_colour
+        screen.save()
+
+    def edit_onboarding_screen(self, req_body) -> dict:
+
+        validated_request = SdkViewHelper.edit_onboarding_screen_validator(req_body, self.get_api_key(),
+                                                                           self.get_member_id())
+
+        if 'error_message' in validated_request:
+            return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        community = validated_request.get('community_instance')
+        user = validated_request.get('user_instance')
+        screen = validated_request.get('screen_instance')
+
+        is_cm = AuthUtilities.is_cm(community.id, user.id)
+
+        if 'error_message' in is_cm:
+            return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
+
+        self._edit_onboarding_screen_instance(screen, req_body)
+
+        return {'success': True}
+
+    def delete_onboarding_screen(self, req_body) -> dict:
+
+        validated_request = SdkViewHelper.delete_onboarding_screen_validator(req_body, self.get_api_key(),
+                                                                             self.get_member_id())
+
+        if 'error_message' in validated_request:
+            return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        community = validated_request.get('community_instance')
+        user = validated_request.get('user_instance')
+        screen = validated_request.get('screen_instance')
+
+        is_cm = AuthUtilities.is_cm(community.id, user.id)
+
+        if 'error_message' in is_cm:
+            return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
+
+        screen.delete()
+
+        return {'success': True}

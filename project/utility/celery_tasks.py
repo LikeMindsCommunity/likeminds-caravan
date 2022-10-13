@@ -27,7 +27,8 @@ import json
 
 from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVERSATION_POLL_VOTERS_CONVERSATION_ID, \
     CONVERSATION_COMMUNITY_PREVIEW, USER_MUTED_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
-    EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
+    EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
+    COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY, \
     SUBSCRIPTION_FETCH_EVENT_PLAN, COMMUNITY_PUBLIC_URL, CONVERSATIONS_UNREAD_USER_CHATROOM_KEY, ONE_DAY_HOURS
 from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
@@ -1614,7 +1615,7 @@ def member_left_removed_dm_chatroom(user_id, community_id, removed_members_id, r
 
 
 @shared_task
-def cm_removed_dm_chatroom(user_id, community_id):
+def cm_removed_dm_chatroom(user_id, community_id, is_m2cm_v2=False):
     user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
     if not user_instance:
@@ -1690,11 +1691,11 @@ def cm_removed_dm_chatroom(user_id, community_id):
         conversation_engage_instance.exclude(user=user_instance).update(unseen_count=F('unseen_count') + 1)
 
     # Create DM chatroom for new member
-    create_member_dm_chatroom(user_id, community_id, is_cm_member=True)
+    create_member_dm_chatroom(user_id, community_id, is_cm_member=True, is_m2cm_v2=is_m2cm_v2)
 
 
 @shared_task
-def member_becomes_cm_dm_chatroom(user_id, community_id):
+def member_becomes_cm_dm_chatroom(user_id, community_id, is_m2cm_v2=False):
     user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
     if not user_instance:
@@ -1790,7 +1791,8 @@ def member_becomes_cm_dm_chatroom(user_id, community_id):
             "member_id_id", flat=True)
 
         for user_id in user_ids_list:
-            create_member_dm_chatroom(user_id, community_id, cm_list=[member_instance.id], is_member_cm=True)
+            create_member_dm_chatroom(user_id, community_id, cm_list=[member_instance.id], is_member_cm=True,
+                                      is_m2cm_v2=is_m2cm_v2)
 
 
 def compute_member_images_for_homescreen_celery(chatroom_instance, community_instance):
@@ -1997,7 +1999,7 @@ def fill_chatroom_basic_info(card_content, chatroom_name, chatroom_type, communi
 
 @shared_task
 def create_member_dm_chatroom(member_id, community_id, device_id=None, request_platform=None, is_cm_member=False,
-                              cm_list=[], is_script=False, is_joining=False, is_member_cm=False):
+                              cm_list=[], is_script=False, is_joining=False, is_member_cm=False, is_m2cm_v2=False):
     user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
     if not user_instance:
@@ -2404,6 +2406,9 @@ def convert_chatroom_to_secret_chatroom(chatroom_id):
     log_chatroom_secret_type_conversion_activity(chatroom_id, is_secret=True)
     update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': chatroom_instance}, {})
 
+    from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+    ChatroomHelper.set_chatroom_conversion_type_status_key_in_cache(chatroom_id, is_converting=False)
+
 
 @shared_task
 @transaction.atomic()
@@ -2441,6 +2446,9 @@ def convert_chatroom_to_open_chatroom(chatroom_id):
     ModelUtilities.bulk_create_instances(collabcardState, bulk_create_instances)
     log_chatroom_secret_type_conversion_activity(chatroom_id, is_secret=False)
     update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': chatroom_instance}, {})
+
+    from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+    ChatroomHelper.set_chatroom_conversion_type_status_key_in_cache(chatroom_id, is_converting=False)
 
 
 @shared_task
@@ -2536,4 +2544,41 @@ def send_chatroom_updated_analytics_data(chatroom_id, user_id, update_dict):
     }
     event_data.update(update_dict)
     SegmentImpl.track_event(user_id, "Chatroom updated (Core service)", event_data)
+
+
+@shared_task
+def update_community_pin_chatrooms_list_in_cache(pin_info):
+    chatroom_id = pin_info.get('chatroom_id')
+    community_id = pin_info.get('community_id')
+    pin_value = pin_info.get('pin_value')
+
+    if not community_id:
+        return []
+
+    key = COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY.format(community_id)
+    pin_chatrooms_object = CacheImpl.get_cache(key)
+
+    if pin_chatrooms_object and chatroom_id:
+        pinned_chatrooms_list = pin_chatrooms_object.get('pinned_chatrooms', [])
+
+        if (not pin_value) and (chatroom_id in pinned_chatrooms_list):
+            pinned_chatrooms_list.remove(chatroom_id)
+
+        elif pin_value and (chatroom_id not in pinned_chatrooms_list):
+            pinned_chatrooms_list = list(set(pin_chatrooms_object.get('pinned_chatrooms', []) + [chatroom_id]))
+            pin_chatrooms_object['pinned_chatrooms'] = pinned_chatrooms_list
+
+    else:
+        pin_chatrooms_object = {}
+        pinned_chatrooms_list = pin_info.get('pinned_chatrooms_list', [])
+
+        if not pinned_chatrooms_list:
+            pinned_chatrooms_list = list(set(ModelUtilities.get_model_filter(
+                Collabcard, {'community': community_id, 'is_pinned': True, 'is_deleted': False}).
+                                        values_list('id', flat=True)))
+
+        pin_chatrooms_object['pinned_chatrooms'] = pinned_chatrooms_list
+    CacheImpl.set_cache(key, pin_chatrooms_object)
+
+    return pinned_chatrooms_list
 

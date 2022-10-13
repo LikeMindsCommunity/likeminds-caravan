@@ -6,8 +6,7 @@ from utility.utils import (generate_private_link, get_time_text, eligibility_cou
                            get_members_count_in_community, generate_private_link_for_chatroom,
                            get_date_time_from_timestamp, get_community_members_count_for_preview)
 
-from utility.states import (card_types, question_states, poll_types,
-                            deleted_members, conversation_states)
+from utility.states import (card_types, question_states, poll_types, deleted_members, conversation_states, api_types)
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .member_community.constants import CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED, CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED, \
     CUSTOM_CLICK_TEXT_DELETED, CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_LEFT, CUSTOM_INTRO_TEXT_LEFT
@@ -150,11 +149,11 @@ def UserinfoSerializer(user):
         'id': user.user_id_id,
         'name': user.name,
         'updated_at': user.updated_at,
-        'is_guest': user.is_guest
+        'is_guest': user.is_guest,
+        'user_unique_id': user.user_unique_id,
+        'organisation_name': user.organisation_name,
+        'image_url': user.image_link
     }
-
-    if user.image_link:
-        userinfo['image_url'] = user.image_link
 
     return userinfo
 
@@ -236,8 +235,12 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'online_link_enable_before': card.online_link_enable_before,
         'is_private': card.is_private,
         'has_event_recording': card.has_event_recording,
-        'is_private_member': card.is_private_member
+        'is_private_member': card.is_private_member,
+        'include_members_later': card.include_members_later
     }
+
+    if card.chatroom_image_url:
+        collabcard['chatroom_image_url'] = card.chatroom_image_url
 
     if card.secret_chatroom_participants:
         collabcard['secret_chatroom_participants'] = json.loads(card.secret_chatroom_participants)
@@ -770,7 +773,7 @@ def get_collabcard_files(card_id, draft=False):
     return img_list, pdf, audio_list, video_list, attachments
 
 
-def get_share_url_text(card, user_id):
+def get_share_url_text(card, domain_url=None, api_type=api_types.Non_SDK):
     '''function to share url text'''
 
     share = {}
@@ -778,12 +781,15 @@ def get_share_url_text(card, user_id):
 
     from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
-    card_url = ChatroomHelper.fetch_chatroom_link(card)
+    card_url = ChatroomHelper.fetch_chatroom_link(card, domain_url=domain_url)
 
     share['share_url'] = card_url
     share['creator_share_url'] = card_url
 
-    if card.type == card_types.CARD_PUBLIC_EVENT:
+    if api_type == api_types.SDK:
+        pass
+
+    elif card.type == card_types.CARD_PUBLIC_EVENT:
 
         share['share_url'] = """Check out this event on LikeMinds: %s""" % card_url
         share[
@@ -1552,6 +1558,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
                                          send_profile=send_profile)
     community_profile['state'] = member_instance.state
     community_profile['is_owner'] = member_instance.is_owner
+    community_profile['member_since_epoch'] = member_instance.created_at
     if member_instance.custom_title and not member_instance.custom_title == 'Member':
         community_profile['custom_title'] = member_instance.custom_title
     # sending image  url of members
