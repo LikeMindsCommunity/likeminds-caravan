@@ -2246,16 +2246,28 @@ def fetch_user_chatrooms(request):
     state = request.GET.get('state', 0)
     user_id = request.GET.get('user_id')
     community_id = request.GET.get('community_id')
+    api_key = RequestUtilities.get_api_key_from_headers(request)
     current_user_id = get_member_id_from_headers(request)
     chatrooms = []
 
-    try:
-        community_instance = Community.objects.get(id=community_id)
-        user_instance = User.objects.get(id=user_id)
-        current_user_instance = User.objects.get(id=current_user_id)
+    if not page.isdigit():
+        context = ResponseUtilities.get_view_impl_error_context("Send valid page",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
-    except Exception as e:
-        return JsonResponse({'error_message': e.args}, status=status_codes.HTTP_400_BAD_REQUEST)
+    if not state.isdigit():
+        context = ResponseUtilities.get_view_impl_error_context("Send valid state",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+    if not community_instance:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid community ID or x-api-key",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    community_id = community_instance.id
 
     # chatrooms created by user
     if int(state) == 0:
@@ -2276,7 +2288,9 @@ def fetch_user_chatrooms(request):
 
             chatrooms.append(temp)
 
-        return JsonResponse({'chatrooms': chatrooms, 'total_chatrooms_created': created_chatroom_count})
+        return JsonResponse({'success': True,
+                             'chatrooms': chatrooms,
+                             'total_chatrooms_created': created_chatroom_count})
 
     # chatrooms not created by user but  followed by users
     elif int(state) == 1:
@@ -2306,10 +2320,13 @@ def fetch_user_chatrooms(request):
                 temp['conversation_users'] = get_conversation_users(engage_filter[0])
             chatrooms.append(temp)
 
-        return JsonResponse({'chatrooms': chatrooms, 'total_chatrooms_followed': followed_chatroom_count})
+        return JsonResponse({'success': True,
+                             'chatrooms': chatrooms,
+                             'total_chatrooms_followed': followed_chatroom_count})
 
-    return JsonResponse({'error_message': "Send correct state"})
-
+    context = ResponseUtilities.get_view_impl_error_context("Send correct state",
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+    return JsonResponse(context['data'], status=context['status'])
 
 def fetch_common_communities(request):
     '''api to fetch common communities of user'''
@@ -11236,6 +11253,8 @@ def fetch_community_member_rights(request):
         user_rights = check_all_member_rights(user_instance, community_instance)
 
         rights_context = get_saved_member_rights_list(user_rights, admin_rights)
+
+        rights_context = update_member_rights_for_sdk(rights_context, community_instance)
 
     else:
         context = get_error_context(False, "user is not a admin")
