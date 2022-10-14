@@ -42,6 +42,8 @@ urlpatterns = [
     path('v2/fetch_chatroom', api_views.fetch_chatroom_version_2, name="fetch_chatroom_version_2"),
 
     path('fetch_chatroom_feed', api_views.fetch_chatroom_feed, name="fetch_chatroom_feed"),
+    path('fetch_community_chatroom_feed', api_views.fetch_community_chatroom_feed,
+         name="fetch_community_chatroom_feed"),
     path('community_collabcard_invite/<int:community_id>', api_views.community_collabcard_invite,
          name="community_collabcard_invite"),
     path('v1/login', api_views.login_authenticate_version_1, name='v1/login'),

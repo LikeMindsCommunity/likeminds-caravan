@@ -6736,6 +6736,54 @@ def fetch_chatroom_feed(request):
     return JsonResponse(context)
 
 
+def fetch_community_chatroom_feed(request):
+    '''Version 1 community collabcards'''
+
+    member_id = get_member_id_from_headers(request)
+
+    try:
+        size = request.GET.get('size', 3)
+        size = int(size)
+    except Exception as e:
+        error_logger.error(e)
+        size = 3
+
+    community_id = request.GET.get('community_id')
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
+    community_dict = validate_community_id_or_api_key(community_id, api_key)
+
+    if community_dict.get('error_message'):
+        context = ResponseUtilities.get_view_impl_error_context(community_dict.get('error_message'),
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
+
+    community_instance = community_dict.get('community_instance')
+
+    chatroom_filter = \
+        Collabcard.objects.filter(community=community_instance,
+                                  is_pending=False,
+                                  is_deleted=False).filter(~Q(type=card_types.CARD_INTRO)).order_by('-id')
+
+    total_chatrooms = chatroom_filter.count()
+    chatroom_list = []
+    for chatroom in chatroom_filter:
+
+        chatroom_data = get_chatroom_instance(chatroom, member_id)
+        chatroom_list.append(chatroom_data)
+        size = size - 1
+        if size == 0:
+            break
+
+    context = {
+        'success': True,
+        'chatrooms': chatroom_list,
+        'total_chatrooms': total_chatrooms
+    }
+
+    return JsonResponse(context)
+
+
 def chatroom_feed_header(community_id, member_id):
     '''function to get chatroom feed header'''
 
