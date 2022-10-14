@@ -2077,13 +2077,12 @@ class MemberCommunityHelper:
     @staticmethod
     def add_menu_items_if_current_user_is_admin_and_user_is_non_admin(current_user_member_instance, community_instance,
                                                                   menu, all_menu_items, is_parent_cm=False):
-
-        if check_admin_approve_right(current_user_member_instance.member_id, community_instance):
-            menu.append(all_menu_items.get('REMOVE_FROM_COMMUNITY'))
-
         if any([check_admin_approve_right(current_user_member_instance.member_id, community_instance),
                 check_admin_delete_right(current_user_member_instance.member_id_id, community_instance)]):
             menu.append(all_menu_items.get('EDIT_PERMISSIONS'))
+
+        if check_admin_approve_right(current_user_member_instance.member_id, community_instance):
+            menu.append(all_menu_items.get('REMOVE_FROM_COMMUNITY'))
 
         if all([check_admin_add_community_managers_right(current_user_member_instance.member_id,
                                                          community_instance)]):
@@ -2175,10 +2174,11 @@ class MemberCommunityHelper:
             all_menu_items = {key: {k1: v1 for k1, v1 in value.items()} for key, value in
                               MEMBER_PROFILE_MENU_ITEMS.items()}
             allowed_menu_items = [all_menu_items.get("EDIT_PERMISSIONS"), all_menu_items.get("REMOVE_FROM_COMMUNITY")]
+            allowed_menu_item_titles = [item.get("title") for item in allowed_menu_items]
             updated_menu = []
 
             for menu_item in menu:
-                if menu_item.get("title") in [item.get("title") for item in allowed_menu_items]:
+                if menu_item.get("title") in allowed_menu_item_titles:
                     updated_menu.append(menu_item)
 
             return updated_menu
