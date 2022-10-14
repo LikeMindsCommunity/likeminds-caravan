@@ -394,7 +394,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update_chatroom_noti_settings(self, req_body: dict) -> {}:
+    def update_chatroom_noti_settings(self, noti_state, is_noti_paused, pause_noti_for) -> {}:
         """Updates notification settings of chatroom"""
 
         raise NotImplementedError
