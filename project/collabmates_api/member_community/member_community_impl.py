@@ -1520,7 +1520,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                       user_intro_card_instance)
             update_preview = True
 
-            if req_body.get('type') == api_types.SDK:
+            community = ModelUtilities.get_model_filter(SdkClient,
+                                                        {"community": community_instance, "is_deleted": False})
+
+            if len(community):
                 MemberCommunityHelper.update_user_image_in_sdk(user_instance, image_url)
 
         if (not user_intro_card_instance) and (user_member_instance.state in [member_states.ADMIN,
