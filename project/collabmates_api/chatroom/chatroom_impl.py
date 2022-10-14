@@ -1339,17 +1339,14 @@ class ChatroomImpl(ChatroomManager):
 
     def get_tagging_list(self) -> dict:
 
-        chatroom_instance = Collabcard.get_chatroom_or_None(self.get_chatroom_id())
+        validated_req_body = ChatroomViewHelper.validate_get_tagging_list_request(self.get_member_id(),
+                                                                                  self.get_chatroom_id())
 
-        if not chatroom_instance:
-            return ResponseUtilities.get_impl_error_context("invalid chatroom id",
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        userinfo_instance = Userinfo.get_userinfo_or_None(self.get_member_id())
-
-        if not userinfo_instance:
-            return ResponseUtilities.get_impl_error_context("invalid user id",
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        chatroom_instance = validated_req_body.get('card_instance')
 
         community_instance = chatroom_instance.community
 
@@ -2414,20 +2411,14 @@ class ChatroomImpl(ChatroomManager):
         return {'success': True}
 
     def update_files(self, req_body):
+        validated_req = ChatroomViewHelper.validate_update_files_request(self.get_member_id(), self.get_chatroom_id())
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user-id"}
-
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
-
-        if not card_instance:
-            return {'success': False, 'error_message': "Invalid chatroom id"}
-
-        if card_instance.user_id != user_instance.id:
-            return {'success': False, 'error_message': "Only chatroom creator can update files"}
-
+        user_instance = validated_req.get('user_instance')
+        card_instance = validated_req.get('card_instance')
         files_list = req_body.get('attachments', [])
 
         ModelUtilities.delete_record_in_model(Card_Attachment,
