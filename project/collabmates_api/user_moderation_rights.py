@@ -6,6 +6,7 @@ from togther.models import (Members, collabcardState, Userinfo, Collabcard,
                             moderationHistory, Report, Report_Tags, communityRightsSettings,
                             Community, removedMembers, userMemberRightsHistory,
                             Member_Engage, conversationEngage, ModelUtilities)
+from collabmates_api.sdk.models import (SdkClient)
 from utility.states import (member_states, manager_rights, member_rights, moderation_history_types, SyncTypes)
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -114,6 +115,23 @@ def save_member_right(user, community, right):
         userMemberRights(user=user, community=community, right=right).save()
     except Exception as e:
         error_logger.error(f"member right already exist for user {user.id} in community {community.id}")
+
+
+def update_member_rights_for_sdk(rights_context, community_instance):
+    """ function to update the member rights for sdk communities """
+
+    community = ModelUtilities.get_model_filter(SdkClient, {"community": community_instance, "is_deleted": False})
+
+    if not community:
+        return rights_context
+
+    updated_rights = []
+
+    for right_item in rights_context:
+        if right_item['state'] in [respond_in_rooms_member_right['state'], create_poll_member_right['state']]:
+            updated_rights.append(right_item)
+
+    return updated_rights
 
 
 def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=False, is_m2cm_v2=False):
