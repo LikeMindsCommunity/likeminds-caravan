@@ -800,10 +800,6 @@ class ConversationImpl(ConversationManager):
 
         community_instance = chatroom_instance.community
 
-        if validated_request.get('error_message'):
-            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
-
         if chatroom_instance.is_secret and \
                 not ConversationHelper.is_user_secret_chatroom_participant(chatroom_instance, self.get_member_id()):
             return ResponseUtilities.get_impl_error_context('You are not a part of this secret chatroom',
@@ -1170,8 +1166,7 @@ class ConversationImpl(ConversationManager):
                                     {'card': chatroom_instance},
                                     {'updated_at': TimeUtilities.current_time_in_sec()})
 
-        send_notification_on_chatroom_topic_update.delay(chatroom_instance.id)
-
+        send_notification_on_chatroom_topic_update.delay(chatroom_instance.id, user_instance.id)
 
         return {'success': True}
 
