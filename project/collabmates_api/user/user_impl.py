@@ -768,10 +768,8 @@ class UserImpl(UserManager):
         community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
                                                                       api_key=self.get_api_key())
 
-        if not community_instance:
-            return {'success': False, 'error_message': "Invalid community ID/API Key!"}
-
-        self.set_community_id(community_instance.id)
+        if community_instance:
+            self.set_community_id(community_instance.id)
 
         admin = ModelUtilities.get_model_filter(Members, {"member_id": user_instance, "state": member_states.ADMIN})
 
