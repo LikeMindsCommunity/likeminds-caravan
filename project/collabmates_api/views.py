@@ -3582,6 +3582,8 @@ def chatroom_rename(request):
     send_sync_notification.delay({'chatroom_id': chatroom_id,
                                   'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
+    chatroom_name = chatroom_name.strip() if chatroom_name else chatroom_name
+
     ElasticSearchSync.update_chatroom_name.delay(chatroom_id, chatroom_name.strip())
 
     send_chatroom_updated_analytics_data.delay(chatroom_id,
