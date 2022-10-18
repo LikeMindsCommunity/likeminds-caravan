@@ -939,8 +939,10 @@ class UserImpl(UserManager):
         community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
                                                                       api_key=self.get_api_key())
 
-        if community_instance:
-            self.set_community_id(community_id=community_instance.id)
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid community ID/API Key!"}
+
+        self.set_community_id(community_id=community_instance.id)
 
         filter_dict: dict = self._get_member_filter_for_dm_feed(self.get_user_id(), self.get_community_id())
         member_filter = ModelUtilities.get_model_filter(Members, filter_dict)
