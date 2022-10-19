@@ -3030,6 +3030,7 @@ def fetch_user_communities_sorted_by_order_time(user_id, community_id=None):
 
         curr.execute(sql)
         card_list = curr.fetchall()
+        curr.close()
 
         return [data[0] for data in card_list]
 
