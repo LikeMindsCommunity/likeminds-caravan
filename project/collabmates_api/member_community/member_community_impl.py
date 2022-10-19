@@ -360,10 +360,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not user_instance:
             return {'error_message': "Invalid user id", 'status': 400}
 
-        total_communities_count, member_engage_ids = fetch_user_communities_sorted_by_order_time(
-            self.get_member_id(), community_id=self.get_community_id(), page=page)
+        member_engage_ids = fetch_user_communities_sorted_by_order_time(self.get_member_id(),
+                                                                        community_id=self.get_community_id())
         communities = MemberCommunityHelper.get_ordered_home_communities_list_based_on_engage_ids(member_engage_ids)
         community_ids_list = list(communities.values_list("community_id_id", flat=True))
+        total_communities_count = len(community_ids_list)
 
         if is_cm and (is_cm == 'true'):
             cm_communities_filter = ModelUtilities.get_model_filter(Members,
@@ -395,8 +396,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             total_communities_count = len(communities_with_dm_rights_list)
 
-        community_id_list = self.compute_community_id_list_from_queryset(communities)
-        community_list = self._process_communities(communities, community_id_list, user_instance)
+        community_queryset = self._paged_queryset(communities, page)
+        community_id_list = self.compute_community_id_list_from_queryset(community_queryset)
+        community_list = self._process_communities(community_queryset, community_id_list, user_instance)
 
         return {
             'success': True,
