@@ -360,9 +360,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not user_instance:
             return {'error_message': "Invalid user id", 'status': 400}
 
-        member_engage_ids = fetch_user_communities_sorted_by_order_time(self.get_member_id(),
-                                                                        community_id=self.get_community_id(),
-                                                                        page=page)
+        total_communities_count, member_engage_ids = fetch_user_communities_sorted_by_order_time(
+            self.get_member_id(), community_id=self.get_community_id(), page=page)
         communities = MemberCommunityHelper.get_ordered_home_communities_list_based_on_engage_ids(member_engage_ids)
         community_ids_list = list(communities.values_list("community_id_id", flat=True))
 
@@ -396,13 +395,14 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             total_communities_count = len(communities_with_dm_rights_list)
 
-        else:
-            total_communities_count = len(community_ids_list)
-
         community_id_list = self.compute_community_id_list_from_queryset(communities)
         community_list = self._process_communities(communities, community_id_list, user_instance)
 
-        return {'your_communities': community_list, 'total_communities_count': total_communities_count}
+        return {
+            'success': True,
+            'your_communities': community_list,
+            'total_communities_count': total_communities_count
+        }
 
     def fetch_community_chatrooms_queryset_with_web_scroll(self, pin_status, card_instance,
                                                            intro_room_settings_enabled, excluded_card_ids,
