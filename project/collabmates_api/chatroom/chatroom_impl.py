@@ -3972,6 +3972,8 @@ class ChatroomHelper:
         community_noti_instance = CommunityHelper.fetch_community_noti_settings_instance(community_instance)
         community_current_noti_state = community_noti_instance.noti_state if community_noti_instance else noti_states.ALL_MESSAGES
 
+        auto_follow_members_list = []
+
         for data in member_filter:
             user_instance = data.member_id
 
@@ -4000,8 +4002,8 @@ class ChatroomHelper:
                 if user_instance.id in event_creator_and_community_owner:
                     community_admins_list.append(user_instance.id)
 
-                if follow_status and (user_instance.id not in chatroom_participants_list):
-                    chatroom_participants_list.append(user_instance.id)
+                if follow_status:
+                    auto_follow_members_list.append(user_instance.id)
 
         payload_for_calendar_invite = {
             'chatroom': card_instance.id
@@ -4021,13 +4023,19 @@ class ChatroomHelper:
                 "status": True
             })
 
+        card_engagement_user_list = []
+
         if chatroom_participants_list:
-            ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
-                card_instance.id, chatroom_participants_list)
+            card_engagement_user_list = chatroom_participants_list
 
         if card_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
-            ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
-                card_instance.id, community_admins_list)
+            card_engagement_user_list = community_admins_list
+
+        if auto_follow_members_list:
+            card_engagement_user_list = auto_follow_members_list
+
+        ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
+            card_instance.id, card_engagement_user_list)
 
     @staticmethod
     def update_unseen_count_for_homescreen_communitites(card_instance, community_instance):
