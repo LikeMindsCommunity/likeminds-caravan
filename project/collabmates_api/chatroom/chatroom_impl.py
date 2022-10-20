@@ -4008,8 +4008,8 @@ class ChatroomHelper:
         }
 
         send_calender_invite_for_event_type.delay(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION,
-                                                send_to_members=False, user_list=event_creator_and_community_owner,
-                                                calendar_invite_type=CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION)
+                                                  send_to_members=False, user_list=event_creator_and_community_owner,
+                                                  calendar_invite_type=CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION)
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
         ChatroomHelper.set_chatroom_participants_created_key_in_cache(card_instance.id, True)
