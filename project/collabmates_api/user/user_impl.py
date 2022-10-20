@@ -289,14 +289,16 @@ class UserImpl(UserManager):
 
         return user_instance
 
-    def create_user_context_for_sdk(self, user_instance, is_exisiting_user=False, sdk_client_user_info_instance=None):
+    def create_user_context_for_sdk(self, user_instance, is_exisiting_user=False, sdk_client_user_info_instance=None,
+                                    app_access=True):
 
         user_object = {
             'success': True,
             'user': self.compute_logged_in_user(user_instance.userinfo, sdk_client_user_info_instance),
             'email_exists': False,
             'access': UserHelper.is_user_belong_to_any_community(user_instance),
-            'existing_user': is_exisiting_user
+            'existing_user': is_exisiting_user,
+            'app_access': app_access
         }
 
         return user_object
@@ -309,6 +311,8 @@ class UserImpl(UserManager):
         unique_id = str(uuid.uuid4())
         sdk_client_user_info_instance = None
         community_instance = None
+        existing_user = False
+        app_access = True
 
         if not user_unique_id:
             should_create_user = True
@@ -330,18 +334,38 @@ class UserImpl(UserManager):
                                                                             'user_unique_id': user_unique_id})
 
             if sdk_client_users_info_filter:
+                existing_user = True
                 sdk_client_user_info_instance = sdk_client_users_info_filter[0]
+
+                removed_member = ModelUtilities.get_model_filter(removedMembers,
+                                                                 {'community': community_instance,
+                                                                  'member': sdk_client_user_info_instance.user})
+
+                if len(removed_member):
+                    app_access = False
+
                 return {'user_instance': sdk_client_user_info_instance.user,
                         'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                        'existing_user': True}
+                        'existing_user': existing_user,
+                        'app_access': app_access}
 
             user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_unique_id': user_unique_id})
 
             if user_info_filter:
+                existing_user = True
                 user_instance = user_info_filter[0].user_id
+
+                removed_member = ModelUtilities.get_model_filter(removedMembers,
+                                                                 {'community': community_instance,
+                                                                  'member': user_instance})
+
+                if len(removed_member):
+                    app_access = False
+
                 return {'user_instance': user_instance,
                         'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                        'existing_user': True}
+                        'existing_user': existing_user,
+                        'app_access': app_access}
 
             should_create_user = True
 
@@ -383,7 +407,8 @@ class UserImpl(UserManager):
 
         return {'user_instance': user_instance,
                 'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                'existing_user': False}
+                'existing_user': existing_user,
+                'app_access': app_access}
 
     @staticmethod
     def create_user_primary_email(user_instance, user_context, email_state=email_states.PRIMARY):
@@ -535,7 +560,8 @@ class UserImpl(UserManager):
 
             return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'),
                                                     sdk_user_context.get('existing_user'),
-                                                    sdk_user_context.get('sdk_client_user_info_instance'))
+                                                    sdk_user_context.get('sdk_client_user_info_instance'),
+                                                    sdk_user_context.get('app_access'))
 
         if (not login_type == login_types.SDK) and not user_context.get('has_profile_image'):
             return {'success': False, 'user': user_context,
@@ -742,10 +768,8 @@ class UserImpl(UserManager):
         community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
                                                                       api_key=self.get_api_key())
 
-        if not community_instance:
-            return {'success': False, 'error_message': "Invalid community ID/API Key!"}
-
-        self.set_community_id(community_instance.id)
+        if community_instance:
+            self.set_community_id(community_instance.id)
 
         admin = ModelUtilities.get_model_filter(Members, {"member_id": user_instance, "state": member_states.ADMIN})
 

@@ -112,10 +112,9 @@ class RequestUtilities:
             }
             raise JsonDecodeException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-
     @staticmethod
     def get_page_number(request: object, key: str = "page", default: int = 1) -> int:
-        page = NumberUtilities.get_integer_from_string(request.query_params.get('page', default))
+        page = NumberUtilities.get_integer_from_string(request.query_params.get(key, default))
 
         if page <= 0:
             page = default
@@ -124,5 +123,10 @@ class RequestUtilities:
 
     @staticmethod
     def get_page_size(request: object, key: str = "page_size", default: int = 100) -> int:
-        return NumberUtilities.get_integer_from_string(request.query_params.get(key, default))
+        page_size = NumberUtilities.get_integer_from_string(request.query_params.get(key, default))
+
+        if page_size <= 0:
+            page_size = default
+
+        return page_size
 

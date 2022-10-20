@@ -254,7 +254,8 @@ class SdkImpl(SdkManager):
             return ResponseUtilities.get_impl_error_context(join_community_context.get('error_message'),
                                                             join_community_context.get('status'))
 
-        return {'user': user_instance, 'community': CommunitySerializerV1(sdk_client.community).data}
+        return {'user': user_instance, 'community': CommunitySerializerV1(sdk_client.community).data,
+                'app_access': login_user.get('app_access')}
 
     def authenticate_sdk(self) -> dict:
 

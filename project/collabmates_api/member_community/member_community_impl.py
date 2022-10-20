@@ -12,6 +12,7 @@ from togther.models import (Member_Engage, Community, Members, collabcardState, 
                             Collabcard, card_answers, conversationEngage, communityQuestions, CommunityUserDelete,
                             communityRightsSettings, CommunitySettings, communityAnswers, questionFilters,
                             Card_Attachment, CommunityDirectMessageSettings, userMemberRights, Userinfo)
+from collabmates_api.sdk.models import (SdkClient)
 from utility.celery_tasks import update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery, \
     update_multiple_previews_in_chatroom, set_level_click_state, create_member_dm_chatroom, \
     update_community_pin_chatrooms_list_in_cache, update_preview_for_account_image_change
@@ -76,9 +77,6 @@ error_logger = LoggingWrapper.get_instance()
 class MemberCommunityImpl(MemberCommunityManager):
     member_id = None
     community_id = None
-    device_id = None
-    platform_code = None
-    version_code = None
 
     def __init__(self, member_id: str, community_id: str, device_id: str = None, platform_code: str = "",
                  version_code: int = 0, api_key: str = None):
@@ -363,10 +361,10 @@ class MemberCommunityImpl(MemberCommunityManager):
             return {'error_message': "Invalid user id", 'status': 400}
 
         member_engage_ids = fetch_user_communities_sorted_by_order_time(self.get_member_id(),
-                                                                        community_id=self.get_community_id(),
-                                                                        page=page)
+                                                                        community_id=self.get_community_id())
         communities = MemberCommunityHelper.get_ordered_home_communities_list_based_on_engage_ids(member_engage_ids)
         community_ids_list = list(communities.values_list("community_id_id", flat=True))
+        total_communities_count = len(community_ids_list)
 
         if is_cm and (is_cm == 'true'):
             cm_communities_filter = ModelUtilities.get_model_filter(Members,
@@ -398,13 +396,15 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             total_communities_count = len(communities_with_dm_rights_list)
 
-        else:
-            total_communities_count = len(community_ids_list)
+        community_queryset = self._paged_queryset(communities, page)
+        community_id_list = self.compute_community_id_list_from_queryset(community_queryset)
+        community_list = self._process_communities(community_queryset, community_id_list, user_instance)
 
-        community_id_list = self.compute_community_id_list_from_queryset(communities)
-        community_list = self._process_communities(communities, community_id_list, user_instance)
-
-        return {'your_communities': community_list, 'total_communities_count': total_communities_count}
+        return {
+            'success': True,
+            'your_communities': community_list,
+            'total_communities_count': total_communities_count
+        }
 
     def fetch_community_chatrooms_queryset_with_web_scroll(self, pin_status, card_instance,
                                                            intro_room_settings_enabled, excluded_card_ids,
@@ -1373,7 +1373,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def fetch_member_profile(self, user_id):
         validated_req = MemberCommunityViewHelper.validate_fetch_member_profile_request(self.get_member_id(), user_id,
-                                                                                        self.get_community_id())
+                                                                                        self.get_community_id(),
+                                                                                        self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -1419,6 +1420,9 @@ class MemberCommunityImpl(MemberCommunityManager):
         user_menu = MemberCommunityHelper.get_member_profile_menu(user_member_instance, community_instance,
                                                                   current_user_member_instance)
 
+        user_menu = MemberCommunityHelper.update_member_profile_menu_for_sdk(user_member_instance, community_instance,
+                                                                             current_user_member_instance, user_menu)
+
         member_profile_response = {
             'success': True,
             'member': user_member_data,
@@ -1435,10 +1439,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         if not user_instance:
             return get_error_context(False, "Invalid x-member-id")
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, self.get_community_id())
+        community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
+                                                                      api_key=self.get_api_key())
 
         if not community_instance:
-            return get_error_context(False, "Invalid community_id")
+            return ResponseUtilities.get_inner_error_context("Invalid community ID or x-api-key")
 
         user_member_filter = ModelUtilities.get_model_filter(Members,
                                                              {'member_id': user_instance,
@@ -1517,7 +1522,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                       user_intro_card_instance)
             update_preview = True
 
-            if req_body.get('type') == api_types.SDK:
+            community = ModelUtilities.get_model_filter(SdkClient,
+                                                        {"community": community_instance, "is_deleted": False})
+
+            if len(community):
                 MemberCommunityHelper.update_user_image_in_sdk(user_instance, image_url)
 
         if (not user_intro_card_instance) and (user_member_instance.state in [member_states.ADMIN,
@@ -2074,13 +2082,12 @@ class MemberCommunityHelper:
     @staticmethod
     def add_menu_items_if_current_user_is_admin_and_user_is_non_admin(current_user_member_instance, community_instance,
                                                                   menu, all_menu_items, is_parent_cm=False):
-
-        if check_admin_approve_right(current_user_member_instance.member_id, community_instance):
-            menu.append(all_menu_items.get('REMOVE_FROM_COMMUNITY'))
-
         if any([check_admin_approve_right(current_user_member_instance.member_id, community_instance),
                 check_admin_delete_right(current_user_member_instance.member_id_id, community_instance)]):
             menu.append(all_menu_items.get('EDIT_PERMISSIONS'))
+
+        if check_admin_approve_right(current_user_member_instance.member_id, community_instance):
+            menu.append(all_menu_items.get('REMOVE_FROM_COMMUNITY'))
 
         if all([check_admin_add_community_managers_right(current_user_member_instance.member_id,
                                                          community_instance)]):
@@ -2158,6 +2165,30 @@ class MemberCommunityHelper:
             menu.append(all_menu_items.get('EDIT_TITLE'))
 
         return menu
+
+    @staticmethod
+    def update_member_profile_menu_for_sdk(user_member_instance, community_instance, current_user_member_instance, menu):
+
+        community = ModelUtilities.get_model_filter(SdkClient, {"community": community_instance, "is_deleted": False})
+
+        if not community:
+            return menu
+
+        if (current_user_member_instance.state == member_states.ADMIN and
+                user_member_instance.state == member_states.MEMBER):
+            all_menu_items = {key: {k1: v1 for k1, v1 in value.items()} for key, value in
+                              MEMBER_PROFILE_MENU_ITEMS.items()}
+            allowed_menu_items = [all_menu_items.get("EDIT_PERMISSIONS"), all_menu_items.get("REMOVE_FROM_COMMUNITY")]
+            allowed_menu_item_titles = [item.get("title") for item in allowed_menu_items]
+            updated_menu = []
+
+            for menu_item in menu:
+                if menu_item.get("title") in allowed_menu_item_titles:
+                    updated_menu.append(menu_item)
+
+            return updated_menu
+
+        return []
 
     @staticmethod
     def update_users_image_url_in_community(user_member_filter, image_url, user_intro_card_instance):

@@ -647,7 +647,8 @@ class ChatroomUpdateFilesView(APIView):
         response_context = chatroom_manager.update_files(req_body)
 
         if response_context.get('error_message'):
-            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
 
         return JsonResponse(response_context)
 
