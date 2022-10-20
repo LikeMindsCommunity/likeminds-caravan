@@ -241,21 +241,23 @@ class SdkImpl(SdkManager):
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = login_user.get('user')
+        app_access = login_user.get('app_access', True)
 
-        member_community_manager = MemberCommunityImpl(member_id=user_instance.get('user_unique_id'),
-                                                       community_id=sdk_client.community.id,
-                                                       device_id=self.get_device_id(),
-                                                       platform_code=self.get_request_platform(),
-                                                       api_key=self.get_api_key())
-        join_community_context = member_community_manager.join_community_sdk(
-            validated_request_body.get('join_req_body'))
+        if app_access:
+            member_community_manager = MemberCommunityImpl(member_id=user_instance.get('user_unique_id'),
+                                                           community_id=sdk_client.community.id,
+                                                           device_id=self.get_device_id(),
+                                                           platform_code=self.get_request_platform(),
+                                                           api_key=self.get_api_key())
+            join_community_context = member_community_manager.join_community_sdk(
+                validated_request_body.get('join_req_body'))
 
-        if 'error_message' in join_community_context:
-            return ResponseUtilities.get_impl_error_context(join_community_context.get('error_message'),
-                                                            join_community_context.get('status'))
+            if 'error_message' in join_community_context:
+                return ResponseUtilities.get_impl_error_context(join_community_context.get('error_message'),
+                                                                join_community_context.get('status'))
 
         return {'user': user_instance, 'community': CommunitySerializerV1(sdk_client.community).data,
-                'app_access': login_user.get('app_access')}
+                'app_access': app_access}
 
     def authenticate_sdk(self) -> dict:
 
