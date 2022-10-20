@@ -69,7 +69,7 @@ class CreateConversation(APIView):
 
         conversation_manager = ConversationImpl(member_id, platform_code=platform_code, device_id=device_id)
 
-        conversation_response = conversation_manager.create_conversation(req_body, is_ios)
+        conversation_response = conversation_manager.create_conversation_revamp(req_body)
 
         if conversation_response.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
