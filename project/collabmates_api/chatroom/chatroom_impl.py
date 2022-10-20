@@ -4000,6 +4000,9 @@ class ChatroomHelper:
                 if user_instance.id in event_creator_and_community_owner:
                     community_admins_list.append(user_instance.id)
 
+                if follow_status and (user_instance.id not in chatroom_participants_list):
+                    chatroom_participants_list.append(user_instance.id)
+
         payload_for_calendar_invite = {
             'chatroom': card_instance.id
         }
