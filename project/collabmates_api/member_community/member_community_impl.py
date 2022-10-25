@@ -2174,21 +2174,41 @@ class MemberCommunityHelper:
         if not community:
             return menu
 
-        if (current_user_member_instance.state == member_states.ADMIN and
-                user_member_instance.state == member_states.MEMBER):
-            all_menu_items = {key: {k1: v1 for k1, v1 in value.items()} for key, value in
-                              MEMBER_PROFILE_MENU_ITEMS.items()}
-            allowed_menu_items = [all_menu_items.get("EDIT_PERMISSIONS"), all_menu_items.get("REMOVE_FROM_COMMUNITY")]
-            allowed_menu_item_titles = [item.get("title") for item in allowed_menu_items]
-            updated_menu = []
+        all_menu_items = {key: {k1: v1 for k1, v1 in value.items()} for key, value in
+                          MEMBER_PROFILE_MENU_ITEMS.items()}
+        updated_menu = []
+        allowed_menu_items = []
 
-            for menu_item in menu:
-                if menu_item.get("title") in allowed_menu_item_titles:
-                    updated_menu.append(menu_item)
+        if current_user_member_instance.state == member_states.ADMIN:
+            if user_member_instance.state == member_states.ADMIN:
+                allowed_menu_items = [
+                    all_menu_items.get("REPORT_MEMBER")
+                ]
 
-            return updated_menu
+            if user_member_instance.state == member_states.MEMBER:
+                allowed_menu_items = [
+                    all_menu_items.get("EDIT_PERMISSIONS"),
+                    all_menu_items.get("REMOVE_FROM_COMMUNITY"),
+                    all_menu_items.get("REPORT_MEMBER")
+                ]
 
-        return []
+        if current_user_member_instance.state == member_states.MEMBER:
+            if user_member_instance.state == member_states.ADMIN:
+                allowed_menu_items = [
+                    all_menu_items.get("REPORT_MEMBER")
+                ]
+
+            if user_member_instance.state == member_states.MEMBER:
+                allowed_menu_items = [
+                    all_menu_items.get("REPORT_MEMBER")
+                ]
+
+        allowed_menu_item_titles = [item.get("title") for item in allowed_menu_items]
+        for menu_item in menu:
+            if menu_item.get("title") in allowed_menu_item_titles:
+                updated_menu.append(menu_item)
+
+        return updated_menu
 
     @staticmethod
     def update_users_image_url_in_community(user_member_filter, image_url, user_intro_card_instance):
