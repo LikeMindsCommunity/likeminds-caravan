@@ -2185,20 +2185,20 @@ class MemberCommunityHelper:
                     all_menu_items.get("REPORT_MEMBER")
                 ]
 
-            if user_member_instance.state == member_states.MEMBER:
+            elif user_member_instance.state == member_states.MEMBER:
                 allowed_menu_items = [
                     all_menu_items.get("EDIT_PERMISSIONS"),
                     all_menu_items.get("REMOVE_FROM_COMMUNITY"),
                     all_menu_items.get("REPORT_MEMBER")
                 ]
 
-        if current_user_member_instance.state == member_states.MEMBER:
+        elif current_user_member_instance.state == member_states.MEMBER:
             if user_member_instance.state == member_states.ADMIN:
                 allowed_menu_items = [
                     all_menu_items.get("REPORT_MEMBER")
                 ]
 
-            if user_member_instance.state == member_states.MEMBER:
+            elif user_member_instance.state == member_states.MEMBER:
                 allowed_menu_items = [
                     all_menu_items.get("REPORT_MEMBER")
                 ]
