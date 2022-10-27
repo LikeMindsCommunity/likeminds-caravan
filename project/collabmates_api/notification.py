@@ -474,14 +474,17 @@ def process_everyone_tag(community_id: str, chatroom_id: str, tagged_users_list:
 
     from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
 
-    chatroom_mute_filter_dict: dict = {
+    chatroom_participants_mute_filter_dict: dict = {
         'card_id': chatroom_id,
-        'mute_status': True
+        'follow_status': True,
+        'mute_status': True,
+        'remove': None,
+        'user__userinfo__is_guest': False
     }
     chatroom_muted_members: QuerySet = ChatroomImpl(
         '',
         str(chatroom_id)
-    ).get_chatroom_participants(chatroom_mute_filter_dict)
+    ).get_chatroom_participants(chatroom_participants_mute_filter_dict)
 
     chatroom_muted_members: list = list(chatroom_muted_members.values_list('user_id', flat=True))
 
@@ -497,14 +500,17 @@ def process_participants_tag(chatroom_id: str, tagged_users_list: list) -> list:
 
     from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
 
-    chatroom_un_mute_filter_dict: dict = {
+    chatroom_participants_un_mute_filter_dict: dict = {
         'card_id': chatroom_id,
-        'mute_status': False
+        'mute_status': False,
+        'follow_status': True,
+        'remove': None,
+        'user__userinfo__is_guest': False
     }
     chatroom_un_muted_members: QuerySet = ChatroomImpl(
         '',
         str(chatroom_id)
-    ).get_chatroom_participants(chatroom_un_mute_filter_dict)
+    ).get_chatroom_participants(chatroom_participants_un_mute_filter_dict)
 
     chatroom_un_muted_members_ids: list = list(chatroom_un_muted_members.values_list('user_id', flat=True))
     tagged_users_list = ListUtilities.convert_elements_int_to_str(chatroom_un_muted_members_ids)

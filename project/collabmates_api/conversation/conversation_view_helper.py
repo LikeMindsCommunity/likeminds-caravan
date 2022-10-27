@@ -53,7 +53,13 @@ class ConversationViewHelper:
         community_instance = chatroom_instance.community
         member_state = Members.get_community_member_state(community_instance, user_instance)
 
-        is_tag_allowed = self._validate_group_tags(message, member_state, user_id, chatroom_instance.user.id)
+        is_tag_allowed = self._validate_group_tags(
+            message,
+            member_state,
+            user_id,
+            chatroom_instance.user.id,
+            chatroom_instance.is_secret
+        )
         if not is_tag_allowed:
             return ResponseUtilities.get_inner_error_context('tag not allowed')
 
@@ -71,8 +77,17 @@ class ConversationViewHelper:
         }
 
     @staticmethod
-    def _validate_group_tags(message: str, member_state: int, user_id: int, chatroom_creator_id: int) -> bool:
+    def _validate_group_tags(
+            message: str,
+            member_state: int,
+            user_id: int,
+            chatroom_creator_id: int,
+            is_secret_chatroom: bool
+    ) -> bool:
         is_everyone_tag: list = re.findall(EVERYONE_TAG_REGEX, message)
+        if is_everyone_tag and is_secret_chatroom:
+            return False
+
         if is_everyone_tag and member_state != member_states.ADMIN:
             return False
 
