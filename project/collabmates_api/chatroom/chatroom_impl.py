@@ -1,6 +1,7 @@
 import json
 
 import time
+from django.db.models import QuerySet
 from collections import Iterable
 from typing import Union
 from rest_framework import status as status_codes
@@ -1015,7 +1016,7 @@ class ChatroomImpl(ChatroomManager):
                                                                                    community=community_instance)
         chatroom_name = req_body['title']
 
-        tagged_members = get_tagged_members_list(chatroom_name)
+        tagged_members = get_tagged_members_list(community_id, '', chatroom_name)
 
         chatroom_type = int(req_body.get('type', card_types.CARD_NORMAL))
         is_intro_card = chatroom_type == card_types.CARD_INTRO
@@ -1162,6 +1163,9 @@ class ChatroomImpl(ChatroomManager):
                 args,
                 eta=task_begin_time
             )
+
+    def get_chatroom_participants(self, filter_dict: dict) -> QuerySet:
+        return collabcardState.get_chatroom_participants(filter_dict)
 
     def pin_or_unpin_chatroom(self, req_body: dict) -> dict:
         validated_req = ChatroomViewHelper.validate_pin_unpin_chatroom_request(self.get_chatroom_id(),

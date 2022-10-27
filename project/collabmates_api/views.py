@@ -2831,7 +2831,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     '''function to create chatroom instance'''
 
     # getting the taaged members in chatroom
-    tagged_members = get_tagged_members_list(res['title'])
+    tagged_members = get_tagged_members_list(community_instance.id, '', res['title'])
     tagged_member_list = tagged_members[0]
     res_text = tagged_members[1]
     card_type = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
