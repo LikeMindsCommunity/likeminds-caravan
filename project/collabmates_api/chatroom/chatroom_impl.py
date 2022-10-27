@@ -64,6 +64,7 @@ from ..notification import (get_tagged_members_list, send_notification_to_event_
 
 from ..search.sync import ElasticSearchSync
 
+from collabmates_api.sdk.models import (SdkClient)
 from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo, EventInstructor,
@@ -1062,9 +1063,13 @@ class ChatroomImpl(ChatroomManager):
 
         send_chatroom_creation_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()))
 
-        self._send_chatroom_creation_notifications(user_instance, community_id, community_instance.name,
-                                                   chatroom_instance, card_content, user_has_auto_approve_right,
-                                                   chatroom_type, is_intro_card, set_default_unread_count=True)
+        sdk_communities = ModelUtilities.get_model_filter(SdkClient, {"community": community_instance,
+                                                                      "is_deleted": False})
+
+        if not sdk_communities:
+            self._send_chatroom_creation_notifications(user_instance, community_id, community_instance.name,
+                                                       chatroom_instance, card_content, user_has_auto_approve_right,
+                                                       chatroom_type, is_intro_card, set_default_unread_count=True)
 
         cohort_ids = req_body['cohort_ids'] if ('cohort_ids' in req_body) else None
 
