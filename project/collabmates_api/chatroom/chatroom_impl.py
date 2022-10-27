@@ -1165,7 +1165,7 @@ class ChatroomImpl(ChatroomManager):
             )
 
     def get_chatroom_participants(self, filter_dict: dict) -> QuerySet:
-        return collabcardState.get_chatroom_participants(self.get_chatroom_id(), filter_dict)
+        return collabcardState.get_chatroom_participants(filter_dict)
 
     def pin_or_unpin_chatroom(self, req_body: dict) -> dict:
         validated_req = ChatroomViewHelper.validate_pin_unpin_chatroom_request(self.get_chatroom_id(),

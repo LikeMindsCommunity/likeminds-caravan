@@ -1071,8 +1071,8 @@ class collabcardState(models.Model):
             error_logger.error(e)
 
     @staticmethod
-    def get_chatroom_participants(chatroom_id: str, filter_dict: dict) -> QuerySet:
-        return collabcardState.objects.filter(card=chatroom_id, **filter_dict)
+    def get_chatroom_participants(filter_dict: dict) -> QuerySet:
+        return ModelUtilities.get_model_filter(collabcardState, filter_dict)
 
     @staticmethod
     def create_chatroom_state_instances_for_bulk_create(card_instance, user_instance, noti_state=1, state=1,

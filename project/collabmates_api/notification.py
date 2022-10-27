@@ -475,6 +475,7 @@ def process_everyone_tag(community_id: str, chatroom_id: str, tagged_users_list:
     from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
 
     chatroom_mute_filter_dict: dict = {
+        'card_id': chatroom_id,
         'mute_status': True
     }
     chatroom_muted_members: QuerySet = ChatroomImpl(
@@ -497,6 +498,7 @@ def process_participants_tag(chatroom_id: str, tagged_users_list: list) -> list:
     from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
 
     chatroom_un_mute_filter_dict: dict = {
+        'card_id': chatroom_id,
         'mute_status': False
     }
     chatroom_un_muted_members: QuerySet = ChatroomImpl(
