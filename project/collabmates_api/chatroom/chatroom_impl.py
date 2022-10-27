@@ -1,6 +1,7 @@
 import json
 
 import time
+from django.db.models import QuerySet
 from collections import Iterable
 from typing import Union
 from rest_framework import status as status_codes
@@ -63,6 +64,7 @@ from ..notification import (get_tagged_members_list, send_notification_to_event_
 
 from ..search.sync import ElasticSearchSync
 
+from collabmates_api.sdk.models import (SdkClient)
 from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo, EventInstructor,
@@ -1014,7 +1016,7 @@ class ChatroomImpl(ChatroomManager):
                                                                                    community=community_instance)
         chatroom_name = req_body['title']
 
-        tagged_members = get_tagged_members_list(chatroom_name)
+        tagged_members = get_tagged_members_list(community_id, '', chatroom_name)
 
         chatroom_type = int(req_body.get('type', card_types.CARD_NORMAL))
         is_intro_card = chatroom_type == card_types.CARD_INTRO
@@ -1061,9 +1063,13 @@ class ChatroomImpl(ChatroomManager):
 
         send_chatroom_creation_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()))
 
-        self._send_chatroom_creation_notifications(user_instance, community_id, community_instance.name,
-                                                   chatroom_instance, card_content, user_has_auto_approve_right,
-                                                   chatroom_type, is_intro_card, set_default_unread_count=True)
+        sdk_communities = ModelUtilities.get_model_filter(SdkClient, {"community": community_instance,
+                                                                      "is_deleted": False})
+
+        if not sdk_communities:
+            self._send_chatroom_creation_notifications(user_instance, community_id, community_instance.name,
+                                                       chatroom_instance, card_content, user_has_auto_approve_right,
+                                                       chatroom_type, is_intro_card, set_default_unread_count=True)
 
         cohort_ids = req_body['cohort_ids'] if ('cohort_ids' in req_body) else None
 
@@ -1157,6 +1163,9 @@ class ChatroomImpl(ChatroomManager):
                 args,
                 eta=task_begin_time
             )
+
+    def get_chatroom_participants(self, filter_dict: dict) -> QuerySet:
+        return collabcardState.get_chatroom_participants(filter_dict)
 
     def pin_or_unpin_chatroom(self, req_body: dict) -> dict:
         validated_req = ChatroomViewHelper.validate_pin_unpin_chatroom_request(self.get_chatroom_id(),
