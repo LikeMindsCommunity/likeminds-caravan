@@ -1015,7 +1015,7 @@ class ChatroomImpl(ChatroomManager):
                                                                                    community=community_instance)
         chatroom_name = req_body['title']
 
-        tagged_members = get_tagged_members_list(chatroom_name)
+        tagged_members = get_tagged_members_list(community_id, '', chatroom_name)
 
         chatroom_type = int(req_body.get('type', card_types.CARD_NORMAL))
         is_intro_card = chatroom_type == card_types.CARD_INTRO

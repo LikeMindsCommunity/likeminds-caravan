@@ -18,6 +18,7 @@ from togther.models import (Community_Rank, collabcardState,
                             conversationMemberState, memberRights, adminRights, userAdminRights, userMemberRights,
                             moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers,
                             userDevices, ModelUtilities, answerAttachment)
+from utility.list_utilities import ListUtilities
 
 from utility.utils import *
 from utility.time_utilities import TimeUtilities
@@ -430,16 +431,83 @@ def send_notification(fcm_token, message, is_android):
     print(result)
 
 
-def get_tagged_members_list(answer):
+def get_tagged_members_list(community_id, chatroom_id, answer):
     tagged_users_list = re.findall("route:\/\/[member member_profile]+\/([0-9]+)", answer)
     answer_text = re.sub(r'\|route://[member member_profile]+/[0-9]+>>|<<', '', answer)
 
     tagged_user_names = "@" + ' @'.join(re.findall('(?<=\<\<).+?(?=\|)', answer))
 
+    tagged_users_list = process_group_tags(community_id, chatroom_id, answer, tagged_users_list)
+
     return tagged_users_list, answer_text, tagged_user_names
 
-    # return {"tagged_users_list":tagged_users_list, "answer_text":answer_text, "tagged_user_names":tagged_user_names}
 
+def process_group_tags(community_id: str, chatroom_id: str, answer: str, tagged_users_list: list) -> list:
+    everyone_tag: list = re.findall(EVERYONE_TAG_REGEX, answer)
+    participants_tag: list = re.findall(PARTICIPANTS_TAG_REGEX, answer)
+
+    '''
+        if both tags present we process everyone (community) tag 
+        and return
+    '''
+    if everyone_tag:
+        tagged_users_list = process_everyone_tag(community_id, chatroom_id, tagged_users_list)
+        return tagged_users_list
+
+    if participants_tag:
+        tagged_users_list = process_participants_tag(chatroom_id, tagged_users_list)
+
+    return tagged_users_list
+
+
+def process_everyone_tag(community_id: str, chatroom_id: str, tagged_users_list: []) -> list:
+    if not community_id:
+        return tagged_users_list
+
+    from collabmates_api.community.community_impl import CommunityImpl
+
+    community_members: list = CommunityImpl('', str(community_id)).get_community_members()
+    community_members: list = list(community_members.values_list('member_id_id', flat=True))
+
+    if not chatroom_id:
+        return ListUtilities.convert_elements_int_to_str(community_members)
+
+    from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
+
+    chatroom_mute_filter_dict: dict = {
+        'mute_status': True
+    }
+    chatroom_muted_members: QuerySet = ChatroomImpl(
+        '',
+        str(chatroom_id)
+    ).get_chatroom_participants(chatroom_mute_filter_dict)
+
+    chatroom_muted_members: list = list(chatroom_muted_members.values_list('user_id', flat=True))
+
+    tagged_users: list = ListUtilities.remove_list_elements(community_members, chatroom_muted_members)
+    tagged_users_list: list = ListUtilities.convert_elements_int_to_str(tagged_users)
+
+    return tagged_users_list
+
+
+def process_participants_tag(chatroom_id: str, tagged_users_list: list) -> list:
+    if not chatroom_id:
+        return tagged_users_list
+
+    from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
+
+    chatroom_un_mute_filter_dict: dict = {
+        'mute_status': False
+    }
+    chatroom_un_muted_members: QuerySet = ChatroomImpl(
+        '',
+        str(chatroom_id)
+    ).get_chatroom_participants(chatroom_un_mute_filter_dict)
+
+    chatroom_un_muted_members_ids: list = list(chatroom_un_muted_members.values_list('user_id', flat=True))
+    tagged_users_list = ListUtilities.convert_elements_int_to_str(chatroom_un_muted_members_ids)
+
+    return tagged_users_list
 
 @shared_task
 def send_notification_to_admins(community_id, name):
@@ -630,7 +698,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             curr.execute(sql, parameter_list)
             member_list = curr.fetchall()
 
-            tagged_users_list, collabcard_title, user_names = get_tagged_members_list(collabcard_title)
+            tagged_users_list, collabcard_title, user_names = get_tagged_members_list(community_id, card_id, collabcard_title)
 
             blocked_by_user_list = list(blockedMembers.objects.filter(community=community_id,
                                                                       blocked_member=card_creater_id).values_list(
@@ -1022,7 +1090,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
         )
     )
 
-    tagged_users_list, answer_text, user_names = get_tagged_members_list(answer)
+    tagged_users_list, answer_text, user_names = get_tagged_members_list(community_instance.id, card_id, answer)
 
     icon_string = ""
 
