@@ -1,6 +1,7 @@
 import json
 
 import time
+from django.db.models import QuerySet
 from collections import Iterable
 from typing import Union
 from rest_framework import status as status_codes
@@ -1157,6 +1158,9 @@ class ChatroomImpl(ChatroomManager):
                 args,
                 eta=task_begin_time
             )
+
+    def get_chatroom_participants(self, filter_dict: dict) -> QuerySet:
+        return collabcardState.get_chatroom_participants(self.get_chatroom_id(), filter_dict)
 
     def pin_or_unpin_chatroom(self, req_body: dict) -> dict:
         validated_req = ChatroomViewHelper.validate_pin_unpin_chatroom_request(self.get_chatroom_id(),
