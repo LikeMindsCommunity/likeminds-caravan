@@ -3036,28 +3036,3 @@ def fetch_user_communities_sorted_by_order_time(user_id, community_id=None):
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
-
-
-def fetch_user_member_rights_in_community(community_id, user_id=None):
-    try:
-        conn = get_connection()
-        curr = conn.cursor()
-
-        user_id_query = ""
-
-        if user_id:
-            user_id_query = " AND"
-
-        sql = """
-                SELECT   id
-                FROM     togther_member_engage
-                WHERE    (member_id_id = %s %s);""" % (str(user_id), community_id_query)
-
-        curr.execute(sql)
-        card_list = curr.fetchall()
-        curr.close()
-
-        return [data[0] for data in card_list]
-
-    except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL %s ", error)
