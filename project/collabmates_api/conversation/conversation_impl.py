@@ -909,7 +909,8 @@ class ConversationImpl(ConversationManager):
         validated_request = ConversationViewHelper.validate_create_conversation_request(user_instance,
                                                                                         self.get_member_id(),
                                                                                         chatroom_instance,
-                                                                                        chatroom_id)
+                                                                                        chatroom_id,
+                                                                                        req_body['text'])
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2092,7 +2093,9 @@ class ConversationHelper:
     def _auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance):
 
         conversation_text = conversation_instance.answer
-        tagged_member_list, answer_text, tagged_user_names = get_tagged_members_list(conversation_text)
+        tagged_member_list, answer_text, tagged_user_names = get_tagged_members_list(chatroom_instance.community_id,
+                                                                                     chatroom_instance.id,
+                                                                                     conversation_text)
 
         if not tagged_member_list:
             return
