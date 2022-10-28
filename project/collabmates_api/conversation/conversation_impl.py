@@ -906,11 +906,11 @@ class ConversationImpl(ConversationManager):
         chatroom_id = req_body.get('chatroom_id', None)
         has_files = req_body.get('has_files', False)
 
-        validated_request = ConversationViewHelper.validate_create_conversation_request(user_instance,
-                                                                                        self.get_member_id(),
-                                                                                        chatroom_instance,
-                                                                                        chatroom_id,
-                                                                                        req_body['text'])
+        validated_request = ConversationViewHelper().validate_create_conversation_request(user_instance,
+                                                                                          self.get_member_id(),
+                                                                                          chatroom_instance,
+                                                                                          chatroom_id,
+                                                                                          req_body['text'])
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
