@@ -1494,14 +1494,12 @@ class ConversationImpl(ConversationManager):
             "text": message
         }
 
-        is_ios = False
-
         user_devices_list = ModelUtilities.get_model_filter(userDevices, {'user_id': member_id}).order_by('-updated_at')
         device_id = None if not user_devices_list else user_devices_list[0].device_id
 
         conversation_manager = ConversationImpl(member_id, platform_code=PLATFORM_CODE_WEB, device_id=device_id)
 
-        conversation_response = conversation_manager.create_conversation(req_body, is_ios)
+        conversation_response = conversation_manager.create_conversation_revamp(req_body)
 
         if conversation_response.get('error_message'):
             return ResponseUtilities.get_impl_error_context(conversation_response, status_codes.HTTP_400_BAD_REQUEST)
@@ -2297,7 +2295,6 @@ class ConversationHelper:
             chatroom_state_instance = state_filter[0]
 
         ConversationHelper._set_preview_for_conversation(conversation_instance, user_id, req_body)
-        # ConversationHelper._fill_poll_options(user_instance, conversation_instance, req_body)
 
         ConversationHelper._auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance,
                                                  user_instance, member_state)
