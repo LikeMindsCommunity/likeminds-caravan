@@ -1,6 +1,7 @@
 import json
 
 import time
+from django.db.models import QuerySet
 from collections import Iterable
 from typing import Union
 from rest_framework import status as status_codes
@@ -63,6 +64,7 @@ from ..notification import (get_tagged_members_list, send_notification_to_event_
 
 from ..search.sync import ElasticSearchSync
 
+from collabmates_api.sdk.models import (SdkClient)
 from togther.models import (Members, Collabcard, card_answers, Community,
                             collabcardState, conversationEngage, userMemberRights,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo, EventInstructor,
@@ -1014,7 +1016,7 @@ class ChatroomImpl(ChatroomManager):
                                                                                    community=community_instance)
         chatroom_name = req_body['title']
 
-        tagged_members = get_tagged_members_list(chatroom_name)
+        tagged_members = get_tagged_members_list(community_id, '', chatroom_name)
 
         chatroom_type = int(req_body.get('type', card_types.CARD_NORMAL))
         is_intro_card = chatroom_type == card_types.CARD_INTRO
@@ -1061,9 +1063,13 @@ class ChatroomImpl(ChatroomManager):
 
         send_chatroom_creation_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()))
 
-        self._send_chatroom_creation_notifications(user_instance, community_id, community_instance.name,
-                                                   chatroom_instance, card_content, user_has_auto_approve_right,
-                                                   chatroom_type, is_intro_card, set_default_unread_count=True)
+        sdk_communities = ModelUtilities.get_model_filter(SdkClient, {"community": community_instance,
+                                                                      "is_deleted": False})
+
+        if not sdk_communities:
+            self._send_chatroom_creation_notifications(user_instance, community_id, community_instance.name,
+                                                       chatroom_instance, card_content, user_has_auto_approve_right,
+                                                       chatroom_type, is_intro_card, set_default_unread_count=True)
 
         cohort_ids = req_body['cohort_ids'] if ('cohort_ids' in req_body) else None
 
@@ -1157,6 +1163,9 @@ class ChatroomImpl(ChatroomManager):
                 args,
                 eta=task_begin_time
             )
+
+    def get_chatroom_participants(self, filter_dict: dict) -> QuerySet:
+        return collabcardState.get_chatroom_participants(filter_dict)
 
     def pin_or_unpin_chatroom(self, req_body: dict) -> dict:
         validated_req = ChatroomViewHelper.validate_pin_unpin_chatroom_request(self.get_chatroom_id(),
@@ -3972,6 +3981,8 @@ class ChatroomHelper:
         community_noti_instance = CommunityHelper.fetch_community_noti_settings_instance(community_instance)
         community_current_noti_state = community_noti_instance.noti_state if community_noti_instance else noti_states.ALL_MESSAGES
 
+        auto_follow_members_list = []
+
         for data in member_filter:
             user_instance = data.member_id
 
@@ -4000,13 +4011,16 @@ class ChatroomHelper:
                 if user_instance.id in event_creator_and_community_owner:
                     community_admins_list.append(user_instance.id)
 
+                if follow_status:
+                    auto_follow_members_list.append(user_instance.id)
+
         payload_for_calendar_invite = {
             'chatroom': card_instance.id
         }
 
         send_calender_invite_for_event_type.delay(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION,
-                                                send_to_members=False, user_list=event_creator_and_community_owner,
-                                                calendar_invite_type=CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION)
+                                                  send_to_members=False, user_list=event_creator_and_community_owner,
+                                                  calendar_invite_type=CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION)
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
         ChatroomHelper.set_chatroom_participants_created_key_in_cache(card_instance.id, True)
@@ -4018,13 +4032,19 @@ class ChatroomHelper:
                 "status": True
             })
 
+        card_engagement_user_list = []
+
         if chatroom_participants_list:
-            ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
-                card_instance.id, chatroom_participants_list)
+            card_engagement_user_list = chatroom_participants_list
 
         if card_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
-            ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
-                card_instance.id, community_admins_list)
+            card_engagement_user_list = community_admins_list
+
+        if auto_follow_members_list:
+            card_engagement_user_list = auto_follow_members_list
+
+        ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
+            card_instance.id, card_engagement_user_list)
 
     @staticmethod
     def update_unseen_count_for_homescreen_communitites(card_instance, community_instance):

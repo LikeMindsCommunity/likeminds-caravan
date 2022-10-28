@@ -19,6 +19,7 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
+from utility.states import report_Tag_Types
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
@@ -2830,7 +2831,7 @@ def create_chatroom_instance(res, community_instance, user_instance, has_auto_ap
     '''function to create chatroom instance'''
 
     # getting the taaged members in chatroom
-    tagged_members = get_tagged_members_list(res['title'])
+    tagged_members = get_tagged_members_list(community_instance.id, '', res['title'])
     tagged_member_list = tagged_members[0]
     res_text = tagged_members[1]
     card_type = int(res['type']) if 'type' in res else card_types.CARD_NORMAL
@@ -9639,23 +9640,31 @@ def get_profile(request):
 # Reporting collabcard functions
 
 def fetch_report_tags(request):
-    '''api to send report tags '''
-    type = request.GET.get('type', 0)
-    type = int(type)
-    if not type:
-        report_tags_instances = Report_Tags.objects.filter(type=0)
-    else:
-        report_tags_instances = Report_Tags.objects.filter(type=1)
+    """ api to send report tags """
 
-    report_tags = []
+    tag_type = request.GET.get('type')
+    if not tag_type or not tag_type.isdigit():
+        context = ResponseUtilities.get_view_impl_error_context("send valid type in params",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
 
-    for instance in report_tags_instances:
-        temp = {}
-        temp['id'] = instance.tag_id
-        temp['name'] = instance.tag_name
-        report_tags.append(temp)
-    # info_logger.info("fetch report tags api successfulll")
-    return JsonResponse({'report_tags': report_tags})
+    tag_type = int(tag_type)
+    report_tags_instances = []
+
+    if tag_type in [
+        report_Tag_Types.CHATROOM_REPORT_TAG,
+        report_Tag_Types.COMMUNITY_REPORT_TAG,
+        report_Tag_Types.CONVERSATION_REPORT_TAG,
+        report_Tag_Types.LINK_REPORT_TAG
+    ]:
+        report_tags_instances = ModelUtilities.get_model_filter(Report_Tags, {'type': 0})
+
+    if tag_type == report_Tag_Types.MEMBER_REPORT_TAG:
+        report_tags_instances = ModelUtilities.get_model_filter(Report_Tags, {'type': 1})
+
+    report_tags = [{'id': instance.tag_id, 'name': instance.tag_name} for instance in report_tags_instances]
+
+    return JsonResponse({'success': True, 'report_tags': report_tags})
 
 
 @csrf_exempt
@@ -9749,7 +9758,8 @@ def push_report_v1(request):
     """ Fucntion to report a user, collabcard, conversation, community and a link"""
     if request.method == 'POST':
 
-        member_id = get_member_id_from_headers(request)
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
@@ -9826,8 +9836,8 @@ def push_report_v1(request):
             if is_promoter and has_right_1:
                 return JsonResponse({'success': False, "error_message": "you have no right to report a member"})
 
-            if not community_id:
-                return JsonResponse({'success': False, "error_message": "send community_id in body"})
+            if not community_id and not api_key:
+                return JsonResponse({'success': False, "error_message": "send community_id or api_key"})
 
             report_type = report_Types.REPORT_MEMBER
 
@@ -9837,7 +9847,12 @@ def push_report_v1(request):
                 return JsonResponse(get_error_context(False, "invalid reported_member_id"))
 
         report_tag_instance = ModelUtilities.get_model_instance_or_none(Report_Tags, tag_id)
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+        if not community_instance:
+            return JsonResponse({'success': False, "error_message": "Invalid API key/community ID"})
+
+        community_id = community_instance.id
 
         report_instance = Report()
         report_instance.tag = report_tag_instance
