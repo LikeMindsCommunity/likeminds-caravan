@@ -4654,6 +4654,15 @@ class ChatroomHelper:
                 'timeZone': settings.TIME_ZONE,
             }
 
+        if req_body.get('co_hosts'):
+            user_email_filter = ModelUtilities.get_model_filter(userEmails,
+                                                                {'user__in': req_body.get('co_hosts'),
+                                                                 'email_state': email_states.PRIMARY,
+                                                                 'verified': True}).order_by('created_at')
+
+            user_email_list = [{'email': instance.email} for instance in user_email_filter if instance.email]
+            meta_data_for_calendar_updation['attendees'] = user_email_list
+
         return meta_data_for_calendar_updation
 
     @staticmethod
@@ -4997,4 +5006,7 @@ class ChatroomHelper:
             return ResponseUtilities.get_impl_error_context('Invalid co-hosts list',
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
-        return list(set(new_co_hosts) - set(already_added_co_hosts))
+        attending_members_list = list(ModelUtilities.get_model_filter(
+            collabcardState, {'card': card_instance, 'attending_status': True}).values_list('user_id', flat=True))
+
+        return list(set(new_co_hosts) - set(already_added_co_hosts) - set(attending_members_list))
