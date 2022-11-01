@@ -1660,10 +1660,11 @@ class ChatroomImpl(ChatroomManager):
         if card_instance.type == card_types.CARD_EVENT \
                 or card_instance.type == card_types.CARD_PUBLIC_EVENT:
 
-            meta_data_for_calendar_updation = ChatroomHelper.get_meta_data_for_calendar_updation(req_body,
-                                                                                                 card_instance)
-
             new_co_hosts = ChatroomHelper.fetch_new_co_hosts_list(card_instance, req_body)
+
+            meta_data_for_calendar_updation = ChatroomHelper.get_meta_data_for_calendar_updation(req_body,
+                                                                                                 card_instance,
+                                                                                                 new_co_hosts)
 
             card_instance = self.update_event_meta(req_body, user_instance, community_instance, card_instance)
 
@@ -4633,7 +4634,7 @@ class ChatroomHelper:
         return update_dict
 
     @staticmethod
-    def get_meta_data_for_calendar_updation(req_body, card_instance):
+    def get_meta_data_for_calendar_updation(req_body, card_instance, new_co_hosts):
         meta_data_for_calendar_updation = {}
 
         if req_body.get('about') and req_body.get('about') != card_instance.about:
@@ -4654,9 +4655,9 @@ class ChatroomHelper:
                 'timeZone': settings.TIME_ZONE,
             }
 
-        if req_body.get('co_hosts'):
+        if new_co_hosts:
             user_email_filter = ModelUtilities.get_model_filter(userEmails,
-                                                                {'user__in': req_body.get('co_hosts'),
+                                                                {'user__in': new_co_hosts,
                                                                  'email_state': email_states.PRIMARY,
                                                                  'verified': True}).order_by('created_at')
 
