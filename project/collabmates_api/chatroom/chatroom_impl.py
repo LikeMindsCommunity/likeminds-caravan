@@ -1660,11 +1660,12 @@ class ChatroomImpl(ChatroomManager):
         if card_instance.type == card_types.CARD_EVENT \
                 or card_instance.type == card_types.CARD_PUBLIC_EVENT:
 
-            new_co_hosts = ChatroomHelper.fetch_new_co_hosts_list(card_instance, req_body)
+            new_co_hosts, attending_members_list = ChatroomHelper.fetch_new_co_hosts_list(card_instance, req_body)
 
             meta_data_for_calendar_updation = ChatroomHelper.get_meta_data_for_calendar_updation(req_body,
                                                                                                  card_instance,
-                                                                                                 new_co_hosts)
+                                                                                                 new_co_hosts,
+                                                                                                 attending_members_list)
 
             card_instance = self.update_event_meta(req_body, user_instance, community_instance, card_instance)
 
@@ -4634,7 +4635,7 @@ class ChatroomHelper:
         return update_dict
 
     @staticmethod
-    def get_meta_data_for_calendar_updation(req_body, card_instance, new_co_hosts):
+    def get_meta_data_for_calendar_updation(req_body, card_instance, new_co_hosts, attending_members_list):
         meta_data_for_calendar_updation = {}
 
         if req_body.get('about') and req_body.get('about') != card_instance.about:
@@ -4657,7 +4658,7 @@ class ChatroomHelper:
 
         if new_co_hosts:
             user_email_filter = ModelUtilities.get_model_filter(userEmails,
-                                                                {'user__in': new_co_hosts,
+                                                                {'user__in': attending_members_list,
                                                                  'email_state': email_states.PRIMARY,
                                                                  'verified': True}).order_by('created_at')
 
@@ -5010,4 +5011,5 @@ class ChatroomHelper:
         attending_members_list = list(ModelUtilities.get_model_filter(
             collabcardState, {'card': card_instance, 'attending_status': True}).values_list('user_id', flat=True))
 
-        return list(set(new_co_hosts) - set(already_added_co_hosts) - set(attending_members_list))
+        return (list(set(new_co_hosts) - set(already_added_co_hosts) - set(attending_members_list)),
+                attending_members_list)
