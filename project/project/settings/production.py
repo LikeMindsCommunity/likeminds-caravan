@@ -42,7 +42,7 @@ TIME_ZONE = 'Asia/Kolkata'
 
 ALLOWED_HOSTS = [os.getenv("PRODUCTION_ALLOWED_HOST_1"), os.getenv("PRODUCTION_ALLOWED_HOST_2"),
                  os.getenv("PRODUCTION_ALLOWED_HOST_3"), os.getenv("PRODUCTION_ALLOWED_HOST_4"),
-                 os.getenv("PRODUCTION_ALLOWED_HOST_5")]
+                 os.getenv("PRODUCTION_ALLOWED_HOST_5"), os.getenv("PRODUCTION_ALLOWED_HOST_6")]
 FCM_SERVER_KEY = os.getenv('PRODUCTION_FCM_SERVER_KEY')
 
 # variable for google sign in oauth client ID
