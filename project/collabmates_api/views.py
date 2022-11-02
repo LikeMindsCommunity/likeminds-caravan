@@ -9643,7 +9643,11 @@ def fetch_report_tags(request):
     """ api to send report tags """
 
     tag_type = request.GET.get('type')
-    if not tag_type or not tag_type.isdigit():
+
+    if not tag_type:
+        tag_type = report_Tag_Types.CHATROOM_REPORT_TAG
+
+    if not isinstance(tag_type, int) and not tag_type.isdigit():
         context = ResponseUtilities.get_view_impl_error_context("send valid type in params",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
