@@ -330,12 +330,13 @@ class UpdateEventView(APIView):
             return JsonResponse({'success': False, 'error_message': "Invalid-request body"},
                                 status=status_codes.HTTP_400_BAD_REQUEST)
 
-        chatroom_manager = ChatroomImpl(member_id=member_id)
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
 
         context = chatroom_manager.update_event(req_body)
 
-        if context.get('error_message'):
-            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        if 'error_message' in context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
+                                                                                context.get('status')))
 
         return JsonResponse(context)
 
