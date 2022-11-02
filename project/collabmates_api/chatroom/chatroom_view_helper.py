@@ -400,6 +400,6 @@ class ChatroomViewHelper:
             return ResponseUtilities.get_inner_error_context("Invalid chatroom ID")
 
         if card_instance.user_id != user_instance.id:
-            return {'success': False, 'error_message': "Only card creator can update the chatroom"}
+            return ResponseUtilities.get_inner_error_context("Only card creator can update the chatroom")
 
         return {'user_instance': user_instance, 'chatroom_instance': card_instance}
