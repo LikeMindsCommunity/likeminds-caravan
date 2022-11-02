@@ -5011,5 +5011,6 @@ class ChatroomHelper:
         attending_members_list = list(ModelUtilities.get_model_filter(
             collabcardState, {'card': card_instance, 'attending_status': True}).values_list('user_id', flat=True))
 
-        return (list(set(new_co_hosts) - set(already_added_co_hosts) - set(attending_members_list)),
-                attending_members_list)
+        new_co_hosts = list(set(new_co_hosts) - set(already_added_co_hosts) - set(attending_members_list))
+
+        return new_co_hosts, list(set(attending_members_list + new_co_hosts))
