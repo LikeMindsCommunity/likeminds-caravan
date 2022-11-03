@@ -578,7 +578,7 @@ class ConversationImpl(ConversationManager):
             send_poll_conversation_creation_notification.delay(conversation_instance.card_id,
                                                                conversation_instance.user_id, conversation_instance.id)
 
-        update_chatroom_for_users_and_send_follow_notification(chatroom_instance.id,
+        update_chatroom_for_users_and_send_follow_notification.delay(chatroom_instance.id,
                                                                      self.get_member_id(),
                                                                      conversation_instance.id,
                                                                      has_files=has_files)
