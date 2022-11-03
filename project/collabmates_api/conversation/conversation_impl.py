@@ -2118,13 +2118,7 @@ class ConversationHelper:
             if collabcard_state_filter.exists():
                 chatroom_state_instance = collabcard_state_filter[0]
 
-                if chatroom_state_instance.follow_status and chatroom_state_instance.is_tagged:
-                    collabcard_state_filter.update(**{
-                        'is_tagged': False,
-                        'mute_status': False
-                    })
-
-                else:
+                if not chatroom_state_instance.follow_status:
                     collabcard_state_filter.update(**chatroom_state_update_dict)
 
                 ElasticSearchSync.update_chatroom_for_user.delay(chatroom_instance.id, user_id)
@@ -2232,6 +2226,11 @@ class ConversationHelper:
             chatroom_state_instance.last_seen_conversation = conversation_instance
             chatroom_state_instance.follow_status = True
             chatroom_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+
+            if chatroom_state_instance.is_tagged:
+                chatroom_state_instance.is_tagged = False
+                chatroom_state_instance.mute_status = False
+
             chatroom_state_instance.save()
 
             ElasticSearchSync.update_chatroom_for_user.delay(chatroom_instance.id, user_instance.id)
