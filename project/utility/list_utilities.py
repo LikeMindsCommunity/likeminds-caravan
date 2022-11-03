@@ -21,7 +21,7 @@ class ListUtilities:
         returns a merged list having elements from list_one and list_two,
         duplicates aren't handled
         """
-        return list_one.extend(list_two)
+        return list_one + list_two
 
     @staticmethod
     def remove_duplicates(input_list: list) -> list:

@@ -458,9 +458,12 @@ def get_tagged_members_list(community_id, chatroom_id, answer):
     return tagged_users_list, answer_text, tagged_user_names
 
 
-def process_group_tags(community_id: str, chatroom_id: str, answer: str):
-    everyone_tag: list = re.findall(EVERYONE_TAG_REGEX, answer)
-    participants_tag: list = re.findall(PARTICIPANTS_TAG_REGEX, answer)
+def process_group_tags(community_id: str, chatroom_id: str, answer_text: str):
+    everyone_tag: list = re.findall(EVERYONE_TAG_REGEX, answer_text)
+    participants_tag: list = re.findall(PARTICIPANTS_TAG_REGEX, answer_text)
+
+    conversation_text: str = StringUtilities.replace_in_string(EVERYONE_TAG_REGEX, EVERYONE_TAG_TEXT, answer_text)
+    conversation_text = StringUtilities.replace_in_string(PARTICIPANTS_TAG_REGEX, PARTICIPANTS_TAG_TEXT, conversation_text)
 
     '''
         if both tags present we process everyone (community) tag 
@@ -468,17 +471,13 @@ def process_group_tags(community_id: str, chatroom_id: str, answer: str):
     '''
     if everyone_tag:
         tagged_users = process_everyone_tag(community_id, chatroom_id)
-        conversation_text = StringUtilities.replace_in_string(EVERYONE_TAG_REGEX, EVERYONE_TAG_TEXT, answer)
-
         return tagged_users, conversation_text
 
     if participants_tag:
         tagged_users = process_participants_tag(chatroom_id)
-        conversation_text = StringUtilities.replace_in_string(PARTICIPANTS_TAG_REGEX, PARTICIPANTS_TAG_TEXT, answer)
-
         return tagged_users, conversation_text
 
-    return list(), None
+    return list(), conversation_text
 
 
 def process_everyone_tag(community_id: str, chatroom_id: str) -> list:
