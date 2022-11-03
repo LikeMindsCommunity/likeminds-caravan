@@ -367,4 +367,6 @@ WEBFLOW_KEYS = {
     'web_url': os.getenv('WEBFLOW_URL')
 }
 
+FCM_TIMEOUT_SECONDS = 120
+
 APP_VERSION = '1.5.1'

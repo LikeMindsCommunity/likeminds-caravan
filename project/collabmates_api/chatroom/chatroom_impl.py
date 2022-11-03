@@ -1646,27 +1646,32 @@ class ChatroomImpl(ChatroomManager):
 
     def update_event(self, req_body: dict) -> dict:
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        validated_req = ChatroomViewHelper.validate_update_event_request(self.get_member_id(),
+                                                                         self.get_chatroom_id())
 
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user id"}
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
-
-        if not card_instance:
-            return {'success': False, 'error_message': "In-valid chatroom id"}
-
-        if card_instance.user_id != user_instance.id:
-            return {'success': False, 'error_message': "Only card creator can update the chatroom"}
-
+        user_instance = validated_req.get('user_instance')
+        card_instance = validated_req.get('chatroom_instance')
         community_instance = card_instance.community
 
         if card_instance.type == card_types.CARD_EVENT \
                 or card_instance.type == card_types.CARD_PUBLIC_EVENT:
 
-            meta_data_for_calendar_updation = ChatroomHelper.get_meta_data_for_calendar_updation(req_body, card_instance)
+            new_co_hosts, attending_members_list = ChatroomHelper.fetch_new_co_hosts_list(card_instance, req_body)
+
+            meta_data_for_calendar_updation = ChatroomHelper.get_meta_data_for_calendar_updation(req_body,
+                                                                                                 card_instance,
+                                                                                                 new_co_hosts,
+                                                                                                 attending_members_list)
 
             card_instance = self.update_event_meta(req_body, user_instance, community_instance, card_instance)
+
+            if new_co_hosts:
+                ChatroomHelper.auto_follow_event_co_hosts_and_send_notification(card_instance, user_instance.userinfo,
+                                                                                new_co_hosts=new_co_hosts)
 
             chatroom_context = {
                 'success': True,
@@ -1691,19 +1696,19 @@ class ChatroomImpl(ChatroomManager):
                 }
 
                 reschedule_event_comms_notifications_on_event_update.delay(payload_for_whatsapp_comms,
-                                                                        payload_for_app_and_email_notifications)
+                                                                           payload_for_app_and_email_notifications)
 
                 payload_for_app_and_email_notifications['calendar_meta_data'] = meta_data_for_calendar_updation
 
                 send_calender_invite_for_event_type.delay(payload_for_app_and_email_notifications,
-                                                    EVENT_TYPE.REGISTRATION,
-                                                    calendar_invite_type=CALENDAR_INVITE_TYPE.UPDATE_CALENDAR)
+                                                          EVENT_TYPE.REGISTRATION,
+                                                          calendar_invite_type=CALENDAR_INVITE_TYPE.UPDATE_CALENDAR)
 
             return chatroom_context
 
         else:
-
-            return {'success': False, 'error_message': "send correct event type"}
+            return ResponseUtilities.get_impl_error_context('Send correct event type',
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
     def add_or_update_instructor(self, req_body: dict) -> dict:
 
@@ -4276,9 +4281,12 @@ class ChatroomHelper:
             .delay(card_instance.id, chatroom_member_list)
 
     @staticmethod
-    def auto_follow_event_co_hosts_and_send_notification(card_instance, userinfo_instance):
+    def auto_follow_event_co_hosts_and_send_notification(card_instance, userinfo_instance, new_co_hosts=None):
 
-        co_host_list = json.loads(card_instance.co_hosts)
+        co_host_list = json.loads(card_instance.co_hosts) if card_instance.co_hosts else []
+
+        if new_co_hosts:
+            co_host_list = new_co_hosts
 
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, co_host_list)
 
@@ -4627,7 +4635,7 @@ class ChatroomHelper:
         return update_dict
 
     @staticmethod
-    def get_meta_data_for_calendar_updation(req_body, card_instance):
+    def get_meta_data_for_calendar_updation(req_body, card_instance, new_co_hosts, attending_members_list):
         meta_data_for_calendar_updation = {}
 
         if req_body.get('about') and req_body.get('about') != card_instance.about:
@@ -4647,6 +4655,15 @@ class ChatroomHelper:
                 'dateTime': TimeUtilities.convert_epoch_time_to_RFC3339(req_body.get('end_date')),
                 'timeZone': settings.TIME_ZONE,
             }
+
+        if new_co_hosts:
+            user_email_filter = ModelUtilities.get_model_filter(userEmails,
+                                                                {'user__in': attending_members_list,
+                                                                 'email_state': email_states.PRIMARY,
+                                                                 'verified': True}).order_by('created_at')
+
+            user_email_list = [{'email': instance.email} for instance in user_email_filter if instance.email]
+            meta_data_for_calendar_updation['attendees'] = user_email_list
 
         return meta_data_for_calendar_updation
 
@@ -4974,3 +4991,26 @@ class ChatroomHelper:
             return chatroom_conversion_type.get('is_converting', False)
 
         return False
+
+    @staticmethod
+    def fetch_new_co_hosts_list(card_instance, req_body):
+        is_converted, new_co_hosts = NumberUtilities.convert_list_to_integer_list_with_conversion_status(
+            req_body.get('co_hosts') if req_body.get('co_hosts') else [])
+
+        if not is_converted:
+            return ResponseUtilities.get_impl_error_context('Invalid co-hosts list',
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        is_converted, already_added_co_hosts = NumberUtilities.convert_list_to_integer_list_with_conversion_status(
+            json.loads(card_instance.co_hosts) if card_instance.co_hosts else [])
+
+        if not is_converted:
+            return ResponseUtilities.get_impl_error_context('Invalid co-hosts list',
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        attending_members_list = list(ModelUtilities.get_model_filter(
+            collabcardState, {'card': card_instance, 'attending_status': True}).values_list('user_id', flat=True))
+
+        new_co_hosts = list(set(new_co_hosts) - set(already_added_co_hosts) - set(attending_members_list))
+
+        return new_co_hosts, list(set(attending_members_list + new_co_hosts))
