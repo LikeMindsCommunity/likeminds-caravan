@@ -81,6 +81,9 @@ url = settings.URL
 # server keys for sending notification
 server_key = settings.FCM_SERVER_KEY
 
+# FCM timeout
+fcm_timeout_seconds = settings.FCM_TIMEOUT_SECONDS
+
 
 # notifications for different mobile os versions
 def send_test_notification(request):
@@ -136,7 +139,9 @@ def send_notification_for_android(token_list, message, firebase_key=None):
     }
     push_service = FCMNotification(api_key=firebase_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'], extra_kwargs=extra_kwargs)
+                                                  data_message=message['payload'],
+                                                  timeout=fcm_timeout_seconds,
+                                                  extra_kwargs=extra_kwargs)
 
     print(result)
     return result
@@ -161,6 +166,7 @@ def send_notification_for_ios(token_list, message, firebase_key=None):
                                                   message_body=message['payload']['sub_title'],
                                                   data_message=message['payload'],
                                                   sound=message['payload'].get('sound'),
+                                                  timeout=fcm_timeout_seconds,
                                                   extra_kwargs=extra_kwargs)
 
     print(result)
@@ -178,14 +184,16 @@ def send_notification_for_web(token_list, message, firebase_key=None):
     push_service = FCMNotification(api_key=firebase_key)
 
     result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'])
+                                                  data_message=message['payload'],
+                                                  timeout=fcm_timeout_seconds)
 
     return result
 
 
 def send_silent_notification(token_list):
     push_service = FCMNotification(api_key=server_key)
-    result = push_service.notify_multiple_devices(registration_ids=token_list)
+    result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                  timeout=fcm_timeout_seconds)
 
     return result
 
@@ -423,11 +431,13 @@ def send_notification(fcm_token, message, is_android):
         result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                       message_title=message['payload']['title'],
                                                       message_body=message['payload']['sub_title'],
-                                                      data_message=message['payload'])
+                                                      data_message=message['payload'],
+                                                      timeout=fcm_timeout_seconds)
     else:
         push_service = FCMNotification(api_key=server_key)
         result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                      data_message=message['payload'])
+                                                      data_message=message['payload'],
+                                                      timeout=fcm_timeout_seconds)
     print(result)
 
 
