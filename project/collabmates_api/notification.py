@@ -19,6 +19,7 @@ from togther.models import (Community_Rank, collabcardState,
                             moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers,
                             userDevices, ModelUtilities, answerAttachment)
 from utility.list_utilities import ListUtilities
+from utility.string_utilities import StringUtilities
 
 from utility.utils import *
 from utility.time_utilities import TimeUtilities
@@ -444,15 +445,20 @@ def send_notification(fcm_token, message, is_android):
 def get_tagged_members_list(community_id, chatroom_id, answer):
     tagged_users_list = re.findall("route:\/\/[member member_profile]+\/([0-9]+)", answer)
     answer_text = re.sub(r'\|route://[member member_profile]+/[0-9]+>>|<<', '', answer)
-
     tagged_user_names = "@" + ' @'.join(re.findall('(?<=\<\<).+?(?=\|)', answer))
 
-    tagged_users_list = process_group_tags(community_id, chatroom_id, answer, tagged_users_list)
+    group_tagged_users, conversation_text = process_group_tags(community_id, chatroom_id, answer_text)
+    if group_tagged_users:
+        tagged_users_list = ListUtilities.merge_lists(tagged_users_list, group_tagged_users)
+    if conversation_text:
+        answer_text = conversation_text
+
+    tagged_users_list = ListUtilities.remove_duplicates(tagged_users_list)
 
     return tagged_users_list, answer_text, tagged_user_names
 
 
-def process_group_tags(community_id: str, chatroom_id: str, answer: str, tagged_users_list: list) -> list:
+def process_group_tags(community_id: str, chatroom_id: str, answer: str):
     everyone_tag: list = re.findall(EVERYONE_TAG_REGEX, answer)
     participants_tag: list = re.findall(PARTICIPANTS_TAG_REGEX, answer)
 
@@ -461,18 +467,23 @@ def process_group_tags(community_id: str, chatroom_id: str, answer: str, tagged_
         and return
     '''
     if everyone_tag:
-        tagged_users_list = process_everyone_tag(community_id, chatroom_id, tagged_users_list)
-        return tagged_users_list
+        tagged_users = process_everyone_tag(community_id, chatroom_id)
+        conversation_text = StringUtilities.replace_in_string(EVERYONE_TAG_REGEX, EVERYONE_TAG_TEXT, answer)
+
+        return tagged_users, conversation_text
 
     if participants_tag:
-        tagged_users_list = process_participants_tag(chatroom_id, tagged_users_list)
+        tagged_users = process_participants_tag(chatroom_id)
+        conversation_text = StringUtilities.replace_in_string(PARTICIPANTS_TAG_REGEX, PARTICIPANTS_TAG_TEXT, answer)
 
-    return tagged_users_list
+        return tagged_users, conversation_text
+
+    return list(), None
 
 
-def process_everyone_tag(community_id: str, chatroom_id: str, tagged_users_list: []) -> list:
+def process_everyone_tag(community_id: str, chatroom_id: str) -> list:
     if not community_id:
-        return tagged_users_list
+        return []
 
     from collabmates_api.community.community_impl import CommunityImpl
 
@@ -494,16 +505,14 @@ def process_everyone_tag(community_id: str, chatroom_id: str, tagged_users_list:
     ).get_chatroom_participants(chatroom_mute_filter_dict)
 
     chatroom_muted_members: list = list(chatroom_muted_members.values_list('user_id', flat=True))
-
     tagged_users: list = ListUtilities.remove_list_elements(community_members, chatroom_muted_members)
-    tagged_users_list: list = ListUtilities.convert_elements_int_to_str(tagged_users)
 
-    return tagged_users_list
+    return ListUtilities.convert_elements_int_to_str(tagged_users)
 
 
-def process_participants_tag(chatroom_id: str, tagged_users_list: list) -> list:
+def process_participants_tag(chatroom_id: str) -> list:
     if not chatroom_id:
-        return tagged_users_list
+        return []
 
     from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
 
@@ -519,9 +528,9 @@ def process_participants_tag(chatroom_id: str, tagged_users_list: list) -> list:
     ).get_chatroom_participants(chatroom_participants_un_mute_filter_dict)
 
     chatroom_un_muted_members_ids: list = list(chatroom_un_muted_members.values_list('user_id', flat=True))
-    tagged_users_list = ListUtilities.convert_elements_int_to_str(chatroom_un_muted_members_ids)
 
-    return tagged_users_list
+    return ListUtilities.convert_elements_int_to_str(chatroom_un_muted_members_ids)
+
 
 @shared_task
 def send_notification_to_admins(community_id, name):

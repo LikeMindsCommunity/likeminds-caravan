@@ -1,3 +1,6 @@
+import re
+
+
 class StringUtilities:
 
     @staticmethod
@@ -21,4 +24,10 @@ class StringUtilities:
 
         return string.lower().replace(char_to_replace, replacement_char)
 
-
+    @staticmethod
+    def replace_in_string(replace_str: str, replacement_str: str, input_str: str) -> str:
+        """
+        replaces all instances of replace_str with replacement_str
+        in input_str
+        """
+        return re.sub(replace_str, replacement_str, input_str)

@@ -701,5 +701,7 @@ SEGMENT_EVENT_MEMBER_APPROVED = "Member approved by cm"
 SEGMENT_EVENT_MEMBER_REJECTED = "Member rejected by cm"
 SEGMENT_EVENT_LEAVE_COMMUNITY = "Leave community"
 
-EVERYONE_TAG_REGEX = '<<@everyone|route://everyone>>'
-PARTICIPANTS_TAG_REGEX = '<<@participants|route://participants>>'
+EVERYONE_TAG_REGEX = '@everyone\|route://everyone>>'
+EVERYONE_TAG_TEXT = '@everyone'
+PARTICIPANTS_TAG_REGEX = '@participants\|route://participants>>'
+PARTICIPANTS_TAG_TEXT = '@participants'

@@ -826,13 +826,13 @@ class ChatroomImpl(ChatroomManager):
                 return collabcardState.objects.none()
 
         if not past_events:
-            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict).\
-                filter(Q(card__access=0) | Q(card__access=None)).select_related('card', 'card__user', 'community').\
+            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict). \
+                filter(Q(card__access=0) | Q(card__access=None)).select_related('card', 'card__user', 'community'). \
                 order_by('card__date_time')
 
         else:
-            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict).\
-                filter(Q(card__access=0) | Q(card__access=None)).select_related('card', 'card__user', 'community').\
+            chatroom_queryset = ModelUtilities.get_model_filter(collabcardState, filter_dict). \
+                filter(Q(card__access=0) | Q(card__access=None)).select_related('card', 'card__user', 'community'). \
                 order_by('-card__date_time')
 
         return chatroom_queryset
@@ -1356,21 +1356,51 @@ class ChatroomImpl(ChatroomManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_instance = validated_req_body.get('card_instance')
-
         community_instance = chatroom_instance.community
+
+        group_tags = self._add_group_tags(community_instance, chatroom_instance)
 
         if chatroom_instance.is_secret:
             participant_list = self.compute_tagging_list_for_secret_participants(chatroom_instance, community_instance)
             participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
-            return {'success': True, 'participants': participant_list, 'members': []}
+            return {
+                'success': True,
+                'participants': participant_list,
+                'members': [],
+                'group_tags': group_tags
+            }
 
         members = self.compute_tagging_list_of_community_members(community_instance)
         members = self.remove_guest_user_from_participants_data_list(members)
         participant_list = self.compute_tagging_list_of_guest_members(chatroom_instance)
         participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
-        return {'success': True, 'members': members, 'participants': participant_list}
+        return {
+            'success': True,
+            'members': members,
+            'participants': participant_list,
+            'group_tags': group_tags
+        }
+
+    def _add_group_tags(self, community_instance: Community, chatroom_instance: Collabcard) -> list:
+        group_tags: list = list()
+
+        member_state = Members.get_community_member_state(community_instance, self.get_member_id())
+
+        if member_state == member_states.ADMIN and not chatroom_instance.is_secret:
+            group_tags.append(ChatroomHelper.get_everyone_group_tag())
+            group_tags.append(ChatroomHelper.get_participants_group_tag())
+
+        elif member_state == member_states.ADMIN and chatroom_instance.is_secret:
+            group_tags.append(ChatroomHelper.get_participants_group_tag())
+
+        # chatroom creator
+        elif self.get_member_id() == chatroom_instance.user.id:
+            group_tags.append(ChatroomHelper.get_participants_group_tag())
+
+        return group_tags
+
 
     def create_introduction_card_in_community(self, community_instance, user_instance, req_body, member_state,
                                               master_intro_instance):
@@ -2076,7 +2106,7 @@ class ChatroomImpl(ChatroomManager):
                     (card_instance.is_paid and ChatroomHelper.is_online_event_link_verified_for_user(card_instance,
                                                                                                      user_instance)) \
                     or (card_instance.is_paid and (member_state == member_states.ADMIN or \
-                    user_instance == card_instance.user)):
+                                                   user_instance == card_instance.user)):
                 self._fill_online_link_for_event(chatroom_context, card_instance)
 
             return chatroom_context
@@ -5014,3 +5044,21 @@ class ChatroomHelper:
         new_co_hosts = list(set(new_co_hosts) - set(already_added_co_hosts) - set(attending_members_list))
 
         return new_co_hosts, list(set(attending_members_list + new_co_hosts))
+
+    @staticmethod
+    def get_everyone_group_tag() -> dict:
+        return {
+            'name': '@everyone',
+            'route': 'route://everyone',
+            'tag': '<<@everyone|route://everyone>>',
+            'description': 'Notify all community members'
+        }
+
+    @staticmethod
+    def get_participants_group_tag() -> dict:
+        return {
+            'name': '@participants',
+            'route': 'route://participants',
+            'tag': '<<@participants|route://participants>>',
+            'description': 'Notify all participants of this chatroom'
+        }
