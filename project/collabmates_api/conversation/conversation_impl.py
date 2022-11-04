@@ -2053,35 +2053,6 @@ class ConversationHelper:
         return community_noti_instance.noti_state if community_noti_instance else noti_states.ALL_MESSAGES
 
     @staticmethod
-    def _fill_poll_options(user_instance, conversation_instance, req_body):
-
-        polls = req_body.get('polls')
-
-        if not polls:
-            return
-
-        poll_instances = []
-
-        member = UserinfoSerializer(user_instance.userinfo)
-
-        for poll in polls:
-            poll_instance = conversationPolls.create_instance({'user_instance': user_instance,
-                                                               'conversation_instance': conversation_instance,
-                                                               'text': poll.get('text', '')})
-            temp = {
-                'id': poll_instance.id,
-                'text': poll_instance.text,
-                'user_id': poll_instance.user_id,
-                'member': member
-            }
-
-            poll_instances.append(temp)
-
-        save_conversation_poll_options_in_cache({'polls': poll_instances,
-                                                 'user_id': user_instance.id,
-                                                 'conversation_id': conversation_instance.id})
-
-    @staticmethod
     def _set_preview_for_conversation(conversation_instance, user_id, req_body):
         preview_utilities = PreviewUtilities()
         preview_utilities.set_preview_object(conversation_instance, req_body, user_id)
