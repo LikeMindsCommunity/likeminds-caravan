@@ -63,7 +63,7 @@ from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple
                                   update_event_attendees_for_micro_event, update_unread_message_count_in_cache,
                                   fetch_conversations_unread, reset_unread_message_count_in_cache,
                                   update_deferred_conversation_poll_updated_at_value,
-                                  get_to_show_results_for_conversation_poll)
+                                  get_to_show_results_for_conversation_poll, save_users_with_muted_chatrooms)
 
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
@@ -2121,6 +2121,10 @@ class ConversationHelper:
                 if not chatroom_state_instance.follow_status:
                     collabcard_state_filter.update(**chatroom_state_update_dict)
 
+                    save_users_with_muted_chatrooms.delay({'user_id': user_id,
+                                                           'chatroom_id': chatroom_instance.id,
+                                                           'mute_status': is_tagged})
+
                 ElasticSearchSync.update_chatroom_for_user.delay(chatroom_instance.id, user_id)
 
             else:
@@ -2128,6 +2132,10 @@ class ConversationHelper:
                 collabcardState.create_chatroom_state_instance(chatroom_instance, user_instance,
                                                                noti_state=community_current_noti_state,
                                                                **chatroom_state_update_dict)
+
+                save_users_with_muted_chatrooms.delay({'user_id': user_id,
+                                                       'chatroom_id': chatroom_instance.id,
+                                                       'mute_status': is_tagged})
 
         ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
                                                                     user_instance,
@@ -2230,6 +2238,10 @@ class ConversationHelper:
             if chatroom_state_instance.is_tagged:
                 chatroom_state_instance.is_tagged = False
                 chatroom_state_instance.mute_status = False
+
+                save_users_with_muted_chatrooms.delay({'user_id': user_instance.id,
+                                                       'chatroom_id': chatroom_instance.id,
+                                                       'mute_status': False})
 
             chatroom_state_instance.save()
 
