@@ -19,6 +19,7 @@ from togther.models import (Community_Rank, collabcardState,
                             moderationHistory, Report, Report_Tags, communityRightsSettings, blockedMembers,
                             userDevices, ModelUtilities, answerAttachment)
 from utility.list_utilities import ListUtilities
+from utility.string_utilities import StringUtilities
 
 from utility.utils import *
 from utility.time_utilities import TimeUtilities
@@ -81,6 +82,9 @@ url = settings.URL
 # server keys for sending notification
 server_key = settings.FCM_SERVER_KEY
 
+# FCM timeout
+fcm_timeout_seconds = settings.FCM_TIMEOUT_SECONDS
+
 
 # notifications for different mobile os versions
 def send_test_notification(request):
@@ -136,7 +140,9 @@ def send_notification_for_android(token_list, message, firebase_key=None):
     }
     push_service = FCMNotification(api_key=firebase_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'], extra_kwargs=extra_kwargs)
+                                                  data_message=message['payload'],
+                                                  timeout=fcm_timeout_seconds,
+                                                  extra_kwargs=extra_kwargs)
 
     print(result)
     return result
@@ -161,6 +167,7 @@ def send_notification_for_ios(token_list, message, firebase_key=None):
                                                   message_body=message['payload']['sub_title'],
                                                   data_message=message['payload'],
                                                   sound=message['payload'].get('sound'),
+                                                  timeout=fcm_timeout_seconds,
                                                   extra_kwargs=extra_kwargs)
 
     print(result)
@@ -178,14 +185,16 @@ def send_notification_for_web(token_list, message, firebase_key=None):
     push_service = FCMNotification(api_key=firebase_key)
 
     result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'])
+                                                  data_message=message['payload'],
+                                                  timeout=fcm_timeout_seconds)
 
     return result
 
 
 def send_silent_notification(token_list):
     push_service = FCMNotification(api_key=server_key)
-    result = push_service.notify_multiple_devices(registration_ids=token_list)
+    result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                  timeout=fcm_timeout_seconds)
 
     return result
 
@@ -423,46 +432,57 @@ def send_notification(fcm_token, message, is_android):
         result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                       message_title=message['payload']['title'],
                                                       message_body=message['payload']['sub_title'],
-                                                      data_message=message['payload'])
+                                                      data_message=message['payload'],
+                                                      timeout=fcm_timeout_seconds)
     else:
         push_service = FCMNotification(api_key=server_key)
         result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                      data_message=message['payload'])
+                                                      data_message=message['payload'],
+                                                      timeout=fcm_timeout_seconds)
     print(result)
 
 
 def get_tagged_members_list(community_id, chatroom_id, answer):
     tagged_users_list = re.findall("route:\/\/[member member_profile]+\/([0-9]+)", answer)
     answer_text = re.sub(r'\|route://[member member_profile]+/[0-9]+>>|<<', '', answer)
-
     tagged_user_names = "@" + ' @'.join(re.findall('(?<=\<\<).+?(?=\|)', answer))
 
-    tagged_users_list = process_group_tags(community_id, chatroom_id, answer, tagged_users_list)
+    group_tagged_users, conversation_text = process_group_tags(community_id, chatroom_id, answer_text)
+    if group_tagged_users:
+        tagged_users_list = ListUtilities.merge_lists(tagged_users_list, group_tagged_users)
+    if conversation_text:
+        answer_text = conversation_text
+
+    tagged_users_list = ListUtilities.remove_duplicates(tagged_users_list)
 
     return tagged_users_list, answer_text, tagged_user_names
 
 
-def process_group_tags(community_id: str, chatroom_id: str, answer: str, tagged_users_list: list) -> list:
-    everyone_tag: list = re.findall(EVERYONE_TAG_REGEX, answer)
-    participants_tag: list = re.findall(PARTICIPANTS_TAG_REGEX, answer)
+def process_group_tags(community_id: str, chatroom_id: str, answer_text: str):
+    everyone_tag: list = re.findall(EVERYONE_TAG_REGEX, answer_text)
+    participants_tag: list = re.findall(PARTICIPANTS_TAG_REGEX, answer_text)
+
+    conversation_text: str = StringUtilities.replace_in_string(EVERYONE_TAG_REGEX, EVERYONE_TAG_TEXT, answer_text)
+    conversation_text = StringUtilities.replace_in_string(PARTICIPANTS_TAG_REGEX, PARTICIPANTS_TAG_TEXT, conversation_text)
 
     '''
         if both tags present we process everyone (community) tag 
         and return
     '''
     if everyone_tag:
-        tagged_users_list = process_everyone_tag(community_id, chatroom_id, tagged_users_list)
-        return tagged_users_list
+        tagged_users = process_everyone_tag(community_id, chatroom_id)
+        return tagged_users, conversation_text
 
     if participants_tag:
-        tagged_users_list = process_participants_tag(chatroom_id, tagged_users_list)
+        tagged_users = process_participants_tag(chatroom_id)
+        return tagged_users, conversation_text
 
-    return tagged_users_list
+    return list(), conversation_text
 
 
-def process_everyone_tag(community_id: str, chatroom_id: str, tagged_users_list: []) -> list:
+def process_everyone_tag(community_id: str, chatroom_id: str) -> list:
     if not community_id:
-        return tagged_users_list
+        return []
 
     from collabmates_api.community.community_impl import CommunityImpl
 
@@ -484,16 +504,14 @@ def process_everyone_tag(community_id: str, chatroom_id: str, tagged_users_list:
     ).get_chatroom_participants(chatroom_mute_filter_dict)
 
     chatroom_muted_members: list = list(chatroom_muted_members.values_list('user_id', flat=True))
-
     tagged_users: list = ListUtilities.remove_list_elements(community_members, chatroom_muted_members)
-    tagged_users_list: list = ListUtilities.convert_elements_int_to_str(tagged_users)
 
-    return tagged_users_list
+    return ListUtilities.convert_elements_int_to_str(tagged_users)
 
 
-def process_participants_tag(chatroom_id: str, tagged_users_list: list) -> list:
+def process_participants_tag(chatroom_id: str) -> list:
     if not chatroom_id:
-        return tagged_users_list
+        return []
 
     from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
 
@@ -509,9 +527,9 @@ def process_participants_tag(chatroom_id: str, tagged_users_list: list) -> list:
     ).get_chatroom_participants(chatroom_participants_un_mute_filter_dict)
 
     chatroom_un_muted_members_ids: list = list(chatroom_un_muted_members.values_list('user_id', flat=True))
-    tagged_users_list = ListUtilities.convert_elements_int_to_str(chatroom_un_muted_members_ids)
 
-    return tagged_users_list
+    return ListUtilities.convert_elements_int_to_str(chatroom_un_muted_members_ids)
+
 
 @shared_task
 def send_notification_to_admins(community_id, name):
