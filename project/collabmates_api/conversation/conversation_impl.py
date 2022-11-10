@@ -1605,6 +1605,13 @@ class ConversationHelper:
         if not chatroom_instance:
             return
 
+        user_instance = ModelUtilities.get_user_instance_or_none(receiver_id)
+
+        if not user_instance:
+            return
+
+        receiver_id = user_instance.id
+
         receiver_id_list = filter_user_instances_based_on_notification_flag(
             [receiver_id], community_id=chatroom_instance.community_id, flag_code=unsubscribe_types.MAIL_CHATROOM_OR_DM)
 
