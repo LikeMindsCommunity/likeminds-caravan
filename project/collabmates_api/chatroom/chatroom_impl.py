@@ -17,6 +17,7 @@ from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.api_client import ApiClient
+from utility.list_utilities import ListUtilities
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_PLACEHOLDER_USER_ROUTE, \
     SUBSCRIPTION_VALIDATE_EVENT_ONLINE_LINK, EVENT_CARD_MAIL_DESCRIPTION, CHATROOM_URL, MAIL_EVENT_NOTIFICATION, \
@@ -569,13 +570,20 @@ class ChatroomImpl(ChatroomManager):
         return tagging_list
 
     @staticmethod
-    def compute_tagging_list_of_guest_members(chatroom_instance):
+    def compute_tagging_list_of_chatroom_participants(chatroom_instance):
 
-        guest_user_list = list(collabcardState.objects.filter(is_guest=True,
-                                                              card=chatroom_instance).values_list('user', flat=True))
+        chatroom_participants_list = list(collabcardState.objects.filter(
+            follow_status=True,
+            remove=None,
+            card=chatroom_instance
+        ).values_list(
+            'user',
+            flat=True
+        ))
+
         tag_list = []
 
-        userinfo_filter = Userinfo.objects.filter(user_id__in=guest_user_list)
+        userinfo_filter = Userinfo.objects.filter(user_id__in=chatroom_participants_list)
 
         for data in userinfo_filter:
             temp = dict()
@@ -1363,23 +1371,27 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_instance.is_secret:
             participant_list = self.compute_tagging_list_for_secret_participants(chatroom_instance, community_instance)
             participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
+            participant_list = ListUtilities.sort_dictionary_list(participant_list, 'name', False)
 
             return {
                 'success': True,
-                'participants': participant_list,
-                'members': [],
+                'chatroom_participants': participant_list,
+                'community_members': [],
                 'group_tags': group_tags
             }
 
         members = self.compute_tagging_list_of_community_members(community_instance)
         members = self.remove_guest_user_from_participants_data_list(members)
-        participant_list = self.compute_tagging_list_of_guest_members(chatroom_instance)
+        members = ListUtilities.sort_dictionary_list(members, 'name', False)
+
+        participant_list = self.compute_tagging_list_of_chatroom_participants(chatroom_instance)
         participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
+        participant_list = ListUtilities.sort_dictionary_list(participant_list, 'name', False)
 
         return {
             'success': True,
-            'members': members,
-            'participants': participant_list,
+            'chatroom_participants': participant_list,
+            'community_members': members,
             'group_tags': group_tags
         }
 
@@ -5051,6 +5063,7 @@ class ChatroomHelper:
             'name': '@everyone',
             'route': 'route://everyone',
             'tag': '<<@everyone|route://everyone>>',
+            'image_url': 'https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/Group-Tag-Icon.jpg',
             'description': 'Notify all community members'
         }
 
@@ -5060,5 +5073,6 @@ class ChatroomHelper:
             'name': '@participants',
             'route': 'route://participants',
             'tag': '<<@participants|route://participants>>',
+            'image_url': 'https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/Group-Tag-Icon.jpg',
             'description': 'Notify all participants of this chatroom'
         }
