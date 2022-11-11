@@ -198,8 +198,3 @@ __init__.py
 /bin/
 /include/
 
-
-project/cms/migrations/*
-project/collabmates_api/migrations/*
-project/togther/migrations/*
-project/togther/migrations/*
