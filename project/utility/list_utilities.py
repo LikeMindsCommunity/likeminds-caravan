@@ -33,3 +33,10 @@ class ListUtilities:
             return []
 
         return [*set(input_list)]
+
+    @staticmethod
+    def sort_dictionary_list(input_list: list, dict_key: str, reverse_order: bool = False) -> list:
+        """
+        return a list with items sorted in order of dictionary key
+        """
+        return sorted(input_list, key=lambda i: i[dict_key], reverse=reverse_order)

@@ -199,3 +199,7 @@ __init__.py
 /include/
 
 
+project/cms/migrations/*
+project/collabmates_api/migrations/*
+project/togther/migrations/*
+project/togther/migrations/*
