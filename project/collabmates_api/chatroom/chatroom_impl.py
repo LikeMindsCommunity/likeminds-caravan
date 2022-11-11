@@ -611,6 +611,7 @@ class ChatroomImpl(ChatroomManager):
             temp['name'] = data.name
             temp['image_url'] = data.image_link if data.image_link else ""
             temp['is_guest'] = data.is_guest
+            temp['user_unique_id'] = data.user_unique_id
 
             tag_list.append(temp)
 

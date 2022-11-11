@@ -1913,6 +1913,7 @@ class MemberCommunityHelper:
             temp['id'] = value['id']
             temp['name'] = value['name']
             temp['image_url'] = value['image_url']
+            temp['user_unique_id'] = value['user_unique_id']
 
             if value.get('is_guest') is not None:
                 temp['is_guest'] = value.get('is_guest')
