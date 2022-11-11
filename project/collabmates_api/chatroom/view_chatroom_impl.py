@@ -8,6 +8,8 @@ from utility.request_utilities import RequestUtilities
 from utility.exception_utilities import InvalidHeaderException, CustomException
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+
+from utility.version_utilities import VersionUtilities
 from ..rest_api import get_error_context
 from ..chatroom.chatroom_impl import ChatroomImpl
 from .chatroom_view_helper import ChatroomViewHelper
@@ -192,11 +194,21 @@ class GetTaggingList(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         chatroom_id = request.GET.get('chatroom_id')
+        platform_code = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id)
 
         try:
-            chatroom_data = chatroom_manager.get_tagging_list()
+            if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.group_tags):
+                chatroom_data = chatroom_manager.get_tagging_list()
+
+            else:
+                """
+                version check and old method call plus method definition
+                can be removed safely when version dict valid values for all platforms
+                """
+                chatroom_data = chatroom_manager.get_tagging_list_old()
 
         except Exception as e:
 
