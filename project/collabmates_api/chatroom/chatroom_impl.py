@@ -594,6 +594,7 @@ class ChatroomImpl(ChatroomManager):
 
         chatroom_participants_list = list(collabcardState.objects.filter(
             follow_status=True,
+            is_tagged=False,
             remove=None,
             card=chatroom_instance
         ).values_list(
