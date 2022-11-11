@@ -206,7 +206,7 @@ class GetTaggingList(APIView):
             else:
                 """
                 version check and old method call plus method definition
-                can be removed safely when version dict valid values for all platforms
+                can be removed safely when version dict has valid values for all platforms
                 """
                 chatroom_data = chatroom_manager.get_tagging_list_old()
 
