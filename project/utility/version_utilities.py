@@ -15,7 +15,7 @@ class VersionUtilities:
         PlatformCode.IOS: beta_dummy_version,
         PlatformCode.WEB: beta_dummy_version,
         PlatformCode.ANDROID_SDK: beta_dummy_version,
-        PlatformCode.IOS_SDK: beta_dummy_version,
+        PlatformCode.IOS_SDK: 362,
         PlatformCode.WEB_SDK: beta_dummy_version
     }
 
