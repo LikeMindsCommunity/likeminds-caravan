@@ -1,8 +1,8 @@
 import re
 
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, Collabcard, card_answers, Members)
-from utility.states import (member_states, card_types, conversation_states)
+from togther.models import (ModelUtilities, Collabcard, card_answers, Members, userMemberRights)
+from utility.states import (member_states, card_types, conversation_states, member_rights)
 from .constants import (ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
 from utility.time_utilities import TimeUtilities
 from ..static_text import EVERYONE_TAG_REGEX, PARTICIPANTS_TAG_REGEX
@@ -69,6 +69,13 @@ class ConversationViewHelper:
 
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return ResponseUtilities.get_inner_error_context("Responding is disabled")
+
+        has_right = ModelUtilities.get_model_filter(userMemberRights,
+                                                    {'user': user_instance, 'community': community_instance,
+                                                     'right__state': member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM})
+
+        if not has_right:
+            return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
 
         return {
             'user_instance': user_instance,

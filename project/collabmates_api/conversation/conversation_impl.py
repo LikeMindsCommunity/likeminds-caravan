@@ -2227,6 +2227,7 @@ class ConversationHelper:
 
                 collabcardState.create_chatroom_state_instance(chatroom_instance, user_instance,
                                                                state=collabcard_states.COLLABCARD_STATE_UNSEEN,
+                                                               follow_status=True,
                                                                noti_state=community_current_noti_state)
 
             elif member_state != member_states.KNOWN_NOMINATED_PROMOTER:
