@@ -2,7 +2,7 @@ from rest_framework import status as status_codes
 from utility.response_utilities import ResponseUtilities
 from togther.models import (ModelUtilities, Community, Collabcard)
 from collabmates_api.sdk.models import (SdkClient)
-from utility.states import (dm_icon_from_states)
+from utility.states import (dm_icon_from_states, unsubscribe_types)
 
 
 class MemberCommunityViewHelper:
@@ -147,4 +147,27 @@ class MemberCommunityViewHelper:
             'member_instance': member_instance,
             'req_from': req_body.get('req_from'),
             'chatroom_instance': chatroom_instance
+        }
+        
+    @staticmethod
+    def validate_unsubscribe_email_notifications_request(user_id, community_id, code_flag: dict = None):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+        
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community ID")
+
+        if (not code_flag) or (not isinstance(code_flag, dict)) or \
+                (set(code_flag.keys()) - {unsubscribe_types.MAIL_EVENT_NOTIFICATIONS,
+                                          unsubscribe_types.MAIL_CHATROOM_OR_DM}):
+            return ResponseUtilities.get_inner_error_context("Invalid code flag object!")
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'code_flag': code_flag
         }

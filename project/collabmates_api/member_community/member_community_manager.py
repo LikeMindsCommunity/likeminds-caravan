@@ -25,7 +25,9 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'request_dm_limit') and callable(subclass.request_dm_limit)) and
                 (hasattr(subclass, 'fetch_dm_chatrooms') and callable(subclass.fetch_dm_chatrooms)) and
                 (hasattr(subclass, 'join_community_sdk') and callable(subclass.join_community_sdk)) and
-                (hasattr(subclass, 'member_can_dm') and callable(subclass.member_can_dm)) or
+                (hasattr(subclass, 'member_can_dm') and callable(subclass.member_can_dm)) and
+                (hasattr(subclass, 'unsubscribe_email_notifications') and
+                 callable(subclass.unsubscribe_email_notifications)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -132,5 +134,10 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
     def join_community_sdk(self, req_body: dict) -> {}:
         """Meember joins a community in SDK"""
+
+        raise NotImplementedError
+
+    def unsubscribe_email_notifications(self, code_flag: dict) -> {}:
+        """Updates unsubscribe table according to whether notification send or not"""
 
         raise NotImplementedError

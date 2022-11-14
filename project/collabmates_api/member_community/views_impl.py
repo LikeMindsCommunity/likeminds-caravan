@@ -488,3 +488,38 @@ class JoinCommunitySDKView(APIView):
 
         return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
                                                                             community_context.get('status_code')))
+
+
+class UnsubscribeEmailNotificationsView(APIView):
+
+    @staticmethod
+    def _validate_request(member_id, req_body):
+
+        if not member_id:
+            return {'error_message': 'Query params missing'}
+
+        if not req_body.get('community_id'):
+            return {'error_message': 'Query params missing'}
+
+        return {'success': True}
+
+    def post(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+        validated_req_body = self._validate_request(member_id, req_body)
+
+        if not validated_req_body.get('success', False):
+            return JsonResponse({'success': False, 'error_message': "Invalid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        code_flag = req_body.get('code_flag', {})
+
+        member_community_manager = MemberCommunityImpl(member_id, community_id=req_body.get('community_id'))
+        community_context = member_community_manager.unsubscribe_email_notifications(code_flag)
+
+        if 'error_message' in community_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                                community_context.get('status_code')))
+
+        return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
