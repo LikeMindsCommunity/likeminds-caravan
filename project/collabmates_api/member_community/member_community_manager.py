@@ -137,7 +137,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def unsubscribe_email_notifications(self, req_body: dict) -> {}:
+    def unsubscribe_email_notifications(self, code_flag: dict) -> {}:
         """Updates unsubscribe table according to whether notification send or not"""
-        
+
         raise NotImplementedError
