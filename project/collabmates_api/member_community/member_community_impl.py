@@ -1799,9 +1799,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True, 'access': user_has_access}
 
-    def unsubscribe_email_notifications(self, code_flag: dict) -> {}:
+    def unsubscribe_email_notifications(self, code_flags: dict) -> {}:
         validated_request = MemberCommunityViewHelper.validate_unsubscribe_email_notifications_request(
-            self.get_member_id(), self.get_community_id(), code_flag=code_flag)
+            self.get_member_id(), self.get_community_id(), code_flags=code_flags)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -1810,7 +1810,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
 
-        for code, value in code_flag.items():
+        for code, value in code_flags.items():
 
             if not isinstance(value, bool):
                 return ResponseUtilities.get_impl_error_context('Invalid flag values for code',

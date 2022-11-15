@@ -513,10 +513,10 @@ class UnsubscribeEmailNotificationsView(APIView):
             return JsonResponse({'success': False, 'error_message': "Invalid request body"},
                                 status=status_codes.HTTP_400_BAD_REQUEST)
 
-        code_flag = req_body.get('code_flag', {})
+        code_flags = req_body.get('code_flag', {})
 
         member_community_manager = MemberCommunityImpl(member_id, community_id=req_body.get('community_id'))
-        community_context = member_community_manager.unsubscribe_email_notifications(code_flag)
+        community_context = member_community_manager.unsubscribe_email_notifications(code_flags=code_flags)
 
         if 'error_message' in community_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
