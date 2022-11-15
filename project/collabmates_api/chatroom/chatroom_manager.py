@@ -1,88 +1,183 @@
 import abc
 from typing import Union
+from django.db.models import QuerySet
 
 
 class ChatroomManager(metaclass=abc.ABCMeta):
 
     @classmethod
     def __subclasshook__(cls, subclass):
-        return ((hasattr(subclass, 'fetch_chatroom') and callable(subclass.fetch_chatroom)) and
-                (hasattr(subclass, 'fetch_all_chatroom') and callable(subclass.fetch_all_chatroom)) and
-                (hasattr(subclass, 'create_chatroom') and callable(subclass.create_chatroom)) and
-                (hasattr(subclass, 'pin_or_unpin_chatroom') and
-                 callable(subclass.pin_or_unpin_chatroom)) and
-                (hasattr(subclass, 'leave_secret_chatroom') and
-                 callable(subclass.leave_secret_chatroom)) and
-                (hasattr(subclass, 'add_secret_chatroom_participant') and
-                 callable(subclass.add_secret_chatroom_participant)) and
-                (hasattr(subclass, 'get_tagging_list') and
-                 callable(subclass.get_tagging_list)) and
-                (hasattr(subclass, 'edit_chatroom') and
-                 callable(subclass.edit_chatroom)) and
-                (hasattr(subclass, 'follow_chatroom_automatically_for_all_members_of_community') and
-                 callable(subclass.follow_chatroom_automatically_for_all_members_of_community)) and
-                (hasattr(subclass, 'fetch_participants_of_secret_chatroom') and
-                 callable(subclass.fetch_participants_of_secret_chatroom)) and
-                (hasattr(subclass, 'create_event') and callable(subclass.create_event)) and
-                (hasattr(subclass, 'update_event') and callable(subclass.update_event)) and
-                (hasattr(subclass, 'add_or_update_instructor') and callable(subclass.add_or_update_instructor)) and
-                (hasattr(subclass, 'add_or_update_highlights') and
-                 callable(subclass.add_or_update_highlights)) and
-                (hasattr(subclass, 'add_or_update_member_testimonials') and
-                 callable(subclass.add_or_update_member_testimonials)) and
-                (hasattr(subclass, 'add_or_update_event_faq') and
-                 callable(subclass.add_or_update_event_faq)) and
-                (hasattr(subclass, 'update_last_seen_event') and
-                 callable(subclass.update_last_seen_event)) and
-                (hasattr(subclass, 'fetch_unseen_count_in_event') and
-                 callable(subclass.fetch_unseen_count_in_event)) and
-                (hasattr(subclass, 'fetch_link_for_event') and
-                 callable(subclass.fetch_link_for_event)) and
-                (hasattr(subclass, 'fetch_user_all_events') and
-                 callable(subclass.fetch_user_all_events)) and
-                (hasattr(subclass, 'fetch_user_all_events_meta') and
-                 callable(subclass.fetch_user_all_events_meta)) and
-                (hasattr(subclass, 'attend_event') and
-                 callable(subclass.attend_event)) and
-                (hasattr(subclass, 'set_event_attended') and
-                 callable(subclass.set_event_attended)) and
-                (hasattr(subclass, 'toggle_member_message_post') and
-                 callable(subclass.toggle_member_message_post)) and
-                (hasattr(subclass, 'fetch_chatroom_settings') and
-                 callable(subclass.fetch_chatroom_settings)) and
-                (hasattr(subclass, 'add_members_to_chatroom') and
-                 callable(subclass.add_members_to_chatroom)) and
-                (hasattr(subclass, 'update_files') and
-                 callable(subclass.update_files)) and
-                (hasattr(subclass, 'fetch_event_link_for_dashboard') and
-                 callable(subclass.fetch_event_link_for_dashboard)) and
-                (hasattr(subclass, 'update_access_without_subscription') and
-                 callable(subclass.update_access_without_subscription)) and
-                (hasattr(subclass, 'fetch_access_for_chatroom') and
-                 callable(subclass.fetch_access_for_chatroom)) and
-                (hasattr(subclass, 'remove_cohort_from_chatroom') and
-                 callable(subclass.remove_cohort_from_chatroom)) and
-                (hasattr(subclass, 'add_cohort_to_chatroom') and
-                 callable(subclass.add_cohort_to_chatroom)) and
-                (hasattr(subclass, 'fetch_chatroom_participants') and
-                 callable(subclass.fetch_chatroom_participants)) and
-                (hasattr(subclass, 'publish_event_webflow') and
-                 callable(subclass.publish_event_webflow)) and
-                (hasattr(subclass, 'change_chatroom_type') and
-                 callable(subclass.change_chatroom_type)) and
-                (hasattr(subclass, 'create_dm_chatroom') and
-                 callable(subclass.create_dm_chatroom)) and
-                (hasattr(subclass, 'block_member') and
-                 callable(subclass.block_member)) and
-                (hasattr(subclass, 'request_dm') and
-                 callable(subclass.request_dm)) and
-                (hasattr(subclass, 'scheduled_chatroom_follow') and
-                 callable(subclass.scheduled_chatroom_follow)) and
-                (hasattr(subclass, 'fetch_chatroom_noti_settings') and
-                 callable(subclass.fetch_chatroom_noti_settings)) and
-                (hasattr(subclass, 'update_chatroom_noti_settings') and
-                 callable(subclass.update_chatroom_noti_settings))
-                or NotImplemented)
+        return (
+                    (
+                            hasattr(subclass, 'fetch_chatroom') and
+                            callable(subclass.fetch_chatroom)
+                    ) and
+                    (
+                            hasattr(subclass, 'fetch_all_chatroom') and
+                            callable(subclass.fetch_all_chatroom)
+                    ) and
+                    (
+                            hasattr(subclass, 'create_chatroom') and
+                            callable(subclass.create_chatroom)
+                    ) and
+                    (
+                            hasattr(subclass, 'get_chatroom_participants') and
+                            callable(subclass.get_chatroom_participants)
+                    ) and
+                    (
+                            hasattr(subclass, 'pin_or_unpin_chatroom') and
+                            callable(subclass.pin_or_unpin_chatroom)
+                    ) and
+                    (
+                            hasattr(subclass, 'leave_secret_chatroom') and
+                            callable(subclass.leave_secret_chatroom)
+                    ) and
+                    (
+                            hasattr(subclass, 'add_secret_chatroom_participant') and
+                            callable(subclass.add_secret_chatroom_participant)
+                    ) and
+                    (
+                            hasattr(subclass, 'get_tagging_list') and
+                            callable(subclass.get_tagging_list)
+                    ) and
+                    (
+                            hasattr(subclass, 'edit_chatroom') and
+                            callable(subclass.edit_chatroom)
+                    ) and
+                    (
+                            hasattr(subclass, 'follow_chatroom_automatically_for_all_members_of_community') and
+                            callable(subclass.follow_chatroom_automatically_for_all_members_of_community)
+                    ) and
+                    (
+                            hasattr(subclass, 'fetch_participants_of_secret_chatroom') and
+                            callable(subclass.fetch_participants_of_secret_chatroom)
+                    ) and
+                    (
+                            hasattr(subclass, 'create_event') and
+                            callable(subclass.create_event)
+                    ) and
+                    (
+                            hasattr(subclass, 'update_event') and
+                            callable(subclass.update_event)
+                    ) and
+                    (
+                            hasattr(subclass, 'add_or_update_instructor') and
+                            callable(subclass.add_or_update_instructor)
+                    ) and
+                    (
+                            hasattr(subclass, 'add_or_update_highlights') and
+                            callable(subclass.add_or_update_highlights)
+                    ) and
+                    (
+                            hasattr(subclass, 'add_or_update_member_testimonials') and
+                            callable(subclass.add_or_update_member_testimonials)
+                    ) and
+                    (
+                            hasattr(subclass, 'add_or_update_event_faq') and
+                            callable(subclass.add_or_update_event_faq)
+                    ) and
+                    (
+                            hasattr(subclass, 'update_last_seen_event') and
+                            callable(subclass.update_last_seen_event)
+                    ) and
+                    (
+                            hasattr(subclass, 'fetch_unseen_count_in_event') and
+                            callable(subclass.fetch_unseen_count_in_event)
+                    ) and
+                    (
+                            hasattr(subclass, 'fetch_link_for_event') and
+                            callable(subclass.fetch_link_for_event)
+                    ) and
+                    (
+                            hasattr(subclass, 'fetch_user_all_events') and
+                            callable(subclass.fetch_user_all_events)
+                    ) and
+                    (
+                            hasattr(subclass, 'fetch_user_all_events_meta') and
+                            callable(subclass.fetch_user_all_events_meta)
+                    ) and
+                    (
+                            hasattr(subclass, 'attend_event') and
+                            callable(subclass.attend_event)
+                    ) and
+                    (
+                            hasattr(subclass, 'set_event_attended') and
+                            callable(subclass.set_event_attended)
+                    ) and
+                    (
+                            hasattr(subclass, 'toggle_member_message_post') and
+                            callable(subclass.toggle_member_message_post)
+                    ) and
+                    (
+                            hasattr(subclass, 'fetch_chatroom_settings') and
+                            callable(subclass.fetch_chatroom_settings)
+                    ) and
+                    (
+                            hasattr(subclass, 'add_members_to_chatroom') and
+                            callable(subclass.add_members_to_chatroom)
+                    ) and
+                    (
+                            hasattr(subclass, 'update_files') and
+                            callable(subclass.update_files)
+                    ) and
+                    (
+                            hasattr(subclass, 'fetch_event_link_for_dashboard') and
+                            callable(subclass.fetch_event_link_for_dashboard)
+                    ) and
+                    (
+                            hasattr(subclass, 'update_access_without_subscription') and
+                            callable(subclass.update_access_without_subscription)
+                    ) and
+                    (
+                            hasattr(subclass, 'fetch_access_for_chatroom') and
+                            callable(subclass.fetch_access_for_chatroom)
+                    ) and
+                    (
+                            hasattr(subclass, 'remove_cohort_from_chatroom') and
+                            callable(subclass.remove_cohort_from_chatroom)
+                    ) and
+                    (
+                            hasattr(subclass, 'add_cohort_to_chatroom') and
+                            callable(subclass.add_cohort_to_chatroom)
+                    ) and
+                    (
+                            hasattr(subclass, 'fetch_chatroom_participants') and
+                            callable(subclass.fetch_chatroom_participants)
+                    ) and
+                    (
+                            hasattr(subclass, 'publish_event_webflow') and
+                            callable(subclass.publish_event_webflow)
+                    ) and
+                    (
+                            hasattr(subclass, 'change_chatroom_type') and
+                            callable(subclass.change_chatroom_type)
+                    ) and
+                    (
+                            hasattr(subclass, 'create_dm_chatroom') and
+                            callable(subclass.create_dm_chatroom)
+                    ) and
+                    (
+                            hasattr(subclass, 'block_member') and
+                            callable(subclass.block_member)
+                    ) and
+                    (
+                            hasattr(subclass, 'request_dm') and
+                            callable(subclass.request_dm)
+                    ) and
+                    (
+                            hasattr(subclass, 'scheduled_chatroom_follow') and
+                            callable(subclass.scheduled_chatroom_follow)
+                    ) and
+                    (
+                            hasattr(subclass, 'fetch_chatroom_noti_settings') and
+                            callable(subclass.fetch_chatroom_noti_settings)
+                    ) and
+                    (
+                            hasattr(subclass, 'update_chatroom_noti_settings') and
+                            callable(subclass.update_chatroom_noti_settings)
+                    ) or
+                    NotImplemented
+        )
 
     @abc.abstractmethod
     def fetch_chatroom(self, is_internal=False, api_type: int = 0) -> dict:
@@ -102,6 +197,13 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def create_chatroom(self, req_body: dict) -> dict:
         """
         create chatroom
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_chatroom_participants(self, filter_dict: dict) -> QuerySet:
+        """
+        returns chatroom participants list with given filter
         """
         raise NotImplementedError
 
@@ -394,7 +496,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update_chatroom_noti_settings(self, req_body: dict) -> {}:
+    def update_chatroom_noti_settings(self, noti_state, is_noti_paused, pause_noti_for) -> {}:
         """Updates notification settings of chatroom"""
 
         raise NotImplementedError

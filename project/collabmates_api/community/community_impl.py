@@ -316,6 +316,9 @@ class CommunityImpl(CommunityManager):
 
         return response_context
 
+    def get_community_members(self) -> list:
+        return Members.fetch_community_members([self.get_community_id()])
+
     def fetch_all_communities(self, page, community_ids: list = None) -> {}:
 
         community_filter = {}

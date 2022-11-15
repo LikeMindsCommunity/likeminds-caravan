@@ -131,6 +131,18 @@ class ReportTypes:
 report_Types = ReportTypes()
 
 
+# tag types for reports
+class ReportTagTypes:
+    CHATROOM_REPORT_TAG = 0
+    MEMBER_REPORT_TAG = 1
+    COMMUNITY_REPORT_TAG = 2
+    CONVERSATION_REPORT_TAG = 3
+    LINK_REPORT_TAG = 4
+
+
+report_Tag_Types = ReportTagTypes()
+
+
 # chatroom actions
 class ChatroomActions:
     ACTION_RENAME = 1

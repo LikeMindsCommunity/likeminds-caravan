@@ -301,6 +301,37 @@ class ChatroomViewHelper:
         return {'collabcard_state_instance': collabcard_state_instance}
 
     @staticmethod
+    def validate_get_tagging_list_request(member_id, chatroom_id):
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid chatroom id")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("In-valid user id")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def validate_update_files_request(member_id, chatroom_id):
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom id")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        if card_instance.user_id != user_instance.id:
+            return ResponseUtilities.get_inner_error_context("Only chatroom creator can update files")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
     def validate_fetch_chatroom_notification_setting_request(user_id, chatroom_id):
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
@@ -354,3 +385,21 @@ class ChatroomViewHelper:
             'community_instance': community_instance,
             'member_instance': member_instance
         }
+
+    @staticmethod
+    def validate_update_event_request(user_id, chatroom_id):
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom ID")
+
+        if card_instance.user_id != user_instance.id:
+            return ResponseUtilities.get_inner_error_context("Only card creator can update the chatroom")
+
+        return {'user_instance': user_instance, 'chatroom_instance': card_instance}

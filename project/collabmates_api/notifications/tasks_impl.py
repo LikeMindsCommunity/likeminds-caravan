@@ -1269,4 +1269,9 @@ class TasksHelper:
                             if final_user_data["template_name"] == template_name:
                                 final_user_data["user_data_list"].append(user_data)
 
+            else:
+                for final_user_data in final_user_data_list:
+                    if final_user_data["template_name"] == template_name:
+                        final_user_data["user_data_list"].append(user_data)
+
         return final_user_data_list

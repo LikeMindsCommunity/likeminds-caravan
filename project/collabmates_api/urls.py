@@ -42,10 +42,8 @@ urlpatterns = [
     path('v2/fetch_chatroom', api_views.fetch_chatroom_version_2, name="fetch_chatroom_version_2"),
 
     path('fetch_chatroom_feed', api_views.fetch_chatroom_feed, name="fetch_chatroom_feed"),
-    path('v1/fetch_chatroom_feed', api_views.fetch_chatroom_feed_version_1, name="fetch_chatroom_feed_version_1"),
     path('fetch_community_chatroom_feed', api_views.fetch_community_chatroom_feed,
          name="fetch_community_chatroom_feed"),
-
     path('community_collabcard_invite/<int:community_id>', api_views.community_collabcard_invite,
          name="community_collabcard_invite"),
     path('v1/login', api_views.login_authenticate_version_1, name='v1/login'),
@@ -81,9 +79,12 @@ urlpatterns = [
     path('skip_community', api_views.skip_community, name='skip_community'),
 
     path('members_state', api_views.members_state, name='members_state'),
-    path('edit_member_profile', api_views.edit_member_profile, name='edit_member_profile'),
-    path('remove_from_member', api_views.remove_from_member, name='remove_from_member'),
+
+    # to be depreciated in future
     path('fetch_community_profile', api_views.fetch_community_profile, name='fetch_community_profile'),
+    path('edit_member_profile', api_views.edit_member_profile, name='edit_member_profile'),
+
+    path('remove_from_member', api_views.remove_from_member, name='remove_from_member'),
     path('fetch_user_chatrooms', api_views.fetch_user_chatrooms, name='fetch_user_chatrooms'),
     path('fetch_common_communities', api_views.fetch_common_communities, name='fetch_common_communities'),
 

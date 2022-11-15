@@ -362,10 +362,10 @@ class MemberCommunityImpl(MemberCommunityManager):
             return {'error_message': "Invalid user id", 'status': 400}
 
         member_engage_ids = fetch_user_communities_sorted_by_order_time(self.get_member_id(),
-                                                                        community_id=self.get_community_id(),
-                                                                        page=page)
+                                                                        community_id=self.get_community_id())
         communities = MemberCommunityHelper.get_ordered_home_communities_list_based_on_engage_ids(member_engage_ids)
         community_ids_list = list(communities.values_list("community_id_id", flat=True))
+        total_communities_count = len(community_ids_list)
 
         if is_cm and (is_cm == 'true'):
             cm_communities_filter = ModelUtilities.get_model_filter(Members,
@@ -397,13 +397,15 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             total_communities_count = len(communities_with_dm_rights_list)
 
-        else:
-            total_communities_count = len(community_ids_list)
+        community_queryset = self._paged_queryset(communities, page)
+        community_id_list = self.compute_community_id_list_from_queryset(community_queryset)
+        community_list = self._process_communities(community_queryset, community_id_list, user_instance)
 
-        community_id_list = self.compute_community_id_list_from_queryset(communities)
-        community_list = self._process_communities(communities, community_id_list, user_instance)
-
-        return {'your_communities': community_list, 'total_communities_count': total_communities_count}
+        return {
+            'success': True,
+            'your_communities': community_list,
+            'total_communities_count': total_communities_count
+        }
 
     def fetch_community_chatrooms_queryset_with_web_scroll(self, pin_status, card_instance,
                                                            intro_room_settings_enabled, excluded_card_ids,
@@ -1521,7 +1523,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                       user_intro_card_instance)
             update_preview = True
 
-            if req_body.get('type') == api_types.SDK:
+            community = ModelUtilities.get_model_filter(SdkClient,
+                                                        {"community": community_instance, "is_deleted": False})
+
+            if len(community):
                 MemberCommunityHelper.update_user_image_in_sdk(user_instance, image_url)
 
         if (not user_intro_card_instance) and (user_member_instance.state in [member_states.ADMIN,
@@ -2099,13 +2104,12 @@ class MemberCommunityHelper:
     @staticmethod
     def add_menu_items_if_current_user_is_admin_and_user_is_non_admin(current_user_member_instance, community_instance,
                                                                   menu, all_menu_items, is_parent_cm=False):
-
-        if check_admin_approve_right(current_user_member_instance.member_id, community_instance):
-            menu.append(all_menu_items.get('REMOVE_FROM_COMMUNITY'))
-
         if any([check_admin_approve_right(current_user_member_instance.member_id, community_instance),
                 check_admin_delete_right(current_user_member_instance.member_id_id, community_instance)]):
             menu.append(all_menu_items.get('EDIT_PERMISSIONS'))
+
+        if check_admin_approve_right(current_user_member_instance.member_id, community_instance):
+            menu.append(all_menu_items.get('REMOVE_FROM_COMMUNITY'))
 
         if all([check_admin_add_community_managers_right(current_user_member_instance.member_id,
                                                          community_instance)]):
@@ -2192,20 +2196,41 @@ class MemberCommunityHelper:
         if not community:
             return menu
 
-        if (current_user_member_instance.state == member_states.ADMIN and
-                user_member_instance.state == member_states.MEMBER):
-            all_menu_items = {key: {k1: v1 for k1, v1 in value.items()} for key, value in
-                              MEMBER_PROFILE_MENU_ITEMS.items()}
-            allowed_menu_items = [all_menu_items.get("EDIT_PERMISSIONS"), all_menu_items.get("REMOVE_FROM_COMMUNITY")]
-            updated_menu = []
+        all_menu_items = {key: {k1: v1 for k1, v1 in value.items()} for key, value in
+                          MEMBER_PROFILE_MENU_ITEMS.items()}
+        updated_menu = []
+        allowed_menu_items = []
 
-            for menu_item in menu:
-                if menu_item.get("title") in [item.get("title") for item in allowed_menu_items]:
-                    updated_menu.append(menu_item)
+        if current_user_member_instance.state == member_states.ADMIN:
+            if user_member_instance.state == member_states.ADMIN:
+                allowed_menu_items = [
+                    all_menu_items.get("REPORT_MEMBER")
+                ]
 
-            return updated_menu
+            elif user_member_instance.state == member_states.MEMBER:
+                allowed_menu_items = [
+                    all_menu_items.get("EDIT_PERMISSIONS"),
+                    all_menu_items.get("REMOVE_FROM_COMMUNITY"),
+                    all_menu_items.get("REPORT_MEMBER")
+                ]
 
-        return []
+        elif current_user_member_instance.state == member_states.MEMBER:
+            if user_member_instance.state == member_states.ADMIN:
+                allowed_menu_items = [
+                    all_menu_items.get("REPORT_MEMBER")
+                ]
+
+            elif user_member_instance.state == member_states.MEMBER:
+                allowed_menu_items = [
+                    all_menu_items.get("REPORT_MEMBER")
+                ]
+
+        allowed_menu_item_titles = [item.get("title") for item in allowed_menu_items]
+        for menu_item in menu:
+            if menu_item.get("title") in allowed_menu_item_titles:
+                updated_menu.append(menu_item)
+
+        return updated_menu
 
     @staticmethod
     def update_users_image_url_in_community(user_member_filter, image_url, user_intro_card_instance):

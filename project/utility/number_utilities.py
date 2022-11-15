@@ -25,3 +25,23 @@ class NumberUtilities:
             integer_list.append(int(value))
 
         return integer_list
+
+    @staticmethod
+    def convert_list_to_integer_list_with_conversion_status(list_to_convert: list):
+
+        integer_list = []
+        status = False
+
+        if not isinstance(list_to_convert, list):
+            return status, integer_list
+
+        try:
+            for value in list_to_convert:
+                integer_list.append(int(value))
+
+            status = True
+        except Exception as error:
+            print("Error in converting to integers in method convert_list_to_integer_list_with_conversion_status",
+                  error)
+
+        return status, integer_list

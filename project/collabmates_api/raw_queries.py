@@ -3012,11 +3012,8 @@ def get_all_chatrooms_of_community(community_id, page=1, limit=10):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def fetch_user_communities_sorted_by_order_time(user_id, community_id=None, page=1, limit=10):
+def fetch_user_communities_sorted_by_order_time(user_id, community_id=None):
     try:
-        page_number = int(page)
-        offset = (page_number - 1) * limit
-
         conn = get_connection()
         curr = conn.cursor()
 
@@ -3030,8 +3027,7 @@ def fetch_user_communities_sorted_by_order_time(user_id, community_id=None, page
                 SELECT   id
                 FROM     togther_member_engage
                 WHERE    (member_id_id = %s %s)
-                ORDER BY order_time DESC offset %s limit %s;""" % (str(user_id), community_id_query,
-                                                                   str(offset), str(limit))
+                ORDER BY order_time DESC;""" % (str(user_id), community_id_query)
 
         curr.execute(sql)
         card_list = curr.fetchall()
