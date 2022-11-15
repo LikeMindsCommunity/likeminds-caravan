@@ -845,8 +845,7 @@ def schedule_poll_end_notification(card_id):
         celery_beat_task.terminate_task(task_name)
 
         args = [card_id, task_name]
-        # date_time = poll_end_time + SIX_HOURS_IN_SECONDS
-        date_time = poll_end_time + 600
+        date_time = poll_end_time + SIX_HOURS_IN_SECONDS
         celery_beat_task.create_dynamic_clery_task(args=args, kwargs={}, task_name=task_name, task_path=task_path,
                                                    date_time=date_time, interval=False, crontab=True)
 
