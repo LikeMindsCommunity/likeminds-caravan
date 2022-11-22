@@ -709,7 +709,11 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             curr.execute(sql, parameter_list)
             member_list = curr.fetchall()
 
-            tagged_users_list, collabcard_title, user_names = get_tagged_members_list(community_id, card_id, collabcard_title)
+            tagged_users_list, collabcard_title, user_names, should_unmute_members = get_tagged_members_list(
+                community_id,
+                card_id,
+                collabcard_title
+            )
 
             blocked_by_user_list = list(blockedMembers.objects.filter(community=community_id,
                                                                       blocked_member=card_creater_id).values_list(
@@ -1101,7 +1105,11 @@ def send_follow_notification(card_id, user_id, conversation_id):
         )
     )
 
-    tagged_users_list, answer_text, user_names = get_tagged_members_list(community_instance.id, card_id, answer)
+    tagged_users_list, answer_text, user_names, should_unmute_members = get_tagged_members_list(
+        community_instance.id,
+        card_id,
+        answer
+    )
 
     icon_string = ""
 
