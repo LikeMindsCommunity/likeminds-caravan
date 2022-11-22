@@ -522,7 +522,7 @@ class ConversationImpl(ConversationManager):
     def _auto_follow_for_tagged_members(community_id, chatroom_instance, conversation_instance, user_instance):
 
         conversation_text = conversation_instance.answer
-        tagged_member_list, answer_text, tagged_user_names = get_tagged_members_list(
+        tagged_member_list, answer_text, tagged_user_names, should_unmute_members = get_tagged_members_list(
             community_id,
             chatroom_instance.id,
             conversation_text
@@ -532,6 +532,9 @@ class ConversationImpl(ConversationManager):
             return
 
         is_tagged = True
+
+        if should_unmute_members:
+            is_tagged = False
 
         if chatroom_instance.type == card_types.CARD_PURPOSE:
             is_tagged = False
