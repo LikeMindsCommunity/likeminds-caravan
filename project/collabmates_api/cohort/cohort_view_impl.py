@@ -61,25 +61,27 @@ class FetchCohortWithMemberCountView(APIView):
 
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         community_id = request.GET.get('community_id', "")
 
         if not member_id:
-            response = {'success': False, 'error_message': 'Invalid header member id'}
+            response = ResponseUtilities.get_view_impl_error_context('Invalid header member id',
+                                                                     status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**response)
 
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+        if not (community_id or api_key):
+            response = ResponseUtilities.get_view_impl_error_context('Invalid community ID/API key!',
+                                                                     status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**response)
 
-        if not community_id:
-            response = {'success': False, 'error_message': 'Invalid community id'}
-
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
-
-        cohort_manager = CohortImpl(member_id=member_id)
+        cohort_manager = CohortImpl(member_id=member_id, api_key=api_key)
         response = cohort_manager.fetch_cohorts_with_community_id(community_id)
 
         if response.get('error_message'):
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
+                                                                                response.get('status')))
 
-        return JsonResponse(response, status=status_codes.HTTP_200_OK)
+        return JsonResponse(response)
 
 
 class FetchCohortView(APIView):

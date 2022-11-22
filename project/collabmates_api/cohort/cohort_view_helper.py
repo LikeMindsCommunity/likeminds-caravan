@@ -94,7 +94,7 @@ class CohortViewHelper:
         member_instance = member_filter[0]
 
         if not (member_instance.state == member_states.ADMIN):
-            return ResponseUtilities.get_inner_error_context("User does not have the ability to create cohort!")
+            return ResponseUtilities.get_inner_error_context("User does not have the ability to fetch cohort!")
 
         return {
             'user_instance': user_instance,
@@ -157,6 +157,9 @@ class CohortViewHelper:
 
         if not cohort_instance:
 
+            if cohort_type == cohort_types.NORMAL:
+                return ResponseUtilities.get_inner_error_context("Invalid cohort ID!")
+
             if (cohort_type == cohort_types.SUBSCRIPTION_PLAN) and not type_id:
                 return ResponseUtilities.get_inner_error_context("Invalid type ID!")
 
@@ -184,6 +187,9 @@ class CohortViewHelper:
 
         member_instance = None
 
+        if cohort_instance and not community_instance:
+            community_instance = cohort_instance.community
+
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
                                                                   'member_id': user_instance})
 
@@ -194,5 +200,34 @@ class CohortViewHelper:
             'user_instance': user_instance,
             'cohort_instance': cohort_instance,
             'member_instance': member_instance,
+        }
+
+    @staticmethod
+    def validate_fetch_community_cohorts_request(user_id, community_id: str = None, api_key: str = None):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID!")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id,
+                                                                      api_key=api_key)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community ID/API key!")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                  'member_id': user_id})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("User is not a member of community!")
+
+        member_instance = member_filter[0]
+
+        if not (member_instance.state == member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context("User does not have the ability to fetch cohort!")
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
         }
 

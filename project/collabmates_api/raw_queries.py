@@ -2151,8 +2151,6 @@ def get_count_for_new_non_member_access_event_chatroom_community_managers(user_i
             str(card_id)
         )
 
-        print(sql)
-
         curr.execute(sql)
         card_tuple = curr.fetchone()
         curr.close()

@@ -393,8 +393,8 @@ def is_mobile_os_android(fcm_token):
         curr = conn.cursor()
         sql = "select mobile_os from togther_userinfo where fcm_token='" + fcm_token + "'"
         curr.execute(sql)
-        # print(sql)
         mobile_os = curr.fetchone()
+
         if mobile_os:
             # print(mobile_os[0])
             if mobile_os[0] == "Android":

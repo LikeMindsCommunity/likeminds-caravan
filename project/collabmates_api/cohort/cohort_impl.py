@@ -135,10 +135,8 @@ class CohortImpl(CohortManager):
         type_id = request_body.get('type_id')
         filter_list = request_body.get('filter') if request_body.get('filter') else []
         community_id = request_body.get('community_id')
-        removed_member_ids = request_body.get('removed_member_ids') if request_body.get('removed_member_ids') else []
 
         member_ids = CohortHelper.validate_member_ids_or_raise_exception(member_ids)
-        removed_member_ids = CohortHelper.validate_member_ids_or_raise_exception(removed_member_ids)
 
         validated_req_body = CohortViewHelper.validate_edit_cohort_request(self.get_member_id(),
                                                                            cohort_id=cohort_id,
@@ -147,8 +145,7 @@ class CohortImpl(CohortManager):
                                                                            member_ids=member_ids,
                                                                            cohort_type=type,
                                                                            type_id=type_id,
-                                                                           filter_list=filter_list,
-                                                                           rights_list=rights)
+                                                                           filter_list=filter_list)
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -197,9 +194,6 @@ class CohortImpl(CohortManager):
 
         self._update_members_for_cohort(cohort_instance, member_ids)
 
-        if removed_member_ids:
-            CohortHelper.remove_cohort_member_instance(cohort_instance=cohort_instance, member_ids=removed_member_ids)
-
         if filter_list:
             CohortHelper.create_cohort_filters(filter_list, cohort_instance)
 
@@ -239,30 +233,19 @@ class CohortImpl(CohortManager):
         return {'success': True, 'member_cohorts': member_cohort_dict}
 
     def fetch_cohorts_with_community_id(self, community_id):
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        validated_req_body = CohortViewHelper.validate_fetch_community_cohorts_request(self.get_member_id(),
+                                                                                       community_id=community_id,
+                                                                                       api_key=self.get_api_key())
 
-        if not community_instance:
-            return {'success': False, 'error_message': "Invalid community id"}
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user id"}
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
-                                                                  'member_id': user_instance})
-        if not member_filter:
-            return {'success': False, 'error_message': "User is not a member of community"}
-
-        member_instance = member_filter[0]
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if not is_cm:
-            return {'success': False, 'error_message': "User doesn’t have the ability to fetch cohort"}
+        community_instance = validated_req_body.get('community_instance')
 
         cohort_context_list = []
 
-        cohort_list = ModelUtilities.get_model_filter(Cohort, {'community_id': community_id})
+        cohort_list = ModelUtilities.get_model_filter(Cohort, {'community_id': community_instance})
 
         for cohort in cohort_list:
             cohort_context = {
@@ -543,14 +526,6 @@ class CohortHelper:
 
         ModelUtilities.bulk_create_instances(CohortMember, bulk_create_list)
         ElasticSearchSync.update_members.delay(member_ids=member_ids, community_id=cohort_instance.community_id)
-
-    @staticmethod
-    def remove_cohort_member_instance(cohort_instance, member_ids):
-        for member_id in member_ids:
-            CohortHelper.remove_cohort_data_for_user(member_id, [cohort_instance.id])
-
-        if member_ids:
-            ElasticSearchSync.update_members.delay(member_ids=member_ids, community_id=cohort_instance.community_id)
 
     @staticmethod
     def create_cohort_rights_instance(cohort_instance, community_instance):
