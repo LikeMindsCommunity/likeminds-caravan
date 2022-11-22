@@ -403,3 +403,31 @@ class ChatroomViewHelper:
             return ResponseUtilities.get_inner_error_context("Only card creator can update the chatroom")
 
         return {'user_instance': user_instance, 'chatroom_instance': card_instance}
+
+    @staticmethod
+    def validate_remove_chatroom_participant_request(user_id, chatroom_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom ID")
+
+        if card_instance.is_secret:
+            return ResponseUtilities.get_inner_error_context("Chatroom should be open!")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("You are not a part of this community.")
+
+        member_instance = member_filter[0]
+
+        if not (member_instance.state == member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context("You are not CM/owner of community!")
+
+        return {'user_instance': user_instance, 'chatroom_instance': card_instance}

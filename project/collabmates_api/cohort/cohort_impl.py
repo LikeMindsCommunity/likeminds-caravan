@@ -1,8 +1,10 @@
 from django.contrib.auth.models import User
 from django.db.models import Count, F
 from celery import shared_task
+from rest_framework import status as status_codes
 
 from collabmates_api.cohort.cohort_manager import CohortManager
+from collabmates_api.cohort.cohort_view_helper import CohortViewHelper
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom, send_chatroom_updated_analytics_data
 from utility.exception_utilities import InvalidMemberIdsException
@@ -25,6 +27,7 @@ from ..user_moderation_rights import check_all_manager_rights, get_saved_member_
     check_rights_history_existence, save_member_right, update_member_rights_in_conversation_engage, \
     update_member_rights_in_member_engage
 from ..views import get_added_and_removed_rights, get_error_context
+from utility.response_utilities import ResponseUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -33,14 +36,21 @@ info_logger = LoggingWrapper.get_instance()
 class CohortImpl(CohortManager):
     member_id = None
 
-    def __init__(self, member_id: str = None):
+    def __init__(self, member_id: str = None, api_key: str = None):
         self.member_id = member_id
+        self.api_key = api_key
 
     def get_member_id(self) -> str:
         return self.member_id
 
     def set_member_id(self, member_id: str) -> None:
         self.member_id = member_id
+
+    def get_api_key(self) -> str:
+        return self.api_key
+
+    def set_api_key(self, api_key: str) -> None:
+        self.api_key = api_key
 
     def create_cohort(self, request_body):
 
@@ -51,54 +61,21 @@ class CohortImpl(CohortManager):
         type_id = request_body.get('type_id', '')
         filter_list = request_body.get('filter', [])
 
-        if type not in cohort_type_list:
-            return {'success': False, 'error_message': "Invalid Cohort Type"}
+        validated_req_body = CohortViewHelper.validate_create_cohort_request(self.get_member_id(),
+                                                                             community_id=community_id,
+                                                                             api_key=self.get_api_key(),
+                                                                             name=name,
+                                                                             member_ids=member_ids,
+                                                                             cohort_type=type,
+                                                                             type_id=type_id,
+                                                                             filter_list=filter_list)
 
-        if type == cohort_types.SUBSCRIPTION_PLAN and not type_id:
-            return {'success': False, 'error_message': "Invalid Type ID"}
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not name:
-            return {'success': False, 'error_message': "Invalid Cohort Name"}
-
-        if not isinstance(member_ids, list):
-            return {'success': False, 'error_message': "Invalid Member id List"}
-
-        if not isinstance(filter_list, list):
-            return {'success': False, 'error_message': "Invalid Filter List"}
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid User id"}
-
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return {'success': False, 'error_message': "Invalid Community id"}
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_id,
-                                                                  'member_id': user_instance})
-
-        if type in [cohort_types.SUBSCRIPTION_EXPIRED_PLAN, cohort_types.ALL_MEMBER]:
-
-            filter_dict = {
-                'type': type,
-                'community_id': community_id
-            }
-
-            cohort_filter = ModelUtilities.get_model_filter(Cohort, filter_dict)
-
-            if cohort_filter:
-                return {'success': False, 'error_message': "This type of cohort already exists in community"}
-
-        if not member_filter:
-            return {'success': False, 'error_message': "User is not a member of community"}
-
-        member_instance = member_filter[0]
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if not is_cm:
-            return {'success': False, 'error_message': "User doesn’t have the ability to create cohort"}
+        user_instance = validated_req_body.get('user_instance')
+        community_instance = validated_req_body.get('community_instance')
 
         cohort_info = {
             'name': name,
@@ -134,28 +111,14 @@ class CohortImpl(CohortManager):
         return {'success': True, 'cohort_data': cohort_instance_object}
 
     def delete_cohort(self, cohort_id):
+        validated_req_body = CohortViewHelper.validate_delete_cohort_request(self.get_member_id(),
+                                                                             cohort_id=cohort_id)
 
-        cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not cohort_instance:
-            return {'success': False, 'error_message': "Invalid Cohort id"}
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid User id"}
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': cohort_instance.community_id,
-                                                                  'member_id': user_instance})
-
-        if not member_filter:
-            return {'success': False, 'error_message': "User is not a member of community"}
-
-        member_instance = member_filter[0]
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if not is_cm:
-            return {'success': False, 'error_message': "User doesn’t have the ability to delete cohort"}
+        cohort_instance = validated_req_body.get('cohort_instance')
 
         ModelUtilities.delete_record_in_model(CohortRights, {'cohort': cohort_instance})
         ModelUtilities.delete_record_in_model(CohortMember, {'cohort': cohort_instance})
@@ -166,64 +129,42 @@ class CohortImpl(CohortManager):
     def update_cohort(self, request_body):
         cohort_id = request_body.get('cohort_id')
         name = request_body.get('name')
-        member_ids = request_body.get('member_ids')
-        rights = request_body.get('rights')
+        member_ids = request_body.get('member_ids') if request_body.get('member_ids') else []
+        rights = request_body.get('rights') if request_body.get('rights') else []
         type = request_body.get('type')
         type_id = request_body.get('type_id')
-        filter_list = request_body.get('filter', [])
+        filter_list = request_body.get('filter') if request_body.get('filter') else []
         community_id = request_body.get('community_id')
+        removed_member_ids = request_body.get('removed_member_ids') if request_body.get('removed_member_ids') else []
 
         member_ids = CohortHelper.validate_member_ids_or_raise_exception(member_ids)
-        cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+        removed_member_ids = CohortHelper.validate_member_ids_or_raise_exception(removed_member_ids)
 
-        if type not in cohort_type_list:
-            return {'success': False, 'error_message': "Invalid Cohort Type"}
+        validated_req_body = CohortViewHelper.validate_edit_cohort_request(self.get_member_id(),
+                                                                           cohort_id=cohort_id,
+                                                                           community_id=community_id,
+                                                                           api_key=self.get_api_key(),
+                                                                           member_ids=member_ids,
+                                                                           cohort_type=type,
+                                                                           type_id=type_id,
+                                                                           filter_list=filter_list,
+                                                                           rights_list=rights)
 
-        if type == cohort_types.SUBSCRIPTION_PLAN and not type_id:
-            return {'success': False, 'error_message': "Invalid Type ID"}
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not isinstance(member_ids, list):
-            return {'success': False, 'error_message': "Invalid Member id List"}
+        cohort_instance = validated_req_body.get('cohort_instance')
+        user_instance = validated_req_body.get('user_instance')
+        member_instance = validated_req_body.get('member_instance')
 
-        if not isinstance(filter_list, list):
-            return {'success': False, 'error_message': "Invalid Filter List"}
-
-        if not cohort_instance:
-
-            if not type_id and type == cohort_types.SUBSCRIPTION_PLAN:
-                return {'success': False, 'error_message': "Invalid type_id"}
-
-            if type == cohort_types.SUBSCRIPTION_EXPIRED_PLAN:
-                type_id = None
-
-            if type in [cohort_types.SUBSCRIPTION_EXPIRED_PLAN, cohort_types.ALL_MEMBER] and not community_id:
-                return {'success': False, 'error_message:': 'Invalid Community ID'}
-
-            cohort_filter = ModelUtilities.get_model_filter(Cohort, {'type_id': type_id, 'type': type,
-                                                                     'community_id': community_id})
-
-            if not cohort_filter:
-                return {'success': False, 'error_message': "Invalid cohort_id"}
-
-            cohort_instance = cohort_filter[0]
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid User id"}
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': cohort_instance.community_id,
-                                                                  'member_id': user_instance})
-        if not member_filter:
+        if not member_instance:
             member_ids = [int(self.get_member_id())]
             CohortHelper.remove_subscription_based_existing_cohorts(cohort_instance, member_ids)
             self._update_members_for_cohort(cohort_instance, member_ids)
             return {'success': True}
 
-        member_instance = member_filter[0]
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if not is_cm:
+        if not (member_instance.state == member_states.ADMIN):
             member_ids = [int(self.get_member_id())]
             CohortHelper.remove_subscription_based_existing_cohorts(cohort_instance, member_ids)
             self._update_members_for_cohort(cohort_instance, member_ids)
@@ -248,13 +189,16 @@ class CohortImpl(CohortManager):
             self._remove_rights_from_cohort(rights_to_remove, cohort_instance)
 
             if not can_add_rights:
-                return {'success': False,
-                        'error_message': 'CM doesn’t have the ability to update the following set of rights'}
+                return ResponseUtilities.get_impl_error_context('CM does not have the ability to update given rights!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
 
             self._add_rights_to_cohort(rights_to_add, cohort_instance)
             CohortHelper.remove_rights_to_all_cohort_members(cohort_instance, rights_to_remove)
 
         self._update_members_for_cohort(cohort_instance, member_ids)
+
+        if removed_member_ids:
+            CohortHelper.remove_cohort_member_instance(cohort_instance=cohort_instance, member_ids=removed_member_ids)
 
         if filter_list:
             CohortHelper.create_cohort_filters(filter_list, cohort_instance)
@@ -390,32 +334,18 @@ class CohortImpl(CohortManager):
 
     def fetch_cohorts_with_community_and_cohort_id(self, cohort_id, community_id):
 
-        cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+        validated_req_body = CohortViewHelper.validate_fetch_cohort_request(self.get_member_id(),
+                                                                            cohort_id=cohort_id,
+                                                                            community_id=community_id,
+                                                                            api_key=self.get_api_key())
 
-        if not cohort_instance:
-            return {'success': False, 'error_message': "Invalid cohort id"}
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            return {'success': False, 'error_message': "Invalid community id"}
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user id"}
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
-                                                                  'member_id': self.get_member_id()})
-
-        if not member_filter:
-            return {'success': False, 'error_message': "User is not a member of community"}
-
-        member_instance = member_filter[0]
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if not is_cm:
-            return {'success': False, 'error_message': "User doesn’t have the ability to fetch cohort"}
+        cohort_instance = validated_req_body.get('cohort_instance')
+        community_instance = validated_req_body.get('community_instance')
+        user_instance = validated_req_body.get('user_instance')
 
         member_ids = list(ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort_id})
                           .values_list('user_id', flat=True))
@@ -613,6 +543,14 @@ class CohortHelper:
 
         ModelUtilities.bulk_create_instances(CohortMember, bulk_create_list)
         ElasticSearchSync.update_members.delay(member_ids=member_ids, community_id=cohort_instance.community_id)
+
+    @staticmethod
+    def remove_cohort_member_instance(cohort_instance, member_ids):
+        for member_id in member_ids:
+            CohortHelper.remove_cohort_data_for_user(member_id, [cohort_instance.id])
+
+        if member_ids:
+            ElasticSearchSync.update_members.delay(member_ids=member_ids, community_id=cohort_instance.community_id)
 
     @staticmethod
     def create_cohort_rights_instance(cohort_instance, community_instance):

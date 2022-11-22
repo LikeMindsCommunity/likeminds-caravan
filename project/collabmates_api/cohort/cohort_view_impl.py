@@ -8,6 +8,7 @@ from collabmates_api.cohort.cohort_impl import CohortImpl
 from collabmates_api.views import get_error_context
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.request_utilities import RequestUtilities
+from utility.response_utilities import ResponseUtilities
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -17,19 +18,21 @@ class CreateCohortView(APIView):
     def post(self, request):
         request_body = RequestUtilities.load_request_body(request)
         header_member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not request_body:
             response = {'success': False, 'error_message': "Invalid request body"}
 
             return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
-        cohort_manager = CohortImpl(member_id=header_member_id)
+        cohort_manager = CohortImpl(member_id=header_member_id, api_key=api_key)
         response = cohort_manager.create_cohort(request_body=request_body)
 
         if response.get('error_message'):
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
+                                                                                response.get('status')))
 
-        return JsonResponse(response, status=status_codes.HTTP_200_OK)
+        return JsonResponse(response)
 
 
 class DeleteCohortView(APIView):
@@ -48,9 +51,10 @@ class DeleteCohortView(APIView):
         response = cohort_manager.delete_cohort(cohort_id=cohort_id)
 
         if response.get('error_message'):
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
+                                                                                response.get('status')))
 
-        return JsonResponse(response, status=status_codes.HTTP_200_OK)
+        return JsonResponse(response)
 
 
 class FetchCohortWithMemberCountView(APIView):
@@ -82,27 +86,19 @@ class FetchCohortView(APIView):
 
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         community_id = request.GET.get('community_id', "")
         cohort_id = request.GET.get('cohort_id', "")
 
-        if not member_id:
-            response = {'success': False, 'error_message': 'Invalid header member id'}
-
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
-
-        if not community_id or not cohort_id:
-            response = {'success': False, 'error_message': 'Invalid community id or cohort id'}
-
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
-
-        cohort_manager = CohortImpl(member_id=member_id)
+        cohort_manager = CohortImpl(member_id=member_id, api_key=api_key)
         response = cohort_manager.fetch_cohorts_with_community_and_cohort_id(cohort_id=cohort_id,
                                                                              community_id=community_id)
 
         if response.get('error_message'):
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
+                                                                                response.get('status')))
 
-        return JsonResponse(response, status=status_codes.HTTP_200_OK)
+        return JsonResponse(response)
 
 
 class RemoveMemberFromCohortView(APIView):
@@ -130,19 +126,21 @@ class UpdateCohortView(APIView):
     def post(self, request):
         request_body = RequestUtilities.load_request_body(request)
         header_member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not request_body:
             response = {'success': False, 'error_message': "Invalid request body"}
 
             return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
-        cohort_manager = CohortImpl(member_id=header_member_id)
+        cohort_manager = CohortImpl(member_id=header_member_id, api_key=api_key)
         response = cohort_manager.update_cohort(request_body=request_body)
 
         if response.get('error_message'):
-            return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
+                                                                                response.get('status')))
 
-        return JsonResponse(response, status=status_codes.HTTP_200_OK)
+        return JsonResponse(response)
 
 
 class FetchMemberCohortsView(APIView):

@@ -3626,6 +3626,59 @@ class ChatroomImpl(ChatroomManager):
             'chatroom_notification_settings': settings_data
         }
 
+    def remove_chatroom_participant(self, removed_members_list: list = None):
+        validated_req = ChatroomViewHelper.validate_remove_chatroom_participant_request(self.get_member_id(),
+                                                                                        self.get_chatroom_id())
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        chatroom_instance = validated_req.get('chatroom_instance')
+        chatroom_state = conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM
+
+        filter_dict = {
+            'card': chatroom_instance,
+            'user__in': removed_members_list,
+            'follow_status': True
+        }
+
+        state_filter = ModelUtilities.get_model_filter(collabcardState,
+                                                       filter_dict).prefetch_related('user')
+
+        if not state_filter:
+            return {'success': True}
+
+        state_filter.update(**{'follow_status': False})
+
+        # Updating all secret chatroom participants
+        filter_dict = {
+            'card': chatroom_instance,
+        }
+
+        update_dict = {
+            'updated_at': TimeUtilities.current_time_in_sec()
+        }
+
+        ModelUtilities.model_update(collabcardState, filter_dict, update_dict)
+
+        # Deleting conversation engage for this chatroom for this user
+        ModelUtilities.delete_record_in_model(conversationEngage,
+                                              {'card': chatroom_instance,
+                                               'user__in': removed_members_list})
+
+        for state_instance in state_filter:
+            user_id = state_instance.user_id
+
+            ChatroomHelper.create_answer(chatroom_instance=chatroom_instance, user_instance=state_instance.user,
+                                         state=chatroom_state, current_user_id=self.get_member_id())
+
+            update_last_unseen_in_engage(user=user_id, community=chatroom_instance.community_id)
+
+            ElasticSearchSync.delete_chatroom_for_user.delay(chatroom_instance.id, user_id)
+
+        return {'success': True}
+
 
 class ChatroomHelper:
 
