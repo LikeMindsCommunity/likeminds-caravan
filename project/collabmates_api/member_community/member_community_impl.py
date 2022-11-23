@@ -826,13 +826,15 @@ class MemberCommunityImpl(MemberCommunityManager):
     def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1) -> {}:
 
         validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
-                                                                              self.get_community_id())
+                                                                              self.get_community_id(),
+                                                                              self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
+        self.set_community_id(community_instance.id)
 
         filter_dict = {
             'community_id': self.get_community_id(),
@@ -910,13 +912,15 @@ class MemberCommunityImpl(MemberCommunityManager):
                        page=1) -> {}:
 
         validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
-                                                                              self.get_community_id())
+                                                                              self.get_community_id(),
+                                                                              self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
+        self.set_community_id(community_instance.id)
 
         filter_dict = {
             'community_id': self.get_community_id(),
