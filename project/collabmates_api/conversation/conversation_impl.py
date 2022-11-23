@@ -36,7 +36,7 @@ from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
                      update_chatroom_for_users_and_send_follow_notification,
                      reverse_conversations_for_upward_pagination, send_sync_notification,
                      generate_internal_link_preview_for_conversation, send_poll_conversation_creation_notification,
-                     create_chatroom_engagement, create_chatroom)
+                     create_chatroom_engagement, create_chatroom, collabcard_follow_internal_v1)
 
 from .constants import *
 
@@ -539,19 +539,17 @@ class ConversationImpl(ConversationManager):
         if chatroom_instance.type == card_types.CARD_PURPOSE:
             is_tagged = False
 
-        for user_id in tagged_member_list:
-            function_dict = {
-                'member_id': user_id,
-                'collabcard_id': chatroom_instance.id,
-                'status': True,
-                'source': "auto-following-chatroom",
-                'is_tagged': is_tagged
-            }
-            collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+        collabcard_follow_internal_v1.delay(
+            chatroom_instance.id,
+            tagged_member_list,
+            is_tagged
+        )
 
-        ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
-                                                                    user_instance,
-                                                                    chatroom_instance)
+        ConversationHelper.run_async_tasks_for_conversation_tagging.delay(
+            tagged_member_list,
+            user_instance,
+            chatroom_instance
+        )
 
     @staticmethod
     def _handle_dm_chatroom_communication(chatroom_instance, user_instance, conversation_instance):
@@ -1499,6 +1497,7 @@ class ConversationHelper:
         update_multiple_previews_in_chatroom.delay({'chatroom_id': chatroom_instance.id})
 
     @staticmethod
+    @shared_task
     def run_async_tasks_for_conversation_tagging(tagged_member_list, user_instance, chatroom_instance):
 
         for tagged_member in tagged_member_list:

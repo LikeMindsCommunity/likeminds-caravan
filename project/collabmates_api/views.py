@@ -6383,6 +6383,27 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
     update_activity_in_chatroom(card_instance, user_instance)
 
 
+@shared_task
+def collabcard_follow_internal_v1(
+        chatroom_id,
+        tagged_member_list,
+        is_tagged):
+
+    for user_id in tagged_member_list:
+        function_dict = {
+            'member_id': user_id,
+            'collabcard_id': chatroom_id,
+            'status': True,
+            'source': "auto-following-chatroom",
+            'is_tagged': is_tagged
+        }
+        collabcard_follow_internal(
+            function_dict,
+            state=collabcard_states.COLLABCARD_STATE_SEEN,
+            set_expiry_time_none=False,
+            external_seen=True)
+
+
 @csrf_exempt
 def collabcards_seen(request):
     '''This functions stores the details of members who have seen the card'''
