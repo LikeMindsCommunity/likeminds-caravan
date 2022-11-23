@@ -3773,7 +3773,6 @@ def fetch_deleted_chatroom(request):
     return JsonResponse({"deleted_chatrooms": []})
 
 
-@shared_task
 def update_activity_in_chatroom(card_instance, user_instance):
     '''function to update activities in chatrooms
 
@@ -6318,7 +6317,7 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
     if collabcard_state_filter.exists():
         if collabcard_state_filter[0].follow_status == status:
 
-            if collabcard_state_filter[0].is_tagged or not is_tagged:
+            if collabcard_state_filter[0].is_tagged:
                 update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                                {'card': card_instance, 'user': user_instance},
                                                {'is_tagged': False, 'mute_status': False})
