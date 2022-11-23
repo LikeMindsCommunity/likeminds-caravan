@@ -545,9 +545,9 @@ class ConversationImpl(ConversationManager):
             is_tagged
         )
 
-        ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
-                                                                    user_instance,
-                                                                    chatroom_instance)
+        # ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
+        #                                                             user_instance,
+        #                                                             chatroom_instance)
 
     @staticmethod
     def _handle_dm_chatroom_communication(chatroom_instance, user_instance, conversation_instance):
