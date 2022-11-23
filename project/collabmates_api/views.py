@@ -6419,9 +6419,6 @@ def collabcard_follow_internal_v1(
             is_tagged = True
             mute_status = True
 
-        ElasticSearchSync.update_chatroom_for_user.delay(card_id, member_id)
-        create_chatroom_engagements_for_user.delay(card_id, member_id)
-
         tagged_user_data = {
             'card_id': card_id,
             'member_id': member_id,
@@ -6448,26 +6445,37 @@ def collabcard_follow_internal_v1(
     # missing_user_ids = ListUtilities.remove_list_elements(update_collabcard_state_user_ids, existing_user_ids)
 
     collabcardState.objects.filter(
+        card=card_id,
         user__in=existing_user_ids
     ).update(
         follow_status=True,
         mute_status=False
     )
 
+    update_elastic_search_data_for_chatroom_users.delay(card_id, update_collabcard_state_user_ids)
+    create_chatroom_engagements_for_users.delay(card_id, update_collabcard_state_user_ids)
+
 
 @shared_task
-def create_chatroom_engagements_for_user(card_id, member_id):
-    card_instance = Collabcard.objects.get(id=card_id)
-    user_instance = User.objects.get(id=member_id)
+def update_elastic_search_data_for_chatroom_users(card_id, member_ids):
+    for member_id in member_ids:
+        ElasticSearchSync.update_chatroom_for_user(card_id, member_id)
 
-    member_state = 0
-    member_instance = Members.objects.filter(member_id=user_instance, community_id=card_instance.community)
-    if member_instance.exists():
-        member_state = member_instance[0].state
 
-    create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance, member_state=member_state)
-    update_my_chatrooms_for_users(chatroom_id=card_instance.id, user_id=user_instance.id)
-    update_activity_in_chatroom(card_instance, user_instance)
+@shared_task
+def create_chatroom_engagements_for_users(card_id, member_ids):
+    for member_id in member_ids:
+        card_instance = Collabcard.objects.get(id=card_id)
+        user_instance = User.objects.get(id=member_id)
+
+        member_state = 0
+        member_instance = Members.objects.filter(member_id=user_instance, community_id=card_instance.community)
+        if member_instance.exists():
+            member_state = member_instance[0].state
+
+        create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance, member_state=member_state)
+        update_my_chatrooms_for_users(chatroom_id=card_instance.id, user_id=user_instance.id)
+        update_activity_in_chatroom(card_instance, user_instance)
 
 @csrf_exempt
 def collabcards_seen(request):
