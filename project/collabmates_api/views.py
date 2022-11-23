@@ -6448,7 +6448,7 @@ def collabcard_follow_internal_v1(
         user__in=existing_user_ids
     ).update(
         follow_status=True,
-        mute_status=False
+        mute_status=is_tagged
     )
 
     update_elastic_search_data_for_chatroom_users.delay(card_id, update_collabcard_state_user_ids)
