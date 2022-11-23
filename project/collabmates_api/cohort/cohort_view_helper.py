@@ -1,6 +1,6 @@
 from utility.states import (cohort_type_list, cohort_types, member_states)
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, Members, Cohort)
+from togther.models import (ModelUtilities, Members, Cohort, Collabcard, ChatroomCohort)
 from collabmates_api.sdk.models import (SdkClient)
 
 
@@ -230,4 +230,52 @@ class CohortViewHelper:
             'user_instance': user_instance,
             'community_instance': community_instance,
         }
+
+    @staticmethod
+    def validate_update_cohort_access_request(user_id, chatroom_id, cohort_id, cohort_access):
+
+        if cohort_access is None:
+            return ResponseUtilities.get_inner_error_context("Invalid cohort access!")
+
+        cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+
+        if not cohort_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid cohort ID!")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID!")
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom ID!")
+
+        if chatroom_instance.is_secret:
+            return ResponseUtilities.get_inner_error_context("Chatroom should be open!")
+
+        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id,
+                                                                                  'cohort_id': cohort_id})
+
+        if not chatroom_cohort_filter:
+            return ResponseUtilities.get_inner_error_context("Cohort is not added to this chatroom!")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community,
+                                                                  'member_id': user_id})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("User is not a member of community!")
+
+        member_instance = member_filter[0]
+
+        if not (member_instance.state == member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context("User does not have the ability to fetch cohort!")
+
+        return {
+            'user_instance': user_instance,
+            'chatroom_instance': chatroom_instance,
+            'chatroom_cohort_filter': chatroom_cohort_filter,
+        }
+
 

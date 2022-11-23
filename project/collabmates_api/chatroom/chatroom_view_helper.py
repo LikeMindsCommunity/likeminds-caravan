@@ -1,5 +1,5 @@
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, Members, Collabcard, collabcardState)
+from togther.models import (ModelUtilities, Members, Collabcard, collabcardState, Cohort)
 from rest_framework import status as status_codes
 from utility.states import (member_states, card_types)
 from collabmates_api.sdk.models import (SdkClient)
@@ -405,7 +405,11 @@ class ChatroomViewHelper:
         return {'user_instance': user_instance, 'chatroom_instance': card_instance}
 
     @staticmethod
-    def validate_remove_chatroom_participant_request(user_id, chatroom_id):
+    def validate_remove_chatroom_participant_request(user_id, chatroom_id, removed_members_list: list):
+
+        if not (isinstance(removed_members_list, list) and removed_members_list):
+            return ResponseUtilities.get_inner_error_context("Invalid removed members list!")
+
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:
@@ -431,3 +435,68 @@ class ChatroomViewHelper:
             return ResponseUtilities.get_inner_error_context("You are not CM/owner of community!")
 
         return {'user_instance': user_instance, 'chatroom_instance': card_instance}
+
+    @staticmethod
+    def validate_add_chatroom_cohort_request(user_id, chatroom_id, cohort_ids):
+
+        if not cohort_ids or not chatroom_id:
+            return ResponseUtilities.get_inner_error_context("Send cohort IDs and chatroom ID!")
+
+        if not isinstance(cohort_ids, list):
+            return ResponseUtilities.get_inner_error_context("Invalid cohort ID list!")
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom ID!")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID!")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community_id,
+                                                                  'member_id': user_instance})
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("User is not a member of community!")
+
+        member_instance = member_filter[0]
+
+        if not (member_instance.state == member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context("User doesn’t have the ability to remove a cohort from chatroom!")
+
+        return {'user_instance': user_instance, 'chatroom_instance': chatroom_instance}
+
+    @staticmethod
+    def validate_remove_chatroom_cohort_request(user_id, chatroom_id, cohort_id):
+
+        if not cohort_id or not chatroom_id:
+            return ResponseUtilities.get_inner_error_context("Send cohort IDs and chatroom ID!")
+
+        cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+
+        if not cohort_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid cohort ID!")
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom ID!")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID!")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community_id,
+                                                                  'member_id': user_instance})
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("User is not a member of community!")
+
+        member_instance = member_filter[0]
+
+        if not (member_instance.state == member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context("User doesn’t have the ability to remove a cohort from chatroom!")
+
+        return {'user_instance': user_instance, 'chatroom_instance': chatroom_instance}
+

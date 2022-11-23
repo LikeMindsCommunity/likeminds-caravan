@@ -957,9 +957,10 @@ class RemoveCohortFromChatroomView(APIView):
         response_context = chatroom_manager.remove_cohort_from_chatroom(request_body=request_body)
 
         if response_context.get('error_message'):
-            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
 
-        return JsonResponse(response_context, status=status_codes.HTTP_200_OK)
+        return JsonResponse(response_context)
 
 
 class AddCohortToChatroomView(APIView):
@@ -977,9 +978,10 @@ class AddCohortToChatroomView(APIView):
         response_context = chatroom_manager.add_cohort_to_chatroom(request_body=request_body)
 
         if response_context.get('error_message'):
-            return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
 
-        return JsonResponse(response_context, status=status_codes.HTTP_200_OK)
+        return JsonResponse(response_context)
 
 
 class FetchChatroomParticipantsView(APIView):
@@ -1236,7 +1238,7 @@ class ChatroomNotificationSettings(APIView):
         return JsonResponse(res)
 
 
-class RemoveChatroomParticipants(APIView):
+class ChatroomParticipants(APIView):
 
     def _validate_request(self, member_id, req_body):
 
@@ -1251,7 +1253,7 @@ class RemoveChatroomParticipants(APIView):
 
         return {'success': True}
 
-    def post(self, request):
+    def delete(self, request):
         req_body = RequestUtilities.load_request_body(request)
         member_id = RequestUtilities.get_member_id_from_headers(request)
 

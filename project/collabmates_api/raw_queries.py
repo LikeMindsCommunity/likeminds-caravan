@@ -224,11 +224,7 @@ def get_followed_chatrooms(user_id,
         else:
             filter_intro_rooms_query = """type = -1"""
 
-        excluded_card_ids_filter = """"""
-        if create_chatroom_revamp_version_check(platform_code, version_code):
-            excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=community_id)
-            if excluded_card_ids:
-                excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
+        excluded_card_ids_filter = ""
 
         dm_chatrooms_filter = """is_private = {}
                                  AND is_private_member = FALSE
