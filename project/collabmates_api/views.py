@@ -6433,14 +6433,17 @@ def collabcard_follow_internal_v1(
         }
         tagged_user_datas.append(tagged_user_data)
 
-    collabcard_state_member_ids = collabcardState.objects.filter(
-        card=chatroom_instance.id
+    collabcard_state_member_ids = list(ModelUtilities.get_model_filter(
+        collabcardState,
+        {
+            'card_id': chatroom_instance.id
+        }
     ).values_list(
         'user_id',
         flat=True
-    )
+    ))
 
-    update_collabcard_state_user_ids = [element['member_id'] for element in tagged_user_datas]
+    update_collabcard_state_user_ids = [int(element['member_id']) for element in tagged_user_datas]
     existing_user_ids = ListUtilities.get_common_elements(update_collabcard_state_user_ids, collabcard_state_member_ids)
     # missing_user_ids = ListUtilities.remove_list_elements(update_collabcard_state_user_ids, existing_user_ids)
 
