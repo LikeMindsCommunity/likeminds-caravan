@@ -6448,6 +6448,7 @@ def collabcard_follow_internal_v1(
         user__in=existing_user_ids
     ).update(
         follow_status=True,
+        is_tagged=is_tagged,
         mute_status=is_tagged
     )
 
