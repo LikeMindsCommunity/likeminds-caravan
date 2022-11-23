@@ -3773,6 +3773,7 @@ def fetch_deleted_chatroom(request):
     return JsonResponse({"deleted_chatrooms": []})
 
 
+@shared_task
 def update_activity_in_chatroom(card_instance, user_instance):
     '''function to update activities in chatrooms
 
@@ -6382,6 +6383,91 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
     # function to set activity of chatroom
     update_activity_in_chatroom(card_instance, user_instance)
 
+
+def collabcard_follow_internal_v1(
+        chatroom_instance,
+        tagged_member_list,
+        is_tagged):
+    """ folowing collabcard internally """
+
+    tagged_user_datas = []
+
+    for user_id in tagged_member_list:
+        func_dict = {
+            'member_id': user_id,
+            'collabcard_id': chatroom_instance.id,
+            'status': True,
+            'source': "auto-following-chatroom",
+            'is_tagged': is_tagged
+        }
+
+        card_id = func_dict['collabcard_id']
+        member_id = func_dict['member_id']
+        status = func_dict['status']
+        is_guest = False
+        is_tagged = False
+        ref_instance = None
+        mute_status = False
+
+        if 'is_guest' in func_dict:
+            is_guest = func_dict.get('is_guest')
+            source_id = func_dict.get('source_id')
+            ref_filter = User.objects.filter(id=source_id)
+            if ref_filter.exists():
+                ref_instance = ref_filter[0]
+        elif 'is_tagged' in func_dict and func_dict['is_tagged']:
+            is_tagged = True
+            mute_status = True
+
+        ElasticSearchSync.update_chatroom_for_user.delay(card_id, member_id)
+        create_chatroom_engagements_for_user.delay(card_id, member_id)
+
+        tagged_user_data = {
+            'card_id': card_id,
+            'member_id': member_id,
+            'status': status,
+            'is_guest': is_guest,
+            'is_tagged': is_tagged,
+            'ref_instance': ref_instance,
+            'mute_status': mute_status
+        }
+        tagged_user_datas.append(tagged_user_data)
+
+    collabcard_state_member_ids = list(ModelUtilities.get_model_filter(
+        collabcardState,
+        {
+            'card_id': chatroom_instance.id
+        }
+    ).values_list(
+        'user_id',
+        flat=True
+    ))
+
+    update_collabcard_state_user_ids = [int(element['member_id']) for element in tagged_user_datas]
+    existing_user_ids = ListUtilities.get_common_elements(update_collabcard_state_user_ids, collabcard_state_member_ids)
+    # missing_user_ids = ListUtilities.remove_list_elements(update_collabcard_state_user_ids, existing_user_ids)
+
+    collabcardState.objects.filter(
+        user__in=existing_user_ids
+    ).update(
+        follow_status=True,
+        mute_status=False
+    )
+
+
+@shared_task
+def create_chatroom_engagements_for_user(card_id, member_id):
+    card_instance = Collabcard.objects.get(id=card_id)
+    user_instance = User.objects.get(id=member_id)
+
+    member_state = 0
+    member_instance = Members.objects.filter(member_id=user_instance, community_id=card_instance.community)
+    if member_instance.exists():
+        member_state = member_instance[0].state
+
+    create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance, member_state=member_state)
+    update_my_chatrooms_for_users(chatroom_id=card_instance.id, user_id=user_instance.id)
+    update_activity_in_chatroom(card_instance, user_instance)
 
 @csrf_exempt
 def collabcards_seen(request):
