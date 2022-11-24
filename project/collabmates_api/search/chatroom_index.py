@@ -85,7 +85,8 @@ class ChatroomDocument(Document):
                                     attr='chatroom_with_user',
                                     properties={
                                         'id': IntegerField()
-                                    })
+                                    }),
+            'chatroom_image_url': TextField()
         },
     )
 

@@ -302,6 +302,21 @@ class ElasticSearchSync:
 
     @staticmethod
     @shared_task
+    def update_chatroom_image(chatroom_id: int, chatroom_image: str):
+        """
+              @param chatroom_id: int
+              @param chatroom_image: str
+              @return: None
+              @description: Bulk updates chatroom title in conversations related to title changed chatroom
+              """
+        query_dict = ElasticSearchQueryHelper.get_chatroom_image_edit_update_dict(chatroom_id, chatroom_image)
+        ElasticSearchSync.bulk_update_documents(index=SearchIndexes.CHATROOM,
+                                                query_dict=query_dict)
+        ElasticSearchSync.bulk_update_documents(index=SearchIndexes.CONVERSATION,
+                                                query_dict=query_dict)
+
+    @staticmethod
+    @shared_task
     def update_community_name(community_id: int, community_name: str):
         """
         @param community_id: int
@@ -568,6 +583,34 @@ class ElasticSearchQueryHelper:
         return {
             "script": {
                 "inline": f"ctx._source.chatroom.title = '{title}'",
+                "lang": "painless"
+            },
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "term": {
+                                "chatroom.id": {
+                                    "value": chatroom_id
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+
+    @staticmethod
+    def get_chatroom_image_edit_update_dict(chatroom_id: int, chatroom_image: str):
+        """
+               @param chatroom_id: int
+               @param chatroom_image: str
+               @return: dict
+               @sql: update set chatroom_title = title where chatroom_id = chatroom_id
+               """
+        return {
+            "script": {
+                "inline": f"ctx._source.chatroom.chatroom_image_url = '{chatroom_image}'",
                 "lang": "painless"
             },
             "query": {

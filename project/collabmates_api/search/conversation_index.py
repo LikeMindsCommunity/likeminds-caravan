@@ -83,6 +83,7 @@ class ConversationDocument(Document):
             'device_id': TextField(),
             'platform': TextField(),
             'created_at': LongField(attr='date_epoch'),
+            'chatroom_image_url': TextField()
         }
     )
 
