@@ -9989,7 +9989,7 @@ def push_report_v1(request):
         report_instance.user_reported = reported_member_instance
         report_instance.member = user_instance  # has to be removed
         report_instance.reported_by = user_instance
-        if link is not None:
+        if link:
             report_type = report_Types.REPORT_LINK
         report_instance.link = link
         report_instance.type = report_type
