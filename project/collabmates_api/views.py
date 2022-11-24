@@ -6386,7 +6386,8 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
 def collabcard_follow_internal_v1(
         chatroom_instance,
         tagged_member_list,
-        is_tagged):
+        is_tagged,
+        is_group_tag_everyone):
     """ folowing collabcard internally """
 
     tagged_user_datas = []
@@ -6429,31 +6430,55 @@ def collabcard_follow_internal_v1(
         }
         tagged_user_datas.append(tagged_user_data)
 
-    collabcard_state_member_ids = list(ModelUtilities.get_model_filter(
-        collabcardState,
-        {
-            'card_id': chatroom_instance.id
-        }
-    ).values_list(
-        'user_id',
-        flat=True
-    ))
-
     update_collabcard_state_user_ids = [int(element['member_id']) for element in tagged_user_datas]
-    existing_user_ids = ListUtilities.get_common_elements(update_collabcard_state_user_ids, collabcard_state_member_ids)
-    # missing_user_ids = ListUtilities.remove_list_elements(update_collabcard_state_user_ids, existing_user_ids)
 
-    collabcardState.objects.filter(
-        card=card_id,
-        user__in=existing_user_ids
-    ).update(
-        follow_status=True,
-        is_tagged=is_tagged,
-        mute_status=is_tagged
-    )
+    if is_group_tag_everyone:
+        collabcard_state_member_ids = list(ModelUtilities.get_model_filter(
+            collabcardState,
+            {
+                'card_id': chatroom_instance.id
+            }
+        ).values_list(
+            'user_id',
+            flat=True
+        ))
 
-    update_elastic_search_data_for_chatroom_users.delay(card_id, update_collabcard_state_user_ids)
-    create_chatroom_engagements_for_users.delay(card_id, update_collabcard_state_user_ids)
+        existing_user_ids = ListUtilities.get_common_elements(update_collabcard_state_user_ids,
+                                                              collabcard_state_member_ids)
+
+        collabcardState.objects.filter(
+            card=chatroom_instance.id,
+            user__in=existing_user_ids
+        ).update(
+            follow_status=True,
+            is_tagged=False,
+            mute_status=False
+        )
+
+    elif is_tagged:
+        collabcard_non_followers_list = list(ModelUtilities.get_model_filter(
+            collabcardState,
+            {
+                'card_id': chatroom_instance.id,
+                'follow_status': False
+            }
+        ).values_list(
+            'user_id',
+            flat=True
+        ))
+        non_followers_tagged_users = ListUtilities.get_common_elements(update_collabcard_state_user_ids,
+                                                                       collabcard_non_followers_list)
+        collabcardState.objects.filter(
+            card=chatroom_instance.id,
+            user__in=non_followers_tagged_users
+        ).update(
+            follow_status=True,
+            is_tagged=True,
+            mute_status=True
+        )
+
+    update_elastic_search_data_for_chatroom_users.delay(chatroom_instance.id, update_collabcard_state_user_ids)
+    create_chatroom_engagements_for_users.delay(chatroom_instance.id, update_collabcard_state_user_ids)
 
 
 @shared_task

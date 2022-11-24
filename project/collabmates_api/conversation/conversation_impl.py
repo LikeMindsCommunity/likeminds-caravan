@@ -532,9 +532,11 @@ class ConversationImpl(ConversationManager):
             return
 
         is_tagged = True
+        is_group_tag_everyone = False
 
         if should_unmute_members:
             is_tagged = False
+            is_group_tag_everyone = True
 
         if chatroom_instance.type == card_types.CARD_PURPOSE:
             is_tagged = False
@@ -542,7 +544,8 @@ class ConversationImpl(ConversationManager):
         collabcard_follow_internal_v1(
             chatroom_instance,
             tagged_member_list,
-            is_tagged
+            is_tagged,
+            is_group_tag_everyone
         )
 
         # ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
