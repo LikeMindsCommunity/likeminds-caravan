@@ -224,7 +224,7 @@ class CohortViewHelper:
         member_instance = member_filter[0]
 
         if not (member_instance.state == member_states.ADMIN):
-            return ResponseUtilities.get_inner_error_context("User does not have the ability to fetch cohort!")
+            return ResponseUtilities.get_inner_error_context("User does not have the ability to fetch cohort access!")
 
         return {
             'user_instance': user_instance,
@@ -270,7 +270,7 @@ class CohortViewHelper:
         member_instance = member_filter[0]
 
         if not (member_instance.state == member_states.ADMIN):
-            return ResponseUtilities.get_inner_error_context("User does not have the ability to fetch cohort!")
+            return ResponseUtilities.get_inner_error_context("User does not have the ability to update cohort access!")
 
         return {
             'user_instance': user_instance,
