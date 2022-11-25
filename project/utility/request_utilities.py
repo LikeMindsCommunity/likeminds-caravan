@@ -76,6 +76,23 @@ class RequestUtilities:
             return platform_code.lower()
 
     @staticmethod
+    def get_platform_code_with_sdk(request: object) -> str:
+        platform_code = request.META.get('HTTP_X_PLATFORM_CODE', None)
+        platform_code = RequestUtilities.check_sdk_platform_code(request, platform_code)
+
+        if platform_code is not None:
+            return platform_code.lower()
+
+    @staticmethod
+    def check_sdk_platform_code(request: object, platform_code: str) -> str:
+        sdk_platform_code_suffix: str = '-sdk'
+
+        if not RequestUtilities.get_api_key_from_headers(request):
+            return platform_code
+
+        return platform_code + sdk_platform_code_suffix
+
+    @staticmethod
     def get_user_name_from_headers(request: object) -> str:
         return request.META.get('HTTP_X_USERNAME')
 

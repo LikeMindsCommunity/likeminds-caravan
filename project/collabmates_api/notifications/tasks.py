@@ -5,6 +5,7 @@ from django.conf import settings
 from external_services.email.email_wrapper import MailWrapper
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.time_utilities import TimeUtilities
+from utility.utils import (filter_user_instances_based_on_notification_flag)
 
 from project.celery import app
 from .constants import COMM_TYPE, EVENT_COMM_FREQUENCY, EVENT_TYPE, WHATSAPP_TEMPLATE_NAME_FOR_EVENT_ATTENDANCE_10_MIN, \
@@ -431,6 +432,7 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
                                                                                             event_instance,
                                                                                             add_event_creator=False)
             user_instances = active_user_ids + community_managers
+            user_instances = filter_user_instances_based_on_notification_flag(user_instances, community_id)
 
         elif event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
@@ -446,6 +448,7 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
 
             user_instances = TasksHelper.get_members_excluding_non_members_in_community(community_id,
                                                                                         users_not_attending_event)
+            user_instances = filter_user_instances_based_on_notification_flag(user_instances, community_id)
 
         elif event_type == EVENT_TYPE.REGISTRATION:
 

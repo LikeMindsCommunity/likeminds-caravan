@@ -27,7 +27,8 @@ from utility.states import member_states, card_types, deleted_members, question_
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
-from utility.utils import get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room
+from utility.utils import (get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room,
+                           create_notification_flag)
 from utility.cache_keys import (COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY)
 from .constants import *
 from .member_community_view_helper import MemberCommunityViewHelper
@@ -1797,6 +1798,27 @@ class MemberCommunityImpl(MemberCommunityManager):
         user_has_access = Members.user_has_app_access(user_instance.id)
 
         return {'success': True, 'access': user_has_access}
+
+    def unsubscribe_email_notifications(self, code_flags: dict) -> {}:
+        validated_request = MemberCommunityViewHelper.validate_unsubscribe_email_notifications_request(
+            self.get_member_id(), self.get_community_id(), code_flags=code_flags)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+
+        for code, value in code_flags.items():
+
+            if not isinstance(value, bool):
+                return ResponseUtilities.get_impl_error_context('Invalid flag values for code',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            create_notification_flag(user_instance, [code], community_id=community_instance.id, flag=value)
+
+        return {'success': True}
 
 
 class MemberCommunityHelper:
