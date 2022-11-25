@@ -959,8 +959,8 @@ class ConversationImpl(ConversationManager):
         conversation_content = {}
         self._fill_basic_conversation_content(req_body, conversation_content,
                                               chatroom_instance, user_instance, community_instance,
-                                              req_body.get('has_files', False), chatroom_state_instance,
-                                              is_guest=is_guest)
+                                              has_files, chatroom_state_instance, is_guest=is_guest)
+
         conversation_content['reply'] = ConversationHelper.fetch_replied_conversation(req_body)
         conversation_content['og_tags'] = ConversationHelper.fetch_og_tags(req_body)
         conversation_content['created_at'] = TimeUtilities.current_time_in_milliseconds()
@@ -2082,51 +2082,65 @@ class ConversationHelper:
     def _auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance):
 
         conversation_text = conversation_instance.answer
-        tagged_member_list, answer_text, tagged_user_names = get_tagged_members_list(chatroom_instance.community_id,
-                                                                                     chatroom_instance.id,
-                                                                                     conversation_text)
+        tagged_member_list, answer_text, tagged_user_names, should_unmute_members = get_tagged_members_list(
+            chatroom_instance.community_id,
+            chatroom_instance.id,
+            conversation_text
+        )
 
         if not tagged_member_list:
             return
 
         is_tagged = True
+        mute_status = True
 
         if chatroom_instance.type == card_types.CARD_PURPOSE:
-            is_tagged = False
+            mute_status = is_tagged = False
+
+        if should_unmute_members:
+            mute_status = False
+
+        chatroom_state_update_dict = {
+            'is_tagged': is_tagged,
+            'mute_status': mute_status,
+            'follow_status': True,
+            'external_seen': True,
+            'state': collabcard_states.COLLABCARD_STATE_SEEN
+        }
+
+        bulk_state_instance_list = []
+
+        state_filter = ModelUtilities.get_model_filter(collabcardState,
+                                                       {'card': chatroom_instance,
+                                                        'user__in': tagged_member_list})
+
+        state_filter.filter(**{'follow_status': False}).update(**chatroom_state_update_dict)
+
+        if should_unmute_members:
+            state_filter.filter(**{'follow_status': True, 'mute_status': True}).update(mute_status=mute_status)
+
+        state_filter_user_ids_list = state_filter.values_list('user_id', flat=True)
+        user_instances_filter = ModelUtilities.get_model_filter(
+            User, {'id__in': tagged_member_list}).exclude(id__in=state_filter_user_ids_list)
+
+        community_current_noti_state = ConversationHelper._get_community_notification_state(chatroom_instance)
+
+        for user_inst in user_instances_filter:
+            state_instance = collabcardState.create_chatroom_state_instances_for_bulk_create(
+                chatroom_instance, user_inst, noti_state=community_current_noti_state,
+                **chatroom_state_update_dict)
+
+            bulk_state_instance_list.append(state_instance)
+
+        if bulk_state_instance_list:
+            ModelUtilities.bulk_create_instances(collabcardState, bulk_state_instance_list)
 
         for user_id in tagged_member_list:
-            collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_instance,
-                                                                                        'user': user_id})
+            save_users_with_muted_chatrooms.delay({'user_id': user_id,
+                                                   'chatroom_id': chatroom_instance.id,
+                                                   'mute_status': mute_status})
 
-            chatroom_state_update_dict = {
-                'is_tagged': is_tagged,
-                'mute_status': is_tagged,
-                'follow_status': True,
-                'external_seen': True,
-                'state': collabcard_states.COLLABCARD_STATE_SEEN
-            }
-
-            if collabcard_state_filter.exists():
-                chatroom_state_instance = collabcard_state_filter[0]
-
-                if not chatroom_state_instance.follow_status:
-                    collabcard_state_filter.update(**chatroom_state_update_dict)
-
-                    save_users_with_muted_chatrooms.delay({'user_id': user_id,
-                                                           'chatroom_id': chatroom_instance.id,
-                                                           'mute_status': is_tagged})
-
-                ElasticSearchSync.update_chatroom_for_user.delay(chatroom_instance.id, user_id)
-
-            else:
-                community_current_noti_state = ConversationHelper._get_community_notification_state(chatroom_instance)
-                collabcardState.create_chatroom_state_instance(chatroom_instance, user_instance,
-                                                               noti_state=community_current_noti_state,
-                                                               **chatroom_state_update_dict)
-
-                save_users_with_muted_chatrooms.delay({'user_id': user_id,
-                                                       'chatroom_id': chatroom_instance.id,
-                                                       'mute_status': is_tagged})
+            ElasticSearchSync.update_chatroom_for_user.delay(chatroom_instance.id, user_id)
 
         ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
                                                                     user_instance,
