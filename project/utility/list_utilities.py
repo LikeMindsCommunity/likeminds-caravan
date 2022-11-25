@@ -33,3 +33,20 @@ class ListUtilities:
             return []
 
         return [*set(input_list)]
+
+    @staticmethod
+    def sort_dictionary_list(input_list: list, dict_key: str, reverse_order: bool = False) -> list:
+        """
+        return a list with items sorted in order of dictionary key
+        """
+        return sorted(input_list, key=lambda i: i[dict_key], reverse=reverse_order)
+
+    @staticmethod
+    def get_common_elements(input_list_one: list, input_list_two: list) -> list:
+        """
+        returns elements common in both lists
+        """
+        if not input_list_one or not input_list_two:
+            return []
+
+        return list(set(input_list_one).intersection(input_list_two))

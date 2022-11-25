@@ -36,7 +36,7 @@ from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
                      update_chatroom_for_users_and_send_follow_notification,
                      reverse_conversations_for_upward_pagination, send_sync_notification,
                      generate_internal_link_preview_for_conversation, send_poll_conversation_creation_notification,
-                     create_chatroom_engagement, create_chatroom)
+                     create_chatroom_engagement, create_chatroom, collabcard_follow_internal_v1)
 
 from .constants import *
 
@@ -52,9 +52,10 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
     conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types, \
-    member_rights, noti_states
+    member_rights, unsubscribe_types, noti_states
+
 from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
-    is_member_verified
+    is_member_verified, filter_user_instances_based_on_notification_flag
 from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
                                   update_preview_of_chatroom_in_cache,
@@ -523,7 +524,7 @@ class ConversationImpl(ConversationManager):
     def _auto_follow_for_tagged_members(community_id, chatroom_instance, conversation_instance, user_instance):
 
         conversation_text = conversation_instance.answer
-        tagged_member_list, answer_text, tagged_user_names = get_tagged_members_list(
+        tagged_member_list, answer_text, tagged_user_names, should_unmute_members = get_tagged_members_list(
             community_id,
             chatroom_instance.id,
             conversation_text
@@ -533,23 +534,25 @@ class ConversationImpl(ConversationManager):
             return
 
         is_tagged = True
+        is_group_tag_everyone = False
+
+        if should_unmute_members:
+            is_tagged = False
+            is_group_tag_everyone = True
 
         if chatroom_instance.type == card_types.CARD_PURPOSE:
             is_tagged = False
 
-        for user_id in tagged_member_list:
-            function_dict = {
-                'member_id': user_id,
-                'collabcard_id': chatroom_instance.id,
-                'status': True,
-                'source': "auto-following-chatroom",
-                'is_tagged': is_tagged
-            }
-            collabcard_follow_internal(function_dict, state=collabcard_states.COLLABCARD_STATE_SEEN)
+        collabcard_follow_internal_v1(
+            chatroom_instance,
+            tagged_member_list,
+            is_tagged,
+            is_group_tag_everyone
+        )
 
-        ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
-                                                                    user_instance,
-                                                                    chatroom_instance)
+        # ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
+        #                                                             user_instance,
+        #                                                             chatroom_instance)
 
     @staticmethod
     def _handle_dm_chatroom_communication(chatroom_instance, user_instance, conversation_instance):
@@ -1586,6 +1589,24 @@ class ConversationHelper:
     @staticmethod
     def send_engagement_communication(receiver_id, sender_id, chatroom_id, chatroom_not_opened_type):
 
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return
+
+        user_instance = ModelUtilities.get_user_instance_or_none(receiver_id)
+
+        if not user_instance:
+            return
+
+        receiver_id = user_instance.id
+
+        receiver_id_list = filter_user_instances_based_on_notification_flag(
+            [receiver_id], community_id=chatroom_instance.community_id, flag_code=unsubscribe_types.MAIL_CHATROOM_OR_DM)
+
+        if not receiver_id_list:
+            return
+
         status_type = None
 
         if chatroom_not_opened_type == chatroom_not_opened_types.TAGGED_CHATROOM:
@@ -1600,11 +1621,10 @@ class ConversationHelper:
 
         if not user_email_send_status_instance and status_type:
 
-            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
             collabcard_state_instances = ModelUtilities.get_model_filter(collabcardState, {'card_id': chatroom_id,
                                                                                            'user_id': receiver_id})
 
-            if not chatroom_instance or not collabcard_state_instances:
+            if not collabcard_state_instances:
                 return
 
             collabcard_state_instance = collabcard_state_instances[0]

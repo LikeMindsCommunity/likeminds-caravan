@@ -17,6 +17,7 @@ from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.api_client import ApiClient
+from utility.list_utilities import ListUtilities
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_PLACEHOLDER_USER_ROUTE, \
     SUBSCRIPTION_VALIDATE_EVENT_ONLINE_LINK, EVENT_CARD_MAIL_DESCRIPTION, CHATROOM_URL, MAIL_EVENT_NOTIFICATION, \
@@ -583,6 +584,35 @@ class ChatroomImpl(ChatroomManager):
             temp['name'] = data.name
             temp['image_url'] = data.image_link if data.image_link else ""
             temp['is_guest'] = data.is_guest
+
+            tag_list.append(temp)
+
+        return tag_list
+
+    @staticmethod
+    def compute_tagging_list_of_chatroom_participants(chatroom_instance):
+
+        chatroom_participants_list = list(collabcardState.objects.filter(
+            follow_status=True,
+            is_tagged=False,
+            remove=None,
+            card=chatroom_instance
+        ).values_list(
+            'user',
+            flat=True
+        ))
+
+        tag_list = []
+
+        userinfo_filter = Userinfo.objects.filter(user_id__in=chatroom_participants_list)
+
+        for data in userinfo_filter:
+            temp = dict()
+            temp['id'] = data.user_id_id
+            temp['name'] = data.name
+            temp['image_url'] = data.image_link if data.image_link else ""
+            temp['is_guest'] = data.is_guest
+            temp['user_unique_id'] = data.user_unique_id
 
             tag_list.append(temp)
 
@@ -1363,6 +1393,46 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_instance.is_secret:
             participant_list = self.compute_tagging_list_for_secret_participants(chatroom_instance, community_instance)
             participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
+            participant_list = ListUtilities.sort_dictionary_list(participant_list, 'name', False)
+
+            return {
+                'success': True,
+                'chatroom_participants': participant_list,
+                'community_members': [],
+                'group_tags': group_tags
+            }
+
+        members = self.compute_tagging_list_of_community_members(community_instance)
+        members = self.remove_guest_user_from_participants_data_list(members)
+        members = ListUtilities.sort_dictionary_list(members, 'name', False)
+
+        participant_list = self.compute_tagging_list_of_chatroom_participants(chatroom_instance)
+        participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
+        participant_list = ListUtilities.sort_dictionary_list(participant_list, 'name', False)
+
+        return {
+            'success': True,
+            'chatroom_participants': participant_list,
+            'community_members': members,
+            'group_tags': group_tags
+        }
+
+    def get_tagging_list_old(self) -> dict:
+        validated_req_body = ChatroomViewHelper.validate_get_tagging_list_request(self.get_member_id(),
+                                                                                  self.get_chatroom_id())
+
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        chatroom_instance = validated_req_body.get('card_instance')
+        community_instance = chatroom_instance.community
+
+        group_tags = self._add_group_tags(community_instance, chatroom_instance)
+
+        if chatroom_instance.is_secret:
+            participant_list = self.compute_tagging_list_for_secret_participants(chatroom_instance, community_instance)
+            participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
             return {
                 'success': True,
@@ -1400,7 +1470,6 @@ class ChatroomImpl(ChatroomManager):
             group_tags.append(ChatroomHelper.get_participants_group_tag())
 
         return group_tags
-
 
     def create_introduction_card_in_community(self, community_instance, user_instance, req_body, member_state,
                                               master_intro_instance):
@@ -5051,6 +5120,7 @@ class ChatroomHelper:
             'name': '@everyone',
             'route': 'route://everyone',
             'tag': '<<@everyone|route://everyone>>',
+            'image_url': 'https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/Group-Tag-Icon.jpg',
             'description': 'Notify all community members'
         }
 
@@ -5060,5 +5130,6 @@ class ChatroomHelper:
             'name': '@participants',
             'route': 'route://participants',
             'tag': '<<@participants|route://participants>>',
+            'image_url': 'https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/Group-Tag-Icon.jpg',
             'description': 'Notify all participants of this chatroom'
         }

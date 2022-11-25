@@ -20,11 +20,13 @@ from utility.file_utilities import FileUtilities
 from utility.tasks import send_email
 from utility.utils import (android_app_download_link, ios_app_download_link,
                            is_LG_or_LP_community, is_IG_community, angellist_link, linkedIn_link, get_user_email,
-                           android_app_download_link, ios_app_download_link, check_notification_flag)
+                           android_app_download_link, ios_app_download_link, check_notification_flag,
+                           filter_user_instances_based_on_notification_flag)
 from utility.states import (collabcard_states, member_states, community_states,
                             card_types, chatroom_actions, member_rights, manager_rights,
                             moderation_history_types, report_Action_Types, report_Types, multi_select_poll_states,
-                            user_email_send_status_types, get_started_types, email_states, mobile_states)
+                            user_email_send_status_types, get_started_types, email_states, mobile_states,
+                            unsubscribe_types)
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
@@ -533,6 +535,10 @@ def send_poll_results_announcement_mail(card_id, task_name):
     for poll in card_polls:
         poll_dict = CollabcardPollsSerializer(poll=poll, user=None, card=card_instance)
         polls_list.append(poll_dict)
+
+    final_users_list = filter_user_instances_based_on_notification_flag(list(final_users_list),
+                                                                        community_id=community_id,
+                                                                        flag_code=unsubscribe_types.MAIL_CHATROOM_OR_DM)
 
     for user_id in final_users_list:
         user_instance = User.objects.get(pk=user_id)
