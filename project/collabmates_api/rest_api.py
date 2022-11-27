@@ -1482,3 +1482,10 @@ class CommunityNotificationSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommunityNotificationSettings
         fields = '__all__'
+
+
+class FeedNotificationSettingsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = FeedNotificationSettings
+        fields = '__all__'

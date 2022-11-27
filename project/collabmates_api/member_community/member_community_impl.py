@@ -22,7 +22,7 @@ from utility.exception_utilities import CustomException
 from utility.states import member_states, card_types, deleted_members, question_states, \
     conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers, \
     community_dm_settings_state_types, community_dm_settings_duration_types, dm_icon_from_states, get_started_types, \
-    api_types
+    api_types, access_types
 
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
@@ -63,7 +63,8 @@ from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
-    check_admin_add_community_managers_right
+    check_admin_add_community_managers_right, check_admin_moderate_feed_and_comments_right, \
+    check_member_create_post_right, check_member_comment_and_reply_right
 from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check, \
     m2cm_v2_version_check
 from utility.response_utilities import ResponseUtilities
@@ -1819,6 +1820,57 @@ class MemberCommunityImpl(MemberCommunityManager):
             create_notification_flag(user_instance, [code], community_id=community_instance.id, flag=value)
 
         return {'success': True}
+
+    def fetch_member_access(self, query_params: dict) -> {}:
+        validated_request = MemberCommunityViewHelper.validate_fetch_member_access_request(
+            self.get_member_id(), self.get_api_key(), query_params.get('access_type'))
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        member_state = validated_request.get('member_state')
+        access_type = validated_request.get('access_type')
+
+        output_context = {
+            'success': True,
+            'access': False,
+            'is_cm': False
+        }
+
+        if member_state == member_states.ADMIN:
+            output_context['is_cm'] = True
+
+            if all([access_type in [access_types.DELETE_POST, access_types.PIN_POST, access_types.DELETE_COMMENT,
+                                    access_types.CREATE_ACTIVITY],
+                    check_admin_moderate_feed_and_comments_right(user_instance, community_instance)]):
+                output_context['access'] = True
+
+            if access_type in [access_types.CREATE_POST, access_types.VIEW_POST, access_types.LIKE_POST,
+                               access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.LIKE_COMMENT,
+                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY]:
+                output_context['access'] = True
+
+        if member_state == member_states.MEMBER:
+            if access_type == access_types.CREATE_POST and check_member_create_post_right(user_instance,
+                                                                                          community_instance):
+                output_context['access'] = True
+
+            if access_type == access_types.CREATE_COMMENT and check_member_comment_and_reply_right(user_instance,
+                                                                                                   community_instance):
+                output_context['access'] = True
+
+            if access_type in [access_types.VIEW_POST, access_types.DELETE_POST, access_types.LIKE_POST,
+                               access_types.VIEW_COMMENT, access_types.DELETE_COMMENT, access_types.LIKE_COMMENT,
+                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY]:
+                output_context['access'] = True
+
+            if access_type in [access_types.PIN_POST, access_types.CREATE_ACTIVITY]:
+                output_context['access'] = False
+
+        return output_context
 
 
 class MemberCommunityHelper:

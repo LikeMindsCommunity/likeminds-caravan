@@ -23,7 +23,7 @@ def give_all_member_rights(user, community):
     """function to give a member all the rights """
     userMemberRights.objects.filter(user=user, community=community).delete()
 
-    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8]).order_by("state")
+    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8, 9, 10]).order_by("state")
     fill_member_rights(user, community, member_rights)
 
 
@@ -362,58 +362,37 @@ def remove_member_create_room_right(user, community, current_user_id):
         error_logger.error(f"member right does not exist for user {user.id} in community {community.id}")
 
 
-def check_admin_delete_right(user, community):
-    user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
+def check_user_admin_right(user, community, right_state):
+    user_rights = userAdminRights.objects.filter(user=user, community=community, right__state=right_state)
+    return user_rights.exists()
 
-    if user_rights.exists():
-        return True
-    return False
+
+def check_admin_delete_right(user, community):
+    return check_user_admin_right(user, community, manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
 
 
 def check_admin_approve_right(user, community):
-    user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
-
-    if user_rights.exists():
-        return True
-    return False
+    return check_user_admin_right(user, community, manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
 
 
 def check_admin_view_contact_right(user, community):
-    user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO)
-
-    if user_rights.exists():
-        return True
-    return False
+    return check_user_admin_right(user, community, manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO)
 
 
 def check_admin_edit_community_right(user, community):
-    user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_EDIT_COMMUNITY)
-
-    if user_rights.exists():
-        return True
-    return False
+    return check_user_admin_right(user, community, manager_rights.MANAGER_RIGHT_EDIT_COMMUNITY)
 
 
 def check_admin_add_community_managers_right(user, community):
-    user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_ADD_MANAGERS)
-
-    if user_rights.exists():
-        return True
-    return False
+    return check_user_admin_right(user, community, manager_rights.MANAGER_RIGHT_ADD_MANAGERS)
 
 
 def check_admin_moderate_dm_settings_right(user, community):
-    user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MODERATE_DM_SETTINGS)
+    return check_user_admin_right(user, community, manager_rights.MODERATE_DM_SETTINGS)
 
-    if user_rights.exists():
-        return True
-    return False
+
+def check_admin_moderate_feed_and_comments_right(user, community):
+    return check_user_admin_right(user, community, manager_rights.MODERATE_FEED_AND_COMMENTS)
 
 
 def get_moderation_history_title(moderation_history):
@@ -489,31 +468,29 @@ def save_moderation_history(user, community, moderation_by, type):
     moderationHistory(user=user, community=community, moderation_by=moderation_by, type=type).save()
 
 
-def check_member_respond_right(user, community):
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  right__state=member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM)
+def check_user_member_right(user, community, right_state):
+    user_rights = userMemberRights.objects.filter(user=user, community=community, right__state=right_state)
+    return user_rights.exists()
 
-    if user_rights.exists():
-        return True
-    return False
+
+def check_member_respond_right(user, community):
+    return check_user_member_right(user, community, member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM)
 
 
 def check_member_create_room_right(user, community):
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
-
-    if user_rights.exists():
-        return True
-    return False
+    return check_user_member_right(user, community, member_rights.MEMBER_RIGHT_CREATE_ROOMS)
 
 
 def check_member_auto_approve_right(user, community):
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  right__state=member_rights.MEMBER_RIGHT_AUTO_APPROVE)
+    return check_user_member_right(user, community, member_rights.MEMBER_RIGHT_AUTO_APPROVE)
 
-    if user_rights.exists():
-        return True
-    return False
+
+def check_member_create_post_right(user, community):
+    return check_user_member_right(user, community, member_rights.MEMBER_RIGHT_CREATE_POSTS)
+
+
+def check_member_comment_and_reply_right(user, community):
+    return check_user_member_right(user, community, member_rights.MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS)
 
 
 def give_member_auto_approve_right(user, community, current_user_instance):
@@ -670,7 +647,7 @@ def get_right_dict(right):
 
 
 def give_all_community_setting_rights(community):
-    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8]).order_by("state")
+    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8, 9, 10]).order_by("state")
     save_community_setting_rights(community, member_rights)
 
 
@@ -1084,3 +1061,42 @@ def update_direct_message_right_in_member_rights_schema(community_id, is_enabled
         update_member_rights_list_for_community_members(community_id)
 
     return
+
+
+@shared_task
+def update_feed_rights_in_user_member_rights_table(community_id, is_enabled=False):
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+    if not community_instance:
+        return
+
+    create_post_right_filter = ModelUtilities.get_model_filter(memberRights,
+                                                               {'state': member_rights.MEMBER_RIGHT_CREATE_POSTS})
+    if not create_post_right_filter:
+        return
+
+    comment_and_reply_on_posts_right_filter = ModelUtilities.get_model_filter(
+        memberRights, {'state': member_rights.MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS})
+    if not comment_and_reply_on_posts_right_filter:
+        return
+
+    filter_dict_for_create_posts_right = {'community': community_instance, 'right': create_post_right_filter[0]}
+    filter_dict_for_comment_and_reply_on_posts_right = {'community': community_instance,
+                                                        'right': comment_and_reply_on_posts_right_filter[0]}
+
+    if is_enabled:
+        ModelUtilities.update_or_create_model(communityRightsSettings,
+                                              filter_dict_for_create_posts_right,
+                                              filter_dict_for_create_posts_right)
+        ModelUtilities.update_or_create_model(communityRightsSettings,
+                                              filter_dict_for_comment_and_reply_on_posts_right,
+                                              filter_dict_for_comment_and_reply_on_posts_right)
+
+        give_right_to_all_members(community_instance, create_post_right_filter[0])
+        give_right_to_all_members(community_instance, comment_and_reply_on_posts_right_filter[0])
+        update_member_rights_list_for_community_members(community_id)
+
+    if not is_enabled:
+        ModelUtilities.delete_record_in_model(communityRightsSettings, filter_dict_for_create_posts_right)
+        ModelUtilities.delete_record_in_model(communityRightsSettings, filter_dict_for_comment_and_reply_on_posts_right)
+        remove_right_for_all_members(community_instance, create_post_right_filter[0])
+        remove_right_for_all_members(community_instance, comment_and_reply_on_posts_right_filter[0])

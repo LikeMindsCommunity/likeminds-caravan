@@ -947,3 +947,33 @@ class CommunityNotificationSettings(APIView):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
                                                                                 res.get('status')))
         return JsonResponse(res)
+
+
+class FeedNotificationSettings(APIView):
+
+    def put(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        res = community_manager.update_feed_notification_settings(req_body)
+
+        if res.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        res = community_manager.fetch_feed_notification_settings()
+
+        if res.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)

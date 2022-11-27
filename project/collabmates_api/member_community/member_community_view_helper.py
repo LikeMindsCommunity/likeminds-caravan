@@ -1,8 +1,8 @@
 from rest_framework import status as status_codes
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, Community, Collabcard)
+from togther.models import (ModelUtilities, Community, Collabcard, Members)
 from collabmates_api.sdk.models import (SdkClient)
-from utility.states import (dm_icon_from_states, unsubscribe_types)
+from utility.states import (dm_icon_from_states, unsubscribe_types, access_types)
 
 
 class MemberCommunityViewHelper:
@@ -171,3 +171,26 @@ class MemberCommunityViewHelper:
             'community_instance': community_instance,
             'code_flag': code_flags
         }
+
+    @staticmethod
+    def validate_fetch_member_access_request(user_id, api_key, access_type_value):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid API key")
+
+        is_community_member = Members.is_community_member(community_instance, user_instance)
+        if not is_community_member:
+            return ResponseUtilities.get_inner_error_context("You are not a member of the community")
+
+        member_state = Members.get_community_member_state(community_instance, user_instance)
+
+        access_type = access_type_value
+        if access_type not in [item.value for item in access_types]:
+            return ResponseUtilities.get_inner_error_context("Send valid access type")
+
+        return {'community_instance': community_instance, 'user_instance': user_instance,
+                'member_state': member_state, 'access_type': access_type}

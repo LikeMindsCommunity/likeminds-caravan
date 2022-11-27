@@ -10,7 +10,7 @@ from cms.models import NewAnswer
 from collabmates_api.community.constants import *
 from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSerializer, CommunityToastV1Serializer, \
     CommunityGetStartedSerializer, CommunityQuestionsSerializerV2, CommunityAnswersSerializer, get_error_context, \
-    CommunityDMSettingsSerializer, CommunityNotificationSettingsSerializer
+    CommunityDMSettingsSerializer, CommunityNotificationSettingsSerializer, FeedNotificationSettingsSerializer
 
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
     give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage, \
@@ -33,7 +33,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityLevels, conversationEngage, userMemberRights, moderationHistory, communityQuestions, questionFilters, \
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, userEmails,\
     ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
-    communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings
+    communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings, FeedNotificationSettings
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST
@@ -42,7 +42,8 @@ from collabmates_api.branch import create_community_feed_url, create_community_o
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right, give_all_manager_rights, \
     give_all_member_rights, save_moderation_history, give_all_community_setting_rights, \
     update_member_rights_in_member_engage, check_admin_moderate_dm_settings_right, \
-    update_direct_message_right_in_member_rights_schema
+    update_direct_message_right_in_member_rights_schema, check_admin_moderate_feed_and_comments_right, \
+    update_feed_rights_in_user_member_rights_table
 from django.db.models import Q, F
 
 from external_services.mixpanel.events import MixpanelEvents
@@ -66,7 +67,7 @@ from utility.states import member_states, card_types, click_states, member_right
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
-    api_types, login_types, noti_states
+    api_types, login_types, noti_states, feed_notification_states
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -1189,6 +1190,10 @@ class CommunityImpl(CommunityManager):
                     not check_admin_moderate_dm_settings_right(user_instance, community_instance)]):
                 continue
 
+            if all([community_setting["setting_type"] == community_setting_types.FEED,
+                   not check_admin_moderate_feed_and_comments_right(user_instance, community_instance)]):
+                continue
+
             filter_dict = {
                 "community_id": self.get_community_id(),
                 "setting_type": community_setting["setting_type"],
@@ -1213,6 +1218,12 @@ class CommunityImpl(CommunityManager):
                     community_setting_types.DIRECT_MESSAGES)
                 update_direct_message_right_in_member_rights_schema.delay(community_id=community_instance.id,
                                                                           is_enabled=False)
+
+            if community_setting["setting_type"] == community_setting_types.FEED:
+                update_feed_rights_in_user_member_rights_table.delay(community_id=community_instance.id,
+                                                                     is_enabled=community_setting['enabled'])
+                CommunityHelper.update_feed_notification_settings_based_on_feed_setting.delay(
+                    community_id=community_instance.id, is_enabled=community_setting['enabled'])
 
             if all([community_setting["setting_type"] == community_setting_types.MEMBERS_CAN_DM,
                     community_setting['enabled']]):
@@ -2049,6 +2060,54 @@ class CommunityImpl(CommunityManager):
         }
 
         return res
+
+    def fetch_feed_notification_settings(self):
+
+        validated_req_body = CommunityViewHelper.validate_fetch_feed_notification_settings(self.get_member_id(),
+                                                                                           self.get_api_key())
+
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        notification_setting_instances = CommunityHelper.fetch_feed_notification_settings_instances(
+            validated_req_body.get('community_instance'))
+
+        serializer = FeedNotificationSettingsSerializer(notification_setting_instances, many=True)
+
+        response = {
+            'success': True,
+            'community_notification_settings': serializer.data
+        }
+
+        return response
+
+    def update_feed_notification_settings(self, req_body):
+
+        validated_req_body = CommunityViewHelper.validate_update_feed_notification_settings(self.get_member_id(),
+                                                                                            self.get_community_id(),
+                                                                                            req_body)
+
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        notification_setting_instances = CommunityHelper.fetch_feed_notification_settings_instances(
+            validated_req_body.get('community_instance'))
+
+        serializer = FeedNotificationSettingsSerializer(notification_setting_instances, req_body,
+                                                        partial=True, many=True)
+
+        if serializer.is_valid():
+            serializer.save()
+
+            response = {
+                'success': True,
+            }
+
+            return response
+
+        return ResponseUtilities.get_impl_error_context(serializer.errors, status_codes.HTTP_400_BAD_REQUEST)
 
 
 class CommunityHelper:
@@ -3948,3 +4007,27 @@ class CommunityHelper:
         }
 
         SegmentImpl.track_event(user_id, event_name, event_dict)
+
+    @staticmethod
+    def fetch_feed_notification_settings_instances(community_instance):
+        notification_setting_instances = ModelUtilities.get_model_filter(FeedNotificationSettings,
+                                                                         {'community': community_instance})
+
+        return notification_setting_instances
+
+    @staticmethod
+    @shared_task
+    def update_feed_notification_settings_based_on_feed_setting(community_id, is_enabled=False):
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        if not community_instance:
+            return
+
+        if is_enabled:
+            valid_notification_types = [notification.value for notification in feed_notification_states]
+            for notification_type in valid_notification_types:
+                FeedNotificationSettings(community=community_instance,
+                                         notification_type=notification_type,
+                                         enabled=True).save()
+
+        if not is_enabled:
+            ModelUtilities.delete_record_in_model(FeedNotificationSettings, {'community': community_instance})
