@@ -2085,29 +2085,26 @@ class CommunityImpl(CommunityManager):
     def update_feed_notification_settings(self, req_body):
 
         validated_req_body = CommunityViewHelper.validate_update_feed_notification_settings(self.get_member_id(),
-                                                                                            self.get_community_id(),
+                                                                                            self.get_api_key(),
                                                                                             req_body)
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
-        notification_setting_instances = CommunityHelper.fetch_feed_notification_settings_instances(
-            validated_req_body.get('community_instance'))
+        notification_settings = validated_req_body.get('notification_settings')
 
-        serializer = FeedNotificationSettingsSerializer(notification_setting_instances, req_body,
-                                                        partial=True, many=True)
-
-        if serializer.is_valid():
-            serializer.save()
-
-            response = {
-                'success': True,
+        for notification_setting in notification_settings:
+            filter_dict = {
+                'community': notification_setting.get('community'),
+                'notification_type': notification_setting.get('notification_type')
             }
+            update_dict = {
+                'enabled': notification_setting.get('enabled')
+            }
+            ModelUtilities.update_or_create_model(FeedNotificationSettings, filter_dict, update_dict)
 
-            return response
-
-        return ResponseUtilities.get_impl_error_context(serializer.errors, status_codes.HTTP_400_BAD_REQUEST)
+        return {'success': True}
 
 
 class CommunityHelper:
@@ -4023,11 +4020,15 @@ class CommunityHelper:
             return
 
         if is_enabled:
-            valid_notification_types = [notification.value for notification in feed_notification_states]
+            valid_notification_types = [feed_notification_states.LIKES,
+                                        feed_notification_states.COMMENTS,
+                                        feed_notification_states.REPLIES_ON_YOUR_COMMENTS,
+                                        feed_notification_states.UPDATES_ON_COMMENTED_POST]
             for notification_type in valid_notification_types:
-                FeedNotificationSettings(community=community_instance,
-                                         notification_type=notification_type,
-                                         enabled=True).save()
+                ModelUtilities.update_or_create_model(
+                    FeedNotificationSettings, {'community': community_instance, 'notification_type': notification_type},
+                    {'enabled': True}
+                )
 
         if not is_enabled:
             ModelUtilities.delete_record_in_model(FeedNotificationSettings, {'community': community_instance})

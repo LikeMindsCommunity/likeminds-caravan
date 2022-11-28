@@ -70,7 +70,6 @@ def give_default_member_rights(user, community):
                                       community_id=community).update(rights_list=rights_added)
 
 
-
 def give_all_manager_rights(user, community):
     """function to give a manager all the rights """
     userAdminRights.objects.filter(user=user, community=community).delete()
@@ -128,7 +127,8 @@ def update_member_rights_for_sdk(rights_context, community_instance):
     updated_rights = []
 
     for right_item in rights_context:
-        if right_item['state'] in [respond_in_rooms_member_right['state'], create_poll_member_right['state']]:
+        if right_item['state'] in [respond_in_rooms_member_right['state'], create_poll_member_right['state'],
+                                   create_post_right['state'], comment_and_reply_right['state']]:
             updated_rights.append(right_item)
 
     return updated_rights
@@ -144,6 +144,12 @@ def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=F
             continue
 
         if (right.state == member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM) and (not is_m2cm_v2):
+            continue
+
+        if right.state == create_post_right['state'] and (not user_rights.get("create_posts", False)):
+            continue
+
+        if right.state == comment_and_reply_right['state'] and (not user_rights.get("comment_and_reply", False)):
             continue
 
         right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title, "state": right.state,
@@ -194,6 +200,14 @@ def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=F
             right_dict["is_selected"] = user_rights["members_can_dm"]
             right_dict["is_locked"] = False
 
+        elif right.state == create_post_right['state']:
+            right_dict["is_selected"] = user_rights["create_posts"]
+            right_dict["is_locked"] = False
+
+        elif right.state == comment_and_reply_right['state']:
+            right_dict["is_selected"] = user_rights["comment_and_reply"]
+            right_dict["is_locked"] = False
+
         if right.sub_title is None:
             del right_dict["sub_title"]
 
@@ -223,6 +237,9 @@ def get_saved_manager_rights_list(admin_rights):
 
         elif right.state == add_manager_manager_right['state']:
             right_dict["is_selected"] = admin_rights["add_manager"]
+
+        elif right.state == moderate_feed_and_comments_right['state']:
+            right_dict["is_selected"] = admin_rights["moderate_feed_and_comments"]
 
         if right.sub_title is None:
             del right_dict["sub_title"]
@@ -272,9 +289,11 @@ def check_all_manager_rights(user, community):
     edit_community = False
     view_contact = False
     add_manager = False
+    moderate_feed_and_comments = False
 
     rights_list = {"delete_room": delete_room, "approve": approve, "edit_community": edit_community,
-                   "view_contact": view_contact, "add_manager": add_manager}
+                   "view_contact": view_contact, "add_manager": add_manager,
+                   "moderate_feed_and_comments": moderate_feed_and_comments}
 
     for right in admin_rights:
         right = right.right
@@ -289,6 +308,8 @@ def check_all_manager_rights(user, community):
             rights_list["view_contact"] = True
         elif right.state == add_manager_manager_right['state']:
             rights_list["add_manager"] = True
+        elif right.state == moderate_feed_and_comments_right['state']:
+            rights_list["moderate_feed_and_comments"] = True
 
     return rights_list
 
@@ -304,6 +325,8 @@ def check_all_member_rights(user=None, community=None, is_m2cm_v2=False):
     secret_chatroom = False
     show_direct_messages = False
     members_can_dm = False
+    create_posts = False
+    comment_and_reply = False
 
     if user is None and community is not None:
         member_rights = communityRightsSettings.objects.select_related('right').exclude(right__state=4).filter(
@@ -311,7 +334,7 @@ def check_all_member_rights(user=None, community=None, is_m2cm_v2=False):
 
     elif user is not None and community is not None:
         member_rights = userMemberRights.objects.exclude(right__state__in=[4, 7]).select_related(
-            'right').filter(user=user,community=community).order_by("right__state")
+            'right').filter(user=user, community=community).order_by("right__state")
 
     else:
         member_rights = []
@@ -336,10 +359,15 @@ def check_all_member_rights(user=None, community=None, is_m2cm_v2=False):
             show_direct_messages = True
         elif right.state == members_can_dm_right['state']:
             members_can_dm = True
+        elif right.state == create_post_right['state']:
+            create_posts = True
+        elif right.state == comment_and_reply_right['state']:
+            comment_and_reply = True
 
     rights = {"create_room": create_room, "create_poll": create_poll, "create_event": create_event,
               "respond_in_rooms": respond_in_rooms, "auto_approve": auto_approve,
-              "create_secret_chatroom": secret_chatroom, "show_dm": show_direct_messages}
+              "create_secret_chatroom": secret_chatroom, "show_dm": show_direct_messages,
+              "create_posts": create_posts, "comment_and_reply": comment_and_reply}
 
     if is_m2cm_v2:
         rights["members_can_dm"] = members_can_dm

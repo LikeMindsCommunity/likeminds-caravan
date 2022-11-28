@@ -205,15 +205,6 @@ class CommunityViewHelper:
         if not req_body:
             return ResponseUtilities.get_inner_error_context("Invalid request params")
 
-        valid_notification_types = [notification.value for notification in feed_notification_states]
-
-        for notification_setting in req_body.get('notification_settings'):
-            if any([not ModelUtilities.is_model_filter_exists(FeedNotificationSettings,
-                                                              {'pk': notification_setting.get('id')}),
-                    notification_setting.get('notification_type', 0) not in valid_notification_types,
-                    not isinstance(notification_setting.get('enabled'), bool)]):
-                return ResponseUtilities.get_inner_error_context("Invalid notification_settings sent")
-
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user id")
@@ -237,4 +228,22 @@ class CommunityViewHelper:
         if not feed_setting_filter:
             return ResponseUtilities.get_inner_error_context("Feed feature is disabled in this community")
 
-        return {'community_instance': community_instance}
+        valid_notification_types = [feed_notification_states.LIKES,
+                                    feed_notification_states.COMMENTS,
+                                    feed_notification_states.REPLIES_ON_YOUR_COMMENTS,
+                                    feed_notification_states.UPDATES_ON_COMMENTED_POST]
+
+        new_notification_settings = []
+
+        for notification_setting in req_body.get('notification_settings'):
+            if any([notification_setting.get('notification_type', 0) not in valid_notification_types,
+                    not isinstance(notification_setting.get('enabled'), bool)]):
+                return ResponseUtilities.get_inner_error_context("Invalid notification_settings sent")
+            else:
+                new_notification_settings.append({
+                    'notification_type': notification_setting.get('notification_type'),
+                    'community': community_instance,
+                    'enabled': notification_setting.get('enabled')
+                })
+
+        return {'community_instance': community_instance, 'notification_settings': new_notification_settings}
