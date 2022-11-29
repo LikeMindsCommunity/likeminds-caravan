@@ -287,36 +287,6 @@ class ElasticSearchSync:
 
     @staticmethod
     @shared_task
-    def update_chatroom_title(chatroom_id: int, chatroom_title: str):
-        """
-              @param chatroom_id: int
-              @param chatroom_title: str
-              @return: None
-              @description: Bulk updates chatroom title in conversations related to title changed chatroom
-              """
-        query_dict = ElasticSearchQueryHelper.get_title_edit_update_dict(chatroom_id, chatroom_title)
-        ElasticSearchSync.bulk_update_documents(index=SearchIndexes.CHATROOM,
-                                                query_dict=query_dict)
-        ElasticSearchSync.bulk_update_documents(index=SearchIndexes.CONVERSATION,
-                                                query_dict=query_dict)
-
-    @staticmethod
-    @shared_task
-    def update_chatroom_image(chatroom_id: int, chatroom_image: str):
-        """
-              @param chatroom_id: int
-              @param chatroom_image: str
-              @return: None
-              @description: Bulk updates chatroom title in conversations related to title changed chatroom
-              """
-        query_dict = ElasticSearchQueryHelper.get_chatroom_image_edit_update_dict(chatroom_id, chatroom_image)
-        ElasticSearchSync.bulk_update_documents(index=SearchIndexes.CHATROOM,
-                                                query_dict=query_dict)
-        ElasticSearchSync.bulk_update_documents(index=SearchIndexes.CONVERSATION,
-                                                query_dict=query_dict)
-
-    @staticmethod
-    @shared_task
     def update_community_name(community_id: int, community_name: str):
         """
         @param community_id: int
