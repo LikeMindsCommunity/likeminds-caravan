@@ -3,6 +3,7 @@ from togther.models import (ModelUtilities, Members, Collabcard, collabcardState
 from rest_framework import status as status_codes
 from utility.states import (member_states, card_types)
 from collabmates_api.sdk.models import (SdkClient)
+from utility.validation_utilities import ValidationUtilities
 
 
 class ChatroomViewHelper:
@@ -473,20 +474,19 @@ class ChatroomViewHelper:
         if not cohort_id or not chatroom_id:
             return ResponseUtilities.get_inner_error_context("Send cohort IDs and chatroom ID!")
 
-        cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+        validation_params = {
+            'cohort_id': cohort_id,
+            'chatroom_id': chatroom_id,
+            'user_id': user_id
+        }
 
-        if not cohort_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid cohort ID!")
+        validated_dict = ValidationUtilities(validation_params=validation_params).is_valid()
 
-        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+        if validated_dict.get('error_message'):
+            return validated_dict
 
-        if not chatroom_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid chatroom ID!")
-
-        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
-
-        if not user_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid user ID!")
+        chatroom_instance = validated_dict.get('chatroom_id')
+        user_instance = validated_dict.get('user_id')
 
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community_id,
                                                                   'member_id': user_instance})

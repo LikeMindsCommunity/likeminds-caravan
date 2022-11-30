@@ -3594,8 +3594,7 @@ class ChatroomImpl(ChatroomManager):
             'follow_status': True
         }
 
-        state_filter = ModelUtilities.get_model_filter(collabcardState,
-                                                       filter_dict).prefetch_related('user')
+        state_filter = ModelUtilities.get_model_filter(collabcardState, filter_dict)
 
         if not state_filter:
             return {'success': True}
@@ -3618,15 +3617,9 @@ class ChatroomImpl(ChatroomManager):
                                               {'card': chatroom_instance,
                                                'user__in': removed_members_list})
 
-        for state_instance in state_filter:
-            user_id = state_instance.user_id
-
-            ChatroomHelper.create_answer(chatroom_instance=chatroom_instance, user_instance=state_instance.user,
-                                         state=chatroom_state, current_user_id=self.get_member_id())
-
-            update_last_unseen_in_engage(user=user_id, community=chatroom_instance.community_id)
-
-            ElasticSearchSync.delete_chatroom_for_user.delay(chatroom_instance.id, user_id)
+        ChatroomHelper.run_async_tasks_for_users_removing_from_chatroom.delay(
+            chatroom_id=chatroom_instance.id, removed_members_list=list(state_filter.values_list('user_id', flat=True)),
+            current_user_id=self.get_member_id(), chatroom_state=chatroom_state)
 
         return {'success': True}
 
@@ -5137,3 +5130,31 @@ class ChatroomHelper:
             'image_url': 'https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/Group-Tag-Icon.jpg',
             'description': 'Notify all participants of this chatroom'
         }
+
+    @staticmethod
+    @shared_task
+    def run_async_tasks_for_users_removing_from_chatroom(chatroom_id, removed_members_list, current_user_id,
+                                                         chatroom_state=conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM):
+
+        chatroom_instance = ModelUtilities.get_model_filter(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return
+
+        filter_dict = {
+            'card': chatroom_id,
+            'user__in': removed_members_list
+        }
+
+        state_filter = ModelUtilities.get_model_filter(collabcardState,
+                                                       filter_dict).prefetch_related('user')
+
+        for state_instance in state_filter:
+            user_id = state_instance.user_id
+
+            ChatroomHelper.create_answer(chatroom_instance=chatroom_instance, user_instance=state_instance.user,
+                                         state=chatroom_state, current_user_id=current_user_id)
+
+            update_last_unseen_in_engage(user=user_id, community=chatroom_instance.community_id)
+
+            ElasticSearchSync.delete_chatroom_for_user.delay(chatroom_id, user_id)
