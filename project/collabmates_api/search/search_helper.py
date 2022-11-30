@@ -16,9 +16,9 @@ class SearchHelper:
         chatroom_ids_list = [state_data.get('chatroom').get('id') for state_data in chatroom_data
                              if state_data.get('chatroom')]
 
-        card_creators_data = ModelUtilities.get_model_filter(
+        card_creators_data = list(ModelUtilities.get_model_filter(
             Collabcard, {'id__in': chatroom_ids_list}).select_related('user').values('id', 'user__id',
-                                                                                     'user__userinfo__name')
+                                                                                     'user__userinfo__name'))
 
         card_creators_data = {creator_data.get('id'): creator_data for creator_data in card_creators_data}
 
