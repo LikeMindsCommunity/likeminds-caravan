@@ -91,10 +91,6 @@ def get_my_chatrooms_count(user_id,
             filter_intro_rooms_query = """type = -1"""
 
         excluded_card_ids_filter = """"""
-        if create_chatroom_revamp_version_check(platform_code, version_code):
-            excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=community_id)
-            if excluded_card_ids:
-                excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
 
         dm_chatrooms_filter = """is_private = {} 
                                  AND is_private_member = FALSE 
@@ -177,6 +173,42 @@ def get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=None):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
+def get_chatrooms_of_user_with_follow_status(user_id, community_id: str = None, follow_status: str = True):
+    community_based_filter = ""
+
+    if community_id:
+        community_based_filter = """AND togther_collabcardState.community_id = %s""" % (str(community_id))
+
+    try:
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+                SELECT togther_collabcard.id
+                FROM togther_collabcard
+                INNER JOIN togther_collabcardState
+                    ON togther_collabcardState.card_id = togther_collabcard.id
+                WHERE togther_collabcardState.user_id=%s
+                        AND follow_status = %s
+                        AND togther_collabcardState.remove_id is NULL %s;
+            """ % (str(user_id), follow_status, community_based_filter)
+
+        curr.execute(sql)
+        res = curr.fetchall()
+
+        card_ids = []
+        for card_id in res:
+            card_ids.append(card_id[0])
+
+        curr.close()
+
+        return card_ids
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
 def get_followed_chatrooms(user_id,
                            page,
                            version_code,
@@ -224,11 +256,7 @@ def get_followed_chatrooms(user_id,
         else:
             filter_intro_rooms_query = """type = -1"""
 
-        excluded_card_ids_filter = """"""
-        if create_chatroom_revamp_version_check(platform_code, version_code):
-            excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=community_id)
-            if excluded_card_ids:
-                excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
+        excluded_card_ids_filter = ""
 
         dm_chatrooms_filter = """is_private = {}
                                  AND is_private_member = FALSE
@@ -2150,8 +2178,6 @@ def get_count_for_new_non_member_access_event_chatroom_community_managers(user_i
             str(user_id),
             str(card_id)
         )
-
-        print(sql)
 
         curr.execute(sql)
         card_tuple = curr.fetchone()
