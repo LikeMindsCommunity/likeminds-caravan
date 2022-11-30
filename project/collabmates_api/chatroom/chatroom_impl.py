@@ -5158,7 +5158,7 @@ class ChatroomHelper:
 
             update_last_unseen_in_engage(user=user_id, community=chatroom_instance.community_id)
 
-            ElasticSearchSync.delete_chatroom_for_user.delay(chatroom_id, user_id)
+            ElasticSearchSync.delete_chatroom_for_user(chatroom_id, user_id)
 
     @staticmethod
     def validate_remove_chatroom_participant_request(user_id, chatroom_id, removed_members_list: list):
