@@ -1,15 +1,19 @@
-from togther.models import (ModelUtilities, Collabcard, Cohort, Members, User)
+from togther.models import (ModelUtilities, Collabcard, Cohort, User)
+from collabmates_api.sdk.models import (SdkClient)
 from utility.response_utilities import ResponseUtilities
 
 
 class ValidationUtilities:
 
     user_id_keys = ['user_id']
+    community_id_keys = ['community_id', 'api_key']
 
     params_models_dict = {
         'user_id': User,
         'chatroom_id': Collabcard,
-        'cohort_id': Cohort
+        'cohort_id': Cohort,
+        'community_id': SdkClient,
+        'api_key': SdkClient
     }
 
     @staticmethod
@@ -26,6 +30,13 @@ class ValidationUtilities:
 
             if key in ValidationUtilities.user_id_keys:
                 param_instance = ModelUtilities.get_user_instance_or_none(value)
+
+            elif key in ValidationUtilities.community_id_keys:
+
+                if not (value and isinstance(value, dict)):
+                    return ResponseUtilities.get_inner_error_context('Invalid community ID/API key!')
+
+                param_instance = SdkClient.get_community_instance_or_none(**value)
 
             else:
                 param_instance = ModelUtilities.get_model_instance_or_none(

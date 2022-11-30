@@ -4,7 +4,7 @@ from celery import shared_task
 from rest_framework import status as status_codes
 
 from collabmates_api.cohort.cohort_manager import CohortManager
-from collabmates_api.cohort.cohort_view_helper import CohortViewHelper
+from collabmates_api.sdk.models import (SdkClient)
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom, send_chatroom_updated_analytics_data
 from utility.exception_utilities import InvalidMemberIdsException
@@ -28,6 +28,7 @@ from ..user_moderation_rights import check_all_manager_rights, get_saved_member_
     update_member_rights_in_member_engage
 from ..views import get_added_and_removed_rights, get_error_context
 from utility.response_utilities import ResponseUtilities
+from utility.validation_utilities import ValidationUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -61,14 +62,14 @@ class CohortImpl(CohortManager):
         type_id = request_body.get('type_id', '')
         filter_list = request_body.get('filter', [])
 
-        validated_req_body = CohortViewHelper.validate_create_cohort_request(self.get_member_id(),
-                                                                             community_id=community_id,
-                                                                             api_key=self.get_api_key(),
-                                                                             name=name,
-                                                                             member_ids=member_ids,
-                                                                             cohort_type=type,
-                                                                             type_id=type_id,
-                                                                             filter_list=filter_list)
+        validated_req_body = CohortHelper.validate_create_cohort_request(self.get_member_id(),
+                                                                         community_id=community_id,
+                                                                         api_key=self.get_api_key(),
+                                                                         name=name,
+                                                                         member_ids=member_ids,
+                                                                         cohort_type=type,
+                                                                         type_id=type_id,
+                                                                         filter_list=filter_list)
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -111,8 +112,8 @@ class CohortImpl(CohortManager):
         return {'success': True, 'cohort_data': cohort_instance_object}
 
     def delete_cohort(self, cohort_id):
-        validated_req_body = CohortViewHelper.validate_delete_cohort_request(self.get_member_id(),
-                                                                             cohort_id=cohort_id)
+        validated_req_body = CohortHelper.validate_delete_cohort_request(self.get_member_id(),
+                                                                         cohort_id=cohort_id)
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -138,14 +139,14 @@ class CohortImpl(CohortManager):
 
         member_ids = CohortHelper.validate_member_ids_or_raise_exception(member_ids)
 
-        validated_req_body = CohortViewHelper.validate_edit_cohort_request(self.get_member_id(),
-                                                                           cohort_id=cohort_id,
-                                                                           community_id=community_id,
-                                                                           api_key=self.get_api_key(),
-                                                                           member_ids=member_ids,
-                                                                           cohort_type=type,
-                                                                           type_id=type_id,
-                                                                           filter_list=filter_list)
+        validated_req_body = CohortHelper.validate_edit_cohort_request(self.get_member_id(),
+                                                                       cohort_id=cohort_id,
+                                                                       community_id=community_id,
+                                                                       api_key=self.get_api_key(),
+                                                                       member_ids=member_ids,
+                                                                       cohort_type=type,
+                                                                       type_id=type_id,
+                                                                       filter_list=filter_list)
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -233,9 +234,9 @@ class CohortImpl(CohortManager):
         return {'success': True, 'member_cohorts': member_cohort_dict}
 
     def fetch_cohorts_with_community_id(self, community_id):
-        validated_req_body = CohortViewHelper.validate_fetch_community_cohorts_request(self.get_member_id(),
-                                                                                       community_id=community_id,
-                                                                                       api_key=self.get_api_key())
+        validated_req_body = CohortHelper.validate_fetch_community_cohorts_request(self.get_member_id(),
+                                                                                   community_id=community_id,
+                                                                                   api_key=self.get_api_key())
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -317,10 +318,10 @@ class CohortImpl(CohortManager):
 
     def fetch_cohorts_with_community_and_cohort_id(self, cohort_id, community_id):
 
-        validated_req_body = CohortViewHelper.validate_fetch_cohort_request(self.get_member_id(),
-                                                                            cohort_id=cohort_id,
-                                                                            community_id=community_id,
-                                                                            api_key=self.get_api_key())
+        validated_req_body = CohortHelper.validate_fetch_cohort_request(self.get_member_id(),
+                                                                        cohort_id=cohort_id,
+                                                                        community_id=community_id,
+                                                                        api_key=self.get_api_key())
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -456,10 +457,10 @@ class CohortImpl(CohortManager):
         cohort_id = request_body.get('cohort_id', None)
         cohort_access = request_body.get('cohort_access', None)
 
-        validated_req_body = CohortViewHelper.validate_update_cohort_access_request(self.get_member_id(),
-                                                                                    chatroom_id,
-                                                                                    cohort_id,
-                                                                                    cohort_access)
+        validated_req_body = CohortHelper.validate_update_cohort_access_request(self.get_member_id(),
+                                                                                chatroom_id,
+                                                                                cohort_id,
+                                                                                cohort_access)
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -1052,3 +1053,293 @@ class CohortHelper:
                                                    context=serialized_data_context, many=True).data
 
         return cohort_instance_objects
+
+    @staticmethod
+    def validate_create_cohort_request(user_id, community_id: str = None, api_key: str = None,
+                                       name: str = None, member_ids: list = None, cohort_type: int = 0,
+                                       type_id: str = None, filter_list: list = None):
+
+        if cohort_type not in cohort_type_list:
+            return ResponseUtilities.get_inner_error_context("Invalid cohort type!")
+
+        if (cohort_type == cohort_types.SUBSCRIPTION_PLAN) and (not type_id):
+            return ResponseUtilities.get_inner_error_context("Invalid type ID!")
+
+        if not name:
+            return ResponseUtilities.get_inner_error_context("Invalid cohort name!")
+
+        if not isinstance(member_ids, list):
+            return ResponseUtilities.get_inner_error_context("Invalid member ID list!")
+
+        if not isinstance(filter_list, list):
+            return ResponseUtilities.get_inner_error_context("Invalid filter list!")
+
+        validation_params = {
+            'community_id': {
+                'community_id': community_id,
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+        community_id = community_instance.id
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_id,
+                                                                  'member_id': user_instance})
+
+        if cohort_type in [cohort_types.SUBSCRIPTION_EXPIRED_PLAN, cohort_types.ALL_MEMBER]:
+
+            filter_dict = {
+                'type': cohort_type,
+                'community_id': community_id
+            }
+
+            cohort_filter = ModelUtilities.get_model_filter(Cohort, filter_dict)
+
+            if cohort_filter:
+                return ResponseUtilities.get_inner_error_context("This type of cohort already exists in community!")
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("User is not a member of community!")
+
+        member_instance = member_filter[0]
+
+        if not (member_instance.state == member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context("User does not have the ability to create cohort!")
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance
+        }
+
+    @staticmethod
+    def validate_fetch_cohort_request(user_id, cohort_id, community_id, api_key: str = None):
+        validation_params = {
+            'community_id': {
+                'community_id': community_id,
+                'api_key': api_key
+            },
+            'user_id': user_id,
+            'cohort_id': cohort_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+        cohort_instance = validated_dict.get('cohort_id')
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community ID/API key!")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                  'member_id': user_id})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("User is not a member of community!")
+
+        member_instance = member_filter[0]
+
+        if not (member_instance.state == member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context("User does not have the ability to fetch cohort!")
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'cohort_instance': cohort_instance
+        }
+
+    @staticmethod
+    def validate_delete_cohort_request(user_id, cohort_id):
+        validation_params = {
+            'user_id': user_id,
+            'cohort_id': cohort_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        cohort_instance = validated_dict.get('cohort_id')
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': cohort_instance.community_id,
+                                                                  'member_id': user_id})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("User is not a member of community!")
+
+        member_instance = member_filter[0]
+
+        if not (member_instance.state == member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context("User does not have the ability to create cohort!")
+
+        return {
+            'user_instance': user_instance,
+            'cohort_instance': cohort_instance
+        }
+
+    @staticmethod
+    def validate_edit_cohort_request(user_id, cohort_id, community_id: str = None, api_key: str = None,
+                                     member_ids: list = None, cohort_type: int = 0, type_id: str = None,
+                                     filter_list: list = None):
+
+        if cohort_type not in cohort_type_list:
+            return ResponseUtilities.get_inner_error_context("Invalid cohort type!")
+
+        if (cohort_type == cohort_types.SUBSCRIPTION_PLAN) and (not type_id):
+            return ResponseUtilities.get_inner_error_context("Invalid type ID!")
+
+        if not isinstance(member_ids, list):
+            return ResponseUtilities.get_inner_error_context("Invalid member ID list!")
+
+        if not isinstance(filter_list, list):
+            return ResponseUtilities.get_inner_error_context("Invalid filter list!")
+
+        if not isinstance(filter_list, list):
+            return ResponseUtilities.get_inner_error_context("Invalid rights list!")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id,
+                                                                      api_key=api_key)
+
+        cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+
+        if not cohort_instance:
+
+            if cohort_type == cohort_types.NORMAL:
+                return ResponseUtilities.get_inner_error_context("Invalid cohort ID!")
+
+            if (cohort_type == cohort_types.SUBSCRIPTION_PLAN) and not type_id:
+                return ResponseUtilities.get_inner_error_context("Invalid type ID!")
+
+            if cohort_type == cohort_types.SUBSCRIPTION_EXPIRED_PLAN:
+                type_id = None
+
+            if all([cohort_type in [cohort_types.SUBSCRIPTION_EXPIRED_PLAN, cohort_types.ALL_MEMBER],
+                    not community_instance]):
+                return ResponseUtilities.get_inner_error_context("Invalid community ID/API key!")
+
+            cohort_filter = ModelUtilities.get_model_filter(Cohort,
+                                                            {'type_id': type_id,
+                                                             'type': cohort_type,
+                                                             'community': community_instance})
+
+            if not cohort_filter:
+                return ResponseUtilities.get_inner_error_context("Invalid cohort ID!")
+
+            cohort_instance = cohort_filter[0]
+
+        validated_dict = ValidationUtilities.is_valid(validation_params={'user_id': user_id})
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+
+        member_instance = None
+
+        if cohort_instance and not community_instance:
+            community_instance = cohort_instance.community
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                  'member_id': user_instance})
+
+        if member_filter:
+            member_instance = member_filter[0]
+
+        return {
+            'user_instance': user_instance,
+            'cohort_instance': cohort_instance,
+            'member_instance': member_instance,
+        }
+
+    @staticmethod
+    def validate_fetch_community_cohorts_request(user_id, community_id: str = None, api_key: str = None):
+        validation_params = {
+            'community_id': {
+                'community_id': community_id,
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                  'member_id': user_id})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("User is not a member of community!")
+
+        member_instance = member_filter[0]
+
+        if not (member_instance.state == member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context("User does not have the ability to fetch cohort access!")
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+        }
+
+    @staticmethod
+    def validate_update_cohort_access_request(user_id, chatroom_id, cohort_id, cohort_access):
+
+        if cohort_access is None:
+            return ResponseUtilities.get_inner_error_context("Invalid cohort access!")
+
+        validation_params = {
+            'user_id': user_id,
+            'chatroom_id': chatroom_id,
+            'cohort_id': cohort_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        chatroom_instance = validated_dict.get('chatroom_id')
+
+        if chatroom_instance.is_secret:
+            return ResponseUtilities.get_inner_error_context("Chatroom should be open!")
+
+        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, {'chatroom_id': chatroom_id,
+                                                                                  'cohort_id': cohort_id})
+
+        if not chatroom_cohort_filter:
+            return ResponseUtilities.get_inner_error_context("Cohort is not added to this chatroom!")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community,
+                                                                  'member_id': user_id})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("User is not a member of community!")
+
+        member_instance = member_filter[0]
+
+        if not (member_instance.state == member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context("User does not have the ability to update cohort access!")
+
+        return {
+            'user_instance': user_instance,
+            'chatroom_instance': chatroom_instance,
+            'chatroom_cohort_filter': chatroom_cohort_filter,
+        }
