@@ -1,5 +1,6 @@
 from togther.models import (ModelUtilities, Collabcard)
 
+
 class SearchHelper:
 
     @staticmethod
