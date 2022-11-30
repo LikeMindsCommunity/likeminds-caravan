@@ -1,5 +1,5 @@
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, Members, Collabcard, collabcardState, Cohort)
+from togther.models import (ModelUtilities, Members, Collabcard, collabcardState)
 from rest_framework import status as status_codes
 from utility.states import (member_states, card_types)
 from collabmates_api.sdk.models import (SdkClient)
