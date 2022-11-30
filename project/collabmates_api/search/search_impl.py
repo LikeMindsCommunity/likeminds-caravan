@@ -3,14 +3,14 @@ from typing import Union
 from elasticsearch_dsl import Search
 from .search_manager import SearchManager
 from .search_helper import SearchHelper
-from togther.models import collabcardState, userMemberRights, Members, communityAnswers, ModelUtilities
+from togther.models import (collabcardState, userMemberRights, Members, communityAnswers, ModelUtilities)
 
 from utility.states import member_rights, card_types, member_states, question_states
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
 from utility.response_utilities import ResponseUtilities
 from .constants import CUSTOM_INTRO_TEXT_FOR_ADMIN, CUSTOM_INTRO_TEXT_FOR_MEMBERS, CUSTOM_CLICK_TEXT_FOR_MEMBERS
-from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING
+from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING,CHATROOM_FIELD_TITLE
 from collabmates_api.sdk.models import SdkClient
 
 
@@ -324,9 +324,14 @@ class SearchImpl(SearchManager):
 
         res = Search.from_dict(search_query_dict).execute()
 
+        chatroom_data = [hit.to_dict() for hit in res]
+
+        if self.get_search_field() == CHATROOM_FIELD_TITLE:
+            SearchHelper.update_chatroom_member_to_creator_for_card_data(chatroom_data)
+
         context = {
             'success': True,
-            'chatrooms': [hit.to_dict() for hit in res]
+            'chatrooms': chatroom_data
         }
 
         return context
