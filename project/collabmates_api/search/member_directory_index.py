@@ -7,6 +7,9 @@ from elasticsearch_dsl import analyzer, token_filter
 
 from togther.models import Members, ModelUtilities, CohortMember, Cohort
 
+# Max index length
+max_index_length = settings.MAX_INDEX_LENGTH_ELASTICSEARCH
+
 # Name of the Elasticsearch index
 INDEX = Index(settings.ELASTICSEARCH_INDEX_NAMES[__name__])
 
@@ -57,7 +60,7 @@ class MemberDirectoryDocument(Document):
                         analyzer=autocomplete,
                         search_analyzer="standard",
                         fields={
-                            'raw': KeywordField(),
+                            'raw': KeywordField(ignore_above=max_index_length),
                             'lower': StringField(analyzer=autocomplete)
                         }
                     ),
@@ -83,7 +86,7 @@ class MemberDirectoryDocument(Document):
         analyzer=autocomplete,
         search_analyzer="standard",
         fields={
-            'raw': KeywordField(),
+            'raw': KeywordField(ignore_above=max_index_length),
             'lower': TextField(analyzer=autocomplete)
         }
     )

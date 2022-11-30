@@ -1629,7 +1629,7 @@ class ChatroomImpl(ChatroomManager):
 
         send_chatroom_updated_analytics_data.delay(card_instance.id, int(self.get_member_id()), update_analytics_data)
 
-        ChatroomHelper.run_async_tasks_related_to_chatroom_edit.delay(card_instance.id, title)
+        ChatroomHelper.run_async_tasks_related_to_chatroom_edit.delay(card_instance.id)
 
         return {'success': True}
 
@@ -4301,11 +4301,12 @@ class ChatroomHelper:
 
     @staticmethod
     @shared_task
-    def run_async_tasks_related_to_chatroom_edit(card_id, text):
+    def run_async_tasks_related_to_chatroom_edit(card_id):
 
         ModelUtilities.model_update(collabcardState, {'card': card_id},
                                     {'updated_at': TimeUtilities.current_time_in_sec()})
-        ElasticSearchSync.update_chatroom_title(card_id, text)
+
+        ElasticSearchSync.update_chatroom(card_id)
 
     @staticmethod
     def check_user_secret_room_creation_right(user_instance, community_instance) -> bool:
