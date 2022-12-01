@@ -1788,7 +1788,7 @@ def get_chatroom_count_based_on_community_list(community_id_list, member_id, exc
         excluded_card_ids_list = ""
 
         if excluded_card_ids:
-            excluded_card_ids_list = '("togther_collabcard"."id" NOT IN {})'.format(
+            excluded_card_ids_list = 'AND ("togther_collabcard"."id" NOT IN {})'.format(
                 get_tuple_from_array(excluded_card_ids))
 
         if not community_id_tupple:
