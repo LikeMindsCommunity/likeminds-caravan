@@ -16,6 +16,8 @@ from collabmates_api.static_text import CHATROOM_PREVIW_CACHE_KEY, MEMBER_LEFT_D
 from collabmates_api.community.constants import *
 from collabmates_api.chatroom.constants import *
 from collabmates_api.upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
+from collabmates_api.raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
+                                         get_chatrooms_of_user_with_follow_status)
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.segment.segment_impl import SegmentImpl
@@ -2582,4 +2584,46 @@ def update_community_pin_chatrooms_list_in_cache(pin_info):
     CacheImpl.set_cache(key, pin_chatrooms_object)
 
     return pinned_chatrooms_list
+
+
+@shared_task
+def update_unseen_count_based_on_cohort_access(cohort_id=None, user_id=None, community_id=None):
+
+    if not (cohort_id or (user_id and community_id)):
+        return
+
+    user_id_list = []
+
+    if cohort_id:
+        cohort_member_filter = ModelUtilities.get_model_filter(CohortMember, {'cohort': cohort_id})
+
+        for cohort_member_instance in cohort_member_filter:
+            user_id_list.append(cohort_member_instance.user_id)
+            community_id = cohort_member_instance.cohort.community_id
+
+    else:
+        user_id_list.append(user_id)
+
+    for user_id in user_id_list:
+        seen_chatrooms = collabcardState.objects.filter(community=community_id,
+                                                        user=user_id, external_seen=True, card__is_deleted=False,
+                                                        card__is_pending=False,
+                                                        secret_chatroom_left=False).filter(
+            Q(card__attachment_count=0) | Q(card__attachments_uploaded=True)).exclude(
+            card__type__in=[card_types.CARD_INTRO, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]
+        ).distinct('card')
+
+        seen_chatrooms = list(seen_chatrooms.values_list('card_id', flat=True))
+
+        excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id=user_id,
+                                                                           community_id=community_id)
+
+        followed_chatrooms = get_chatrooms_of_user_with_follow_status(user_id=user_id, community_id=community_id)
+
+        excluded_card_ids_count = len((set(excluded_card_ids) - set(followed_chatrooms)) - set(seen_chatrooms))
+
+        update_last_unseen_in_engage(user=user_id,
+                                     community=community_id,
+                                     excluded_card_ids_count=excluded_card_ids_count)
+
 
