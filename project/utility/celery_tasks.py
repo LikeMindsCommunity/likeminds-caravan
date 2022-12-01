@@ -16,8 +16,6 @@ from collabmates_api.static_text import CHATROOM_PREVIW_CACHE_KEY, MEMBER_LEFT_D
 from collabmates_api.community.constants import *
 from collabmates_api.chatroom.constants import *
 from collabmates_api.upload_attachments import get_user_image_based_on_community, save_chatroom_attachments
-from collabmates_api.raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
-                                         get_chatrooms_of_user_with_follow_status)
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.segment.segment_impl import SegmentImpl
@@ -2614,6 +2612,9 @@ def update_unseen_count_based_on_cohort_access(cohort_id=None, user_id=None, com
         ).distinct('card')
 
         seen_chatrooms = list(seen_chatrooms.values_list('card_id', flat=True))
+
+        from collabmates_api.raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
+                                                 get_chatrooms_of_user_with_follow_status)
 
         excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id=user_id,
                                                                            community_id=community_id)
