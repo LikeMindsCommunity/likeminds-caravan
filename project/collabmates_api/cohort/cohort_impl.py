@@ -7,7 +7,7 @@ from collabmates_api.cohort.cohort_manager import CohortManager
 from collabmates_api.sdk.models import (SdkClient)
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom, send_chatroom_updated_analytics_data, \
-    update_unseen_count_based_on_cohort_access
+    update_last_unseen_in_engage
 from utility.exception_utilities import InvalidMemberIdsException
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
@@ -484,7 +484,7 @@ class CohortImpl(CohortManager):
         }
 
         send_chatroom_updated_analytics_data.delay(chatroom_id, int(self.get_member_id()), chatroom_update_analytics)
-        update_unseen_count_based_on_cohort_access.delay(cohort_id=cohort_id)
+        CohortHelper.update_unseen_count_based_on_cohort_access.delay(cohort_id=cohort_id)
 
         return {'success': True}
 
@@ -1359,3 +1359,35 @@ class CohortHelper:
             'chatroom_instance': chatroom_instance,
             'chatroom_cohort_filter': chatroom_cohort_filter,
         }
+
+    @staticmethod
+    @shared_task
+    def update_unseen_count_based_on_cohort_access(cohort_id):
+
+        cohort_member_filter = ModelUtilities.get_model_filter(CohortMember, {'cohort': cohort_id})
+
+        if not cohort_member_filter:
+            return
+
+        for cohort_member_instance in cohort_member_filter:
+            user_id = cohort_member_instance.user_id
+            community_id = cohort_member_instance.cohort.community_id
+
+
+            seen_chatrooms = collabcardState.objects.filter(community=community_id,
+                                                            user=user_id, external_seen=True, card__is_deleted=False,
+                                                            card__is_pending=False,
+                                                            secret_chatroom_left=False).filter(Q(card__attachment_count=0)
+                                                                                               | Q(
+                card__attachments_uploaded=True)).exclude(card__type__in=[card_types.CARD_INTRO,
+                                                                          card_types.CARD_EVENT,
+                                                                          card_types.CARD_PUBLIC_EVENT]).distinct('card')
+
+            excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id=user_id, community_id=community_id)
+            followed_chatrooms = get_chatrooms_of_user_with_follow_status(user_id=user_id, community_id=community_id)
+
+            excluded_card_ids_count = len((set(excluded_card_ids) - set(followed_chatrooms)) - set(seen_chatrooms))
+
+            update_last_unseen_in_engage(user=user_id,
+                                         community=community_id,
+                                         excluded_card_ids_count=excluded_card_ids_count)

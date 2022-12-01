@@ -39,8 +39,7 @@ from utility.celery_tasks import (
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
     reset_unread_message_count_in_cache, fetch_conversations_unread, update_deferred_card_poll_updated_at_value,
     get_to_show_results_for_conversation_poll, send_chatroom_deleted_analytics_data, cm_removed_dm_chatroom,
-    member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data,
-    update_community_pin_chatrooms_list_in_cache, update_unseen_count_based_on_cohort_access)
+    member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data, update_community_pin_chatrooms_list_in_cache)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -6270,8 +6269,6 @@ def follow_chatroom_async(collabcard_id,
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
 
     ElasticSearchSync.update_chatroom_for_user.delay(card_instance.id, user_instance.id)
-
-    update_unseen_count_based_on_cohort_access.delay(user_id=user_instance.id, community_id=card_instance.community_id)
 
     if card_instance.is_secret \
             and member_state == member_states.ADMIN \
