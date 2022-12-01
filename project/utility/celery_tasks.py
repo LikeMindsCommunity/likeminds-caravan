@@ -99,7 +99,7 @@ def update_last_unseen_in_engage_on_card_creation(community_id, is_seen=True):
         update_last_unseen_in_engage(user=member.member_id_id, community=community_id, is_seen=is_seen)
 
 
-def update_last_unseen_in_engage(user='', community='', is_seen=False, excluded_card_ids_count=0):
+def update_last_unseen_in_engage(user='', community='', is_seen=False):
     '''function to update the unseen  collabcard in engage'''
 
     total_chatrooms = collabcardState.objects.filter(community=community,
@@ -119,7 +119,7 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False, excluded_
                                                                   card_types.CARD_EVENT,
                                                                   card_types.CARD_PUBLIC_EVENT]).distinct('card').count()
 
-    diff = total_chatrooms - seen_chatrooms - excluded_card_ids_count
+    diff = total_chatrooms - seen_chatrooms
 
     unseen_count = 0
     if diff <= 0:
