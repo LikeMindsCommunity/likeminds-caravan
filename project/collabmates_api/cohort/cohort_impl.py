@@ -1,13 +1,12 @@
 from django.contrib.auth.models import User
-from django.db.models import Count, F, Q
+from django.db.models import Count, F
 from celery import shared_task
 from rest_framework import status as status_codes
 
 from collabmates_api.cohort.cohort_manager import CohortManager
 from collabmates_api.sdk.models import (SdkClient)
 from external_services.logging.logging_wrapper import LoggingWrapper
-from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom, send_chatroom_updated_analytics_data, \
-    update_last_unseen_in_engage
+from utility.celery_tasks import add_new_participants_to_cohorts_secret_chatroom, send_chatroom_updated_analytics_data
 from utility.exception_utilities import InvalidMemberIdsException
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
@@ -16,12 +15,9 @@ from ..search.sync import ElasticSearchSync
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
     CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers, \
-    Collabcard, collabcardState
-from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list, CohortAccess, member_rights, \
-    card_types
+    Collabcard
+from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list, CohortAccess, member_rights
 from ..rest_api import CohortSerializer, CohortMetaSerializer, ChatroomCohortSerializer
-from collabmates_api.raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
-                                         get_chatrooms_of_user_with_follow_status)
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
     respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, \
@@ -484,7 +480,6 @@ class CohortImpl(CohortManager):
         }
 
         send_chatroom_updated_analytics_data.delay(chatroom_id, int(self.get_member_id()), chatroom_update_analytics)
-        CohortHelper.update_unseen_count_based_on_cohort_access.delay(cohort_id=cohort_id)
 
         return {'success': True}
 
@@ -1359,35 +1354,3 @@ class CohortHelper:
             'chatroom_instance': chatroom_instance,
             'chatroom_cohort_filter': chatroom_cohort_filter,
         }
-
-    @staticmethod
-    @shared_task
-    def update_unseen_count_based_on_cohort_access(cohort_id):
-
-        cohort_member_filter = ModelUtilities.get_model_filter(CohortMember, {'cohort': cohort_id})
-
-        if not cohort_member_filter:
-            return
-
-        for cohort_member_instance in cohort_member_filter:
-            user_id = cohort_member_instance.user_id
-            community_id = cohort_member_instance.cohort.community_id
-
-
-            seen_chatrooms = collabcardState.objects.filter(community=community_id,
-                                                            user=user_id, external_seen=True, card__is_deleted=False,
-                                                            card__is_pending=False,
-                                                            secret_chatroom_left=False).filter(Q(card__attachment_count=0)
-                                                                                               | Q(
-                card__attachments_uploaded=True)).exclude(card__type__in=[card_types.CARD_INTRO,
-                                                                          card_types.CARD_EVENT,
-                                                                          card_types.CARD_PUBLIC_EVENT]).distinct('card')
-
-            excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id=user_id, community_id=community_id)
-            followed_chatrooms = get_chatrooms_of_user_with_follow_status(user_id=user_id, community_id=community_id)
-
-            excluded_card_ids_count = len((set(excluded_card_ids) - set(followed_chatrooms)) - set(seen_chatrooms))
-
-            update_last_unseen_in_engage(user=user_id,
-                                         community=community_id,
-                                         excluded_card_ids_count=excluded_card_ids_count)
