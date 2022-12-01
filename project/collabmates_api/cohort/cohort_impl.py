@@ -1258,6 +1258,14 @@ class CohortHelper:
         if member_filter:
             member_instance = member_filter[0]
 
+        if member_ids:
+            members_ids_list = list(ModelUtilities.get_model_filter(
+                Members, {'community_id': community_instance,
+                          'member_id__in': member_ids}).values_list('member_id_id', flat=True))
+
+            if len(set(member_ids) - set(members_ids_list)):
+                return ResponseUtilities.get_inner_error_context("Member IDs are not part of community!")
+
         return {
             'user_instance': user_instance,
             'cohort_instance': cohort_instance,

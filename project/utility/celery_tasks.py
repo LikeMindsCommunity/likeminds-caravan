@@ -2266,7 +2266,9 @@ def create_chatroom_cohort_instances(chatroom_id, cohort_ids):
         ChatroomCohort, {'chatroom': chatroom_instance}).values_list('cohort_id', flat=True))
 
     cohort_filter = ModelUtilities.get_model_filter(Cohort,
-                                                    {'id__in': cohort_ids}).exclude(id__in=chatroom_cohorts_list)
+                                                    {'id__in': cohort_ids,
+                                                     'community': chatroom_instance.community}
+                                                    ).exclude(id__in=chatroom_cohorts_list)
 
     for cohort_instance in cohort_filter:
         chatroom_cohort_context = {
