@@ -1778,12 +1778,18 @@ def get_latest_conversation_creator_users_for_homescreen(chatroom_id, chatroom_c
         return []
 
 
-def get_chatroom_count_based_on_community_list(community_id_list, member_id) -> {}:
+def get_chatroom_count_based_on_community_list(community_id_list, member_id, excluded_card_ids=None) -> {}:
     try:
         conn = get_connection()
         curr = conn.cursor()
 
         community_id_tupple = get_tuple_from_array(community_id_list)
+
+        excluded_card_ids_list = ""
+
+        if excluded_card_ids:
+            excluded_card_ids_list = '("togther_collabcard"."id" NOT IN {})'.format(
+                get_tuple_from_array(excluded_card_ids))
 
         if not community_id_tupple:
             return {}
@@ -1799,11 +1805,12 @@ def get_chatroom_count_based_on_community_list(community_id_list, member_id) -> 
                         AND NOT ("togther_collabcard"."type" in (%s, %s, %s))
                         AND ("togther_collabcard"."is_private" = FALSE)
                         AND ("togther_collabcard"."is_pending" = FALSE)
-                        AND ("togther_collabcard"."chatroom_with_user_id" is NULL))
+                        AND ("togther_collabcard"."chatroom_with_user_id" is NULL)
+                        %s)
                 GROUP BY  togther_collabcardstate.community_id
                 HAVING "togther_collabcardstate".community_id IN %s""" \
               % (str(member_id), str(card_types.CARD_INTRO), str(card_types.CARD_EVENT),
-                 str(card_types.CARD_PUBLIC_EVENT), str(community_id_tupple))
+                 str(card_types.CARD_PUBLIC_EVENT), excluded_card_ids_list, str(community_id_tupple))
 
         curr.execute(sql)
         count_data = curr.fetchall()
