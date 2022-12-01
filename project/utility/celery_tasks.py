@@ -99,7 +99,7 @@ def update_last_unseen_in_engage_on_card_creation(community_id, is_seen=True):
         update_last_unseen_in_engage(user=member.member_id_id, community=community_id, is_seen=is_seen)
 
 
-def update_last_unseen_in_engage(user='', community='', is_seen=False, excluded_card_ids_count=0):
+def update_last_unseen_in_engage(user='', community='', is_seen=False):
     '''function to update the unseen  collabcard in engage'''
 
     total_chatrooms = collabcardState.objects.filter(community=community,
@@ -110,14 +110,40 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False, excluded_
                                                                   card_types.CARD_EVENT,
                                                                   card_types.CARD_PUBLIC_EVENT]).distinct('card_id').count()
 
-    seen_chatrooms = collabcardState.objects.filter(community=community,
-                                                    user=user, external_seen=True, card__is_deleted=False,
-                                                    card__is_pending=False,
-                                                    secret_chatroom_left=False).filter(Q(card__attachment_count=0)
-                                                                                       | Q(
-        card__attachments_uploaded=True)).exclude(card__type__in=[card_types.CARD_INTRO,
-                                                                  card_types.CARD_EVENT,
-                                                                  card_types.CARD_PUBLIC_EVENT]).distinct('card').count()
+    seen_chatrooms_filter = collabcardState.objects.filter(community=community,
+                                                           user=user, external_seen=True, card__is_deleted=False,
+                                                           card__is_pending=False,
+                                                           secret_chatroom_left=False).filter(
+        Q(card__attachment_count=0) | Q(
+            card__attachments_uploaded=True)).exclude(card__type__in=[card_types.CARD_INTRO,
+                                                                      card_types.CARD_EVENT,
+                                                                      card_types.CARD_PUBLIC_EVENT]).distinct('card')
+
+    seen_chatrooms = seen_chatrooms_filter.count()
+
+    excluded_card_ids_count = 0
+
+    if user and community:
+        user_id = user
+        community_id = community
+
+        if isinstance(user, User):
+            user_id = user.id
+
+        if isinstance(community, Community):
+            community_id = community.id
+
+        from collabmates_api.raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
+                                                 get_chatrooms_of_user_with_follow_status)
+
+        excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id=user_id,
+                                                                           community_id=community_id)
+
+        followed_chatrooms = get_chatrooms_of_user_with_follow_status(user_id=user_id, community_id=community_id)
+
+        seen_chatroom_list = list(seen_chatrooms_filter.values_list('card_id', flat=True))
+
+        excluded_card_ids_count = len((set(excluded_card_ids) - set(followed_chatrooms)) - set(seen_chatroom_list))
 
     diff = total_chatrooms - seen_chatrooms - excluded_card_ids_count
 
@@ -2602,29 +2628,7 @@ def update_unseen_count_based_on_cohort_access(cohort_id=None, user_id=None, com
     else:
         user_id_list.append(user_id)
 
-    from collabmates_api.raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
-                                             get_chatrooms_of_user_with_follow_status)
-
     for user_id in user_id_list:
-        seen_chatrooms = collabcardState.objects.filter(community=community_id,
-                                                        user=user_id, external_seen=True, card__is_deleted=False,
-                                                        card__is_pending=False,
-                                                        secret_chatroom_left=False).filter(
-            Q(card__attachment_count=0) | Q(card__attachments_uploaded=True)).exclude(
-            card__type__in=[card_types.CARD_INTRO, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]
-        ).distinct('card')
-
-        seen_chatrooms = list(seen_chatrooms.values_list('card_id', flat=True))
-
-        excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id=user_id,
-                                                                           community_id=community_id)
-
-        followed_chatrooms = get_chatrooms_of_user_with_follow_status(user_id=user_id, community_id=community_id)
-
-        excluded_card_ids_count = len((set(excluded_card_ids) - set(followed_chatrooms)) - set(seen_chatrooms))
-
-        update_last_unseen_in_engage(user=user_id,
-                                     community=community_id,
-                                     excluded_card_ids_count=excluded_card_ids_count)
+        update_last_unseen_in_engage(user=user_id, community=community_id)
 
 
