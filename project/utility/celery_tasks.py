@@ -2616,9 +2616,6 @@ def update_unseen_count_based_on_cohort_access(cohort_id=None, user_id=None, com
 
         seen_chatrooms = list(seen_chatrooms.values_list('card_id', flat=True))
 
-        from collabmates_api.raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
-                                                 get_chatrooms_of_user_with_follow_status)
-
         excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id=user_id,
                                                                            community_id=community_id)
 
