@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from django.db.models import Count, F, Q
+from django.db.models import Count, F
 from celery import shared_task
 from rest_framework import status as status_codes
 
@@ -16,12 +16,9 @@ from ..search.sync import ElasticSearchSync
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
     CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers, \
-    Collabcard, collabcardState
-from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list, CohortAccess, member_rights, \
-    card_types
+    Collabcard
+from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list, CohortAccess, member_rights
 from ..rest_api import CohortSerializer, CohortMetaSerializer, ChatroomCohortSerializer
-from collabmates_api.raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
-                                         get_chatrooms_of_user_with_follow_status)
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
     respond_in_rooms_member_right, invite_private_member_right, auto_approve_member_right, \

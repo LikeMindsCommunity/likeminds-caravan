@@ -306,13 +306,12 @@ class MemberCommunityImpl(MemberCommunityManager):
         else:
             member_community['members_count'] = 0
 
-    def _process_communities(self, community_queryset, community_id_list, user_instance,
-                             is_chatroom_revamp=False) -> []:
+    def _process_communities(self, community_queryset, community_id_list, user_instance) -> []:
 
         member_communities_additional_info = list()
 
-        community_chatroom_count_dict = MemberCommunityHelper.fetch_chatroom_count_for_home(
-            community_id_list, user_instance.id, is_chatroom_revamp=is_chatroom_revamp)
+        community_chatroom_count_dict = MemberCommunityHelper.fetch_chatroom_count_for_home(community_id_list,
+                                                                                            user_instance.id)
 
         community_members_count_dict = MemberCommunityHelper.fetch_community_members_count(community_id_list)
 
@@ -399,13 +398,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             total_communities_count = len(communities_with_dm_rights_list)
 
-        is_chatroom_revamp = create_chatroom_revamp_version_check(platform_code=self.get_platform_code(),
-                                                                  version_code=self.get_version_code())
-
         community_queryset = self._paged_queryset(communities, page)
         community_id_list = self.compute_community_id_list_from_queryset(community_queryset)
-        community_list = self._process_communities(community_queryset, community_id_list, user_instance,
-                                                   is_chatroom_revamp=is_chatroom_revamp)
+        community_list = self._process_communities(community_queryset, community_id_list, user_instance)
 
         return {
             'success': True,
@@ -1872,18 +1867,9 @@ class MemberCommunityHelper:
         return temp
 
     @staticmethod
-    def fetch_chatroom_count_for_home(community_id_list, member_id, is_chatroom_revamp=False) -> {}:
+    def fetch_chatroom_count_for_home(community_id_list, member_id) -> {}:
 
-        excluded_card_ids = []
-
-        if is_chatroom_revamp:
-            excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(member_id)
-            followed_card_ids = get_chatrooms_of_user_with_follow_status(member_id)
-
-            excluded_card_ids = list(set(excluded_card_ids) - set(followed_card_ids))
-
-        community_count_dict = get_chatroom_count_based_on_community_list(community_id_list, member_id,
-                                                                          excluded_card_ids=excluded_card_ids)
+        community_count_dict = get_chatroom_count_based_on_community_list(community_id_list, member_id)
 
         filter_dict = {
             'community_id__in': community_count_dict.keys(),
