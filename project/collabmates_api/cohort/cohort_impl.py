@@ -1252,6 +1252,9 @@ class CohortHelper:
         if cohort_instance and not community_instance:
             community_instance = cohort_instance.community
 
+        if cohort_instance.community != community_instance:
+            return ResponseUtilities.get_inner_error_context("Cohort is of different community!")
+
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
                                                                   'member_id': user_instance})
 
