@@ -10,7 +10,6 @@ from .static_text import (MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.time_utilities import TimeUtilities
-from .utility import create_chatroom_revamp_version_check
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()

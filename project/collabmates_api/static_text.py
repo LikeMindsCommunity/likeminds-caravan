@@ -584,7 +584,7 @@ FREE_LINK_VERSION_CODE = {
 }
 
 CREATE_CHATROOM_REVAMP_VERSION_CODE = {
-    "an": 1001,
+    "an": 199,
     "ios": 1001,
     "web": 14
 }
