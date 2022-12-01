@@ -2602,6 +2602,9 @@ def update_unseen_count_based_on_cohort_access(cohort_id=None, user_id=None, com
     else:
         user_id_list.append(user_id)
 
+    from collabmates_api.raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
+                                             get_chatrooms_of_user_with_follow_status)
+
     for user_id in user_id_list:
         seen_chatrooms = collabcardState.objects.filter(community=community_id,
                                                         user=user_id, external_seen=True, card__is_deleted=False,
