@@ -2628,6 +2628,7 @@ class MemberCommunityHelper:
         community_impl.send_join_data_on_webhook.delay(user_instance.id, community_instance.id)
 
         ElasticSearchSync.update_member.delay(community_impl.get_member_id(), community_impl.get_community_id())
+        ElasticSearchSync.update_all_community_chatrooms_for_user.delay(community_instance.id, user_instance.id)
 
         update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
 
