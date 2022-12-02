@@ -1778,7 +1778,7 @@ def get_latest_conversation_creator_users_for_homescreen(chatroom_id, chatroom_c
         return []
 
 
-def get_chatroom_count_based_on_community_list(community_id_list, member_id, excluded_card_ids=None) -> {}:
+def get_chatroom_count_based_on_community_list(community_id_list, member_id) -> {}:
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -1805,12 +1805,11 @@ def get_chatroom_count_based_on_community_list(community_id_list, member_id, exc
                         AND NOT ("togther_collabcard"."type" in (%s, %s, %s))
                         AND ("togther_collabcard"."is_private" = FALSE)
                         AND ("togther_collabcard"."is_pending" = FALSE)
-                        AND ("togther_collabcard"."chatroom_with_user_id" is NULL)
-                        %s)
+                        AND ("togther_collabcard"."chatroom_with_user_id" is NULL))
                 GROUP BY  togther_collabcardstate.community_id
                 HAVING "togther_collabcardstate".community_id IN %s""" \
               % (str(member_id), str(card_types.CARD_INTRO), str(card_types.CARD_EVENT),
-                 str(card_types.CARD_PUBLIC_EVENT), excluded_card_ids_list, str(community_id_tupple))
+                 str(card_types.CARD_PUBLIC_EVENT), str(community_id_tupple))
 
         curr.execute(sql)
         count_data = curr.fetchall()
