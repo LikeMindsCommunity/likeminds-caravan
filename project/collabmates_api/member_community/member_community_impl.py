@@ -312,7 +312,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         member_communities_additional_info = list()
 
         community_chatroom_count_dict = MemberCommunityHelper.fetch_chatroom_count_for_home(
-            community_id_list, user_instance.id, is_chatroom_revamp=is_chatroom_revamp)
+            community_id_list, user_instance.id, is_chatroom_revamp)
 
         community_members_count_dict = MemberCommunityHelper.fetch_community_members_count(community_id_list)
 
@@ -405,7 +405,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         community_queryset = self._paged_queryset(communities, page)
         community_id_list = self.compute_community_id_list_from_queryset(community_queryset)
         community_list = self._process_communities(community_queryset, community_id_list, user_instance,
-                                                   is_chatroom_revamp=is_chatroom_revamp)
+                                                   is_chatroom_revamp)
 
         return {
             'success': True,
