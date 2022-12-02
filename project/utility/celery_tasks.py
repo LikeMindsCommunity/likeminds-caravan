@@ -2260,25 +2260,26 @@ def create_chatroom_cohort_instances(chatroom_id, cohort_ids):
     if not chatroom_instance:
         return
 
-    for cohort_id in cohort_ids:
+    bulk_chatroom_cohort = []
 
-        cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+    chatroom_cohorts_list = list(ModelUtilities.get_model_filter(
+        ChatroomCohort, {'chatroom': chatroom_instance}).values_list('cohort_id', flat=True))
 
-        if not cohort_instance:
-            return
+    cohort_filter = ModelUtilities.get_model_filter(Cohort,
+                                                    {'id__in': cohort_ids,
+                                                     'community': chatroom_instance.community}
+                                                    ).exclude(id__in=chatroom_cohorts_list)
 
-        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort,
-                                                                 {'cohort_id': cohort_id, 'chatroom_id': chatroom_id})
-
-        if chatroom_cohort_filter:
-            continue
-
+    for cohort_instance in cohort_filter:
         chatroom_cohort_context = {
             'cohort_instance': cohort_instance,
             'chatroom_instance': chatroom_instance
         }
 
-        ChatroomCohort.create_instance(chatroom_cohort_context)
+        bulk_chatroom_cohort.append(ChatroomCohort.create_bulk_instance(chatroom_cohort_context))
+
+    if bulk_chatroom_cohort:
+        ModelUtilities.bulk_create_instances(ChatroomCohort, bulk_chatroom_cohort)
 
 
 @shared_task

@@ -52,7 +52,8 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_ordered_card_id_on_the_basis_of_message_count_v2,
                            get_ordered_card_id_on_the_basis_last_message_v2,
                            get_ordered_card_id_on_the_basis_of_participants_count_v2,
-                           get_ordered_card_id_on_the_basis_newest_chatroom_v2)
+                           get_ordered_card_id_on_the_basis_newest_chatroom_v2,
+                           get_chatrooms_of_user_with_follow_status)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -826,13 +827,15 @@ class MemberCommunityImpl(MemberCommunityManager):
     def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1) -> {}:
 
         validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
-                                                                              self.get_community_id())
+                                                                              self.get_community_id(),
+                                                                              self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
+        self.set_community_id(community_instance.id)
 
         filter_dict = {
             'community_id': self.get_community_id(),
@@ -856,6 +859,10 @@ class MemberCommunityImpl(MemberCommunityManager):
         if create_chatroom_revamp_version_check(self.get_platform_code(), self.get_version_code()):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
                                                                                self.get_community_id())
+            followed_card_ids = get_chatrooms_of_user_with_follow_status(self.get_member_id(),
+                                                                         self.get_community_id())
+
+            excluded_card_ids = list(set(excluded_card_ids) - set(followed_card_ids))
 
         if api_version in [api_version_headers.V1, api_version_headers.V2]:
             chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(intro_room_setting_enabled,
@@ -910,13 +917,15 @@ class MemberCommunityImpl(MemberCommunityManager):
                        page=1) -> {}:
 
         validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
-                                                                              self.get_community_id())
+                                                                              self.get_community_id(),
+                                                                              self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
+        self.set_community_id(community_instance.id)
 
         filter_dict = {
             'community_id': self.get_community_id(),
@@ -940,6 +949,12 @@ class MemberCommunityImpl(MemberCommunityManager):
         if create_chatroom_revamp_version_check(self.get_platform_code(), self.get_version_code()):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
                                                                                self.get_community_id())
+
+            followed_card_ids = get_chatrooms_of_user_with_follow_status(self.get_member_id(),
+                                                                         self.get_community_id())
+
+            excluded_card_ids = list(set(excluded_card_ids) - set(followed_card_ids))
+
         if api_version in [api_version_headers.V1, api_version_headers.V2]:
             chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(intro_room_setting_enabled,
                                                                                    pin_status, excluded_card_ids,
