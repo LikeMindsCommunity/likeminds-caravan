@@ -145,7 +145,7 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False):
 
         excluded_card_ids_count = len((set(excluded_card_ids) - set(followed_chatrooms)) - set(seen_chatroom_list))
 
-    diff = total_chatrooms - seen_chatrooms
+    diff = total_chatrooms - seen_chatrooms - excluded_card_ids_count
 
     unseen_count = 0
     if diff <= 0:
