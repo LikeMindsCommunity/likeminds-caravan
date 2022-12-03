@@ -3087,11 +3087,10 @@ class ChatroomCohort(models.Model):
         super(ChatroomCohort, self).save(*args, **kwargs)
 
     @staticmethod
-    def create_instance(chatroom_cohort_info):
+    def create_bulk_instance(chatroom_cohort_info):
         instance = ChatroomCohort()
         instance.cohort = chatroom_cohort_info.get('cohort_instance')
         instance.chatroom = chatroom_cohort_info.get('chatroom_instance')
-        instance.save()
         return instance
 
 

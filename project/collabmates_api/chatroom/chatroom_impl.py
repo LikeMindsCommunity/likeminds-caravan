@@ -99,6 +99,7 @@ from utility.exception_utilities import (CustomException, InvalidSecretChatroomP
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from collabmates_api.conversation import conversation_impl
+from utility.validation_utilities import ValidationUtilities
 
 from collabmates_api.branch import create_community_feed_url_for_cm_onboarding, create_single_event_branch_url
 
@@ -2617,36 +2618,16 @@ class ChatroomImpl(ChatroomManager):
         cohort_id = request_body.get('cohort_id')
         chatroom_id = request_body.get('chatroom_id')
 
-        if not cohort_id or not chatroom_id:
-            return {'success': False, 'error_message': "Send Cohort id and Chatroom id"}
+        validated_req = ChatroomHelper.validate_remove_chatroom_cohort_request(self.get_member_id(),
+                                                                               chatroom_id,
+                                                                               cohort_id)
 
-        self.set_chatroom_id(chatroom_id)
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
-
-        if not cohort_instance:
-            return {'success': False, 'error_message': "Invalid Cohort id"}
-
-        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
-
-        if not chatroom_instance:
-            return {'success': False, 'error_message': "Invalid Chatroom id"}
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid User id"}
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': cohort_instance.community_id,
-                                                                  'member_id': user_instance})
-        if not member_filter:
-            return {'success': False, 'error_message': "User is not a member of community"}
-
-        member_instance = member_filter[0]
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if not is_cm:
-            return {'success': False, 'error_message': "User doesn’t have the ability to remove a cohort from chatroom"}
+        chatroom_instance = validated_req.get('chatroom_instance')
+        self.set_chatroom_id(chatroom_instance.id)
 
         chatroom_cohort_filter_dict = {
             'cohort_id': cohort_id,
@@ -2656,10 +2637,11 @@ class ChatroomImpl(ChatroomManager):
         chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort, chatroom_cohort_filter_dict)
 
         if not chatroom_cohort_filter:
-            return {'success': False, 'error_message': "Cohort is not a part of this chatroom"}
+            return ResponseUtilities.get_impl_error_context('Cohort is not a part of this chatroom',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         filter_dict = {
-            'chatroom_id': chatroom_id,
+            'chatroom_id': self.get_chatroom_id(),
             'chatroom__is_secret': True
         }
 
@@ -2679,7 +2661,7 @@ class ChatroomImpl(ChatroomManager):
             if cohort_member_id not in other_cohort_participants:
 
                 try:
-                    chatroom_manager = ChatroomImpl(self.get_member_id(), chatroom_id=chatroom_id)
+                    chatroom_manager = ChatroomImpl(self.get_member_id(), chatroom_id=self.get_chatroom_id())
                     chatroom_manager.leave_secret_chatroom(cohort_member_id)
                     removed_member_count += 1
 
@@ -2694,47 +2676,16 @@ class ChatroomImpl(ChatroomManager):
         cohort_ids = request_body.get('cohort_ids')
         chatroom_id = request_body.get('chatroom_id')
 
-        if not cohort_ids or not chatroom_id:
-            return {'success': False, 'error_message': "Send Cohort ids and Chatroom id"}
+        validated_req = ChatroomHelper.validate_add_chatroom_cohort_request(self.get_member_id(),
+                                                                            chatroom_id,
+                                                                            cohort_ids)
 
-        if not isinstance(cohort_ids, list):
-            return {'success': False, 'error_message': "Invalid Cohort id List"}
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        self.set_chatroom_id(chatroom_id)
-
-        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
-
-        if not chatroom_instance:
-            return {'success': False, 'error_message': "Invalid Chatroom id"}
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid User id"}
-
-        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community_id,
-                                                                  'member_id': user_instance})
-        if not member_filter:
-            return {'success': False, 'error_message': "User is not a member of community"}
-
-        member_instance = member_filter[0]
-        is_cm = member_instance.state == member_states.ADMIN
-
-        if not is_cm:
-            return {'success': False, 'error_message': "User doesn’t have the ability to remove a cohort from chatroom"}
-
-        for cohort_id in cohort_ids:
-            cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
-
-            if not cohort_instance:
-                # Log this
-                continue
-
-            chatroom_cohort_dict = {
-                'chatroom_instance': chatroom_instance,
-                'cohort_instance': cohort_instance
-            }
-            ChatroomCohort.create_instance(chatroom_cohort_dict)
+        chatroom_instance = validated_req.get('chatroom_instance')
+        create_chatroom_cohort_instances.delay(chatroom_instance.id, cohort_ids)
 
         return {'success': True}
 
@@ -3625,6 +3576,53 @@ class ChatroomImpl(ChatroomManager):
             'success': True,
             'chatroom_notification_settings': settings_data
         }
+
+    def remove_chatroom_participant(self, removed_members_list: list = None):
+        validated_req = ChatroomHelper.validate_remove_chatroom_participant_request(self.get_member_id(),
+                                                                                    self.get_chatroom_id(),
+                                                                                    removed_members_list)
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        chatroom_instance = validated_req.get('chatroom_instance')
+        chatroom_state = conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM
+
+        filter_dict = {
+            'card': chatroom_instance,
+            'user__in': removed_members_list,
+            'follow_status': True
+        }
+
+        state_filter = ModelUtilities.get_model_filter(collabcardState, filter_dict)
+
+        if not state_filter:
+            return {'success': True}
+
+        state_filter.update(**{'follow_status': False})
+
+        # Updating all secret chatroom participants
+        filter_dict = {
+            'card': chatroom_instance,
+        }
+
+        update_dict = {
+            'updated_at': TimeUtilities.current_time_in_sec()
+        }
+
+        ModelUtilities.model_update(collabcardState, filter_dict, update_dict)
+
+        # Deleting conversation engage for this chatroom for this user
+        ModelUtilities.delete_record_in_model(conversationEngage,
+                                              {'card': chatroom_instance,
+                                               'user__in': removed_members_list})
+
+        ChatroomHelper.run_async_tasks_for_users_removing_from_chatroom.delay(
+            chatroom_id=chatroom_instance.id, removed_members_list=list(state_filter.values_list('user_id', flat=True)),
+            current_user_id=self.get_member_id(), chatroom_state=chatroom_state)
+
+        return {'success': True}
 
 
 class ChatroomHelper:
@@ -5134,3 +5132,134 @@ class ChatroomHelper:
             'image_url': 'https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/Group-Tag-Icon.jpg',
             'description': 'Notify all participants of this chatroom'
         }
+
+    @staticmethod
+    @shared_task
+    def run_async_tasks_for_users_removing_from_chatroom(chatroom_id, removed_members_list, current_user_id,
+                                                         chatroom_state=conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM):
+
+        chatroom_instance = ModelUtilities.get_model_filter(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return
+
+        filter_dict = {
+            'card': chatroom_id,
+            'user__in': removed_members_list
+        }
+
+        state_filter = ModelUtilities.get_model_filter(collabcardState,
+                                                       filter_dict).prefetch_related('user')
+
+        for state_instance in state_filter:
+            user_id = state_instance.user_id
+
+            ChatroomHelper.create_answer(chatroom_instance=chatroom_instance, user_instance=state_instance.user,
+                                         state=chatroom_state, current_user_id=current_user_id)
+
+            update_last_unseen_in_engage(user=user_id, community=chatroom_instance.community_id)
+
+            ElasticSearchSync.delete_chatroom_for_user(chatroom_id, user_id)
+
+    @staticmethod
+    def validate_remove_chatroom_participant_request(user_id, chatroom_id, removed_members_list: list):
+
+        if not (isinstance(removed_members_list, list) and removed_members_list):
+            return ResponseUtilities.get_inner_error_context("Invalid removed members list!")
+
+        validation_params = {
+            'chatroom_id': chatroom_id,
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        card_instance = validated_dict.get('chatroom_id')
+        user_instance = validated_dict.get('user_id')
+
+        if card_instance.is_secret:
+            return ResponseUtilities.get_inner_error_context("Chatroom should be open!")
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
+                                                                  'member_id': user_instance})
+
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("You are not a part of this community.")
+
+        member_instance = member_filter[0]
+
+        if not (member_instance.state == member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context("You are not CM/owner of community!")
+
+        return {'user_instance': user_instance, 'chatroom_instance': card_instance}
+
+    @staticmethod
+    def validate_add_chatroom_cohort_request(user_id, chatroom_id, cohort_ids):
+
+        if not cohort_ids or not chatroom_id:
+            return ResponseUtilities.get_inner_error_context("Send cohort IDs and chatroom ID!")
+
+        if not isinstance(cohort_ids, list):
+            return ResponseUtilities.get_inner_error_context("Invalid cohort ID list!")
+
+        validation_params = {
+            'chatroom_id': chatroom_id,
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        chatroom_instance = validated_dict.get('chatroom_id')
+        user_instance = validated_dict.get('user_id')
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community_id,
+                                                                  'member_id': user_instance})
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("User is not a member of community!")
+
+        member_instance = member_filter[0]
+
+        if not (member_instance.state == member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context(
+                "User doesn’t have the ability to remove a cohort from chatroom!")
+
+        return {'user_instance': user_instance, 'chatroom_instance': chatroom_instance}
+
+    @staticmethod
+    def validate_remove_chatroom_cohort_request(user_id, chatroom_id, cohort_id):
+
+        if not cohort_id or not chatroom_id:
+            return ResponseUtilities.get_inner_error_context("Send cohort IDs and chatroom ID!")
+
+        validation_params = {
+            'cohort_id': cohort_id,
+            'chatroom_id': chatroom_id,
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        chatroom_instance = validated_dict.get('chatroom_id')
+        user_instance = validated_dict.get('user_id')
+
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': chatroom_instance.community_id,
+                                                                  'member_id': user_instance})
+        if not member_filter:
+            return ResponseUtilities.get_inner_error_context("User is not a member of community!")
+
+        member_instance = member_filter[0]
+
+        if not (member_instance.state == member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context(
+                "User doesn’t have the ability to remove a cohort from chatroom!")
+
+        return {'user_instance': user_instance, 'chatroom_instance': chatroom_instance}

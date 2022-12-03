@@ -110,16 +110,42 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False):
                                                                   card_types.CARD_EVENT,
                                                                   card_types.CARD_PUBLIC_EVENT]).distinct('card_id').count()
 
-    seen_chatrooms = collabcardState.objects.filter(community=community,
-                                                    user=user, external_seen=True, card__is_deleted=False,
-                                                    card__is_pending=False,
-                                                    secret_chatroom_left=False).filter(Q(card__attachment_count=0)
-                                                                                       | Q(
-        card__attachments_uploaded=True)).exclude(card__type__in=[card_types.CARD_INTRO,
-                                                                  card_types.CARD_EVENT,
-                                                                  card_types.CARD_PUBLIC_EVENT]).distinct('card').count()
+    seen_chatrooms_filter = collabcardState.objects.filter(community=community,
+                                                           user=user, external_seen=True, card__is_deleted=False,
+                                                           card__is_pending=False,
+                                                           secret_chatroom_left=False).filter(
+        Q(card__attachment_count=0) | Q(
+            card__attachments_uploaded=True)).exclude(card__type__in=[card_types.CARD_INTRO,
+                                                                      card_types.CARD_EVENT,
+                                                                      card_types.CARD_PUBLIC_EVENT]).distinct('card')
 
-    diff = total_chatrooms - seen_chatrooms
+    seen_chatrooms = seen_chatrooms_filter.count()
+
+    excluded_card_ids_count = 0
+
+    if user and community:
+        user_id = user
+        community_id = community
+
+        if isinstance(user, User):
+            user_id = user.id
+
+        if isinstance(community, Community):
+            community_id = community.id
+
+        from collabmates_api.raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
+                                                 get_chatrooms_of_user_with_follow_status)
+
+        excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id=user_id,
+                                                                           community_id=community_id)
+
+        followed_chatrooms = get_chatrooms_of_user_with_follow_status(user_id=user_id, community_id=community_id)
+
+        seen_chatroom_list = list(seen_chatrooms_filter.values_list('card_id', flat=True))
+
+        excluded_card_ids_count = len((set(excluded_card_ids) - set(followed_chatrooms)) - set(seen_chatroom_list))
+
+    diff = total_chatrooms - seen_chatrooms - excluded_card_ids_count
 
     unseen_count = 0
     if diff <= 0:
@@ -2260,25 +2286,26 @@ def create_chatroom_cohort_instances(chatroom_id, cohort_ids):
     if not chatroom_instance:
         return
 
-    for cohort_id in cohort_ids:
+    bulk_chatroom_cohort = []
 
-        cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
+    chatroom_cohorts_list = list(ModelUtilities.get_model_filter(
+        ChatroomCohort, {'chatroom': chatroom_instance}).values_list('cohort_id', flat=True))
 
-        if not cohort_instance:
-            return
+    cohort_filter = ModelUtilities.get_model_filter(Cohort,
+                                                    {'id__in': cohort_ids,
+                                                     'community': chatroom_instance.community}
+                                                    ).exclude(id__in=chatroom_cohorts_list)
 
-        chatroom_cohort_filter = ModelUtilities.get_model_filter(ChatroomCohort,
-                                                                 {'cohort_id': cohort_id, 'chatroom_id': chatroom_id})
-
-        if chatroom_cohort_filter:
-            continue
-
+    for cohort_instance in cohort_filter:
         chatroom_cohort_context = {
             'cohort_instance': cohort_instance,
             'chatroom_instance': chatroom_instance
         }
 
-        ChatroomCohort.create_instance(chatroom_cohort_context)
+        bulk_chatroom_cohort.append(ChatroomCohort.create_bulk_instance(chatroom_cohort_context))
+
+    if bulk_chatroom_cohort:
+        ModelUtilities.bulk_create_instances(ChatroomCohort, bulk_chatroom_cohort)
 
 
 @shared_task
@@ -2581,4 +2608,27 @@ def update_community_pin_chatrooms_list_in_cache(pin_info):
     CacheImpl.set_cache(key, pin_chatrooms_object)
 
     return pinned_chatrooms_list
+
+
+@shared_task
+def update_unseen_count_based_on_cohort_access(cohort_id=None, user_id=None, community_id=None):
+
+    if not (cohort_id or (user_id and community_id)):
+        return
+
+    user_id_list = []
+
+    if cohort_id:
+        cohort_member_filter = ModelUtilities.get_model_filter(CohortMember, {'cohort': cohort_id})
+
+        for cohort_member_instance in cohort_member_filter:
+            user_id_list.append(cohort_member_instance.user_id)
+            community_id = cohort_member_instance.cohort.community_id
+
+    else:
+        user_id_list.append(user_id)
+
+    for user_id in user_id_list:
+        update_last_unseen_in_engage(user=user_id, community=community_id)
+
 

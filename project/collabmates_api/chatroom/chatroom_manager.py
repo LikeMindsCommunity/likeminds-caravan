@@ -175,6 +175,10 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                     (
                             hasattr(subclass, 'update_chatroom_noti_settings') and
                             callable(subclass.update_chatroom_noti_settings)
+                    ) and
+                    (
+                            hasattr(subclass, 'remove_chatroom_participant') and
+                            callable(subclass.remove_chatroom_participant)
                     ) or
                     NotImplemented
         )
@@ -498,5 +502,11 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def update_chatroom_noti_settings(self, noti_state, is_noti_paused, pause_noti_for) -> {}:
         """Updates notification settings of chatroom"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def remove_chatroom_participant(self, removed_members_list: list = None) -> {}:
+        """Removes a participant from chatroom"""
 
         raise NotImplementedError
