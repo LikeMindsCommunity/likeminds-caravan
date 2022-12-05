@@ -941,20 +941,18 @@ class ConversationImpl(ConversationManager):
 
         is_guest = False
 
-        if chatroom_instance.access_without_subscription:
-            status = is_member_verified(community_instance.id, self.get_member_id())
-            state_filter = ModelUtilities.get_model_filter(collabcardState, {'card_id': chatroom_id,
-                                                                             'user_id': self.get_member_id()})
-
-            if not status and not state_filter:
-                is_guest = True
-
         chatroom_state_instance = None
         state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_instance,
                                                                          'user': user_instance})
 
         if state_filter:
             chatroom_state_instance = state_filter[0]
+
+        if chatroom_instance.access_without_subscription:
+            status = is_member_verified(community_instance.id, self.get_member_id())
+
+            if not status and not state_filter:
+                is_guest = True
 
         conversation_content = {}
         self._fill_basic_conversation_content(req_body, conversation_content,
