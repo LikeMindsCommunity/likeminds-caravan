@@ -102,10 +102,12 @@ class SdkImpl(SdkManager):
         unique_id = str(uuid.uuid4())
         community_id = create_community['community'].get('id')
         firebase_server_key = req_body.get('firebase_server_key', None)
+        is_join_form_enabled = req_body.get('is_join_form_enabled', False)
 
         sdk_client = SdkClient(community_id=community_id, api_key=unique_id,
                                project_creator=validated_request_body.get('project_creator'),
-                               firebase_server_key=firebase_server_key)
+                               firebase_server_key=firebase_server_key,
+                               is_join_form_enabled=is_join_form_enabled)
         sdk_client.save()
 
         platforms = req_body.get('platform')
@@ -149,7 +151,9 @@ class SdkImpl(SdkManager):
 
         if req_body.get('firebase_server_key'):
             sdk_client.firebase_server_key = req_body.get('firebase_server_key')
-            sdk_client.save()
+
+        sdk_client.is_join_form_enabled = req_body.get('is_join_form_enabled')
+        sdk_client.save()
 
         platforms = req_body.get('platform')
 
