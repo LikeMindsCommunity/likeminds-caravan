@@ -2617,6 +2617,15 @@ class CommunityHelper:
             if question_instance.is_hidden:
                 continue
 
+            if not question_instance.is_answer_editable:
+                answer_filter = ModelUtilities.get_model_filter(communityAnswers,
+                                                                {'member': user_instance,
+                                                                 'community': community_instance,
+                                                                 'question': question_instance.id})
+
+                if answer_filter:
+                    continue
+
             question_title = question.get('question_title') if question.get('question_title') else \
                 question_instance.question_title
 
