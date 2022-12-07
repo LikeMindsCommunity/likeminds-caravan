@@ -244,30 +244,27 @@ class SdkImpl(SdkManager):
             return ResponseUtilities.get_impl_error_context(login_user.get('error_message'),
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
-        user_instance = login_user.get('user')
+        user_object = login_user.get('user')
         app_access = login_user.get('app_access', True)
 
         response = {
             'success': True,
-            'user': user_instance,
+            'user': user_object,
             'community': CommunitySerializerV1(sdk_client.community).data,
             'app_access': app_access
         }
 
         if sdk_client.is_join_form_enabled:
             answers_filter = ModelUtilities.get_model_filter(communityAnswers,
-                                                             {'community_id': sdk_client.community_id})
+                                                             {'community': sdk_client.community,
+                                                              'member': user_object.get('id')})
 
-            if not answers_filter:
+            if (not answers_filter) and (not req_body.get('question_answers')):
                 response['has_answers'] = False
-
-            else:
-                response['has_answers'] = True
-
-            return response
+                return response
 
         if app_access:
-            member_community_manager = MemberCommunityImpl(member_id=user_instance.get('user_unique_id'),
+            member_community_manager = MemberCommunityImpl(member_id=user_object.get('user_unique_id'),
                                                            community_id=sdk_client.community.id,
                                                            device_id=self.get_device_id(),
                                                            platform_code=self.get_request_platform(),
