@@ -1678,10 +1678,13 @@ class CommunityImpl(CommunityManager):
         edit_community_data(community_instance, user_instance,
                             edit_field=edit_field_community_data_types.EDIT_DIRECTORY)
 
-        if not SdkClient.is_sdk_community(community_id=self.get_community_id()):
-            # Updating members state table for editing
-            from collabmates_api.notification import send_notification_for_directory_creation, send_sync_notification
+        from collabmates_api.notification import send_notification_for_directory_creation, send_sync_notification
+        send_sync_notification.delay({'community_id': community_instance.id,
+                                      'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
+        if not SdkClient.is_sdk_community(community_id=self.get_community_id()):
+
+            # Updating members state table for editing
             if is_edit_required:
                 update_models_for_syncing_apis(SyncTypes.MEMBERS,
                                                {'community_id': community_instance},
@@ -1690,9 +1693,6 @@ class CommunityImpl(CommunityManager):
                 send_notification_for_directory_creation.delay(community_instance.id,
                                                                TimeUtilities.current_time_in_sec(),
                                                                day=0)
-
-            send_sync_notification.delay({'community_id': community_instance.id,
-                                          'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
             send_mail_for_first_time_edit_community_questions.delay(user_instance.id, community_instance.id)
 

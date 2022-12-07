@@ -4,7 +4,7 @@ from .sdk_manager import SdkManager
 from utility.response_utilities import ResponseUtilities
 from utility.states import (api_types, login_types)
 from utility.auth_utilities import AuthUtilities
-from togther.models import ModelUtilities
+from togther.models import (ModelUtilities, communityAnswers)
 from .models import SdkClient, SdkPlatform, SdkOnboardingScreen
 from .sdk_view_helper import SdkViewHelper
 from .serializers import SdkProjectSerializer, OnboardingScreenSerializer
@@ -247,6 +247,25 @@ class SdkImpl(SdkManager):
         user_instance = login_user.get('user')
         app_access = login_user.get('app_access', True)
 
+        response = {
+            'success': True,
+            'user': user_instance,
+            'community': CommunitySerializerV1(sdk_client.community).data,
+            'app_access': app_access
+        }
+
+        if sdk_client.is_join_form_enabled:
+            answers_filter = ModelUtilities.get_model_filter(communityAnswers,
+                                                             {'community_id': sdk_client.community_id})
+
+            if not answers_filter:
+                response['has_answers'] = False
+
+            else:
+                response['has_answers'] = True
+
+            return response
+
         if app_access:
             member_community_manager = MemberCommunityImpl(member_id=user_instance.get('user_unique_id'),
                                                            community_id=sdk_client.community.id,
@@ -260,8 +279,7 @@ class SdkImpl(SdkManager):
                 return ResponseUtilities.get_impl_error_context(join_community_context.get('error_message'),
                                                                 join_community_context.get('status'))
 
-        return {'user': user_instance, 'community': CommunitySerializerV1(sdk_client.community).data,
-                'app_access': app_access}
+        return response
 
     def authenticate_sdk(self) -> dict:
 
