@@ -2581,7 +2581,8 @@ class CommunityHelper:
 
     @staticmethod
     @shared_task
-    def save_responses_of_member_in_community(user_id, community_id, question_list, is_directory_questions_v2=False):
+    def save_responses_of_member_in_community(user_id, community_id, question_list, is_directory_questions_v2=False,
+                                              question_answer_dict=None):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
@@ -2617,14 +2618,10 @@ class CommunityHelper:
             if question_instance.is_hidden:
                 continue
 
-            if not question_instance.is_answer_editable:
-                answer_filter = ModelUtilities.get_model_filter(communityAnswers,
-                                                                {'member': user_instance,
-                                                                 'community': community_instance,
-                                                                 'question': question_instance.id})
-
-                if answer_filter:
-                    continue
+            if (not question_instance.is_answer_editable) and \
+                    question_answer_dict and isinstance(question_answer_dict, dict) and \
+                    (question_instance.id in list(question_answer_dict.keys())):
+                question[answer_key] = question_answer_dict.get(question_instance.id)
 
             question_title = question.get('question_title') if question.get('question_title') else \
                 question_instance.question_title
