@@ -1487,8 +1487,6 @@ class MemberCommunityImpl(MemberCommunityManager):
         image_url = req_body.get('image_url')
 
         if question_answers:
-            ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
-                                                                    'community': community_instance})
 
             from ..community.community_impl import CommunityHelper
 

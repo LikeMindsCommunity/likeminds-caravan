@@ -2611,8 +2611,7 @@ class CommunityHelper:
 
     @staticmethod
     @shared_task
-    def save_responses_of_member_in_community(user_id, community_id, question_list, is_directory_questions_v2=False,
-                                              question_answer_dict=None):
+    def save_responses_of_member_in_community(user_id, community_id, question_list, is_directory_questions_v2=False):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
@@ -2655,6 +2654,11 @@ class CommunityHelper:
 
             if answer_instance and not question_instance.is_answer_editable:
                 continue
+
+            if answer_instance:
+                ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
+                                                                        'community': community_instance,
+                                                                        'question': question_instance})
 
             question_title = question.get('question_title') if question.get('question_title') else \
                 question_instance.question_title
