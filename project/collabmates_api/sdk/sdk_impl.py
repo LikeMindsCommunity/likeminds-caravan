@@ -222,12 +222,6 @@ class SdkImpl(SdkManager):
 
     def initiate_sdk(self, req_body) -> dict:
 
-        validated_request_body = SdkViewHelper.initiate_sdk_body_validator(req_body)
-
-        if 'error_message' in validated_request_body:
-            return ResponseUtilities.get_impl_error_context(validated_request_body['error_message'],
-                                                            status_codes.HTTP_400_BAD_REQUEST)
-
         api_key_validation = AuthUtilities.validate_api_key(self.get_api_key())
 
         if 'error_message' in api_key_validation:
@@ -235,6 +229,12 @@ class SdkImpl(SdkManager):
                                                             api_key_validation.get('status'))
 
         sdk_client = api_key_validation.get('sdk_client')
+
+        validated_request_body = SdkViewHelper.initiate_sdk_body_validator(sdk_client.community_id, req_body)
+
+        if 'error_message' in validated_request_body:
+            return ResponseUtilities.get_impl_error_context(validated_request_body['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         user_manager = UserImpl(user_id="", mobile_no="")
         login_user = user_manager.login(validated_request_body.get('login_req_body'), self.get_request_platform(),
