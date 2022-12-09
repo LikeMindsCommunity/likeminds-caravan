@@ -142,6 +142,9 @@ class SdkViewHelper:
             login_req_body['user']['image_url'] = request_body.get('image_url')
             join_req_body['image_url'] = request_body.get('image_url')
 
+        if request_body.get('question_answers'):
+            join_req_body['question_answers'] = request_body.get('question_answers')
+
         return {'login_req_body': login_req_body, 'join_req_body': join_req_body}
 
     @staticmethod

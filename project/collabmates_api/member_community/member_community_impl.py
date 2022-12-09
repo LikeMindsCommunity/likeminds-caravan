@@ -2593,6 +2593,18 @@ class MemberCommunityHelper:
     @staticmethod
     def make_requesting_user_as_member_of_community(user_instance, community_instance, req_body, device_id=None,
                                                     platform=None, version_code=None):
+
+        from collabmates_api.community.community_impl import CommunityHelper, CommunityImpl
+        from collabmates_api.community.constants import (DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY)
+
+        questions_list_key = DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY
+
+        if req_body.get(questions_list_key):
+            CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id,
+                                                                        community_instance.id,
+                                                                        req_body.get(questions_list_key),
+                                                                        True)
+
         Members.create_instance({'user_instance': user_instance,
                                  'community_instance': community_instance,
                                  'state': member_states.MEMBER,
@@ -2608,7 +2620,6 @@ class MemberCommunityHelper:
             'member_state': member_states.MEMBER,
             'order_time': TimeUtilities.current_time_in_milliseconds()})
 
-        from collabmates_api.community.community_impl import CommunityHelper, CommunityImpl
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
         CommunityHelper.set_follow_status_for_announcement_chatroom_for_community(community_instance,
                                                                                   user_instance)

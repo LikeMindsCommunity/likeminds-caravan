@@ -73,6 +73,7 @@ from utility.url_utilities import UrlUtilities
 from utility.constants import PLATFORM_CODE_WEB
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
+from utility.validation_utilities import ValidationUtilities
 
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
@@ -1639,6 +1640,8 @@ class CommunityImpl(CommunityManager):
         community_instance = validated_req_body.get('community_instance')
         questions_list = validated_req_body.get('questions_list')
 
+        self.set_community_id(community_instance.id)
+
         new_questions_list = []
         edited_questions_list = []
         deleted_questions_list = []
@@ -1672,34 +1675,38 @@ class CommunityImpl(CommunityManager):
             CommunityHelper.delete_community_questions(community_instance, deleted_questions_list,
                                                        user_id=self.get_member_id())
 
-        # Updating members state table for editing
-        from collabmates_api.notification import send_notification_for_directory_creation, send_sync_notification
-
-        if is_edit_required:
-            update_models_for_syncing_apis(SyncTypes.MEMBERS,
-                                           {'community_id': community_instance},
-                                           {'edit_required': True})
-
-            send_notification_for_directory_creation.delay(community_instance.id, TimeUtilities.current_time_in_sec(),
-                                                           day=0)
-
         edit_community_data(community_instance, user_instance,
                             edit_field=edit_field_community_data_types.EDIT_DIRECTORY)
 
+        from collabmates_api.notification import send_notification_for_directory_creation, send_sync_notification
         send_sync_notification.delay({'community_id': community_instance.id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
-        send_mail_for_first_time_edit_community_questions.delay(user_instance.id, community_instance.id)
+        if not SdkClient.is_sdk_community(community_id=self.get_community_id()):
+
+            # Updating members state table for editing
+            if is_edit_required:
+                update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                               {'community_id': community_instance},
+                                               {'edit_required': True})
+
+                send_notification_for_directory_creation.delay(community_instance.id,
+                                                               TimeUtilities.current_time_in_sec(),
+                                                               day=0)
+
+            send_mail_for_first_time_edit_community_questions.delay(user_instance.id, community_instance.id)
 
         return {'success': True}
 
     def fetch_community_questions(self, req_body) -> {}:
         validated_req_body = CommunityHelper.validate_fetch_questions_request(self.get_member_id(),
                                                                               self.get_community_id(),
-                                                                              req_body)
+                                                                              req_body,
+                                                                              self.get_api_key())
 
-        if not validated_req_body.get('success'):
-            return validated_req_body
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = validated_req_body.get('user_instance')
         community_instance = validated_req_body.get('community_instance')
@@ -2604,7 +2611,8 @@ class CommunityHelper:
 
     @staticmethod
     @shared_task
-    def save_responses_of_member_in_community(user_id, community_id, question_list, is_directory_questions_v2=False):
+    def save_responses_of_member_in_community(user_id, community_id, question_list, is_directory_questions_v2=False,
+                                              question_answer_dict=None):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
@@ -3511,9 +3519,9 @@ class CommunityHelper:
             if community_question_instance.is_valid():
                 community_question_instance.save()
 
-                CommunityHelper.add_create_edit_question_analytics.delay(community_question_instance.data.get('id'),
-                                                                         user_id,
-                                                                         question_state=question_change_states.NEW_QUESTION)
+                CommunityHelper.add_create_edit_question_analytics.delay(
+                    community_question_instance.data.get('id'), user_id,
+                    question_state=question_change_states.NEW_QUESTION)
 
             else:
                 error_logger.error("CREATE NEW QUESTION, Not valid: " + str(community_question_instance.errors))
@@ -3584,8 +3592,8 @@ class CommunityHelper:
             if community_question_serializer.is_valid():
                 community_question_serializer.save()
 
-                CommunityHelper.add_create_edit_question_analytics.delay(question_instance.id, user_id,
-                                                                         question_state=question_change_states.EDIT_QUESTION)
+                CommunityHelper.add_create_edit_question_analytics.delay(
+                    question_instance.id, user_id, question_state=question_change_states.EDIT_QUESTION)
 
             else:
                 error_logger.error("UPDATE COMMUNITY QUESTIONS, Not valid: " + str(
@@ -3620,19 +3628,26 @@ class CommunityHelper:
                                                              'community': community_instance}).delete()
 
     @staticmethod
-    def validate_fetch_questions_request(user_id, community_id, req_body):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+    def validate_fetch_questions_request(user_id, community_id, req_body, api_key=None):
+        validation_params = {
+            'community_id': {
+                'community_id': community_id,
+                'api_key': api_key
+            },
+            'user_id': user_id,
+        }
 
-        if not user_instance:
-            return {'success': False, 'error_message': 'Invalid member-id'}
+        validated_dict = ValidationUtilities.is_valid(validation_params)
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        if validated_dict.get('error_message'):
+            return validated_dict
 
-        if not community_instance:
-            return {'success': False, 'error_message': 'Invalid community_id'}
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
-                'aj': req_body.get('aj', None), 'shared_by': req_body.get('shared_by', None)}
+        return {
+            'user_instance': validated_dict.get('user_id'),
+            'community_instance': validated_dict.get('community_id'),
+            'aj': req_body.get('aj', None),
+            'shared_by': req_body.get('shared_by', None)
+        }
 
     @staticmethod
     def get_toast_according_to_aj_expiry(community_instance, unique_code, shared_by_user=None, user_instance=None):

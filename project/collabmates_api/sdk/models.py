@@ -11,6 +11,7 @@ class SdkClient(models.Model):
     project_creator = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     is_deleted = models.BooleanField(default=False)
     firebase_server_key = models.TextField(null=True)
+    is_join_form_enabled = models.BooleanField(default=False)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
@@ -58,6 +59,20 @@ class SdkClient(models.Model):
                 instance = instance.community
 
         return instance
+
+    @staticmethod
+    def is_sdk_community(community_id=None, api_key=None):
+        filter_dict = {
+            'is_deleted': False
+        }
+
+        if community_id:
+            filter_dict['community'] = community_id
+
+        if api_key:
+            filter_dict['api_key'] = api_key
+
+        return True if ModelUtilities.get_model_filter(SdkClient, filter_dict) else False
 
 
 class SdkPlatform(models.Model):
