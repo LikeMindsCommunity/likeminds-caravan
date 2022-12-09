@@ -1490,8 +1490,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             from ..community.community_impl import CommunityHelper
 
-            CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id, community_instance.id,
-                                                                        question_answers, True)
+            CommunityHelper.save_responses_of_member_in_community(user_instance.id, community_instance.id,
+                                                                  question_answers, True)
 
             for question in question_answers:
 
