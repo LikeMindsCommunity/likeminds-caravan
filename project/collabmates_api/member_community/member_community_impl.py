@@ -1489,13 +1489,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         if question_answers:
             ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
                                                                     'community': community_instance})
-            ModelUtilities.delete_record_in_model(communityAnswers, {'community': community_instance,
-                                                                     'member': user_instance})
 
             from ..community.community_impl import CommunityHelper
 
-            CommunityHelper.save_responses_of_member_in_community(user_instance.id, community_instance.id,
-                                                                  question_answers, True)
+            CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id, community_instance.id,
+                                                                        question_answers, True)
 
             for question in question_answers:
 

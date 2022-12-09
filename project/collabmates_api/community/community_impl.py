@@ -2440,6 +2440,19 @@ class CommunityHelper:
         return question_instance_dict
 
     @staticmethod
+    def pre_compute_answer_instances_of_member(community_instance, question_list, question_id_key):
+
+        question_id_list = [question[question_id_key] for question in question_list if question.get(question_id_key)]
+        answer_instances = ModelUtilities.get_model_filter(communityAnswers, {'question__in': question_id_list,
+                                                                              'community': community_instance})
+        answer_instance_dict = {}
+
+        for data in answer_instances:
+            answer_instance_dict[data.question_id] = data
+
+        return answer_instance_dict
+
+    @staticmethod
     def is_dropdown_option_present(option, dropdown_list):
 
         for data in dropdown_list:
@@ -2518,9 +2531,9 @@ class CommunityHelper:
 
             if mobile_filter:
                 mobile_no = "+{} {}".format(str(mobile_filter.get('country_code')), str(mobile_filter.get('mobile_no')))
-                CommunityHelper.create_answer_instance(user_instance, community_instance,
-                                                       question_instance, mobile_no,
-                                                       question_title=question_instance.question_title)
+                CommunityHelper.create_or_update_answer_instance(user_instance, community_instance,
+                                                                 question_instance, mobile_no,
+                                                                 question_title=question_instance.question_title)
 
         question_filter = ModelUtilities.get_model_filter(communityQuestions, {
             'community': community_instance,
@@ -2530,9 +2543,9 @@ class CommunityHelper:
 
         if question_filter:
             question_instance = question_filter[0]
-            CommunityHelper.create_answer_instance(user_instance, community_instance,
-                                                   question_instance, user_instance.userinfo.name,
-                                                   question_title=question_instance.question_title)
+            CommunityHelper.create_or_update_answer_instance(user_instance, community_instance,
+                                                             question_instance, user_instance.userinfo.name,
+                                                             question_title=question_instance.question_title)
 
     @staticmethod
     def send_questions_data_on_airtable(user_instance, community_instance, question_data):
@@ -2553,18 +2566,35 @@ class CommunityHelper:
         airtable_manager.send_data(airtable_data)
 
     @staticmethod
-    def create_answer_instance(user_instance, community_instance, question_instance, answer, question_title=None,
-                               is_directory_questions_v2=False):
-        community_answer_id = 0
+    def create_or_update_answer_instance(user_instance, community_instance, question_instance, answer,
+                                         question_title=None, answer_instance: communityAnswers = None):
+
+        community_answer_id = 0 if not answer_instance else answer_instance.id
+
         data = {
-            'community': community_instance.id,
-            'question_answer': answer,
-            'member': user_instance.id,
-            'question': question_instance.id,
-            'question_title': question_title
+            'question_answer': answer
         }
 
-        answer_serializer = CommunityAnswersSerializer(data=data)
+        if not answer_instance:
+            data.update({
+                'community': community_instance.id,
+                'member': user_instance.id,
+                'question': question_instance.id,
+                'question_title': question_title
+            })
+
+            serializer_params = {
+                'data': data
+            }
+
+        else:
+            serializer_params = {
+                'instance': answer_instance,
+                'data': data,
+                'partial': True
+            }
+
+        answer_serializer = CommunityAnswersSerializer(**serializer_params)
 
         if answer_serializer.is_valid():
             answer_serializer.save()
@@ -2594,6 +2624,10 @@ class CommunityHelper:
                                                                                                      question_list,
                                                                                                      question_id_key)
 
+        answer_instance_dict = CommunityHelper.pre_compute_answer_instances_of_member(community_instance,
+                                                                                      question_list,
+                                                                                      question_id_key)
+
         airtable_data = {}
 
         for question in question_list:
@@ -2603,6 +2637,7 @@ class CommunityHelper:
 
             question_id = NumberUtilities.get_integer_from_string(question.get(question_id_key))
             question_instance = question_instance_dict.get(question_id)
+            answer_instance = answer_instance_dict.get(question_id)
 
             if not question_instance:
                 continue
@@ -2610,13 +2645,17 @@ class CommunityHelper:
             if question_instance.is_hidden:
                 continue
 
+            if answer_instance and not question_instance.is_answer_editable:
+                continue
+
             question_title = question.get('question_title') if question.get('question_title') else \
                 question_instance.question_title
 
-            community_answer_id = CommunityHelper.create_answer_instance(user_instance, community_instance,
-                                                                         question_instance,
-                                                                         question.get(answer_key),
-                                                                         question_title=question_title)
+            community_answer_id = CommunityHelper.create_or_update_answer_instance(user_instance, community_instance,
+                                                                                   question_instance,
+                                                                                   question.get(answer_key),
+                                                                                   question_title=question_title,
+                                                                                   answer_instance=answer_instance)
 
             CommunityHelper.save_user_selected_options_for_member_directory_filter(question_instance,
                                                                                    question.get(answer_key),
