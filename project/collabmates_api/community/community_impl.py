@@ -2447,10 +2447,11 @@ class CommunityHelper:
         return question_instance_dict
 
     @staticmethod
-    def pre_compute_answer_instances_of_member(community_instance, question_list, question_id_key):
+    def pre_compute_answer_instances_of_member(user_instance, community_instance, question_list, question_id_key):
 
         question_id_list = [question[question_id_key] for question in question_list if question.get(question_id_key)]
         answer_instances = ModelUtilities.get_model_filter(communityAnswers, {'question__in': question_id_list,
+                                                                              'member': user_instance,
                                                                               'community': community_instance})
         answer_instance_dict = {}
 
@@ -2631,7 +2632,8 @@ class CommunityHelper:
                                                                                                      question_list,
                                                                                                      question_id_key)
 
-        answer_instance_dict = CommunityHelper.pre_compute_answer_instances_of_member(community_instance,
+        answer_instance_dict = CommunityHelper.pre_compute_answer_instances_of_member(user_instance,
+                                                                                      community_instance,
                                                                                       question_list,
                                                                                       question_id_key)
 
