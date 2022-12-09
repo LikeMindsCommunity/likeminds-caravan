@@ -1489,13 +1489,19 @@ class MemberCommunityImpl(MemberCommunityManager):
         if question_answers:
             ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
                                                                     'community': community_instance})
-            ModelUtilities.delete_record_in_model(communityAnswers, {'community': community_instance,
-                                                                     'member': user_instance})
+
+            answer_filter = ModelUtilities.get_model_filter(communityAnswers, {'community': community_instance,
+                                                                               'member': user_instance})
+
+            question_answer_dict = {answer_instance.question_id: answer_instance.question_answer
+                                    for answer_instance in answer_filter}
+
+            answer_filter.delete()
 
             from ..community.community_impl import CommunityHelper
 
             CommunityHelper.save_responses_of_member_in_community(user_instance.id, community_instance.id,
-                                                                  question_answers, True)
+                                                                  question_answers, True, question_answer_dict)
 
             for question in question_answers:
 
@@ -2595,6 +2601,18 @@ class MemberCommunityHelper:
     @staticmethod
     def make_requesting_user_as_member_of_community(user_instance, community_instance, req_body, device_id=None,
                                                     platform=None, version_code=None):
+
+        from collabmates_api.community.community_impl import CommunityHelper, CommunityImpl
+        from collabmates_api.community.constants import (DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY)
+
+        questions_list_key = DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY
+
+        if req_body.get(questions_list_key):
+            CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id,
+                                                                        community_instance.id,
+                                                                        req_body.get(questions_list_key),
+                                                                        True)
+
         Members.create_instance({'user_instance': user_instance,
                                  'community_instance': community_instance,
                                  'state': member_states.MEMBER,
@@ -2610,7 +2628,6 @@ class MemberCommunityHelper:
             'member_state': member_states.MEMBER,
             'order_time': TimeUtilities.current_time_in_milliseconds()})
 
-        from collabmates_api.community.community_impl import CommunityHelper, CommunityImpl
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
         CommunityHelper.set_follow_status_for_announcement_chatroom_for_community(community_instance,
                                                                                   user_instance)

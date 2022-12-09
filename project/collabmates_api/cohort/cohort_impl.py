@@ -1073,7 +1073,7 @@ class CohortHelper:
         if not isinstance(member_ids, list):
             return ResponseUtilities.get_inner_error_context("Invalid member ID list!")
 
-        if not isinstance(filter_list, list):
+        if filter_list and not isinstance(filter_list, list):
             return ResponseUtilities.get_inner_error_context("Invalid filter list!")
 
         validation_params = {

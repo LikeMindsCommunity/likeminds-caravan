@@ -4,7 +4,7 @@ from .sdk_manager import SdkManager
 from utility.response_utilities import ResponseUtilities
 from utility.states import (api_types, login_types)
 from utility.auth_utilities import AuthUtilities
-from togther.models import ModelUtilities
+from togther.models import (ModelUtilities, communityAnswers)
 from .models import SdkClient, SdkPlatform, SdkOnboardingScreen
 from .sdk_view_helper import SdkViewHelper
 from .serializers import SdkProjectSerializer, OnboardingScreenSerializer
@@ -102,10 +102,12 @@ class SdkImpl(SdkManager):
         unique_id = str(uuid.uuid4())
         community_id = create_community['community'].get('id')
         firebase_server_key = req_body.get('firebase_server_key', None)
+        is_join_form_enabled = req_body.get('is_join_form_enabled', False)
 
         sdk_client = SdkClient(community_id=community_id, api_key=unique_id,
                                project_creator=validated_request_body.get('project_creator'),
-                               firebase_server_key=firebase_server_key)
+                               firebase_server_key=firebase_server_key,
+                               is_join_form_enabled=is_join_form_enabled)
         sdk_client.save()
 
         platforms = req_body.get('platform')
@@ -149,7 +151,9 @@ class SdkImpl(SdkManager):
 
         if req_body.get('firebase_server_key'):
             sdk_client.firebase_server_key = req_body.get('firebase_server_key')
-            sdk_client.save()
+
+        sdk_client.is_join_form_enabled = req_body.get('is_join_form_enabled')
+        sdk_client.save()
 
         platforms = req_body.get('platform')
 
@@ -240,11 +244,27 @@ class SdkImpl(SdkManager):
             return ResponseUtilities.get_impl_error_context(login_user.get('error_message'),
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
-        user_instance = login_user.get('user')
+        user_object = login_user.get('user')
         app_access = login_user.get('app_access', True)
 
+        response = {
+            'success': True,
+            'user': user_object,
+            'community': CommunitySerializerV1(sdk_client.community).data,
+            'app_access': app_access
+        }
+
+        if sdk_client.is_join_form_enabled:
+            answers_filter = ModelUtilities.get_model_filter(communityAnswers,
+                                                             {'community': sdk_client.community,
+                                                              'member': user_object.get('id')})
+
+            if (not answers_filter) and (not req_body.get('question_answers')):
+                response['has_answers'] = False
+                return response
+
         if app_access:
-            member_community_manager = MemberCommunityImpl(member_id=user_instance.get('user_unique_id'),
+            member_community_manager = MemberCommunityImpl(member_id=user_object.get('user_unique_id'),
                                                            community_id=sdk_client.community.id,
                                                            device_id=self.get_device_id(),
                                                            platform_code=self.get_request_platform(),
@@ -256,8 +276,7 @@ class SdkImpl(SdkManager):
                 return ResponseUtilities.get_impl_error_context(join_community_context.get('error_message'),
                                                                 join_community_context.get('status'))
 
-        return {'user': user_instance, 'community': CommunitySerializerV1(sdk_client.community).data,
-                'app_access': app_access}
+        return response
 
     def authenticate_sdk(self) -> dict:
 
