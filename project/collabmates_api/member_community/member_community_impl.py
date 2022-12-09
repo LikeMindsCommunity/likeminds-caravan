@@ -1487,21 +1487,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         image_url = req_body.get('image_url')
 
         if question_answers:
-            ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
-                                                                    'community': community_instance})
-
-            answer_filter = ModelUtilities.get_model_filter(communityAnswers, {'community': community_instance,
-                                                                               'member': user_instance})
-
-            question_answer_dict = {answer_instance.question_id: answer_instance.question_answer
-                                    for answer_instance in answer_filter}
-
-            answer_filter.delete()
 
             from ..community.community_impl import CommunityHelper
 
-            CommunityHelper.save_responses_of_member_in_community(user_instance.id, community_instance.id,
-                                                                  question_answers, True, question_answer_dict)
+            CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id, community_instance.id,
+                                                                        question_answers, True)
 
             for question in question_answers:
 
