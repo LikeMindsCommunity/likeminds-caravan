@@ -604,14 +604,44 @@ class MemberCommunityImpl(MemberCommunityManager):
         return chatroom_list
 
     @staticmethod
-    def fetch_list_of_community_members(community_instance):
+    def _get_valid_member_ids(member_ids):
+        integer_member_ids = []
+        user_unique_ids = []
 
-        member_list = \
-            list(Members.objects.filter(community_id=community_instance).filter(Q(state=member_states.ADMIN)
-                                                                                | Q(state=member_states.MEMBER)
-                                                                                | Q(
-                state=member_states.PROFILE_UNAVAILABLE)).values_list('member_id'
-                                                                      , flat=True))
+        for member_id in member_ids:
+            if isinstance(member_id, int):
+                integer_member_ids.append(member_id)
+
+            if isinstance(member_id, str):
+                if member_id.isdigit():
+                    integer_member_ids.append(member_id)
+                else:
+                    user_unique_ids.append(member_id)
+
+        user_ids = list(Userinfo.objects.filter(
+            Q(user_id_id__in=integer_member_ids) | Q(user_unique_id__in=user_unique_ids)).values_list(
+            'user_id_id', flat=True))
+        return user_ids
+
+    @staticmethod
+    def fetch_list_of_community_members(community_instance, member_ids=None):
+        if member_ids:
+            user_ids = MemberCommunityImpl._get_valid_member_ids(member_ids)
+            member_list = list(Members.objects.filter(
+                Q(community_id=community_instance),
+                Q(member_id_id__in=user_ids),
+                Q(state=member_states.ADMIN)
+                | Q(state=member_states.MEMBER)
+                | Q(state=member_states.PROFILE_UNAVAILABLE)
+            ).values_list('member_id', flat=True))
+
+        else:
+            member_list = \
+                list(Members.objects.filter(community_id=community_instance).filter(
+                    Q(state=member_states.ADMIN)
+                    | Q(state=member_states.MEMBER)
+                    | Q(state=member_states.PROFILE_UNAVAILABLE)
+                ).values_list('member_id', flat=True))
 
         return member_list
 

@@ -328,10 +328,11 @@ class FetchMembersMeta(APIView):
     def get(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         community_id = request.GET.get('community_id')
+        member_ids = request.GET.get('member_ids')
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
         community_manager = CommunityImpl(member_id=member_id, community_id=community_id, api_key=api_key)
-        community_data = community_manager.fetch_members_meta(community_id)
+        community_data = community_manager.fetch_members_meta(member_ids)
 
         if 'error_message' in community_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_data.get('error_message'),

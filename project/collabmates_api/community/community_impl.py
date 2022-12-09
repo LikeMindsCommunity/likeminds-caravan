@@ -970,9 +970,10 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True, 'access': user_has_access}
 
-    def fetch_members_meta(self, community_id):
+    def fetch_members_meta(self, member_ids):
         validated_req = CommunityViewHelper.validate_fetch_members_meta_request(self.get_member_id(),
                                                                                 self.get_community_id(),
+                                                                                member_ids,
                                                                                 api_key=self.get_api_key())
 
         if validated_req.get('error_message'):
@@ -980,8 +981,9 @@ class CommunityImpl(CommunityManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
+        member_ids = validated_req.get('member_ids')
 
-        members = ChatroomImpl.compute_tagging_list_of_community_members(community_instance)
+        members = ChatroomImpl.compute_tagging_list_of_community_members(community_instance, member_ids)
         members = ChatroomImpl.remove_guest_user_from_participants_data_list(members)
 
         return {'success': True, 'members': members}
