@@ -188,8 +188,13 @@ class MemberCommunityViewHelper:
 
         member_state = Members.get_community_member_state(community_instance, user_instance)
 
+        valid_access_types = [access_types.CREATE_POST, access_types.VIEW_POST, access_types.DELETE_POST,
+                              access_types.PIN_POST, access_types.LIKE_POST, access_types.SAVE_POST,
+                              access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.DELETE_COMMENT,
+                              access_types.LIKE_COMMENT, access_types.CREATE_ACTIVITY, access_types.VIEW_ACTIVITY]
+
         access_type = access_type_value
-        if access_type not in [item.value for item in access_types]:
+        if access_type not in valid_access_types:
             return ResponseUtilities.get_inner_error_context("Send valid access type")
 
         return {'community_instance': community_instance, 'user_instance': user_instance,
