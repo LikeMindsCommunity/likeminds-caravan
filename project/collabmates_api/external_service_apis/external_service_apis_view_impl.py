@@ -100,10 +100,12 @@ class SendNotificationsView(APIView):
 
         device_id = RequestUtilities.get_device_id_from_headers(request)
         request_platform = RequestUtilities.get_platform_code(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
 
         external_service_manager = ExternalServiceApisImpl(member_id, device_id=device_id,
-                                                           request_platform=request_platform, version_code=version_code)
+                                                           request_platform=request_platform, version_code=version_code,
+                                                           api_key=api_key)
         external_service_context = external_service_manager.send_notifications(req_body)
 
         if external_service_context.get('error_message'):

@@ -1,18 +1,25 @@
+from rest_framework import status as status_codes
+
 from ..external_service_apis.external_service_apis_manager import ExternalServiceApisManager
 from external_services.email.email_wrapper import MailWrapper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
+from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 
 from ..notification import notification_meta, get_token_for_fcm
 from ..notifications.tasks_impl import TasksHelper
+from utility.response_utilities import ResponseUtilities
+from collabmates_api.sdk.models import (SdkClient)
 
 
 class ExternalServiceApisImpl(ExternalServiceApisManager):
 
-    def __init__(self, user_id, device_id: str = None, request_platform: str = None, version_code: int = 0):
+    def __init__(self, user_id, device_id: str = None, request_platform: str = None, version_code: int = 0,
+                 api_key: str = None):
         self.user_id = user_id
         self.device_id = device_id
         self.request_platform = request_platform
         self.version_code = version_code
+        self.api_key = api_key
 
     def get_member_id(self) -> str:
         return self.user_id
@@ -26,6 +33,9 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
     def get_version_code(self) -> (int, None):
         return self.version_code
 
+    def get_api_key(self) -> (str, None):
+        return self.api_key
+
     def set_member_id(self, user_id) -> None:
         self.user_id = user_id
 
@@ -37,6 +47,9 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
 
     def set_version_code(self, version_code) -> None:
         self.version_code = version_code
+
+    def set_api_key(self, api_key) -> None:
+        self.api_key = api_key
 
     def _validate_email_body_params(self, req_body):
 
@@ -64,7 +77,7 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
 
         return req_body
 
-    def _validate_notifications_body_params(self, req_body):
+    def _validate_notifications_body_params(self, req_body, api_key):
 
         if not req_body.get('member_ids'):
             return {'error_message': 'send member_ids'}
@@ -75,8 +88,8 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
         if not req_body.get('message_payload'):
             return {'error_message': 'send payload'}
 
-        if not req_body.get('community_id'):
-            return {'error_message': 'send community_id'}
+        if not req_body.get('community_id') and not api_key:
+            return {'error_message': 'send community_id/x-api-key'}
 
         return req_body
 
@@ -118,7 +131,7 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
 
     def send_notifications(self, req_body) -> dict:
 
-        validated_notification_req_body = self._validate_notifications_body_params(req_body)
+        validated_notification_req_body = self._validate_notifications_body_params(req_body, self.get_api_key())
 
         if validated_notification_req_body.get('error_message'):
             return {'success': False, 'error_message': validated_notification_req_body.get('error_message')}
@@ -128,7 +141,18 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
         notification_category = req_body.get('category', {})
         community_id = req_body.get('community_id', None)
 
+        if self.get_api_key():
+            community_instance = SdkClient.get_community_instance_or_none(community_id=community_id,
+                                                                          api_key=self.get_api_key())
+
+            if not community_instance:
+                return ResponseUtilities.get_impl_error_context("Invalid API key/community ID",
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            community_id = community_instance.id
+
         notification_details_list = []
+        member_ids_list = MemberCommunityImpl.get_valid_member_ids(member_ids_list)
 
         for member_id in member_ids_list:
             notification_details = get_token_for_fcm(member_id, True)

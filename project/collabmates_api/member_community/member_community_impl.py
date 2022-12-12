@@ -604,7 +604,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         return chatroom_list
 
     @staticmethod
-    def _get_valid_member_ids(member_ids):
+    def get_valid_member_ids(member_ids):
         integer_member_ids = []
         user_unique_ids = []
 
@@ -626,7 +626,7 @@ class MemberCommunityImpl(MemberCommunityManager):
     @staticmethod
     def fetch_list_of_community_members(community_instance, member_ids=None):
         if member_ids:
-            user_ids = MemberCommunityImpl._get_valid_member_ids(member_ids)
+            user_ids = MemberCommunityImpl.get_valid_member_ids(member_ids)
             member_list = list(Members.objects.filter(
                 Q(community_id=community_instance),
                 Q(member_id_id__in=user_ids),
