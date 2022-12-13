@@ -251,7 +251,8 @@ class SdkImpl(SdkManager):
             'success': True,
             'user': user_object,
             'community': CommunitySerializerV1(sdk_client.community).data,
-            'app_access': app_access
+            'app_access': app_access,
+            'has_answers': True
         }
 
         if sdk_client.is_join_form_enabled:
