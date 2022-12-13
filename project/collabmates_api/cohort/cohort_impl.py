@@ -1293,10 +1293,12 @@ class CohortHelper:
 
         member_instance = None
 
-        if cohort_instance and not community_instance:
+        is_sdk_community = SdkClient.is_sdk_community(community_instance.id)
+
+        if is_sdk_community and cohort_instance and not community_instance:
             community_instance = cohort_instance.community
 
-        if cohort_instance.community != community_instance:
+        if is_sdk_community and cohort_instance.community != community_instance:
             return ResponseUtilities.get_inner_error_context("Cohort is of different community!")
 
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
@@ -1305,7 +1307,7 @@ class CohortHelper:
         if member_filter:
             member_instance = member_filter[0]
 
-        if member_ids:
+        if is_sdk_community and member_ids:
             members_ids_list = list(ModelUtilities.get_model_filter(
                 Members, {'community_id': community_instance,
                           'member_id__in': member_ids}).values_list('member_id_id', flat=True))
