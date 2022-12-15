@@ -55,8 +55,9 @@ def create_member_and_manager_rights_if_not_exist():
     create_comment_create_member_right()
 
 
-def give_manager_rights_to_existing_SDK_community_managers():
-    sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'is_deleted': False})
+def give_manager_rights_to_existing_SDK_community_managers(community_ids: list):
+    sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community_id__in': community_ids,
+                                                                    'is_deleted': False})
     moderate_feed_admin_right = create_moderate_feed_admin_right()
     count = len(sdk_client_filter)
 
@@ -88,8 +89,9 @@ def give_manager_rights_to_existing_SDK_community_managers():
         count -= 1
 
 
-def give_feed_setting_to_existing_SDK_communities():
-    sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'is_deleted': False})
+def give_feed_setting_to_existing_SDK_communities(community_ids: list):
+    sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community_id__in': community_ids,
+                                                                    'is_deleted': False})
     count = len(sdk_client_filter)
 
     # give the feed community setting to all SDK communities
@@ -114,15 +116,15 @@ def give_feed_setting_to_existing_SDK_communities():
         count -= 1
 
 
-def backfill_script_for_feed_feature():
+def backfill_script_for_feed_feature(community_ids: list):
     # create member and manager rights for feed feature
     create_member_and_manager_rights_if_not_exist()
 
     # give new manager right to all CMs of existing SDK communities
-    give_manager_rights_to_existing_SDK_community_managers()
+    give_manager_rights_to_existing_SDK_community_managers(community_ids)
 
     # give feed setting to all existing SDK communities
-    give_feed_setting_to_existing_SDK_communities()
+    give_feed_setting_to_existing_SDK_communities(community_ids)
 
 
 def main():

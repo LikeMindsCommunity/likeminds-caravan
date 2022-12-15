@@ -171,31 +171,3 @@ class MemberCommunityViewHelper:
             'community_instance': community_instance,
             'code_flag': code_flags
         }
-
-    @staticmethod
-    def validate_fetch_member_access_request(user_id, api_key, access_type_value):
-        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
-        if not user_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid user ID")
-
-        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
-        if not community_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid API key")
-
-        is_community_member = Members.is_community_member(community_instance, user_instance)
-        if not is_community_member:
-            return ResponseUtilities.get_inner_error_context("You are not a member of the community")
-
-        member_state = Members.get_community_member_state(community_instance, user_instance)
-
-        valid_access_types = [access_types.CREATE_POST, access_types.VIEW_POST, access_types.DELETE_POST,
-                              access_types.PIN_POST, access_types.LIKE_POST, access_types.SAVE_POST,
-                              access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.DELETE_COMMENT,
-                              access_types.LIKE_COMMENT, access_types.CREATE_ACTIVITY, access_types.VIEW_ACTIVITY]
-
-        access_type = access_type_value
-        if access_type not in valid_access_types:
-            return ResponseUtilities.get_inner_error_context("Send valid access type")
-
-        return {'community_instance': community_instance, 'user_instance': user_instance,
-                'member_state': member_state, 'access_type': access_type}

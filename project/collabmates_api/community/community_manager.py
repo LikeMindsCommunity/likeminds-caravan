@@ -221,7 +221,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_members_meta(self):
+    def fetch_members_meta(self, member_ids):
         """returns list of members to create secret chatrooms"""
 
         raise NotImplementedError
@@ -363,7 +363,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update_feed_notification_settings(self, req_body: dict) -> {}:
+    def update_feed_notification_settings(self, notification_settings: list) -> {}:
         """Updates feed notification settings of community"""
 
         raise NotImplementedError

@@ -110,6 +110,7 @@ class NotificationCategories:
     MODERATION = "Moderation"
     CHATROOM = "Chat room"
     HOME = "Home"
+    FEED = "Feed"
 
 
 class NotificationSubCategories:
@@ -171,6 +172,12 @@ class NotificationSubCategories:
     PRIVATE_LINK_DROP_OFF_30 = "Private link drop off 30"
     EXPIRED_PRIVATE_LINK_DROP_OFF = "Expired private link dropoff"
     LOGIN_DROP_OFF = "Login dropoff"
+
+    POST_LIKED = "Post Liked"
+    COMMENT_LIKED = "Comment Liked"
+    POST_COMMENT = "Post Comment"
+    FOLLOWED_POST = "Followed Post"
+    COMMENT_REPLY = "Comment Reply"
 
 
 NOTIFICATION_CATEGORY_KEY = 'category'

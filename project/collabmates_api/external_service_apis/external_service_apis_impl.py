@@ -140,6 +140,7 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
         message_payload = req_body.get('message_payload')
         notification_category = req_body.get('category', {})
         community_id = req_body.get('community_id', None)
+        notification_allowed = True
 
         if self.get_api_key():
             community_instance = SdkClient.get_community_instance_or_none(community_id=community_id,
@@ -169,10 +170,13 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
 
         if notification_category:
             message['category'] = notification_category
+            notification_allowed = TasksHelper.check_feed_notification_settings_for_notification_category(
+                notification_category.get('category', ''), notification_category.get('subcategory', ''), community_id)
 
         if community_id:
             message = TasksHelper.add_community_info_to_notification_payload(message, community_id)
 
-        notification_meta(notification_details_list, message)
+        if notification_allowed:
+            notification_meta(notification_details_list, message)
 
         return {'success': True}

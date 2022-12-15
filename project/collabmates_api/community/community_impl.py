@@ -2065,8 +2065,8 @@ class CommunityImpl(CommunityManager):
 
     def fetch_feed_notification_settings(self):
 
-        validated_req_body = CommunityViewHelper.validate_fetch_feed_notification_settings(self.get_member_id(),
-                                                                                           self.get_api_key())
+        validated_req_body = CommunityHelper.validate_fetch_feed_notification_settings(self.get_member_id(),
+                                                                                       self.get_api_key())
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -2084,11 +2084,11 @@ class CommunityImpl(CommunityManager):
 
         return response
 
-    def update_feed_notification_settings(self, req_body):
+    def update_feed_notification_settings(self, notification_settings):
 
-        validated_req_body = CommunityViewHelper.validate_update_feed_notification_settings(self.get_member_id(),
-                                                                                            self.get_api_key(),
-                                                                                            req_body)
+        validated_req_body = CommunityHelper.validate_update_feed_notification_settings(self.get_member_id(),
+                                                                                        self.get_api_key(),
+                                                                                        notification_settings)
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -4034,3 +4034,74 @@ class CommunityHelper:
 
         if not is_enabled:
             ModelUtilities.delete_record_in_model(FeedNotificationSettings, {'community': community_instance})
+
+    @staticmethod
+    def validate_fetch_feed_notification_settings(user_id, api_key):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid API key!")
+
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
+        if not is_admin:
+            return ResponseUtilities.get_inner_error_context("You are not CM/Owner of this community")
+
+        feed_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                              {'community': community_instance,
+                                                               'setting_type': community_setting_types.FEED,
+                                                               'enabled': True})
+        if not feed_setting_filter:
+            return ResponseUtilities.get_inner_error_context("Feed feature is disabled in this community")
+
+        return {'community_instance': community_instance}
+
+    @staticmethod
+    def validate_update_feed_notification_settings(user_id, api_key, notification_settings):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid API key!")
+
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
+        if not is_admin:
+            return ResponseUtilities.get_inner_error_context("You are not CM/Owner of this community")
+
+        has_moderate_feed_right = check_admin_moderate_feed_and_comments_right(user_instance, community_instance)
+        if not has_moderate_feed_right:
+            return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
+
+        feed_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                              {'community': community_instance,
+                                                               'setting_type': community_setting_types.FEED,
+                                                               'enabled': True})
+        if not feed_setting_filter:
+            return ResponseUtilities.get_inner_error_context("Feed feature is disabled in this community")
+
+        valid_notification_types = [feed_notification_states.LIKES,
+                                    feed_notification_states.COMMENTS,
+                                    feed_notification_states.REPLIES_ON_YOUR_COMMENTS,
+                                    feed_notification_states.UPDATES_ON_COMMENTED_POST]
+
+        new_notification_settings = []
+
+        if not isinstance(notification_settings, list):
+            return ResponseUtilities.get_inner_error_context("Invalid notification_settings sent")
+
+        for notification_setting in notification_settings:
+            if any([notification_setting.get('notification_type', 0) not in valid_notification_types,
+                    not isinstance(notification_setting.get('enabled'), bool)]):
+                return ResponseUtilities.get_inner_error_context("Invalid notification_settings sent")
+            else:
+                new_notification_settings.append({
+                    'notification_type': notification_setting.get('notification_type'),
+                    'community': community_instance,
+                    'enabled': notification_setting.get('enabled')
+                })
+
+        return {'community_instance': community_instance, 'notification_settings': new_notification_settings}

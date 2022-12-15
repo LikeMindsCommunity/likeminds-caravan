@@ -1851,9 +1851,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True}
 
-    def fetch_member_access(self, query_params: dict) -> {}:
-        validated_request = MemberCommunityViewHelper.validate_fetch_member_access_request(
-            self.get_member_id(), self.get_api_key(), query_params.get('access_type'))
+    def fetch_member_access(self, access_type: str) -> {}:
+        validated_request = MemberCommunityHelper.validate_fetch_member_access_request(
+            self.get_member_id(), self.get_api_key(), access_type)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2766,3 +2766,31 @@ class MemberCommunityHelper:
         update_preview_for_account_image_change.delay({'user_id': user_instance.id,
                                                        'image_url': image_url,
                                                        'previous_image_url': previous_image_url})
+
+    @staticmethod
+    def validate_fetch_member_access_request(user_id, api_key, access_type_value):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid API key")
+
+        is_community_member = Members.is_community_member(community_instance, user_instance)
+        if not is_community_member:
+            return ResponseUtilities.get_inner_error_context("You are not a member of the community")
+
+        member_state = Members.get_community_member_state(community_instance, user_instance)
+
+        valid_access_types = [access_types.CREATE_POST, access_types.VIEW_POST, access_types.DELETE_POST,
+                              access_types.PIN_POST, access_types.LIKE_POST, access_types.SAVE_POST,
+                              access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.DELETE_COMMENT,
+                              access_types.LIKE_COMMENT, access_types.CREATE_ACTIVITY, access_types.VIEW_ACTIVITY]
+
+        access_type = access_type_value
+        if access_type not in valid_access_types:
+            return ResponseUtilities.get_inner_error_context("Send valid access type")
+
+        return {'community_instance': community_instance, 'user_instance': user_instance,
+                'member_state': member_state, 'access_type': access_type}

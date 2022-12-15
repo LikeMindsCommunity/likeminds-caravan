@@ -556,7 +556,7 @@ class FetchAccessView(APIView):
                 validated_req_params.get('error_message'), status_codes.HTTP_400_BAD_REQUEST))
 
         member_community_manager = MemberCommunityImpl(member_id, None, api_key=api_key)
-        community_context = member_community_manager.fetch_member_access(req_params)
+        community_context = member_community_manager.fetch_member_access(req_params.get('access_type'))
 
         if 'error_message' in community_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),

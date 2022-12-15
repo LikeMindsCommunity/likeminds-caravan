@@ -143,7 +143,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def fetch_member_access(self, req_params: dict) -> {}:
+    def fetch_member_access(self, access_type: str) -> {}:
         """Fetches a user access for given access_type"""
 
         raise NotImplementedError
