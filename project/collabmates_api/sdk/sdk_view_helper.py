@@ -1,5 +1,5 @@
 from utility.response_utilities import ResponseUtilities
-from togther.models import ModelUtilities
+from togther.models import (ModelUtilities, communityQuestions)
 from utility.states import (login_types)
 from .models import SdkClient, SdkOnboardingScreen
 
@@ -110,7 +110,7 @@ class SdkViewHelper:
         return {'user_instance': member_validator.get('user_instance')}
 
     @staticmethod
-    def initiate_sdk_body_validator(request_body):
+    def initiate_sdk_body_validator(community_id, request_body):
 
         if not request_body:
             return ResponseUtilities.get_inner_error_context('invalid request body')
@@ -141,6 +141,16 @@ class SdkViewHelper:
         if 'image_url' in request_body:
             login_req_body['user']['image_url'] = request_body.get('image_url')
             join_req_body['image_url'] = request_body.get('image_url')
+
+        if request_body.get('question_answers'):
+            questions_filter = ModelUtilities.get_model_filter(communityQuestions, {'community': community_id})
+            question_ids_list = list(questions_filter.values_list('id', flat=True))
+            req_question_ids_list = [question.get('question_id') for question in request_body.get('question_answers')]
+
+            if set(req_question_ids_list) - set(question_ids_list):
+                return ResponseUtilities.get_inner_error_context('Invalid community questions list!')
+
+            join_req_body['question_answers'] = request_body.get('question_answers')
 
         return {'login_req_body': login_req_body, 'join_req_body': join_req_body}
 

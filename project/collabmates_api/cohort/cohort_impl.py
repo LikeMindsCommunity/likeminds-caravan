@@ -16,8 +16,9 @@ from ..search.sync import ElasticSearchSync
 from ..serializers import UserinfoSerializer
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
     CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers, \
-    Collabcard
-from utility.states import member_states, cohort_types, CohortTypes, cohort_type_list, CohortAccess, member_rights
+    Collabcard, questionFilters
+from utility.states import (member_states, cohort_types, CohortTypes, cohort_type_list, CohortAccess, member_rights,
+                            question_states)
 from ..rest_api import CohortSerializer, CohortMetaSerializer, ChatroomCohortSerializer
 
 from ..static_text import create_room_member_right, create_poll_member_right, create_event_member_right, \
@@ -733,10 +734,36 @@ class CohortHelper:
         return answer_dict
 
     @staticmethod
+    def pre_compute_question_filters_of_member(member_id, community_id, question_id=None):
+        filter_dict = {
+            'member': member_id,
+            'community': community_id
+        }
+
+        if question_id:
+            filter_dict['question'] = question_id
+
+        answer_filter = ModelUtilities.get_model_filter(questionFilters, filter_dict)
+
+        answer_dict = {}
+
+        for answer in answer_filter:
+            community_question_id = answer.question_id
+
+            if not answer_dict.get(community_question_id):
+                answer_dict[community_question_id] = [answer.filter]
+
+            else:
+                answer_dict[community_question_id].append(answer.filter)
+
+        return answer_dict
+
+    @staticmethod
     def add_member_to_respective_question_based_cohorts(member_id, community_id):
 
         answer_dict = CohortHelper.pre_compute_community_answers(member_id=member_id, community_id=community_id)
         community_cohorts = ModelUtilities.get_model_filter(Cohort, {'community_id': community_id})
+        answered_question_filters = CohortHelper.pre_compute_question_filters_of_member(member_id, community_id)
 
         for cohort_instance in community_cohorts:
             answer_mismatched = False
@@ -755,8 +782,23 @@ class CohortHelper:
                 if isinstance(supported_answers, type(None)):
                     supported_answers = []
 
-                # If given answer doesn't match with cohort filter supported answers
-                if (not answer_instance) or (answer_instance.question_answer not in supported_answers):
+                if not answer_instance:
+                    answer_mismatched = True
+                    break
+
+                if answer_instance.question.question_state in [question_states.CHOICE_SINGLE,
+                                                               question_states.CHOICE_MULTIPLE]:
+                    answered_question_filter_list = answered_question_filters.get(question_id)
+
+                    if (not answered_question_filter_list) or not isinstance(answered_question_filter_list, list):
+                        answer_mismatched = True
+                        break
+
+                    if not set(answered_question_filter_list).intersection(set(supported_answers)):
+                        answer_mismatched = True
+                        break
+
+                elif answer_instance.question_answer not in supported_answers:
                     answer_mismatched = True
                     break
 
@@ -1073,7 +1115,7 @@ class CohortHelper:
         if not isinstance(member_ids, list):
             return ResponseUtilities.get_inner_error_context("Invalid member ID list!")
 
-        if not isinstance(filter_list, list):
+        if filter_list and not isinstance(filter_list, list):
             return ResponseUtilities.get_inner_error_context("Invalid filter list!")
 
         validation_params = {
@@ -1254,22 +1296,11 @@ class CohortHelper:
         if cohort_instance and not community_instance:
             community_instance = cohort_instance.community
 
-        if cohort_instance.community != community_instance:
-            return ResponseUtilities.get_inner_error_context("Cohort is of different community!")
-
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
                                                                   'member_id': user_instance})
 
         if member_filter:
             member_instance = member_filter[0]
-
-        if member_ids:
-            members_ids_list = list(ModelUtilities.get_model_filter(
-                Members, {'community_id': community_instance,
-                          'member_id__in': member_ids}).values_list('member_id_id', flat=True))
-
-            if len(set(member_ids) - set(members_ids_list)):
-                return ResponseUtilities.get_inner_error_context("Member IDs are not part of community!")
 
         return {
             'user_instance': user_instance,
