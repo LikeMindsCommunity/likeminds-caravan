@@ -55,8 +55,8 @@ def create_member_and_manager_rights_if_not_exist():
     create_comment_create_member_right()
 
 
-def give_manager_rights_to_existing_SDK_community_managers(community_ids: list):
-    sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community_id__in': community_ids,
+def give_manager_rights_to_existing_SDK_community_managers(community_id_list: list):
+    sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community_id__in': community_id_list,
                                                                     'is_deleted': False})
     moderate_feed_admin_right = create_moderate_feed_admin_right()
     count = len(sdk_client_filter)
@@ -89,8 +89,8 @@ def give_manager_rights_to_existing_SDK_community_managers(community_ids: list):
         count -= 1
 
 
-def give_feed_setting_to_existing_SDK_communities(community_ids: list):
-    sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community_id__in': community_ids,
+def give_feed_setting_to_existing_SDK_communities(community_id_list: list):
+    sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community_id__in': community_id_list,
                                                                     'is_deleted': False})
     count = len(sdk_client_filter)
 
@@ -116,21 +116,23 @@ def give_feed_setting_to_existing_SDK_communities(community_ids: list):
         count -= 1
 
 
-def backfill_script_for_feed_feature(community_ids: list):
+def backfill_script_for_feed_feature(community_id_list: list):
     # create member and manager rights for feed feature
     create_member_and_manager_rights_if_not_exist()
 
     # give new manager right to all CMs of existing SDK communities
-    give_manager_rights_to_existing_SDK_community_managers(community_ids)
+    give_manager_rights_to_existing_SDK_community_managers(community_id_list)
 
     # give feed setting to all existing SDK communities
-    give_feed_setting_to_existing_SDK_communities(community_ids)
+    give_feed_setting_to_existing_SDK_communities(community_id_list)
 
 
 def main():
     print("Starting script")
     start_time = time.time()
-    backfill_script_for_feed_feature()
+    # list of communities
+    community_id_list = []
+    backfill_script_for_feed_feature(community_id_list)
     print("Completed in", time.time() - start_time, "seconds")
 
 
