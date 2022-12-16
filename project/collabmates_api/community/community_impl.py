@@ -2611,6 +2611,28 @@ class CommunityHelper:
         return community_answer_id
 
     @staticmethod
+    def update_user_alias_name(user_id, community_id, user_name):
+        ModelUtilities.model_update(Userinfo,
+                                    {
+                                        'user_id': user_id
+                                    },
+                                    {
+                                        'name': user_name
+                                    })
+
+        ModelUtilities.model_update(Members,
+                                    {
+                                        'member_id': user_id,
+                                        'community_id': community_id
+                                    },
+                                    {
+                                        'updated_at': TimeUtilities.current_time_in_sec()
+                                    })
+
+        ElasticSearchSync.update_user_name.delay(user_id, user_name)
+        ElasticSearchSync.update_member_name.delay(user_id, user_name)
+
+    @staticmethod
     @shared_task
     def save_responses_of_member_in_community(user_id, community_id, question_list, is_directory_questions_v2=False):
 
@@ -2678,10 +2700,8 @@ class CommunityHelper:
             CommunityHelper.save_profile_links_for_social_handles(question_instance, community_answer_id)
 
             if question_instance.question_state == question_states.NAME:
-                from collabmates_api.member_community.member_community_impl import MemberCommunityHelper
-
-                MemberCommunityHelper.update_user_alias_name(user_instance.id, community_instance.id,
-                                                             question.get(answer_key))
+                CommunityHelper.update_user_alias_name(user_instance.id, community_instance.id,
+                                                       question.get(answer_key))
 
             airtable_data[question_instance.id] = question.get(answer_key)
 
