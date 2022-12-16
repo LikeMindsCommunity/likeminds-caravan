@@ -2611,7 +2611,11 @@ class CommunityHelper:
         return community_answer_id
 
     @staticmethod
-    def update_user_alias_name(user_id, community_id, user_name):
+    def update_user_alias_name(user_id, community_id, user_name, question_state):
+
+        if question_state != question_states.NAME:
+            return
+
         ModelUtilities.model_update(Userinfo,
                                     {
                                         'user_id': user_id
@@ -2699,9 +2703,8 @@ class CommunityHelper:
                                                                                    community_instance)
             CommunityHelper.save_profile_links_for_social_handles(question_instance, community_answer_id)
 
-            if question_instance.question_state == question_states.NAME:
-                CommunityHelper.update_user_alias_name(user_instance.id, community_instance.id,
-                                                       question.get(answer_key))
+            CommunityHelper.update_user_alias_name(user_instance.id, community_instance.id, question.get(answer_key),
+                                                   question_instance.question_state)
 
             airtable_data[question_instance.id] = question.get(answer_key)
 
