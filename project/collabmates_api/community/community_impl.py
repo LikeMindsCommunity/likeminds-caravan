@@ -2677,6 +2677,12 @@ class CommunityHelper:
                                                                                    community_instance)
             CommunityHelper.save_profile_links_for_social_handles(question_instance, community_answer_id)
 
+            if question_instance.question_state == question_states.NAME:
+                from collabmates_api.member_community.member_community_impl import MemberCommunityHelper
+
+                MemberCommunityHelper.update_user_alias_name(user_instance.id, community_instance.id,
+                                                             question.get(answer_key))
+
             airtable_data[question_instance.id] = question.get(answer_key)
 
         CommunityHelper.update_hidden_fields_in_member_responses(user_instance, community_instance,

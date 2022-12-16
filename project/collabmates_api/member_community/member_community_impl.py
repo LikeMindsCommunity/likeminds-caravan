@@ -2595,12 +2595,12 @@ class MemberCommunityHelper:
         from collabmates_api.community.community_impl import CommunityHelper, CommunityImpl
         from collabmates_api.community.constants import (DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY)
 
-        questions_list_key = DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY
+        question_answers_list = req_body.get(DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY)
 
-        if req_body.get(questions_list_key):
+        if question_answers_list:
             CommunityHelper.save_responses_of_member_in_community(user_instance.id,
                                                                   community_instance.id,
-                                                                  req_body.get(questions_list_key),
+                                                                  question_answers_list,
                                                                   True)
 
         Members.create_instance({'user_instance': user_instance,
@@ -2708,6 +2708,9 @@ class MemberCommunityHelper:
                                     {
                                         'updated_at': TimeUtilities.current_time_in_sec()
                                     })
+
+        ElasticSearchSync.update_user_name.delay(user_id, user_name)
+        ElasticSearchSync.update_member_name.delay(user_id, user_name)
 
     @staticmethod
     def update_user_image_in_sdk(user_instance, image_url):
