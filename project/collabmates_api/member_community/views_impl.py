@@ -524,3 +524,43 @@ class UnsubscribeEmailNotificationsView(APIView):
                                                                                 community_context.get('status_code')))
 
         return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+
+
+class FetchAccessView(APIView):
+
+    @staticmethod
+    def _validate_request(member_id, api_key, req_params):
+
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context("Send x-member-id in headers")
+
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context("Send x-api-key in headers")
+
+        if not req_params:
+            return ResponseUtilities.get_inner_error_context("Invalid request params")
+
+        if not req_params.get('access_type'):
+            return ResponseUtilities.get_inner_error_context("send access_type in request params")
+
+        return {'success': True}
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_params = RequestUtilities.fetch_request_query_params(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        validated_req_params = self._validate_request(member_id, api_key, req_params)
+
+        if not validated_req_params.get('success', False):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                validated_req_params.get('error_message'), status_codes.HTTP_400_BAD_REQUEST))
+
+        member_community_manager = MemberCommunityImpl(member_id, None, api_key=api_key)
+        community_context = member_community_manager.fetch_member_access(req_params.get('access_type'))
+
+        if 'error_message' in community_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                                community_context.get('status')))
+
+        return JsonResponse(community_context)

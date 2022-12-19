@@ -1,14 +1,16 @@
-from togther.models import (ModelUtilities, Community, Members)
+from togther.models import (ModelUtilities, Community, Members, CommunitySettings, FeedNotificationSettings)
 from utility.response_utilities import ResponseUtilities
 from cms.cms_auth_utilities import CMSAuthUtilities
 from collabmates_api.sdk.models import (SdkClient)
-from utility.states import noti_states
+from collabmates_api.user_moderation_rights import (check_admin_moderate_feed_and_comments_right)
+from utility.states import noti_states, community_setting_types, feed_notification_states
+import json
 
 
 class CommunityViewHelper:
 
     @staticmethod
-    def validate_fetch_members_meta_request(user_id, community_id, api_key=None):
+    def validate_fetch_members_meta_request(user_id, community_id, member_ids, api_key=None):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:
@@ -19,7 +21,15 @@ class CommunityViewHelper:
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key/community ID")
 
-        return {'user_instance': user_instance, 'community_instance': community_instance}
+        member_ids_list = []
+        if isinstance(member_ids, str):
+            try:
+                member_ids_list = json.loads(member_ids)
+            except:
+                return ResponseUtilities.get_inner_error_context("Invalid member_ids object")
+
+        return {'user_instance': user_instance, 'community_instance': community_instance,
+                'member_ids': member_ids_list}
 
     @staticmethod
     def validate_edit_community_request(req_body, community_id, member_id, username, password):

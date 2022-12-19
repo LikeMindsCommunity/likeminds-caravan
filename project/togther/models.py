@@ -1541,6 +1541,8 @@ class Report(models.Model):
     collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
     conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE, null=True)
 
+    entity_id = models.CharField(max_length=512, null=True)
+
     reported_member_id = models.IntegerField(null=True)  # can be removed
     member = models.ForeignKey(User, on_delete=models.CASCADE, null=True)  # can be removed
 
@@ -3442,3 +3444,36 @@ class CommunityNotificationSettings(models.Model):
         self.updated_at = current_time_in_ms
 
         super(CommunityNotificationSettings, self).save(*args, **kwargs)
+
+
+class FeedNotificationSettings(models.Model):
+
+    NOTIFICATION_TYPE_CHOICES = (
+        (1, 1),
+        (2, 2),
+        (3, 3),
+        (4, 4)
+    )
+
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    notification_type = models.IntegerField(
+        choices=NOTIFICATION_TYPE_CHOICES,
+        help_text=_(
+            '1 - Likes, 2 - Comments, 3 - Replies on your comments, 4 - Updates on commented post'
+        )
+    )
+    enabled = models.BooleanField(default=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(FeedNotificationSettings, self).save(*args, **kwargs)

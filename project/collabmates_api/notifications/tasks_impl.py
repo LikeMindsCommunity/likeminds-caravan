@@ -9,12 +9,12 @@ from external_services.calender.calendar_impl import CalendarImpl
 from external_services.email.email_wrapper import MailHelper
 from togther.models import ModelUtilities, Members, collabcardState, userMobiles, Collabcard, Community, User, \
     userEmails, EventCommsCeleryTasks, UserEmailsSendStatus, ChatroomCohort, CohortMember, CommunityGetStarted, \
-    EventGoogleCalendarLogs, removedMembers, Card_Attachment
+    EventGoogleCalendarLogs, removedMembers, Card_Attachment, FeedNotificationSettings
 from collabmates_api.notifications.models import (WhatsappSubscription)
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
-    user_email_send_status_types, event_access, card_types, get_started_types
+    user_email_send_status_types, event_access, card_types, get_started_types, feed_notification_states
 from utility.url_utilities import UrlUtilities
 from utility.celery_tasks import get_event_pricing
 from collabmates_api.static_text import CUSTOMISE_JOIN_FORM_MAIL_SUBJECT
@@ -1275,3 +1275,31 @@ class TasksHelper:
                         final_user_data["user_data_list"].append(user_data)
 
         return final_user_data_list
+
+    @staticmethod
+    def check_feed_notification_settings_for_notification_category(category, subcategory, community_id):
+        if category == NotificationCategories.FEED:
+            notification_settings = ModelUtilities.get_model_filter(FeedNotificationSettings,
+                                                                    {"community_id": community_id})
+
+            if notification_settings:
+                for notification_setting in notification_settings:
+                    if not notification_setting.enabled:
+                        if all([(notification_setting.notification_type == feed_notification_states.LIKES),
+                                subcategory in [NotificationSubCategories.POST_LIKED,
+                                                NotificationSubCategories.COMMENT_LIKED]]):
+                            return False
+
+                        if all([(notification_setting.notification_type == feed_notification_states.COMMENTS),
+                                subcategory == NotificationSubCategories.POST_COMMENT]):
+                            return False
+
+                        if all([(notification_setting.notification_type == feed_notification_states.REPLIES_ON_YOUR_COMMENTS),
+                                subcategory == NotificationSubCategories.COMMENT_REPLY]):
+                            return False
+
+                        if all([(notification_setting.notification_type == feed_notification_states.UPDATES_ON_COMMENTED_POST),
+                                subcategory == NotificationSubCategories.FOLLOWED_POST]):
+                            return False
+
+        return True

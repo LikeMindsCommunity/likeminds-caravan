@@ -562,9 +562,8 @@ class ChatroomImpl(ChatroomManager):
         return conversation_users
 
     @staticmethod
-    def compute_tagging_list_of_community_members(community_instance):
-
-        member_list = MemberCommunityImpl.fetch_list_of_community_members(community_instance)
+    def compute_tagging_list_of_community_members(community_instance, member_ids=[]):
+        member_list = MemberCommunityImpl.fetch_list_of_community_members(community_instance, member_ids)
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance)
         tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 

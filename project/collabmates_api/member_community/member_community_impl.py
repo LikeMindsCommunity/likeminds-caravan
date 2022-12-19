@@ -22,7 +22,7 @@ from utility.exception_utilities import CustomException
 from utility.states import member_states, card_types, deleted_members, question_states, \
     conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers, \
     community_dm_settings_state_types, community_dm_settings_duration_types, dm_icon_from_states, get_started_types, \
-    api_types
+    api_types, access_types
 
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
@@ -64,7 +64,8 @@ from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
-    check_admin_add_community_managers_right
+    check_admin_add_community_managers_right, check_admin_moderate_feed_and_comments_right, \
+    check_member_create_post_right, check_member_comment_and_reply_right
 from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check, \
     m2cm_v2_version_check
 from utility.response_utilities import ResponseUtilities
@@ -609,14 +610,44 @@ class MemberCommunityImpl(MemberCommunityManager):
         return chatroom_list
 
     @staticmethod
-    def fetch_list_of_community_members(community_instance):
+    def get_valid_member_ids(member_ids):
+        integer_member_ids = []
+        user_unique_ids = []
 
-        member_list = \
-            list(Members.objects.filter(community_id=community_instance).filter(Q(state=member_states.ADMIN)
-                                                                                | Q(state=member_states.MEMBER)
-                                                                                | Q(
-                state=member_states.PROFILE_UNAVAILABLE)).values_list('member_id'
-                                                                      , flat=True))
+        for member_id in member_ids:
+            if isinstance(member_id, int):
+                integer_member_ids.append(member_id)
+
+            if isinstance(member_id, str):
+                if member_id.isdigit():
+                    integer_member_ids.append(member_id)
+                else:
+                    user_unique_ids.append(member_id)
+
+        user_ids = list(Userinfo.objects.filter(
+            Q(user_id_id__in=integer_member_ids) | Q(user_unique_id__in=user_unique_ids)).values_list(
+            'user_id_id', flat=True))
+        return user_ids
+
+    @staticmethod
+    def fetch_list_of_community_members(community_instance, member_ids=None):
+        if member_ids:
+            user_ids = MemberCommunityImpl.get_valid_member_ids(member_ids)
+            member_list = list(Members.objects.filter(
+                Q(community_id=community_instance),
+                Q(member_id_id__in=user_ids),
+                Q(state=member_states.ADMIN)
+                | Q(state=member_states.MEMBER)
+                | Q(state=member_states.PROFILE_UNAVAILABLE)
+            ).values_list('member_id', flat=True))
+
+        else:
+            member_list = \
+                list(Members.objects.filter(community_id=community_instance).filter(
+                    Q(state=member_states.ADMIN)
+                    | Q(state=member_states.MEMBER)
+                    | Q(state=member_states.PROFILE_UNAVAILABLE)
+                ).values_list('member_id', flat=True))
 
         return member_list
 
@@ -1831,6 +1862,57 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True}
 
+    def fetch_member_access(self, access_type: str) -> {}:
+        validated_request = MemberCommunityHelper.validate_fetch_member_access_request(
+            self.get_member_id(), self.get_api_key(), access_type)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        member_state = validated_request.get('member_state')
+        access_type = validated_request.get('access_type')
+
+        output_context = {
+            'success': True,
+            'access': False,
+            'is_cm': False
+        }
+
+        if member_state == member_states.ADMIN:
+            output_context['is_cm'] = True
+
+            if all([access_type in [access_types.DELETE_POST, access_types.PIN_POST, access_types.DELETE_COMMENT,
+                                    access_types.CREATE_ACTIVITY],
+                    check_admin_moderate_feed_and_comments_right(user_instance, community_instance)]):
+                output_context['access'] = True
+
+            if access_type in [access_types.CREATE_POST, access_types.VIEW_POST, access_types.LIKE_POST,
+                               access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.LIKE_COMMENT,
+                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY]:
+                output_context['access'] = True
+
+        if member_state == member_states.MEMBER:
+            if access_type == access_types.CREATE_POST and check_member_create_post_right(user_instance,
+                                                                                          community_instance):
+                output_context['access'] = True
+
+            if access_type == access_types.CREATE_COMMENT and check_member_comment_and_reply_right(user_instance,
+                                                                                                   community_instance):
+                output_context['access'] = True
+
+            if access_type in [access_types.VIEW_POST, access_types.DELETE_POST, access_types.LIKE_POST,
+                               access_types.VIEW_COMMENT, access_types.DELETE_COMMENT, access_types.LIKE_COMMENT,
+                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY]:
+                output_context['access'] = True
+
+            if access_type in [access_types.PIN_POST, access_types.CREATE_ACTIVITY]:
+                output_context['access'] = False
+
+        return output_context
+
 
 class MemberCommunityHelper:
     @staticmethod
@@ -2697,3 +2779,31 @@ class MemberCommunityHelper:
         update_preview_for_account_image_change.delay({'user_id': user_instance.id,
                                                        'image_url': image_url,
                                                        'previous_image_url': previous_image_url})
+
+    @staticmethod
+    def validate_fetch_member_access_request(user_id, api_key, access_type_value):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid API key")
+
+        is_community_member = Members.is_community_member(community_instance, user_instance)
+        if not is_community_member:
+            return ResponseUtilities.get_inner_error_context("You are not a member of the community")
+
+        member_state = Members.get_community_member_state(community_instance, user_instance)
+
+        valid_access_types = [access_types.CREATE_POST, access_types.VIEW_POST, access_types.DELETE_POST,
+                              access_types.PIN_POST, access_types.LIKE_POST, access_types.SAVE_POST,
+                              access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.DELETE_COMMENT,
+                              access_types.LIKE_COMMENT, access_types.CREATE_ACTIVITY, access_types.VIEW_ACTIVITY]
+
+        access_type = access_type_value
+        if access_type not in valid_access_types:
+            return ResponseUtilities.get_inner_error_context("Send valid access type")
+
+        return {'community_instance': community_instance, 'user_instance': user_instance,
+                'member_state': member_state, 'access_type': access_type}
