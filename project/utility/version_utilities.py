@@ -12,9 +12,9 @@ class VersionUtilities:
 
     group_tags: dict = {
         PlatformCode.ANDROID: beta_dummy_version,
-        PlatformCode.IOS: beta_dummy_version,
+        PlatformCode.IOS: 367,
         PlatformCode.WEB: beta_dummy_version,
-        PlatformCode.ANDROID_SDK: 200,
+        PlatformCode.ANDROID_SDK: 202,
         PlatformCode.IOS_SDK: 362,
         PlatformCode.WEB_SDK: beta_dummy_version
     }

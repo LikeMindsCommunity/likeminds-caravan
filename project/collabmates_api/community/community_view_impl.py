@@ -646,9 +646,6 @@ class FetchCommunityQuestionsView(APIView):
         if not member_id:
             return {'success': False, 'error_message': 'Send member_id'}
 
-        if not req_body.get('community_id'):
-            return {'success': False, 'error_message': 'Send community_id'}
-
         validated_req['success'] = True
         validated_req['member_id'] = member_id
         validated_req['community_id'] = req_body.get('community_id')
@@ -662,6 +659,7 @@ class FetchCommunityQuestionsView(APIView):
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         req_body = RequestUtilities.fetch_request_query_params(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         validated_body = self._validate_request(member_id, req_body)
 
         if not validated_body.get('success'):
@@ -670,14 +668,15 @@ class FetchCommunityQuestionsView(APIView):
         community_manager = CommunityImpl(member_id=validated_body.get('member_id'),
                                           community_id=validated_body.get('community_id'),
                                           version_code=version_code,
-                                          request_platform=platform_code)
+                                          request_platform=platform_code,
+                                          api_key=api_key)
 
         res = community_manager.fetch_community_questions(validated_body)
 
-        if not res.get('success'):
-            return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
-
-        return JsonResponse(res, status=status_codes.HTTP_200_OK)
+        if 'error_message' in res:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)
 
 
 class FetchCommunityBrandingView(APIView):

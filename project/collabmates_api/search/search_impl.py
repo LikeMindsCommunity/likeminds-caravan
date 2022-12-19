@@ -1,14 +1,16 @@
+from rest_framework import status as status_codes
 from typing import Union
 from elasticsearch_dsl import Search
 from .search_manager import SearchManager
 from .search_helper import SearchHelper
-from togther.models import collabcardState, userMemberRights, Members, communityAnswers, ModelUtilities
+from togther.models import (collabcardState, userMemberRights, Members, communityAnswers, ModelUtilities)
 
 from utility.states import member_rights, card_types, member_states, question_states
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
+from utility.response_utilities import ResponseUtilities
 from .constants import CUSTOM_INTRO_TEXT_FOR_ADMIN, CUSTOM_INTRO_TEXT_FOR_MEMBERS, CUSTOM_CLICK_TEXT_FOR_MEMBERS
-from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING
+from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING,CHATROOM_FIELD_TITLE
 from collabmates_api.sdk.models import SdkClient
 
 
@@ -304,18 +306,32 @@ class SearchImpl(SearchManager):
 
         return is_disabled
 
-    def search_chatroom(self, community_id: int):
+    def search_chatroom(self):
 
         search_query_dict = self._get_chatroom_search_ngram_query_dict()
 
-        if community_id:
-            self._append_community_id(search_query_dict, community_id)
+        if self.get_api_key() and not self.get_community_id():
+            community_instance = SdkClient.get_community_instance_or_none(self.get_community_id(), self.get_api_key())
+
+            if not community_instance:
+                return ResponseUtilities.get_impl_error_context('Invalid community ID/API!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            self.set_community_id(community_instance.id)
+
+        if self.get_community_id():
+            self._append_community_id(search_query_dict, self.get_community_id())
 
         res = Search.from_dict(search_query_dict).execute()
 
+        chatroom_data = [hit.to_dict() for hit in res]
+
+        if self.get_search_field() == CHATROOM_FIELD_TITLE:
+            SearchHelper.update_chatroom_member_to_creator_for_card_data(chatroom_data)
+
         context = {
             'success': True,
-            'chatrooms': [hit.to_dict() for hit in res]
+            'chatrooms': chatroom_data
         }
 
         return context
@@ -331,9 +347,18 @@ class SearchImpl(SearchManager):
         must_params_dict = search_query_dict['query']['bool']['must']
         must_params_dict.append(community_id_param_dict)
 
-    def search_conversation(self, community_id: int):
+    def search_conversation(self):
 
-        chatroom_id_list = self._fetch_user_chatrooms_id_list(community_id)
+        if self.get_api_key() and not self.get_community_id():
+            community_instance = SdkClient.get_community_instance_or_none(self.get_community_id(), self.get_api_key())
+
+            if not community_instance:
+                return ResponseUtilities.get_impl_error_context('Invalid community ID/API!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            self.set_community_id(community_instance.id)
+
+        chatroom_id_list = self._fetch_user_chatrooms_id_list(self.get_community_id())
 
         res = Search.from_dict(self._get_conversation_search_ngram_query_dict(chatroom_id_list)).execute()
 
@@ -344,9 +369,18 @@ class SearchImpl(SearchManager):
 
         return context
 
-    def search_third_party(self, community_id: int):
+    def search_third_party(self):
 
-        chatroom_data = self.search_chatroom(community_id)
+        if self.get_api_key() and not self.get_community_id():
+            community_instance = SdkClient.get_community_instance_or_none(self.get_community_id(), self.get_api_key())
+
+            if not community_instance:
+                return ResponseUtilities.get_impl_error_context('Invalid community ID/API!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            self.set_community_id(community_instance.id)
+
+        chatroom_data = self.search_chatroom()
 
         respond_right_community_id_list = self._fetch_user_community_id_list_with_respond_right()
 

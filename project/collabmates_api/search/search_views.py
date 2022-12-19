@@ -24,28 +24,21 @@ class ChatroomSearchView(APIView):
         community_id = request.GET.get('community_id', None)
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not member_id:
             raise InvalidHeaderException()
 
-        if single_community_view_version_check(platform_code, version_code):
-            if not community_id:
-                return JsonResponse({
-                    'status': status_codes.HTTP_400_BAD_REQUEST,
-                    'success': False,
-                    'error_message': 'missing required parameter: community_id'
-                })
+        if single_community_view_version_check(platform_code, version_code) and not (community_id or api_key):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid community ID/API key!',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         search_term = request.GET.get('search')
         search_field = request.GET.get('search_type', CHATROOM_FIELD_HEADER)
 
         if search_field.lower() not in CHATROOM_SEARCHABLE_FIELDS:
-            response = {
-                "success": False,
-                "error_message": "Invalid search type"
-            }
-
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid search type!',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         page = RequestUtilities.get_page_number(request)
         page_size = RequestUtilities.get_page_size(request, default=300)
@@ -55,11 +48,15 @@ class ChatroomSearchView(APIView):
         if isinstance(follow_status, str):
             follow_status = follow_status.lower() == 'true'
 
-        search_manager = SearchImpl(member_id=member_id, search_term=search_term,
-                                    search_field=search_field, follow_status=follow_status,
-                                    page=page, page_size=page_size)
+        search_manager = SearchImpl(member_id=member_id, search_term=search_term, search_field=search_field,
+                                    follow_status=follow_status, page=page, page_size=page_size, api_key=api_key,
+                                    community_id=community_id)
 
-        chatrooms_data = search_manager.search_chatroom(community_id)
+        chatrooms_data = search_manager.search_chatroom()
+
+        if 'error_message' in chatrooms_data:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatrooms_data.get('error_message'),
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         return JsonResponse(chatrooms_data)
 
@@ -71,17 +68,14 @@ class ConversationSearchView(APIView):
         community_id = request.GET.get('community_id', None)
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not member_id:
             raise InvalidHeaderException()
 
-        if single_community_view_version_check(platform_code, version_code):
-            if not community_id:
-                return JsonResponse({
-                    'status': status_codes.HTTP_400_BAD_REQUEST,
-                    'success': False,
-                    'error_message': 'missing required parameter: community_id'
-                })
+        if single_community_view_version_check(platform_code, version_code) and not (community_id or api_key):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid community ID/API key!',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         search_term = request.GET.get('search')
         page = RequestUtilities.get_page_number(request)
@@ -92,11 +86,14 @@ class ConversationSearchView(APIView):
         if isinstance(follow_status, str):
             follow_status = follow_status.lower() == 'true'
 
-        search_manager = SearchImpl(member_id=member_id, search_term=search_term,
-                                    follow_status=follow_status,
-                                    page=page, page_size=page_size)
+        search_manager = SearchImpl(member_id=member_id, search_term=search_term, follow_status=follow_status,
+                                    page=page, page_size=page_size, api_key=api_key, community_id=community_id)
 
-        conversations_data = search_manager.search_conversation(community_id)
+        conversations_data = search_manager.search_conversation()
+
+        if 'error_message' in conversations_data:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(conversations_data.get('error_message'),
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         return JsonResponse(conversations_data)
 
@@ -108,30 +105,31 @@ class ThirdPartySearchView(APIView):
         community_id = request.GET.get('community_id', None)
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
-        if single_community_view_version_check(platform_code, version_code):
-            if not community_id:
-                return JsonResponse({
-                    'status': status_codes.HTTP_400_BAD_REQUEST,
-                    'success': False,
-                    'error_message': 'missing required parameter: community_id'
-                })
+        if single_community_view_version_check(platform_code, version_code) and not (community_id or api_key):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid community ID/API key!',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         if not member_id:
-            raise InvalidHeaderException()
-
-        device_id = RequestUtilities.get_device_id_from_headers(request)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Send member ID in headers!',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         search_term = request.GET.get('search')
 
         page = RequestUtilities.get_page_number(request)
         page_size = RequestUtilities.get_page_size(request, default=300)
 
-        search_manager = SearchImpl(member_id=member_id, search_term=search_term,
-                                    search_field=CHATROOM_FIELD_HEADER, follow_status=True,
-                                    page=page, page_size=page_size, device_id=device_id)
+        search_manager = SearchImpl(member_id=member_id, search_term=search_term, search_field=CHATROOM_FIELD_HEADER,
+                                    follow_status=True, page=page, page_size=page_size, device_id=device_id,
+                                    api_key=api_key, community_id=community_id)
 
-        chatrooms_data = search_manager.search_third_party(community_id)
+        chatrooms_data = search_manager.search_third_party()
+
+        if 'error_message' in chatrooms_data:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatrooms_data.get('error_message'),
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         return JsonResponse(chatrooms_data)
 

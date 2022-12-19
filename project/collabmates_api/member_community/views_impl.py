@@ -43,6 +43,7 @@ class FetchCommunityFeed(APIView):
         version_code = RequestUtilities.get_version_code_from_headers(request)
         platform_code = RequestUtilities.get_platform_code(request)
         api_version = RequestUtilities.get_accept_version_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not member_id:
             context = get_error_context(False, "member id missing in request")
@@ -55,7 +56,7 @@ class FetchCommunityFeed(APIView):
         pin_status = StringUtilities.get_boolean_from_string(pin_status)
 
         community_manager = MemberCommunityImpl(member_id, community_id, device_id=device_id, version_code=version_code,
-                                                platform_code=platform_code)
+                                                platform_code=platform_code, api_key=api_key)
         chatroom_id = request.GET.get('chatroom_id')
         scroll_direction = request.GET.get('scroll_direction')
         order_type = request.GET.get('order_type', 0)

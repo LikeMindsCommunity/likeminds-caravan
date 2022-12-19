@@ -1664,6 +1664,7 @@ class communityQuestions(models.Model):
 
     rank = models.IntegerField(default=0)
     can_add_options = models.BooleanField(default=False)
+    is_answer_editable = models.BooleanField(default=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
@@ -3089,11 +3090,10 @@ class ChatroomCohort(models.Model):
         super(ChatroomCohort, self).save(*args, **kwargs)
 
     @staticmethod
-    def create_instance(chatroom_cohort_info):
+    def create_bulk_instance(chatroom_cohort_info):
         instance = ChatroomCohort()
         instance.cohort = chatroom_cohort_info.get('cohort_instance')
         instance.chatroom = chatroom_cohort_info.get('chatroom_instance')
-        instance.save()
         return instance
 
 

@@ -74,6 +74,7 @@ from utility.url_utilities import UrlUtilities
 from utility.constants import PLATFORM_CODE_WEB
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
+from utility.validation_utilities import ValidationUtilities
 
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
@@ -1652,6 +1653,8 @@ class CommunityImpl(CommunityManager):
         community_instance = validated_req_body.get('community_instance')
         questions_list = validated_req_body.get('questions_list')
 
+        self.set_community_id(community_instance.id)
+
         new_questions_list = []
         edited_questions_list = []
         deleted_questions_list = []
@@ -1685,34 +1688,38 @@ class CommunityImpl(CommunityManager):
             CommunityHelper.delete_community_questions(community_instance, deleted_questions_list,
                                                        user_id=self.get_member_id())
 
-        # Updating members state table for editing
-        from collabmates_api.notification import send_notification_for_directory_creation, send_sync_notification
-
-        if is_edit_required:
-            update_models_for_syncing_apis(SyncTypes.MEMBERS,
-                                           {'community_id': community_instance},
-                                           {'edit_required': True})
-
-            send_notification_for_directory_creation.delay(community_instance.id, TimeUtilities.current_time_in_sec(),
-                                                           day=0)
-
         edit_community_data(community_instance, user_instance,
                             edit_field=edit_field_community_data_types.EDIT_DIRECTORY)
 
+        from collabmates_api.notification import send_notification_for_directory_creation, send_sync_notification
         send_sync_notification.delay({'community_id': community_instance.id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
 
-        send_mail_for_first_time_edit_community_questions.delay(user_instance.id, community_instance.id)
+        if not SdkClient.is_sdk_community(community_id=self.get_community_id()):
+
+            # Updating members state table for editing
+            if is_edit_required:
+                update_models_for_syncing_apis(SyncTypes.MEMBERS,
+                                               {'community_id': community_instance},
+                                               {'edit_required': True})
+
+                send_notification_for_directory_creation.delay(community_instance.id,
+                                                               TimeUtilities.current_time_in_sec(),
+                                                               day=0)
+
+            send_mail_for_first_time_edit_community_questions.delay(user_instance.id, community_instance.id)
 
         return {'success': True}
 
     def fetch_community_questions(self, req_body) -> {}:
         validated_req_body = CommunityHelper.validate_fetch_questions_request(self.get_member_id(),
                                                                               self.get_community_id(),
-                                                                              req_body)
+                                                                              req_body,
+                                                                              self.get_api_key())
 
-        if not validated_req_body.get('success'):
-            return validated_req_body
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = validated_req_body.get('user_instance')
         community_instance = validated_req_body.get('community_instance')
@@ -2498,6 +2505,20 @@ class CommunityHelper:
         return question_instance_dict
 
     @staticmethod
+    def pre_compute_answer_instances_of_member(user_instance, community_instance, question_list, question_id_key):
+
+        question_id_list = [question[question_id_key] for question in question_list if question.get(question_id_key)]
+        answer_instances = ModelUtilities.get_model_filter(communityAnswers, {'question__in': question_id_list,
+                                                                              'member': user_instance,
+                                                                              'community': community_instance})
+        answer_instance_dict = {}
+
+        for data in answer_instances:
+            answer_instance_dict[data.question_id] = data
+
+        return answer_instance_dict
+
+    @staticmethod
     def is_dropdown_option_present(option, dropdown_list):
 
         for data in dropdown_list:
@@ -2576,9 +2597,9 @@ class CommunityHelper:
 
             if mobile_filter:
                 mobile_no = "+{} {}".format(str(mobile_filter.get('country_code')), str(mobile_filter.get('mobile_no')))
-                CommunityHelper.create_answer_instance(user_instance, community_instance,
-                                                       question_instance, mobile_no,
-                                                       question_title=question_instance.question_title)
+                CommunityHelper.create_or_update_answer_instance(user_instance, community_instance,
+                                                                 question_instance, mobile_no,
+                                                                 question_title=question_instance.question_title)
 
         question_filter = ModelUtilities.get_model_filter(communityQuestions, {
             'community': community_instance,
@@ -2588,9 +2609,9 @@ class CommunityHelper:
 
         if question_filter:
             question_instance = question_filter[0]
-            CommunityHelper.create_answer_instance(user_instance, community_instance,
-                                                   question_instance, user_instance.userinfo.name,
-                                                   question_title=question_instance.question_title)
+            CommunityHelper.create_or_update_answer_instance(user_instance, community_instance,
+                                                             question_instance, user_instance.userinfo.name,
+                                                             question_title=question_instance.question_title)
 
     @staticmethod
     def send_questions_data_on_airtable(user_instance, community_instance, question_data):
@@ -2611,24 +2632,67 @@ class CommunityHelper:
         airtable_manager.send_data(airtable_data)
 
     @staticmethod
-    def create_answer_instance(user_instance, community_instance, question_instance, answer, question_title=None,
-                               is_directory_questions_v2=False):
-        community_answer_id = 0
+    def create_or_update_answer_instance(user_instance, community_instance, question_instance, answer,
+                                         question_title=None, answer_instance: communityAnswers = None):
+
+        community_answer_id = 0 if not answer_instance else answer_instance.id
+
         data = {
-            'community': community_instance.id,
-            'question_answer': answer,
-            'member': user_instance.id,
-            'question': question_instance.id,
-            'question_title': question_title
+            'question_answer': answer
         }
 
-        answer_serializer = CommunityAnswersSerializer(data=data)
+        if not answer_instance:
+            data.update({
+                'community': community_instance.id,
+                'member': user_instance.id,
+                'question': question_instance.id,
+                'question_title': question_title
+            })
+
+            serializer_params = {
+                'data': data
+            }
+
+        else:
+            serializer_params = {
+                'instance': answer_instance,
+                'data': data,
+                'partial': True
+            }
+
+        answer_serializer = CommunityAnswersSerializer(**serializer_params)
 
         if answer_serializer.is_valid():
             answer_serializer.save()
             community_answer_id = answer_serializer.data.get('id')
 
         return community_answer_id
+
+    @staticmethod
+    def update_user_alias_name(user_id, community_id, user_name, question_state):
+
+        if question_state != question_states.NAME:
+            return
+
+        ModelUtilities.model_update(Userinfo,
+                                    {
+                                        'user_id': user_id
+                                    },
+                                    {
+                                        'name': user_name
+                                    })
+
+        ModelUtilities.model_update(Members,
+                                    {
+                                        'member_id': user_id,
+                                        'community_id': community_id
+                                    },
+                                    {
+                                        'updated_at': TimeUtilities.current_time_in_sec()
+                                    })
+
+        ElasticSearchSync.update_user_name.delay(user_id, user_name)
+        ElasticSearchSync.update_member_name.delay(user_id, user_name)
 
     @staticmethod
     @shared_task
@@ -2652,6 +2716,11 @@ class CommunityHelper:
                                                                                                      question_list,
                                                                                                      question_id_key)
 
+        answer_instance_dict = CommunityHelper.pre_compute_answer_instances_of_member(user_instance,
+                                                                                      community_instance,
+                                                                                      question_list,
+                                                                                      question_id_key)
+
         airtable_data = {}
 
         for question in question_list:
@@ -2661,6 +2730,7 @@ class CommunityHelper:
 
             question_id = NumberUtilities.get_integer_from_string(question.get(question_id_key))
             question_instance = question_instance_dict.get(question_id)
+            answer_instance = answer_instance_dict.get(question_id)
 
             if not question_instance:
                 continue
@@ -2668,19 +2738,31 @@ class CommunityHelper:
             if question_instance.is_hidden:
                 continue
 
+            if answer_instance and not question_instance.is_answer_editable:
+                continue
+
+            if answer_instance:
+                ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
+                                                                        'community': community_instance,
+                                                                        'question': question_instance})
+
             question_title = question.get('question_title') if question.get('question_title') else \
                 question_instance.question_title
 
-            community_answer_id = CommunityHelper.create_answer_instance(user_instance, community_instance,
-                                                                         question_instance,
-                                                                         question.get(answer_key),
-                                                                         question_title=question_title)
+            community_answer_id = CommunityHelper.create_or_update_answer_instance(user_instance, community_instance,
+                                                                                   question_instance,
+                                                                                   question.get(answer_key),
+                                                                                   question_title=question_title,
+                                                                                   answer_instance=answer_instance)
 
             CommunityHelper.save_user_selected_options_for_member_directory_filter(question_instance,
                                                                                    question.get(answer_key),
                                                                                    user_instance,
                                                                                    community_instance)
             CommunityHelper.save_profile_links_for_social_handles(question_instance, community_answer_id)
+
+            CommunityHelper.update_user_alias_name(user_instance.id, community_instance.id, question.get(answer_key),
+                                                   question_instance.question_state)
 
             airtable_data[question_instance.id] = question.get(answer_key)
 
@@ -3530,9 +3612,9 @@ class CommunityHelper:
             if community_question_instance.is_valid():
                 community_question_instance.save()
 
-                CommunityHelper.add_create_edit_question_analytics.delay(community_question_instance.data.get('id'),
-                                                                         user_id,
-                                                                         question_state=question_change_states.NEW_QUESTION)
+                CommunityHelper.add_create_edit_question_analytics.delay(
+                    community_question_instance.data.get('id'), user_id,
+                    question_state=question_change_states.NEW_QUESTION)
 
             else:
                 error_logger.error("CREATE NEW QUESTION, Not valid: " + str(community_question_instance.errors))
@@ -3603,8 +3685,8 @@ class CommunityHelper:
             if community_question_serializer.is_valid():
                 community_question_serializer.save()
 
-                CommunityHelper.add_create_edit_question_analytics.delay(question_instance.id, user_id,
-                                                                         question_state=question_change_states.EDIT_QUESTION)
+                CommunityHelper.add_create_edit_question_analytics.delay(
+                    question_instance.id, user_id, question_state=question_change_states.EDIT_QUESTION)
 
             else:
                 error_logger.error("UPDATE COMMUNITY QUESTIONS, Not valid: " + str(
@@ -3639,19 +3721,26 @@ class CommunityHelper:
                                                              'community': community_instance}).delete()
 
     @staticmethod
-    def validate_fetch_questions_request(user_id, community_id, req_body):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+    def validate_fetch_questions_request(user_id, community_id, req_body, api_key=None):
+        validation_params = {
+            'community_id': {
+                'community_id': community_id,
+                'api_key': api_key
+            },
+            'user_id': user_id,
+        }
 
-        if not user_instance:
-            return {'success': False, 'error_message': 'Invalid member-id'}
+        validated_dict = ValidationUtilities.is_valid(validation_params)
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        if validated_dict.get('error_message'):
+            return validated_dict
 
-        if not community_instance:
-            return {'success': False, 'error_message': 'Invalid community_id'}
-
-        return {'success': True, 'user_instance': user_instance, 'community_instance': community_instance,
-                'aj': req_body.get('aj', None), 'shared_by': req_body.get('shared_by', None)}
+        return {
+            'user_instance': validated_dict.get('user_id'),
+            'community_instance': validated_dict.get('community_id'),
+            'aj': req_body.get('aj', None),
+            'shared_by': req_body.get('shared_by', None)
+        }
 
     @staticmethod
     def get_toast_according_to_aj_expiry(community_instance, unique_code, shared_by_user=None, user_instance=None):

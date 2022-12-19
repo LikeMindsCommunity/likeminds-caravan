@@ -1374,7 +1374,8 @@ class CommunityQuestionsSerializerV2(serializers.ModelSerializer):
     class Meta:
         model = communityQuestions
         fields = ('id', 'community', 'question_title', 'question_state', 'value', 'optional', 'help_text',
-                  'is_hidden', 'is_compulsory', 'rank', 'can_add_options', 'field', 'remove_state')
+                  'is_hidden', 'is_compulsory', 'rank', 'can_add_options', 'field', 'remove_state',
+                  'is_answer_editable')
 
 
 class CommunityAnswersSerializer(serializers.ModelSerializer):

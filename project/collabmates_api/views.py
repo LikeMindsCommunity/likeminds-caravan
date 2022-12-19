@@ -39,7 +39,8 @@ from utility.celery_tasks import (
     update_event_in_webflow_service, update_event_attendees_for_micro_event, member_left_removed_dm_chatroom,
     reset_unread_message_count_in_cache, fetch_conversations_unread, update_deferred_card_poll_updated_at_value,
     get_to_show_results_for_conversation_poll, send_chatroom_deleted_analytics_data, cm_removed_dm_chatroom,
-    member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data, update_community_pin_chatrooms_list_in_cache)
+    member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data,
+    update_community_pin_chatrooms_list_in_cache)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -6270,6 +6271,8 @@ def follow_chatroom_async(collabcard_id,
 
     ElasticSearchSync.update_chatroom_for_user.delay(card_instance.id, user_instance.id)
 
+    update_last_unseen_in_engage(user=user_instance.id, community=card_instance.community_id)
+
     if card_instance.is_secret \
             and member_state == member_states.ADMIN \
             and status:
@@ -6317,7 +6320,7 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
     if collabcard_state_filter.exists():
         if collabcard_state_filter[0].follow_status == status:
 
-            if collabcard_state_filter[0].is_tagged or not is_tagged:
+            if collabcard_state_filter[0].is_tagged:
                 update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                                {'card': card_instance, 'user': user_instance},
                                                {'is_tagged': False, 'mute_status': False})
@@ -6382,6 +6385,125 @@ def collabcard_follow_internal(func_dict, state=collabcard_states.COLLABCARD_STA
     # function to set activity of chatroom
     update_activity_in_chatroom(card_instance, user_instance)
 
+
+def collabcard_follow_internal_v1(
+        chatroom_instance,
+        tagged_member_list,
+        is_tagged,
+        is_group_tag_everyone):
+    """ folowing collabcard internally """
+
+    tagged_user_datas = []
+
+    for user_id in tagged_member_list:
+        func_dict = {
+            'member_id': user_id,
+            'collabcard_id': chatroom_instance.id,
+            'status': True,
+            'source': "auto-following-chatroom",
+            'is_tagged': is_tagged
+        }
+
+        card_id = func_dict['collabcard_id']
+        member_id = func_dict['member_id']
+        status = func_dict['status']
+        is_guest = False
+        is_tagged = False
+        ref_instance = None
+        mute_status = False
+
+        if 'is_guest' in func_dict:
+            is_guest = func_dict.get('is_guest')
+            source_id = func_dict.get('source_id')
+            ref_filter = User.objects.filter(id=source_id)
+            if ref_filter.exists():
+                ref_instance = ref_filter[0]
+        elif 'is_tagged' in func_dict and func_dict['is_tagged']:
+            is_tagged = True
+            mute_status = True
+
+        tagged_user_data = {
+            'card_id': card_id,
+            'member_id': member_id,
+            'status': status,
+            'is_guest': is_guest,
+            'is_tagged': is_tagged,
+            'ref_instance': ref_instance,
+            'mute_status': mute_status
+        }
+        tagged_user_datas.append(tagged_user_data)
+
+    update_collabcard_state_user_ids = [int(element['member_id']) for element in tagged_user_datas]
+
+    if is_group_tag_everyone:
+        collabcard_state_member_ids = list(ModelUtilities.get_model_filter(
+            collabcardState,
+            {
+                'card_id': chatroom_instance.id
+            }
+        ).values_list(
+            'user_id',
+            flat=True
+        ))
+
+        existing_user_ids = ListUtilities.get_common_elements(update_collabcard_state_user_ids,
+                                                              collabcard_state_member_ids)
+
+        collabcardState.objects.filter(
+            card=chatroom_instance.id,
+            user__in=existing_user_ids
+        ).update(
+            follow_status=True,
+            is_tagged=False,
+            mute_status=False
+        )
+
+    elif is_tagged:
+        collabcard_non_followers_list = list(ModelUtilities.get_model_filter(
+            collabcardState,
+            {
+                'card_id': chatroom_instance.id,
+                'follow_status': False
+            }
+        ).values_list(
+            'user_id',
+            flat=True
+        ))
+        non_followers_tagged_users = ListUtilities.get_common_elements(update_collabcard_state_user_ids,
+                                                                       collabcard_non_followers_list)
+        collabcardState.objects.filter(
+            card=chatroom_instance.id,
+            user__in=non_followers_tagged_users
+        ).update(
+            follow_status=True,
+            is_tagged=True,
+            mute_status=True
+        )
+
+    update_elastic_search_data_for_chatroom_users.delay(chatroom_instance.id, update_collabcard_state_user_ids)
+    create_chatroom_engagements_for_users.delay(chatroom_instance.id, update_collabcard_state_user_ids)
+
+
+@shared_task
+def update_elastic_search_data_for_chatroom_users(card_id, member_ids):
+    for member_id in member_ids:
+        ElasticSearchSync.update_chatroom_for_user(card_id, member_id)
+
+
+@shared_task
+def create_chatroom_engagements_for_users(card_id, member_ids):
+    for member_id in member_ids:
+        card_instance = Collabcard.objects.get(id=card_id)
+        user_instance = User.objects.get(id=member_id)
+
+        member_state = 0
+        member_instance = Members.objects.filter(member_id=user_instance, community_id=card_instance.community)
+        if member_instance.exists():
+            member_state = member_instance[0].state
+
+        create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance, member_state=member_state)
+        update_my_chatrooms_for_users(chatroom_id=card_instance.id, user_id=user_instance.id)
+        update_activity_in_chatroom(card_instance, user_instance)
 
 @csrf_exempt
 def collabcards_seen(request):

@@ -6,7 +6,8 @@ from utility.utils import (generate_private_link, get_time_text, eligibility_cou
                            get_members_count_in_community, generate_private_link_for_chatroom,
                            get_date_time_from_timestamp, get_community_members_count_for_preview)
 
-from utility.states import (card_types, question_states, poll_types, deleted_members, conversation_states, api_types)
+from utility.states import (card_types, question_states, poll_types, deleted_members, conversation_states, api_types,
+                            conversation_poll_types)
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .member_community.constants import CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED, CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED, \
     CUSTOM_CLICK_TEXT_DELETED, CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_LEFT, CUSTOM_INTRO_TEXT_LEFT
@@ -1766,7 +1767,8 @@ def report_serializer(report_instance, current_user_id):
     report["community_name"] = community_instance.name
 
     if report_instance.conversation is not None:
-        report["conversation"] = conversationSerializer(report_instance.conversation, current_user_id=current_user_id)
+        report["conversation"] = conversationSerializer(report_instance.conversation, current_user_id=current_user_id,
+                                                        fetch_poll_conversation=True)
         report["chatroom"] = get_chatroom_instance(report_instance.conversation.card, current_user_id)
         report["conversation_users"] = get_last_two_conversation_user_images(report_instance.conversation.card)
 
@@ -1869,7 +1871,8 @@ def is_draft_conversation(conversation, current_user_id, device_id=''):
     return False
 
 
-def conversationSerializer(conversation, current_user_id=None, fetch_reply=True, device_id=''):
+def conversationSerializer(conversation, current_user_id=None, fetch_reply=True, device_id='',
+                           fetch_poll_conversation=False):
     temp = {
         "id": conversation.id,
         "answer": conversation.answer,
@@ -1958,6 +1961,42 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
 
     if conversation.reply_chatroom_id:
         temp['reply_chatroom_id'] = conversation.reply_chatroom_id
+
+    if fetch_poll_conversation and conversation.state == conversation_states.CONVERSATION_POLL:
+        temp['state'] = conversation.state
+        temp['poll_type'] = conversation.poll_type
+
+        if conversation.multiple_select_state:
+            temp['multiple_select_state'] = conversation.multiple_select_state
+
+        if conversation.multiple_select_no:
+            temp['multiple_select_no'] = conversation.multiple_select_no
+
+        temp['is_anonymous'] = conversation.is_anonymous
+        temp['allow_add_option'] = conversation.allow_add_option
+        temp['expiry_time'] = conversation.expiry_time
+
+        from utility.celery_tasks import (get_conversation_poll, get_to_show_results_for_conversation_poll)
+
+        temp['polls'] = get_conversation_poll({'conversation_instance': conversation,
+                                               'member_id': current_user_id,
+                                               'conversation_id': conversation.id,
+                                               'poll_type': conversation.poll_type,
+                                               'multiple_select_no': conversation.multiple_select_no,
+                                               'expiry_time': conversation.expiry_time})
+
+        temp['to_show_results'] = get_to_show_results_for_conversation_poll({
+            'conversation_instance': conversation, 'member_id': current_user_id,
+            'conversation_id': conversation.id, 'poll_type': conversation.poll_type,
+            'multiple_select_no': conversation.multiple_select_no, 'expiry_time': conversation.expiry_time})
+
+        temp['poll_type_text'] = "Instant poll" \
+            if temp['poll_type'] == conversation_poll_types.INSTANT else "Deferred poll"
+
+        temp['submit_type_text'] = "Secret voting" \
+            if temp['is_anonymous'] else "Public voting"
+
+        temp['poll_answer_text'] = conversation.poll_answer_text
 
     return temp
 
