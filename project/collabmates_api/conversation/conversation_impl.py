@@ -24,7 +24,8 @@ from ..notifications.tasks import send_communication_when_chatroom_not_opened
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from ..raw_queries import activate_chatroom_on_conversation_creation, \
     get_latest_conversation_creator_users_for_homescreen, update_conversation_engage_for_chatrooms, \
-    get_count_of_new_event_conversation_created_for_user, get_last_seen_event_conversation_id_for_user
+    get_count_of_new_event_conversation_created_for_user, get_last_seen_event_conversation_id_for_user, \
+    update_conversation_engage_data_for_chatroom
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, UserinfoSerializer
 from ..sync.model_update import update_models_for_syncing_apis
@@ -2170,30 +2171,45 @@ class ConversationHelper:
         conversations_filter = ModelUtilities.get_model_filter(card_answers, {'card': chatroom_instance, 'state': 0}).\
             filter(Q(attachment_count=0) | Q(attachments_uploaded=True) | Q(api_version=1)).order_by('id')
 
-        second_last = conversations_filter.filter(~Q(user=user_instance)).last()
+        total_conversations = conversations_filter.count()
+
+        second_last = conversations_filter.exclude(user=user_instance).last()
 
         (last_conversation_member, second_last_conversation_member, last_conversation_user,
          second_last_conversation_user) = ConversationHelper.compute_member_images_for_homescreen(
             chatroom_instance, chatroom_instance.community)
 
+        last_conversation_member_id = last_conversation_member.id if last_conversation_member else None
+        second_last_conversation_member_id = second_last_conversation_member.id if second_last_conversation_member \
+            else None
+        last_conversation_user_id = last_conversation_user.id if last_conversation_user else None
+        second_last_conversation_user_id = second_last_conversation_user.id if second_last_conversation_user else None
+
+        update_conversation_engage_data_for_chatroom(
+            chatroom_instance.id, last_conversation_id=conversation_instance.id,
+            second_last_conversation_id=second_last.id, last_conversation_member_id=last_conversation_member_id,
+            second_last_conversation_member_id=second_last_conversation_member_id,
+            last_conversation_user_id=last_conversation_user_id,
+            second_last_conversation_user_id=second_last_conversation_user_id,
+            updated_at=TimeUtilities.current_time_in_sec())
+
+        instance_unseen_count_map = {}
+
+        for instance_value in list(instance_list.values_list('id', 'unseen_count', 'user_id')):
+
+            if instance_value[2] != user_instance.id:
+                instance_unseen_count_map[instance_value[0]] = -1
+
+            else:
+                instance_unseen_count_map[instance_value[0]] = instance_value[1]
+
+            users_list.append(instance_value[2])
+
         for engage_instance in instance_list:
-            engage_instance.last_conversation = conversation_instance
-            engage_instance.second_last_conversation = second_last
-            engage_instance.unseen_count = engage_instance.unseen_count + 1 if engage_instance.user != user_instance \
-                else 0
-            engage_instance.last_conversation_member = last_conversation_member
-            engage_instance.second_last_conversation_member = second_last_conversation_member
-            engage_instance.last_conversation_user = last_conversation_user
-            engage_instance.second_last_conversation_user = second_last_conversation_user
-            engage_instance.updated_at = TimeUtilities.current_time_in_sec()
-
+            engage_instance.unseen_count = instance_unseen_count_map.get(engage_instance.id) + 1
             engage_list.append(engage_instance)
-            users_list.append(engage_instance.user_id)
 
-        ModelUtilities.bulk_update_instances(conversationEngage, engage_list,
-                                             ['last_conversation', 'second_last_conversation', 'unseen_count',
-                                              'last_conversation_member', 'second_last_conversation_member',
-                                              'last_conversation_user', 'second_last_conversation_user', 'updated_at'])
+        ModelUtilities.bulk_update_instances(conversationEngage, engage_list, ['unseen_count'])
 
         engage_members = tagged_members + [user_instance.id] if tagged_members else [user_instance.id]
 
@@ -2217,7 +2233,7 @@ class ConversationHelper:
 
                 instance.last_conversation = conversation_instance
                 instance.second_last_conversation = second_last
-                instance.unseen_count = len(conversations_filter) if user_instance != user_instance else 0
+                instance.unseen_count = total_conversations if user_instance != user_instance else 0
                 instance.last_conversation_member = last_conversation_member
                 instance.second_last_conversation_member = second_last_conversation_member
                 instance.last_conversation_user = last_conversation_user
@@ -2320,8 +2336,8 @@ class ConversationHelper:
         ConversationHelper._create_or_update_conversation_engage(chatroom_instance, user_instance,
                                                                  conversation_instance, tagged_members_list)
 
-        ConversationHelper.update_the_activity_time_for_new_conversation_creation(chatroom_instance.id,
-                                                                                  user_instance.id)
+        ConversationHelper.update_the_activity_time_for_new_conversation_creation.delay(chatroom_instance.id,
+                                                                                        user_instance.id)
 
         if not has_files:
             ConversationHelper.update_latest_conversation_id_to_firebase(chatroom_instance.id, conversation_instance.id)

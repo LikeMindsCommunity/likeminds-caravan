@@ -48,6 +48,38 @@ def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
+def update_conversation_engage_data_for_chatroom(card_id, last_conversation_id, second_last_conversation_id,
+                                                 last_conversation_member_id, second_last_conversation_member_id,
+                                                 last_conversation_user_id, second_last_conversation_user_id,
+                                                 updated_at):
+    '''function to update chatroom data'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+                UPDATE togther_conversationengage
+                SET    last_conversation_id = %s ,
+                       second_last_conversation_id = %s,
+                       last_conversation_member_id=%s,
+                       second_last_conversation_member_id=%s,
+                       last_conversation_user_id=%s,
+                       second_last_conversation_user_id=%s,
+                       updated_at=%s
+                WHERE  card_id=%s;"""
+        paramter_list = [last_conversation_id, second_last_conversation_id, last_conversation_member_id,
+                         second_last_conversation_member_id, last_conversation_user_id,
+                         second_last_conversation_user_id, updated_at, card_id]
+        curr.execute(sql, paramter_list)
+        conn.commit()
+        info_logger.info("conversation engage updated successfully")
+        curr.close()
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
 def get_my_chatrooms_count(user_id,
                            version_code,
                            platform_code,
