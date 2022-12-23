@@ -10865,6 +10865,7 @@ def update_community_manager_rights(request):
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     community_instance = community_dict.get('community_instance')
+    community_id = community_instance.id
 
     current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
 
@@ -11373,6 +11374,7 @@ def update_community_member_rights(request):
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     community_instance = community_dict.get('community_instance')
+    community_id = community_instance.id
 
     current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
 
