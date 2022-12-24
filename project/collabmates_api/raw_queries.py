@@ -1225,7 +1225,7 @@ def get_members_of_community_based_on_community_list_for_sync(community_id_list,
                 ON togther_community.id = togther_members.community_id_id
             WHERE togther_members.community_id_id IN %s
                     AND togther_members.updated_at > %s order by 
-                    togther_members.updated_at  limit %s offset %s
+                    togther_members.updated_at, togther_members.id limit %s offset %s
             
             """ % (str(community_id_tupple), last_updated, limit, offset)
 
@@ -1271,7 +1271,7 @@ def get_members_of_community_based_on_user_list_for_sync(user_id_list, community
                 ON togther_community.id = togther_members.community_id_id
             WHERE togther_members.member_id_id IN %s
                     AND togther_members.updated_at > %s 
-                    AND togther_members.community_id_id = %s order by updated_at limit %s offset %s
+                    AND togther_members.community_id_id = %s order by updated_at, togther_members.id limit %s offset %s
 
             """ % (str(user_id_tuple), last_updated, str(community_id), limit, offset)
 

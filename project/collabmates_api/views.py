@@ -13329,6 +13329,7 @@ class SyncConversation(APIView):
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
         state = query_params.get('state')
+        chatroom_type = query_params.get('chatroom_type')
 
         if chatroom_id:
             # seen conversation support for old versions of android users to be removed after stable release
@@ -13382,7 +13383,10 @@ class SyncConversation(APIView):
 
         else:
 
-            chatroom_list = self.get_user_related_chatroom_list(chatroom_status, member_id)
+            chatroom_list = self.get_user_related_chatroom_list(chatroom_status,
+                                                                member_id,
+                                                                chatroom_type=chatroom_type)
+
             conversation_data, files_answer_id = get_conversation_data_based_on_chatroom_list(chatroom_list, page,
                                                                                               paginate_by, last_updated,
                                                                                               state)
@@ -13756,25 +13760,31 @@ class SyncConversation(APIView):
 
         return conversation_files_response
 
-    def get_user_related_chatroom_list(self, chatroom_status, member_id):
+    def get_user_related_chatroom_list(self, chatroom_status, member_id, chatroom_type=None):
         """
             This function returns conversation filter based on different conditions of chatroom
             chatroom_status = followed/unfollowed
         """
-        chatroom_list = []
+        condition_dict = {
+            'user': member_id,
+            'remove': None
+        }
+
         if chatroom_status:
 
             if chatroom_status == "followed":
-                condition_dict = {'user': member_id, 'follow_status': True, 'remove': None}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict)
+                condition_dict['follow_status'] = True
 
             elif chatroom_status == "unfollowed":
-                condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
-                chatroom_list = get_id_list_of_chatrooms(condition_dict)
+                condition_dict['follow_status'] = False
 
         else:
-            condition_dict = {'user': member_id, 'follow_status': False, 'remove': None}
-            chatroom_list = get_id_list_of_chatrooms(condition_dict)
+            condition_dict['follow_status'] = False
+
+        if chatroom_type:
+            condition_dict['card__type'] = chatroom_type
+
+        chatroom_list = get_id_list_of_chatrooms(condition_dict)
 
         return chatroom_list
 
