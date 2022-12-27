@@ -277,6 +277,14 @@ class SdkImpl(SdkManager):
                 return ResponseUtilities.get_impl_error_context(join_community_context.get('error_message'),
                                                                 join_community_context.get('status'))
 
+        req_body = validated_request_body.get('join_req_body')
+
+        if req_body.get('image_url'):
+            user_instance = ModelUtilities.get_user_instance_or_none(user_object.get('user_unique_id'))
+
+            if user_instance:
+                response['user']['image_url'] = user_instance.userinfo.image_link
+
         return response
 
     def authenticate_sdk(self) -> dict:
