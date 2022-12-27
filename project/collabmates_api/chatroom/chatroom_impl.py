@@ -5065,13 +5065,7 @@ class ChatroomHelper:
             'user__userinfo__is_guest': False
         }
 
-        total_participants_list = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',
-                                                                                                            flat=True)
-
-        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list,
-                                                                           card_instance.community)
-
-        return len(member_data)
+        return ModelUtilities.get_model_filter(collabcardState, filter_dict).count()
 
     @staticmethod
     def set_chatroom_conversion_type_status_key_in_cache(chatroom_id, is_converting=False):
