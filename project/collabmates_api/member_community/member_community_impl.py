@@ -1772,7 +1772,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                             'community': community_instance}).
                            values_list("right__state", flat=True))
 
-        community_serializer_dict = {}
+        context = {"current_user_id": user_instance.id}
+        community_serializer_object = CommunitySerializerV1(community_instance, context=context, many=False).data
 
         for card_id, card_ans_id in card_ans_map.items():
             chatroom = MemberCommunityHelper.serialise_dm_chatrooms(user_instance, community_instance, card_id,
@@ -1780,13 +1781,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                     convsersation_states_to_consider, rights_list,
                                                                     device_id=self.get_device_id())
 
-            if not community_serializer_dict.get(community_instance.id):
-                context = {"current_user_id": user_instance.id}
-                community_serializer_dict[community_instance.id] = CommunitySerializerV1(community_instance,
-                                                                                         context=context,
-                                                                                         many=False).data
-
-            chatroom['community'] = community_serializer_dict.get(community_instance.id)
+            chatroom['community'] = community_serializer_object
 
             if chatroom:
                 dm_chatrooms.append(chatroom)
