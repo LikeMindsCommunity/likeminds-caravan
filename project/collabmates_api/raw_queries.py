@@ -2526,23 +2526,30 @@ def get_dm_chatrooms_of_user(user_id, community_id):
         else:
             community_id = "=" + str(community_id)
 
-        sql = """SELECT CS.card_id, CS.id
-                   FROM   togther_collabcardstate AS CS
-                   WHERE  CS.follow_status = true
-                          AND CS.remove_id IS NULL
-                          AND CS.secret_chatroom_left = false
-                          AND CS.user_id = %s
-                          AND card_id IN (SELECT id
-                                          FROM   togther_collabcard
-                                                 AS
-                                                 CCRD
-                                          WHERE
-                              CCRD.community_id %s
-                              AND is_private = true
-                              AND CCRD.type = 10
-                              AND ( CCRD.user_id = %s OR
-                              CCRD.chatroom_with_user_id = %s ))
-        """ % (str(user_id), str(community_id), str(user_id), str(user_id))
+        non_guest_user_ids = get_tuple_from_array(get_user_ids_based_on_guest_filter(is_guest=False))
+
+        sql = """
+                SELECT cs.card_id,
+                       cs.id
+                FROM   togther_collabcardstate AS cs
+                WHERE  cs.follow_status = true
+                AND    cs.remove_id IS NULL
+                AND    cs.secret_chatroom_left = false
+                AND    cs.user_id = %s
+                AND    card_id IN
+                       (
+                              SELECT id
+                              FROM   togther_collabcard AS ccrd
+                              WHERE  ccrd.community_id %s
+                              AND    is_private = true
+                              AND    ccrd.type = 10
+                              AND    (
+                                            ccrd.user_id = %s
+                                     OR     ccrd.chatroom_with_user_id = %s )
+                              AND    (
+                                            ccrd.user_id               IN %s
+                                     AND    ccrd.chatroom_with_user_id IN %s))
+        """ % (str(user_id), str(community_id), str(user_id), str(user_id), non_guest_user_ids, non_guest_user_ids)
 
         curr.execute(sql)
         card_list = curr.fetchall()
@@ -3069,3 +3076,24 @@ def fetch_user_communities_sorted_by_order_time(user_id, community_id=None):
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_user_ids_based_on_guest_filter(is_guest=False):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+                SELECT   user_id_id
+                FROM     togther_userinfo
+                WHERE    is_guest = %s;""" % (is_guest)
+
+        curr.execute(sql)
+        user_list = curr.fetchall()
+        curr.close()
+
+        return [data[0] for data in user_list]
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
