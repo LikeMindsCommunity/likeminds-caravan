@@ -3074,6 +3074,29 @@ def fetch_user_communities_sorted_by_order_time(user_id, community_id=None):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
+def get_user_ids_based_on_guest_filter(is_guest=False, only_sql_query=False):
+    try:
+        sql = """
+                SELECT   user_id_id
+                FROM     togther_userinfo
+                WHERE    is_guest = %s""" % is_guest
+
+        if only_sql_query:
+            return sql
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        curr.execute(sql)
+        user_list = curr.fetchall()
+        curr.close()
+
+        return [data[0] for data in user_list]
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
 def get_chatroom_participants_count(chatroom_id, community_id):
     """Returns the participants count of chatroom in community"""
 
