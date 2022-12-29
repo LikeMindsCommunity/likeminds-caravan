@@ -3097,3 +3097,39 @@ def get_user_ids_based_on_guest_filter(is_guest=False):
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
+
+def get_chatroom_participants_count(chatroom_id, community_id):
+    """Returns the participants count of chatroom in community"""
+
+      try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """SELECT COUNT(*)
+                FROM "togther_members"
+                INNER JOIN "togther_collabcardstate"
+                    ON ("togther_members"."member_id_id" = "togther_collabcardstate"."user_id")
+                WHERE ("togther_members"."community_id_id" = %s
+                        AND "togther_collabcardstate"."follow_status" = true
+                        AND "togther_collabcardstate"."card_id" = %s
+                        AND "togther_collabcardstate"."is_tagged" = false
+                        AND "togther_collabcardstate"."remove_id" is NULL 
+                        AND "togther_collabcardstate"."user_id" IN 
+                        (
+                            SELECT user_id_id FROM togther_userinfo WHERE is_guest = false
+                        ));""" % (str(community_id), str(chatroom_id))
+
+        curr.execute(sql)
+        participants_count = curr.fetchone()
+        curr.close()
+
+        if participants_count:
+            return participants_count[0]
+
+        return 0
+
+    except (Exception, psycopg2.Error) as error:
+        print(error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+        return 0

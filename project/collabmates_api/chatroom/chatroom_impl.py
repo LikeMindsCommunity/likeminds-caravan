@@ -36,7 +36,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_last_seen_non_member_access_event_for_user, \
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
     get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right, \
-    get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community
+    get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community, get_chatroom_participants_count
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, ScheduledChatroomFollowSerializer
@@ -5056,22 +5056,7 @@ class ChatroomHelper:
 
     @staticmethod
     def chatroom_participants_count(card_instance):
-
-        filter_dict = {
-            'card': card_instance,
-            'follow_status': True,
-            'is_tagged': False,
-            'remove': None,
-            'user__userinfo__is_guest': False
-        }
-
-        total_participants_list = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',
-                                                                                                            flat=True)
-
-        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list,
-                                                                           card_instance.community)
-
-        return len(member_data)
+        return get_chatroom_participants_count(card_instance.id, card_instance.community_id)
 
     @staticmethod
     def set_chatroom_conversion_type_status_key_in_cache(chatroom_id, is_converting=False):
