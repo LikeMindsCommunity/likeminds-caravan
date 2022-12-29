@@ -3089,7 +3089,7 @@ def get_chatroom_participants_count(chatroom_id, community_id):
                         AND "togther_collabcardstate"."remove_id" is NULL 
                         AND "togther_collabcardstate"."user_id" IN 
                         (
-                            SELECT user_id_id from togther_userinfo where is_guest = false
+                            SELECT user_id_id FROM togther_userinfo WHERE is_guest = false
                         ));""" % (str(community_id), str(chatroom_id))
 
         curr.execute(sql)
