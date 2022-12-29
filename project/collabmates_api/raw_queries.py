@@ -3072,7 +3072,7 @@ def fetch_user_communities_sorted_by_order_time(user_id, community_id=None):
 
 
 def get_chatroom_participants_count(chatroom_id, community_id):
-    """returns the members of the community based on user list"""
+    """Returns the participants count of chatroom in community"""
 
     try:
         conn = get_connection()
