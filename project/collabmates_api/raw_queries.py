@@ -3078,7 +3078,7 @@ def get_chatroom_participants_count(chatroom_id, community_id):
         conn = get_connection()
         curr = conn.cursor()
 
-        sql = """SELECT COUNT(*)
+        sql = """SELECT COUNT(DISTINCT("togther_members"."member_id_id"))
                 FROM "togther_members"
                 INNER JOIN "togther_collabcardstate"
                     ON ("togther_members"."member_id_id" = "togther_collabcardstate"."user_id")
