@@ -641,7 +641,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                          send_expired_info=True) -> {}:
 
         member_dict = {}
-        membership_expired_dict ={}
+        membership_expired_dict = {}
         member_list = get_members_based_on_user_list_query(user_list, community_instance.id,
                                                            order_by_name=order_by_name)
         community_name = community_instance.name
