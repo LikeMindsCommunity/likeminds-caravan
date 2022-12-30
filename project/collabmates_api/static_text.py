@@ -590,12 +590,6 @@ FREE_LINK_VERSION_CODE = {
     "web": 1001
 }
 
-CREATE_CHATROOM_REVAMP_VERSION_CODE = {
-    "an": 1001,
-    "ios": 1001,
-    "web": 14
-}
-
 MEMBERSHIP_PLANS_MANAGEMENT_TOOLS = {
     "title": "Membership plans",
     "image_url": "https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/mambership_plans_icon.png",

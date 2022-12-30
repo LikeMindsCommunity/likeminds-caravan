@@ -3,9 +3,10 @@
 from django.core.paginator import Paginator
 
 from .static_text import SINGLE_COMMUNITY_VIEW_VERSION_CODE, LM_PLATFORM_CODES, FREE_LINK_VERSION_CODE, \
-    CREATE_CHATROOM_REVAMP_VERSION_CODE, M2CM_V2_IOS_VERSION_CODE, M2CM_V2_ANDROID_VERSION_CODE, \
-    M2CM_V2_WEB_VERSION_CODE, DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS, \
-    DM_CHATROOMS_VERSION_CODE_WEB
+    M2CM_V2_IOS_VERSION_CODE, M2CM_V2_ANDROID_VERSION_CODE, M2CM_V2_WEB_VERSION_CODE, \
+    DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS, DM_CHATROOMS_VERSION_CODE_WEB
+
+from utility.version_utilities import VersionUtilities
 
 
 def get_member_id_from_headers(request):
@@ -133,14 +134,7 @@ def free_link_and_freemium_community_version_check(platform_code: str, version_c
 
 
 def create_chatroom_revamp_version_check(platform_code: str, version_code: int) -> bool:
-    if not platform_code or platform_code.lower() not in LM_PLATFORM_CODES:
-        return False
-
-    if platform_code in CREATE_CHATROOM_REVAMP_VERSION_CODE.keys() and version_code >= \
-            CREATE_CHATROOM_REVAMP_VERSION_CODE[platform_code]:
-        return True
-
-    return False
+    return VersionUtilities.check_version(platform_code, version_code, VersionUtilities.create_chatroom_revamp)
 
 
 def m2cm_v2_version_check(platform_code, version_code):

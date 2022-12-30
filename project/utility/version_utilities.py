@@ -19,6 +19,15 @@ class VersionUtilities:
         PlatformCode.WEB_SDK: beta_dummy_version
     }
 
+    create_chatroom_revamp: dict = {
+        PlatformCode.ANDROID: beta_dummy_version,
+        PlatformCode.IOS: beta_dummy_version,
+        PlatformCode.WEB: beta_dummy_version,
+        PlatformCode.ANDROID_SDK: 207,
+        PlatformCode.IOS_SDK: beta_dummy_version,
+        PlatformCode.WEB_SDK: 14
+    }
+
     @staticmethod
     def check_version(platform_code: str, version_code: int, feature_version_dict: dict) -> bool:
         """
