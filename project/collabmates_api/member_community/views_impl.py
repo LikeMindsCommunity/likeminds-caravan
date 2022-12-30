@@ -41,7 +41,7 @@ class FetchCommunityFeed(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
-        platform_code = RequestUtilities.get_platform_code(request)
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         api_version = RequestUtilities.get_accept_version_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
@@ -128,6 +128,8 @@ class FetchHomeCommunities(APIView):
     def get(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
         page = request.GET.get('page', 1)
         show_dm = request.GET.get('show_dm', False)
         is_cm = request.GET.get('is_cm', False)
@@ -138,8 +140,8 @@ class FetchHomeCommunities(APIView):
             return JsonResponse({'error_message': 'Invalid header member id'}, status=400)
 
         member_community_manager = MemberCommunityImpl(member_id, community_id,
-                                                       platform_code=RequestUtilities.get_platform_code(request),
-                                                       version_code=RequestUtilities.get_version_code_from_headers(request))
+                                                       platform_code=platform_code,
+                                                       version_code=version_code)
         community_context = member_community_manager.fetch_home_communities(page, show_dm=show_dm, is_cm=is_cm,
                                                                             is_paid=is_paid)
 
