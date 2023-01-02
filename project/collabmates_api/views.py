@@ -5538,7 +5538,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, api_type=ap
                                            {'card': card_instance, 'user': user_instance, 'remove': None},
                                            {'external_seen': True})
 
-    update_last_unseen_in_engage(user=user_instance, community=card_instance.community)
+    update_last_unseen_in_engage.delay(user=user_instance.id, community=card_instance.community_id)
 
     if chatroom_state:
         state_instance = chatroom_state[0]

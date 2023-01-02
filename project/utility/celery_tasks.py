@@ -99,6 +99,7 @@ def update_last_unseen_in_engage_on_card_creation(community_id, is_seen=True):
         update_last_unseen_in_engage(user=member.member_id_id, community=community_id, is_seen=is_seen)
 
 
+@shared_task
 def update_last_unseen_in_engage(user='', community='', is_seen=False):
     '''function to update the unseen  collabcard in engage'''
 
