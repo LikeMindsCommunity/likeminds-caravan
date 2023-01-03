@@ -1639,12 +1639,19 @@ def get_conversation_files_based_on_conversation_list(conversation_list):
         return {}
 
 
-def get_members_based_on_user_list_query(user_list, community_id, order_by_name=False):
+def get_members_based_on_user_list_query(user_list, community_id, order_by_name=False, page=None, limit=None):
     """returns the members of the community based on user list"""
 
     try:
         conn = get_connection()
         curr = conn.cursor()
+
+        paginated_query = ""
+
+        if page:
+            offset = (int(page) - 1) * int(limit)
+            paginated_query = 'ORDER BY "togther_userinfo"."name" LIMIT {} OFFSET {}'.format(limit, offset)
+
         user_tupple = get_tuple_from_array(user_list)
 
         if not user_tupple:
@@ -1665,7 +1672,8 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
                 INNER JOIN "togther_userinfo"
                     ON ("togther_members"."member_id_id" = "togther_userinfo"."user_id_id")
                 WHERE ("togther_members"."community_id_id" = %s
-                        AND "togther_members"."member_id_id" IN %s)""" % (str(community_id), str(user_tupple))
+                        AND "togther_members"."member_id_id" IN %s) %s""" % (str(community_id), str(user_tupple),
+                                                                             paginated_query)
 
         if order_by_name:
             sql += " order by lower(togther_userinfo.name) ASC"

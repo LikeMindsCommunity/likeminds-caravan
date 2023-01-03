@@ -430,7 +430,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_chatroom_participants(self):
+    def fetch_chatroom_participants(self, page: int = None, page_size: int = None):
         """
         function to fetch chatroom participants meta data
         """

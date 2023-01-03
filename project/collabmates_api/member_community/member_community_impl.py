@@ -669,12 +669,13 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     @staticmethod
     def fetch_members_based_on_user_list(user_list, community_instance, order_by_name=False,
-                                         send_expired_info=True) -> {}:
+                                         send_expired_info=True, page=None, limit=None) -> {}:
 
         member_dict = {}
         membership_expired_dict = {}
         member_list = get_members_based_on_user_list_query(user_list, community_instance.id,
-                                                           order_by_name=order_by_name)
+                                                           order_by_name=order_by_name, page=page,
+                                                           limit=limit)
         community_name = community_instance.name
 
         if send_expired_info:

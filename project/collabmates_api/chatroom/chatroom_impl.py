@@ -2725,7 +2725,7 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_object
 
-    def fetch_chatroom_participants(self):
+    def fetch_chatroom_participants(self, page: int, page_size: int):
 
         validated_req = ChatroomViewHelper.validate_fetch_participants_meta(self.get_member_id(),
                                                                             self.get_chatroom_id())
@@ -2763,7 +2763,8 @@ class ChatroomImpl(ChatroomManager):
         total_participants_list = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',
                                                                                                             flat=True)
 
-        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list, community_instance)
+        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list, community_instance,
+                                                                           page=page, limit=page_size)
         participant_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 
         response = {

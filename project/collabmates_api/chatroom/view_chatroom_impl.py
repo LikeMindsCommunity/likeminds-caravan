@@ -990,10 +990,13 @@ class FetchChatroomParticipantsView(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         chatroom_id = request.GET.get('chatroom_id')
+        page = RequestUtilities.get_page_number(request, default=0)
+        page_size = RequestUtilities.get_page_size(request)
+
         chatroom_manager = ChatroomImpl(member_id, chatroom_id)
 
         try:
-            chatroom_data = chatroom_manager.fetch_chatroom_participants()
+            chatroom_data = chatroom_manager.fetch_chatroom_participants(page, page_size)
 
             if chatroom_data.get('error_message'):
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
