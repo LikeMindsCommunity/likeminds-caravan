@@ -36,7 +36,8 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_last_seen_non_member_access_event_for_user, \
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
     get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right, \
-    get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community, get_chatroom_participants_count
+    get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community, get_chatroom_participants_count,\
+    get_members_based_on_user_list_query
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, ScheduledChatroomFollowSerializer
@@ -564,8 +565,8 @@ class ChatroomImpl(ChatroomManager):
     @staticmethod
     def compute_tagging_list_of_community_members(community_instance, member_ids=[]):
         member_list = MemberCommunityImpl.fetch_list_of_community_members(community_instance, member_ids)
-        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance)
-        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
+        member_data = get_members_based_on_user_list_query(member_list, community_instance.id)
+        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data, new_field_data=True)
 
         return tagging_list
 
@@ -639,8 +640,8 @@ class ChatroomImpl(ChatroomManager):
             error_logger.error(e)
             member_list = []
 
-        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance)
-        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
+        member_data = get_members_based_on_user_list_query(member_list, community_instance.id)
+        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data, new_field_data=True)
 
         return tagging_list
 

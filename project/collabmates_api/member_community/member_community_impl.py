@@ -2032,22 +2032,51 @@ class MemberCommunityHelper:
         return header
 
     @staticmethod
-    def extract_member_tagging_data(member_data) -> []:
+    def extract_member_tagging_data(member_data, new_field_data=False) -> []:
 
         member_list = []
+        member_dict = dict()
 
-        for key, value in member_data.items():
+        if not new_field_data:
 
-            temp = dict()
-            temp['id'] = value['id']
-            temp['name'] = value['name']
-            temp['image_url'] = value['image_url']
-            temp['user_unique_id'] = value['user_unique_id']
+            for key, value in member_data.items():
 
-            if value.get('is_guest') is not None:
-                temp['is_guest'] = value.get('is_guest')
+                temp = dict()
+                temp['id'] = value['id']
+                temp['name'] = value['name']
+                temp['image_url'] = value['image_url']
+                temp['user_unique_id'] = value['user_unique_id']
 
-            member_list.append(temp)
+                if value.get('is_guest') is not None:
+                    temp['is_guest'] = value.get('is_guest')
+
+                member_list.append(temp)
+
+        else:
+
+            for data in member_data:
+
+                if not member_dict.get(data.get('member_id')):
+
+                    member = {
+                        'id': data.get('member_id'),
+                        'name': data.get('name'),
+                        'user_unique_id': data.get('user_unique_id'),
+                        'is_guest': data.get('is_guest')
+                    }
+
+                    if data.get('image_url'):
+                        image_url = data.get('image_url')
+
+                    elif data.get('image_link'):
+                        image_url = data.get('image_link')
+                    else:
+                        image_url = ""
+
+                    member['image_url'] = image_url
+
+                    member_list.append(member)
+                    member_dict[data.get('member_id')] = member
 
         return member_list
 
