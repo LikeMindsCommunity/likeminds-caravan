@@ -19,7 +19,7 @@ if settings.IS_BETA:
 else:
     notification_state = noti_states.ALL_MESSAGES
     chatroom_id = None
-    community_id = 2
+    community_id = None
     user_id = None
 
     filter_dict = {
