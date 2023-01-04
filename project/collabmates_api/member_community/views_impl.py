@@ -41,8 +41,9 @@ class FetchCommunityFeed(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
-        platform_code = RequestUtilities.get_platform_code(request)
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         api_version = RequestUtilities.get_accept_version_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not member_id:
             context = get_error_context(False, "member id missing in request")
@@ -55,7 +56,7 @@ class FetchCommunityFeed(APIView):
         pin_status = StringUtilities.get_boolean_from_string(pin_status)
 
         community_manager = MemberCommunityImpl(member_id, community_id, device_id=device_id, version_code=version_code,
-                                                platform_code=platform_code)
+                                                platform_code=platform_code, api_key=api_key)
         chatroom_id = request.GET.get('chatroom_id')
         scroll_direction = request.GET.get('scroll_direction')
         order_type = request.GET.get('order_type', 0)
@@ -127,6 +128,8 @@ class FetchHomeCommunities(APIView):
     def get(self, request):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
         page = request.GET.get('page', 1)
         show_dm = request.GET.get('show_dm', False)
         is_cm = request.GET.get('is_cm', False)
@@ -137,8 +140,8 @@ class FetchHomeCommunities(APIView):
             return JsonResponse({'error_message': 'Invalid header member id'}, status=400)
 
         member_community_manager = MemberCommunityImpl(member_id, community_id,
-                                                       platform_code=RequestUtilities.get_platform_code(request),
-                                                       version_code=RequestUtilities.get_version_code_from_headers(request))
+                                                       platform_code=platform_code,
+                                                       version_code=version_code)
         community_context = member_community_manager.fetch_home_communities(page, show_dm=show_dm, is_cm=is_cm,
                                                                             is_paid=is_paid)
 
@@ -523,3 +526,43 @@ class UnsubscribeEmailNotificationsView(APIView):
                                                                                 community_context.get('status_code')))
 
         return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+
+
+class FetchAccessView(APIView):
+
+    @staticmethod
+    def _validate_request(member_id, api_key, req_params):
+
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context("Send x-member-id in headers")
+
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context("Send x-api-key in headers")
+
+        if not req_params:
+            return ResponseUtilities.get_inner_error_context("Invalid request params")
+
+        if not req_params.get('access_type'):
+            return ResponseUtilities.get_inner_error_context("send access_type in request params")
+
+        return {'success': True}
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_params = RequestUtilities.fetch_request_query_params(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        validated_req_params = self._validate_request(member_id, api_key, req_params)
+
+        if not validated_req_params.get('success', False):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                validated_req_params.get('error_message'), status_codes.HTTP_400_BAD_REQUEST))
+
+        member_community_manager = MemberCommunityImpl(member_id, None, api_key=api_key)
+        community_context = member_community_manager.fetch_member_access(req_params.get('access_type'))
+
+        if 'error_message' in community_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                                community_context.get('status')))
+
+        return JsonResponse(community_context)

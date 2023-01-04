@@ -22,7 +22,7 @@ from utility.exception_utilities import CustomException
 from utility.states import member_states, card_types, deleted_members, question_states, \
     conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers, \
     community_dm_settings_state_types, community_dm_settings_duration_types, dm_icon_from_states, get_started_types, \
-    api_types
+    api_types, access_types
 
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
@@ -52,7 +52,8 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_ordered_card_id_on_the_basis_of_message_count_v2,
                            get_ordered_card_id_on_the_basis_last_message_v2,
                            get_ordered_card_id_on_the_basis_of_participants_count_v2,
-                           get_ordered_card_id_on_the_basis_newest_chatroom_v2)
+                           get_ordered_card_id_on_the_basis_newest_chatroom_v2,
+                           get_chatrooms_of_user_with_follow_status)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -63,7 +64,8 @@ from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
-    check_admin_add_community_managers_right
+    check_admin_add_community_managers_right, check_admin_moderate_feed_and_comments_right, \
+    check_member_create_post_right, check_member_comment_and_reply_right
 from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check, \
     m2cm_v2_version_check
 from utility.response_utilities import ResponseUtilities
@@ -305,12 +307,13 @@ class MemberCommunityImpl(MemberCommunityManager):
         else:
             member_community['members_count'] = 0
 
-    def _process_communities(self, community_queryset, community_id_list, user_instance) -> []:
+    def _process_communities(self, community_queryset, community_id_list, user_instance,
+                             is_chatroom_revamp=False) -> []:
 
         member_communities_additional_info = list()
 
-        community_chatroom_count_dict = MemberCommunityHelper.fetch_chatroom_count_for_home(community_id_list,
-                                                                                            user_instance.id)
+        community_chatroom_count_dict = MemberCommunityHelper.fetch_chatroom_count_for_home(
+            community_id_list, user_instance.id, is_chatroom_revamp)
 
         community_members_count_dict = MemberCommunityHelper.fetch_community_members_count(community_id_list)
 
@@ -397,9 +400,13 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             total_communities_count = len(communities_with_dm_rights_list)
 
+        is_chatroom_revamp = create_chatroom_revamp_version_check(platform_code=self.get_platform_code(),
+                                                                  version_code=self.get_version_code())
+
         community_queryset = self._paged_queryset(communities, page)
         community_id_list = self.compute_community_id_list_from_queryset(community_queryset)
-        community_list = self._process_communities(community_queryset, community_id_list, user_instance)
+        community_list = self._process_communities(community_queryset, community_id_list, user_instance,
+                                                   is_chatroom_revamp)
 
         return {
             'success': True,
@@ -603,14 +610,44 @@ class MemberCommunityImpl(MemberCommunityManager):
         return chatroom_list
 
     @staticmethod
-    def fetch_list_of_community_members(community_instance):
+    def get_valid_member_ids(member_ids):
+        integer_member_ids = []
+        user_unique_ids = []
 
-        member_list = \
-            list(Members.objects.filter(community_id=community_instance).filter(Q(state=member_states.ADMIN)
-                                                                                | Q(state=member_states.MEMBER)
-                                                                                | Q(
-                state=member_states.PROFILE_UNAVAILABLE)).values_list('member_id'
-                                                                      , flat=True))
+        for member_id in member_ids:
+            if isinstance(member_id, int):
+                integer_member_ids.append(member_id)
+
+            if isinstance(member_id, str):
+                if member_id.isdigit():
+                    integer_member_ids.append(member_id)
+                else:
+                    user_unique_ids.append(member_id)
+
+        user_ids = list(Userinfo.objects.filter(
+            Q(user_id_id__in=integer_member_ids) | Q(user_unique_id__in=user_unique_ids)).values_list(
+            'user_id_id', flat=True))
+        return user_ids
+
+    @staticmethod
+    def fetch_list_of_community_members(community_instance, member_ids=None):
+        if member_ids:
+            user_ids = MemberCommunityImpl.get_valid_member_ids(member_ids)
+            member_list = list(Members.objects.filter(
+                Q(community_id=community_instance),
+                Q(member_id_id__in=user_ids),
+                Q(state=member_states.ADMIN)
+                | Q(state=member_states.MEMBER)
+                | Q(state=member_states.PROFILE_UNAVAILABLE)
+            ).values_list('member_id', flat=True))
+
+        else:
+            member_list = \
+                list(Members.objects.filter(community_id=community_instance).filter(
+                    Q(state=member_states.ADMIN)
+                    | Q(state=member_states.MEMBER)
+                    | Q(state=member_states.PROFILE_UNAVAILABLE)
+                ).values_list('member_id', flat=True))
 
         return member_list
 
@@ -635,7 +672,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                          send_expired_info=True) -> {}:
 
         member_dict = {}
-        membership_expired_dict ={}
+        membership_expired_dict = {}
         member_list = get_members_based_on_user_list_query(user_list, community_instance.id,
                                                            order_by_name=order_by_name)
         community_name = community_instance.name
@@ -826,13 +863,15 @@ class MemberCommunityImpl(MemberCommunityManager):
     def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1) -> {}:
 
         validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
-                                                                              self.get_community_id())
+                                                                              self.get_community_id(),
+                                                                              self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
+        self.set_community_id(community_instance.id)
 
         filter_dict = {
             'community_id': self.get_community_id(),
@@ -856,6 +895,10 @@ class MemberCommunityImpl(MemberCommunityManager):
         if create_chatroom_revamp_version_check(self.get_platform_code(), self.get_version_code()):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
                                                                                self.get_community_id())
+            followed_card_ids = get_chatrooms_of_user_with_follow_status(self.get_member_id(),
+                                                                         self.get_community_id())
+
+            excluded_card_ids = list(set(excluded_card_ids) - set(followed_card_ids))
 
         if api_version in [api_version_headers.V1, api_version_headers.V2]:
             chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(intro_room_setting_enabled,
@@ -910,13 +953,15 @@ class MemberCommunityImpl(MemberCommunityManager):
                        page=1) -> {}:
 
         validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
-                                                                              self.get_community_id())
+                                                                              self.get_community_id(),
+                                                                              self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
+        self.set_community_id(community_instance.id)
 
         filter_dict = {
             'community_id': self.get_community_id(),
@@ -940,6 +985,12 @@ class MemberCommunityImpl(MemberCommunityManager):
         if create_chatroom_revamp_version_check(self.get_platform_code(), self.get_version_code()):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
                                                                                self.get_community_id())
+
+            followed_card_ids = get_chatrooms_of_user_with_follow_status(self.get_member_id(),
+                                                                         self.get_community_id())
+
+            excluded_card_ids = list(set(excluded_card_ids) - set(followed_card_ids))
+
         if api_version in [api_version_headers.V1, api_version_headers.V2]:
             chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(intro_room_setting_enabled,
                                                                                    pin_status, excluded_card_ids,
@@ -1467,10 +1518,6 @@ class MemberCommunityImpl(MemberCommunityManager):
         image_url = req_body.get('image_url')
 
         if question_answers:
-            ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
-                                                                    'community': community_instance})
-            ModelUtilities.delete_record_in_model(communityAnswers, {'community': community_instance,
-                                                                     'member': user_instance})
 
             from ..community.community_impl import CommunityHelper
 
@@ -1506,11 +1553,6 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                     {'answer': question.get(DIRECTORY_QUESTIONS_V2_ANSWER_KEY),
                                                      'last_updated': TimeUtilities.current_time_in_milliseconds()})
                         update_preview = True
-
-                elif question_instance.question_state == question_states.NAME:
-                    MemberCommunityHelper.update_user_alias_name(self.get_member_id(),
-                                                                 self.get_community_id(),
-                                                                 question.get(DIRECTORY_QUESTIONS_V2_ANSWER_KEY))
 
         question_answers_data = MemberCommunityHelper.get_question_answer_data_in_member_profile(user_member_instance,
                                                                                                  user_member_instance,
@@ -1730,11 +1772,16 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                             'community': community_instance}).
                            values_list("right__state", flat=True))
 
+        context = {"current_user_id": user_instance.id}
+        community_serializer_object = CommunitySerializerV1(community_instance, context=context, many=False).data
+
         for card_id, card_ans_id in card_ans_map.items():
             chatroom = MemberCommunityHelper.serialise_dm_chatrooms(user_instance, community_instance, card_id,
                                                                     card_ans_id, card_state_map,
                                                                     convsersation_states_to_consider, rights_list,
                                                                     device_id=self.get_device_id())
+
+            chatroom['community'] = community_serializer_object
 
             if chatroom:
                 dm_chatrooms.append(chatroom)
@@ -1820,6 +1867,57 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True}
 
+    def fetch_member_access(self, access_type: str) -> {}:
+        validated_request = MemberCommunityHelper.validate_fetch_member_access_request(
+            self.get_member_id(), self.get_api_key(), access_type)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        member_state = validated_request.get('member_state')
+        access_type = validated_request.get('access_type')
+
+        output_context = {
+            'success': True,
+            'access': False,
+            'is_cm': False
+        }
+
+        if member_state == member_states.ADMIN:
+            output_context['is_cm'] = True
+
+            if all([access_type in [access_types.DELETE_POST, access_types.PIN_POST, access_types.DELETE_COMMENT,
+                                    access_types.CREATE_ACTIVITY],
+                    check_admin_moderate_feed_and_comments_right(user_instance, community_instance)]):
+                output_context['access'] = True
+
+            if access_type in [access_types.CREATE_POST, access_types.VIEW_POST, access_types.LIKE_POST,
+                               access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.LIKE_COMMENT,
+                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY]:
+                output_context['access'] = True
+
+        if member_state == member_states.MEMBER:
+            if access_type == access_types.CREATE_POST and check_member_create_post_right(user_instance,
+                                                                                          community_instance):
+                output_context['access'] = True
+
+            if access_type == access_types.CREATE_COMMENT and check_member_comment_and_reply_right(user_instance,
+                                                                                                   community_instance):
+                output_context['access'] = True
+
+            if access_type in [access_types.VIEW_POST, access_types.DELETE_POST, access_types.LIKE_POST,
+                               access_types.VIEW_COMMENT, access_types.DELETE_COMMENT, access_types.LIKE_COMMENT,
+                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY]:
+                output_context['access'] = True
+
+            if access_type in [access_types.PIN_POST, access_types.CREATE_ACTIVITY]:
+                output_context['access'] = False
+
+        return output_context
+
 
 class MemberCommunityHelper:
     @staticmethod
@@ -1852,9 +1950,18 @@ class MemberCommunityHelper:
         return temp
 
     @staticmethod
-    def fetch_chatroom_count_for_home(community_id_list, member_id) -> {}:
+    def fetch_chatroom_count_for_home(community_id_list, member_id, is_chatroom_revamp=False) -> {}:
 
-        community_count_dict = get_chatroom_count_based_on_community_list(community_id_list, member_id)
+        excluded_card_ids = []
+
+        if is_chatroom_revamp:
+            excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(member_id)
+            followed_card_ids = get_chatrooms_of_user_with_follow_status(member_id)
+
+            excluded_card_ids = list(set(excluded_card_ids) - set(followed_card_ids))
+
+        community_count_dict = get_chatroom_count_based_on_community_list(community_id_list, member_id,
+                                                                          excluded_card_ids=excluded_card_ids)
 
         filter_dict = {
             'community_id__in': community_count_dict.keys(),
@@ -2344,9 +2451,6 @@ class MemberCommunityHelper:
 
         if card_instance:
             chatroom['chatroom'] = get_chatroom_instance(card_instance, user_instance.id, send_profile=False)
-            context = {"current_user_id": user_instance.id}
-            chatroom['community'] = CommunitySerializerV1(card_instance.community, context=context,
-                                                          many=False).data
             chatroom['is_draft'] = False
 
         if card_answer_instance:
@@ -2566,6 +2670,18 @@ class MemberCommunityHelper:
     @staticmethod
     def make_requesting_user_as_member_of_community(user_instance, community_instance, req_body, device_id=None,
                                                     platform=None, version_code=None):
+
+        from collabmates_api.community.community_impl import CommunityHelper, CommunityImpl
+        from collabmates_api.community.constants import (DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY)
+
+        question_answers_list = req_body.get(DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY)
+
+        if question_answers_list:
+            CommunityHelper.save_responses_of_member_in_community(user_instance.id,
+                                                                  community_instance.id,
+                                                                  question_answers_list,
+                                                                  True)
+
         Members.create_instance({'user_instance': user_instance,
                                  'community_instance': community_instance,
                                  'state': member_states.MEMBER,
@@ -2574,6 +2690,9 @@ class MemberCommunityHelper:
                                  'became_member_at': TimeUtilities.current_time_in_sec()
                                  })
 
+        if req_body.get('image_url'):
+            MemberCommunityHelper.update_user_image_in_sdk(user_instance, req_body.get('image_url'))
+
         ModelUtilities.update_or_create_model(Member_Engage, {
             'member_id': user_instance,
             'community_id': community_instance
@@ -2581,7 +2700,6 @@ class MemberCommunityHelper:
             'member_state': member_states.MEMBER,
             'order_time': TimeUtilities.current_time_in_milliseconds()})
 
-        from collabmates_api.community.community_impl import CommunityHelper, CommunityImpl
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
         CommunityHelper.set_follow_status_for_announcement_chatroom_for_community(community_instance,
                                                                                   user_instance)
@@ -2628,6 +2746,7 @@ class MemberCommunityHelper:
         community_impl.send_join_data_on_webhook.delay(user_instance.id, community_instance.id)
 
         ElasticSearchSync.update_member.delay(community_impl.get_member_id(), community_impl.get_community_id())
+        ElasticSearchSync.update_all_community_chatrooms_for_user.delay(community_instance.id, user_instance.id)
 
         update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
 
@@ -2654,25 +2773,6 @@ class MemberCommunityHelper:
             return pinned_chatrooms_list.get('pinned_chatrooms', [])
 
     @staticmethod
-    def update_user_alias_name(user_id, community_id, user_name):
-        ModelUtilities.model_update(Userinfo,
-                                    {
-                                        'user_id': user_id
-                                    },
-                                    {
-                                        'name': user_name
-                                    })
-
-        ModelUtilities.model_update(Members,
-                                    {
-                                        'member_id': user_id,
-                                        'community_id': community_id
-                                    },
-                                    {
-                                        'updated_at': TimeUtilities.current_time_in_sec()
-                                    })
-
-    @staticmethod
     def update_user_image_in_sdk(user_instance, image_url):
 
         userinfo_instance = user_instance.userinfo
@@ -2684,3 +2784,31 @@ class MemberCommunityHelper:
         update_preview_for_account_image_change.delay({'user_id': user_instance.id,
                                                        'image_url': image_url,
                                                        'previous_image_url': previous_image_url})
+
+    @staticmethod
+    def validate_fetch_member_access_request(user_id, api_key, access_type_value):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid API key")
+
+        is_community_member = Members.is_community_member(community_instance, user_instance)
+        if not is_community_member:
+            return ResponseUtilities.get_inner_error_context("You are not a member of the community")
+
+        member_state = Members.get_community_member_state(community_instance, user_instance)
+
+        valid_access_types = [access_types.CREATE_POST, access_types.VIEW_POST, access_types.DELETE_POST,
+                              access_types.PIN_POST, access_types.LIKE_POST, access_types.SAVE_POST,
+                              access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.DELETE_COMMENT,
+                              access_types.LIKE_COMMENT, access_types.CREATE_ACTIVITY, access_types.VIEW_ACTIVITY]
+
+        access_type = access_type_value
+        if access_type not in valid_access_types:
+            return ResponseUtilities.get_inner_error_context("Send valid access type")
+
+        return {'community_instance': community_instance, 'user_instance': user_instance,
+                'member_state': member_state, 'access_type': access_type}

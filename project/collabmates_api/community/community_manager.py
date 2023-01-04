@@ -129,7 +129,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
                     (
                             hasattr(subclass, 'add_community_member') and
                             callable(subclass.add_community_member)
-                    )and
+                    ) and
                     (
                             hasattr(subclass, 'update_community_member') and
                             callable(subclass.update_community_member)
@@ -141,6 +141,14 @@ class CommunityManager(metaclass=abc.ABCMeta):
                     (
                             hasattr(subclass, 'fetch_community_noti_settings') and
                             callable(subclass.fetch_community_noti_settings)
+                    ) and
+                    (
+                            hasattr(subclass, 'fetch_feed_notification_settings') and
+                            callable(subclass.fetch_feed_notification_settings)
+                    ) and
+                    (
+                            hasattr(subclass, 'update_feed_notification_settings') and
+                            callable(subclass.update_feed_notification_settings)
                     ) or
                     NotImplemented
         )
@@ -213,7 +221,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_members_meta(self, community_id):
+    def fetch_members_meta(self, member_ids):
         """returns list of members to create secret chatrooms"""
 
         raise NotImplementedError
@@ -345,5 +353,17 @@ class CommunityManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def update_community_noti_settings(self, req_body: dict) -> {}:
         """Updates notification settings of community"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_feed_notification_settings(self) -> {}:
+        """Fetches feed notification settings of community"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_feed_notification_settings(self, notification_settings: list) -> {}:
+        """Updates feed notification settings of community"""
 
         raise NotImplementedError

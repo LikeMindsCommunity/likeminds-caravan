@@ -328,10 +328,11 @@ class FetchMembersMeta(APIView):
     def get(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         community_id = request.GET.get('community_id')
+        member_ids = request.GET.get('member_ids')
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
         community_manager = CommunityImpl(member_id=member_id, community_id=community_id, api_key=api_key)
-        community_data = community_manager.fetch_members_meta(community_id)
+        community_data = community_manager.fetch_members_meta(member_ids)
 
         if 'error_message' in community_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_data.get('error_message'),
@@ -645,9 +646,6 @@ class FetchCommunityQuestionsView(APIView):
         if not member_id:
             return {'success': False, 'error_message': 'Send member_id'}
 
-        if not req_body.get('community_id'):
-            return {'success': False, 'error_message': 'Send community_id'}
-
         validated_req['success'] = True
         validated_req['member_id'] = member_id
         validated_req['community_id'] = req_body.get('community_id')
@@ -661,6 +659,7 @@ class FetchCommunityQuestionsView(APIView):
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         req_body = RequestUtilities.fetch_request_query_params(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         validated_body = self._validate_request(member_id, req_body)
 
         if not validated_body.get('success'):
@@ -669,14 +668,15 @@ class FetchCommunityQuestionsView(APIView):
         community_manager = CommunityImpl(member_id=validated_body.get('member_id'),
                                           community_id=validated_body.get('community_id'),
                                           version_code=version_code,
-                                          request_platform=platform_code)
+                                          request_platform=platform_code,
+                                          api_key=api_key)
 
         res = community_manager.fetch_community_questions(validated_body)
 
-        if not res.get('success'):
-            return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
-
-        return JsonResponse(res, status=status_codes.HTTP_200_OK)
+        if 'error_message' in res:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)
 
 
 class FetchCommunityBrandingView(APIView):
@@ -942,6 +942,37 @@ class CommunityNotificationSettings(APIView):
 
         community_manager = CommunityImpl(member_id=member_id, community_id=req_body.get('community_id'))
         res = community_manager.fetch_community_noti_settings()
+
+        if res.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)
+
+
+class FeedNotificationSettings(APIView):
+
+    def put(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+        notification_settings = req_body.get('notification_settings')
+
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        res = community_manager.update_feed_notification_settings(notification_settings)
+
+        if res.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        res = community_manager.fetch_feed_notification_settings()
 
         if res.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),

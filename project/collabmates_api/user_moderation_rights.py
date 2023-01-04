@@ -23,7 +23,7 @@ def give_all_member_rights(user, community):
     """function to give a member all the rights """
     userMemberRights.objects.filter(user=user, community=community).delete()
 
-    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8]).order_by("state")
+    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8, 9, 10]).order_by("state")
     fill_member_rights(user, community, member_rights)
 
 
@@ -68,7 +68,6 @@ def give_default_member_rights(user, community):
 
     conversationEngage.objects.filter(user=user,
                                       community_id=community).update(rights_list=rights_added)
-
 
 
 def give_all_manager_rights(user, community):
@@ -128,7 +127,8 @@ def update_member_rights_for_sdk(rights_context, community_instance):
     updated_rights = []
 
     for right_item in rights_context:
-        if right_item['state'] in [respond_in_rooms_member_right['state'], create_poll_member_right['state']]:
+        if right_item['state'] in [respond_in_rooms_member_right['state'], create_poll_member_right['state'],
+                                   create_post_right['state'], comment_and_reply_right['state']]:
             updated_rights.append(right_item)
 
     return updated_rights
@@ -144,6 +144,12 @@ def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=F
             continue
 
         if (right.state == member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM) and (not is_m2cm_v2):
+            continue
+
+        if right.state == create_post_right['state'] and (not user_rights.get("create_posts", False)):
+            continue
+
+        if right.state == comment_and_reply_right['state'] and (not user_rights.get("comment_and_reply", False)):
             continue
 
         right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title, "state": right.state,
@@ -194,6 +200,14 @@ def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=F
             right_dict["is_selected"] = user_rights["members_can_dm"]
             right_dict["is_locked"] = False
 
+        elif right.state == create_post_right['state']:
+            right_dict["is_selected"] = user_rights["create_posts"]
+            right_dict["is_locked"] = False
+
+        elif right.state == comment_and_reply_right['state']:
+            right_dict["is_selected"] = user_rights["comment_and_reply"]
+            right_dict["is_locked"] = False
+
         if right.sub_title is None:
             del right_dict["sub_title"]
 
@@ -223,6 +237,9 @@ def get_saved_manager_rights_list(admin_rights):
 
         elif right.state == add_manager_manager_right['state']:
             right_dict["is_selected"] = admin_rights["add_manager"]
+
+        elif right.state == moderate_feed_and_comments_right['state']:
+            right_dict["is_selected"] = admin_rights["moderate_feed_and_comments"]
 
         if right.sub_title is None:
             del right_dict["sub_title"]
@@ -272,9 +289,11 @@ def check_all_manager_rights(user, community):
     edit_community = False
     view_contact = False
     add_manager = False
+    moderate_feed_and_comments = False
 
     rights_list = {"delete_room": delete_room, "approve": approve, "edit_community": edit_community,
-                   "view_contact": view_contact, "add_manager": add_manager}
+                   "view_contact": view_contact, "add_manager": add_manager,
+                   "moderate_feed_and_comments": moderate_feed_and_comments}
 
     for right in admin_rights:
         right = right.right
@@ -289,6 +308,8 @@ def check_all_manager_rights(user, community):
             rights_list["view_contact"] = True
         elif right.state == add_manager_manager_right['state']:
             rights_list["add_manager"] = True
+        elif right.state == moderate_feed_and_comments_right['state']:
+            rights_list["moderate_feed_and_comments"] = True
 
     return rights_list
 
@@ -304,6 +325,8 @@ def check_all_member_rights(user=None, community=None, is_m2cm_v2=False):
     secret_chatroom = False
     show_direct_messages = False
     members_can_dm = False
+    create_posts = False
+    comment_and_reply = False
 
     if user is None and community is not None:
         member_rights = communityRightsSettings.objects.select_related('right').exclude(right__state=4).filter(
@@ -311,7 +334,7 @@ def check_all_member_rights(user=None, community=None, is_m2cm_v2=False):
 
     elif user is not None and community is not None:
         member_rights = userMemberRights.objects.exclude(right__state__in=[4, 7]).select_related(
-            'right').filter(user=user,community=community).order_by("right__state")
+            'right').filter(user=user, community=community).order_by("right__state")
 
     else:
         member_rights = []
@@ -336,10 +359,15 @@ def check_all_member_rights(user=None, community=None, is_m2cm_v2=False):
             show_direct_messages = True
         elif right.state == members_can_dm_right['state']:
             members_can_dm = True
+        elif right.state == create_post_right['state']:
+            create_posts = True
+        elif right.state == comment_and_reply_right['state']:
+            comment_and_reply = True
 
     rights = {"create_room": create_room, "create_poll": create_poll, "create_event": create_event,
               "respond_in_rooms": respond_in_rooms, "auto_approve": auto_approve,
-              "create_secret_chatroom": secret_chatroom, "show_dm": show_direct_messages}
+              "create_secret_chatroom": secret_chatroom, "show_dm": show_direct_messages,
+              "create_posts": create_posts, "comment_and_reply": comment_and_reply}
 
     if is_m2cm_v2:
         rights["members_can_dm"] = members_can_dm
@@ -362,58 +390,37 @@ def remove_member_create_room_right(user, community, current_user_id):
         error_logger.error(f"member right does not exist for user {user.id} in community {community.id}")
 
 
-def check_admin_delete_right(user, community):
-    user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
+def check_user_admin_right(user, community, right_state):
+    user_rights = userAdminRights.objects.filter(user=user, community=community, right__state=right_state)
+    return user_rights.exists()
 
-    if user_rights.exists():
-        return True
-    return False
+
+def check_admin_delete_right(user, community):
+    return check_user_admin_right(user, community, manager_rights.MANAGER_RIGHT_DELETE_ROOMS)
 
 
 def check_admin_approve_right(user, community):
-    user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
-
-    if user_rights.exists():
-        return True
-    return False
+    return check_user_admin_right(user, community, manager_rights.MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS)
 
 
 def check_admin_view_contact_right(user, community):
-    user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO)
-
-    if user_rights.exists():
-        return True
-    return False
+    return check_user_admin_right(user, community, manager_rights.MANAGER_RIGHT_VIEW_CONTACT_INFO)
 
 
 def check_admin_edit_community_right(user, community):
-    user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_EDIT_COMMUNITY)
-
-    if user_rights.exists():
-        return True
-    return False
+    return check_user_admin_right(user, community, manager_rights.MANAGER_RIGHT_EDIT_COMMUNITY)
 
 
 def check_admin_add_community_managers_right(user, community):
-    user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MANAGER_RIGHT_ADD_MANAGERS)
-
-    if user_rights.exists():
-        return True
-    return False
+    return check_user_admin_right(user, community, manager_rights.MANAGER_RIGHT_ADD_MANAGERS)
 
 
 def check_admin_moderate_dm_settings_right(user, community):
-    user_rights = userAdminRights.objects.filter(user=user, community=community,
-                                                 right__state=manager_rights.MODERATE_DM_SETTINGS)
+    return check_user_admin_right(user, community, manager_rights.MODERATE_DM_SETTINGS)
 
-    if user_rights.exists():
-        return True
-    return False
+
+def check_admin_moderate_feed_and_comments_right(user, community):
+    return check_user_admin_right(user, community, manager_rights.MODERATE_FEED_AND_COMMENTS)
 
 
 def get_moderation_history_title(moderation_history):
@@ -489,31 +496,29 @@ def save_moderation_history(user, community, moderation_by, type):
     moderationHistory(user=user, community=community, moderation_by=moderation_by, type=type).save()
 
 
-def check_member_respond_right(user, community):
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  right__state=member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM)
+def check_user_member_right(user, community, right_state):
+    user_rights = userMemberRights.objects.filter(user=user, community=community, right__state=right_state)
+    return user_rights.exists()
 
-    if user_rights.exists():
-        return True
-    return False
+
+def check_member_respond_right(user, community):
+    return check_user_member_right(user, community, member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM)
 
 
 def check_member_create_room_right(user, community):
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  right__state=member_rights.MEMBER_RIGHT_CREATE_ROOMS)
-
-    if user_rights.exists():
-        return True
-    return False
+    return check_user_member_right(user, community, member_rights.MEMBER_RIGHT_CREATE_ROOMS)
 
 
 def check_member_auto_approve_right(user, community):
-    user_rights = userMemberRights.objects.filter(user=user, community=community,
-                                                  right__state=member_rights.MEMBER_RIGHT_AUTO_APPROVE)
+    return check_user_member_right(user, community, member_rights.MEMBER_RIGHT_AUTO_APPROVE)
 
-    if user_rights.exists():
-        return True
-    return False
+
+def check_member_create_post_right(user, community):
+    return check_user_member_right(user, community, member_rights.MEMBER_RIGHT_CREATE_POSTS)
+
+
+def check_member_comment_and_reply_right(user, community):
+    return check_user_member_right(user, community, member_rights.MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS)
 
 
 def give_member_auto_approve_right(user, community, current_user_instance):
@@ -670,7 +675,7 @@ def get_right_dict(right):
 
 
 def give_all_community_setting_rights(community):
-    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8]).order_by("state")
+    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8, 9, 10]).order_by("state")
     save_community_setting_rights(community, member_rights)
 
 
@@ -1084,3 +1089,42 @@ def update_direct_message_right_in_member_rights_schema(community_id, is_enabled
         update_member_rights_list_for_community_members(community_id)
 
     return
+
+
+@shared_task
+def update_feed_rights_in_user_member_rights_table(community_id, is_enabled=False):
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+    if not community_instance:
+        return
+
+    create_post_right_filter = ModelUtilities.get_model_filter(memberRights,
+                                                               {'state': member_rights.MEMBER_RIGHT_CREATE_POSTS})
+    if not create_post_right_filter:
+        return
+
+    comment_and_reply_on_posts_right_filter = ModelUtilities.get_model_filter(
+        memberRights, {'state': member_rights.MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS})
+    if not comment_and_reply_on_posts_right_filter:
+        return
+
+    filter_dict_for_create_posts_right = {'community': community_instance, 'right': create_post_right_filter[0]}
+    filter_dict_for_comment_and_reply_on_posts_right = {'community': community_instance,
+                                                        'right': comment_and_reply_on_posts_right_filter[0]}
+
+    if is_enabled:
+        ModelUtilities.update_or_create_model(communityRightsSettings,
+                                              filter_dict_for_create_posts_right,
+                                              filter_dict_for_create_posts_right)
+        ModelUtilities.update_or_create_model(communityRightsSettings,
+                                              filter_dict_for_comment_and_reply_on_posts_right,
+                                              filter_dict_for_comment_and_reply_on_posts_right)
+
+        give_right_to_all_members(community_instance, create_post_right_filter[0])
+        give_right_to_all_members(community_instance, comment_and_reply_on_posts_right_filter[0])
+        update_member_rights_list_for_community_members(community_id)
+
+    if not is_enabled:
+        ModelUtilities.delete_record_in_model(communityRightsSettings, filter_dict_for_create_posts_right)
+        ModelUtilities.delete_record_in_model(communityRightsSettings, filter_dict_for_comment_and_reply_on_posts_right)
+        remove_right_for_all_members(community_instance, create_post_right_filter[0])
+        remove_right_for_all_members(community_instance, comment_and_reply_on_posts_right_filter[0])

@@ -102,11 +102,7 @@ class InitiateSdkView(APIView):
                                                                     response_data['status'])
             return JsonResponse(context['data'], status=context['status'])
 
-        return JsonResponse(
-            {'success': True, 'user': response_data.get('user'), 'community': response_data.get('community'),
-             'app_access': response_data.get('app_access')},
-            status=status_codes.HTTP_200_OK
-        )
+        return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
 
 
 class AuthenticateSdkView(APIView):

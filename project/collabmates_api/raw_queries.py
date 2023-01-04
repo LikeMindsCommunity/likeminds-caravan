@@ -10,7 +10,6 @@ from .static_text import (MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.time_utilities import TimeUtilities
-from .utility import create_chatroom_revamp_version_check
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -123,10 +122,6 @@ def get_my_chatrooms_count(user_id,
             filter_intro_rooms_query = """type = -1"""
 
         excluded_card_ids_filter = """"""
-        if create_chatroom_revamp_version_check(platform_code, version_code):
-            excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=community_id)
-            if excluded_card_ids:
-                excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
 
         dm_chatrooms_filter = """is_private = {} 
                                  AND is_private_member = FALSE 
@@ -209,6 +204,42 @@ def get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=None):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
+def get_chatrooms_of_user_with_follow_status(user_id, community_id: str = None, follow_status: str = True):
+    community_based_filter = ""
+
+    if community_id:
+        community_based_filter = """AND togther_collabcardState.community_id = %s""" % (str(community_id))
+
+    try:
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+                SELECT togther_collabcard.id
+                FROM togther_collabcard
+                INNER JOIN togther_collabcardState
+                    ON togther_collabcardState.card_id = togther_collabcard.id
+                WHERE togther_collabcardState.user_id=%s
+                        AND follow_status = %s
+                        AND togther_collabcardState.remove_id is NULL %s;
+            """ % (str(user_id), follow_status, community_based_filter)
+
+        curr.execute(sql)
+        res = curr.fetchall()
+
+        card_ids = []
+        for card_id in res:
+            card_ids.append(card_id[0])
+
+        curr.close()
+
+        return card_ids
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
 def get_followed_chatrooms(user_id,
                            page,
                            version_code,
@@ -256,11 +287,7 @@ def get_followed_chatrooms(user_id,
         else:
             filter_intro_rooms_query = """type = -1"""
 
-        excluded_card_ids_filter = """"""
-        if create_chatroom_revamp_version_check(platform_code, version_code):
-            excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=community_id)
-            if excluded_card_ids:
-                excluded_card_ids_filter = "AND id NOT IN (%s)" % ",".join([str(card_id) for card_id in excluded_card_ids])
+        excluded_card_ids_filter = ""
 
         dm_chatrooms_filter = """is_private = {}
                                  AND is_private_member = FALSE
@@ -1230,7 +1257,7 @@ def get_members_of_community_based_on_community_list_for_sync(community_id_list,
                 ON togther_community.id = togther_members.community_id_id
             WHERE togther_members.community_id_id IN %s
                     AND togther_members.updated_at > %s order by 
-                    togther_members.updated_at  limit %s offset %s
+                    togther_members.updated_at, togther_members.id limit %s offset %s
             
             """ % (str(community_id_tupple), last_updated, limit, offset)
 
@@ -1276,7 +1303,7 @@ def get_members_of_community_based_on_user_list_for_sync(user_id_list, community
                 ON togther_community.id = togther_members.community_id_id
             WHERE togther_members.member_id_id IN %s
                     AND togther_members.updated_at > %s 
-                    AND togther_members.community_id_id = %s order by updated_at limit %s offset %s
+                    AND togther_members.community_id_id = %s order by updated_at, togther_members.id limit %s offset %s
 
             """ % (str(user_id_tuple), last_updated, str(community_id), limit, offset)
 
@@ -1783,12 +1810,18 @@ def get_latest_conversation_creator_users_for_homescreen(chatroom_id, chatroom_c
         return []
 
 
-def get_chatroom_count_based_on_community_list(community_id_list, member_id) -> {}:
+def get_chatroom_count_based_on_community_list(community_id_list, member_id, excluded_card_ids=None) -> {}:
     try:
         conn = get_connection()
         curr = conn.cursor()
 
         community_id_tupple = get_tuple_from_array(community_id_list)
+
+        excluded_card_ids_list = ""
+
+        if excluded_card_ids:
+            excluded_card_ids_list = 'AND ("togther_collabcard"."id" NOT IN {})'.format(
+                get_tuple_from_array(excluded_card_ids))
 
         if not community_id_tupple:
             return {}
@@ -1804,11 +1837,12 @@ def get_chatroom_count_based_on_community_list(community_id_list, member_id) -> 
                         AND NOT ("togther_collabcard"."type" in (%s, %s, %s))
                         AND ("togther_collabcard"."is_private" = FALSE)
                         AND ("togther_collabcard"."is_pending" = FALSE)
-                        AND ("togther_collabcard"."chatroom_with_user_id" is NULL))
+                        AND ("togther_collabcard"."chatroom_with_user_id" is NULL)
+                        %s)
                 GROUP BY  togther_collabcardstate.community_id
                 HAVING "togther_collabcardstate".community_id IN %s""" \
               % (str(member_id), str(card_types.CARD_INTRO), str(card_types.CARD_EVENT),
-                 str(card_types.CARD_PUBLIC_EVENT), str(community_id_tupple))
+                 str(card_types.CARD_PUBLIC_EVENT), excluded_card_ids_list, str(community_id_tupple))
 
         curr.execute(sql)
         count_data = curr.fetchall()
@@ -2183,8 +2217,6 @@ def get_count_for_new_non_member_access_event_chatroom_community_managers(user_i
             str(card_id)
         )
 
-        print(sql)
-
         curr.execute(sql)
         card_tuple = curr.fetchone()
         curr.close()
@@ -2526,23 +2558,26 @@ def get_dm_chatrooms_of_user(user_id, community_id):
         else:
             community_id = "=" + str(community_id)
 
-        sql = """SELECT CS.card_id, CS.id
-                   FROM   togther_collabcardstate AS CS
-                   WHERE  CS.follow_status = true
-                          AND CS.remove_id IS NULL
-                          AND CS.secret_chatroom_left = false
-                          AND CS.user_id = %s
-                          AND card_id IN (SELECT id
-                                          FROM   togther_collabcard
-                                                 AS
-                                                 CCRD
-                                          WHERE
-                              CCRD.community_id %s
-                              AND is_private = true
-                              AND CCRD.type = 10
-                              AND ( CCRD.user_id = %s OR
-                              CCRD.chatroom_with_user_id = %s ))
-        """ % (str(user_id), str(community_id), str(user_id), str(user_id))
+        non_guest_user_query = get_user_ids_based_on_guest_filter(is_guest=False, only_sql_query=True)
+
+        sql = """
+                SELECT cs.card_id,
+                       cs.id
+                FROM   togther_collabcardstate AS cs
+                       inner join togther_collabcard AS ccrd
+                               ON cs.card_id = CCRD.id
+                WHERE  ccrd.community_id %s
+                       AND cs.follow_status = TRUE
+                       AND cs.remove_id IS NULL
+                       AND cs.secret_chatroom_left = FALSE
+                       AND cs.user_id = %s
+                       AND ccrd.is_private = TRUE
+                       AND ccrd.TYPE = 10
+                       AND ( ccrd.user_id = %s
+                              OR ccrd.chatroom_with_user_id = %s )
+                       AND ( ccrd.user_id IN ( %s )
+                             AND ccrd.chatroom_with_user_id IN ( %s ) ) 
+        """ % (str(community_id), str(user_id), str(user_id), str(user_id), non_guest_user_query, non_guest_user_query)
 
         curr.execute(sql)
         card_list = curr.fetchall()
@@ -3069,3 +3104,63 @@ def fetch_user_communities_sorted_by_order_time(user_id, community_id=None):
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_user_ids_based_on_guest_filter(is_guest=False, only_sql_query=False):
+    try:
+        sql = """
+                SELECT   user_id_id
+                FROM     togther_userinfo
+                WHERE    is_guest = %s""" % is_guest
+
+        if only_sql_query:
+            return sql
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        curr.execute(sql)
+        user_list = curr.fetchall()
+        curr.close()
+
+        return [data[0] for data in user_list]
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_chatroom_participants_count(chatroom_id, community_id):
+    """Returns the participants count of chatroom in community"""
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """SELECT COUNT(DISTINCT("togther_members"."member_id_id"))
+                FROM "togther_members"
+                INNER JOIN "togther_collabcardstate"
+                    ON ("togther_members"."member_id_id" = "togther_collabcardstate"."user_id")
+                WHERE ("togther_members"."community_id_id" = %s
+                        AND "togther_collabcardstate"."follow_status" = true
+                        AND "togther_collabcardstate"."card_id" = %s
+                        AND "togther_collabcardstate"."is_tagged" = false
+                        AND "togther_collabcardstate"."remove_id" is NULL 
+                        AND "togther_collabcardstate"."user_id" IN 
+                        (
+                            SELECT user_id_id FROM togther_userinfo WHERE is_guest = false
+                        ));""" % (str(community_id), str(chatroom_id))
+
+        curr.execute(sql)
+        participants_count = curr.fetchone()
+        curr.close()
+
+        if participants_count:
+            return participants_count[0]
+
+        return 0
+
+    except (Exception, psycopg2.Error) as error:
+        print(error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+        return 0
