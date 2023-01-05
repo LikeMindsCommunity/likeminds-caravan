@@ -3132,3 +3132,58 @@ def get_chatroom_participants_count(chatroom_id, community_id):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
         return 0
+
+
+def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, limit=50, follow_status=True,
+                                                          is_guest=False, filter_user_ids=None):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        filter_user_query = ""
+
+        if filter_user_ids is not None:
+            filter_user_query = " AND togther_collabcardstate.user_id IN {}".format(
+                get_tuple_from_array(filter_user_query))
+
+        sql = """
+                SELECT ans_ord.user_id
+                FROM   togther_userinfo AS usrinfo
+                       INNER JOIN (SELECT
+                                                          togther_collabcardstate.user_id,
+                                          Coalesce(Max(togther_card_answers.created_at), 0) AS
+                                                          created_at
+                                   FROM   togther_collabcardstate
+                                          LEFT JOIN togther_card_answers
+                                                 ON togther_card_answers.user_id =
+                                                    togther_collabcardstate.user_id
+                                   WHERE  togther_collabcardstate.card_id = {}
+                                          AND togther_collabcardstate.follow_status = {}
+                                          AND togther_collabcardstate.remove_id IS NULL
+                                          AND togther_collabcardstate.is_tagged = false {}
+                                   GROUP  BY togther_card_answers.user_id,
+                                             togther_collabcardstate.user_id
+                                   ORDER  BY Max(CASE
+                                                   WHEN togther_card_answers.created_at IS NULL
+                                                 THEN 0
+                                                   ELSE togther_card_answers.created_at
+                                                 end) DESC) AS ans_ord
+                               ON ans_ord.user_id = usrinfo.user_id_id
+                WHERE  usrinfo.is_guest = {}
+                GROUP  BY ans_ord.user_id
+                ORDER  BY Max(ans_ord.created_at) DESC
+                LIMIT  {} offset {};
+        """.format(chatroom_id, follow_status, filter_user_query, is_guest, limit, offset)
+
+        curr.execute(sql)
+        user_ids_list = curr.fetchall()
+        curr.close()
+
+        return [data[0] for data in user_ids_list]
+
+    except (Exception, psycopg2.Error) as error:
+        print(error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
