@@ -6,7 +6,7 @@ from collections import Iterable
 from typing import Union
 from rest_framework import status as status_codes
 from django.contrib.auth.models import User
-from django.db.models import Q, Max
+from django.db.models import Q, Max, When, Case
 from celery import shared_task
 from django.template.loader import get_template
 
@@ -598,7 +598,7 @@ class ChatroomImpl(ChatroomManager):
 
         chatroom_participants_list = get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_instance.id)
 
-        userinfo_filter = Userinfo.objects.filter(user_id__in=chatroom_participants_list)
+        userinfo_filter = ChatroomHelper.get_ordered_user_ids_list_based_on_filter(chatroom_participants_list)
 
         for data in userinfo_filter:
             temp = dict()
@@ -630,7 +630,7 @@ class ChatroomImpl(ChatroomManager):
         chatroom_participants_list = get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_instance.id,
                                                                                            filter_user_ids=member_list)
 
-        userinfo_filter = Userinfo.objects.filter(user_id__in=chatroom_participants_list)
+        userinfo_filter = ChatroomHelper.get_ordered_user_ids_list_based_on_filter(chatroom_participants_list)
 
         for data in userinfo_filter:
             temp = dict()
@@ -5265,3 +5265,11 @@ class ChatroomHelper:
                 "User doesn’t have the ability to remove a cohort from chatroom!")
 
         return {'user_instance': user_instance, 'chatroom_instance': chatroom_instance}
+
+    @staticmethod
+    def get_ordered_user_ids_list_based_on_filter(user_ids):
+
+        preserved = Case(*[When(user_id=user_id, then=pos) for pos, user_id in enumerate(user_ids)])
+        queryset = Userinfo.objects.filter(user_id__in=user_ids).order_by(preserved)
+
+        return queryset
