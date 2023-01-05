@@ -1425,8 +1425,6 @@ class ChatroomImpl(ChatroomManager):
                 'group_tags': group_tags
             }
 
-        print("here")
-
         participant_list = self.compute_tagging_list_of_chatroom_participants(chatroom_instance)
 
         return {
