@@ -929,8 +929,7 @@ def get_member_query_set(current_user_id, community_id, send_all=False, page=1, 
         if member_state:
             included_member_states = [member_state]
 
-        member_list = Members.objects.filter(community_id=community_id).filter(
-            state__in=included_member_states).order_by('id')
+        member_list = Members.objects.filter(community_id=community_id, state__in=included_member_states).order_by('id')
         return member_list
 
     state = 0
