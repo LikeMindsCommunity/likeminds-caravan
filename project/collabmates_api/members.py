@@ -922,9 +922,10 @@ def intersect_sets(set1, set2):
 def get_member_query_set(current_user_id, community_id, send_all=False, page=1, remove_guest_user=False,
                          member_state=None):
 
+    included_member_states = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE,
+                              member_states.PENDING_MEMBER]
+
     if send_all:
-        included_member_states = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE,
-                                  member_states.PENDING_MEMBER]
 
         if member_state:
             included_member_states = [member_state]
@@ -943,11 +944,7 @@ def get_member_query_set(current_user_id, community_id, send_all=False, page=1, 
     if is_promoter:
         is_promoter = check_admin_approve_right(community=community_id, user=current_user_id)
 
-    if is_promoter:
-        included_member_states = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE,
-                                  member_states.PENDING_MEMBER]
-
-    else:
+    if not is_promoter:
         included_member_states = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]
 
     if member_state:
