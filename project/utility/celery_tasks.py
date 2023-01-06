@@ -2172,37 +2172,51 @@ def update_unread_message_count_in_cache(chatroom_id, conversation_creator_id=0)
     if not card_instance:
         return
 
-    followed_members = collabcardState.objects.filter(card=card_instance, follow_status=True,
-                                                      is_tagged=False,
-                                                      remove=None).values_list('user', flat=True)
+    unread_cache_data = {}
+
+    filter_dict = {
+        'card': card_instance,
+        'follow_status': True,
+        'is_tagged': False,
+        'remove': None
+    }
+
+    followed_members = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id', flat=True)
+
+    keys_list = [CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
+                 for user_id in followed_members]
+
+    users_previous_counts_dict = CacheImpl.bulk_get_cache(keys_list)
 
     for user_id in followed_members:
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            continue
+        key = CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
 
         if user_id == conversation_creator_id:
-            reset_unread_message_count_in_cache(chatroom_id, user_id)
-            continue
-
-        key = CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
-        previous_count = CacheImpl.get_cache(key)
-
-        if previous_count:
-            unseen_count = previous_count.get('unseen_count', 0) + 1
-            previous_count['unseen_count'] = unseen_count
+            previous_count = {
+                'unseen_count': 0
+            }
 
         else:
-            previous_count = {}
-            engage_filter = conversationEngage.objects.filter(card=card_instance, user=user_instance)
-            unread_count_for_user = 1
+            previous_count = users_previous_counts_dict.get(key)
 
-            if engage_filter.exists():
-                unread_count_for_user = engage_filter[0].unseen_count
-            previous_count['unseen_count'] = unread_count_for_user
+            if previous_count:
+                unseen_count = previous_count.get('unseen_count', 0) + 1
+                previous_count['unseen_count'] = unseen_count
 
-        CacheImpl.set_cache(key, previous_count)
+            else:
+                previous_count = {}
+                engage_filter = ModelUtilities.get_model_filter(conversationEngage,
+                                                                {'card': card_instance,
+                                                                 'user': user_id})
+                unread_count_for_user = 1
+
+                if engage_filter.exists():
+                    unread_count_for_user = engage_filter[0].unseen_count
+                previous_count['unseen_count'] = unread_count_for_user
+
+        unread_cache_data[key] = previous_count
+
+    CacheImpl.bulk_set_cache(unread_cache_data)
 
     update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                    {'card__id': chatroom_id,
