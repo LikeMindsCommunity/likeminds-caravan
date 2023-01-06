@@ -13,6 +13,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community, Tags_lpig
 import json
 from django.http.response import JsonResponse
+from utility.list_utilities import ListUtilities
 
 if settings.IS_BETA:
     # beta firebase config
@@ -283,6 +284,24 @@ def update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user_id, conversati
         }
 
         database.child("users").child(user_id).update(data)
+
+    except Exception as e:
+        error_logger.error(e)
+
+
+def update_my_chatrooms_on_homefeed_in_firebase_for_users_list(chatroom_id, users_list, conversation_id=""):
+
+    try:
+        data = {
+            'chatroom_id': str(chatroom_id),
+            'conversation_id': conversation_id
+        }
+
+        user_list_chunks = list(ListUtilities.divide_chunks(users_list, chunk_size=10000))
+
+        for users_list in user_list_chunks:
+            data = {'users/{}/'.format(user_id): data for user_id in users_list}
+            database.update(data)
 
     except Exception as e:
         error_logger.error(e)

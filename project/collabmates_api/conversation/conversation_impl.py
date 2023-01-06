@@ -57,7 +57,7 @@ from utility.states import member_states, collabcard_states, card_types, SyncNot
 
 from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
     is_member_verified, filter_user_instances_based_on_notification_flag
-from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase
+from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase_for_users_list
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
                                   update_preview_of_chatroom_in_cache,
                                   get_conversation_poll, save_conversation_poll_options_in_cache,
@@ -65,7 +65,8 @@ from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple
                                   update_event_attendees_for_micro_event, update_unread_message_count_in_cache,
                                   fetch_conversations_unread, reset_unread_message_count_in_cache,
                                   update_deferred_conversation_poll_updated_at_value,
-                                  get_to_show_results_for_conversation_poll, save_users_with_muted_chatrooms)
+                                  get_to_show_results_for_conversation_poll, save_users_with_muted_chatrooms,
+                                  save_bulk_users_list_with_muted_chatrooms)
 
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
@@ -1657,8 +1658,7 @@ class ConversationHelper:
                                                                            'follow_status': True}
                                                          ).values_list('user_id', flat=True))
 
-        for user_id in user_list:
-            update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user_id, conversation_id)
+        update_my_chatrooms_on_homefeed_in_firebase_for_users_list(chatroom_id, user_list, conversation_id)
 
     @staticmethod
     @shared_task
@@ -2134,12 +2134,9 @@ class ConversationHelper:
         if bulk_state_instance_list:
             ModelUtilities.bulk_create_instances(collabcardState, bulk_state_instance_list)
 
-        for user_id in tagged_member_list:
-            save_users_with_muted_chatrooms.delay({'user_id': user_id,
-                                                   'chatroom_id': chatroom_instance.id,
-                                                   'mute_status': mute_status})
-
-            ElasticSearchSync.update_chatroom_for_user.delay(chatroom_instance.id, user_id)
+        save_bulk_users_list_with_muted_chatrooms.delay(chatroom_instance.id, tagged_member_list,
+                                                        mute_status=mute_status)
+        ElasticSearchSync.update_chatroom.delay(chatroom_instance.id)
 
         ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
                                                                     user_instance,
@@ -2175,6 +2172,8 @@ class ConversationHelper:
 
         second_last = conversations_filter.exclude(user=user_instance).last()
 
+        second_last_conversation_id = second_last.id if second_last else None
+
         (last_conversation_member, second_last_conversation_member, last_conversation_user,
          second_last_conversation_user) = ConversationHelper.compute_member_images_for_homescreen(
             chatroom_instance, chatroom_instance.community)
@@ -2187,7 +2186,8 @@ class ConversationHelper:
 
         update_conversation_engage_data_for_chatroom(
             chatroom_instance.id, last_conversation_id=conversation_instance.id,
-            second_last_conversation_id=second_last.id, last_conversation_member_id=last_conversation_member_id,
+            second_last_conversation_id=second_last_conversation_id,
+            last_conversation_member_id=last_conversation_member_id,
             second_last_conversation_member_id=second_last_conversation_member_id,
             last_conversation_user_id=last_conversation_user_id,
             second_last_conversation_user_id=second_last_conversation_user_id,
@@ -2197,7 +2197,7 @@ class ConversationHelper:
 
         for instance_value in list(instance_list.values_list('id', 'unseen_count', 'user_id')):
 
-            if instance_value[2] != user_instance.id:
+            if instance_value[2] == user_instance.id:
                 instance_unseen_count_map[instance_value[0]] = -1
 
             else:
@@ -2226,19 +2226,17 @@ class ConversationHelper:
 
                 rights_list = json.dumps(rights_list)
 
-                instance = conversationEngage.create_instance_for_bulk_create(community_instance=chatroom_instance.community,
-                                                                              chatroom_instance=chatroom_instance,
-                                                                              user_instance=user_instance,
-                                                                              rights_list=rights_list)
+                unseen_count = total_conversations if user_instance != user_instance else 0
 
-                instance.last_conversation = conversation_instance
-                instance.second_last_conversation = second_last
-                instance.unseen_count = total_conversations if user_instance != user_instance else 0
-                instance.last_conversation_member = last_conversation_member
-                instance.second_last_conversation_member = second_last_conversation_member
-                instance.last_conversation_user = last_conversation_user
-                instance.second_last_conversation_user = second_last_conversation_user
-                instance.updated_at = TimeUtilities.current_time_in_sec()
+                instance = conversationEngage.create_instance_for_bulk_create(
+                    community_instance=chatroom_instance.community, chatroom_instance=chatroom_instance,
+                    user_instance=user_instance, rights_list=rights_list, last_conversation=conversation_instance,
+                    unseen_count=unseen_count, second_last_conversation=second_last,
+                    last_conversation_member=last_conversation_member,
+                    second_last_conversation_member=second_last_conversation_member,
+                    last_conversation_user=last_conversation_user,
+                    second_last_conversation_user=second_last_conversation_user)
+
                 create_engage_list.append(instance)
 
                 users_list.append(user_instance.user_id)
@@ -2340,7 +2338,8 @@ class ConversationHelper:
                                                                                         user_instance.id)
 
         if not has_files:
-            ConversationHelper.update_latest_conversation_id_to_firebase(chatroom_instance.id, conversation_instance.id)
+            ConversationHelper.update_latest_conversation_id_to_firebase.delay(chatroom_instance.id,
+                                                                               conversation_instance.id)
 
         ConversationHelper._handle_dm_chatroom_communication(chatroom_instance, user_instance)
         ConversationHelper.update_previews_on_conversation_creation(chatroom_instance)

@@ -986,6 +986,46 @@ def save_users_with_muted_chatrooms(mute_info):
 
 
 @shared_task
+def save_bulk_users_list_with_muted_chatrooms(chatroom_id, users_list, mute_status=None):
+
+    if not (chatroom_id or users_list or mute_status):
+        return
+
+    cache_update_data = {}
+
+    keys_list = [USER_MUTED_CHATROOM % str(user_id) for user_id in users_list]
+
+    muted_users_chatroom_filter = CacheImpl.bulk_get_cache(keys_list)
+
+    for user_id in users_list:
+        key = USER_MUTED_CHATROOM % str(user_id)
+
+        muted_key = muted_users_chatroom_filter.get(key)
+
+        if muted_key and chatroom_id:
+            mute_list = muted_key.get('mute_list', [])
+
+            if mute_status and \
+                    chatroom_id not in mute_list:
+                mute_list.append(chatroom_id)
+
+            elif not mute_status and \
+                    chatroom_id in mute_list:
+
+                mute_list.remove(chatroom_id)
+
+        else:
+            mute_list = list(ModelUtilities.get_model_filter(
+                collabcardState, {'user': user_id, 'mute_status': True}).values_list('card_id', flat=True))
+
+        cache_update_data[key] = {'mute_list': mute_list}
+
+    CacheImpl.bulk_set_cache(cache_update_data)
+
+    return
+
+
+@shared_task
 def update_event_instructors_in_cache(instructors_info):
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, instructors_info.get('chatroom_id'))
 
