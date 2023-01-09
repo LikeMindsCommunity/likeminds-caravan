@@ -50,11 +50,3 @@ class ListUtilities:
             return []
 
         return list(set(input_list_one).intersection(input_list_two))
-
-    @staticmethod
-    def divide_chunks(data_list, chunk_size=1000):
-        """
-        returns list of chunks of list
-        """
-        for i in range(0, len(data_list), chunk_size):
-            yield data_list[i:i + chunk_size]

@@ -57,7 +57,8 @@ from utility.states import member_states, collabcard_states, card_types, SyncNot
 
 from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
     is_member_verified, filter_user_instances_based_on_notification_flag
-from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase_for_users_list
+from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase_for_users_list, \
+    update_chatroom_conversation_ids_against_community
 from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple_previews_in_chatroom,
                                   update_preview_of_chatroom_in_cache,
                                   get_conversation_poll, save_conversation_poll_options_in_cache,
@@ -1668,6 +1669,12 @@ class ConversationHelper:
 
     @staticmethod
     @shared_task
+    def update_latest_conversation_id_to_firebase_revamp(chatroom_id, conversation_id, community_id=None):
+        update_last_answer_id(chatroom_id, conversation_id)
+        update_chatroom_conversation_ids_against_community(community_id, card_id=chatroom_id, answer_id=conversation_id)
+
+    @staticmethod
+    @shared_task
     def update_the_activity_time_for_new_conversation_creation(chatroom_id, user_id):
         activate_chatroom_on_conversation_creation(chatroom_id, user_id)
 
@@ -2160,6 +2167,7 @@ class ConversationHelper:
     @staticmethod
     def _create_or_update_conversation_engage(chatroom_instance: Collabcard, user_instance: User,
                                               conversation_instance: card_answers, tagged_members=None):
+
         instance_list = ModelUtilities.get_model_filter(conversationEngage, {'card': chatroom_instance})
         users_list = []
         engage_list = []
@@ -2169,29 +2177,6 @@ class ConversationHelper:
             filter(Q(attachment_count=0) | Q(attachments_uploaded=True) | Q(api_version=1)).order_by('id')
 
         total_conversations = conversations_filter.count()
-
-        second_last = conversations_filter.exclude(user=user_instance).last()
-
-        second_last_conversation_id = second_last.id if second_last else None
-
-        (last_conversation_member, second_last_conversation_member, last_conversation_user,
-         second_last_conversation_user) = ConversationHelper.compute_member_images_for_homescreen(
-            chatroom_instance, chatroom_instance.community)
-
-        last_conversation_member_id = last_conversation_member.id if last_conversation_member else None
-        second_last_conversation_member_id = second_last_conversation_member.id if second_last_conversation_member \
-            else None
-        last_conversation_user_id = last_conversation_user.id if last_conversation_user else None
-        second_last_conversation_user_id = second_last_conversation_user.id if second_last_conversation_user else None
-
-        update_conversation_engage_data_for_chatroom(
-            chatroom_instance.id, last_conversation_id=conversation_instance.id,
-            second_last_conversation_id=second_last_conversation_id,
-            last_conversation_member_id=last_conversation_member_id,
-            second_last_conversation_member_id=second_last_conversation_member_id,
-            last_conversation_user_id=last_conversation_user_id,
-            second_last_conversation_user_id=second_last_conversation_user_id,
-            updated_at=TimeUtilities.current_time_in_sec())
 
         instance_unseen_count_map = {}
 
@@ -2207,9 +2192,10 @@ class ConversationHelper:
 
         for engage_instance in instance_list:
             engage_instance.unseen_count = instance_unseen_count_map.get(engage_instance.id) + 1
+            engage_instance.updated_at = TimeUtilities.current_time_in_sec()
             engage_list.append(engage_instance)
 
-        ModelUtilities.bulk_update_instances(conversationEngage, engage_list, ['unseen_count'])
+        ModelUtilities.bulk_update_instances(conversationEngage, engage_list, ['unseen_count', 'updated_at'])
 
         engage_members = tagged_members + [user_instance.id] if tagged_members else [user_instance.id]
 
@@ -2230,12 +2216,7 @@ class ConversationHelper:
 
                 instance = conversationEngage.create_instance_for_bulk_create(
                     community_instance=chatroom_instance.community, chatroom_instance=chatroom_instance,
-                    user_instance=user_instance, rights_list=rights_list, last_conversation=conversation_instance,
-                    unseen_count=unseen_count, second_last_conversation=second_last,
-                    last_conversation_member=last_conversation_member,
-                    second_last_conversation_member=second_last_conversation_member,
-                    last_conversation_user=last_conversation_user,
-                    second_last_conversation_user=second_last_conversation_user)
+                    user_instance=user_instance, rights_list=rights_list, unseen_count=unseen_count)
 
                 create_engage_list.append(instance)
 
@@ -2334,21 +2315,15 @@ class ConversationHelper:
         ConversationHelper._create_or_update_conversation_engage(chatroom_instance, user_instance,
                                                                  conversation_instance, tagged_members_list)
 
-        ConversationHelper.update_the_activity_time_for_new_conversation_creation.delay(chatroom_instance.id,
-                                                                                        user_instance.id)
-
         if not has_files:
-            ConversationHelper.update_latest_conversation_id_to_firebase.delay(chatroom_instance.id,
-                                                                               conversation_instance.id)
+            ConversationHelper.update_latest_conversation_id_to_firebase_revamp.delay(chatroom_instance.id,
+                                                                                      conversation_instance.id,
+                                                                                      chatroom_instance.community_id)
 
         ConversationHelper._handle_dm_chatroom_communication(chatroom_instance, user_instance)
         ConversationHelper.update_previews_on_conversation_creation(chatroom_instance)
         ConversationHelper._send_conversation_creation_notifications(user_instance, chatroom_instance,
                                                                      conversation_instance, has_files)
-
-        conversation_creator_id = user_instance.id if user_instance else 0
-        update_unread_message_count_in_cache.delay(chatroom_id=chatroom_id,
-                                                   conversation_creator_id=conversation_creator_id)
 
         args = [conversation_instance.id]
 

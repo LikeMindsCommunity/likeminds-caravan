@@ -13,7 +13,6 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community, Tags_lpig
 import json
 from django.http.response import JsonResponse
-from utility.list_utilities import ListUtilities
 
 if settings.IS_BETA:
     # beta firebase config
@@ -297,11 +296,26 @@ def update_my_chatrooms_on_homefeed_in_firebase_for_users_list(chatroom_id, user
             'conversation_id': conversation_id
         }
 
-        user_list_chunks = list(ListUtilities.divide_chunks(users_list, chunk_size=10000))
+        data = {'users/{}/'.format(user_id): data for user_id in users_list}
+        database.update(data)
 
-        for users_list in user_list_chunks:
-            data = {'users/{}/'.format(user_id): data for user_id in users_list}
-            database.update(data)
+    except Exception as e:
+        error_logger.error(e)
+
+
+def update_chatroom_conversation_ids_against_community(community_id, card_id, answer_id):
+    """function to update last answer id when a new answer is posted"""
+
+    if not community_id:
+        return
+
+    try:
+        data = {
+            'conversation_id': str(answer_id),
+            'chatroom_id': str(card_id)
+        }
+
+        database.child("community").child(community_id).update(data)
 
     except Exception as e:
         error_logger.error(e)

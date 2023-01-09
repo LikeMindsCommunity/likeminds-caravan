@@ -2296,39 +2296,31 @@ def reset_unread_message_count_in_cache(chatroom_id, user_id):
                                    update_dict={})
 
 
-
 def fetch_conversations_unread(chatroom_id, user_id):
+
     if not chatroom_id or not user_id:
         info_logger.info("Chatroom ID: {} - User ID: {}".format(chatroom_id, user_id))
         return 0
 
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
-    user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
     if not card_instance:
         info_logger.info("Chatroom ID: {} - Card does not exist".format(chatroom_id))
         return 0
 
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
     if not user_instance:
         info_logger.info("User ID: {} - User does not exist".format(user_id))
         return 0
 
-    key = CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
-    previous_count = CacheImpl.get_cache(key)
+    unseen_count = 1
 
-    if previous_count:
-        unseen_count = previous_count['unseen_count']
+    engage_filter = ModelUtilities.get_model_filter(conversationEngage, {'card': card_instance,
+                                                                         'user': user_instance})
 
-    else:
-        engage_filter = conversationEngage.objects.filter(card=card_instance, user=user_instance)
-        unseen_count = 1
-
-        if engage_filter.exists():
-            unseen_count = engage_filter[0].unseen_count
-
-        unseen_count_dict = dict()
-        unseen_count_dict['unseen_count'] = unseen_count
-        CacheImpl.set_cache(key, unseen_count_dict)
+    if engage_filter.exists():
+        unseen_count = engage_filter[0].unseen_count
 
     return unseen_count
 

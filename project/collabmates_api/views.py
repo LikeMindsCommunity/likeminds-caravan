@@ -382,17 +382,25 @@ def my_chatrooms_version_1(request):
                                          intro_room_community_list=intro_room_community_list,
                                          should_add_dm_chatrooms=should_add_dm_chatrooms)
 
+    chatroom_ids_list = []
+
     if engage_list:
 
         for id, _ in engage_list.items():
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
 
+            if instance.card_id not in chatroom_ids_list:
+                chatroom_ids_list.append(instance.card_id)
+
     draft_list = get_draft_chatrooms_on_home_screen(member_id, page, community_id)
 
     for id in draft_list:
         instance = conversationEngage.objects.get(pk=id)
         instance_list.append(instance)
+
+        if instance.card_id not in chatroom_ids_list:
+            chatroom_ids_list.append(instance.card_id)
 
     # Segregate DM and Non-DM chatrooms
     for instance in instance_list:
@@ -417,6 +425,9 @@ def my_chatrooms_version_1(request):
     else:
         instance_list = non_dm_instance_list
 
+    conversation_users = get_conversation_users_against_chatrooms_list(chatroom_ids_list)
+    chatroom_conversations = get_latest_conversations_against_chatrooms_list(chatroom_ids_list)
+
     for instance in instance_list:
 
         chatroom = {}
@@ -436,7 +447,11 @@ def my_chatrooms_version_1(request):
                                                           many=False).data
             chatroom['is_draft'] = True
 
-        last_conversation = instance.last_conversation
+        chatrooms_conversation_ids_list = chatroom_conversations.get(card_instance.id)
+
+        last_conversation_id = chatrooms_conversation_ids_list[0] if chatrooms_conversation_ids_list else None
+
+        last_conversation = ModelUtilities.get_model_instance_or_none(card_answers, last_conversation_id)
 
         if last_conversation and not is_draft_conversation(last_conversation, member_id, device_id):
             last_conversation_dict = conversationSerializer(last_conversation,
@@ -448,7 +463,11 @@ def my_chatrooms_version_1(request):
 
             chatroom['last_conversation'] = last_conversation_dict
 
-            second_last_conversation = instance.second_last_conversation
+            second_last_conversation_id = chatrooms_conversation_ids_list[1] \
+                if len(chatrooms_conversation_ids_list) > 1 else None
+
+            second_last_conversation = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                                 second_last_conversation_id)
 
             if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id, device_id):
                 second_last_conversation_dict = conversationSerializer(second_last_conversation,
@@ -467,16 +486,7 @@ def my_chatrooms_version_1(request):
             chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(
                 TimeUtilities.convert_milliseconds_to_sec(engage_list.get(instance.id)))
 
-        last_conversation_member = instance.last_conversation_member
-        second_last_conversation_member = instance.second_last_conversation_member
-        last_conversation_user = instance.last_conversation_user
-        second_last_conversation_user = instance.second_last_conversation_user
-
-        conversation_users = get_latest_conversation_members(last_conversation_member,
-                                                             second_last_conversation_member,
-                                                             last_conversation_user,
-                                                             second_last_conversation_user)
-        chatroom['conversation_users'] = conversation_users
+        chatroom['conversation_users'] = conversation_users.get(card_instance.id, [])
 
         rights_list = json.loads(instance.rights_list) if instance.rights_list else []
 
