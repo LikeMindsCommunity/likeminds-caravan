@@ -48,10 +48,8 @@ def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def update_conversation_engage_data_for_chatroom(card_id, last_conversation_id, second_last_conversation_id,
-                                                 last_conversation_member_id, second_last_conversation_member_id,
-                                                 last_conversation_user_id, second_last_conversation_user_id,
-                                                 updated_at):
+@shared_task
+def update_conversation_engage_data_for_chatroom(card_id, user_id, updated_at):
     '''function to update chatroom data'''
 
     try:
@@ -60,17 +58,14 @@ def update_conversation_engage_data_for_chatroom(card_id, last_conversation_id, 
 
         sql = """
                 UPDATE togther_conversationengage
-                SET    last_conversation_id = %s ,
-                       second_last_conversation_id = %s,
-                       last_conversation_member_id=%s,
-                       second_last_conversation_member_id=%s,
-                       last_conversation_user_id=%s,
-                       second_last_conversation_user_id=%s,
+                SET    unseen_count = (
+                       CASE
+                              WHEN user_id!=%s THEN unseen_count + 1
+                              ELSE 0
+                       END),
                        updated_at=%s
                 WHERE  card_id=%s;"""
-        paramter_list = [last_conversation_id, second_last_conversation_id, last_conversation_member_id,
-                         second_last_conversation_member_id, last_conversation_user_id,
-                         second_last_conversation_user_id, updated_at, card_id]
+        paramter_list = [user_id, updated_at, card_id]
         curr.execute(sql, paramter_list)
         conn.commit()
         info_logger.info("conversation engage updated successfully")

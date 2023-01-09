@@ -2168,36 +2168,20 @@ class ConversationHelper:
     def _create_or_update_conversation_engage(chatroom_instance: Collabcard, user_instance: User,
                                               conversation_instance: card_answers, tagged_members=None):
 
-        instance_list = ModelUtilities.get_model_filter(conversationEngage, {'card': chatroom_instance})
         users_list = []
-        engage_list = []
         create_engage_list = []
 
-        conversations_filter = ModelUtilities.get_model_filter(card_answers, {'card': chatroom_instance, 'state': 0}).\
-            filter(Q(attachment_count=0) | Q(attachments_uploaded=True) | Q(api_version=1)).order_by('id')
-
-        total_conversations = conversations_filter.count()
-
-        instance_unseen_count_map = {}
-
-        for instance_value in list(instance_list.values_list('id', 'unseen_count', 'user_id')):
-
-            if instance_value[2] == user_instance.id:
-                instance_unseen_count_map[instance_value[0]] = -1
-
-            else:
-                instance_unseen_count_map[instance_value[0]] = instance_value[1]
-
-            users_list.append(instance_value[2])
-
-        for engage_instance in instance_list:
-            engage_instance.unseen_count = instance_unseen_count_map.get(engage_instance.id) + 1
-            engage_instance.updated_at = TimeUtilities.current_time_in_sec()
-            engage_list.append(engage_instance)
-
-        ModelUtilities.bulk_update_instances(conversationEngage, engage_list, ['unseen_count', 'updated_at'])
+        update_conversation_engage_data_for_chatroom.delay(chatroom_instance.id, user_instance.id,
+                                                           TimeUtilities.current_time_in_sec())
 
         engage_members = tagged_members + [user_instance.id] if tagged_members else [user_instance.id]
+
+        if engage_members:
+            conversations_filter = ModelUtilities.get_model_filter(card_answers,
+                                                                   {'card': chatroom_instance, 'state': 0}). \
+                filter(Q(attachment_count=0) | Q(attachments_uploaded=True) | Q(api_version=1)).order_by('id')
+
+            total_conversations = conversations_filter.count()
 
         for user_id in engage_members:
             user_instance = ModelUtilities.get_user_instance_or_none(user_id)
