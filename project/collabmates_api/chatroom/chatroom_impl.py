@@ -6,7 +6,7 @@ from collections import Iterable
 from typing import Union
 from rest_framework import status as status_codes
 from django.contrib.auth.models import User
-from django.db.models import Q, Max
+from django.db.models import Q, Max, When, Case
 from celery import shared_task
 from django.template.loader import get_template
 
@@ -36,7 +36,8 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_last_seen_non_member_access_event_for_user, \
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
     get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right, \
-    get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community, get_chatroom_participants_count
+    get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community, get_chatroom_participants_count,\
+    get_sorted_user_data_on_basis_of_activity_in_chatroom
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, ScheduledChatroomFollowSerializer
@@ -592,19 +593,43 @@ class ChatroomImpl(ChatroomManager):
     @staticmethod
     def compute_tagging_list_of_chatroom_participants(chatroom_instance):
 
-        chatroom_participants_list = list(collabcardState.objects.filter(
-            follow_status=True,
-            is_tagged=False,
-            remove=None,
-            card=chatroom_instance
-        ).values_list(
-            'user',
-            flat=True
-        ))
+        tag_list = []
+
+        chatroom_participants_list = get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_instance.id)
+
+        userinfo_filter = ChatroomHelper.get_ordered_user_ids_list_based_on_filter(chatroom_participants_list)
+
+        for data in userinfo_filter:
+            temp = dict()
+            temp['id'] = data.user_id_id
+            temp['name'] = data.name
+            temp['image_url'] = data.image_link if data.image_link else ""
+            temp['is_guest'] = data.is_guest
+            temp['user_unique_id'] = data.user_unique_id
+
+            tag_list.append(temp)
+
+        return tag_list
+
+    @staticmethod
+    def compute_tagging_list_of_secret_chatroom_participants(chatroom_instance):
 
         tag_list = []
 
-        userinfo_filter = Userinfo.objects.filter(user_id__in=chatroom_participants_list)
+        try:
+            member_list = json.loads(chatroom_instance.secret_chatroom_participants)
+
+        except Exception as e:
+            error_logger.error(e)
+            member_list = []
+
+        if not member_list:
+            return tag_list
+
+        chatroom_participants_list = get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_instance.id,
+                                                                                           filter_user_ids=member_list)
+
+        userinfo_filter = ChatroomHelper.get_ordered_user_ids_list_based_on_filter(chatroom_participants_list)
 
         for data in userinfo_filter:
             temp = dict()
@@ -1391,9 +1416,7 @@ class ChatroomImpl(ChatroomManager):
         group_tags = self._add_group_tags(community_instance, chatroom_instance)
 
         if chatroom_instance.is_secret:
-            participant_list = self.compute_tagging_list_for_secret_participants(chatroom_instance, community_instance)
-            participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
-            participant_list = ListUtilities.sort_dictionary_list(participant_list, 'name', False)
+            participant_list = self.compute_tagging_list_of_secret_chatroom_participants(chatroom_instance)
 
             return {
                 'success': True,
@@ -1402,18 +1425,12 @@ class ChatroomImpl(ChatroomManager):
                 'group_tags': group_tags
             }
 
-        members = self.compute_tagging_list_of_community_members(community_instance)
-        members = self.remove_guest_user_from_participants_data_list(members)
-        members = ListUtilities.sort_dictionary_list(members, 'name', False)
-
         participant_list = self.compute_tagging_list_of_chatroom_participants(chatroom_instance)
-        participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
-        participant_list = ListUtilities.sort_dictionary_list(participant_list, 'name', False)
 
         return {
             'success': True,
             'chatroom_participants': participant_list,
-            'community_members': members,
+            'community_members': participant_list,
             'group_tags': group_tags
         }
 
@@ -5247,3 +5264,11 @@ class ChatroomHelper:
                 "User doesn’t have the ability to remove a cohort from chatroom!")
 
         return {'user_instance': user_instance, 'chatroom_instance': chatroom_instance}
+
+    @staticmethod
+    def get_ordered_user_ids_list_based_on_filter(user_ids):
+
+        preserved = Case(*[When(user_id=user_id, then=pos) for pos, user_id in enumerate(user_ids)])
+        queryset = Userinfo.objects.filter(user_id__in=user_ids).order_by(preserved)
+
+        return queryset

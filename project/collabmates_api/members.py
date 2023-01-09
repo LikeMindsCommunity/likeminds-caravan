@@ -603,29 +603,23 @@ def get_all_members_version_1(request, req_dict=None):
     community = CommunitySerializerV1(community_instance, context={"current_user_id": current_user_id},
                                       many=False).data
 
+    if member_state <= 0:
+        member_state = None
+
     if filter_list:
 
-        filter_context = filtered_member_list(current_user_id, community_id, filter_list, page, member_instance)
+        filter_context = filtered_member_list(current_user_id, community_id, filter_list, page, member_instance,
+                                              member_state=member_state)
         members = filter_context['members']
         total_filtered_members = filter_context['total_filtered_members']
 
     else:
 
-        unfiltered_context = unfiltered_member_list(current_user_id, community_id, page)
+        unfiltered_context = unfiltered_member_list(current_user_id, community_id, page, member_state=member_state)
         members = unfiltered_context['members']
         total_filtered_members = community['members_count']
 
     members = add_expired_members_metadata(members, community_instance)
-    new_members_list = []
-
-    if member_state >= 0:
-
-        for member in members:
-
-            if member.get('state') == member_state:
-                new_members_list.append(member)
-
-        members = new_members_list
 
     context = {'success': True, 'members': members, 'community': community,
                'total_members': community['members_count'], 'total_filtered_members': total_filtered_members}
@@ -676,8 +670,8 @@ def chatroom_participants(chatroom_instance, filter_list, community_id, current_
     return context
 
 
-def filtered_member_list(current_user_id, community_id, filter_list, page, member_instance):
-    member_list = get_member_query_set(current_user_id, community_id, send_all=True)
+def filtered_member_list(current_user_id, community_id, filter_list, page, member_instance, member_state=None):
+    member_list = get_member_query_set(current_user_id, community_id, send_all=True, member_state=member_state)
     member_list = member_list.filter(member_id__userinfo__is_guest=False)
     filter_list = json.loads(filter_list)
     member_set = get_filtered_users(filter_list, member_list)
@@ -692,8 +686,9 @@ def filtered_member_list(current_user_id, community_id, filter_list, page, membe
     return filter_context
 
 
-def unfiltered_member_list(current_user_id, community_id, page):
-    member_list = get_member_query_set(current_user_id, community_id, page=page, remove_guest_user=True)
+def unfiltered_member_list(current_user_id, community_id, page, member_state=None):
+    member_list = get_member_query_set(current_user_id, community_id, page=page, remove_guest_user=True,
+                                       member_state=member_state)
     members = get_member_instances_without_filter(member_list, current_user_id, community_id, page=page)
 
     unfilter_context = {
@@ -924,23 +919,40 @@ def intersect_sets(set1, set2):
     return set1.intersection(set2)
 
 
-def get_member_query_set(current_user_id, community_id, send_all=False, page=1, remove_guest_user=False):
+def get_member_query_set(current_user_id, community_id, send_all=False, page=1, remove_guest_user=False,
+                         member_state=None):
+
+    included_member_states = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE,
+                              member_states.PENDING_MEMBER]
+
     if send_all:
-        member_list = Members.objects.filter(community_id=community_id).filter(
-            Q(state=member_states.ADMIN) | Q(state=member_states.MEMBER) | Q(
-                state=member_states.PROFILE_UNAVAILABLE) | Q(state=member_states.PENDING_MEMBER)).order_by('id')
+
+        if member_state:
+            included_member_states = [member_state]
+
+        member_list = Members.objects.filter(community_id=community_id, state__in=included_member_states).order_by('id')
         return member_list
 
     state = 0
     state_filter = Members.objects.filter(member_id=current_user_id, community_id=community_id)
+
     if state_filter.exists():
         state = state_filter[0].state
+
     is_promoter = state == member_states.ADMIN
+
     if is_promoter:
         is_promoter = check_admin_approve_right(community=community_id, user=current_user_id)
 
-    member_list = get_paginated_member_queryset(page=page, community_id=community_id, promoter=is_promoter,
-                                                remove_guest_user=remove_guest_user)
+    if not is_promoter:
+        included_member_states = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]
+
+    if member_state:
+        included_member_states = [member_state]
+
+    member_list = get_paginated_member_queryset(page=page, community_id=community_id,
+                                                remove_guest_user=remove_guest_user,
+                                                included_member_states=included_member_states)
 
     return member_list
 
@@ -969,7 +981,17 @@ def send_participants_of_chatroom(chatroom_instance, filter_list, community_id, 
     return context
 
 
-def get_paginated_member_queryset(page, community_id, promoter=False, remove_guest_user=False):
+def get_tuple_from_array(array):
+    if len(array) == 1:
+        tupp = "(" + str(array[0]) + ")"
+
+    else:
+        tupp = tuple(array)
+
+    return tupp
+
+
+def get_paginated_member_queryset(page, community_id, remove_guest_user=False, included_member_states=None):
     '''function to get paginated  member ids'''
 
     cursor = connection.cursor()
@@ -982,38 +1004,24 @@ def get_paginated_member_queryset(page, community_id, promoter=False, remove_gue
     if remove_guest_user:
         guest_user_query = "AND togther_userinfo.is_guest = false"
 
-    if promoter:
-        sql = """
-                SELECT   togther_members.id,
-                         togther_members.member_id_id,
-                         togther_userinfo.name
-                FROM togther_members
-                INNER JOIN togther_userinfo
-                    ON togther_members.member_id_id = togther_userinfo.user_id_id
-                        AND togther_members.community_id_id = %s %s
-                        AND (togther_members.state = 1
-                        OR togther_members.state = 4
-                        OR togther_members.state = 9
-                        OR togther_members.state = 3)
-                ORDER BY  togther_userinfo.name, togther_members.member_id_id limit %s offset %s
-        """ % (str(community_id), guest_user_query, str(limit), str(offset))
-    else:
-        sql = """
-                SELECT  togther_members.id,
-                        togther_members.member_id_id,
-                        togther_userinfo.name
-                FROM togther_members
-                INNER JOIN togther_userinfo
-                    ON togther_members.member_id_id = togther_userinfo.user_id_id
-                        AND togther_members.community_id_id = %s
-                        AND (togther_members.state = 1
-                        OR togther_members.state = 4
-                        OR togther_members.state = 9)
-                ORDER BY  togther_userinfo.name, togther_members.member_id_id limit %s offset %s
-        """ % (str(community_id), str(limit), str(offset))
+    included_member_state_query = ""
+
+    if included_member_states and isinstance(included_member_states, list):
+        included_member_state_query = " AND togther_members.state IN {}".format(get_tuple_from_array(
+            included_member_states))
+
+    sql = """
+            SELECT   togther_members.id,
+                     togther_members.member_id_id,
+                     togther_userinfo.name
+            FROM togther_members
+            INNER JOIN togther_userinfo
+                ON togther_members.member_id_id = togther_userinfo.user_id_id
+                    AND togther_members.community_id_id = %s %s %s
+            ORDER BY  togther_userinfo.name, togther_members.member_id_id limit %s offset %s
+    """ % (str(community_id), guest_user_query, included_member_state_query, str(limit), str(offset))
 
     cursor.execute(sql)
-
     res = cursor.fetchall()
 
     member_id_list = [obj[0] for obj in res]
