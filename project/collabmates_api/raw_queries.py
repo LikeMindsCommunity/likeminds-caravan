@@ -3167,7 +3167,6 @@ def get_chatroom_participants_count(chatroom_id, community_id):
         return 0
 
 
-
 def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, limit=50, follow_status=True,
                                                           is_guest=False, filter_user_ids=None):
     try:
@@ -3219,7 +3218,6 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, l
         return [data[0] for data in user_ids_list]
 
     except (Exception, psycopg2.Error) as error:
-        print(error)
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
