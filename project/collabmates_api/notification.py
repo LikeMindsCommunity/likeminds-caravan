@@ -56,8 +56,6 @@ from external_services.segment.segment_impl import SegmentImpl
 from django.db import connection
 from utility.number_utilities import NumberUtilities
 
-from utility.celery_tasks import save_users_with_muted_chatrooms
-from utility.cache_keys import USER_MUTED_CHATROOM
 from external_services.caching.cache_impl import CacheImpl
 from collabmates_api.sdk.models import (SdkClient)
 
@@ -1162,18 +1160,8 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
 
 def compute_mute_status_for_users(current_user_id):
-    muted_key = CacheImpl.get_cache(USER_MUTED_CHATROOM % current_user_id)
-
-    if muted_key:
-        mute_list = muted_key.get('mute_list', [])
-
-        return mute_list
-
     mute_list = list(collabcardState.objects.filter(user_id=current_user_id,
                                                     mute_status=True).values_list('card_id', flat=True))
-
-    save_users_with_muted_chatrooms({'user_id': current_user_id})
-
     return mute_list
 
 

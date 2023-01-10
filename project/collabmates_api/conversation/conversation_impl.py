@@ -66,8 +66,7 @@ from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple
                                   update_event_attendees_for_micro_event, update_unread_message_count_in_cache,
                                   fetch_conversations_unread, reset_unread_message_count_in_cache,
                                   update_deferred_conversation_poll_updated_at_value,
-                                  get_to_show_results_for_conversation_poll, save_users_with_muted_chatrooms,
-                                  save_bulk_users_list_with_muted_chatrooms)
+                                  get_to_show_results_for_conversation_poll)
 
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
@@ -2142,8 +2141,6 @@ class ConversationHelper:
         if bulk_state_instance_list:
             ModelUtilities.bulk_create_instances(collabcardState, bulk_state_instance_list)
 
-        save_bulk_users_list_with_muted_chatrooms.delay(chatroom_instance.id, tagged_member_list,
-                                                        mute_status=mute_status)
         ElasticSearchSync.update_chatroom.delay(chatroom_instance.id)
 
         ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
@@ -2234,10 +2231,6 @@ class ConversationHelper:
             if chatroom_state_instance.is_tagged:
                 chatroom_state_instance.is_tagged = False
                 chatroom_state_instance.mute_status = False
-
-                save_users_with_muted_chatrooms.delay({'user_id': user_instance.id,
-                                                       'chatroom_id': chatroom_instance.id,
-                                                       'mute_status': False})
 
             chatroom_state_instance.save()
 

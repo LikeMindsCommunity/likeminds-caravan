@@ -26,7 +26,7 @@ from django.db.models import Q, F
 import json
 
 from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVERSATION_POLL_VOTERS_CONVERSATION_ID, \
-    CONVERSATION_COMMUNITY_PREVIEW, USER_MUTED_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
+    CONVERSATION_COMMUNITY_PREVIEW, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
     COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY, \
@@ -944,85 +944,6 @@ def save_conversation_poll_voters_in_cache(vote_info):
 
     key = CONVERSATION_POLL_VOTERS_CONVERSATION_ID % (str(conversation_instance.id))
     CacheImpl.set_cache(key, cache_context)
-
-
-@shared_task
-def save_users_with_muted_chatrooms(mute_info):
-    user_id = mute_info.get('user_id')
-    chatroom_id = mute_info.get('chatroom_id')
-    mute_status = mute_info.get('mute_status')
-
-    if not user_id:
-        return
-
-    key = USER_MUTED_CHATROOM % str(user_id)
-
-    muted_key = CacheImpl.get_cache(key)
-
-    if muted_key and chatroom_id:
-        mute_list = muted_key.get('mute_list', [])
-
-        if mute_status and \
-                chatroom_id not in mute_list:
-            mute_list.append(chatroom_id)
-
-        elif not mute_status and \
-                chatroom_id in mute_list:
-
-            mute_list.remove(chatroom_id)
-
-        CacheImpl.set_cache(key, {'mute_list': mute_list})
-
-        return
-
-    mute_list = mute_info.get('mute_list', [])
-
-    if not mute_list:
-        mute_list = list(collabcardState.objects.filter(user=user_id,
-                                                        mute_status=True).values_list('card_id',
-                                                                                      flat=True))
-
-    CacheImpl.set_cache(key, {'mute_list': mute_list})
-
-
-@shared_task
-def save_bulk_users_list_with_muted_chatrooms(chatroom_id, users_list, mute_status=None):
-
-    if not (chatroom_id or users_list or mute_status):
-        return
-
-    cache_update_data = {}
-
-    keys_list = [USER_MUTED_CHATROOM % str(user_id) for user_id in users_list]
-
-    muted_users_chatroom_filter = CacheImpl.bulk_get_cache(keys_list)
-
-    for user_id in users_list:
-        key = USER_MUTED_CHATROOM % str(user_id)
-
-        muted_key = muted_users_chatroom_filter.get(key)
-
-        if muted_key and chatroom_id:
-            mute_list = muted_key.get('mute_list', [])
-
-            if mute_status and \
-                    chatroom_id not in mute_list:
-                mute_list.append(chatroom_id)
-
-            elif not mute_status and \
-                    chatroom_id in mute_list:
-
-                mute_list.remove(chatroom_id)
-
-        else:
-            mute_list = list(ModelUtilities.get_model_filter(
-                collabcardState, {'user': user_id, 'mute_status': True}).values_list('card_id', flat=True))
-
-        cache_update_data[key] = {'mute_list': mute_list}
-
-    CacheImpl.bulk_set_cache(cache_update_data)
-
-    return
 
 
 @shared_task

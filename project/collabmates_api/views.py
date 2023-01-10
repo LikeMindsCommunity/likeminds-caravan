@@ -3532,10 +3532,6 @@ def chatroom_mute(request):
         instance.is_tagged = False
         instance.save()
 
-    save_users_with_muted_chatrooms.delay({'user_id': user_instance.id,
-                                           'chatroom_id': card_instance.id,
-                                           'mute_status': mute_status})
-
     send_sync_notification.delay({'chatroom_id': chatroom_id,
                                   'member_id': member_id,
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
