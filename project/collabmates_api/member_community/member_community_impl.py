@@ -672,7 +672,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                          send_expired_info=True) -> {}:
 
         member_dict = {}
-        membership_expired_dict ={}
+        membership_expired_dict = {}
         member_list = get_members_based_on_user_list_query(user_list, community_instance.id,
                                                            order_by_name=order_by_name)
         community_name = community_instance.name
@@ -1772,11 +1772,16 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                             'community': community_instance}).
                            values_list("right__state", flat=True))
 
+        context = {"current_user_id": user_instance.id}
+        community_serializer_object = CommunitySerializerV1(community_instance, context=context, many=False).data
+
         for card_id, card_ans_id in card_ans_map.items():
             chatroom = MemberCommunityHelper.serialise_dm_chatrooms(user_instance, community_instance, card_id,
                                                                     card_ans_id, card_state_map,
                                                                     convsersation_states_to_consider, rights_list,
                                                                     device_id=self.get_device_id())
+
+            chatroom['community'] = community_serializer_object
 
             if chatroom:
                 dm_chatrooms.append(chatroom)
@@ -2446,9 +2451,6 @@ class MemberCommunityHelper:
 
         if card_instance:
             chatroom['chatroom'] = get_chatroom_instance(card_instance, user_instance.id, send_profile=False)
-            context = {"current_user_id": user_instance.id}
-            chatroom['community'] = CommunitySerializerV1(card_instance.community, context=context,
-                                                          many=False).data
             chatroom['is_draft'] = False
 
         if card_answer_instance:
@@ -2687,6 +2689,9 @@ class MemberCommunityHelper:
                                  'custom_title': "Member",
                                  'became_member_at': TimeUtilities.current_time_in_sec()
                                  })
+
+        if req_body.get('image_url'):
+            MemberCommunityHelper.update_user_image_in_sdk(user_instance, req_body.get('image_url'))
 
         ModelUtilities.update_or_create_model(Member_Engage, {
             'member_id': user_instance,

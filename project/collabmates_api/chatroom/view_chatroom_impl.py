@@ -609,7 +609,7 @@ class FetchChatroomSettingsView(APIView):
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
 
-        request_platform = RequestUtilities.get_platform_code(request)
+        request_platform = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
 
         chatroom_id = request.GET.get('chatroom_id')
