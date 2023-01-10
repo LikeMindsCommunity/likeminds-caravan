@@ -1896,7 +1896,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             if access_type in [access_types.CREATE_POST, access_types.VIEW_POST, access_types.LIKE_POST,
                                access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.LIKE_COMMENT,
-                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY]:
+                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY, access_types.VIEW_REPORT_ENTITY]:
                 output_context['access'] = True
 
         if member_state == member_states.MEMBER:
@@ -1913,7 +1913,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                access_types.SAVE_POST, access_types.VIEW_ACTIVITY]:
                 output_context['access'] = True
 
-            if access_type in [access_types.PIN_POST, access_types.CREATE_ACTIVITY]:
+            if access_type in [access_types.PIN_POST, access_types.CREATE_ACTIVITY, access_types.VIEW_REPORT_ENTITY]:
                 output_context['access'] = False
 
         return output_context
