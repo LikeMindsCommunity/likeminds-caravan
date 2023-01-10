@@ -2169,8 +2169,9 @@ class ConversationHelper:
         users_list = []
         create_engage_list = []
 
-        update_conversation_engage_data_for_chatroom.delay(chatroom_instance.id, user_instance.id,
-                                                           TimeUtilities.current_time_in_sec())
+        if not (conversation_instance.attachment_count > 0 and not conversation_instance.attachments_uploaded):
+            update_conversation_engage_data_for_chatroom.delay(chatroom_instance.id, user_instance.id,
+                                                               TimeUtilities.current_time_in_sec())
 
         engage_members = tagged_members + [user_instance.id] if tagged_members else [user_instance.id]
         is_converted, engage_members = NumberUtilities.convert_list_to_integer_list_with_conversion_status(
