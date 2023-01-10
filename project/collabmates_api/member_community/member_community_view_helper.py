@@ -1,6 +1,6 @@
 from rest_framework import status as status_codes
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, Community, Collabcard)
+from togther.models import (ModelUtilities, Community, Collabcard, conversationEngage)
 from collabmates_api.sdk.models import (SdkClient)
 from utility.states import (dm_icon_from_states, unsubscribe_types)
 
@@ -170,4 +170,28 @@ class MemberCommunityViewHelper:
             'user_instance': user_instance,
             'community_instance': community_instance,
             'code_flag': code_flags
+        }
+
+    @staticmethod
+    def validate_fetch_chatroom_home_request(user_id, chatroom_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom ID")
+
+        engage_filter = ModelUtilities.get_model_filter(conversationEngage, {'card': chatroom_instance,
+                                                                             'user': user_instance})
+
+        if not engage_filter:
+            return ResponseUtilities.get_inner_error_context('User is not following the chatroom!')
+
+        return {
+            'user_instance': user_instance,
+            'chatroom_instance': chatroom_instance,
+            'engage_instance': engage_filter[0]
         }
