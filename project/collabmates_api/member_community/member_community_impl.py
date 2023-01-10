@@ -54,7 +54,8 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_ordered_card_id_on_the_basis_of_participants_count_v2,
                            get_ordered_card_id_on_the_basis_newest_chatroom_v2,
                            get_chatrooms_of_user_with_follow_status,
-                           get_conversation_users_against_chatrooms_list)
+                           get_conversation_users_against_chatrooms_list,
+                           get_latest_conversations_against_chatrooms_list)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -1183,7 +1184,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                    many=False).data
                 chatroom_home['is_draft'] = True
 
-            last_conversation = engage_instance.last_conversation
+            chatroom_conversations = get_latest_conversations_against_chatrooms_list([card_instance.id])
+            chatrooms_conversation_ids_list = chatroom_conversations.get(card_instance.id)
+            last_conversation_id = chatrooms_conversation_ids_list[0] if chatrooms_conversation_ids_list else None
+            last_conversation = ModelUtilities.get_model_instance_or_none(card_answers, last_conversation_id)
 
             if last_conversation and not is_draft_conversation(last_conversation, member_id):
 
