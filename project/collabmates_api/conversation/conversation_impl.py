@@ -71,6 +71,7 @@ from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple
 
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
+from utility.list_utilities import ListUtilities
 from celery import shared_task
 from ..owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from collabmates_api.search.sync import ElasticSearchSync
@@ -2175,6 +2176,19 @@ class ConversationHelper:
                                                            TimeUtilities.current_time_in_sec())
 
         engage_members = tagged_members + [user_instance.id] if tagged_members else [user_instance.id]
+        is_converted, engage_members = NumberUtilities.convert_list_to_integer_list_with_conversion_status(
+            engage_members)
+
+        if not is_converted:
+            return
+
+        engage_users_list = list(ModelUtilities.get_model_filter(
+            conversationEngage, {'card': chatroom_instance}).values_list('user_id', flat=True))
+
+        engage_members = ListUtilities.remove_list_elements(engage_members, engage_users_list)
+
+        if not engage_members:
+            return
 
         if engage_members:
             conversations_filter = ModelUtilities.get_model_filter(card_answers,
