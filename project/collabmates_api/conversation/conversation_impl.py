@@ -2189,35 +2189,34 @@ class ConversationHelper:
         if not engage_members:
             return
 
-        if engage_members:
-            conversations_filter = ModelUtilities.get_model_filter(card_answers,
-                                                                   {'card': chatroom_instance, 'state': 0}). \
-                filter(Q(attachment_count=0) | Q(attachments_uploaded=True) | Q(api_version=1)).order_by('id')
+        conversations_filter = ModelUtilities.get_model_filter(card_answers,
+                                                               {'card': chatroom_instance, 'state': 0}). \
+            filter(Q(attachment_count=0) | Q(attachments_uploaded=True) | Q(api_version=1)).order_by('id')
 
-            total_conversations = conversations_filter.count()
+        total_conversations = conversations_filter.count()
 
         for user_id in engage_members:
-            user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+            engage_user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
-            if not user_instance:
+            if not engage_user_instance:
                 continue
 
-            if user_instance.id not in users_list:
-                rights_list = list(userMemberRights.objects.filter(user=user_instance,
+            if engage_user_instance.id not in users_list:
+                rights_list = list(userMemberRights.objects.filter(user=engage_user_instance,
                                                                    community=chatroom_instance.community).exclude(
                     right__state=4).values_list("right__state", flat=True))
 
                 rights_list = json.dumps(rights_list)
 
-                unseen_count = total_conversations if user_instance != user_instance else 0
+                unseen_count = total_conversations if engage_user_instance != user_instance else 0
 
                 instance = conversationEngage.create_instance_for_bulk_create(
                     community_instance=chatroom_instance.community, chatroom_instance=chatroom_instance,
-                    user_instance=user_instance, rights_list=rights_list, unseen_count=unseen_count)
+                    user_instance=engage_user_instance, rights_list=rights_list, unseen_count=unseen_count)
 
                 create_engage_list.append(instance)
 
-                users_list.append(user_instance.user_id)
+                users_list.append(engage_user_instance.user_id)
 
         ModelUtilities.bulk_create_instances(conversationEngage, create_engage_list)
 

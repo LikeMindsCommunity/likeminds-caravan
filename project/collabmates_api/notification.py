@@ -1159,8 +1159,9 @@ def send_follow_notification(card_id, user_id, conversation_id):
     message = TasksHelper.add_community_info_to_notification_payload(message, community_instance.id)
     notification_meta(notification_list, message)
 
-    send_notification_to_tagged_users_on_conversation_creation(tagged_users_list, answer_text, userinfo_instance,
-                                                               conversation_instance, card_instance, community_instance)
+    # send_notification_to_tagged_users_on_conversation_creation(tagged_users_list, answer_text, userinfo_instance,
+    #                                                            conversation_instance, card_instance,
+    #                                                            community_instance)
 
 
 def compute_mute_status_for_users(current_user_id):
