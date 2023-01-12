@@ -2104,6 +2104,7 @@ class ConversationHelper:
             mute_status = is_tagged = False
 
         if should_unmute_members:
+            is_tagged = False
             mute_status = False
 
         chatroom_state_update_dict = {
@@ -2120,10 +2121,10 @@ class ConversationHelper:
                                                        {'card': chatroom_instance,
                                                         'user__in': tagged_member_list})
 
-        state_filter.filter(**{'follow_status': False}).update(**chatroom_state_update_dict)
-
         if should_unmute_members:
-            state_filter.filter(**{'follow_status': True, 'mute_status': True}).update(mute_status=mute_status)
+            state_filter.filter(**{'follow_status': True}).update(mute_status=mute_status, is_tagged=is_tagged)
+
+        state_filter.filter(**{'follow_status': False}).update(**chatroom_state_update_dict)
 
         state_filter_user_ids_list = state_filter.values_list('user_id', flat=True)
         user_instances_filter = ModelUtilities.get_model_filter(
