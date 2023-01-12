@@ -1776,6 +1776,9 @@ def report_serializer(report_instance, current_user_id):
         report["chatroom"] = get_chatroom_instance(report_instance.collabcard, current_user_id)
         report["conversation_users"] = get_last_two_conversation_user_images(report_instance.collabcard)
 
+    if report_instance.entity_id:
+        report["entity_id"] = report_instance.entity_id
+
     if report_instance.tag:
         report["tag"] = report_tag_serializer(report_instance.tag)
 
