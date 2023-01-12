@@ -705,6 +705,7 @@ class AccessTypes:
     LIKE_COMMENT = "like_comment"
     CREATE_ACTIVITY = "create_activity"
     VIEW_ACTIVITY = "view_activity"
+    VIEW_REPORT_ENTITY = "view_report_entity"
 
 
 access_types = AccessTypes()

@@ -9981,7 +9981,7 @@ def push_report_v1(request):
                     "invalid reported_member_id", status_codes.HTTP_400_BAD_REQUEST))
 
         elif entity_id and entity_creator_id and entity_type and not reported_member_instance:
-            reported_member_instance = ModelUtilities.get_model_instance_or_none(User, entity_creator_id)
+            reported_member_instance = ModelUtilities.get_user_instance_or_none(entity_creator_id)
             if not reported_member_instance:
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
                     "invalid reported_member_id", status_codes.HTTP_400_BAD_REQUEST))

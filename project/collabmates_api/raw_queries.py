@@ -3175,7 +3175,7 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, l
 
         if filter_user_ids is not None:
             filter_user_query = " AND togther_collabcardstate.user_id IN {}".format(
-                get_tuple_from_array(filter_user_query))
+                get_tuple_from_array(filter_user_ids))
 
         sql = """
                 SELECT ans_ord.user_id
