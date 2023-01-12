@@ -445,7 +445,7 @@ def get_tagged_members_list(community_id, chatroom_id, answer):
     answer_text = re.sub(r'\|route://[member member_profile]+/[0-9]+>>|<<', '', answer)
     tagged_user_names = "@" + ' @'.join(re.findall('(?<=\<\<).+?(?=\|)', answer))
 
-    group_tagged_users, conversation_text, should_unmute_members = process_group_tags(
+    group_tagged_users, conversation_text, should_unmute_members, is_group_tag = process_group_tags(
         community_id,
         chatroom_id,
         answer_text
@@ -457,7 +457,7 @@ def get_tagged_members_list(community_id, chatroom_id, answer):
 
     tagged_users_list = ListUtilities.remove_duplicates(tagged_users_list)
 
-    return tagged_users_list, answer_text, tagged_user_names, should_unmute_members
+    return tagged_users_list, answer_text, tagged_user_names, should_unmute_members, is_group_tag
 
 
 def process_group_tags(community_id: str, chatroom_id: str, answer_text: str):
@@ -468,6 +468,8 @@ def process_group_tags(community_id: str, chatroom_id: str, answer_text: str):
     conversation_text = StringUtilities.replace_in_string(PARTICIPANTS_TAG_REGEX, PARTICIPANTS_TAG_TEXT, conversation_text)
 
     should_unmute_members: bool = False
+    is_group_tag: bool = False
+
     '''
         if both tags present we process everyone (community) tag 
         and return
@@ -475,13 +477,15 @@ def process_group_tags(community_id: str, chatroom_id: str, answer_text: str):
     if everyone_tag:
         tagged_users = process_everyone_tag(community_id, chatroom_id)
         should_unmute_members = True
-        return tagged_users, conversation_text, should_unmute_members
+        is_group_tag = True
+        return tagged_users, conversation_text, should_unmute_members, is_group_tag
 
     if participants_tag:
         tagged_users = process_participants_tag(chatroom_id)
-        return tagged_users, conversation_text, should_unmute_members
+        is_group_tag = True
+        return tagged_users, conversation_text, should_unmute_members, is_group_tag
 
-    return list(), conversation_text, should_unmute_members
+    return list(), conversation_text, should_unmute_members, is_group_tag
 
 
 def process_everyone_tag(community_id: str, chatroom_id: str) -> list:
@@ -707,7 +711,7 @@ def send_notification_for_new_collabcard_posted(community_id, collabcard_title, 
             curr.execute(sql, parameter_list)
             member_list = curr.fetchall()
 
-            tagged_users_list, collabcard_title, user_names, should_unmute_members = get_tagged_members_list(
+            tagged_users_list, collabcard_title, user_names, should_unmute_members, _ = get_tagged_members_list(
                 community_id,
                 card_id,
                 collabcard_title
@@ -1103,7 +1107,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
         )
     )
 
-    tagged_users_list, answer_text, user_names, should_unmute_members = get_tagged_members_list(
+    tagged_users_list, answer_text, user_names, should_unmute_members, _ = get_tagged_members_list(
         community_instance.id,
         card_id,
         answer

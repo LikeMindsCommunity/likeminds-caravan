@@ -527,7 +527,7 @@ class ConversationImpl(ConversationManager):
     def _auto_follow_for_tagged_members(community_id, chatroom_instance, conversation_instance, user_instance):
 
         conversation_text = conversation_instance.answer
-        tagged_member_list, answer_text, tagged_user_names, should_unmute_members = get_tagged_members_list(
+        tagged_member_list, answer_text, tagged_user_names, should_unmute_members, _ = get_tagged_members_list(
             community_id,
             chatroom_instance.id,
             conversation_text
@@ -2088,7 +2088,7 @@ class ConversationHelper:
     def _auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance):
 
         conversation_text = conversation_instance.answer
-        tagged_member_list, answer_text, tagged_user_names, should_unmute_members = get_tagged_members_list(
+        tagged_member_list, answer_text, tagged_user_names, should_unmute_members, is_group_tag = get_tagged_members_list(
             chatroom_instance.community_id,
             chatroom_instance.id,
             conversation_text
@@ -2143,9 +2143,10 @@ class ConversationHelper:
 
         ElasticSearchSync.update_chatroom.delay(chatroom_instance.id)
 
-        ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
-                                                                    user_instance,
-                                                                    chatroom_instance)
+        if not is_group_tag:
+            ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
+                                                                        user_instance,
+                                                                        chatroom_instance)
 
         return tagged_member_list
 
