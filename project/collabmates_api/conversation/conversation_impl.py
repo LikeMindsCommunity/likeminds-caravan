@@ -25,7 +25,7 @@ from ..member_community.member_community_impl import MemberCommunityImpl, Member
 from ..raw_queries import activate_chatroom_on_conversation_creation, \
     get_latest_conversation_creator_users_for_homescreen, update_conversation_engage_for_chatrooms, \
     get_count_of_new_event_conversation_created_for_user, get_last_seen_event_conversation_id_for_user, \
-    update_conversation_engage_data_for_chatroom
+    update_conversation_engage_data_for_chatroom, activate_chatroom_for_followed_users_on_conversation_creation
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, UserinfoSerializer
 from ..sync.model_update import update_models_for_syncing_apis
@@ -2275,6 +2275,11 @@ class ConversationHelper:
 
     @staticmethod
     @shared_task
+    def update_activity_in_chatroom_for_followed_users(chatroom_id, user_id):
+        activate_chatroom_for_followed_users_on_conversation_creation(chatroom_id, user_id)
+
+    @staticmethod
+    @shared_task
     def run_async_task_on_conversation_create(user_id: int, chatroom_id: int, conversation_id: int,
                                               req_body: dict = None, member_state: int = member_states.GUEST):
 
@@ -2307,6 +2312,8 @@ class ConversationHelper:
 
         ConversationHelper._create_or_update_conversation_engage(chatroom_instance, user_instance,
                                                                  conversation_instance, tagged_members_list)
+
+        ConversationHelper.update_activity_in_chatroom_for_followed_users.delay(chatroom_instance.id, user_instance.id)
 
         if not has_files:
             ConversationHelper.update_latest_conversation_id_to_firebase_revamp.delay(chatroom_instance.id,

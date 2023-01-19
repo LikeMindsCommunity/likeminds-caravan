@@ -3346,3 +3346,24 @@ def get_latest_conversations_against_chatrooms_list(chatroom_ids_list, number_of
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
         return {}
+
+
+def activate_chatroom_for_followed_users_on_conversation_creation(card_id, user_id):
+    """function to set active time after new conversation created"""
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = """
+                UPDATE togther_collabcardstate
+                SET    updated_at=%s
+                WHERE  card_id=%s
+                AND    follow_status=true
+                AND    remove_id IS NULL
+                AND    user_id!=%s;""" % (str(TimeUtilities.current_time_in_sec()), str(card_id), str(user_id))
+
+        curr.execute(sql)
+        conn.commit()
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
