@@ -28,6 +28,15 @@ class VersionUtilities:
         PlatformCode.WEB_SDK: 14
     }
 
+    create_conversation_revamp: dict = {
+        PlatformCode.ANDROID: 213,
+        PlatformCode.IOS: beta_dummy_version,
+        PlatformCode.WEB: 16,
+        PlatformCode.ANDROID_SDK: 207,
+        PlatformCode.IOS_SDK: beta_dummy_version,
+        PlatformCode.WEB_SDK: 16
+    }
+
     @staticmethod
     def check_version(platform_code: str, version_code: int, feature_version_dict: dict) -> bool:
         """

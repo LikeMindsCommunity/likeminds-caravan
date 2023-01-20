@@ -7,7 +7,7 @@ class ConversationManager(metaclass=abc.ABCMeta):
     def __subclasshook__(cls, subclass):
         return ((hasattr(subclass, 'fetch_conversation') and callable(subclass.fetch_conversation)) and
                 (hasattr(subclass, 'create_conversation') and callable(subclass.create_conversation)) and
-                (hasattr(subclass, 'create_conversation_revamp') and callable(subclass.create_conversation_revamp)) and
+                (hasattr(subclass, 'create_conversation_v1') and callable(subclass.create_conversation_v1)) and
                 (hasattr(subclass, 'add_poll') and callable(subclass.add_poll)) and
                 (hasattr(subclass, 'submit_poll') and callable(subclass.submit_poll)) and
                 (hasattr(subclass, 'poll_users') and callable(subclass.poll_users)) and
@@ -38,7 +38,7 @@ class ConversationManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def create_conversation_revamp(self, req_body: dict, **kwargs) -> dict:
+    def create_conversation_v1(self, req_body: dict) -> dict:
         """
         create conversation revamp
         """

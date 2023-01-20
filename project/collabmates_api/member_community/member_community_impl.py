@@ -1148,8 +1148,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def fetch_chatroom_home(self, chatroom_id) -> {}:
 
-        validated_req = MemberCommunityViewHelper.validate_fetch_chatroom_home_request(self.get_member_id(),
-                                                                                       chatroom_id)
+        validated_req = MemberCommunityHelper.validate_fetch_chatroom_home_request(self.get_member_id(),
+                                                                                   chatroom_id)
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -2807,3 +2807,27 @@ class MemberCommunityHelper:
 
         return {'community_instance': community_instance, 'user_instance': user_instance,
                 'member_state': member_state, 'access_type': access_type}
+
+    @staticmethod
+    def validate_fetch_chatroom_home_request(user_id, chatroom_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom ID")
+
+        engage_filter = ModelUtilities.get_model_filter(conversationEngage, {'card': chatroom_instance,
+                                                                             'user': user_instance})
+
+        if not engage_filter:
+            return ResponseUtilities.get_inner_error_context('User is not following the chatroom!')
+
+        return {
+            'user_instance': user_instance,
+            'chatroom_instance': chatroom_instance,
+            'engage_instance': engage_filter[0]
+        }

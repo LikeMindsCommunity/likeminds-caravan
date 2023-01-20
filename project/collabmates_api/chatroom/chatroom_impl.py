@@ -5272,3 +5272,17 @@ class ChatroomHelper:
         queryset = Userinfo.objects.filter(user_id__in=user_ids).order_by(preserved)
 
         return queryset
+
+    @staticmethod
+    def get_chatroom_participants_list(chatroom_id):
+        filter_dict = {
+            'card': chatroom_id,
+            'follow_status': True,
+            'is_tagged': False,
+            'remove': None
+        }
+
+        followed_members = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',
+                                                                                                     flat=True)
+
+        return list(followed_members)

@@ -37,6 +37,8 @@ from utility.states import card_types, conversation_poll_types, conversation_sta
     level_click_states, event_access, event_webflow_update_types, deleted_members, collabcard_states, SyncTypes, \
     community_setting_types, CollabcardTypes, poll_types, message_template_chatroom_types
 
+from utility.validation_utilities import ValidationUtilities
+
 from collabmates_api.search.sync import ElasticSearchSync
 
 error_logger = LoggingWrapper.get_instance()
@@ -2128,21 +2130,22 @@ def update_unread_message_count_in_cache(chatroom_id, conversation_creator_id=0)
     if not chatroom_id:
         return
 
-    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+    validation_params = {
+        'chatroom_id': chatroom_id
+    }
 
-    if not card_instance:
+    validated_dict = ValidationUtilities.is_valid(validation_params)
+
+    if validated_dict.get('error_message'):
         return
+
+    card_instance = validated_dict.get('chatroom_id')
 
     unread_cache_data = {}
 
-    filter_dict = {
-        'card': card_instance,
-        'follow_status': True,
-        'is_tagged': False,
-        'remove': None
-    }
+    from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
-    followed_members = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id', flat=True)
+    followed_members = ChatroomHelper.get_chatroom_participants_list(chatroom_id)
 
     keys_list = [CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
                  for user_id in followed_members]

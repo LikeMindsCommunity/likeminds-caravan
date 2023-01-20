@@ -303,15 +303,15 @@ def update_my_chatrooms_on_homefeed_in_firebase_for_users_list(chatroom_id, user
         error_logger.error(e)
 
 
-def update_chatroom_conversation_ids_against_community(community_id, card_id, answer_id):
-    """function to update last answer id when a new answer is posted"""
+def update_chatroom_conversation_ids_against_community(community_id, card_id, conversation_id):
+    """function to update last conversation id when a new answer is posted"""
 
     if not community_id:
         return
 
     try:
         data = {
-            'conversation_id': str(answer_id),
+            'conversation_id': str(conversation_id),
             'chatroom_id': str(card_id)
         }
 
