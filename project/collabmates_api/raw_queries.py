@@ -50,6 +50,7 @@ def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation
 def get_my_chatrooms_count(user_id,
                            version_code,
                            platform_code,
+                           chatroom_type,
                            consider_dm_chatrooms=False,
                            dm_instance_community_ids_list=[],
                            community_id=None,
@@ -98,6 +99,9 @@ def get_my_chatrooms_count(user_id,
         if should_add_dm_chatrooms:
             dm_chatrooms_filter = ""
 
+        chatroom_type_filter = """"""
+        if chatroom_type != -1:
+            chatroom_type_filter = """ AND type in (%s)""" % str(chatroom_type)
 
         conn = get_connection()
         curr = conn.cursor()
@@ -114,7 +118,7 @@ def get_my_chatrooms_count(user_id,
                                               AND card_id IN (SELECT id
                                                               FROM   togther_collabcard
                                                               WHERE  (%s is_deleted = FALSE
-                                                                     AND not (%s) %s) %s)
+                                                                     AND not (%s) %s) %s %s)
 
                   ) """ % (
             str(user_id),
@@ -122,7 +126,8 @@ def get_my_chatrooms_count(user_id,
             dm_chatrooms_filter,
             str(filter_intro_rooms_query),
             dm_chatrooms_communities_filter,
-            excluded_card_ids_filter
+            excluded_card_ids_filter,
+            chatroom_type_filter
         )
 
         curr.execute(sql)
@@ -212,6 +217,7 @@ def get_followed_chatrooms(user_id,
                            page,
                            version_code,
                            platform_code,
+                           chatroom_type,
                            limit=10,
                            consider_dm_chatrooms=False,
                            dm_instance_community_ids_list=[],
@@ -273,6 +279,10 @@ def get_followed_chatrooms(user_id,
 
         follow_conversation_state = get_tuple_from_array([conversation_states.CONVERSATION_FOLLOW])
 
+        chatroom_type_filter = """"""
+        if chatroom_type != -1:
+            chatroom_type_filter = """ AND type in (%s)""" % str(chatroom_type)
+
         conn = get_connection()
         curr = conn.cursor()
 
@@ -289,12 +299,13 @@ def get_followed_chatrooms(user_id,
                                               FROM   togther_collabcard
                                               WHERE  (%s    is_deleted = FALSE
                                                      AND    NOT (%s)
-                                                    %s) %s)""" % (
+                                                    %s) %s %s)""" % (
             str(user_id),
             str(dm_chatrooms_filter),
             str(filter_intro_rooms_query),
             str(dm_chatrooms_communities_filter),
-            str(excluded_card_ids_filter))
+            str(excluded_card_ids_filter),
+            str(chatroom_type_filter))
 
         curr.execute(fetch_card_ids_sql)
         card_ids_res = curr.fetchall()
@@ -1639,7 +1650,8 @@ def get_conversation_files_based_on_conversation_list(conversation_list):
         return {}
 
 
-def get_members_based_on_user_list_query(user_list, community_id, order_by_name=False):
+def get_members_based_on_user_list_query(user_list, community_id, order_by_name=False, page=0, page_size=0,
+                                         member_name_search_string=""):
     """returns the members of the community based on user list"""
 
     try:
@@ -1667,8 +1679,17 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
                 WHERE ("togther_members"."community_id_id" = %s
                         AND "togther_members"."member_id_id" IN %s)""" % (str(community_id), str(user_tupple))
 
+        if member_name_search_string:
+            sql += """ AND ("togther_userinfo"."name" ILIKE '%s')""" % str(member_name_search_string + "%")
+
         if order_by_name:
             sql += " order by lower(togther_userinfo.name) ASC"
+
+        if page_size:
+            sql += """ limit %s""" % str(page_size)
+
+        if page:
+            sql += """ offset %s""" % str((page - 1) * page_size)
 
         curr.execute(sql)
         member_data = curr.fetchall()
@@ -2722,7 +2743,8 @@ def get_ordered_card_id_on_the_basis_of_participants_count(user_id, community_id
 
 
 def get_ordered_card_id_on_the_basis_newest_chatroom_v2(user_id, community_id, is_pinned, excluded_card_ids,
-                                                        excluded_card_types, pinned_chatrooms_list, page=1, limit=10):
+                                                        excluded_card_types, pinned_chatrooms_list, page=1, limit=10,
+                                                        chatroom_type=None):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -2742,6 +2764,8 @@ def get_ordered_card_id_on_the_basis_newest_chatroom_v2(user_id, community_id, i
         if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
             order_by_query = "CA.is_pinned DESC, CA.created_at DESC"
 
+        chatroom_type_filter = """ AND CA.type IN (%s)""" % str(chatroom_type) if chatroom_type else ""
+
         conn = get_connection()
         curr = conn.cursor()
 
@@ -2757,11 +2781,11 @@ def get_ordered_card_id_on_the_basis_newest_chatroom_v2(user_id, community_id, i
                              AND CA.type NOT IN {}
                              {}
                              AND CS.user_id = {}
-                             {} )
+                             {} {})
                     GROUP  BY CA.id
                     ORDER  BY {} LIMIT {} OFFSET {} ;
         """.format(community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id, excluded_card_id_string,
-                   order_by_query, limit, offset)
+                   chatroom_type_filter, order_by_query, limit, offset)
 
         curr.execute(sql)
         res = curr.fetchall()
@@ -2846,7 +2870,7 @@ def get_ordered_card_id_on_the_basis_last_message_v2(user_id, community_id, is_p
 
 def get_ordered_card_id_on_the_basis_of_participants_count_v2(user_id, community_id, is_pinned, excluded_card_ids,
                                                               excluded_card_types, pinned_chatrooms_list, page=1,
-                                                              limit=10):
+                                                              limit=10, chatroom_type=None):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -2864,6 +2888,8 @@ def get_ordered_card_id_on_the_basis_of_participants_count_v2(user_id, community
 
         if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
             order_by_query = "togther_collabcard.is_pinned DESC, count(togther_collabcardstate.id) DESC"
+
+        chatroom_type_filter = """ AND CA.type IN (%s)""" % str(chatroom_type) if chatroom_type else ""
 
         conn = get_connection()
         curr = conn.cursor()
@@ -2887,6 +2913,7 @@ def get_ordered_card_id_on_the_basis_of_participants_count_v2(user_id, community
                                             AND        ca.is_private = false
                                             AND        ca.type NOT IN {}
                                             {}
+                                            {}
                                             AND        cs.user_id = {} {} ))
             AND       togther_collabcardstate.user_id IN 
                       (
@@ -2898,8 +2925,8 @@ def get_ordered_card_id_on_the_basis_of_participants_count_v2(user_id, community
             AND       togther_collabcardstate.remove_id IS NULL
             GROUP BY  togther_collabcard.id
             ORDER BY  {} limit {} offset {};
-        """.format(community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id, excluded_card_id_string,
-                   order_by_query, limit, offset)
+        """.format(community_id, excluded_card_types_tuple, pinned_chatrooms_query, chatroom_type_filter, user_id,
+                   excluded_card_id_string, order_by_query, limit, offset)
 
         curr.execute(sql)
         res = curr.fetchall()
@@ -3021,10 +3048,15 @@ def get_participant_counts_on_basis_of_chatroom_ids(card_ids_list):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_all_chatrooms_of_community(community_id, page=1, limit=10):
+def get_all_chatrooms_of_community(community_id, chatroom_type=-1, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
+
+        type_filter = """IN (%s)""" % (str(chatroom_type))
+
+        if chatroom_type == -1:
+            type_filter = "NOT IN (10, 11)"
 
         conn = get_connection()
         curr = conn.cursor()
@@ -3034,8 +3066,8 @@ def get_all_chatrooms_of_community(community_id, page=1, limit=10):
                  WHERE (is_deleted = false
                        AND is_private = false
                        AND community_id = %s 
-                       AND type NOT IN (10))
-                 OFFSET %s LIMIT %s;""" % (str(community_id), str(offset), str(limit))
+                       AND type %s)
+                 OFFSET %s LIMIT %s;""" % (str(community_id), type_filter, str(offset), str(limit))
 
         curr.execute(sql)
         card_list = curr.fetchall()

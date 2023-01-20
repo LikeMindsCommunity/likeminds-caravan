@@ -190,6 +190,7 @@ class CollabcardTypes:
     CARD_PURPOSE = 7
     CARD_MASTER_INTRO = 9
     CARD_DIRECT_MESSAGE = 10
+    CARD_FEED_GROUP = 11
 
 
 card_types = CollabcardTypes()
@@ -709,3 +710,13 @@ class AccessTypes:
 
 
 access_types = AccessTypes()
+
+
+class FeedOrderTypes:
+    NEWEST_ORDER_TYPE = 0
+    RECENTLY_ACTIVE_ORDER_TYPE = 1
+    MOST_MESSAGES_ORDER_TYPE = 2
+    MOST_PARTICIPANTS_ORDER_TYPE = 3
+
+
+feed_order_types = FeedOrderTypes()
