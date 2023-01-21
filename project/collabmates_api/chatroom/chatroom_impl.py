@@ -3661,6 +3661,19 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
+    def get_chatroom_participants_list(self) -> list:
+        filter_dict = {
+            'card': self.get_chatroom_id(),
+            'follow_status': True,
+            'is_tagged': False,
+            'remove': None
+        }
+
+        followed_members = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',
+                                                                                                     flat=True)
+
+        return list(followed_members)
+
 
 class ChatroomHelper:
 

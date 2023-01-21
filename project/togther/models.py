@@ -1173,7 +1173,9 @@ class conversationEngage(models.Model):
     @staticmethod
     def create_instance_for_bulk_create(community_instance, chatroom_instance, user_instance,
                                         unseen_count=0, rights_list=None, last_conversation=None,
-                                        created_at=None, updated_at=None):
+                                        created_at=None, updated_at=None, second_last_conversation=None,
+                                        last_conversation_member=None, second_last_conversation_member=None,
+                                        last_conversation_user=None, second_last_conversation_user=None):
         current_time_in_sec = TimeUtilities.current_time_in_sec()
 
         created_at = created_at if created_at else current_time_in_sec
@@ -1186,6 +1188,11 @@ class conversationEngage(models.Model):
         instance.last_conversation = last_conversation
         instance.unseen_count = unseen_count
         instance.rights_list = rights_list
+        instance.second_last_conversation = second_last_conversation
+        instance.last_conversation_member = last_conversation_member
+        instance.second_last_conversation_member = second_last_conversation_member
+        instance.last_conversation_user = last_conversation_user
+        instance.second_last_conversation_user = second_last_conversation_user
         instance.created_at = created_at
         instance.updated_at = updated_at
 

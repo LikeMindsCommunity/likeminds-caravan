@@ -53,7 +53,9 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_ordered_card_id_on_the_basis_last_message_v2,
                            get_ordered_card_id_on_the_basis_of_participants_count_v2,
                            get_ordered_card_id_on_the_basis_newest_chatroom_v2,
-                           get_chatrooms_of_user_with_follow_status)
+                           get_chatrooms_of_user_with_follow_status,
+                           get_conversation_users_against_chatrooms_list,
+                           get_latest_conversations_against_chatrooms_list)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -1148,24 +1150,21 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def fetch_chatroom_home(self, chatroom_id) -> {}:
 
-        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+        validated_req = MemberCommunityHelper.validate_fetch_chatroom_home_request(self.get_member_id(),
+                                                                                   chatroom_id)
 
-        if not chatroom_instance:
-            return {'error_message': "Invalid chatroom id", 'status': 400}
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        user_instance = validated_req.get('user_instance')
+        engage_instance = validated_req.get('engage_instance')
 
-        if not user_instance:
-            return {'error_message': "Invalid user id", 'status': 400}
+        chatroom_home = {
+            'success': True
+        }
 
-        engage_filter = ModelUtilities.get_model_filter(conversationEngage, {'card': chatroom_instance,
-                                                                             'user': user_instance})
-        chatroom_home = dict()
-
-        if engage_filter:
-
-            engage_instance = engage_filter[0]
-
+        if engage_instance:
             card_instance = engage_instance.card
             draft_instance = engage_instance.draft
 
@@ -1187,7 +1186,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                    many=False).data
                 chatroom_home['is_draft'] = True
 
-            last_conversation = engage_instance.last_conversation
+            chatroom_conversations = get_latest_conversations_against_chatrooms_list([card_instance.id])
+            chatrooms_conversation_ids_list = chatroom_conversations.get(card_instance.id)
+            last_conversation_id = chatrooms_conversation_ids_list[0] if chatrooms_conversation_ids_list else None
+            last_conversation = ModelUtilities.get_model_instance_or_none(card_answers, last_conversation_id)
 
             if last_conversation and not is_draft_conversation(last_conversation, member_id):
 
@@ -1203,16 +1205,9 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_home['unseen_conversation_count'] = engage_instance.unseen_count
             chatroom_home['last_conversation_time'] = get_time_text_for_my_chatrooms(engage_instance.updated_at)
 
-            last_conversation_member = engage_instance.last_conversation_member
-            second_last_conversation_member = engage_instance.second_last_conversation_member
-            last_conversation_user = engage_instance.last_conversation_user
-            second_last_conversation_user = engage_instance.second_last_conversation_user
+            conversation_users = get_conversation_users_against_chatrooms_list([card_instance.id])
 
-            conversation_users = get_latest_conversation_members(last_conversation_member,
-                                                                 second_last_conversation_member,
-                                                                 last_conversation_user,
-                                                                 second_last_conversation_user)
-            chatroom_home['conversation_users'] = conversation_users
+            chatroom_home['conversation_users'] = conversation_users.get(card_instance.id, [])
             chatroom_home['member_right_states'] = json.loads(
                 engage_instance.rights_list) if engage_instance.rights_list else []
 
@@ -2967,3 +2962,27 @@ class MemberCommunityHelper:
             return ResponseUtilities.get_inner_error_context("You are not a member of the community")
 
         return {'community_instance': community_instance, 'user_instance': user_instance}
+
+    @staticmethod
+    def validate_fetch_chatroom_home_request(user_id, chatroom_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom ID")
+
+        engage_filter = ModelUtilities.get_model_filter(conversationEngage, {'card': chatroom_instance,
+                                                                             'user': user_instance})
+
+        if not engage_filter:
+            return ResponseUtilities.get_inner_error_context('User is not following the chatroom!')
+
+        return {
+            'user_instance': user_instance,
+            'chatroom_instance': chatroom_instance,
+            'engage_instance': engage_filter[0]
+        }

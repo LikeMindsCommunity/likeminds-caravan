@@ -162,16 +162,16 @@ class FetchChatroomHome(APIView):
         chatroom_id = request.GET.get('chatroom_id')
 
         if not member_id:
-            return JsonResponse({'error_message': 'Invalid header member id'}, status=400)
+            error_message = 'Invalid header member id'
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(error_message,
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         member_community_manager = MemberCommunityImpl(member_id, "")
         chatroom_context = member_community_manager.fetch_chatroom_home(chatroom_id)
 
         if 'error_message' in chatroom_context:
-            response_context = {'error_message': chatroom_context['error_message']}
-            status = chatroom_context['status']
-
-            return JsonResponse(response_context, status=status)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_context.get('error_message'),
+                                                                                chatroom_context.get('status')))
 
         return JsonResponse(chatroom_context)
 

@@ -6,6 +6,7 @@ import psycopg2
 from utility.states import card_types, conversation_states
 from utility.utils import is_version_code_supported_for_intro_room
 from .static_text import (MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP)
+from collabmates_api.static_files import (REMOVED_USER_URL)
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -38,6 +39,33 @@ def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation
 
         sql = """update togther_conversationengage set last_conversation_id = %s ,unseen_count = %s where card_id=%s and user_id = %s"""
         paramter_list = [last_conversation_id, unseen_count, card_id, user_id]
+        curr.execute(sql, paramter_list)
+        conn.commit()
+        info_logger.info("conversation engage updated successfully")
+        curr.close()
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+@shared_task
+def update_conversation_engage_data_for_chatroom(card_id, user_id, updated_at):
+    '''function to update chatroom data'''
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+                UPDATE togther_conversationengage
+                SET    unseen_count = (
+                       CASE
+                              WHEN user_id!=%s THEN unseen_count + 1
+                              ELSE 0
+                       END),
+                       updated_at=%s
+                WHERE  card_id=%s;"""
+        paramter_list = [user_id, updated_at, card_id]
         curr.execute(sql, paramter_list)
         conn.commit()
         info_logger.info("conversation engage updated successfully")
@@ -3217,5 +3245,157 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, l
         return [data[0] for data in user_ids_list]
 
     except (Exception, psycopg2.Error) as error:
-        print(error)
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_conversation_users_against_chatrooms_list(chatroom_ids_list, number_of_conversation_users: int = 2):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+            SELECT ans_query.community_id,
+                   ans_query.card_id,
+                   togther_userinfo.user_id_id,
+                   togther_userinfo.name,
+                   togther_userinfo.image_link,
+                   togther_members.id,
+                   togther_members.image_url
+            FROM   togther_userinfo
+                   INNER JOIN (WITH added_row_number
+                                    AS (SELECT togther_card_answers.card_id,
+                                               togther_card_answers.user_id,
+                                               togther_card_answers.community_id,
+                                               Row_number()
+                                                 over(
+                                                   PARTITION BY togther_card_answers.card_id
+                                                   ORDER BY
+                                                 Max(togther_card_answers.created_at)
+                                                 DESC) AS
+                                               row_number
+                                        FROM   togther_card_answers
+                                               inner join togther_collabcard
+                                                       ON togther_collabcard.id =
+                                                          togther_card_answers.card_id
+                                        WHERE  togther_card_answers.card_id IN %s
+                                               AND togther_card_answers.state = 0
+                                               AND togther_collabcard.user_id !=
+                                                   togther_card_answers.user_id
+                                        GROUP  BY togther_card_answers.community_id,
+                                                  togther_card_answers.card_id,
+                                                  togther_card_answers.user_id
+                                        ORDER  BY Max(togther_card_answers.created_at) DESC)
+                               SELECT community_id,
+                                      card_id,
+                                      user_id,
+                                      row_number
+                                FROM   added_row_number
+                                WHERE  row_number < %s) AS ans_query
+                           ON togther_userinfo.user_id_id = ans_query.user_id
+                   LEFT JOIN togther_members
+                          ON ans_query.user_id = togther_members.member_id_id
+                             AND ans_query.community_id = togther_members.community_id_id;
+        """ % (get_tuple_from_array(chatroom_ids_list), number_of_conversation_users + 1)
+
+        curr.execute(sql)
+        conversation_users_data = curr.fetchall()
+        curr.close()
+
+        conversation_user_dict = {}
+
+        for chatroom_conversation_data in conversation_users_data:
+            user_data = {
+                "id": chatroom_conversation_data[2],
+                "name": chatroom_conversation_data[3]
+            }
+
+            if not chatroom_conversation_data[5]:
+                user_data["image_url"] = REMOVED_USER_URL
+
+            elif chatroom_conversation_data[6]:
+                user_data["image_url"] = chatroom_conversation_data[6]
+
+            else:
+                user_data["image_url"] = chatroom_conversation_data[4]
+
+            if not conversation_user_dict.get(chatroom_conversation_data[1]):
+                conversation_user_dict[chatroom_conversation_data[1]] = [user_data]
+
+            else:
+                conversation_user_dict.get(chatroom_conversation_data[1]).append(user_data)
+
+        return conversation_user_dict
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+        return {}
+
+
+def get_latest_conversations_against_chatrooms_list(chatroom_ids_list, number_of_conversations_per_chatroom: int = 2):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """
+                WITH added_row_number
+                     AS (SELECT togther_card_answers.card_id,
+                                togther_card_answers.id AS ans_id,
+                                togther_card_answers.user_id,
+                                Row_number()
+                                  OVER(
+                                    partition BY togther_card_answers.card_id
+                                    ORDER BY togther_card_answers.created_at DESC) AS row_number
+                         FROM   togther_card_answers
+                         WHERE  togther_card_answers.card_id IN %s
+                                AND togther_card_answers.state = 0
+                         ORDER  BY togther_card_answers.created_at DESC)
+                SELECT card_id,
+                       ans_id,
+                       user_id,
+                       row_number
+                FROM   added_row_number
+                WHERE  row_number < %s;
+        """ % (get_tuple_from_array(chatroom_ids_list), number_of_conversations_per_chatroom + 1)
+
+        curr.execute(sql)
+        chatroom_conversations_data = curr.fetchall()
+        curr.close()
+
+        chatroom_conversation_dict = {}
+
+        for chatroom_conversation_data in chatroom_conversations_data:
+
+            if not chatroom_conversation_dict.get(chatroom_conversation_data[0]):
+                chatroom_conversation_dict[chatroom_conversation_data[0]] = [chatroom_conversation_data[1]]
+
+            else:
+                chatroom_conversation_dict.get(chatroom_conversation_data[0]).append(chatroom_conversation_data[1])
+
+        return chatroom_conversation_dict
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+        return {}
+
+
+def activate_chatroom_for_followed_users_on_conversation_creation(card_id, user_id):
+    """function to set active time after new conversation created"""
+
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+        sql = """
+                UPDATE togther_collabcardstate
+                SET    updated_at=%s
+                WHERE  card_id=%s
+                AND    follow_status=true
+                AND    remove_id IS NULL
+                AND    user_id!=%s;""" % (str(TimeUtilities.current_time_in_sec()), str(card_id), str(user_id))
+
+        curr.execute(sql)
+        conn.commit()
+
+    except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
