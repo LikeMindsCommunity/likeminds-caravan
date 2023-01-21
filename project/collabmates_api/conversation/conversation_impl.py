@@ -1671,7 +1671,7 @@ class ConversationHelper:
 
     @staticmethod
     @shared_task
-    def update_latest_conversation_id_to_firebase_revamp(chatroom_id, conversation_id, community_id=None):
+    def update_latest_conversation_id_to_firebase_v1(chatroom_id, conversation_id, community_id=None):
         update_last_answer_id(chatroom_id, conversation_id)
         update_chatroom_conversation_ids_against_community(community_id, card_id=chatroom_id,
                                                            conversation_id=conversation_id)
@@ -2319,9 +2319,9 @@ class ConversationHelper:
         ConversationHelper.update_activity_in_chatroom_for_followed_users.delay(chatroom_instance.id, user_instance.id)
 
         if not has_files:
-            ConversationHelper.update_latest_conversation_id_to_firebase_revamp.delay(chatroom_instance.id,
-                                                                                      conversation_instance.id,
-                                                                                      chatroom_instance.community_id)
+            ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(chatroom_instance.id,
+                                                                                  conversation_instance.id,
+                                                                                  chatroom_instance.community_id)
 
         ConversationHelper._handle_dm_chatroom_communication(chatroom_instance, user_instance)
         ConversationHelper.update_previews_on_conversation_creation(chatroom_instance)

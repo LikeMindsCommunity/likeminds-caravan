@@ -2143,9 +2143,9 @@ def update_unread_message_count_in_cache(chatroom_id, conversation_creator_id=0)
 
     unread_cache_data = {}
 
-    from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+    from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
 
-    followed_members = ChatroomHelper.get_chatroom_participants_list(chatroom_id)
+    followed_members = ChatroomImpl('', chatroom_id=chatroom_id).get_chatroom_participants_list()
 
     keys_list = [CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
                  for user_id in followed_members]
