@@ -74,7 +74,10 @@ class ChatroomViewHelper:
         return {'user_instance': user_instance, 'card_instance': card_instance}
 
     @staticmethod
-    def validate_fetch_participants_meta(user_id, chatroom_id):
+    def validate_fetch_participants_meta(user_id, chatroom_id, page, page_size):
+        if page < 1 or page_size < 1:
+            return ResponseUtilities.get_inner_error_context("Invalid page or page_size")
+
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:

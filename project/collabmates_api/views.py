@@ -291,6 +291,7 @@ def my_chatrooms_version_1(request):
         page = 1
 
     api_key = RequestUtilities.get_api_key_from_headers(request)
+    chatroom_type = NumberUtilities.get_integer_from_string(request.GET.get("type"), -1)
 
     community_id = request.GET.get('community_id', None)
     community_instance = SdkClient.get_community_instance_or_none(community_id, api_key)
@@ -361,6 +362,7 @@ def my_chatrooms_version_1(request):
     joined_chatroom_count = get_my_chatrooms_count(member_id,
                                                    version_code,
                                                    platform_code,
+                                                   chatroom_type=chatroom_type,
                                                    consider_dm_chatrooms=consider_dm_chatrooms,
                                                    dm_instance_community_ids_list=dm_instance_community_ids_list,
                                                    community_id=community_id,
@@ -375,6 +377,7 @@ def my_chatrooms_version_1(request):
                                          page,
                                          version_code,
                                          platform_code,
+                                         chatroom_type=chatroom_type,
                                          limit=10,
                                          consider_dm_chatrooms=consider_dm_chatrooms,
                                          dm_instance_community_ids_list=dm_instance_community_ids_list,
