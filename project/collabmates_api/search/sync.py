@@ -68,7 +68,7 @@ class ElasticSearchSync:
         @param chatroom_id: int
         @param user_ids_list: int
         @return: None
-        @description: updates all chatrooms for a single user
+        @description: updates chatroom for a users list
         """
         instances = collabcardState.objects \
             .filter(card__id=chatroom_id, user__id__in=user_ids_list, remove=None) \
