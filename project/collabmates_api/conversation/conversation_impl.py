@@ -2124,8 +2124,15 @@ class ConversationHelper:
                                                        {'card': chatroom_instance,
                                                         'user__in': tagged_member_list})
 
+        search_update_users_list = []
+
         if should_unmute_members:
+            search_update_users_list = list(state_filter.filter(**{'follow_status': True}).values_list('user_id',
+                                                                                                       flat=True))
             state_filter.filter(**{'follow_status': True}).update(mute_status=mute_status, is_tagged=is_tagged)
+
+        search_update_users_list += list(state_filter.filter(**{'follow_status': False}).values_list('user_id',
+                                                                                                     flat=True))
 
         state_filter.filter(**{'follow_status': False}).update(**chatroom_state_update_dict)
 
@@ -2145,7 +2152,9 @@ class ConversationHelper:
         if bulk_state_instance_list:
             ModelUtilities.bulk_create_instances(collabcardState, bulk_state_instance_list)
 
-        ElasticSearchSync.update_chatroom.delay(chatroom_instance.id)
+        if search_update_users_list:
+            search_update_users_list = list(set(search_update_users_list))
+            ElasticSearchSync.update_chatroom_for_users_list.delay(chatroom_instance.id, search_update_users_list)
 
         if not is_group_tag:
             ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
