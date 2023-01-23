@@ -65,7 +65,7 @@ class CreateConversation(APIView):
 
         req_body = RequestUtilities.fetch_request_body(request)
         is_ios = RequestUtilities.is_request_ios(request)
-        platform_code = RequestUtilities.get_platform_code(request)
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
