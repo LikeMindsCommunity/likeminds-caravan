@@ -2127,14 +2127,18 @@ class ConversationHelper:
         search_update_users_list = []
 
         if should_unmute_members:
-            search_update_users_list = list(state_filter.filter(**{'follow_status': True}).values_list('user_id',
-                                                                                                       flat=True))
-            state_filter.filter(**{'follow_status': True}).update(mute_status=mute_status, is_tagged=is_tagged)
+            filter_dict = {
+                'follow_status': True
+            }
+            search_update_users_list = list(state_filter.filter(**filter_dict).values_list('user_id', flat=True))
+            state_filter.filter(**filter_dict).update(mute_status=mute_status, is_tagged=is_tagged)
 
-        search_update_users_list += list(state_filter.filter(**{'follow_status': False}).values_list('user_id',
-                                                                                                     flat=True))
+        filter_dict = {
+            'follow_status': False
+        }
 
-        state_filter.filter(**{'follow_status': False}).update(**chatroom_state_update_dict)
+        search_update_users_list += list(state_filter.filter(**filter_dict).values_list('user_id', flat=True))
+        state_filter.filter(**filter_dict).update(**chatroom_state_update_dict)
 
         state_filter_user_ids_list = state_filter.values_list('user_id', flat=True)
         user_instances_filter = ModelUtilities.get_model_filter(
