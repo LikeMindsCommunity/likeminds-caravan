@@ -6191,7 +6191,7 @@ def follow_chatroom_async(collabcard_id,
     if not status and card_instance.is_secret:
         return {'success': False, "error_message": "Cannot unfollow chatroom"}
 
-    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
     if not user_instance:
         return {'success': False, "error_message": "Invalid member id"}
