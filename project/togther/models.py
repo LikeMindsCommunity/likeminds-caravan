@@ -1173,7 +1173,9 @@ class conversationEngage(models.Model):
     @staticmethod
     def create_instance_for_bulk_create(community_instance, chatroom_instance, user_instance,
                                         unseen_count=0, rights_list=None, last_conversation=None,
-                                        created_at=None, updated_at=None):
+                                        created_at=None, updated_at=None, second_last_conversation=None,
+                                        last_conversation_member=None, second_last_conversation_member=None,
+                                        last_conversation_user=None, second_last_conversation_user=None):
         current_time_in_sec = TimeUtilities.current_time_in_sec()
 
         created_at = created_at if created_at else current_time_in_sec
@@ -1186,6 +1188,11 @@ class conversationEngage(models.Model):
         instance.last_conversation = last_conversation
         instance.unseen_count = unseen_count
         instance.rights_list = rights_list
+        instance.second_last_conversation = second_last_conversation
+        instance.last_conversation_member = last_conversation_member
+        instance.second_last_conversation_member = second_last_conversation_member
+        instance.last_conversation_user = last_conversation_user
+        instance.second_last_conversation_user = second_last_conversation_user
         instance.created_at = created_at
         instance.updated_at = updated_at
 
@@ -1540,6 +1547,8 @@ class Report(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
     collabcard = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True)
     conversation = models.ForeignKey(card_answers, on_delete=models.CASCADE, null=True)
+
+    entity_id = models.CharField(max_length=512, null=True)
 
     reported_member_id = models.IntegerField(null=True)  # can be removed
     member = models.ForeignKey(User, on_delete=models.CASCADE, null=True)  # can be removed
@@ -3442,3 +3451,36 @@ class CommunityNotificationSettings(models.Model):
         self.updated_at = current_time_in_ms
 
         super(CommunityNotificationSettings, self).save(*args, **kwargs)
+
+
+class FeedNotificationSettings(models.Model):
+
+    NOTIFICATION_TYPE_CHOICES = (
+        (1, 1),
+        (2, 2),
+        (3, 3),
+        (4, 4)
+    )
+
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    notification_type = models.IntegerField(
+        choices=NOTIFICATION_TYPE_CHOICES,
+        help_text=_(
+            '1 - Likes, 2 - Comments, 3 - Replies on your comments, 4 - Updates on commented post'
+        )
+    )
+    enabled = models.BooleanField(default=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time_in_ms
+
+        self.updated_at = current_time_in_ms
+
+        super(FeedNotificationSettings, self).save(*args, **kwargs)

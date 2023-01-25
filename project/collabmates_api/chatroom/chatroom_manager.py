@@ -179,6 +179,10 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                     (
                             hasattr(subclass, 'remove_chatroom_participant') and
                             callable(subclass.remove_chatroom_participant)
+                    ) and
+                    (
+                            hasattr(subclass, 'get_chatroom_participants_list') and
+                            callable(subclass.get_chatroom_participants_list)
                     ) or
                     NotImplemented
         )
@@ -191,7 +195,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_all_chatroom(self, page: int = 1) -> dict:
+    def fetch_all_chatroom(self, page: int = 1, chatroom_type: int = -1) -> dict:
         """
         Fetch all chatrooms in community
         """
@@ -259,7 +263,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_participants_of_secret_chatroom(self):
+    def fetch_participants_of_secret_chatroom(self, participant_name, page, page_size):
         """returns list of participants of secret chatrooms"""
 
         raise NotImplementedError
@@ -430,7 +434,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_chatroom_participants(self):
+    def fetch_chatroom_participants(self, participant_name, page, page_size):
         """
         function to fetch chatroom participants meta data
         """
@@ -509,4 +513,11 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     def remove_chatroom_participant(self, removed_members_list: list = None) -> {}:
         """Removes a participant from chatroom"""
 
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_chatroom_participants_list(self) -> list:
+        """
+        returns chatroom participants list
+        """
         raise NotImplementedError

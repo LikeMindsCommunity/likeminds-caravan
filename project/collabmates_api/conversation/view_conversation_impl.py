@@ -14,6 +14,7 @@ from ..mixins import TransactionMixin
 from utility.request_utilities import RequestUtilities
 from utility.response_utilities import ResponseUtilities
 from utility.exception_utilities import InvalidHeaderException, CustomException
+from utility.version_utilities import VersionUtilities
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -38,13 +39,14 @@ class FetchConversation(APIView):
         paginate_by = RequestUtilities.get_page_size(request, key='paginate_by', default=20)
         top_navigate = StringUtilities.get_boolean_from_string(query_params.get('top_navigate', False))
         include_conversation_id = StringUtilities.get_boolean_from_string(query_params.get('include', False))
+        excluded_conversation_states = query_params.get('excluded_conversation_states')
 
         conversation_manager = ConversationImpl(member_id, chatroom_id, scroll_direction, conversation_id, page,
                                                 paginate_by, device_id=device_id,
                                                 include_conversation_id=include_conversation_id,
                                                 version_code=version_code, platform_code=platform_code)
 
-        conversation_response = conversation_manager.fetch_conversation(top_navigate)
+        conversation_response = conversation_manager.fetch_conversation(top_navigate, excluded_conversation_states)
 
         if conversation_response.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
@@ -64,12 +66,17 @@ class CreateConversation(APIView):
 
         req_body = RequestUtilities.fetch_request_body(request)
         is_ios = RequestUtilities.is_request_ios(request)
-        platform_code = RequestUtilities.get_platform_code(request)
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
         conversation_manager = ConversationImpl(member_id, platform_code=platform_code, device_id=device_id)
 
-        conversation_response = conversation_manager.create_conversation(req_body, is_ios)
+        if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.create_conversation_revamp):
+            conversation_response = conversation_manager.create_conversation_v1(req_body)
+
+        else:
+            conversation_response = conversation_manager.create_conversation(req_body, is_ios=is_ios)
 
         if conversation_response.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(

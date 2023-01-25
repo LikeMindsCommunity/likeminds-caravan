@@ -27,7 +27,11 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'join_community_sdk') and callable(subclass.join_community_sdk)) and
                 (hasattr(subclass, 'member_can_dm') and callable(subclass.member_can_dm)) and
                 (hasattr(subclass, 'unsubscribe_email_notifications') and
-                 callable(subclass.unsubscribe_email_notifications)) or
+                 callable(subclass.unsubscribe_email_notifications)) and
+                (hasattr(subclass, 'fetch_member_access') and callable(subclass.fetch_member_access)) and
+                (hasattr(subclass, 'fetch_post_feed') and callable(subclass.fetch_post_feed)) and
+                (hasattr(subclass, 'fetch_excluded_chatrooms_for_user') and callable(
+                    subclass.fetch_excluded_chatrooms_for_user)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -133,11 +137,27 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     def join_community_sdk(self, req_body: dict) -> {}:
-        """Meember joins a community in SDK"""
+        """Member joins a community in SDK"""
 
         raise NotImplementedError
 
     def unsubscribe_email_notifications(self, code_flags: dict) -> {}:
         """Updates unsubscribe table according to whether notification send or not"""
+
+        raise NotImplementedError
+
+    def fetch_member_access(self, access_type: str) -> {}:
+        """Fetches a user access for given access_type"""
+
+        raise NotImplementedError
+
+    def fetch_post_feed(self, order_type:int = 0, pinned:bool = False, page:int = 1, page_size:int = 10,
+                        chatroom_ids:list = None):
+        """Fetches the post feed data"""
+
+        raise NotImplementedError
+
+    def fetch_excluded_chatrooms_for_user(self):
+        """Fetches the list of excluded chatroom ids for a user"""
 
         raise NotImplementedError

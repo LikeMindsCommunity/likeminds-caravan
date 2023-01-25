@@ -291,6 +291,7 @@ def my_chatrooms_version_1(request):
         page = 1
 
     api_key = RequestUtilities.get_api_key_from_headers(request)
+    chatroom_type = NumberUtilities.get_integer_from_string(request.GET.get("type"), -1)
 
     community_id = request.GET.get('community_id', None)
     community_instance = SdkClient.get_community_instance_or_none(community_id, api_key)
@@ -361,6 +362,7 @@ def my_chatrooms_version_1(request):
     joined_chatroom_count = get_my_chatrooms_count(member_id,
                                                    version_code,
                                                    platform_code,
+                                                   chatroom_type=chatroom_type,
                                                    consider_dm_chatrooms=consider_dm_chatrooms,
                                                    dm_instance_community_ids_list=dm_instance_community_ids_list,
                                                    community_id=community_id,
@@ -375,6 +377,7 @@ def my_chatrooms_version_1(request):
                                          page,
                                          version_code,
                                          platform_code,
+                                         chatroom_type=chatroom_type,
                                          limit=10,
                                          consider_dm_chatrooms=consider_dm_chatrooms,
                                          dm_instance_community_ids_list=dm_instance_community_ids_list,
@@ -382,17 +385,25 @@ def my_chatrooms_version_1(request):
                                          intro_room_community_list=intro_room_community_list,
                                          should_add_dm_chatrooms=should_add_dm_chatrooms)
 
+    chatroom_ids_list = []
+
     if engage_list:
 
         for id, _ in engage_list.items():
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
 
+            if instance.card_id not in chatroom_ids_list:
+                chatroom_ids_list.append(instance.card_id)
+
     draft_list = get_draft_chatrooms_on_home_screen(member_id, page, community_id)
 
     for id in draft_list:
         instance = conversationEngage.objects.get(pk=id)
         instance_list.append(instance)
+
+        if instance.card_id not in chatroom_ids_list:
+            chatroom_ids_list.append(instance.card_id)
 
     # Segregate DM and Non-DM chatrooms
     for instance in instance_list:
@@ -417,6 +428,9 @@ def my_chatrooms_version_1(request):
     else:
         instance_list = non_dm_instance_list
 
+    conversation_users = get_conversation_users_against_chatrooms_list(chatroom_ids_list)
+    chatroom_conversations = get_latest_conversations_against_chatrooms_list(chatroom_ids_list)
+
     for instance in instance_list:
 
         chatroom = {}
@@ -436,7 +450,11 @@ def my_chatrooms_version_1(request):
                                                           many=False).data
             chatroom['is_draft'] = True
 
-        last_conversation = instance.last_conversation
+        chatrooms_conversation_ids_list = chatroom_conversations.get(card_instance.id)
+
+        last_conversation_id = chatrooms_conversation_ids_list[0] if chatrooms_conversation_ids_list else None
+
+        last_conversation = ModelUtilities.get_model_instance_or_none(card_answers, last_conversation_id)
 
         if last_conversation and not is_draft_conversation(last_conversation, member_id, device_id):
             last_conversation_dict = conversationSerializer(last_conversation,
@@ -448,7 +466,11 @@ def my_chatrooms_version_1(request):
 
             chatroom['last_conversation'] = last_conversation_dict
 
-            second_last_conversation = instance.second_last_conversation
+            second_last_conversation_id = chatrooms_conversation_ids_list[1] \
+                if len(chatrooms_conversation_ids_list) > 1 else None
+
+            second_last_conversation = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                                 second_last_conversation_id)
 
             if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id, device_id):
                 second_last_conversation_dict = conversationSerializer(second_last_conversation,
@@ -467,16 +489,7 @@ def my_chatrooms_version_1(request):
             chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(
                 TimeUtilities.convert_milliseconds_to_sec(engage_list.get(instance.id)))
 
-        last_conversation_member = instance.last_conversation_member
-        second_last_conversation_member = instance.second_last_conversation_member
-        last_conversation_user = instance.last_conversation_user
-        second_last_conversation_user = instance.second_last_conversation_user
-
-        conversation_users = get_latest_conversation_members(last_conversation_member,
-                                                             second_last_conversation_member,
-                                                             last_conversation_user,
-                                                             second_last_conversation_user)
-        chatroom['conversation_users'] = conversation_users
+        chatroom['conversation_users'] = conversation_users.get(card_instance.id, [])
 
         rights_list = json.loads(instance.rights_list) if instance.rights_list else []
 
@@ -3522,10 +3535,6 @@ def chatroom_mute(request):
         instance.is_tagged = False
         instance.save()
 
-    save_users_with_muted_chatrooms.delay({'user_id': user_instance.id,
-                                           'chatroom_id': card_instance.id,
-                                           'mute_status': mute_status})
-
     send_sync_notification.delay({'chatroom_id': chatroom_id,
                                   'member_id': member_id,
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
@@ -6188,7 +6197,7 @@ def follow_chatroom_async(collabcard_id,
     if not status and card_instance.is_secret:
         return {'success': False, "error_message": "Cannot unfollow chatroom"}
 
-    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
     if not user_instance:
         return {'success': False, "error_message": "Invalid member id"}
@@ -9888,7 +9897,6 @@ def push_report_v1(request):
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
-
         if not user_instance:
             return JsonResponse(get_error_context(False, "invalid member_id"))
 
@@ -9900,6 +9908,9 @@ def push_report_v1(request):
         reported_member_id = int(request_body['reported_member_id']) if 'reported_member_id' in request_body else None
         link = request_body['link'] if 'link' in request_body else None
         conversation_id = request_body['conversation_id'] if 'conversation_id' in request_body else None
+        entity_id = request_body['entity_id'] if 'entity_id' in request_body else None
+        entity_type = request_body['entity_type'] if 'entity_type' in request_body else None
+        entity_creator_id = request_body['entity_creator_id'] if 'entity_creator_id' in request_body else None
 
         report_type = report_Types.REPORT_COMMUNITY  # assume as community reported
         reported_member_instance = None
@@ -9911,7 +9922,6 @@ def push_report_v1(request):
         has_right_1 = False  # right to approve or reject pending requests
 
         member_instance = Members.objects.filter(community_id=community_id, member_id=member_id)
-
         if member_instance.exists():
             member = member_instance[0]
             is_owner = member.is_owner
@@ -9920,14 +9930,14 @@ def push_report_v1(request):
             has_right_1 = check_admin_approve_right(user=member_id, community=community_id)
 
         if collabcard_id:
-
             if is_promoter and has_right_0:
-                return JsonResponse({'success': False, "error_message": "you have no right to report chatroom"})
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                    "you have no right to report chatroom", status_codes.HTTP_400_BAD_REQUEST))
 
             collabcard_instance = ModelUtilities.get_model_instance_or_none(Collabcard, collabcard_id)
-
             if not collabcard_instance:
-                return JsonResponse(get_error_context(False, "invalid collabcard_id"))
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                    "invalid collabcard_id", status_codes.HTTP_400_BAD_REQUEST))
 
             report_type = report_Types.REPORT_CHATROOM
             if not reported_member_id:
@@ -9936,15 +9946,15 @@ def push_report_v1(request):
             if not community_id:
                 community_id = collabcard_instance.community.id
 
-        if conversation_id:
-
+        elif conversation_id:
             if is_promoter and has_right_0:
-                return JsonResponse({'success': False, "error_message": "you have no right to report convesations"})
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                    "you have no right to report conversations", status_codes.HTTP_400_BAD_REQUEST))
 
             conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
-
             if not conversation_instance:
-                return JsonResponse(get_error_context(False, "invalid conversation_id"))
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                    "invalid conversation_id", status_codes.HTTP_400_BAD_REQUEST))
 
             report_type = report_Types.REPORT_CONVERSATION
 
@@ -9957,26 +9967,40 @@ def push_report_v1(request):
             if not community_id:
                 community_id = conversation_instance.community.id
 
-        if reported_member_id and not reported_member_instance:
-
+        elif reported_member_id and not reported_member_instance:
             if is_promoter and has_right_1:
-                return JsonResponse({'success': False, "error_message": "you have no right to report a member"})
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                    "you have no right to report a member", status_codes.HTTP_400_BAD_REQUEST))
 
             if not community_id and not api_key:
-                return JsonResponse({'success': False, "error_message": "send community_id or api_key"})
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                    "send community_id or api_key", status_codes.HTTP_400_BAD_REQUEST))
 
             report_type = report_Types.REPORT_MEMBER
 
             reported_member_instance = ModelUtilities.get_model_instance_or_none(User, reported_member_id)
-
             if not reported_member_instance:
-                return JsonResponse(get_error_context(False, "invalid reported_member_id"))
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                    "invalid reported_member_id", status_codes.HTTP_400_BAD_REQUEST))
+
+        elif entity_id and entity_creator_id and entity_type and not reported_member_instance:
+            reported_member_instance = ModelUtilities.get_user_instance_or_none(entity_creator_id)
+            if not reported_member_instance:
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                    "invalid reported_member_id", status_codes.HTTP_400_BAD_REQUEST))
+
+            if entity_type not in [report_Types.REPORT_POST, report_Types.REPORT_COMMENT, report_Types.REPORT_REPLY]:
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                    "invalid entity_type", status_codes.HTTP_400_BAD_REQUEST))
+
+            report_type = entity_type
 
         report_tag_instance = ModelUtilities.get_model_instance_or_none(Report_Tags, tag_id)
-        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
 
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
         if not community_instance:
-            return JsonResponse({'success': False, "error_message": "Invalid API key/community ID"})
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                "Invalid API key/community ID", status_codes.HTTP_400_BAD_REQUEST))
 
         community_id = community_instance.id
 
@@ -9987,6 +10011,7 @@ def push_report_v1(request):
         report_instance.collabcard = collabcard_instance
         report_instance.conversation = conversation_instance
         report_instance.community = community_instance
+        report_instance.entity_id = entity_id
 
         report_instance.reported_member_id = reported_member_id  # has to be removed
         report_instance.user_reported = reported_member_instance
@@ -10019,6 +10044,15 @@ def push_report_v1(request):
             send_report_mail_to_team.delay(subject, report_instance.id)
         elif report_type == 3:
             subject = '[Community reported] LikeMinds App'
+            send_report_mail_to_team.delay(subject, report_instance.id)
+        elif report_type == 5 and is_owner:
+            subject = '[Post reported] LikeMinds App'
+            send_report_mail_to_team.delay(subject, report_instance.id)
+        elif report_type == 6 and is_owner:
+            subject = '[Comment reported] LikeMinds App'
+            send_report_mail_to_team.delay(subject, report_instance.id)
+        elif report_type == 7 and is_owner:
+            subject = '[Reply reported] LikeMinds App'
             send_report_mail_to_team.delay(subject, report_instance.id)
 
         return JsonResponse({'success': True})
@@ -14817,7 +14851,7 @@ def add_community_settings_for_community(community_instance, user_instance):
         is_enabled = True
 
         if setting_type in [community_setting_types.DIRECT_MESSAGES, community_setting_types.MEMBERS_CAN_DM,
-                            community_setting_types.DIRECT_MSGS_GROUP_MSGS]:
+                            community_setting_types.DIRECT_MSGS_GROUP_MSGS, community_setting_types.FEED]:
             is_enabled = False
 
         community_settings_data = {

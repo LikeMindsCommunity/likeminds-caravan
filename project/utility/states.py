@@ -21,18 +21,20 @@ class ManagerRights:
     MANAGER_RIGHT_VIEW_CONTACT_INFO = 3
     MANAGER_RIGHT_ADD_MANAGERS = 4
     MODERATE_DM_SETTINGS = 5
+    MODERATE_FEED_AND_COMMENTS = 6
     MANAGER_RIGHT_DELETE_ROOMS_TITLE = "Moderate chatrooms"
     MANAGER_RIGHT_APPROVE_MEMBERS_TITLE = "Moderate members"
     MANAGER_RIGHT_EDIT_COMMUNITY_TITLE = "Edit community details"
     MANAGER_RIGHT_VIEW_CONTACT_INFO_TITLE = "View member contact info"
     MANAGER_RIGHT_ADD_MANAGERS_TITLE = "Add community managers"
     MODERATE_DM_SETTINGS_TITLE = "Moderate DM settings"
+    MODERATE_FEED_AND_COMMENTS_TITLE = "Moderate feed and comments"
 
     DEFAULT_MANAGER_RIGHTS = [MANAGER_RIGHT_DELETE_ROOMS, MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS,
                               MANAGER_RIGHT_EDIT_COMMUNITY]
     ALL_MANAGER_RIGHTS = [MANAGER_RIGHT_DELETE_ROOMS, MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS,
                           MANAGER_RIGHT_EDIT_COMMUNITY, MANAGER_RIGHT_VIEW_CONTACT_INFO,
-                          MANAGER_RIGHT_ADD_MANAGERS, MODERATE_DM_SETTINGS]
+                          MANAGER_RIGHT_ADD_MANAGERS, MODERATE_DM_SETTINGS, MODERATE_FEED_AND_COMMENTS]
 
 
 manager_rights = ManagerRights()
@@ -48,6 +50,8 @@ class MemberRights:
     MEMBER_RIGHT_CREATE_SECRET_ROOM = 6
     MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES = 7
     MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM = 8
+    MEMBER_RIGHT_CREATE_POSTS = 9
+    MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS = 10
 
     MEMBER_RIGHT_CREATE_ROOMS_TITLE = "Create chat rooms"
     MEMBER_RIGHT_CREATE_POLL_TITLE = "Create polls"
@@ -58,6 +62,8 @@ class MemberRights:
     MEMBER_RIGHT_CREATE_SECRET_CHATROOM_TITLE = "Create secret chatroom"
     MANAGER_RIGHT_ENABLE_DIRECT_MESSAGES_TITLE = "Direct messages"
     MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM_TITLE = "Members who can initiate DMs"
+    MEMBER_RIGHT_CREATE_POSTS_TITLE = "Create posts"
+    MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS_TITLE = "Comment and reply on posts"
 
     DEFAULT_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_ROOMS, MEMBER_RIGHT_CREATE_POLL,
                              MEMBER_RIGHT_CREATE_EVENT, MEMBER_RIGHT_RESPOND_IN_ROOM,
@@ -126,6 +132,9 @@ class ReportTypes:
     REPORT_CONVERSATION = 2
     REPORT_COMMUNITY = 3
     REPORT_LINK = 4
+    REPORT_POST = 5
+    REPORT_COMMENT = 6
+    REPORT_REPLY = 7
 
 
 report_Types = ReportTypes()
@@ -181,6 +190,7 @@ class CollabcardTypes:
     CARD_PURPOSE = 7
     CARD_MASTER_INTRO = 9
     CARD_DIRECT_MESSAGE = 10
+    CARD_FEED_GROUP = 11
 
 
 card_types = CollabcardTypes()
@@ -461,6 +471,7 @@ event_webflow_update_types = EventWebflowUpdateTypes()
 class CommunitySettingTypes:
     INTRO_ROOM = "intro_room"
     MEMBERS_AUTO_JOIN = "members_auto_join"
+    FEED = "feed"
     DIRECT_MESSAGES = "direct_messages"
     MEMBERS_CAN_DM = "members_can_dm"
     DIRECT_MESSAGE_SETTING = "direct_messages_setting"
@@ -652,6 +663,16 @@ class NotificationStates:
 noti_states = NotificationStates()
 
 
+class FeedNotificationStates:
+    LIKES = 1
+    COMMENTS = 2
+    REPLIES_ON_YOUR_COMMENTS = 3
+    UPDATES_ON_COMMENTED_POST = 4
+
+
+feed_notification_states = FeedNotificationStates()
+
+
 class WhatsappSubscriptionStateActions:
     START = "START"
     STOP = "STOP"
@@ -670,3 +691,32 @@ class UnsubscribeTypes:
 
 
 unsubscribe_types = UnsubscribeTypes()
+
+
+class AccessTypes:
+    CREATE_POST = "create_post"
+    VIEW_POST = "view_post"
+    DELETE_POST = "delete_post"
+    PIN_POST = "pin_post"
+    LIKE_POST = "like_post"
+    SAVE_POST = "save_post"
+    CREATE_COMMENT = "create_comment"
+    VIEW_COMMENT = "view_comment"
+    DELETE_COMMENT = "delete_comment"
+    LIKE_COMMENT = "like_comment"
+    CREATE_ACTIVITY = "create_activity"
+    VIEW_ACTIVITY = "view_activity"
+    VIEW_REPORT_ENTITY = "view_report_entity"
+
+
+access_types = AccessTypes()
+
+
+class FeedOrderTypes:
+    NEWEST_ORDER_TYPE = 0
+    RECENTLY_ACTIVE_ORDER_TYPE = 1
+    MOST_MESSAGES_ORDER_TYPE = 2
+    MOST_PARTICIPANTS_ORDER_TYPE = 3
+
+
+feed_order_types = FeedOrderTypes()

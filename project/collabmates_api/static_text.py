@@ -337,6 +337,9 @@ add_manager_manager_right = {'id': 5, 'title': "Add community managers", 'sub_ti
 
 moderate_dm_settings = {'id': 6, 'title': "Moderate DM settings", 'sub_title': None, "state": 5, "rank": 4}
 
+moderate_feed_and_comments_right = {'id': 7, 'title': "Moderate feed and comments", 'sub_title': None, "state": 6,
+                                    "rank": 6}
+
 manager_rights_list = [delete_room_manager_right, edit_community_manager_right, approve_manager_right,
                        view_contact_manager_right, add_manager_manager_right]
 
@@ -361,6 +364,10 @@ show_direct_messages_right = {'id': 8, 'title': "Direct messages",
                               "state": 7}
 
 members_can_dm_right = {'id': 9, 'title': "Members who can initiate DMs", 'sub_title': None, "state": 8}
+
+create_post_right = {'id': 10, 'title': "Create posts", 'sub_title': None, "state": 9}
+
+comment_and_reply_right = {'id': 11, 'title': "Comment and reply on posts", 'sub_title': None, "state": 10}
 
 member_rights_list = [create_room_member_right, create_poll_member_right,
                       create_event_member_right, respond_in_rooms_member_right,
