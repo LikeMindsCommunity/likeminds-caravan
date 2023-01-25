@@ -64,9 +64,9 @@ def post_owner_message_template_in_intro_room(community_id, user_id, check_templ
     }
 
     conversation_manager = ConversationImpl(owner_user_instance.id)
-    conversation_response = conversation_manager.create_conversation(conversation_req_body,
-                                                                     user_instance=owner_user_instance,
-                                                                     chatroom_instance=chatroom)
+    conversation_response = conversation_manager.create_conversation_revamp(conversation_req_body,
+                                                                            user_instance=owner_user_instance,
+                                                                            chatroom_instance=chatroom)
 
     print(
         f"post_owner_message_template_in_intro_room - user_id = {user_id}, community_id = {community_id}, response = {conversation_response}")

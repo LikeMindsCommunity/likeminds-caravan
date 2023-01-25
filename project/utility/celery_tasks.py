@@ -26,7 +26,7 @@ from django.db.models import Q, F
 import json
 
 from utility.cache_keys import CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, CONVERSATION_POLL_VOTERS_CONVERSATION_ID, \
-    CONVERSATION_COMMUNITY_PREVIEW, USER_MUTED_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
+    CONVERSATION_COMMUNITY_PREVIEW, EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
     COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY, \
@@ -36,6 +36,8 @@ from utility.number_utilities import NumberUtilities
 from utility.states import card_types, conversation_poll_types, conversation_states, community_level_states, \
     level_click_states, event_access, event_webflow_update_types, deleted_members, collabcard_states, SyncTypes, \
     community_setting_types, CollabcardTypes, poll_types, message_template_chatroom_types
+
+from utility.validation_utilities import ValidationUtilities
 
 from collabmates_api.search.sync import ElasticSearchSync
 
@@ -944,45 +946,6 @@ def save_conversation_poll_voters_in_cache(vote_info):
 
     key = CONVERSATION_POLL_VOTERS_CONVERSATION_ID % (str(conversation_instance.id))
     CacheImpl.set_cache(key, cache_context)
-
-
-@shared_task
-def save_users_with_muted_chatrooms(mute_info):
-    user_id = mute_info.get('user_id')
-    chatroom_id = mute_info.get('chatroom_id')
-    mute_status = mute_info.get('mute_status')
-
-    if not user_id:
-        return
-
-    key = USER_MUTED_CHATROOM % str(user_id)
-
-    muted_key = CacheImpl.get_cache(key)
-
-    if muted_key and chatroom_id:
-        mute_list = muted_key.get('mute_list', [])
-
-        if mute_status and \
-                chatroom_id not in mute_list:
-            mute_list.append(chatroom_id)
-
-        elif not mute_status and \
-                chatroom_id in mute_list:
-
-            mute_list.remove(chatroom_id)
-
-        CacheImpl.set_cache(key, {'mute_list': mute_list})
-
-        return
-
-    mute_list = mute_info.get('mute_list', [])
-
-    if not mute_list:
-        mute_list = list(collabcardState.objects.filter(user=user_id,
-                                                        mute_status=True).values_list('card_id',
-                                                                                      flat=True))
-
-    CacheImpl.set_cache(key, {'mute_list': mute_list})
 
 
 @shared_task
@@ -2167,42 +2130,57 @@ def update_unread_message_count_in_cache(chatroom_id, conversation_creator_id=0)
     if not chatroom_id:
         return
 
-    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+    validation_params = {
+        'chatroom_id': chatroom_id
+    }
 
-    if not card_instance:
+    validated_dict = ValidationUtilities.is_valid(validation_params)
+
+    if validated_dict.get('error_message'):
         return
 
-    followed_members = collabcardState.objects.filter(card=card_instance, follow_status=True,
-                                                      is_tagged=False,
-                                                      remove=None).values_list('user', flat=True)
+    card_instance = validated_dict.get('chatroom_id')
+
+    unread_cache_data = {}
+
+    from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
+
+    followed_members = ChatroomImpl('', chatroom_id=chatroom_id).get_chatroom_participants_list()
+
+    keys_list = [CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
+                 for user_id in followed_members]
+
+    users_previous_counts_dict = CacheImpl.bulk_get_cache(keys_list)
 
     for user_id in followed_members:
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
-
-        if not user_instance:
-            continue
+        key = CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
 
         if user_id == conversation_creator_id:
-            reset_unread_message_count_in_cache(chatroom_id, user_id)
-            continue
-
-        key = CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
-        previous_count = CacheImpl.get_cache(key)
-
-        if previous_count:
-            unseen_count = previous_count.get('unseen_count', 0) + 1
-            previous_count['unseen_count'] = unseen_count
+            previous_count = {
+                'unseen_count': 0
+            }
 
         else:
-            previous_count = {}
-            engage_filter = conversationEngage.objects.filter(card=card_instance, user=user_instance)
-            unread_count_for_user = 1
+            previous_count = users_previous_counts_dict.get(key)
 
-            if engage_filter.exists():
-                unread_count_for_user = engage_filter[0].unseen_count
-            previous_count['unseen_count'] = unread_count_for_user
+            if previous_count:
+                unseen_count = previous_count.get('unseen_count', 0) + 1
+                previous_count['unseen_count'] = unseen_count
 
-        CacheImpl.set_cache(key, previous_count)
+            else:
+                previous_count = {}
+                engage_filter = ModelUtilities.get_model_filter(conversationEngage,
+                                                                {'card': card_instance,
+                                                                 'user': user_id})
+                unread_count_for_user = 1
+
+                if engage_filter.exists():
+                    unread_count_for_user = engage_filter[0].unseen_count
+                previous_count['unseen_count'] = unread_count_for_user
+
+        unread_cache_data[key] = previous_count
+
+    CacheImpl.bulk_set_cache(unread_cache_data)
 
     update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                    {'card__id': chatroom_id,
@@ -2242,39 +2220,31 @@ def reset_unread_message_count_in_cache(chatroom_id, user_id):
                                    update_dict={})
 
 
-
 def fetch_conversations_unread(chatroom_id, user_id):
+
     if not chatroom_id or not user_id:
         info_logger.info("Chatroom ID: {} - User ID: {}".format(chatroom_id, user_id))
         return 0
 
     card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
-    user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
     if not card_instance:
         info_logger.info("Chatroom ID: {} - Card does not exist".format(chatroom_id))
         return 0
 
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
     if not user_instance:
         info_logger.info("User ID: {} - User does not exist".format(user_id))
         return 0
 
-    key = CONVERSATIONS_UNREAD_USER_CHATROOM_KEY % (str(user_id), str(chatroom_id))
-    previous_count = CacheImpl.get_cache(key)
+    unseen_count = 1
 
-    if previous_count:
-        unseen_count = previous_count['unseen_count']
+    engage_filter = ModelUtilities.get_model_filter(conversationEngage, {'card': card_instance,
+                                                                         'user': user_instance})
 
-    else:
-        engage_filter = conversationEngage.objects.filter(card=card_instance, user=user_instance)
-        unseen_count = 1
-
-        if engage_filter.exists():
-            unseen_count = engage_filter[0].unseen_count
-
-        unseen_count_dict = dict()
-        unseen_count_dict['unseen_count'] = unseen_count
-        CacheImpl.set_cache(key, unseen_count_dict)
+    if engage_filter.exists():
+        unseen_count = engage_filter[0].unseen_count
 
     return unseen_count
 

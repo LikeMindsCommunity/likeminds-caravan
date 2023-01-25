@@ -286,3 +286,36 @@ def update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user_id, conversati
 
     except Exception as e:
         error_logger.error(e)
+
+
+def update_my_chatrooms_on_homefeed_in_firebase_for_users_list(chatroom_id, users_list, conversation_id=""):
+
+    try:
+        data = {
+            'chatroom_id': str(chatroom_id),
+            'conversation_id': conversation_id
+        }
+
+        data = {'users/{}/'.format(user_id): data for user_id in users_list}
+        database.update(data)
+
+    except Exception as e:
+        error_logger.error(e)
+
+
+def update_chatroom_conversation_ids_against_community(community_id, card_id, conversation_id):
+    """function to update last conversation id when a new answer is posted"""
+
+    if not community_id:
+        return
+
+    try:
+        data = {
+            'conversation_id': str(conversation_id),
+            'chatroom_id': str(card_id)
+        }
+
+        database.child("community").child(community_id).update(data)
+
+    except Exception as e:
+        error_logger.error(e)
