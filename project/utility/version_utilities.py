@@ -29,12 +29,12 @@ class VersionUtilities:
     }
 
     create_conversation_revamp: dict = {
-        PlatformCode.ANDROID: 213,
-        PlatformCode.IOS: 371,
-        PlatformCode.WEB: 16,
-        PlatformCode.ANDROID_SDK: 207,
-        PlatformCode.IOS_SDK: 367,
-        PlatformCode.WEB_SDK: 16
+        PlatformCode.ANDROID: beta_dummy_version,
+        PlatformCode.IOS: beta_dummy_version,
+        PlatformCode.WEB: beta_dummy_version,
+        PlatformCode.ANDROID_SDK: beta_dummy_version,
+        PlatformCode.IOS_SDK: beta_dummy_version,
+        PlatformCode.WEB_SDK: beta_dummy_version
     }
 
     @staticmethod
