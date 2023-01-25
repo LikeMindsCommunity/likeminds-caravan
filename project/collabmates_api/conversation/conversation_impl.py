@@ -74,7 +74,6 @@ from utility.celery_tasks import (update_my_chatrooms_for_users, update_multiple
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from utility.list_utilities import ListUtilities
-from utility.string_utilities import StringUtilities
 from celery import shared_task
 from ..owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from collabmates_api.search.sync import ElasticSearchSync
@@ -152,14 +151,10 @@ class ConversationImpl(ConversationManager):
     def set_paginate_by(self, paginate_by: Union[str, int]):
         self.paginate_by = paginate_by
 
-    def _fetch_conversation_queryset(self, excluded_conversation_states: list = None):
-        conversations = card_answers.objects.filter(card=self.get_chatroom_id())
-
-        if excluded_conversation_states and isinstance(excluded_conversation_states, list):
-            conversations = conversations.exclude(state__in=excluded_conversation_states)
-
-        conversations = conversations.select_related('reply', 'preview_community', 'preview_chatroom'
-                                                     ).order_by('created_at')
+    def _fetch_conversation_queryset(self):
+        conversations = card_answers.objects.select_related('reply', 'preview_community',
+                                                            'preview_chatroom').filter(card=self.get_chatroom_id()
+                                                                                       ).order_by('created_at')
 
         if is_version_code_supported_for_intro_room(self.get_version_code(), self.get_platform_code()):
             excluded_ids = self.chatroom_previews_with_non_zero_conversation_unread(conversations)
@@ -176,13 +171,10 @@ class ConversationImpl(ConversationManager):
 
         return conversations
 
-    def _fetch_scroll_conversations(self, excluded_conversation_states: list = None):
-        conversations = ModelUtilities.get_model_filter(card_answers, {'card': self.get_chatroom_id()})
-
-        if excluded_conversation_states and isinstance(excluded_conversation_states, list):
-            conversations = conversations.exclude(state__in=excluded_conversation_states)
-
-        conversations = conversations.select_related('reply', 'preview_community', 'preview_chatroom')
+    def _fetch_scroll_conversations(self):
+        conversations = card_answers.objects \
+            .select_related('reply', 'preview_community', 'preview_chatroom') \
+            .filter(card=self.get_chatroom_id())
 
         if is_version_code_supported_for_intro_room(self.get_version_code(), self.get_platform_code()):
             excluded_ids = self.chatroom_previews_with_non_zero_conversation_unread(conversations)
@@ -190,30 +182,26 @@ class ConversationImpl(ConversationManager):
 
         return conversations
 
-    def _fetch_upward_conversation_queryset(self, list_size, conversation_id,
-                                            excluded_conversation_states: list = None):
-        conversations = self._fetch_scroll_conversations(excluded_conversation_states)
+    def _fetch_upward_conversation_queryset(self, list_size, conversation_id):
+        conversations = self._fetch_scroll_conversations()
         conversations = conversations.filter(id__lt=conversation_id).order_by('-created_at')
 
         return conversations[:list_size]
 
-    def _fetch_upward_conversation_including_given_conversation(self, list_size, conversation_id,
-                                                                excluded_conversation_states: list = None):
-        conversations = self._fetch_scroll_conversations(excluded_conversation_states)
+    def _fetch_upward_conversation_including_given_conversation(self, list_size, conversation_id):
+        conversations = self._fetch_scroll_conversations()
         conversations = conversations.filter(id__lte=conversation_id).order_by('-created_at')
 
         return conversations[:list_size]
 
-    def _fetch_downward_conversation_queryset(self, list_size, conversation_id,
-                                              excluded_conversation_states: list = None):
-        conversations = self._fetch_scroll_conversations(excluded_conversation_states)
+    def _fetch_downward_conversation_queryset(self, list_size, conversation_id):
+        conversations = self._fetch_scroll_conversations()
         conversations = conversations.filter(id__gt=conversation_id).order_by('created_at')
 
         return conversations[:list_size]
 
-    def _fetch_downward_conversation_including_given_conversation(self, list_size, conversation_id,
-                                                                  excluded_conversation_states: list = None):
-        conversations = self._fetch_scroll_conversations(excluded_conversation_states)
+    def _fetch_downward_conversation_including_given_conversation(self, list_size, conversation_id):
+        conversations = self._fetch_scroll_conversations()
         conversations = conversations.filter(id__gte=conversation_id).order_by('created_at')
 
         return conversations[:list_size]
@@ -724,14 +712,10 @@ class ConversationImpl(ConversationManager):
 
         return conversation_queryset
 
-    def fetch_conversation(self, top_navigate=False, excluded_conversation_states: list = None):
-
-        if excluded_conversation_states:
-            excluded_conversation_states = StringUtilities.get_list_from_string(excluded_conversation_states,
-                                                                                default=None)
+    def fetch_conversation(self, top_navigate=False):
 
         if top_navigate:
-            conversations = self._fetch_conversation_queryset(excluded_conversation_states)
+            conversations = self._fetch_conversation_queryset()
             conversations = conversations[:self.get_paginate_by()]
             conversations = self._create_conversation_list(conversations)
             return {'success': True, 'conversations': conversations}
@@ -758,17 +742,16 @@ class ConversationImpl(ConversationManager):
             last_seen = self._fetch_last_seen_conversation()
 
             if not last_seen:
-                conversations = self._fetch_conversation_queryset(excluded_conversation_states)
+                conversations = self._fetch_conversation_queryset()
                 conversations = conversations[:self.get_paginate_by()]
                 conversations = self._create_conversation_list(conversations)
 
             else:
 
                 list_size = self.get_paginate_by() / 2
-                upward_conversation = self._fetch_upward_conversation_including_given_conversation(
-                    list_size, last_seen.id, excluded_conversation_states)
-                downward_conversation = self._fetch_downward_conversation_queryset(
-                    list_size, last_seen.id, excluded_conversation_states)
+                upward_conversation = self._fetch_upward_conversation_including_given_conversation(list_size,
+                                                                                                   last_seen.id)
+                downward_conversation = self._fetch_downward_conversation_queryset(list_size, last_seen.id)
 
                 # merging both conversations
                 conversations = upward_conversation | downward_conversation
@@ -783,12 +766,11 @@ class ConversationImpl(ConversationManager):
                 upward_scroll_list_size = self.get_paginate_by()
 
                 if self.include_conversation_id:
-                    upward_list = self._fetch_upward_conversation_including_given_conversation(
-                        upward_scroll_list_size, self.get_conversation_id(), excluded_conversation_states)
+                    upward_list = self._fetch_upward_conversation_including_given_conversation(upward_scroll_list_size,
+                                                                                               self.get_conversation_id())
                 else:
                     upward_list = self._fetch_upward_conversation_queryset(upward_scroll_list_size,
-                                                                           self.get_conversation_id(),
-                                                                           excluded_conversation_states)
+                                                                           self.get_conversation_id())
 
                 conversations = reverse_conversations_for_upward_pagination(upward_list)
 
@@ -798,15 +780,15 @@ class ConversationImpl(ConversationManager):
 
                 if self.include_conversation_id:
                     conversations = self._fetch_downward_conversation_including_given_conversation(
-                        downward_scroll_list_size, self.get_conversation_id(), excluded_conversation_states)
+                        downward_scroll_list_size,
+                        self.get_conversation_id())
 
                 else:
                     conversations = self._fetch_downward_conversation_queryset(downward_scroll_list_size,
-                                                                               self.get_conversation_id(),
-                                                                               excluded_conversation_states)
+                                                                               self.get_conversation_id())
 
             else:
-                conversations = self._fetch_conversation_queryset(excluded_conversation_states)
+                conversations = self._fetch_conversation_queryset()
 
             conversations = self._create_conversation_list(conversations)
 

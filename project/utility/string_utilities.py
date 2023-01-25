@@ -1,5 +1,4 @@
 import re
-import json
 
 
 class StringUtilities:
@@ -32,11 +31,3 @@ class StringUtilities:
         in input_str
         """
         return re.sub(replace_str, replacement_str, input_str)
-
-    @staticmethod
-    def get_list_from_string(string: str, default: list = None):
-        try:
-            return json.loads(string)
-
-        except (ValueError, TypeError):
-            return default
