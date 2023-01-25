@@ -2922,7 +2922,7 @@ def get_ordered_card_id_on_the_basis_of_participants_count_v2(user_id, community
         if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
             order_by_query = "togther_collabcard.is_pinned DESC, count(togther_collabcardstate.id) DESC"
 
-        chatroom_type_filter = """ AND CA.type NOT IN (11)"""
+        chatroom_type_filter = """ AND CA.type NOT IN (%s)""" % str(card_types.CARD_FEED_GROUP)
 
         if chatroom_type:
             chatroom_type_filter = """ AND CA.type IN (%s)""" % str(chatroom_type)
