@@ -3423,7 +3423,7 @@ class ChatroomImpl(ChatroomManager):
                 answer = UNBLOCK_MEMBER_DM_CHATROOM_MESSAGE.format(user_route, chatroom_with_user_route)
                 conv_state = conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT
 
-                chat_request_state = chat_request_states.REJECTED
+                chat_request_state = chat_request_states.ACCEPTED
 
             ModelUtilities.model_update(collabcardState, {'card': card_instance, 'follow_status': True},
                                         {'chat_request_state': chat_request_state,
