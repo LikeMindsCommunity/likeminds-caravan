@@ -307,7 +307,7 @@ def get_followed_chatrooms(user_id,
 
         follow_conversation_state = get_tuple_from_array([conversation_states.CONVERSATION_FOLLOW])
 
-        chatroom_type_filter = """"""
+        chatroom_type_filter = """ AND type not in (%s)""" % str(card_types.CARD_FEED_GROUP)
         if chatroom_type != -1:
             chatroom_type_filter = """ AND type in (%s)""" % str(chatroom_type)
 
@@ -2460,6 +2460,7 @@ def get_ordered_card_id_on_the_basis_of_message_count_v2(user_id, community_id, 
             excluded_card_ids_tuple = get_tuple_from_array(excluded_card_ids)
             excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
 
+        excluded_card_types.append(card_types.CARD_FEED_GROUP)
         excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
 
         pinned_chatrooms_query = create_pinned_query_for_feed_revamp("AND ca.is_pinned = {}", is_pinned)
@@ -2792,7 +2793,10 @@ def get_ordered_card_id_on_the_basis_newest_chatroom_v2(user_id, community_id, i
         if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
             order_by_query = "CA.is_pinned DESC, CA.created_at DESC"
 
-        chatroom_type_filter = """ AND CA.type IN (%s)""" % str(chatroom_type) if chatroom_type else ""
+        chatroom_type_filter = """ AND CA.type NOT IN (%s)""" % str(card_types.CARD_FEED_GROUP)
+
+        if chatroom_type:
+            chatroom_type_filter = """ AND CA.type IN (%s)""" % str(chatroom_type)
 
         conn = get_connection()
         curr = conn.cursor()
@@ -2840,6 +2844,7 @@ def get_ordered_card_id_on_the_basis_last_message_v2(user_id, community_id, is_p
             excluded_card_ids_tuple = get_tuple_from_array(excluded_card_ids)
             excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
 
+        excluded_card_types.append(card_types.CARD_FEED_GROUP)
         excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
 
         pinned_chatrooms_query = create_pinned_query_for_feed_revamp("AND ca.is_pinned = {}", is_pinned)
@@ -2917,7 +2922,10 @@ def get_ordered_card_id_on_the_basis_of_participants_count_v2(user_id, community
         if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
             order_by_query = "togther_collabcard.is_pinned DESC, count(togther_collabcardstate.id) DESC"
 
-        chatroom_type_filter = """ AND CA.type IN (%s)""" % str(chatroom_type) if chatroom_type else ""
+        chatroom_type_filter = """ AND CA.type NOT IN (%s)""" % str(card_types.CARD_FEED_GROUP)
+
+        if chatroom_type:
+            chatroom_type_filter = """ AND CA.type IN (%s)""" % str(chatroom_type)
 
         conn = get_connection()
         curr = conn.cursor()

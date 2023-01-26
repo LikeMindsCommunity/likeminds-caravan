@@ -2570,9 +2570,11 @@ def update_community_pin_chatrooms_list_in_cache(pin_info):
         pinned_chatrooms_list = pin_info.get('pinned_chatrooms_list', [])
 
         if not pinned_chatrooms_list:
-            pinned_chatrooms_list = list(set(ModelUtilities.get_model_filter(
-                Collabcard, {'community': community_id, 'is_pinned': True, 'is_deleted': False}).
-                                        values_list('id', flat=True)))
+            pinned_chatrooms_list = list(
+                set(ModelUtilities.get_model_filter(Collabcard,
+                                                    {'community': community_id, 'is_pinned': True,
+                                                     'is_deleted': False}).exclude(type=card_types.CARD_FEED_GROUP).
+                    values_list('id', flat=True)))
 
         pin_chatrooms_object['pinned_chatrooms'] = pinned_chatrooms_list
     CacheImpl.set_cache(key, pin_chatrooms_object)
