@@ -906,7 +906,7 @@ class ChatroomImpl(ChatroomManager):
         if card_instance.online_link_password:
             chatroom_context['online_link_password'] = card_instance.online_link_password
 
-    def fetch_chatroom(self, is_internal=False, api_type: int = api_types.Non_SDK) -> dict:
+    def fetch_chatroom(self, is_internal=False) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
 
@@ -921,6 +921,12 @@ class ChatroomImpl(ChatroomManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = card_instance.community
+
+        if SdkClient.is_sdk_community(community_id=community_instance.id):
+            api_type = api_types.SDK
+
+        else:
+            api_type = api_types.Non_SDK
 
         if is_internal:
             return {'success': True, 'chatroom': CollabcardSerializer(card_instance, user_instance.id)}
