@@ -36,9 +36,11 @@ class FetchChatroomView(APIView):
         chatroom_id = request.GET.get('chatroom_id')
         api_type = NumberUtilities.get_integer_from_string(request.GET.get('api_type', api_types.Non_SDK),
                                                            api_types.Non_SDK)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, device_id=device_id,
-                                        request_platform=request_platform, version_code=version_code)
+                                        request_platform=request_platform, version_code=version_code,
+                                        api_key=api_key)
         chatroom_data = chatroom_manager.fetch_chatroom(is_internal=is_internal, api_type=api_type)
 
         if 'error_message' in chatroom_data:

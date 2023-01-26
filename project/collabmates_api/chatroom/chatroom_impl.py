@@ -957,6 +957,9 @@ class ChatroomImpl(ChatroomManager):
         chatroom_icons = self._fetch_icon_states_for_chatroom(card_instance, chatroom_data)
         chatroom_data.update(chatroom_icons)
 
+        if (api_type == api_types.Non_SDK) and SdkClient.is_sdk_community(community_id=community_instance.id):
+            api_type = api_types.SDK
+
         chatroom_obj = dict()
         chatroom_obj['chatroom'] = chatroom_data
         chatroom_obj['chatroom_actions'] = self._fetch_chatroom_actions(card_instance, chatroom_data, api_type=api_type)
