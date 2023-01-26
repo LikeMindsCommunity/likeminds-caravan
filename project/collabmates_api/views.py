@@ -4894,9 +4894,11 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                          platform_code=None, api_type=api_types.Non_SDK):
     """ function to get chatroom actions """
 
+    is_sdk = api_type == api_types.SDK
+
     if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE]):
 
-        if not m2cm_v2_version_check(platform_code, version_code):
+        if not m2cm_v2_version_check(platform_code, version_code, is_sdk=is_sdk):
 
             if card_status.get('mute_status'):
                 return collabcard_action_dm_user_mute
@@ -4915,12 +4917,15 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
         if not card_instance.is_private_member:
             return dm_chatroom_actions
 
-        last_conversation = ModelUtilities.get_model_filter(card_answers, {'card': card_instance}).last()
+        card_state_instance = None
 
-        if last_conversation.state == conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT:
-            dm_chatroom_actions.append(unblock_member)
+        card_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                              'user': current_user_instance})
 
-        else:
+        if card_state_filter:
+            card_state_instance = card_state_filter[0]
+
+        if card_state_instance and (card_state_instance.chat_request_state != chat_request_states.REJECTED):
             dm_chatroom_actions.append(block_member_chatroom)
 
         return dm_chatroom_actions

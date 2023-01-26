@@ -3383,6 +3383,7 @@ class ChatroomImpl(ChatroomManager):
         if not validated_request.get('success'):
             return validated_request
 
+        user_instance = validated_request.get('user_instance')
         card_instance = validated_request.get('chatroom_instance')
         user_instances_list = [card_instance.user, card_instance.chatroom_with_user]
         user_member_state = Members.get_community_member_state(card_instance.community, card_instance.user)
@@ -3410,6 +3411,8 @@ class ChatroomImpl(ChatroomManager):
                 answer = BLOCK_MEMBER_DM_CHATROOM_MESSAGE
                 conv_state = conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT
 
+                chat_request_state = chat_request_states.REJECTED
+
             else:
                 user_route = "<<" + str(card_instance.user.userinfo.name) + "|route://member/" + str(
                     card_instance.user.id) + ">>"
@@ -3419,6 +3422,13 @@ class ChatroomImpl(ChatroomManager):
 
                 answer = UNBLOCK_MEMBER_DM_CHATROOM_MESSAGE.format(user_route, chatroom_with_user_route)
                 conv_state = conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT
+
+                chat_request_state = chat_request_states.ACCEPTED
+
+            ModelUtilities.model_update(collabcardState, {'card': card_instance, 'follow_status': True},
+                                        {'chat_request_state': chat_request_state,
+                                         'chat_requested_by': user_instance,
+                                         'updated_at': TimeUtilities.current_time_in_sec()})
 
             conversation_instance = initial_message_dm_chatroom(card_instance, card_instance.user,
                                                                 card_instance.chatroom_with_user,
@@ -5000,6 +5010,7 @@ class ChatroomHelper:
 
         ModelUtilities.model_update(collabcardState, {'card': card_instance},
                                     {'chat_request_state': chat_request_state,
+                                     'chat_requested_by': user_instance,
                                      'updated_at': TimeUtilities.current_time_in_sec()})
 
         return {'success': True, 'should_call_block_unblock': True}
@@ -5024,6 +5035,7 @@ class ChatroomHelper:
 
         ModelUtilities.model_update(collabcardState, {'card': card_instance},
                                     {'chat_request_state': chat_request_state,
+                                     'chat_requested_by': user_instance,
                                      'updated_at': TimeUtilities.current_time_in_sec()})
 
         return {'success': True, 'should_call_block_unblock': True}
