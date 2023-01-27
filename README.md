@@ -22,8 +22,6 @@ python3 -m venv lm-env
 3. Activate your virtual environment by running follow commands:
 ```
 source venv/bin/activate 
-//On Windows try
-venv/scripts/activate
 ```
 
 4. Inside the virtualenv clone the repo.
@@ -39,24 +37,28 @@ pip install -r requirements.txt
 ```
 5. Make sure you have all of the prerequisites installed/setup on your machine, including Postgres, Redis, RabbitMQ, and Elasticsearch and are running in the background.
 
-6. Make an .env file and place it under the directory - 
+6. Make an .env file and place it under the directory -  
 ```
-project\project
+project/
 ```
 
 7. Create a new Postgres database and update the DB credentials in the .env file. 
 
-8. Apply database migrations:
+8. Create a folder named logs under utility & create a file named collabmates.log in it.
+```
+mkdir utility/logs
+touch utility/logs/collabmates.log
+```
+9. Apply database migrations:
 ```
 python manage.py makemigrations
 python manage.py migrate
 ```
-
-9. Run the Django server:
+10. Run the Django server:
 ```
 python manage.py runserver
 ```
-10. Your application should now be running on http://localhost:8000.
+11. Your application should now be running on http://localhost:8000.
 
 ### Additional Information
 This project uses Django, a high-level Python web framework, and various other packages, which are listed in the requirements.txt file.
