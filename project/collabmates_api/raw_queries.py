@@ -3723,38 +3723,37 @@ def get_chatroom_conversations_data(community_id, chatroom_id, min_timestamp: in
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_unseen_count_for_chatroom_ids(chatroom_ids_list: list, user_id: int, included_conv_states: list = None):
+def get_unseen_count_for_chatroom_ids(chatroom_ids_list: list, user_id: int):
     try:
         conn = get_connection()
         curr = conn.cursor()
 
         chatroom_ids_query = get_tuple_from_array(chatroom_ids_list)
 
-        if included_conv_states is None:
-            included_conv_states = [conversation_states.ANSWER, conversation_states.CONVERSATION_POLL]
+        included_conv_states = [conversation_states.ANSWER, conversation_states.CONVERSATION_HEADER,
+                                conversation_states.CONVERSATION_POLL]
 
         included_conv_states_query = get_tuple_from_array(included_conv_states)
 
         sql = """
                 SELECT state_data.card_id,
                        Sum(state_data.is_unseen)
-                FROM   (SELECT conv_data.*,
-                               COALESCE(last_seen_conversation_id, 0) AS last_seen_id,
+                FROM   (SELECT togther_collabcardstate.card_id,
                                ( CASE
-                                   WHEN COALESCE(last_seen_conversation_id, 0) < conv_data.id
-                                 THEN 1
+                                   WHEN COALESCE(last_seen_conversation_id, 0) <
+                                        togther_card_answers.id
+                                        AND togther_card_answers.state NOT IN ( 1 ) THEN 1
                                    ELSE 0
-                                 END )                                AS is_unseen
+                                 END ) AS is_unseen
                         FROM   togther_collabcardstate
-                               INNER JOIN (SELECT id,
-                                                  card_id
-                                           FROM   togther_card_answers
-                                           WHERE  state IN {}
-                                                  AND card_id IN {}) AS conv_data
-                                       ON conv_data.card_id = togther_collabcardstate.card_id
-                        WHERE  togther_collabcardstate.user_id = {}) AS state_data
+                               LEFT JOIN togther_card_answers
+                                      ON togther_card_answers.card_id =
+                                         togther_collabcardstate.card_id
+                        WHERE  togther_collabcardstate.user_id = {}
+                               AND togther_collabcardstate.card_id IN {}
+                               AND togther_card_answers.state IN {}) AS state_data
                 GROUP  BY state_data.card_id; 
-        """.format(included_conv_states_query, chatroom_ids_query, user_id)
+        """.format(user_id, chatroom_ids_query, included_conv_states_query)
 
         curr.execute(sql)
         chatroom_data = curr.fetchall()
