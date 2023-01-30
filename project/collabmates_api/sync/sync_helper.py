@@ -138,7 +138,7 @@ class SyncHelper:
         return resulting_dict
 
     @staticmethod
-    def parse_sync_raw_query_response(data, sync_data_key: str):
+    def parse_sync_raw_query_response(data, sync_data_key: str, extra_data: dict = None):
 
         parsed_data = list()
         sync_response = dict()
@@ -203,6 +203,9 @@ class SyncHelper:
 
                 else:
                     parsed_sync_data[key] = sync_data[key]
+
+            if extra_data and isinstance(extra_data, dict):
+                parsed_sync_data.update(extra_data.get(parsed_sync_data.get('id')))
 
             parsed_data.append(parsed_sync_data)
 

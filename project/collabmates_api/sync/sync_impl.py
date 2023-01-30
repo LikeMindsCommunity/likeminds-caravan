@@ -5,7 +5,8 @@ from .sync_helper import SyncHelper
 from utility.states import (card_types)
 from utility.response_utilities import ResponseUtilities
 
-from collabmates_api.raw_queries import (get_home_feed_chatrooms_against_user, get_chatroom_conversations_data)
+from collabmates_api.raw_queries import (get_home_feed_chatrooms_against_user, get_chatroom_conversations_data,
+                                         get_unseen_count_for_chatroom_ids)
 
 
 class SyncImpl(SyncManager):
@@ -67,11 +68,14 @@ class SyncImpl(SyncManager):
         if chatroom_type:
             included_chatroom_types = chatroom_type
 
-        chatrooms_data = get_home_feed_chatrooms_against_user(user_instance.id, community_instance.id, min_timestamp,
-                                                              max_timestamp, page=page, limit=page_size,
-                                                              included_chatroom_types=included_chatroom_types)
+        chatrooms_data, chatroom_ids_list = get_home_feed_chatrooms_against_user(
+            user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
+            included_chatroom_types=included_chatroom_types)
 
-        chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, 'chatrooms_data')
+        card_unseen_count_map = get_unseen_count_for_chatroom_ids(chatroom_ids_list, user_id=user_instance.id)
+
+        chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, 'chatrooms_data',
+                                                                  extra_data=card_unseen_count_map)
 
         return {**{'success': True}, **chatrooms_data}
 
