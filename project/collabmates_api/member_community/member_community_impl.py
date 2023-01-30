@@ -22,7 +22,7 @@ from utility.exception_utilities import CustomException
 from utility.states import member_states, card_types, deleted_members, question_states, \
     conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers, \
     community_dm_settings_state_types, community_dm_settings_duration_types, dm_icon_from_states, get_started_types, \
-    api_types, access_types
+    api_types, access_types, feed_order_types
 
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
@@ -53,7 +53,9 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_ordered_card_id_on_the_basis_last_message_v2,
                            get_ordered_card_id_on_the_basis_of_participants_count_v2,
                            get_ordered_card_id_on_the_basis_newest_chatroom_v2,
-                           get_chatrooms_of_user_with_follow_status)
+                           get_chatrooms_of_user_with_follow_status,
+                           get_conversation_users_against_chatrooms_list,
+                           get_latest_conversations_against_chatrooms_list)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -669,12 +671,14 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     @staticmethod
     def fetch_members_based_on_user_list(user_list, community_instance, order_by_name=False,
-                                         send_expired_info=True) -> {}:
+                                         send_expired_info=True, page=0, page_size=0,
+                                         member_name_search_string="") -> {}:
 
         member_dict = {}
         membership_expired_dict = {}
         member_list = get_members_based_on_user_list_query(user_list, community_instance.id,
-                                                           order_by_name=order_by_name)
+                                                           order_by_name=order_by_name, page=page, page_size=page_size,
+                                                           member_name_search_string=member_name_search_string)
         community_name = community_instance.name
 
         if send_expired_info:
@@ -1146,24 +1150,21 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def fetch_chatroom_home(self, chatroom_id) -> {}:
 
-        chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
+        validated_req = MemberCommunityHelper.validate_fetch_chatroom_home_request(self.get_member_id(),
+                                                                                   chatroom_id)
 
-        if not chatroom_instance:
-            return {'error_message': "Invalid chatroom id", 'status': 400}
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        user_instance = validated_req.get('user_instance')
+        engage_instance = validated_req.get('engage_instance')
 
-        if not user_instance:
-            return {'error_message': "Invalid user id", 'status': 400}
+        chatroom_home = {
+            'success': True
+        }
 
-        engage_filter = ModelUtilities.get_model_filter(conversationEngage, {'card': chatroom_instance,
-                                                                             'user': user_instance})
-        chatroom_home = dict()
-
-        if engage_filter:
-
-            engage_instance = engage_filter[0]
-
+        if engage_instance:
             card_instance = engage_instance.card
             draft_instance = engage_instance.draft
 
@@ -1185,7 +1186,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                    many=False).data
                 chatroom_home['is_draft'] = True
 
-            last_conversation = engage_instance.last_conversation
+            chatroom_conversations = get_latest_conversations_against_chatrooms_list([card_instance.id])
+            chatrooms_conversation_ids_list = chatroom_conversations.get(card_instance.id)
+            last_conversation_id = chatrooms_conversation_ids_list[0] if chatrooms_conversation_ids_list else None
+            last_conversation = ModelUtilities.get_model_instance_or_none(card_answers, last_conversation_id)
 
             if last_conversation and not is_draft_conversation(last_conversation, member_id):
 
@@ -1201,16 +1205,9 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom_home['unseen_conversation_count'] = engage_instance.unseen_count
             chatroom_home['last_conversation_time'] = get_time_text_for_my_chatrooms(engage_instance.updated_at)
 
-            last_conversation_member = engage_instance.last_conversation_member
-            second_last_conversation_member = engage_instance.second_last_conversation_member
-            last_conversation_user = engage_instance.last_conversation_user
-            second_last_conversation_user = engage_instance.second_last_conversation_user
+            conversation_users = get_conversation_users_against_chatrooms_list([card_instance.id])
 
-            conversation_users = get_latest_conversation_members(last_conversation_member,
-                                                                 second_last_conversation_member,
-                                                                 last_conversation_user,
-                                                                 second_last_conversation_user)
-            chatroom_home['conversation_users'] = conversation_users
+            chatroom_home['conversation_users'] = conversation_users.get(card_instance.id, [])
             chatroom_home['member_right_states'] = json.loads(
                 engage_instance.rights_list) if engage_instance.rights_list else []
 
@@ -1918,6 +1915,110 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return output_context
 
+    def fetch_post_feed(self, order_type: int = 0, pinned: bool = False, page: int = 1, page_size: int = 10,
+                        chatroom_ids: list = None):
+        validated_request = MemberCommunityHelper.validate_fetch_post_feed_request(
+            self.get_member_id(), self.get_api_key(), order_type, chatroom_ids)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        self.set_community_id(community_instance.id)
+
+        ordered_card_ids = []
+        pinned_chatrooms = list(set(ModelUtilities.get_model_filter(
+            Collabcard, {'community': self.get_community_id(), 'is_pinned': True,
+                         'is_deleted': False, 'type': card_types.CARD_FEED_GROUP}
+        ).values_list('id', flat=True)))
+
+        # Case handled for Feed order based on Newest chatroom and Most participants
+        if order_type in [feed_order_types.NEWEST_ORDER_TYPE, feed_order_types.MOST_PARTICIPANTS_ORDER_TYPE]:
+            excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
+                                                                               self.get_community_id())
+            followed_card_ids = get_chatrooms_of_user_with_follow_status(self.get_member_id(),
+                                                                         self.get_community_id())
+
+            excluded_card_ids = list(set(excluded_card_ids) - set(followed_card_ids))
+
+            filter_dict = {
+                'community_id': self.get_community_id(),
+                'setting_type': community_setting_types.INTRO_ROOM,
+                'enabled': True
+            }
+
+            intro_room_setting_enabled = False
+
+            intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+
+            if intro_room_setting_filter:
+                intro_room_setting_enabled = True
+
+            excluded_card_types = [card_types.CARD_INTRO, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]
+
+            if not intro_room_setting_enabled:
+                excluded_card_types.append(card_types.CARD_MASTER_INTRO)
+
+            if order_type == feed_order_types.NEWEST_ORDER_TYPE:
+                ordered_card_ids = get_ordered_card_id_on_the_basis_newest_chatroom_v2(self.get_member_id(),
+                                                                                       self.get_community_id(),
+                                                                                       pinned, excluded_card_ids,
+                                                                                       excluded_card_types,
+                                                                                       pinned_chatrooms, page, page_size,
+                                                                                       card_types.CARD_FEED_GROUP)
+
+            if order_type == feed_order_types.MOST_PARTICIPANTS_ORDER_TYPE:
+                ordered_card_ids = get_ordered_card_id_on_the_basis_of_participants_count_v2(self.get_member_id(),
+                                                                                             self.get_community_id(),
+                                                                                             pinned, excluded_card_ids,
+                                                                                             excluded_card_types,
+                                                                                             pinned_chatrooms, page,
+                                                                                             page_size,
+                                                                                             card_types.CARD_FEED_GROUP)
+
+        # Case handled for Feed order based on Recently Active and Most messages
+        elif order_type in [feed_order_types.RECENTLY_ACTIVE_ORDER_TYPE,
+                            feed_order_types.MOST_MESSAGES_ORDER_TYPE] and chatroom_ids:
+            ordered_card_ids = validated_request.get('chatroom_ids')
+
+        chatroom_queryset = MemberCommunityHelper.get_ordered_collabcard_state_list_based_on_card_ids(
+            self.get_member_id(), ordered_card_ids)
+
+        from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
+
+        chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
+        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_queryset, community_instance)
+
+        return {
+            'success': True,
+            'chatrooms': chatroom_context_list,
+            'pinned_chatrooms_count': len(pinned_chatrooms)
+        }
+
+    def fetch_excluded_chatrooms_for_user(self):
+        validated_request = MemberCommunityHelper.validate_fetch_excluded_chatrooms_request(
+            self.get_member_id(), self.get_api_key())
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        self.set_community_id(community_instance.id)
+
+        excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
+                                                                           self.get_community_id())
+        followed_card_ids = get_chatrooms_of_user_with_follow_status(self.get_member_id(),
+                                                                     self.get_community_id())
+
+        excluded_card_ids = list(set(excluded_card_ids) - set(followed_card_ids))
+
+        return {
+            'success': True,
+            'chatroom_ids': excluded_card_ids
+        }
+
 
 class MemberCommunityHelper:
     @staticmethod
@@ -2046,6 +2147,9 @@ class MemberCommunityHelper:
 
             if value.get('is_guest') is not None:
                 temp['is_guest'] = value.get('is_guest')
+
+            if value.get('custom_title'):
+                temp['custom_title'] = value.get('custom_title')
 
             member_list.append(temp)
 
@@ -2812,3 +2916,73 @@ class MemberCommunityHelper:
 
         return {'community_instance': community_instance, 'user_instance': user_instance,
                 'member_state': member_state, 'access_type': access_type}
+
+    @staticmethod
+    def validate_fetch_post_feed_request(user_id, api_key, order_type, chatroom_ids):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid API key")
+
+        is_community_member = Members.is_community_member(community_instance, user_instance)
+        if not is_community_member:
+            return ResponseUtilities.get_inner_error_context("You are not a member of the community")
+
+        valid_order_types = [feed_order_types.NEWEST_ORDER_TYPE, feed_order_types.RECENTLY_ACTIVE_ORDER_TYPE,
+                             feed_order_types.MOST_MESSAGES_ORDER_TYPE, feed_order_types.MOST_PARTICIPANTS_ORDER_TYPE]
+
+        if order_type not in valid_order_types:
+            return ResponseUtilities.get_inner_error_context("Invalid order_type")
+
+        chatroom_ids_list = []
+        if chatroom_ids and isinstance(chatroom_ids, str):
+            try:
+                chatroom_ids_list = json.loads(chatroom_ids)
+            except:
+                return ResponseUtilities.get_inner_error_context("Invalid chatroom_ids object")
+
+        return {'community_instance': community_instance, 'user_instance': user_instance,
+                'chatroom_ids': chatroom_ids_list}
+
+    @staticmethod
+    def validate_fetch_excluded_chatrooms_request(user_id, api_key):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid API key")
+
+        is_community_member = Members.is_community_member(community_instance, user_instance)
+        if not is_community_member:
+            return ResponseUtilities.get_inner_error_context("You are not a member of the community")
+
+        return {'community_instance': community_instance, 'user_instance': user_instance}
+
+    @staticmethod
+    def validate_fetch_chatroom_home_request(user_id, chatroom_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom ID")
+
+        engage_filter = ModelUtilities.get_model_filter(conversationEngage, {'card': chatroom_instance,
+                                                                             'user': user_instance})
+
+        if not engage_filter:
+            return ResponseUtilities.get_inner_error_context('User is not following the chatroom!')
+
+        return {
+            'user_instance': user_instance,
+            'chatroom_instance': chatroom_instance,
+            'engage_instance': engage_filter[0]
+        }

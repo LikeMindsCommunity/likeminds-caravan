@@ -655,7 +655,8 @@ class ChatroomImpl(ChatroomManager):
         return participants_list
 
     @staticmethod
-    def compute_tagging_list_for_secret_participants(chatroom_instance, community_instance):
+    def compute_tagging_list_for_secret_participants(chatroom_instance, community_instance, page=0, page_size=0,
+                                                     member_name_search_string=""):
 
         try:
             member_list = json.loads(chatroom_instance.secret_chatroom_participants)
@@ -664,7 +665,9 @@ class ChatroomImpl(ChatroomManager):
             error_logger.error(e)
             member_list = []
 
-        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance)
+        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(
+            member_list, community_instance, page=page, page_size=page_size,
+            member_name_search_string=member_name_search_string)
         tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 
         return tagging_list
@@ -903,7 +906,7 @@ class ChatroomImpl(ChatroomManager):
         if card_instance.online_link_password:
             chatroom_context['online_link_password'] = card_instance.online_link_password
 
-    def fetch_chatroom(self, is_internal=False, api_type: int = api_types.Non_SDK) -> dict:
+    def fetch_chatroom(self, is_internal=False) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
 
@@ -918,6 +921,12 @@ class ChatroomImpl(ChatroomManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = card_instance.community
+
+        if SdkClient.is_sdk_community(community_id=community_instance.id):
+            api_type = api_types.SDK
+
+        else:
+            api_type = api_types.Non_SDK
 
         if is_internal:
             return {'success': True, 'chatroom': CollabcardSerializer(card_instance, user_instance.id)}
@@ -1023,7 +1032,7 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_obj
 
-    def fetch_all_chatroom(self, page: int = 1) -> dict:
+    def fetch_all_chatroom(self, page: int = 1, chatroom_type: int = -1) -> dict:
         validated_req = ChatroomViewHelper.validate_fetch_all_chatroom_request(self.get_member_id(),
                                                                                api_key=self.get_api_key())
 
@@ -1033,7 +1042,7 @@ class ChatroomImpl(ChatroomManager):
 
         community_instance = validated_req.get('community_instance')
 
-        card_ids = get_all_chatrooms_of_community(community_instance.id, page)
+        card_ids = get_all_chatrooms_of_community(community_instance.id, chatroom_type, page)
         chatroom_list = ModelUtilities.get_model_filter(collabcardState,
                                                         {'card_id__in': card_ids,
                                                          'user': self.get_member_id(),
@@ -1272,11 +1281,13 @@ class ChatroomImpl(ChatroomManager):
             member_id = self.get_member_id()
             chatroom_state = conversation_states.CONVERSATION_LEAVE_CHATROOM
 
-        user_instance = ChatroomHelper.fetch_user_instance(member_id=member_id)
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+        if not user_instance:
+            return ResponseUtilities.get_impl_error_context("Invalid member_id sent", status_codes.HTTP_400_BAD_REQUEST)
 
         # removing member id from secret_chatroom_participants list
         existing_participants_list = json.loads(chatroom_instance.secret_chatroom_participants)
-        member_id = NumberUtilities.get_integer_from_string(member_id)
+        member_id = user_instance.id
 
         if member_id in existing_participants_list:
             existing_participants_list.remove(member_id)
@@ -1346,6 +1357,8 @@ class ChatroomImpl(ChatroomManager):
         chatroom_instance = validated_req_body.get('card_instance')
         secret_chatroom_participants = validated_req_body.get('secret_chatroom_participants')
 
+        # support for user_unique_ids in secret chatroom participants parameter
+        secret_chatroom_participants = MemberCommunityImpl.get_valid_member_ids(secret_chatroom_participants)
         secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
             secret_chatroom_participants)
 
@@ -1650,7 +1663,11 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def fetch_participants_of_secret_chatroom(self):
+    def fetch_participants_of_secret_chatroom(self, participant_name, page, page_size):
+
+        if page < 1 or page_size < 1:
+            return ResponseUtilities.get_impl_error_context("Invalid page or page_size",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         card_instance = Collabcard.get_chatroom_or_None(self.get_chatroom_id())
 
@@ -1686,7 +1703,9 @@ class ChatroomImpl(ChatroomManager):
                             'user': user_instance
                         })
 
-            participant_list = self.compute_tagging_list_for_secret_participants(card_instance, community_instance)
+            participant_list = self.compute_tagging_list_for_secret_participants(
+                card_instance, community_instance, page=page, page_size=page_size,
+                member_name_search_string=participant_name)
             participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
             return {'success': True, 'participants': participant_list, 'can_edit_participant': can_edit_participant}
@@ -2523,6 +2542,8 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req.get('user_instance')
         card_instance = validated_req.get('card_instance')
 
+        #support for user_unique_ids in chatroom participants parameter
+        chatroom_participants = MemberCommunityImpl.get_valid_member_ids(chatroom_participants)
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants)
 
         conversation_impl.ConversationHelper.create_conversation_state(card_instance, user_instance,
@@ -2742,10 +2763,11 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_object
 
-    def fetch_chatroom_participants(self):
+    def fetch_chatroom_participants(self, participant_name, page, page_size):
 
         validated_req = ChatroomViewHelper.validate_fetch_participants_meta(self.get_member_id(),
-                                                                            self.get_chatroom_id())
+                                                                            self.get_chatroom_id(),
+                                                                            page, page_size)
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -2780,7 +2802,9 @@ class ChatroomImpl(ChatroomManager):
         total_participants_list = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',
                                                                                                             flat=True)
 
-        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list, community_instance)
+        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list, community_instance,
+                                                                           page=page, page_size=page_size,
+                                                                           member_name_search_string=participant_name)
         participant_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 
         response = {
@@ -3365,6 +3389,7 @@ class ChatroomImpl(ChatroomManager):
         if not validated_request.get('success'):
             return validated_request
 
+        user_instance = validated_request.get('user_instance')
         card_instance = validated_request.get('chatroom_instance')
         user_instances_list = [card_instance.user, card_instance.chatroom_with_user]
         user_member_state = Members.get_community_member_state(card_instance.community, card_instance.user)
@@ -3392,6 +3417,8 @@ class ChatroomImpl(ChatroomManager):
                 answer = BLOCK_MEMBER_DM_CHATROOM_MESSAGE
                 conv_state = conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT
 
+                chat_request_state = chat_request_states.REJECTED
+
             else:
                 user_route = "<<" + str(card_instance.user.userinfo.name) + "|route://member/" + str(
                     card_instance.user.id) + ">>"
@@ -3401,6 +3428,13 @@ class ChatroomImpl(ChatroomManager):
 
                 answer = UNBLOCK_MEMBER_DM_CHATROOM_MESSAGE.format(user_route, chatroom_with_user_route)
                 conv_state = conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT
+
+                chat_request_state = chat_request_states.ACCEPTED
+
+            ModelUtilities.model_update(collabcardState, {'card': card_instance, 'follow_status': True},
+                                        {'chat_request_state': chat_request_state,
+                                         'chat_requested_by': user_instance,
+                                         'updated_at': TimeUtilities.current_time_in_sec()})
 
             conversation_instance = initial_message_dm_chatroom(card_instance, card_instance.user,
                                                                 card_instance.chatroom_with_user,
@@ -3605,6 +3639,9 @@ class ChatroomImpl(ChatroomManager):
         chatroom_instance = validated_req.get('chatroom_instance')
         chatroom_state = conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM
 
+        # support for user_unique_ids in secret chatroom participants parameter
+        removed_members_list = MemberCommunityImpl.get_valid_member_ids(removed_members_list)
+
         filter_dict = {
             'card': chatroom_instance,
             'user__in': removed_members_list,
@@ -3639,6 +3676,19 @@ class ChatroomImpl(ChatroomManager):
             current_user_id=self.get_member_id(), chatroom_state=chatroom_state)
 
         return {'success': True}
+
+    def get_chatroom_participants_list(self) -> list:
+        filter_dict = {
+            'card': self.get_chatroom_id(),
+            'follow_status': True,
+            'is_tagged': False,
+            'remove': None
+        }
+
+        followed_members = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',
+                                                                                                     flat=True)
+
+        return list(followed_members)
 
 
 class ChatroomHelper:
@@ -4381,7 +4431,7 @@ class ChatroomHelper:
                 if not user_instance:
                     continue
 
-                bulk_create_list.appen(collabcardState.create_chatroom_state_instances_for_bulk_create(
+                bulk_create_list.append(collabcardState.create_chatroom_state_instances_for_bulk_create(
                     card_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_UNSEEN, follow_status=True))
 
         if bulk_update_list:
@@ -4966,6 +5016,7 @@ class ChatroomHelper:
 
         ModelUtilities.model_update(collabcardState, {'card': card_instance},
                                     {'chat_request_state': chat_request_state,
+                                     'chat_requested_by': user_instance,
                                      'updated_at': TimeUtilities.current_time_in_sec()})
 
         return {'success': True, 'should_call_block_unblock': True}
@@ -4990,6 +5041,7 @@ class ChatroomHelper:
 
         ModelUtilities.model_update(collabcardState, {'card': card_instance},
                                     {'chat_request_state': chat_request_state,
+                                     'chat_requested_by': user_instance,
                                      'updated_at': TimeUtilities.current_time_in_sec()})
 
         return {'success': True, 'should_call_block_unblock': True}

@@ -162,16 +162,16 @@ class FetchChatroomHome(APIView):
         chatroom_id = request.GET.get('chatroom_id')
 
         if not member_id:
-            return JsonResponse({'error_message': 'Invalid header member id'}, status=400)
+            error_message = 'Invalid header member id'
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(error_message,
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         member_community_manager = MemberCommunityImpl(member_id, "")
         chatroom_context = member_community_manager.fetch_chatroom_home(chatroom_id)
 
         if 'error_message' in chatroom_context:
-            response_context = {'error_message': chatroom_context['error_message']}
-            status = chatroom_context['status']
-
-            return JsonResponse(response_context, status=status)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_context.get('error_message'),
+                                                                                chatroom_context.get('status')))
 
         return JsonResponse(chatroom_context)
 
@@ -560,6 +560,85 @@ class FetchAccessView(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id, None, api_key=api_key)
         community_context = member_community_manager.fetch_member_access(req_params.get('access_type'))
+
+        if 'error_message' in community_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                                community_context.get('status')))
+
+        return JsonResponse(community_context)
+
+
+class FetchPostFeedView(APIView):
+
+    @staticmethod
+    def _validate_request(member_id, api_key, req_params):
+
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context("Send x-member-id in headers")
+
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context("Send x-api-key in headers")
+
+        if not req_params:
+            return ResponseUtilities.get_inner_error_context("Invalid request params")
+
+        if not req_params.get('order_type'):
+            return ResponseUtilities.get_inner_error_context("send order_type in request params")
+
+        return {'success': True}
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_params = RequestUtilities.fetch_request_query_params(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        validated_req_params = self._validate_request(member_id, api_key, req_params)
+
+        if not validated_req_params.get('success', False):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                validated_req_params.get('error_message'), status_codes.HTTP_400_BAD_REQUEST))
+
+        order_type = NumberUtilities.get_integer_from_string(req_params.get('order_type'), 0)
+        pinned = req_params.get('pinned', '') == 'true'
+        page = NumberUtilities.get_integer_from_string(req_params.get('page'), 1)
+        page_size = NumberUtilities.get_integer_from_string(req_params.get('page_size'), 10)
+        chatroom_ids = req_params.get('chatroom_ids')
+
+        member_community_manager = MemberCommunityImpl(member_id, None, api_key=api_key)
+        community_context = member_community_manager.fetch_post_feed(order_type, pinned, page, page_size, chatroom_ids)
+
+        if 'error_message' in community_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                                community_context.get('status')))
+
+        return JsonResponse(community_context)
+
+
+class FetchExcludedChatroomsView(APIView):
+
+    @staticmethod
+    def _validate_request(member_id, api_key):
+
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context("Send x-member-id in headers")
+
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context("Send x-api-key in headers")
+
+        return {'success': True}
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        validated_req_params = self._validate_request(member_id, api_key)
+
+        if not validated_req_params.get('success', False):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                validated_req_params.get('error_message'), status_codes.HTTP_400_BAD_REQUEST))
+
+        member_community_manager = MemberCommunityImpl(member_id, None, api_key=api_key)
+        community_context = member_community_manager.fetch_excluded_chatrooms_for_user()
 
         if 'error_message' in community_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),

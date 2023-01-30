@@ -291,6 +291,7 @@ def my_chatrooms_version_1(request):
         page = 1
 
     api_key = RequestUtilities.get_api_key_from_headers(request)
+    chatroom_type = NumberUtilities.get_integer_from_string(request.GET.get("type"), -1)
 
     community_id = request.GET.get('community_id', None)
     community_instance = SdkClient.get_community_instance_or_none(community_id, api_key)
@@ -361,6 +362,7 @@ def my_chatrooms_version_1(request):
     joined_chatroom_count = get_my_chatrooms_count(member_id,
                                                    version_code,
                                                    platform_code,
+                                                   chatroom_type=chatroom_type,
                                                    consider_dm_chatrooms=consider_dm_chatrooms,
                                                    dm_instance_community_ids_list=dm_instance_community_ids_list,
                                                    community_id=community_id,
@@ -375,6 +377,7 @@ def my_chatrooms_version_1(request):
                                          page,
                                          version_code,
                                          platform_code,
+                                         chatroom_type=chatroom_type,
                                          limit=10,
                                          consider_dm_chatrooms=consider_dm_chatrooms,
                                          dm_instance_community_ids_list=dm_instance_community_ids_list,
@@ -382,17 +385,25 @@ def my_chatrooms_version_1(request):
                                          intro_room_community_list=intro_room_community_list,
                                          should_add_dm_chatrooms=should_add_dm_chatrooms)
 
+    chatroom_ids_list = []
+
     if engage_list:
 
         for id, _ in engage_list.items():
             instance = conversationEngage.objects.get(pk=id)
             instance_list.append(instance)
 
+            if instance.card_id not in chatroom_ids_list:
+                chatroom_ids_list.append(instance.card_id)
+
     draft_list = get_draft_chatrooms_on_home_screen(member_id, page, community_id)
 
     for id in draft_list:
         instance = conversationEngage.objects.get(pk=id)
         instance_list.append(instance)
+
+        if instance.card_id not in chatroom_ids_list:
+            chatroom_ids_list.append(instance.card_id)
 
     # Segregate DM and Non-DM chatrooms
     for instance in instance_list:
@@ -417,6 +428,9 @@ def my_chatrooms_version_1(request):
     else:
         instance_list = non_dm_instance_list
 
+    conversation_users = get_conversation_users_against_chatrooms_list(chatroom_ids_list)
+    chatroom_conversations = get_latest_conversations_against_chatrooms_list(chatroom_ids_list)
+
     for instance in instance_list:
 
         chatroom = {}
@@ -436,7 +450,11 @@ def my_chatrooms_version_1(request):
                                                           many=False).data
             chatroom['is_draft'] = True
 
-        last_conversation = instance.last_conversation
+        chatrooms_conversation_ids_list = chatroom_conversations.get(card_instance.id)
+
+        last_conversation_id = chatrooms_conversation_ids_list[0] if chatrooms_conversation_ids_list else None
+
+        last_conversation = ModelUtilities.get_model_instance_or_none(card_answers, last_conversation_id)
 
         if last_conversation and not is_draft_conversation(last_conversation, member_id, device_id):
             last_conversation_dict = conversationSerializer(last_conversation,
@@ -448,7 +466,11 @@ def my_chatrooms_version_1(request):
 
             chatroom['last_conversation'] = last_conversation_dict
 
-            second_last_conversation = instance.second_last_conversation
+            second_last_conversation_id = chatrooms_conversation_ids_list[1] \
+                if len(chatrooms_conversation_ids_list) > 1 else None
+
+            second_last_conversation = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                                 second_last_conversation_id)
 
             if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id, device_id):
                 second_last_conversation_dict = conversationSerializer(second_last_conversation,
@@ -467,16 +489,7 @@ def my_chatrooms_version_1(request):
             chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(
                 TimeUtilities.convert_milliseconds_to_sec(engage_list.get(instance.id)))
 
-        last_conversation_member = instance.last_conversation_member
-        second_last_conversation_member = instance.second_last_conversation_member
-        last_conversation_user = instance.last_conversation_user
-        second_last_conversation_user = instance.second_last_conversation_user
-
-        conversation_users = get_latest_conversation_members(last_conversation_member,
-                                                             second_last_conversation_member,
-                                                             last_conversation_user,
-                                                             second_last_conversation_user)
-        chatroom['conversation_users'] = conversation_users
+        chatroom['conversation_users'] = conversation_users.get(card_instance.id, [])
 
         rights_list = json.loads(instance.rights_list) if instance.rights_list else []
 
@@ -3522,10 +3535,6 @@ def chatroom_mute(request):
         instance.is_tagged = False
         instance.save()
 
-    save_users_with_muted_chatrooms.delay({'user_id': user_instance.id,
-                                           'chatroom_id': card_instance.id,
-                                           'mute_status': mute_status})
-
     send_sync_notification.delay({'chatroom_id': chatroom_id,
                                   'member_id': member_id,
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})
@@ -4885,9 +4894,11 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                          platform_code=None, api_type=api_types.Non_SDK):
     """ function to get chatroom actions """
 
+    is_sdk = api_type == api_types.SDK
+
     if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE]):
 
-        if not m2cm_v2_version_check(platform_code, version_code):
+        if not m2cm_v2_version_check(platform_code, version_code, is_sdk=is_sdk):
 
             if card_status.get('mute_status'):
                 return collabcard_action_dm_user_mute
@@ -4906,12 +4917,15 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
         if not card_instance.is_private_member:
             return dm_chatroom_actions
 
-        last_conversation = ModelUtilities.get_model_filter(card_answers, {'card': card_instance}).last()
+        card_state_instance = None
 
-        if last_conversation.state == conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT:
-            dm_chatroom_actions.append(unblock_member)
+        card_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                              'user': current_user_instance})
 
-        else:
+        if card_state_filter:
+            card_state_instance = card_state_filter[0]
+
+        if card_state_instance and (card_state_instance.chat_request_state != chat_request_states.REJECTED):
             dm_chatroom_actions.append(block_member_chatroom)
 
         return dm_chatroom_actions
@@ -6188,7 +6202,7 @@ def follow_chatroom_async(collabcard_id,
     if not status and card_instance.is_secret:
         return {'success': False, "error_message": "Cannot unfollow chatroom"}
 
-    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
     if not user_instance:
         return {'success': False, "error_message": "Invalid member id"}

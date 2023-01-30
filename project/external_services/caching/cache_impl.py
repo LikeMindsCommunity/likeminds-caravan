@@ -60,3 +60,34 @@ class CacheImpl(CacheManager):
 
         return status
 
+    @staticmethod
+    def bulk_set_cache(data, timeout=None) -> bool:
+        """
+        @param data: dict for key: value pair
+        @param timeout: timeout for setting data in cache
+        """
+
+        status = False
+
+        try:
+            cache.set_many(data, timeout)
+            status = True
+
+        except Exception as e:
+            error_logger.error(e.args)
+
+        return status
+
+    @staticmethod
+    def bulk_get_cache(keys) -> {}:
+
+        result = {}
+
+        try:
+            result = cache.get_many(keys)
+
+        except Exception as e:
+            error_logger.error(e.args)
+
+        return result
+
