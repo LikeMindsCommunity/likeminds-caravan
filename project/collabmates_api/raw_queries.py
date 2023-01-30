@@ -3603,7 +3603,7 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                             )
                         ) AS chatroom_users_data 
                         INNER JOIN togther_card_answers ON togther_card_answers.card_id = chatroom_users_data.id 
-                        AND togther_card_answers.state IN (0, 10)
+                        AND togther_card_answers.state IN (0, 1, 10)
                       )
                   ) AS chat_conversation_data 
                   LEFT JOIN togther_card_answers ON togther_card_answers.id = chat_conversation_data.topic_id 
