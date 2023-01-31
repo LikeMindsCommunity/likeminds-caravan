@@ -3519,8 +3519,16 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
         chat_requested_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("chat_requested"),
                                                    get_members_query_meta_for_sync_revamp("chat_requested")])
 
+        topic_conversation_data_query = ",".join([get_users_query_meta_for_sync_revamp("last_conv"),
+                                                  get_members_query_meta_for_sync_revamp("last_conv"),
+                                                  get_conversation_query_meta_for_sync_revamp("topic")])
+
+        topic_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("topic"),
+                                          get_members_query_meta_for_sync_revamp("topic")])
+
         sql = """
-                SELECT 
+                SELECT chatrooms_data.*, {} FROM
+                (SELECT 
                   chat_conversation_data.*, 
                   {} 
                 FROM 
@@ -3606,14 +3614,31 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                         AND togther_card_answers.state IN (0, 1, 10)
                       )
                   ) AS chat_conversation_data 
+                  LEFT JOIN togther_userinfo ON (
+                    togther_userinfo.user_id_id = chat_conversation_data.conversation___user_id___last
+                  )
+                  LEFT JOIN togther_members ON (
+                    chat_conversation_data.conversation___user_id___last = togther_members.member_id_id
+                  AND chat_conversation_data.conversation___community_id___last = togther_members.community_id_id)
+
                   LEFT JOIN togther_card_answers ON togther_card_answers.id = chat_conversation_data.topic_id 
                 WHERE 
-                  chat_conversation_data.row_number = 1 ORDER BY chat_conversation_data.updated_at {};
-        """.format(get_conversation_query_meta_for_sync_revamp("topic"),
-                   get_conversation_query_meta_for_sync_revamp("last"), chatroom_with_user_data_query,
-                   chat_requested_user_data_query, creator_data_query, get_community_query_meta_for_sync_revamp(""),
-                   chatroom_query, user_id, community_id, included_chatroom_types_query, min_timestamp,
-                   max_timestamp, order_by_query, offset, limit, order_by_query)
+                  chat_conversation_data.row_number = 1) AS chatrooms_data
+                  
+                  LEFT JOIN togther_userinfo ON (
+                    togther_userinfo.user_id_id = chatrooms_data.conversation___user_id___topic
+                  )
+                  LEFT JOIN togther_members ON (
+                    chatrooms_data.conversation___user_id___topic = togther_members.member_id_id
+                  AND chatrooms_data.conversation___community_id___topic = togther_members.community_id_id)
+                   
+                  ORDER BY chatrooms_data.updated_at {};
+        """.format(topic_user_data_query, topic_conversation_data_query,
+                   get_conversation_query_meta_for_sync_revamp("last"),
+                   chatroom_with_user_data_query, chat_requested_user_data_query, creator_data_query,
+                   get_community_query_meta_for_sync_revamp(""), chatroom_query, user_id, community_id,
+                   included_chatroom_types_query, min_timestamp, max_timestamp, order_by_query, offset, limit,
+                   order_by_query)
 
         if only_query:
             return sql
