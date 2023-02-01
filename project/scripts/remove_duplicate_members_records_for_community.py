@@ -8,7 +8,7 @@ if settings.IS_BETA:
     community_id = None
 
 else:
-    community_id = 0
+    community_id = None
 
 
 def get_duplicate_user_community_ids_map():
