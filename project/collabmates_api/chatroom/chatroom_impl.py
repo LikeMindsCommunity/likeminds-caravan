@@ -1666,8 +1666,8 @@ class ChatroomImpl(ChatroomManager):
     def fetch_participants_of_secret_chatroom(self, participant_name: str = None, page: int = None,
                                               page_size: int = None):
 
-        validated_req = ChatroomViewHelper.validate_fetch_secret_participants_meta(self.get_member_id(),
-                                                                                   self.get_chatroom_id())
+        validated_req = ChatroomHelper.validate_fetch_secret_participants_meta(self.get_member_id(),
+                                                                               self.get_chatroom_id())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -2760,8 +2760,8 @@ class ChatroomImpl(ChatroomManager):
 
     def fetch_chatroom_participants(self, participant_name: str = None, page: int = None, page_size: int = None):
 
-        validated_req = ChatroomViewHelper.validate_fetch_participants_meta(self.get_member_id(),
-                                                                            self.get_chatroom_id())
+        validated_req = ChatroomHelper.validate_fetch_participants_meta(self.get_member_id(),
+                                                                        self.get_chatroom_id())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -5318,3 +5318,43 @@ class ChatroomHelper:
         queryset = Userinfo.objects.filter(user_id__in=user_ids).order_by(preserved)
 
         return queryset
+
+    @staticmethod
+    def validate_fetch_participants_meta(user_id, chatroom_id):
+        validation_params = {
+            'chatroom_id': chatroom_id,
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        card_instance = validated_dict.get('chatroom_id')
+        user_instance = validated_dict.get('user_id')
+
+        if card_instance.is_secret:
+            return ResponseUtilities.get_inner_error_context("Chatroom is secret!")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def validate_fetch_secret_participants_meta(user_id, chatroom_id):
+        validation_params = {
+            'chatroom_id': chatroom_id,
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        card_instance = validated_dict.get('chatroom_id')
+        user_instance = validated_dict.get('user_id')
+
+        if not card_instance.is_secret:
+            return ResponseUtilities.get_inner_error_context("Chatroom is open!")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
