@@ -1663,23 +1663,18 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def fetch_participants_of_secret_chatroom(self, participant_name, page, page_size):
+    def fetch_participants_of_secret_chatroom(self, participant_name: str = None, page: int = None,
+                                              page_size: int = None):
 
-        if page < 1 or page_size < 1:
-            return ResponseUtilities.get_impl_error_context("Invalid page or page_size",
+        validated_req = ChatroomViewHelper.validate_fetch_secret_participants_meta(self.get_member_id(),
+                                                                                   self.get_chatroom_id())
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        card_instance = Collabcard.get_chatroom_or_None(self.get_chatroom_id())
-
-        if not card_instance:
-            return ResponseUtilities.get_impl_error_context("Invalid chatroom id",
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return ResponseUtilities.get_impl_error_context("Invalid user id",
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        user_instance = validated_req.get('user_instance')
+        card_instance = validated_req.get('card_instance')
 
         community_instance = card_instance.community
         can_edit_participant = False
@@ -2763,11 +2758,10 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_object
 
-    def fetch_chatroom_participants(self, participant_name, page, page_size):
+    def fetch_chatroom_participants(self, participant_name: str = None, page: int = None, page_size: int = None):
 
         validated_req = ChatroomViewHelper.validate_fetch_participants_meta(self.get_member_id(),
-                                                                            self.get_chatroom_id(),
-                                                                            page, page_size)
+                                                                            self.get_chatroom_id())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
