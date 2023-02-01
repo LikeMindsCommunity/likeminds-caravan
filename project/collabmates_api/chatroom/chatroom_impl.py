@@ -37,7 +37,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
     get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right, \
     get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community, get_chatroom_participants_count,\
-    get_sorted_user_data_on_basis_of_activity_in_chatroom
+    get_sorted_user_data_on_basis_of_activity_in_chatroom, get_members_based_on_user_list_query
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, ScheduledChatroomFollowSerializer
@@ -1703,7 +1703,14 @@ class ChatroomImpl(ChatroomManager):
                 member_name_search_string=participant_name)
             participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
-            return {'success': True, 'participants': participant_list, 'can_edit_participant': can_edit_participant}
+            participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
+
+            return {
+                'success': True,
+                'participants': participant_list,
+                'can_edit_participant': can_edit_participant,
+                'total_participants_count': participants_count
+            }
 
         return ResponseUtilities.get_impl_error_context("Chatroom is not secret",
                                                         status_code=status_codes.HTTP_400_BAD_REQUEST)
@@ -2801,10 +2808,13 @@ class ChatroomImpl(ChatroomManager):
                                                                            member_name_search_string=participant_name)
         participant_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 
+        participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
+
         response = {
             'success': True,
             'participants': participant_list,
-            'can_edit_participant': can_edit_participant
+            'can_edit_participant': can_edit_participant,
+            'total_participants_count': participants_count
         }
 
         return response
@@ -5358,3 +5368,16 @@ class ChatroomHelper:
             return ResponseUtilities.get_inner_error_context("Chatroom is open!")
 
         return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def get_participants_count_in_chatroom(chatroom_instance):
+
+        if chatroom_instance.is_secret:
+            secret_room_participants = json.loads(chatroom_instance.secret_chatroom_participants)
+            participant_count = len(get_members_based_on_user_list_query(secret_room_participants,
+                                                                         chatroom_instance.community_id))
+
+        else:
+            participant_count = ChatroomHelper.chatroom_participants_count(chatroom_instance)
+
+        return participant_count
