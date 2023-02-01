@@ -112,6 +112,7 @@ from collabmates_api.notifications.constants import EVENT_TYPE, CALENDAR_INVITE_
 
 from utility.response_utilities import ResponseUtilities
 from utility.cache_keys import (CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, CHATROOM_TYPE_CONVERSION)
+from utility.version_utilities import VersionUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -1703,14 +1704,21 @@ class ChatroomImpl(ChatroomManager):
                 member_name_search_string=participant_name)
             participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
-            participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
-
-            return {
+            response_dict = {
                 'success': True,
                 'participants': participant_list,
-                'can_edit_participant': can_edit_participant,
-                'total_participants_count': participants_count
+                'can_edit_participant': can_edit_participant
             }
+
+            pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
+                                                                      self.get_version_code(),
+                                                                      VersionUtilities.participants_meta_pagination)
+
+            if pagination_version_check:
+                participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
+                response_dict['total_participants_count'] = participants_count
+
+            return response_dict
 
         return ResponseUtilities.get_impl_error_context("Chatroom is not secret",
                                                         status_code=status_codes.HTTP_400_BAD_REQUEST)
@@ -2808,16 +2816,21 @@ class ChatroomImpl(ChatroomManager):
                                                                            member_name_search_string=participant_name)
         participant_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 
-        participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
-
-        response = {
+        response_dict = {
             'success': True,
             'participants': participant_list,
-            'can_edit_participant': can_edit_participant,
-            'total_participants_count': participants_count
+            'can_edit_participant': can_edit_participant
         }
 
-        return response
+        pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
+                                                                  self.get_version_code(),
+                                                                  VersionUtilities.participants_meta_pagination)
+
+        if pagination_version_check:
+            participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
+            response_dict['total_participants_count'] = participants_count
+
+        return response_dict
 
     @staticmethod
     def update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body, member_id):
