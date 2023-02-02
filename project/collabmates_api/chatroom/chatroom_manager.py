@@ -263,7 +263,8 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_participants_of_secret_chatroom(self, participant_name, page, page_size):
+    def fetch_participants_of_secret_chatroom(self, participant_name: str = None, page: int = None,
+                                              page_size: int = None):
         """returns list of participants of secret chatrooms"""
 
         raise NotImplementedError
@@ -434,7 +435,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_chatroom_participants(self, participant_name, page, page_size):
+    def fetch_chatroom_participants(self, participant_name: str = None, page: int = None, page_size: int = None):
         """
         function to fetch chatroom participants meta data
         """

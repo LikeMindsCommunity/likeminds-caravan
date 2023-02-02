@@ -55,6 +55,15 @@ class VersionUtilities:
         PlatformCode.WEB_SDK: 16
     }
 
+    participants_meta_pagination: dict = {
+        PlatformCode.ANDROID: 214,
+        PlatformCode.IOS: 373,
+        PlatformCode.WEB: 17,
+        PlatformCode.ANDROID_SDK: 210,
+        PlatformCode.IOS_SDK: 371,
+        PlatformCode.WEB_SDK: 17
+    }
+
     @staticmethod
     def check_version(platform_code: str, version_code: int, feature_version_dict: dict) -> bool:
         """

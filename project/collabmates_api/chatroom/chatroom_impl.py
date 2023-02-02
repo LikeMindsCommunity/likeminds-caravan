@@ -37,7 +37,8 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
     get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right, \
     get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community, get_chatroom_participants_count,\
-    get_sorted_user_data_on_basis_of_activity_in_chatroom,get_community_members_data_on_basis_of_name_search
+    get_sorted_user_data_on_basis_of_activity_in_chatroom, get_members_based_on_user_list_query,
+    get_community_members_data_on_basis_of_name_search
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, ScheduledChatroomFollowSerializer
@@ -112,6 +113,7 @@ from collabmates_api.notifications.constants import EVENT_TYPE, CALENDAR_INVITE_
 
 from utility.response_utilities import ResponseUtilities
 from utility.cache_keys import (CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, CHATROOM_TYPE_CONVERSION)
+from utility.version_utilities import VersionUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -1660,23 +1662,18 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def fetch_participants_of_secret_chatroom(self, participant_name, page, page_size):
+    def fetch_participants_of_secret_chatroom(self, participant_name: str = None, page: int = None,
+                                              page_size: int = None):
 
-        if page < 1 or page_size < 1:
-            return ResponseUtilities.get_impl_error_context("Invalid page or page_size",
+        validated_req = ChatroomHelper.validate_fetch_secret_participants_meta_request(self.get_member_id(),
+                                                                                       self.get_chatroom_id())
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        card_instance = Collabcard.get_chatroom_or_None(self.get_chatroom_id())
-
-        if not card_instance:
-            return ResponseUtilities.get_impl_error_context("Invalid chatroom id",
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
-
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
-
-        if not user_instance:
-            return ResponseUtilities.get_impl_error_context("Invalid user id",
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        user_instance = validated_req.get('user_instance')
+        card_instance = validated_req.get('card_instance')
 
         community_instance = card_instance.community
         can_edit_participant = False
@@ -1705,7 +1702,21 @@ class ChatroomImpl(ChatroomManager):
                 member_name_search_string=participant_name)
             participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
-            return {'success': True, 'participants': participant_list, 'can_edit_participant': can_edit_participant}
+            response_dict = {
+                'success': True,
+                'participants': participant_list,
+                'can_edit_participant': can_edit_participant
+            }
+
+            pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
+                                                                      self.get_version_code(),
+                                                                      VersionUtilities.participants_meta_pagination)
+
+            if pagination_version_check:
+                participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
+                response_dict['total_participants_count'] = participants_count
+
+            return response_dict
 
         return ResponseUtilities.get_impl_error_context("Chatroom is not secret",
                                                         status_code=status_codes.HTTP_400_BAD_REQUEST)
@@ -2760,11 +2771,10 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_object
 
-    def fetch_chatroom_participants(self, participant_name, page, page_size):
+    def fetch_chatroom_participants(self, participant_name: str = None, page: int = None, page_size: int = None):
 
-        validated_req = ChatroomViewHelper.validate_fetch_participants_meta(self.get_member_id(),
-                                                                            self.get_chatroom_id(),
-                                                                            page, page_size)
+        validated_req = ChatroomHelper.validate_fetch_participants_meta_request(self.get_member_id(),
+                                                                                self.get_chatroom_id())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -2804,13 +2814,21 @@ class ChatroomImpl(ChatroomManager):
                                                                            member_name_search_string=participant_name)
         participant_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 
-        response = {
+        response_dict = {
             'success': True,
             'participants': participant_list,
             'can_edit_participant': can_edit_participant
         }
 
-        return response
+        pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
+                                                                  self.get_version_code(),
+                                                                  VersionUtilities.participants_meta_pagination)
+
+        if pagination_version_check:
+            participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
+            response_dict['total_participants_count'] = participants_count
+
+        return response_dict
 
     @staticmethod
     def update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body, member_id):
@@ -5321,3 +5339,56 @@ class ChatroomHelper:
         queryset = Userinfo.objects.filter(user_id__in=user_ids).order_by(preserved)
 
         return queryset
+
+    @staticmethod
+    def validate_fetch_participants_meta_request(user_id, chatroom_id):
+        validation_params = {
+            'chatroom_id': chatroom_id,
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        card_instance = validated_dict.get('chatroom_id')
+        user_instance = validated_dict.get('user_id')
+
+        if card_instance.is_secret:
+            return ResponseUtilities.get_inner_error_context("Chatroom is secret!")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def validate_fetch_secret_participants_meta_request(user_id, chatroom_id):
+        validation_params = {
+            'chatroom_id': chatroom_id,
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        card_instance = validated_dict.get('chatroom_id')
+        user_instance = validated_dict.get('user_id')
+
+        if not card_instance.is_secret:
+            return ResponseUtilities.get_inner_error_context("Chatroom is open!")
+
+        return {'user_instance': user_instance, 'card_instance': card_instance}
+
+    @staticmethod
+    def get_participants_count_in_chatroom(chatroom_instance):
+
+        if chatroom_instance.is_secret:
+            secret_room_participants = json.loads(chatroom_instance.secret_chatroom_participants)
+            participant_count = len(get_members_based_on_user_list_query(secret_room_participants,
+                                                                         chatroom_instance.community_id))
+
+        else:
+            participant_count = ChatroomHelper.chatroom_participants_count(chatroom_instance)
+
+        return participant_count

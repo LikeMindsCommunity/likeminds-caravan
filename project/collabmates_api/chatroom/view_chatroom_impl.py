@@ -285,11 +285,20 @@ class FetchParticipantsOfSecretChatroom(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         chatroom_id = request.GET.get('chatroom_id')
-        page = NumberUtilities.get_integer_from_string(request.GET.get('page'), 1)
-        page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size'), 10)
+        page = RequestUtilities.get_page_number(request, default=1)
+        page_size = RequestUtilities.get_page_size(request, default=10)
         participant_name = request.GET.get('participant_name')
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
 
-        chatroom_manager = ChatroomImpl(member_id, chatroom_id)
+        chatroom_manager = ChatroomImpl(member_id, chatroom_id, request_platform=platform_code,
+                                        version_code=version_code)
+
+        pagination_version_check = VersionUtilities.check_version(platform_code, version_code,
+                                                                  VersionUtilities.participants_meta_pagination)
+
+        if not pagination_version_check:
+            page, page_size = None, None
 
         try:
             chatroom_data = chatroom_manager.fetch_participants_of_secret_chatroom(participant_name, page, page_size)
@@ -998,11 +1007,20 @@ class FetchChatroomParticipantsView(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         chatroom_id = request.GET.get('chatroom_id')
-        page = NumberUtilities.get_integer_from_string(request.GET.get('page'), 1)
-        page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size'), 10)
+        page = RequestUtilities.get_page_number(request, default=1)
+        page_size = RequestUtilities.get_page_size(request, default=10)
         participant_name = request.GET.get('participant_name')
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
 
-        chatroom_manager = ChatroomImpl(member_id, chatroom_id)
+        chatroom_manager = ChatroomImpl(member_id, chatroom_id, request_platform=platform_code,
+                                        version_code=version_code)
+
+        pagination_version_check = VersionUtilities.check_version(platform_code, version_code,
+                                                                  VersionUtilities.participants_meta_pagination)
+
+        if not pagination_version_check:
+            page, page_size = None, None
 
         try:
             chatroom_data = chatroom_manager.fetch_chatroom_participants(participant_name, page, page_size)
