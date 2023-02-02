@@ -8668,6 +8668,8 @@ def members_state(request, req_dict=None):
         response = get_error_context(False, "Invalid API key/community ID")
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
+    community_id = community_instance.id
+
     query_set = ModelUtilities.get_model_filter(Members,
                                                 {"member_id": member_id,
                                                  "community_id": community_instance})
