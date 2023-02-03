@@ -197,7 +197,7 @@ class GetTaggingList(APIView):
         chatroom_id = request.GET.get('chatroom_id')
         search_name = request.GET.get('search_name', None)
         page = RequestUtilities.get_page_number(request, default=1)
-        page_size = RequestUtilities.get_page_size(request, default=10)
+        page_size = RequestUtilities.get_page_size(request, default=50)
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
 
