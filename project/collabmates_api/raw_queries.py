@@ -3220,7 +3220,7 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, l
         sql = """
                 SELECT     id,
                            NAME,
-                           image_link,
+                           image_link AS image_url,
                            is_guest,
                            user_unique_id
                 FROM       togther_userinfo
@@ -3287,7 +3287,11 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
         sql = """
                 SELECT     togther_userinfo.id,
                            togther_userinfo.NAME,
-                           togther_userinfo.image_link,
+                           (CASE
+                                WHEN togther_members.image_url IS NOT NULL THEN togther_members.image_url
+                                WHEN togther_userinfo.image_link IS NOT NULL THEN togther_userinfo.image_link
+                                ELSE ''
+                            END) AS image_url,
                            togther_userinfo.is_guest,
                            togther_userinfo.user_unique_id
                 FROM       togther_userinfo
