@@ -3218,39 +3218,92 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, l
                 get_tuple_from_array(filter_user_ids))
 
         sql = """
-                SELECT ans_ord.user_id
-                FROM   togther_userinfo AS usrinfo
-                       INNER JOIN (SELECT
-                                                          togther_collabcardstate.user_id,
-                                          Coalesce(Max(togther_card_answers.created_at), 0) AS
-                                                          created_at
-                                   FROM   togther_collabcardstate
-                                          LEFT JOIN togther_card_answers
-                                                 ON togther_card_answers.user_id =
-                                                    togther_collabcardstate.user_id
-                                   WHERE  togther_collabcardstate.card_id = {}
-                                          AND togther_collabcardstate.follow_status = {}
-                                          AND togther_collabcardstate.remove_id IS NULL
-                                          AND togther_collabcardstate.is_tagged = false {}
-                                   GROUP  BY togther_card_answers.user_id,
-                                             togther_collabcardstate.user_id
-                                   ORDER  BY Max(CASE
-                                                   WHEN togther_card_answers.created_at IS NULL
-                                                 THEN 0
-                                                   ELSE togther_card_answers.created_at
-                                                 end) DESC) AS ans_ord
-                               ON ans_ord.user_id = usrinfo.user_id_id
-                WHERE  usrinfo.is_guest = {}
-                GROUP  BY ans_ord.user_id
-                ORDER  BY Max(ans_ord.created_at) DESC
-                LIMIT  {} offset {};
+                SELECT     id,
+                           NAME,
+                           image_link,
+                           is_guest,
+                           user_unique_id
+                FROM       togther_userinfo
+                INNER JOIN
+                           (
+                                      SELECT     ans_ord.user_id
+                                      FROM       togther_userinfo AS usrinfo
+                                      INNER JOIN
+                                                 (
+                                                           SELECT    togther_collabcardstate.user_id,
+                                                                     COALESCE(Max(togther_card_answers.created_at), 0) AS created_at
+                                                           FROM      togther_collabcardstate
+                                                           LEFT JOIN togther_card_answers
+                                                           ON        togther_card_answers.user_id = togther_collabcardstate.user_id
+                                                           WHERE     togther_collabcardstate.card_id = {}
+                                                           AND       togther_collabcardstate.follow_status = {}
+                                                           AND       togther_collabcardstate.remove_id IS NULL
+                                                           AND       togther_collabcardstate.is_tagged = false {}
+                                                           GROUP BY  togther_card_answers.user_id,
+                                                                     togther_collabcardstate.user_id
+                                                           ORDER BY  max(
+                                                                     CASE
+                                                                               WHEN togther_card_answers.created_at IS NULL THEN 0
+                                                                               ELSE togther_card_answers.created_at
+                                                                     END) DESC) AS ans_ord
+                                      ON         ans_ord.user_id = usrinfo.user_id_id
+                                      WHERE      usrinfo.is_guest = {}
+                                      GROUP BY   ans_ord.user_id
+                                      ORDER BY   max(ans_ord.created_at) DESC limit {} offset {}) AS ordered_data
+                ON         ordered_data.user_id=togther_userinfo.user_id_id;
         """.format(chatroom_id, follow_status, filter_user_query, is_guest, limit, offset)
 
         curr.execute(sql)
         user_ids_list = curr.fetchall()
+        columns = [col[0] for col in curr.description]
         curr.close()
 
-        return [data[0] for data in user_ids_list]
+        return [dict(zip(columns, row)) for row in user_ids_list]
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id, page=1, limit=50, is_guest=False,
+                                                       member_name_search: str = None, filter_user_ids: list = None):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        filter_user_query = ""
+
+        if filter_user_ids is not None:
+            filter_user_query = """ 
+                INNER JOIN togther_collabcardstate 
+                ON (togther_collabcardstate.user_id = togther_userinfo.user_id_id AND
+                    togther_collabcardstate.user_id IN {} AND
+                    togther_collabcardstate.follow_status = true AND
+                    togther_collabcardstate.card_id = {})
+            """.format(get_tuple_from_array(filter_user_ids), chatroom_id)
+
+        sql = """
+                SELECT     togther_userinfo.id,
+                           togther_userinfo.NAME,
+                           togther_userinfo.image_link,
+                           togther_userinfo.is_guest,
+                           togther_userinfo.user_unique_id
+                FROM       togther_userinfo
+                INNER JOIN togther_members
+                ON         togther_members.member_id_id=togther_userinfo.user_id_id {}
+                AND        togther_members.community_id_id={}
+                AND        togther_userinfo.is_guest={}
+                WHERE      togther_userinfo.NAME ilike '{}%' limit {} offset {};
+        """.format(filter_user_query, community_id, is_guest, member_name_search, limit, offset)
+
+        curr.execute(sql)
+        user_ids_list = curr.fetchall()
+        columns = [col[0] for col in curr.description]
+        curr.close()
+
+        return [dict(zip(columns, row)) for row in user_ids_list]
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
