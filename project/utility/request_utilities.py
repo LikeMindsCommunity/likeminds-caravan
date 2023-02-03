@@ -131,7 +131,7 @@ class RequestUtilities:
 
     @staticmethod
     def get_page_number(request: object, key: str = "page", default: int = 1) -> int:
-        page = NumberUtilities.get_integer_from_string(request.query_params.get(key, default))
+        page = NumberUtilities.get_integer_from_string(request.query_params.get(key, default), return_default=default)
 
         if page <= 0:
             page = default
@@ -140,7 +140,8 @@ class RequestUtilities:
 
     @staticmethod
     def get_page_size(request: object, key: str = "page_size", default: int = 100) -> int:
-        page_size = NumberUtilities.get_integer_from_string(request.query_params.get(key, default))
+        page_size = NumberUtilities.get_integer_from_string(request.query_params.get(key, default),
+                                                            return_default=default)
 
         if page_size <= 0:
             page_size = default
