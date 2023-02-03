@@ -195,6 +195,9 @@ class GetTaggingList(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         chatroom_id = request.GET.get('chatroom_id')
+        search_name = request.GET.get('search_name', None)
+        page = RequestUtilities.get_page_number(request, default=1)
+        page_size = RequestUtilities.get_page_size(request, default=10)
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
 
@@ -202,7 +205,7 @@ class GetTaggingList(APIView):
 
         try:
             if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.group_tags):
-                chatroom_data = chatroom_manager.get_tagging_list()
+                chatroom_data = chatroom_manager.get_tagging_list(search_name, page=page, page_size=page_size)
 
             else:
                 """
