@@ -3285,7 +3285,7 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
             """.format(get_tuple_from_array(filter_user_ids), chatroom_id)
 
         sql = """
-                SELECT     togther_userinfo.id,
+                SELECT     togther_userinfo.user_id_id AS id,
                            togther_userinfo.NAME,
                            (CASE
                                 WHEN togther_members.image_url IS NOT NULL THEN togther_members.image_url
