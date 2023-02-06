@@ -37,7 +37,8 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
     get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right, \
     get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community, get_chatroom_participants_count,\
-    get_sorted_user_data_on_basis_of_activity_in_chatroom, get_members_based_on_user_list_query
+    get_sorted_user_data_on_basis_of_activity_in_chatroom, get_members_based_on_user_list_query, \
+    get_community_members_data_on_basis_of_name_search
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, ScheduledChatroomFollowSerializer
@@ -592,28 +593,25 @@ class ChatroomImpl(ChatroomManager):
         return tag_list
 
     @staticmethod
-    def compute_tagging_list_of_chatroom_participants(chatroom_instance):
+    def compute_tagging_list_of_chatroom_participants(chatroom_instance, search_name: str = None, page: int = None,
+                                                      page_size: int = None):
 
-        tag_list = []
+        if not search_name:
+            tag_list = get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_instance.id,
+                                                                             page=page,
+                                                                             limit=page_size)
 
-        chatroom_participants_list = get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_instance.id)
-
-        userinfo_filter = ChatroomHelper.get_ordered_user_ids_list_based_on_filter(chatroom_participants_list)
-
-        for data in userinfo_filter:
-            temp = dict()
-            temp['id'] = data.user_id_id
-            temp['name'] = data.name
-            temp['image_url'] = data.image_link if data.image_link else ""
-            temp['is_guest'] = data.is_guest
-            temp['user_unique_id'] = data.user_unique_id
-
-            tag_list.append(temp)
+        else:
+            tag_list = get_community_members_data_on_basis_of_name_search(chatroom_instance.community_id,
+                                                                          chatroom_instance.id, page=page,
+                                                                          limit=page_size,
+                                                                          member_name_search=search_name)
 
         return tag_list
 
     @staticmethod
-    def compute_tagging_list_of_secret_chatroom_participants(chatroom_instance):
+    def compute_tagging_list_of_secret_chatroom_participants(chatroom_instance, search_name: str = None,
+                                                             page: int = None, page_size: int = None):
 
         tag_list = []
 
@@ -627,20 +625,14 @@ class ChatroomImpl(ChatroomManager):
         if not member_list:
             return tag_list
 
-        chatroom_participants_list = get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_instance.id,
-                                                                                           filter_user_ids=member_list)
+        if not search_name:
+            tag_list = get_sorted_user_data_on_basis_of_activity_in_chatroom(
+                chatroom_instance.id, page=page, limit=page_size, filter_user_ids=member_list)
 
-        userinfo_filter = ChatroomHelper.get_ordered_user_ids_list_based_on_filter(chatroom_participants_list)
-
-        for data in userinfo_filter:
-            temp = dict()
-            temp['id'] = data.user_id_id
-            temp['name'] = data.name
-            temp['image_url'] = data.image_link if data.image_link else ""
-            temp['is_guest'] = data.is_guest
-            temp['user_unique_id'] = data.user_unique_id
-
-            tag_list.append(temp)
+        else:
+            tag_list = get_community_members_data_on_basis_of_name_search(
+                chatroom_instance.community_id, chatroom_instance.id, page=page, limit=page_size,
+                member_name_search=search_name, filter_user_ids=member_list)
 
         return tag_list
 
@@ -1415,7 +1407,7 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def get_tagging_list(self) -> dict:
+    def get_tagging_list(self, search_name: str = None, page: int = None, page_size: int = None) -> dict:
 
         validated_req_body = ChatroomViewHelper.validate_get_tagging_list_request(self.get_member_id(),
                                                                                   self.get_chatroom_id())
@@ -1430,7 +1422,10 @@ class ChatroomImpl(ChatroomManager):
         group_tags = self._add_group_tags(community_instance, chatroom_instance)
 
         if chatroom_instance.is_secret:
-            participant_list = self.compute_tagging_list_of_secret_chatroom_participants(chatroom_instance)
+            participant_list = self.compute_tagging_list_of_secret_chatroom_participants(chatroom_instance,
+                                                                                         search_name,
+                                                                                         page=page,
+                                                                                         page_size=page_size)
 
             return {
                 'success': True,
@@ -1439,11 +1434,14 @@ class ChatroomImpl(ChatroomManager):
                 'group_tags': group_tags
             }
 
-        participant_list = self.compute_tagging_list_of_chatroom_participants(chatroom_instance)
+        participant_list = self.compute_tagging_list_of_chatroom_participants(chatroom_instance,
+                                                                              search_name,
+                                                                              page=page,
+                                                                              page_size=page_size)
 
         return {
             'success': True,
-            'chatroom_participants': participant_list,
+            'chatroom_participants': [],
             'community_members': participant_list,
             'group_tags': group_tags
         }
