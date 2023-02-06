@@ -3218,7 +3218,7 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, l
                 get_tuple_from_array(filter_user_ids))
 
         sql = """
-                SELECT     id,
+                SELECT     user_id_id AS id,
                            NAME,
                            image_link AS image_url,
                            is_guest,
