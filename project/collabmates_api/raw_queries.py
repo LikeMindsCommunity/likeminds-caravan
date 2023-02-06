@@ -3299,7 +3299,8 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
                 ON         togther_members.member_id_id=togther_userinfo.user_id_id {}
                 AND        togther_members.community_id_id={}
                 AND        togther_userinfo.is_guest={}
-                WHERE      togther_userinfo.NAME ilike '{}%' limit {} offset {};
+                WHERE      togther_userinfo.NAME ILIKE '{}%'
+                ORDER BY togther_userinfo.NAME ASC limit {} offset {};
         """.format(filter_user_query, community_id, is_guest, member_name_search, limit, offset)
 
         curr.execute(sql)
