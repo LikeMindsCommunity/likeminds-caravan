@@ -3218,7 +3218,7 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, l
                 get_tuple_from_array(filter_user_ids))
 
         sql = """
-                SELECT     id,
+                SELECT     user_id_id AS id,
                            NAME,
                            image_link AS image_url,
                            is_guest,
@@ -3285,7 +3285,7 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
             """.format(get_tuple_from_array(filter_user_ids), chatroom_id)
 
         sql = """
-                SELECT     togther_userinfo.id,
+                SELECT     togther_userinfo.user_id_id AS id,
                            togther_userinfo.NAME,
                            (CASE
                                 WHEN togther_members.image_url IS NOT NULL THEN togther_members.image_url
@@ -3299,7 +3299,8 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
                 ON         togther_members.member_id_id=togther_userinfo.user_id_id {}
                 AND        togther_members.community_id_id={}
                 AND        togther_userinfo.is_guest={}
-                WHERE      togther_userinfo.NAME ilike '{}%' limit {} offset {};
+                WHERE      togther_userinfo.NAME ILIKE '{}%'
+                ORDER BY togther_userinfo.NAME ASC limit {} offset {};
         """.format(filter_user_query, community_id, is_guest, member_name_search, limit, offset)
 
         curr.execute(sql)
