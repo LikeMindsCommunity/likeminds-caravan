@@ -649,7 +649,7 @@ class ChatroomImpl(ChatroomManager):
 
     @staticmethod
     def compute_tagging_list_for_secret_participants(chatroom_instance, community_instance, page=0, page_size=0,
-                                                     member_name_search_string=""):
+                                                     member_name_search_string="", order_by_name=False):
 
         try:
             member_list = json.loads(chatroom_instance.secret_chatroom_participants)
@@ -660,7 +660,7 @@ class ChatroomImpl(ChatroomManager):
 
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(
             member_list, community_instance, page=page, page_size=page_size,
-            member_name_search_string=member_name_search_string)
+            member_name_search_string=member_name_search_string, order_by_name=order_by_name)
         tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 
         return tagging_list
@@ -1697,9 +1697,18 @@ class ChatroomImpl(ChatroomManager):
                             'user': user_instance
                         })
 
+            pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
+                                                                      self.get_version_code(),
+                                                                      VersionUtilities.participants_meta_pagination)
+
+            order_by_name = False
+
+            if pagination_version_check:
+                order_by_name = True
+
             participant_list = self.compute_tagging_list_for_secret_participants(
                 card_instance, community_instance, page=page, page_size=page_size,
-                member_name_search_string=participant_name)
+                member_name_search_string=participant_name, order_by_name=order_by_name)
             participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
             response_dict = {
@@ -1707,10 +1716,6 @@ class ChatroomImpl(ChatroomManager):
                 'participants': participant_list,
                 'can_edit_participant': can_edit_participant
             }
-
-            pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
-                                                                      self.get_version_code(),
-                                                                      VersionUtilities.participants_meta_pagination)
 
             if pagination_version_check:
                 participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
@@ -2809,9 +2814,19 @@ class ChatroomImpl(ChatroomManager):
         total_participants_list = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',
                                                                                                             flat=True)
 
+        pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
+                                                                  self.get_version_code(),
+                                                                  VersionUtilities.participants_meta_pagination)
+
+        order_by_name = False
+
+        if pagination_version_check:
+            order_by_name = True
+
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list, community_instance,
                                                                            page=page, page_size=page_size,
-                                                                           member_name_search_string=participant_name)
+                                                                           member_name_search_string=participant_name,
+                                                                           order_by_name=order_by_name)
         participant_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 
         response_dict = {
@@ -2819,10 +2834,6 @@ class ChatroomImpl(ChatroomManager):
             'participants': participant_list,
             'can_edit_participant': can_edit_participant
         }
-
-        pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
-                                                                  self.get_version_code(),
-                                                                  VersionUtilities.participants_meta_pagination)
 
         if pagination_version_check:
             participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
