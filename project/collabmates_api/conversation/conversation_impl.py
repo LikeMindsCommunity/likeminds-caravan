@@ -49,6 +49,8 @@ from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             conversationPollMembers, Userinfo, conversationEngage, answerAttachment,
                             conversationEventMembers, conversationEventNudge, UserEmailsSendStatus, userDevices,
                             userMemberRights)
+from collabmates_api.sdk.models import SdkClient
+
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
@@ -1281,7 +1283,9 @@ class ConversationImpl(ConversationManager):
                                     {'card': chatroom_instance},
                                     {'updated_at': TimeUtilities.current_time_in_sec()})
 
-        send_notification_on_chatroom_topic_update.delay(chatroom_instance.id, user_instance.id)
+        #If Chatroom is part of an SDK community, do not send notification
+        if not SdkClient.is_sdk_community(chatroom_instance.community_id):
+            send_notification_on_chatroom_topic_update.delay(chatroom_instance.id, user_instance.id)
 
         return {'success': True}
 
