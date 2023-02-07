@@ -1191,7 +1191,7 @@ class ConversationImpl(ConversationManager):
         member_list = []
 
         # Check if poll is not anonymous, then only send members list, else send empty list
-        if conversation_instance.is_anonymous is False:
+        if not conversation_instance.is_anonymous:
             user_list = self._fetch_member_list_for_poll_conversation(conversation_instance, poll_instance,page, page_size)                                           
             member_list = self._create_member_instances_from_user_list(user_list, community_instance)
 
