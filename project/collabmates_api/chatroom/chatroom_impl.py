@@ -593,25 +593,27 @@ class ChatroomImpl(ChatroomManager):
         return tag_list
 
     @staticmethod
-    def compute_tagging_list_of_chatroom_participants(chatroom_instance, search_name: str = None, page: int = None,
-                                                      page_size: int = None):
+    def compute_tagging_list_of_chatroom_participants(chatroom_instance, search_name: str = None, user_id: int = None,
+                                                      page: int = None, page_size: int = None):
 
         if not search_name:
             tag_list = get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_instance.id,
+                                                                             user_id=user_id,
                                                                              page=page,
                                                                              limit=page_size)
 
         else:
             tag_list = get_community_members_data_on_basis_of_name_search(chatroom_instance.community_id,
-                                                                          chatroom_instance.id, page=page,
-                                                                          limit=page_size,
+                                                                          chatroom_instance.id, user_id=user_id,
+                                                                          page=page, limit=page_size,
                                                                           member_name_search=search_name)
 
         return tag_list
 
     @staticmethod
     def compute_tagging_list_of_secret_chatroom_participants(chatroom_instance, search_name: str = None,
-                                                             page: int = None, page_size: int = None):
+                                                             user_id: int = None, page: int = None,
+                                                             page_size: int = None):
 
         tag_list = []
 
@@ -627,11 +629,11 @@ class ChatroomImpl(ChatroomManager):
 
         if not search_name:
             tag_list = get_sorted_user_data_on_basis_of_activity_in_chatroom(
-                chatroom_instance.id, page=page, limit=page_size, filter_user_ids=member_list)
+                chatroom_instance.id, user_id=user_id, page=page, limit=page_size, filter_user_ids=member_list)
 
         else:
             tag_list = get_community_members_data_on_basis_of_name_search(
-                chatroom_instance.community_id, chatroom_instance.id, page=page, limit=page_size,
+                chatroom_instance.community_id, chatroom_instance.id, user_id=user_id, page=page, limit=page_size,
                 member_name_search=search_name, filter_user_ids=member_list)
 
         return tag_list
@@ -1417,6 +1419,7 @@ class ChatroomImpl(ChatroomManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_instance = validated_req_body.get('card_instance')
+        user_instance = validated_req_body.get('user_instance')
         community_instance = chatroom_instance.community
 
         group_tags = self._add_group_tags(community_instance, chatroom_instance)
@@ -1424,6 +1427,7 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_instance.is_secret:
             participant_list = self.compute_tagging_list_of_secret_chatroom_participants(chatroom_instance,
                                                                                          search_name,
+                                                                                         user_id=user_instance.id,
                                                                                          page=page,
                                                                                          page_size=page_size)
 
@@ -1436,6 +1440,7 @@ class ChatroomImpl(ChatroomManager):
 
         participant_list = self.compute_tagging_list_of_chatroom_participants(chatroom_instance,
                                                                               search_name,
+                                                                              user_id=user_instance.id,
                                                                               page=page,
                                                                               page_size=page_size)
 
