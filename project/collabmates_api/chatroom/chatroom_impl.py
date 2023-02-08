@@ -1422,7 +1422,10 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req_body.get('user_instance')
         community_instance = chatroom_instance.community
 
-        group_tags = self._add_group_tags(community_instance, chatroom_instance)
+        group_tags = []
+
+        if page and page < 2:
+            group_tags = self._add_group_tags(community_instance, chatroom_instance)
 
         if chatroom_instance.is_secret:
             participant_list = self.compute_tagging_list_of_secret_chatroom_participants(chatroom_instance,
