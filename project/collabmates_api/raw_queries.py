@@ -3202,8 +3202,8 @@ def get_chatroom_participants_count(chatroom_id, community_id):
         return 0
 
 
-def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, limit=50, follow_status=True,
-                                                          is_guest=False, filter_user_ids=None):
+def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=None, page=1, limit=50,
+                                                          follow_status=True, is_guest=False, filter_user_ids=None):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -3247,11 +3247,12 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, l
                                                                                ELSE togther_card_answers.created_at
                                                                      END) DESC) AS ans_ord
                                       ON         ans_ord.user_id = usrinfo.user_id_id
-                                      WHERE      usrinfo.is_guest = {}
+                                      WHERE      (usrinfo.is_guest = {}
+                                                  AND usrinfo.user_id_id != {})
                                       GROUP BY   ans_ord.user_id
                                       ORDER BY   max(ans_ord.created_at) DESC limit {} offset {}) AS ordered_data
                 ON         ordered_data.user_id=togther_userinfo.user_id_id;
-        """.format(chatroom_id, follow_status, filter_user_query, is_guest, limit, offset)
+        """.format(chatroom_id, follow_status, filter_user_query, is_guest, user_id, limit, offset)
 
         curr.execute(sql)
         user_ids_list = curr.fetchall()
@@ -3264,8 +3265,9 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, l
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id, page=1, limit=50, is_guest=False,
-                                                       member_name_search: str = None, filter_user_ids: list = None):
+def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id, user_id=None, page=1, limit=50,
+                                                       is_guest=False, member_name_search: str = None,
+                                                       filter_user_ids: list = None):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -3299,9 +3301,10 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
                 ON         togther_members.member_id_id=togther_userinfo.user_id_id {}
                 AND        togther_members.community_id_id={}
                 AND        togther_userinfo.is_guest={}
+                AND        togther_userinfo.user_id_id!={}
                 WHERE      togther_userinfo.NAME ILIKE '{}%'
                 ORDER BY togther_userinfo.NAME ASC limit {} offset {};
-        """.format(filter_user_query, community_id, is_guest, member_name_search, limit, offset)
+        """.format(filter_user_query, community_id, is_guest, user_id, member_name_search, limit, offset)
 
         curr.execute(sql)
         user_ids_list = curr.fetchall()
