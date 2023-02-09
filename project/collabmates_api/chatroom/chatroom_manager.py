@@ -188,7 +188,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         )
 
     @abc.abstractmethod
-    def fetch_chatroom(self, is_internal=False, api_type: int = 0) -> dict:
+    def fetch_chatroom(self, is_internal=False) -> dict:
         """
         fetching the chatroom from chatroom id
         """
@@ -237,7 +237,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_tagging_list(self) -> dict:
+    def get_tagging_list(self, search_name: str = None, page: int = None, page_size: int = None) -> dict:
         """return the tagging list of users in chatroom"""
 
         raise NotImplementedError

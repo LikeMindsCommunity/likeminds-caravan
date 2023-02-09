@@ -8,6 +8,15 @@ class VersionUtilities:
         IOS_SDK = 'ios-sdk'
         WEB_SDK = 'web-sdk'
 
+        @staticmethod
+        def convert_platform_code_to_sdk(platform_code):
+            if platform_code in [VersionUtilities.PlatformCode.IOS,
+                                 VersionUtilities.PlatformCode.ANDROID,
+                                 VersionUtilities.PlatformCode.WEB]:
+                platform_code = platform_code + '-sdk'
+
+            return platform_code
+
     beta_dummy_version: int = 999
 
     group_tags: dict = {
@@ -37,13 +46,22 @@ class VersionUtilities:
         PlatformCode.WEB_SDK: beta_dummy_version
     }
 
+    m2cm_v2: dict = {
+        PlatformCode.ANDROID: 1209,
+        PlatformCode.IOS: 1209,
+        PlatformCode.WEB: 1209,
+        PlatformCode.ANDROID_SDK: 1209,
+        PlatformCode.IOS_SDK: 1209,
+        PlatformCode.WEB_SDK: 16
+    }
+
     participants_meta_pagination: dict = {
-        PlatformCode.ANDROID: beta_dummy_version,
-        PlatformCode.IOS: beta_dummy_version,
-        PlatformCode.WEB: beta_dummy_version,
-        PlatformCode.ANDROID_SDK: beta_dummy_version,
-        PlatformCode.IOS_SDK: beta_dummy_version,
-        PlatformCode.WEB_SDK: beta_dummy_version
+        PlatformCode.ANDROID: 214,
+        PlatformCode.IOS: 373,
+        PlatformCode.WEB: 17,
+        PlatformCode.ANDROID_SDK: 210,
+        PlatformCode.IOS_SDK: 371,
+        PlatformCode.WEB_SDK: 17
     }
 
     @staticmethod
