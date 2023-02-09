@@ -1027,17 +1027,22 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_obj
 
-    def fetch_all_chatroom(self, page: int = 1, chatroom_type: int = -1) -> dict:
+    def fetch_all_chatroom(self, chatroom_filter_type: str, chatroom_excluded_type: str, page: int = 1) -> dict:
         validated_req = ChatroomViewHelper.validate_fetch_all_chatroom_request(self.get_member_id(),
-                                                                               api_key=self.get_api_key())
+                                                                               self.get_api_key(),
+                                                                               chatroom_filter_type,
+                                                                               chatroom_excluded_type)
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
+        chatroom_filter_type = validated_req.get('chatroom_filter_type')
+        chatroom_excluded_type = validated_req.get('chatroom_excluded_type')
 
-        card_ids = get_all_chatrooms_of_community(community_instance.id, chatroom_type, page)
+        card_ids = get_all_chatrooms_of_community(community_instance.id, chatroom_filter_type,
+                                                  chatroom_excluded_type, page)
         chatroom_list = ModelUtilities.get_model_filter(collabcardState,
                                                         {'card_id__in': card_ids,
                                                          'user': self.get_member_id(),
