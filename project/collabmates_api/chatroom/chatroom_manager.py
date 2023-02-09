@@ -195,7 +195,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_all_chatroom(self, page: int = 1, chatroom_type: int = -1) -> dict:
+    def fetch_all_chatroom(self, chatroom_filter_type: str, chatroom_excluded_type: str, page: int = 1, ) -> dict:
         """
         Fetch all chatrooms in community
         """

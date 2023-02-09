@@ -19,7 +19,7 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
-from utility.states import report_Tag_Types
+from utility.states import report_Tag_Types, member_states
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
@@ -285,6 +285,8 @@ def my_chatrooms_version_1(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
 
+    member_id = user_instance.id
+
     page = NumberUtilities.get_integer_from_string(request.GET.get('page', 1))
 
     if page <= 1:
@@ -540,6 +542,28 @@ def my_chatrooms_version_1(request):
             total_unseen_count['total'] = 0
 
         context['total_unseen_count'] = total_unseen_count['total']
+
+        member_engages = ModelUtilities.get_model_filter(Member_Engage, {"member_id_id": member_id,
+                                                                        "community_id_id": community_id})
+        if member_engages:
+            member_engage = member_engages[0]
+
+            from .member_community.member_community_impl import MemberCommunityHelper
+
+            community_chatroom_count_dict = MemberCommunityHelper.fetch_chatroom_count_for_home(
+                [community_id], user_instance.id, is_chatroom_revamp=True)
+
+            if community_chatroom_count_dict.get(member_engage.community_id_id):
+                context['total_chatroom_count'] = community_chatroom_count_dict.get(member_engage.community_id_id)
+            else:
+                context['total_chatroom_count'] = 0
+
+            if member_engage.member_state == member_states.ADMIN or \
+                    member_engage.member_state == member_states.MEMBER or \
+                    member_engage.member_state == member_states.PROFILE_UNAVAILABLE:
+                context['unseen_chatroom_count'] = member_engage.last_unseen_count
+            else:
+                context['unseen_chatroom_count'] = 0
 
     return JsonResponse(context)
 
