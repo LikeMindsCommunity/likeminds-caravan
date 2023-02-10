@@ -2,11 +2,14 @@ from rest_framework import status as status_codes
 
 from .sync_manager import SyncManager
 from .sync_helper import SyncHelper
-from utility.states import (card_types)
+from utility.states import (card_types, SyncTypes)
+from .constants import (CONVERSATIONS_META_KEY_VALUE)
 from utility.response_utilities import ResponseUtilities
 
 from collabmates_api.raw_queries import (get_home_feed_chatrooms_against_user, get_chatroom_conversations_data,
-                                         get_unseen_count_for_chatroom_ids)
+                                         get_unseen_count_for_chatroom_ids,
+                                         get_reactions_for_chatroom_or_conversations, get_attachments_data,
+                                         get_conversation_polls_data)
 
 
 class SyncImpl(SyncManager):
@@ -74,8 +77,40 @@ class SyncImpl(SyncManager):
 
         card_unseen_count_map = get_unseen_count_for_chatroom_ids(chatroom_ids_list, user_id=user_instance.id)
 
+        # Chatroom data
         chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, 'chatrooms_data',
                                                                   extra_data=card_unseen_count_map)
+
+        # Reactions data
+        reactions_data = get_reactions_for_chatroom_or_conversations(self.get_community_id(),
+                                                                     chatroom_ids=chatroom_ids_list)
+        reactions_data = SyncHelper.parse_sync_raw_query_response(reactions_data, 'reactions_meta')
+        chatrooms_data = SyncHelper.add_meta_info_to_sync_response(reactions_data, chatrooms_data, 'reactions_meta',
+                                                                   'chatroom_id')
+
+        # Card Attachments data
+        attachments_data = get_attachments_data(chatroom_ids=chatroom_ids_list)
+        attachments_data = SyncHelper.parse_sync_raw_query_response(attachments_data, 'card_attachments_meta')
+        chatrooms_data = SyncHelper.add_meta_info_to_sync_response(attachments_data, chatrooms_data,
+                                                                   'card_attachments_meta', 'collabcard_id')
+
+        # Conversation Attachments, Polls data
+        if all([chatrooms_data.get(CONVERSATIONS_META_KEY_VALUE),
+                isinstance(chatrooms_data.get(CONVERSATIONS_META_KEY_VALUE), dict)]):
+            conversation_ids_list = list(chatrooms_data.get(CONVERSATIONS_META_KEY_VALUE).keys())
+
+            attachments_data = get_attachments_data(attachment_type=SyncTypes.CONVERSATION,
+                                                    conversation_ids=conversation_ids_list)
+            attachments_data = SyncHelper.parse_sync_raw_query_response(attachments_data, 'conv_attachments_meta')
+            chatrooms_data = SyncHelper.add_meta_info_to_sync_response(attachments_data, chatrooms_data,
+                                                                       'conv_attachments_meta', 'answer_id')
+
+            polls_data = get_conversation_polls_data(self.get_community_id(),
+                                                     conversation_ids=conversation_ids_list,
+                                                     user_id=user_instance.id)
+            polls_data = SyncHelper.parse_sync_raw_query_response(polls_data, 'conv_polls_meta')
+            chatrooms_data = SyncHelper.add_meta_info_to_sync_response(polls_data, chatrooms_data,
+                                                                       'conv_polls_meta', 'conversation_id')
 
         return {**{'success': True}, **chatrooms_data}
 
@@ -93,12 +128,42 @@ class SyncImpl(SyncManager):
             return ResponseUtilities.get_impl_error_context(validated_request_body.get('error_message'),
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
+        user_instance = validated_request_body.get('user_instance')
         chatroom_instance = validated_request_body.get('chatroom_instance')
         community_instance = validated_request_body.get('community_instance')
 
-        conversations_data = get_chatroom_conversations_data(community_instance.id, chatroom_instance.id, min_timestamp,
-                                                             max_timestamp, page=page, limit=page_size)
+        conversations_data, conversation_ids_list = get_chatroom_conversations_data(community_instance.id,
+                                                                                    chatroom_instance.id,
+                                                                                    min_timestamp,
+                                                                                    max_timestamp,
+                                                                                    page=page, limit=page_size)
 
+        # Conversation data
         conversations_data = SyncHelper.parse_sync_raw_query_response(conversations_data, 'conversations_data')
+
+        # Reactions data
+        reactions_data = get_reactions_for_chatroom_or_conversations(self.get_community_id(),
+                                                                     reaction_type=SyncTypes.CONVERSATION,
+                                                                     conversation_ids=conversation_ids_list)
+        reactions_data = SyncHelper.parse_sync_raw_query_response(reactions_data, 'reactions_meta')
+        conversations_data = SyncHelper.add_meta_info_to_sync_response(reactions_data,
+                                                                       conversations_data,
+                                                                       'reactions_meta',
+                                                                       'conversation_id')
+
+        # Conversation Attachments data
+        attachments_data = get_attachments_data(attachment_type=SyncTypes.CONVERSATION,
+                                                conversation_ids=conversation_ids_list)
+        attachments_data = SyncHelper.parse_sync_raw_query_response(attachments_data, 'conv_attachments_meta')
+        conversations_data = SyncHelper.add_meta_info_to_sync_response(attachments_data, conversations_data,
+                                                                       'conv_attachments_meta', 'answer_id')
+
+        # Polls data
+        polls_data = get_conversation_polls_data(self.get_community_id(),
+                                                 conversation_ids=conversation_ids_list,
+                                                 user_id=user_instance.id)
+        polls_data = SyncHelper.parse_sync_raw_query_response(polls_data, 'conv_polls_meta')
+        conversations_data = SyncHelper.add_meta_info_to_sync_response(polls_data, conversations_data,
+                                                                       'conv_polls_meta', 'conversation_id')
 
         return {**{'success': True}, **conversations_data}

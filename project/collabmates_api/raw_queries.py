@@ -3,7 +3,7 @@ from celery import shared_task
 import time
 import logging
 import psycopg2
-from utility.states import card_types, conversation_states
+from utility.states import (card_types, conversation_states, SyncTypes)
 from utility.utils import is_version_code_supported_for_intro_room
 from .static_text import (MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP)
 from collabmates_api.static_files import (REMOVED_USER_URL)
@@ -3477,7 +3477,7 @@ def get_chatroom_query_meta_for_sync_revamp(key_name_prefix: str = None):
                     'deleted_by_user_id', 'attachment_count', 'attachments_uploaded', 'is_secret',
                     'secret_chatroom_participants', 'has_reactions', 'device_id', 'topic_id', 'auto_follow_done',
                     'is_edited', 'is_paid', 'access', 'is_private', 'chatroom_with_user_id', 'member_can_message',
-                    'online_link_type', 'is_private_member', 'chatroom_image_url']
+                    'online_link_type', 'is_private_member', 'chatroom_image_url', 'created_at']
 
     meta_query = create_query_with_prefix(query_fields, 'togther_collabcard', 'chatroom', key_name_prefix)
 
@@ -3540,6 +3540,53 @@ def get_members_query_meta_for_sync_revamp(key_name_prefix: str = None):
 def get_users_query_meta_for_sync_revamp(key_name_prefix: str = None):
     query_fields = ['user_id_id', 'name', 'image_link', 'user_unique_id', 'is_guest']
     meta_query = create_query_with_prefix(query_fields, 'togther_userinfo', 'user', key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_reactions_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['id', 'reaction', 'chatroom_id', 'conversation_id', 'user_id']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_MessageReactions', 'message_reactions',
+                                          key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_card_attachments_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['id', 'attachment', 'type', 'collabcard_id', 'file_url', 'index', 'dimensions', 'height', 'width',
+                    'thumbnail_url', 'meta', 'name']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_Card_Attachment', 'card_attachment',
+                                          key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_conversation_attachments_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['id', 'type', 'answer_id', 'file_url', 'index', 'dimensions', 'height', 'width',
+                    'thumbnail_url', 'meta', 'name', 'created_at', 'location_lat', 'location_long', 'location_name']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_answerAttachment', 'conv_attachment',
+                                          key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_conversation_polls_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['id', 'text', 'created_at', 'updated_at', 'conversation_id', 'user_id']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_conversationPolls', 'conv_polls',
+                                          key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_conversation_poll_members_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['id', 'poll_id', 'created_at', 'conversation_id', 'user_id']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_conversationPollMembers', 'conv_poll_members',
+                                          key_name_prefix)
 
     return ",".join(meta_query)
 
@@ -3800,10 +3847,12 @@ def get_chatroom_conversations_data(community_id, chatroom_id, min_timestamp: in
         curr = conn.cursor()
 
         curr.execute(sql)
-        chatroom_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        conversation_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
 
-        return chatroom_data
+        conversation_ids_list = [data.get('id') for data in conversation_data]
+
+        return conversation_data, conversation_ids_list
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
@@ -3846,6 +3895,165 @@ def get_unseen_count_for_chatroom_ids(chatroom_ids_list: list, user_id: int):
         curr.close()
 
         return {data[0]: {'unseen_count': data[1]} for data in chatroom_data}
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_reactions_for_chatroom_or_conversations(community_id, reaction_type: int = SyncTypes.CHATROOM,
+                                                chatroom_ids: list = None, conversation_ids: list = None,
+                                                key_name_prefix: str = None):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        reactions_data = []
+
+        if reaction_type == SyncTypes.CHATROOM:
+
+            if (not chatroom_ids) or (not isinstance(chatroom_ids, list)):
+                return reactions_data
+
+            chatroom_ids_query = get_tuple_from_array(chatroom_ids)
+            query_string = "WHERE chatroom_id IN {} AND conversation_id IS NULL".format(chatroom_ids_query)
+
+        elif reaction_type == SyncTypes.CONVERSATION:
+
+            if (not conversation_ids) or (not isinstance(conversation_ids, list)):
+                return reactions_data
+
+            conversation_ids_query = get_tuple_from_array(conversation_ids)
+            query_string = "WHERE conversation_id IN {}".format(conversation_ids_query)
+
+        else:
+            return reactions_data
+
+        response_query = ",".join([get_reactions_query_meta_for_sync_revamp(key_name_prefix),
+                                   get_users_query_meta_for_sync_revamp("reactor"),
+                                   get_members_query_meta_for_sync_revamp("reactor")])
+
+        sql = """
+                SELECT {} FROM togther_messagereactions
+                LEFT JOIN togther_userinfo ON (
+                  togther_userinfo.user_id_id = togther_messagereactions.user_id
+                ) 
+                LEFT JOIN togther_members ON (
+                  togther_messagereactions.user_id = togther_members.member_id_id 
+                  AND togther_members.community_id_id = {}
+                ) {};
+        """.format(response_query, community_id, query_string)
+
+        curr.execute(sql)
+        reactions_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return reactions_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_attachments_data(attachment_type: int = SyncTypes.CHATROOM,
+                         chatroom_ids: list = None, conversation_ids: list = None,
+                         key_name_prefix: str = None):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        attachments_data = []
+
+        if attachment_type == SyncTypes.CHATROOM:
+
+            if (not chatroom_ids) or (not isinstance(chatroom_ids, list)):
+                return attachments_data
+
+            chatroom_ids_query = get_tuple_from_array(chatroom_ids)
+            sql = "SELECT {} FROM togther_card_attachment WHERE collabcard_id IN {}".format(
+                get_card_attachments_query_meta_for_sync_revamp(key_name_prefix), chatroom_ids_query)
+
+        elif attachment_type == SyncTypes.CONVERSATION:
+
+            if (not conversation_ids) or (not isinstance(conversation_ids, list)):
+                return attachments_data
+
+            conversation_ids_query = get_tuple_from_array(conversation_ids)
+            sql = "SELECT {} FROM togther_answerattachment WHERE answer_id IN {}".format(
+                get_conversation_attachments_query_meta_for_sync_revamp(key_name_prefix), conversation_ids_query)
+
+        else:
+            return attachments_data
+
+        curr.execute(sql)
+        attachments_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return attachments_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_conversation_polls_data(community_id, conversation_ids: list, user_id: int, key_name_prefix: str = None):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        conversation_ids_query = get_tuple_from_array(conversation_ids)
+        poll_data_query = ",".join([get_conversation_polls_query_meta_for_sync_revamp(key_name_prefix),
+                                    get_conversation_poll_members_query_meta_for_sync_revamp("voter")])
+
+        poll_options_creator = ",".join([get_users_query_meta_for_sync_revamp("options_creator"),
+                                         get_members_query_meta_for_sync_revamp("options_creator")])
+
+        sql = """
+            SELECT final_polls_data.*, {}
+            FROM   (SELECT conversation_id, id, no_votes, Split_part(text_options, '___', 1) AS text,
+                    Cast(COALESCE(Split_part(poll_option_creator, '___', 1), '0') AS BIGINT) AS user_id
+                    FROM   (SELECT conversation_id, id, Sum(vote_count) AS no_votes,
+                                   CASE
+                                     WHEN Sum(is_selected) > 0 THEN 1
+                                     ELSE 0
+                                   END                              AS is_selected,
+                                   String_agg(Text(text), '___')    AS text_options,
+                                   String_agg(Text(user_id), '___') AS poll_option_creator
+                            FROM   (SELECT {},
+                                           CASE
+                                             WHEN togther_conversationpollmembers.user_id = {}
+                                           THEN 1
+                                             ELSE 0
+                                           END
+                                           AS
+                                           is_selected,
+                                           CASE
+                                             WHEN togther_conversationpollmembers.id IS NOT
+                                                  NULL
+                                           THEN 1
+                                             ELSE 0
+                                           END
+                                           AS
+                                           vote_count
+                                    FROM   togther_conversationpolls
+                                           LEFT JOIN togther_conversationpollmembers
+                                                  ON
+            togther_conversationpolls.conversation_id =
+                           togther_conversationpollmembers.conversation_id
+                           AND togther_conversationpolls.id =
+                           togther_conversationpollmembers.poll_id
+                           WHERE  togther_conversationpolls.conversation_id IN {}) AS polls_all_data
+                            GROUP  BY conversation_id,
+                                      id) AS polls_data) AS final_polls_data
+                   LEFT JOIN togther_userinfo
+                          ON ( togther_userinfo.user_id_id = final_polls_data.user_id )
+                   LEFT JOIN togther_members
+                          ON ( final_polls_data.user_id = togther_members.member_id_id
+                               AND togther_members.community_id_id = {});
+        """.format(poll_options_creator, poll_data_query, user_id, conversation_ids_query, community_id)
+
+        curr.execute(sql)
+        polls_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return polls_data
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)

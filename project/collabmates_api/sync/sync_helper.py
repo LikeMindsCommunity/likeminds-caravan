@@ -1,8 +1,10 @@
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
+from utility.json_utilities import JsonUtilities
 from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFIX, SYNC_RESPONSE_MAP_PRIMARY_KEYS,
                         USERS_META_KEY_VALUE, MEMBERS_META_KEY_VALUE, MAIN_PRIMARY_KEY_VALUE,
-                        CONVERSATIONS_META_KEY_VALUE, SYNC_DATA_KEYS, COMMUNITY_META_KEY_VALUE, CHATROOM_META_KEY_VALUE)
+                        CONVERSATIONS_META_KEY_VALUE, SYNC_DATA_KEYS, COMMUNITY_META_KEY_VALUE,
+                        CHATROOM_META_KEY_VALUE, PARSE_JSON_KEYS, MESSAGE_REACTIONS_META_KEY_VALUE)
 
 
 class SyncHelper:
@@ -80,7 +82,7 @@ class SyncHelper:
         }
 
     @staticmethod
-    def merge_meta_data(primary_data: dict, secondary_data: dict = None):
+    def merge_meta_data(primary_data: dict, secondary_data: dict = None, primary_key: str = MAIN_PRIMARY_KEY_VALUE):
         merged_meta_data = {}
 
         if not primary_data:
@@ -90,13 +92,13 @@ class SyncHelper:
 
             for key, data in primary_data.items():
 
-                if data.get(MAIN_PRIMARY_KEY_VALUE):
-                    merged_meta_data[data.get(MAIN_PRIMARY_KEY_VALUE)] = data
+                if data.get(primary_key):
+                    merged_meta_data[data.get(primary_key)] = data
 
         else:
 
-            if primary_data.get(MAIN_PRIMARY_KEY_VALUE):
-                merged_meta_data[primary_data.get(MAIN_PRIMARY_KEY_VALUE)] = primary_data
+            if primary_data.get(primary_key):
+                merged_meta_data[primary_data.get(primary_key)] = primary_data
 
         if not secondary_data:
             return merged_meta_data
@@ -107,20 +109,22 @@ class SyncHelper:
 
             for key, data in primary_data.items():
 
-                if data.get(MAIN_PRIMARY_KEY_VALUE):
-                    merged_meta_data[data.get(MAIN_PRIMARY_KEY_VALUE)].update(data)
+                if data.get(primary_key):
+                    merged_meta_data[data.get(primary_key)].update(data)
 
         else:
 
-            if primary_data.get(MAIN_PRIMARY_KEY_VALUE):
-                merged_meta_data[primary_data.get(MAIN_PRIMARY_KEY_VALUE)].update(primary_data)
+            if primary_data.get(primary_key):
+                merged_meta_data[primary_data.get(primary_key)].update(primary_data)
 
         return merged_meta_data
 
     @staticmethod
-    def combine_and_convert_dicts_to_sync_meta_data(data, resulting_dict, primary_key, secondary_key: str = None):
+    def combine_and_convert_dicts_to_sync_meta_data(data, resulting_dict, primary_key, secondary_key: str = None,
+                                                    resulting_primary_key: str = MAIN_PRIMARY_KEY_VALUE):
         filter_dict = {
-            'primary_data': data.get(primary_key, {})
+            'primary_data': data.get(primary_key, {}),
+            'primary_key': resulting_primary_key
         }
 
         if secondary_key:
@@ -155,6 +159,9 @@ class SyncHelper:
 
                 if key in list(SYNC_DATA_KEYS.keys()):
                     parsed_sync_data[SYNC_DATA_KEYS[key]] = sync_data.get(key)
+
+                if (key in PARSE_JSON_KEYS) and sync_data[key]:
+                    sync_data[key] = JsonUtilities.load_json_data(sync_data[key], default=[])
 
                 chatroom_data_keys = key.split(SYNC_KEY_SPLIT_VALUE)
 
@@ -223,6 +230,35 @@ class SyncHelper:
             sync_response = SyncHelper.combine_and_convert_dicts_to_sync_meta_data(
                 parsed_meta_data, sync_response, primary_key=CHATROOM_META_KEY_VALUE)
 
+            sync_response = SyncHelper.combine_and_convert_dicts_to_sync_meta_data(
+                parsed_meta_data, sync_response, primary_key=MESSAGE_REACTIONS_META_KEY_VALUE)
+
         sync_response[sync_data_key] = parsed_data
 
         return sync_response
+
+    @staticmethod
+    def add_meta_info_to_sync_response(meta_data, sync_data, main_data_key: str, merge_key: str):
+        main_data = meta_data.get(main_data_key)
+        main_data_dict = {}
+
+        if main_data and isinstance(main_data, list):
+
+            for data in main_data:
+
+                if not data.get(merge_key):
+                    continue
+
+                if main_data_dict.get(data.get(merge_key)):
+                    main_data_dict.get(data.get(merge_key)).append(data)
+
+                else:
+                    main_data_dict[data.get(merge_key)] = [data]
+
+        sync_data[main_data_key] = main_data_dict
+
+        # Add users meta data
+        sync_data = SyncHelper.combine_and_convert_dicts_to_sync_meta_data(meta_data, sync_data,
+                                                                           primary_key=USERS_META_KEY_VALUE)
+
+        return sync_data

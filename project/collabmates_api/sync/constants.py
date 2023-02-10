@@ -7,7 +7,9 @@ MEMBERS_META_KEY_VALUE = 'member_meta'
 CONVERSATIONS_META_KEY_VALUE = 'conversation_meta'
 COMMUNITY_META_KEY_VALUE = 'community_meta'
 CHATROOM_META_KEY_VALUE = 'chatroom_meta'
+MESSAGE_REACTIONS_META_KEY_VALUE = 'message_reactions_meta'
 MAIN_PRIMARY_KEY_VALUE = 'id'
 SYNC_DATA_KEYS = {
     'conversation___id___last': 'last_conversation_id'
 }
+PARSE_JSON_KEYS = ['secret_chatroom_participants']
