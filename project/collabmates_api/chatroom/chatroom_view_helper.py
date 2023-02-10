@@ -3,6 +3,7 @@ from togther.models import (ModelUtilities, Members, Collabcard, collabcardState
 from rest_framework import status as status_codes
 from utility.states import (member_states, card_types)
 from collabmates_api.sdk.models import (SdkClient)
+import json
 
 
 class ChatroomViewHelper:
@@ -17,7 +18,7 @@ class ChatroomViewHelper:
         return {}
 
     @staticmethod
-    def validate_fetch_all_chatroom_request(user_id, api_key):
+    def validate_fetch_all_chatroom_request(user_id, api_key, chatroom_filter_type, chatroom_excluded_type):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:
@@ -28,7 +29,22 @@ class ChatroomViewHelper:
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key!")
 
-        return {'user_instance': user_instance, 'community_instance': community_instance}
+        chatroom_type_filter = []
+        if isinstance(chatroom_filter_type, str):
+            try:
+                chatroom_type_filter = json.loads(chatroom_filter_type)
+            except:
+                return ResponseUtilities.get_inner_error_context("Invalid filter_type object")
+
+        chatroom_type_excluded = []
+        if isinstance(chatroom_excluded_type, str):
+            try:
+                chatroom_type_excluded = json.loads(chatroom_excluded_type)
+            except:
+                return ResponseUtilities.get_inner_error_context("Invalid excluded_type object")
+
+        return {'user_instance': user_instance, 'community_instance': community_instance,
+                'chatroom_filter_type': chatroom_type_filter, 'chatroom_excluded_type': chatroom_type_excluded}
 
     @staticmethod
     def validate_create_chatroom_request(user_id, api_key, req_body):

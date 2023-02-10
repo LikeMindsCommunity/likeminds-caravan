@@ -57,11 +57,14 @@ class FetchAllChatroomView(APIView):
         version_code = RequestUtilities.get_version_code_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
         page = RequestUtilities.get_page_number(request)
-        chatroom_type = NumberUtilities.get_integer_from_string(request.GET.get("type"), -1)
+        chatroom_filter_type = request.GET.get('filter_type')
+        chatroom_excluded_type = request.GET.get('excluded_type')
 
         chatroom_manager = ChatroomImpl(member_id, device_id=device_id, request_platform=request_platform,
                                         version_code=version_code, api_key=api_key)
-        chatroom_data = chatroom_manager.fetch_all_chatroom(page=page, chatroom_type=chatroom_type)
+        chatroom_data = chatroom_manager.fetch_all_chatroom(chatroom_filter_type=chatroom_filter_type,
+                                                            chatroom_excluded_type=chatroom_excluded_type,
+                                                            page=page)
 
         if chatroom_data.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
