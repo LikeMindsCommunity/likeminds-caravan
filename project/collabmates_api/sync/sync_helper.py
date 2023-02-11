@@ -147,6 +147,10 @@ class SyncHelper:
         parsed_data = list()
         sync_response = dict()
 
+        if not data:
+            sync_response[sync_data_key] = parsed_data
+            return sync_response
+
         for sync_data in data:
             parsed_sync_data = dict()
             parsed_meta_data = dict()
