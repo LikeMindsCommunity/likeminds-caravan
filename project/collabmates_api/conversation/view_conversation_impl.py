@@ -38,6 +38,7 @@ class FetchConversation(APIView):
         page = RequestUtilities.get_page_number(request)
         paginate_by = RequestUtilities.get_page_size(request, key='paginate_by', default=20)
         top_navigate = StringUtilities.get_boolean_from_string(query_params.get('top_navigate', False))
+        bottom_navigate = StringUtilities.get_boolean_from_string(query_params.get('bottom_navigate', False))
         include_conversation_id = StringUtilities.get_boolean_from_string(query_params.get('include', False))
         excluded_conversation_states = query_params.get('excluded_conversation_states')
 
@@ -46,7 +47,8 @@ class FetchConversation(APIView):
                                                 include_conversation_id=include_conversation_id,
                                                 version_code=version_code, platform_code=platform_code)
 
-        conversation_response = conversation_manager.fetch_conversation(top_navigate, excluded_conversation_states)
+        conversation_response = conversation_manager.fetch_conversation(top_navigate, excluded_conversation_states,
+                                                                        bottom_navigate)
 
         if conversation_response.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(

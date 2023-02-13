@@ -726,7 +726,8 @@ class ConversationImpl(ConversationManager):
 
         return conversation_queryset
 
-    def fetch_conversation(self, top_navigate=False, excluded_conversation_states: list = None):
+    def fetch_conversation(self, top_navigate=False, excluded_conversation_states: list = None,
+                           bottom_navigate: bool = False):
 
         if excluded_conversation_states:
             excluded_conversation_states = StringUtilities.get_list_from_string(excluded_conversation_states,
@@ -735,6 +736,12 @@ class ConversationImpl(ConversationManager):
         if top_navigate:
             conversations = self._fetch_conversation_queryset(excluded_conversation_states)
             conversations = conversations[:self.get_paginate_by()]
+            conversations = self._create_conversation_list(conversations)
+            return {'success': True, 'conversations': conversations}
+
+        if bottom_navigate:
+            conversations = self._fetch_conversation_queryset(excluded_conversation_states)
+            conversations = conversations[len(conversations) - self.get_paginate_by():]
             conversations = self._create_conversation_list(conversations)
             return {'success': True, 'conversations': conversations}
 
