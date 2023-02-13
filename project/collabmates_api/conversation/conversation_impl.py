@@ -737,7 +737,7 @@ class ConversationImpl(ConversationManager):
             return {'success': True, 'conversations': conversations}
 
         # Client is not sending scroll direction and only sending conversation id
-        if self.get_conversation_id() and self.get_scroll_direction() is None:
+        if self.get_conversation_id() and not self.get_scroll_direction():
             conversation = ModelUtilities.get_model_instance_or_none(card_answers, self.get_conversation_id())
             conversations = [conversation]
             conversations = self._create_conversation_list(conversations)
@@ -1281,7 +1281,7 @@ class ConversationImpl(ConversationManager):
                                     {'card': chatroom_instance},
                                     {'updated_at': TimeUtilities.current_time_in_sec()})
 
-        send_notification_on_chatroom_topic_update.delay(chatroom_instance.id, user_instance.id)
+        # send_notification_on_chatroom_topic_update.delay(chatroom_instance.id, user_instance.id)
 
         return {'success': True}
 
