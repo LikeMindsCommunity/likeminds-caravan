@@ -593,25 +593,27 @@ class ChatroomImpl(ChatroomManager):
         return tag_list
 
     @staticmethod
-    def compute_tagging_list_of_chatroom_participants(chatroom_instance, search_name: str = None, page: int = None,
-                                                      page_size: int = None):
+    def compute_tagging_list_of_chatroom_participants(chatroom_instance, search_name: str = None, user_id: int = None,
+                                                      page: int = None, page_size: int = None):
 
         if not search_name:
             tag_list = get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_instance.id,
+                                                                             user_id=user_id,
                                                                              page=page,
                                                                              limit=page_size)
 
         else:
             tag_list = get_community_members_data_on_basis_of_name_search(chatroom_instance.community_id,
-                                                                          chatroom_instance.id, page=page,
-                                                                          limit=page_size,
+                                                                          chatroom_instance.id, user_id=user_id,
+                                                                          page=page, limit=page_size,
                                                                           member_name_search=search_name)
 
         return tag_list
 
     @staticmethod
     def compute_tagging_list_of_secret_chatroom_participants(chatroom_instance, search_name: str = None,
-                                                             page: int = None, page_size: int = None):
+                                                             user_id: int = None, page: int = None,
+                                                             page_size: int = None):
 
         tag_list = []
 
@@ -627,11 +629,11 @@ class ChatroomImpl(ChatroomManager):
 
         if not search_name:
             tag_list = get_sorted_user_data_on_basis_of_activity_in_chatroom(
-                chatroom_instance.id, page=page, limit=page_size, filter_user_ids=member_list)
+                chatroom_instance.id, user_id=user_id, page=page, limit=page_size, filter_user_ids=member_list)
 
         else:
             tag_list = get_community_members_data_on_basis_of_name_search(
-                chatroom_instance.community_id, chatroom_instance.id, page=page, limit=page_size,
+                chatroom_instance.community_id, chatroom_instance.id, user_id=user_id, page=page, limit=page_size,
                 member_name_search=search_name, filter_user_ids=member_list)
 
         return tag_list
@@ -649,7 +651,7 @@ class ChatroomImpl(ChatroomManager):
 
     @staticmethod
     def compute_tagging_list_for_secret_participants(chatroom_instance, community_instance, page=0, page_size=0,
-                                                     member_name_search_string=""):
+                                                     member_name_search_string="", order_by_name=False):
 
         try:
             member_list = json.loads(chatroom_instance.secret_chatroom_participants)
@@ -660,7 +662,7 @@ class ChatroomImpl(ChatroomManager):
 
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(
             member_list, community_instance, page=page, page_size=page_size,
-            member_name_search_string=member_name_search_string)
+            member_name_search_string=member_name_search_string, order_by_name=order_by_name)
         tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 
         return tagging_list
@@ -1025,17 +1027,22 @@ class ChatroomImpl(ChatroomManager):
 
         return chatroom_obj
 
-    def fetch_all_chatroom(self, page: int = 1, chatroom_type: int = -1) -> dict:
+    def fetch_all_chatroom(self, chatroom_filter_type: str, chatroom_excluded_type: str, page: int = 1) -> dict:
         validated_req = ChatroomViewHelper.validate_fetch_all_chatroom_request(self.get_member_id(),
-                                                                               api_key=self.get_api_key())
+                                                                               self.get_api_key(),
+                                                                               chatroom_filter_type,
+                                                                               chatroom_excluded_type)
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
+        chatroom_filter_type = validated_req.get('chatroom_filter_type')
+        chatroom_excluded_type = validated_req.get('chatroom_excluded_type')
 
-        card_ids = get_all_chatrooms_of_community(community_instance.id, chatroom_type, page)
+        card_ids = get_all_chatrooms_of_community(community_instance.id, chatroom_filter_type,
+                                                  chatroom_excluded_type, page)
         chatroom_list = ModelUtilities.get_model_filter(collabcardState,
                                                         {'card_id__in': card_ids,
                                                          'user': self.get_member_id(),
@@ -1417,13 +1424,18 @@ class ChatroomImpl(ChatroomManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_instance = validated_req_body.get('card_instance')
+        user_instance = validated_req_body.get('user_instance')
         community_instance = chatroom_instance.community
 
-        group_tags = self._add_group_tags(community_instance, chatroom_instance)
+        group_tags = []
+
+        if page and page < 2:
+            group_tags = self._add_group_tags(community_instance, chatroom_instance)
 
         if chatroom_instance.is_secret:
             participant_list = self.compute_tagging_list_of_secret_chatroom_participants(chatroom_instance,
                                                                                          search_name,
+                                                                                         user_id=user_instance.id,
                                                                                          page=page,
                                                                                          page_size=page_size)
 
@@ -1436,6 +1448,7 @@ class ChatroomImpl(ChatroomManager):
 
         participant_list = self.compute_tagging_list_of_chatroom_participants(chatroom_instance,
                                                                               search_name,
+                                                                              user_id=user_instance.id,
                                                                               page=page,
                                                                               page_size=page_size)
 
@@ -1697,9 +1710,18 @@ class ChatroomImpl(ChatroomManager):
                             'user': user_instance
                         })
 
+            pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
+                                                                      self.get_version_code(),
+                                                                      VersionUtilities.participants_meta_pagination)
+
+            order_by_name = False
+
+            if pagination_version_check:
+                order_by_name = True
+
             participant_list = self.compute_tagging_list_for_secret_participants(
                 card_instance, community_instance, page=page, page_size=page_size,
-                member_name_search_string=participant_name)
+                member_name_search_string=participant_name, order_by_name=order_by_name)
             participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
             response_dict = {
@@ -1707,10 +1729,6 @@ class ChatroomImpl(ChatroomManager):
                 'participants': participant_list,
                 'can_edit_participant': can_edit_participant
             }
-
-            pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
-                                                                      self.get_version_code(),
-                                                                      VersionUtilities.participants_meta_pagination)
 
             if pagination_version_check:
                 participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
@@ -2809,9 +2827,19 @@ class ChatroomImpl(ChatroomManager):
         total_participants_list = ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id',
                                                                                                             flat=True)
 
+        pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
+                                                                  self.get_version_code(),
+                                                                  VersionUtilities.participants_meta_pagination)
+
+        order_by_name = False
+
+        if pagination_version_check:
+            order_by_name = True
+
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list, community_instance,
                                                                            page=page, page_size=page_size,
-                                                                           member_name_search_string=participant_name)
+                                                                           member_name_search_string=participant_name,
+                                                                           order_by_name=order_by_name)
         participant_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
 
         response_dict = {
@@ -2819,10 +2847,6 @@ class ChatroomImpl(ChatroomManager):
             'participants': participant_list,
             'can_edit_participant': can_edit_participant
         }
-
-        pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
-                                                                  self.get_version_code(),
-                                                                  VersionUtilities.participants_meta_pagination)
 
         if pagination_version_check:
             participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)

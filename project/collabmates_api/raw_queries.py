@@ -3084,15 +3084,20 @@ def get_participant_counts_on_basis_of_chatroom_ids(card_ids_list):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_all_chatrooms_of_community(community_id, chatroom_type=-1, page=1, limit=10):
+def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_excluded_type, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
 
-        type_filter = """IN (%s)""" % (str(chatroom_type))
+        excluded_type_list = [10]
+        if chatroom_excluded_type:
+            excluded_type_list.extend(chatroom_excluded_type)
 
-        if chatroom_type == -1:
-            type_filter = "NOT IN (10, 11)"
+        excluded_type_list = ",".join([str(i) for i in excluded_type_list])
+        filter_type_list = ",".join([str(i) for i in chatroom_filter_type])
+
+        type_exclude_filter = """AND type NOT IN (%s)""" % excluded_type_list if excluded_type_list else ""
+        type_include_filter = """AND type IN (%s)""" % filter_type_list if filter_type_list else ""
 
         conn = get_connection()
         curr = conn.cursor()
@@ -3102,8 +3107,10 @@ def get_all_chatrooms_of_community(community_id, chatroom_type=-1, page=1, limit
                  WHERE (is_deleted = false
                        AND is_private = false
                        AND community_id = %s 
-                       AND type %s)
-                 OFFSET %s LIMIT %s;""" % (str(community_id), type_filter, str(offset), str(limit))
+                       %s
+                       %s)
+                 OFFSET %s LIMIT %s;""" % (str(community_id), type_exclude_filter, type_include_filter,
+                                           str(offset), str(limit))
 
         curr.execute(sql)
         card_list = curr.fetchall()
@@ -3202,8 +3209,8 @@ def get_chatroom_participants_count(chatroom_id, community_id):
         return 0
 
 
-def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, limit=50, follow_status=True,
-                                                          is_guest=False, filter_user_ids=None):
+def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=None, page=1, limit=50,
+                                                          follow_status=True, is_guest=False, filter_user_ids=None):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -3218,7 +3225,7 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, l
                 get_tuple_from_array(filter_user_ids))
 
         sql = """
-                SELECT     id,
+                SELECT     user_id_id AS id,
                            NAME,
                            image_link AS image_url,
                            is_guest,
@@ -3247,11 +3254,12 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, l
                                                                                ELSE togther_card_answers.created_at
                                                                      END) DESC) AS ans_ord
                                       ON         ans_ord.user_id = usrinfo.user_id_id
-                                      WHERE      usrinfo.is_guest = {}
+                                      WHERE      (usrinfo.is_guest = {}
+                                                  AND usrinfo.user_id_id != {})
                                       GROUP BY   ans_ord.user_id
                                       ORDER BY   max(ans_ord.created_at) DESC limit {} offset {}) AS ordered_data
                 ON         ordered_data.user_id=togther_userinfo.user_id_id;
-        """.format(chatroom_id, follow_status, filter_user_query, is_guest, limit, offset)
+        """.format(chatroom_id, follow_status, filter_user_query, is_guest, user_id, limit, offset)
 
         curr.execute(sql)
         user_ids_list = curr.fetchall()
@@ -3264,8 +3272,9 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, page=1, l
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id, page=1, limit=50, is_guest=False,
-                                                       member_name_search: str = None, filter_user_ids: list = None):
+def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id, user_id=None, page=1, limit=50,
+                                                       is_guest=False, member_name_search: str = None,
+                                                       filter_user_ids: list = None):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -3285,7 +3294,7 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
             """.format(get_tuple_from_array(filter_user_ids), chatroom_id)
 
         sql = """
-                SELECT     togther_userinfo.id,
+                SELECT     togther_userinfo.user_id_id AS id,
                            togther_userinfo.NAME,
                            (CASE
                                 WHEN togther_members.image_url IS NOT NULL THEN togther_members.image_url
@@ -3299,8 +3308,10 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
                 ON         togther_members.member_id_id=togther_userinfo.user_id_id {}
                 AND        togther_members.community_id_id={}
                 AND        togther_userinfo.is_guest={}
-                WHERE      togther_userinfo.NAME ilike '{}%' limit {} offset {};
-        """.format(filter_user_query, community_id, is_guest, member_name_search, limit, offset)
+                AND        togther_userinfo.user_id_id!={}
+                WHERE      togther_userinfo.NAME ILIKE '{}%'
+                ORDER BY togther_userinfo.NAME ASC limit {} offset {};
+        """.format(filter_user_query, community_id, is_guest, user_id, member_name_search, limit, offset)
 
         curr.execute(sql)
         user_ids_list = curr.fetchall()
