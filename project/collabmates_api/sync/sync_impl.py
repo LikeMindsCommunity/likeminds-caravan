@@ -47,6 +47,9 @@ class SyncImpl(SyncManager):
     def get_device_id(self) -> str:
         return self.device_id
 
+    def set_community_id(self, community_id) -> None:
+        self.community_id = community_id
+
     def sync_chatrooms(self, page: int = None, page_size: int = None, min_timestamp: int = None,
                        max_timestamp: int = None, chatroom_type: list = None) -> dict:
 
@@ -63,6 +66,7 @@ class SyncImpl(SyncManager):
 
         user_instance = validated_request_body.get('user_instance')
         community_instance = validated_request_body.get('community_instance')
+        self.set_community_id(community_instance.id)
 
         included_chatroom_types = [card_types.CARD_NORMAL, card_types.CARD_INTRO, card_types.CARD_EVENT,
                                    card_types.CARD_POLL, card_types.CARD_FEEDBACK, card_types.CARD_HIDDEN,
@@ -81,13 +85,6 @@ class SyncImpl(SyncManager):
         chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, 'chatrooms_data',
                                                                   extra_data=card_unseen_count_map)
 
-        # Reactions data
-        reactions_data = get_reactions_for_chatroom_or_conversations(self.get_community_id(),
-                                                                     chatroom_ids=chatroom_ids_list)
-        reactions_data = SyncHelper.parse_sync_raw_query_response(reactions_data, 'reactions_meta')
-        chatrooms_data = SyncHelper.add_meta_info_to_sync_response(reactions_data, chatrooms_data, 'reactions_meta',
-                                                                   'chatroom_id')
-
         # Card Attachments data
         attachments_data = get_attachments_data(chatroom_ids=chatroom_ids_list)
         attachments_data = SyncHelper.parse_sync_raw_query_response(attachments_data, 'card_attachments_meta')
@@ -99,12 +96,14 @@ class SyncImpl(SyncManager):
                 isinstance(chatrooms_data.get(CONVERSATIONS_META_KEY_VALUE), dict)]):
             conversation_ids_list = list(chatrooms_data.get(CONVERSATIONS_META_KEY_VALUE).keys())
 
+            # Conversation attachments data
             attachments_data = get_attachments_data(attachment_type=SyncTypes.CONVERSATION,
                                                     conversation_ids=conversation_ids_list)
             attachments_data = SyncHelper.parse_sync_raw_query_response(attachments_data, 'conv_attachments_meta')
             chatrooms_data = SyncHelper.add_meta_info_to_sync_response(attachments_data, chatrooms_data,
                                                                        'conv_attachments_meta', 'answer_id')
 
+            # Polls data
             polls_data = get_conversation_polls_data(self.get_community_id(),
                                                      conversation_ids=conversation_ids_list,
                                                      user_id=user_instance.id)
@@ -131,6 +130,7 @@ class SyncImpl(SyncManager):
         user_instance = validated_request_body.get('user_instance')
         chatroom_instance = validated_request_body.get('chatroom_instance')
         community_instance = validated_request_body.get('community_instance')
+        self.set_community_id(community_instance.id)
 
         conversations_data, conversation_ids_list = get_chatroom_conversations_data(community_instance.id,
                                                                                     chatroom_instance.id,
@@ -141,14 +141,21 @@ class SyncImpl(SyncManager):
         # Conversation data
         conversations_data = SyncHelper.parse_sync_raw_query_response(conversations_data, 'conversations_data')
 
-        # Reactions data
+        # Chatroom reactions data
+        reactions_data = get_reactions_for_chatroom_or_conversations(self.get_community_id(),
+                                                                     chatroom_ids=[chatroom_id])
+        reactions_data = SyncHelper.parse_sync_raw_query_response(reactions_data, 'chatroom_reactions_meta')
+        conversations_data = SyncHelper.add_meta_info_to_sync_response(reactions_data, conversations_data,
+                                                                       'chatroom_reactions_meta', 'chatroom_id')
+
+        # Conversation reactions data
         reactions_data = get_reactions_for_chatroom_or_conversations(self.get_community_id(),
                                                                      reaction_type=SyncTypes.CONVERSATION,
                                                                      conversation_ids=conversation_ids_list)
-        reactions_data = SyncHelper.parse_sync_raw_query_response(reactions_data, 'reactions_meta')
+        reactions_data = SyncHelper.parse_sync_raw_query_response(reactions_data, 'conv_reactions_meta')
         conversations_data = SyncHelper.add_meta_info_to_sync_response(reactions_data,
                                                                        conversations_data,
-                                                                       'reactions_meta',
+                                                                       'conv_reactions_meta',
                                                                        'conversation_id')
 
         # Conversation Attachments data
