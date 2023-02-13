@@ -1242,7 +1242,7 @@ def is_version_code_supported_for_intro_room(version_code, platform_code):
     except:
         return False
     
-    if platform_code == 'web':
+    if platform_code in ['web', 'fl', 'rn']:
         return True
     
     elif platform_code in INTRO_ROOM_V2_VERSION_CODE_DICT.keys():

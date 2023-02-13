@@ -4,6 +4,8 @@ class VersionUtilities:
         ANDROID = 'an'
         IOS = 'ios'
         WEB = 'web'
+        FLUTTER = 'fl'
+        REACT_NATIVE = 'rn'
         ANDROID_SDK = 'an-sdk'
         IOS_SDK = 'ios-sdk'
         WEB_SDK = 'web-sdk'
@@ -25,7 +27,9 @@ class VersionUtilities:
         PlatformCode.WEB: beta_dummy_version,
         PlatformCode.ANDROID_SDK: 202,
         PlatformCode.IOS_SDK: 362,
-        PlatformCode.WEB_SDK: beta_dummy_version
+        PlatformCode.WEB_SDK: beta_dummy_version,
+        PlatformCode.FLUTTER: beta_dummy_version,
+        PlatformCode.REACT_NATIVE: beta_dummy_version,
     }
 
     create_chatroom_revamp: dict = {
@@ -34,7 +38,9 @@ class VersionUtilities:
         PlatformCode.WEB: 14,
         PlatformCode.ANDROID_SDK: 207,
         PlatformCode.IOS_SDK: beta_dummy_version,
-        PlatformCode.WEB_SDK: 14
+        PlatformCode.WEB_SDK: 14,
+        PlatformCode.FLUTTER: 1,
+        PlatformCode.REACT_NATIVE: 1,
     }
 
     create_conversation_revamp: dict = {
@@ -43,7 +49,9 @@ class VersionUtilities:
         PlatformCode.WEB: beta_dummy_version,
         PlatformCode.ANDROID_SDK: beta_dummy_version,
         PlatformCode.IOS_SDK: beta_dummy_version,
-        PlatformCode.WEB_SDK: beta_dummy_version
+        PlatformCode.WEB_SDK: beta_dummy_version,
+        PlatformCode.FLUTTER: beta_dummy_version,
+        PlatformCode.REACT_NATIVE: beta_dummy_version,
     }
 
     m2cm_v2: dict = {
@@ -52,7 +60,9 @@ class VersionUtilities:
         PlatformCode.WEB: 1209,
         PlatformCode.ANDROID_SDK: 1209,
         PlatformCode.IOS_SDK: 1209,
-        PlatformCode.WEB_SDK: 16
+        PlatformCode.WEB_SDK: 16,
+        PlatformCode.FLUTTER: 1209,
+        PlatformCode.REACT_NATIVE: 1209,
     }
 
     participants_meta_pagination: dict = {
@@ -61,7 +71,20 @@ class VersionUtilities:
         PlatformCode.WEB: 17,
         PlatformCode.ANDROID_SDK: 210,
         PlatformCode.IOS_SDK: 371,
-        PlatformCode.WEB_SDK: 17
+        PlatformCode.WEB_SDK: 17,
+        PlatformCode.FLUTTER: 1,
+        PlatformCode.REACT_NATIVE: 1,
+    }
+
+    invite_settings: dict = {
+        PlatformCode.ANDROID: 190,
+        PlatformCode.IOS: 360,
+        PlatformCode.WEB: 1209,
+        PlatformCode.ANDROID_SDK: 190,
+        PlatformCode.IOS_SDK: 360,
+        PlatformCode.WEB_SDK: 1209,
+        PlatformCode.FLUTTER: 1,
+        PlatformCode.REACT_NATIVE: 1,
     }
 
     @staticmethod

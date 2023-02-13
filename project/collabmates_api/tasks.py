@@ -953,14 +953,3 @@ def get_user_last_active_check_timestamp():
     )
 
     return last_active_timestamp
-
-
-def invite_setting_version_check(platform_code, version_code):
-    is_enabled = False
-
-    if any([((platform_code == 'ios') and (version_code >= INVITE_SETTING_IOS_VERSION_CODE)),
-            ((platform_code == 'web') and (version_code >= INVITE_SETTING_WEB_VERSION_CODE)),
-            ((platform_code == 'an') and (version_code >= INVITE_SETTING_ANDROID_VERSION_CODE))]):
-        is_enabled = True
-
-    return is_enabled
