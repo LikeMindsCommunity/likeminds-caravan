@@ -1,6 +1,7 @@
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
 from utility.json_utilities import JsonUtilities
+from utility.time_utilities import TimeUtilities
 from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFIX, SYNC_RESPONSE_MAP_PRIMARY_KEYS,
                         USERS_META_KEY_VALUE, MEMBERS_META_KEY_VALUE, MAIN_PRIMARY_KEY_VALUE,
                         CONVERSATIONS_META_KEY_VALUE, SYNC_DATA_KEYS, COMMUNITY_META_KEY_VALUE,
@@ -28,21 +29,20 @@ class SyncHelper:
         if chatroom_type and not isinstance(chatroom_type, list):
             return ResponseUtilities.get_inner_error_context('Invalid chatroom types!')
 
-        if (not min_timestamp) and (not max_timestamp):
-            return ResponseUtilities.get_inner_error_context('Send either min_timestamp or max_timestamp values!')
+        if not max_timestamp:
+            max_timestamp = TimeUtilities.current_time_in_sec()
 
-        if min_timestamp and not str(min_timestamp).isdigit():
-            return ResponseUtilities.get_inner_error_context('Invalid min_timestamp!')
-
-        if max_timestamp and not str(max_timestamp).isdigit():
-            return ResponseUtilities.get_inner_error_context('Invalid max_timestamp!')
+        if not min_timestamp:
+            min_timestamp = 0
 
         user_instance = validated_dict.get('user_id')
         community_instance = validated_dict.get('community_id')
 
         return {
             'user_instance': user_instance,
-            'community_instance': community_instance
+            'community_instance': community_instance,
+            'max_timestamp': max_timestamp,
+            'min_timestamp': min_timestamp
         }
 
     @staticmethod
@@ -62,14 +62,11 @@ class SyncHelper:
         if validated_dict.get('error_message'):
             return validated_dict
 
-        if (not min_timestamp) and (not max_timestamp):
-            return ResponseUtilities.get_inner_error_context('Send either min_timestamp or max_timestamp values!')
+        if not max_timestamp:
+            max_timestamp = TimeUtilities.current_time_in_sec()
 
-        if min_timestamp and not str(min_timestamp).isdigit():
-            return ResponseUtilities.get_inner_error_context('Invalid min_timestamp!')
-
-        if max_timestamp and not str(max_timestamp).isdigit():
-            return ResponseUtilities.get_inner_error_context('Invalid max_timestamp!')
+        if not min_timestamp:
+            min_timestamp = 0
 
         user_instance = validated_dict.get('user_id')
         community_instance = validated_dict.get('community_id')
@@ -78,7 +75,9 @@ class SyncHelper:
         return {
             'user_instance': user_instance,
             'community_instance': community_instance,
-            'chatroom_instance': chatroom_instance
+            'chatroom_instance': chatroom_instance,
+            'max_timestamp': max_timestamp,
+            'min_timestamp': min_timestamp
         }
 
     @staticmethod

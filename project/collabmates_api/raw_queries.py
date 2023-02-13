@@ -3611,15 +3611,6 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
         page_number = int(page)
         offset = (page_number - 1) * limit
 
-        order_by_query = "DESC"
-
-        if min_timestamp is not None:
-            order_by_query = "ASC"
-            max_timestamp = TimeUtilities.current_time_in_sec()
-
-        if max_timestamp is not None:
-            min_timestamp = 0
-
         included_chatroom_types_query = get_tuple_from_array(included_chatroom_types)
 
         chatroom_query = ",".join([get_chatroom_query_meta_for_sync_revamp(),
@@ -3695,7 +3686,7 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                               AND togther_collabcardstate.updated_at <= {}
                                             ) 
                                           ORDER BY 
-                                            togther_collabcardstate.updated_at {} offset {} 
+                                            togther_collabcardstate.updated_at DESC offset {} 
                                           limit 
                                             {}
                                         ) AS chatroom_data 
@@ -3747,13 +3738,12 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                     chatrooms_data.conversation___user_id___topic = togther_members.member_id_id
                   AND chatrooms_data.conversation___community_id___topic = togther_members.community_id_id)
                    
-                  ORDER BY chatrooms_data.updated_at {};
+                  ORDER BY chatrooms_data.updated_at DESC;
         """.format(topic_user_data_query, topic_conversation_data_query,
                    get_conversation_query_meta_for_sync_revamp("last"),
                    chatroom_with_user_data_query, chat_requested_user_data_query, creator_data_query,
                    get_community_query_meta_for_sync_revamp(""), chatroom_query, user_id, community_id,
-                   included_chatroom_types_query, min_timestamp, max_timestamp, order_by_query, offset, limit,
-                   order_by_query)
+                   included_chatroom_types_query, min_timestamp, max_timestamp, offset, limit)
 
         if only_query:
             return sql
@@ -3779,15 +3769,6 @@ def get_chatroom_conversations_data(community_id, chatroom_id, min_timestamp: in
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
-
-        order_by_query = "DESC"
-
-        if min_timestamp is not None:
-            order_by_query = "ASC"
-            max_timestamp = TimeUtilities.current_time_in_sec()
-
-        if max_timestamp is not None:
-            min_timestamp = 0
 
         chatroom_data_query = ",".join([get_chatroom_query_meta_for_sync_revamp("conv_room"),
                                         get_community_query_meta_for_sync_revamp("conv_community"),
@@ -3817,7 +3798,9 @@ def get_chatroom_conversations_data(community_id, chatroom_id, min_timestamp: in
                                                                                       AND      togther_card_answers.community_id = {}
                                                                                       AND      togther_card_answers.last_updated >= {}
                                                                                       AND      togther_card_answers.last_updated <= {} )
-                                                                             ORDER BY togther_card_answers.last_updated {} offset {} limit {}) AS conversation_data
+                                                                             ORDER BY 
+                                                                             togther_card_answers.last_updated DESC 
+                                                                             offset {} limit {}) AS conversation_data
                                                          INNER JOIN togther_collabcard
                                                          ON         conversation_data.card_id = togther_collabcard.id
                                                          INNER JOIN togther_community
@@ -3842,10 +3825,10 @@ def get_chatroom_conversations_data(community_id, chatroom_id, min_timestamp: in
                                     ON        chatroom_meta.preview_community_id = togther_community.id) AS chatroom_preview_meta
                 LEFT JOIN togther_collabcard
                 ON        chatroom_preview_meta.reply_chatroom_id = togther_collabcard.id 
-                ORDER BY chatroom_preview_meta.last_updated {};
+                ORDER BY chatroom_preview_meta.last_updated DESC;
         """.format(get_chatroom_query_meta_for_sync_revamp("reply"), chatroom_meta_query, chatroom_data_query,
                    get_conversation_query_meta_for_sync_revamp(), chatroom_id, community_id, min_timestamp,
-                   max_timestamp, order_by_query, offset, limit, order_by_query)
+                   max_timestamp, offset, limit)
 
         if only_query:
             return sql
@@ -4013,13 +3996,14 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                                          get_members_query_meta_for_sync_revamp("options_creator")])
 
         sql = """
-            SELECT final_polls_data.*, {}
-            FROM   (SELECT conversation_id, id, no_votes, Split_part(text_options, '___', 1) AS text,
+            SELECT final_polls_data.*, no_votes * 100 / final_polls_data.count AS percentage, {}
+            FROM   (SELECT polls_data.conversation_id, id, no_votes, total_voters.count, is_selected, 
+                    Split_part(text_options,'___', 1) AS text,
                     Cast(COALESCE(Split_part(poll_option_creator, '___', 1), '0') AS BIGINT) AS user_id
                     FROM   (SELECT conversation_id, id, Sum(vote_count) AS no_votes,
                                    CASE
-                                     WHEN Sum(is_selected) > 0 THEN 1
-                                     ELSE 0
+                                     WHEN Sum(is_selected) > 0 THEN true
+                                     ELSE false
                                    END                              AS is_selected,
                                    String_agg(Text(text), '___')    AS text_options,
                                    String_agg(Text(user_id), '___') AS poll_option_creator
@@ -4048,13 +4032,20 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                            togther_conversationpollmembers.poll_id
                            WHERE  togther_conversationpolls.conversation_id IN {}) AS polls_all_data
                             GROUP  BY conversation_id,
-                                      id) AS polls_data) AS final_polls_data
+                                      id) AS polls_data
+                            LEFT JOIN (
+                                SELECT conversation_id, COUNT(DISTINCT(user_id)) FROM
+                                togther_conversationPollMembers GROUP BY conversation_id
+                                HAVING conversation_id IN {}) AS total_voters
+                                ON total_voters.conversation_id = polls_data.conversation_id
+                            ) AS final_polls_data
                    LEFT JOIN togther_userinfo
                           ON ( togther_userinfo.user_id_id = final_polls_data.user_id )
                    LEFT JOIN togther_members
                           ON ( final_polls_data.user_id = togther_members.member_id_id
                                AND togther_members.community_id_id = {});
-        """.format(poll_options_creator, poll_data_query, user_id, conversation_ids_query, community_id)
+        """.format(poll_options_creator, poll_data_query, user_id, conversation_ids_query, conversation_ids_query,
+                   community_id)
 
         curr.execute(sql)
         polls_data = convert_sql_query_result_to_dict(curr, curr.fetchall())

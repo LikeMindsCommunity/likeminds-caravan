@@ -68,6 +68,9 @@ class SyncImpl(SyncManager):
         community_instance = validated_request_body.get('community_instance')
         self.set_community_id(community_instance.id)
 
+        min_timestamp = validated_request_body.get('min_timestamp')
+        max_timestamp = validated_request_body.get('max_timestamp')
+
         included_chatroom_types = [card_types.CARD_NORMAL, card_types.CARD_INTRO, card_types.CARD_EVENT,
                                    card_types.CARD_POLL, card_types.CARD_FEEDBACK, card_types.CARD_HIDDEN,
                                    card_types.CARD_PUBLIC_EVENT, card_types.CARD_PURPOSE, card_types.CARD_MASTER_INTRO]
@@ -131,6 +134,9 @@ class SyncImpl(SyncManager):
         chatroom_instance = validated_request_body.get('chatroom_instance')
         community_instance = validated_request_body.get('community_instance')
         self.set_community_id(community_instance.id)
+
+        min_timestamp = validated_request_body.get('min_timestamp')
+        max_timestamp = validated_request_body.get('max_timestamp')
 
         conversations_data, conversation_ids_list = get_chatroom_conversations_data(community_instance.id,
                                                                                     chatroom_instance.id,
