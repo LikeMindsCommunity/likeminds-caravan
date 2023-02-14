@@ -54,8 +54,7 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     cm_onboarding_version_check, directory_questions_v2_version_check,
-                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail,
-                    invite_setting_version_check)
+                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail,)
 from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
     tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
@@ -85,6 +84,7 @@ from utility.request_utilities import RequestUtilities
 from utility.response_utilities import ResponseUtilities
 from utility.number_utilities import NumberUtilities
 from utility.exception_utilities import (CustomException, InvalidHeaderException)
+from utility.version_utilities import VersionUtilities
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.segment.segment_impl import SegmentImpl
 from external_services.email.email_wrapper import MailWrapper
@@ -5025,7 +5025,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
         if all([api_type == api_types.SDK,
                 action['id'] == chatroom_actions.ACTION_INVITE]):
 
-            if not invite_setting_version_check(platform_code, version_code):
+            if not VersionUtilities.check_version(platform_code, version_code, VersionUtilities.invite_settings):
                 continue
 
             action = {
@@ -5124,14 +5124,20 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                 current_user_id in participants_list:
             actions.append(leave_chatroom)
 
-    if promoter and ((platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
-                     or (
-                             platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) or platform_code == "web") \
+    if promoter and ((platform_code == VersionUtilities.PlatformCode.IOS and
+                      version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
+                     or (platform_code == VersionUtilities.PlatformCode.ANDROID and
+                         version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)
+                     or platform_code == VersionUtilities.PlatformCode.WEB) \
             and not master_intro_card and (api_type != api_types.SDK):
         actions.append(chatroom_settings)
 
-    if (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
-            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) or platform_code == "web":
+    if (platform_code == VersionUtilities.PlatformCode.IOS and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
+            or (platform_code == VersionUtilities.PlatformCode.ANDROID and
+                version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) \
+            or platform_code in [VersionUtilities.PlatformCode.WEB,
+                                 VersionUtilities.PlatformCode.FLUTTER,
+                                 VersionUtilities.PlatformCode.REACT_NATIVE]:
 
         if rename_chatroom in actions:
             actions.remove(rename_chatroom)
@@ -8823,7 +8829,7 @@ def get_create_community_actions(community_id, promoter_name):
 
 
 def save_push_notification_details_for_web(user_id, token):
-    user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
     if not user_instance:
         return {'success': False, 'error_message': "Invalid user id"}
@@ -8878,10 +8884,17 @@ def push(request):
 
     success = False
     if is_member:
-        if platform_code == 'an':
+        if platform_code == VersionUtilities.PlatformCode.ANDROID:
             platform_code = 'Android'
-        elif platform_code == 'ios':
+        elif platform_code == VersionUtilities.PlatformCode.IOS:
             platform_code = 'iOS'
+        elif platform_code == VersionUtilities.PlatformCode.FLUTTER:
+            platform_code = 'Flutter'
+        elif platform_code == VersionUtilities.PlatformCode.REACT_NATIVE:
+            platform_code = 'React Native'
+        else:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Invalid platform code",
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         success = True
         user_instance = User.objects.get(id=member_id)
