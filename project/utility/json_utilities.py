@@ -16,13 +16,18 @@ class JsonUtilities:
         return json_string
 
     @staticmethod
-    def load_json_data(json_string):
+    def load_json_data(json_string, default=None):
         json_data = {}
+
+        if default is not None:
+            json_data = default
 
         try:
             json_data = json.loads(json_string)
 
         except Exception as e:
-            json_data = {}
+
+            if default is not None:
+                json_data = default
 
         return json_data
