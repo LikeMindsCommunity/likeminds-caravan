@@ -28,6 +28,7 @@ import time
 from datetime import datetime,date,timedelta
 import dateutil.relativedelta
 from .states import *
+from .version_utilities import VersionUtilities
 from django.core.exceptions import MultipleObjectsReturned
 # cache details
 # from django.core.cache import cache
@@ -1242,7 +1243,9 @@ def is_version_code_supported_for_intro_room(version_code, platform_code):
     except:
         return False
     
-    if platform_code in ['web', 'fl', 'rn']:
+    if platform_code in [VersionUtilities.PlatformCode.WEB,
+                         VersionUtilities.PlatformCode.FLUTTER,
+                         VersionUtilities.PlatformCode.REACT_NATIVE]:
         return True
     
     elif platform_code in INTRO_ROOM_V2_VERSION_CODE_DICT.keys():

@@ -5124,15 +5124,20 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                 current_user_id in participants_list:
             actions.append(leave_chatroom)
 
-    if promoter and ((platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
-                     or (
-                             platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) or platform_code == "web") \
+    if promoter and ((platform_code == VersionUtilities.PlatformCode.IOS and
+                      version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
+                     or (platform_code == VersionUtilities.PlatformCode.ANDROID and
+                         version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)
+                     or platform_code == VersionUtilities.PlatformCode.WEB) \
             and not master_intro_card and (api_type != api_types.SDK):
         actions.append(chatroom_settings)
 
-    if (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
-            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) \
-            or platform_code in ["web", "fl", "rn"]:
+    if (platform_code == VersionUtilities.PlatformCode.IOS and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
+            or (platform_code == VersionUtilities.PlatformCode.ANDROID and
+                version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) \
+            or platform_code in [VersionUtilities.PlatformCode.WEB,
+                                 VersionUtilities.PlatformCode.FLUTTER,
+                                 VersionUtilities.PlatformCode.REACT_NATIVE]:
 
         if rename_chatroom in actions:
             actions.remove(rename_chatroom)
@@ -8879,17 +8884,17 @@ def push(request):
 
     success = False
     if is_member:
-        if platform_code == 'an':
+        if platform_code == VersionUtilities.PlatformCode.ANDROID:
             platform_code = 'Android'
-        elif platform_code == 'ios':
+        elif platform_code == VersionUtilities.PlatformCode.IOS:
             platform_code = 'iOS'
-        elif platform_code == 'fl':
+        elif platform_code == VersionUtilities.PlatformCode.FLUTTER:
             platform_code = 'Flutter'
-        elif platform_code == 'rn':
+        elif platform_code == VersionUtilities.PlatformCode.REACT_NATIVE:
             platform_code = 'React Native'
         else:
-            return JsonResponse({'success': False, 'error_message': "Invalid platform code"},
-                                status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Invalid platform code",
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         success = True
         user_instance = User.objects.get(id=member_id)
