@@ -12,4 +12,4 @@ MAIN_PRIMARY_KEY_VALUE = 'id'
 SYNC_DATA_KEYS = {
     'conversation___id___last': 'last_conversation_id'
 }
-PARSE_JSON_KEYS = ['secret_chatroom_participants']
+PARSE_JSON_KEYS = ['secret_chatroom_participants', 'meta']
