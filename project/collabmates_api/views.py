@@ -10861,15 +10861,26 @@ def fetch_community_manager_rights(request):
 
 
 def update_attending_status_for_paid_events_for_new_community_manager(user_instance, community_instance):
-    ModelUtilities.get_model_filter(collabcardState,
+    getCommmuntiyEvents = ModelUtilities.get_model_filter(collabcardState,
                                     {'card__is_pending': False,
                                      'card__is_deleted': False,
                                      'user': user_instance,
                                      'community': community_instance,
                                      'secret_chatroom_left': False,
                                      'card__date_time__gt': TimeUtilities.current_time_in_milliseconds()}). \
-        filter(Q(card__type=card_types.CARD_EVENT) | Q(card__type=card_types.CARD_PUBLIC_EVENT)). \
-        update(attending_status=True, updated_at=TimeUtilities.current_time_in_sec())
+        filter(Q(card__type=card_types.CARD_EVENT) | Q(card__type=card_types.CARD_PUBLIC_EVENT))
+
+    #Get all events card_id list
+    eventsList = getCommmuntiyEvents.values_list('card_id',flat=True) 
+    getCommmuntiyEvents.update(attending_status=True, updated_at=TimeUtilities.current_time_in_sec())
+
+    #Update in cache the attendies list for all the events 
+    for card_id in eventsList:
+        update_event_attendees({
+            'chatroom_id': card_id,
+            'user_id': user_instance.id,
+            'status': True
+        })
 
 
 @csrf_exempt
