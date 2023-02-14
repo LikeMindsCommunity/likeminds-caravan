@@ -71,7 +71,8 @@ class FetchCommunityFeed(APIView):
         if order_type:
             order_type = NumberUtilities.get_integer_from_string(order_type)
 
-        if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
+        if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request) or \
+            RequestUtilities.is_request_flutter(request) or RequestUtilities.is_request_react_native(request):
 
             chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
                                                             scroll_direction=scroll_direction,
