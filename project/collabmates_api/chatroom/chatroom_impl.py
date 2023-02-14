@@ -38,7 +38,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right, \
     get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community, get_chatroom_participants_count,\
     get_sorted_user_data_on_basis_of_activity_in_chatroom, get_members_based_on_user_list_query, \
-    get_community_members_data_on_basis_of_name_search
+    get_community_members_data_on_basis_of_name_search, get_last_conversation_id_corresponding_to_chatrooms_list
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, ScheduledChatroomFollowSerializer
@@ -1023,21 +1023,36 @@ class ChatroomImpl(ChatroomManager):
 
         chatroom_obj.get('chatroom').update(event_recordings_data)
 
+        last_conversation_id = None
+
+        card_ans_map = get_last_conversation_id_corresponding_to_chatrooms_list(
+            [card_instance.id], excluded_conversation_state=[conversation_states.CONVERSATION_HEADER])
+
+        if card_ans_map:
+            last_conversation_id = card_ans_map.get(card_instance.id)
+
+        chatroom_obj['last_conversation_id'] = last_conversation_id
+
         chatroom_obj['success'] = True
 
         return chatroom_obj
 
-    def fetch_all_chatroom(self, page: int = 1, chatroom_type: int = -1) -> dict:
+    def fetch_all_chatroom(self, chatroom_filter_type: str, chatroom_excluded_type: str, page: int = 1) -> dict:
         validated_req = ChatroomViewHelper.validate_fetch_all_chatroom_request(self.get_member_id(),
-                                                                               api_key=self.get_api_key())
+                                                                               self.get_api_key(),
+                                                                               chatroom_filter_type,
+                                                                               chatroom_excluded_type)
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
+        chatroom_filter_type = validated_req.get('chatroom_filter_type')
+        chatroom_excluded_type = validated_req.get('chatroom_excluded_type')
 
-        card_ids = get_all_chatrooms_of_community(community_instance.id, chatroom_type, page)
+        card_ids = get_all_chatrooms_of_community(community_instance.id, chatroom_filter_type,
+                                                  chatroom_excluded_type, page)
         chatroom_list = ModelUtilities.get_model_filter(collabcardState,
                                                         {'card_id__in': card_ids,
                                                          'user': self.get_member_id(),

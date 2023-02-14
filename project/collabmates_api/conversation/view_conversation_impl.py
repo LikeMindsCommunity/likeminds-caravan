@@ -33,7 +33,7 @@ class FetchConversation(APIView):
         query_params = request.query_params
 
         chatroom_id = query_params.get('chatroom_id')
-        scroll_direction = query_params.get('scroll_direction')
+        scroll_direction = query_params.get('scroll_direction', None)
         conversation_id = query_params.get('conversation_id')
         page = RequestUtilities.get_page_number(request)
         paginate_by = RequestUtilities.get_page_size(request, key='paginate_by', default=20)

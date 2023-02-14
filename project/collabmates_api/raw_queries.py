@@ -3,7 +3,7 @@ from celery import shared_task
 import time
 import logging
 import psycopg2
-from utility.states import card_types, conversation_states
+from utility.states import (card_types, conversation_states, SyncTypes)
 from utility.utils import is_version_code_supported_for_intro_room
 from .static_text import (MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP)
 from collabmates_api.static_files import (REMOVED_USER_URL)
@@ -3084,15 +3084,20 @@ def get_participant_counts_on_basis_of_chatroom_ids(card_ids_list):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_all_chatrooms_of_community(community_id, chatroom_type=-1, page=1, limit=10):
+def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_excluded_type, page=1, limit=10):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
 
-        type_filter = """IN (%s)""" % (str(chatroom_type))
+        excluded_type_list = [10]
+        if chatroom_excluded_type:
+            excluded_type_list.extend(chatroom_excluded_type)
 
-        if chatroom_type == -1:
-            type_filter = "NOT IN (10, 11)"
+        excluded_type_list = ",".join([str(i) for i in excluded_type_list])
+        filter_type_list = ",".join([str(i) for i in chatroom_filter_type])
+
+        type_exclude_filter = """AND type NOT IN (%s)""" % excluded_type_list if excluded_type_list else ""
+        type_include_filter = """AND type IN (%s)""" % filter_type_list if filter_type_list else ""
 
         conn = get_connection()
         curr = conn.cursor()
@@ -3102,8 +3107,10 @@ def get_all_chatrooms_of_community(community_id, chatroom_type=-1, page=1, limit
                  WHERE (is_deleted = false
                        AND is_private = false
                        AND community_id = %s 
-                       AND type %s)
-                 OFFSET %s LIMIT %s;""" % (str(community_id), type_filter, str(offset), str(limit))
+                       %s
+                       %s)
+                 OFFSET %s LIMIT %s;""" % (str(community_id), type_exclude_filter, type_include_filter,
+                                           str(offset), str(limit))
 
         curr.execute(sql)
         card_list = curr.fetchall()
@@ -3465,6 +3472,586 @@ def activate_chatroom_for_followed_users_on_conversation_creation(card_id, user_
 
         curr.execute(sql)
         conn.commit()
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_chatroom_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['id', 'title', 'community_id', 'type', 'date_time', 'is_pending',
+                    'date_epoch', 'share_link', 'user_id', 'has_been_named', 'header', 'access_without_subscription',
+                    'has_files', 'about', 'co_hosts', 'online_link', 'og_tags', 'internal_link',
+                    'deleted_by_user_id', 'attachment_count', 'attachments_uploaded', 'is_secret',
+                    'secret_chatroom_participants', 'has_reactions', 'device_id', 'topic_id', 'auto_follow_done',
+                    'is_edited', 'is_paid', 'access', 'is_private', 'chatroom_with_user_id', 'member_can_message',
+                    'online_link_type', 'is_private_member', 'chatroom_image_url', 'created_at']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_collabcard', 'chatroom', key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_chatroom_state_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['state', 'mute_status', 'follow_status', 'is_tagged', 'last_seen_conversation_id',
+                    'expiry_time', 'attending_status', 'updated_at', 'secret_chatroom_left', 'external_seen',
+                    'chat_request_state', 'chat_requested_by_id', 'chat_request_created_at']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_collabcardState', 'chatroom_state', key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def create_query_with_prefix(query_fields, table_name, key_name_prefix: str = None, key_name_suffix: str = None):
+    if key_name_suffix:
+        meta_query = ["".join([table_name, '.', query_field, " AS {}___{}___{}".format(
+            key_name_prefix, query_field, key_name_suffix)]) for query_field in query_fields]
+
+    elif key_name_suffix is not None:
+        meta_query = ["".join([table_name, '.', query_field, " AS {}___{}".format(key_name_prefix, query_field)])
+                      for query_field in query_fields]
+
+    else:
+        meta_query = ["".join([table_name, '.', query_field]) for query_field in query_fields]
+
+    return meta_query
+
+
+def get_conversation_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['id', 'answer', 'created_at', 'state', 'is_edited', 'has_files', 'attachment_count',
+                    'attachments_uploaded', 'card_id', 'user_id', 'community_id', 'og_tags', 'deleted_by_user_id',
+                    'internal_link', 'reply_id', 'last_updated', 'preview_chatroom_id', 'preview_type', 'api_version',
+                    'temporary_id', 'poll_type', 'multiple_select_state', 'multiple_select_no', 'is_anonymous',
+                    'allow_add_option', 'expiry_time', 'preview_community_id', 'has_reactions', 'device_id',
+                    'poll_answer_text', 'reply_chatroom_id', 'header', 'location', 'location_lat', 'location_long',
+                    'start_time', 'end_time', 'online_link_enable_before', 'co_hosts']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_card_answers', 'conversation', key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_community_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['id', 'name', 'purpose', 'image_url', 'type', 'sub_type', 'is_paid']
+    meta_query = create_query_with_prefix(query_fields, 'togther_community', 'community', key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_members_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['member_id_id', 'state', 'image_url', 'is_owner', 'custom_title', 'created_at']
+    meta_query = create_query_with_prefix(query_fields, 'togther_members', 'member', key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_users_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['user_id_id', 'name', 'image_link', 'user_unique_id', 'is_guest']
+    meta_query = create_query_with_prefix(query_fields, 'togther_userinfo', 'user', key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_reactions_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['id', 'reaction', 'chatroom_id', 'conversation_id', 'user_id']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_MessageReactions', 'message_reactions',
+                                          key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_card_attachments_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['id', 'attachment', 'type', 'collabcard_id', 'file_url', 'index', 'dimensions', 'height', 'width',
+                    'thumbnail_url', 'meta', 'name']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_Card_Attachment', 'card_attachment',
+                                          key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_conversation_attachments_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['id', 'type', 'answer_id', 'file_url', 'index', 'dimensions', 'height', 'width',
+                    'thumbnail_url', 'meta', 'name', 'created_at', 'location_lat', 'location_long', 'location_name']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_answerAttachment', 'conv_attachment',
+                                          key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_conversation_polls_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['id', 'text', 'created_at', 'updated_at', 'conversation_id', 'user_id']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_conversationPolls', 'conv_polls',
+                                          key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def get_conversation_poll_members_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['id', 'poll_id', 'created_at', 'conversation_id', 'user_id']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_conversationPollMembers', 'conv_poll_members',
+                                          key_name_prefix)
+
+    return ",".join(meta_query)
+
+
+def convert_sql_query_result_to_dict(cursor, result):
+    """Return all rows from a cursor as a dict"""
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in result]
+
+
+def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: int = None, max_timestamp: int = None,
+                                         page: int = 1, limit: int = 10, included_chatroom_types: list = None,
+                                         only_query: bool = False):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        included_chatroom_types_query = get_tuple_from_array(included_chatroom_types)
+
+        chatroom_query = ",".join([get_chatroom_query_meta_for_sync_revamp(),
+                                   get_chatroom_state_query_meta_for_sync_revamp()])
+
+        creator_data_query = ",".join([get_users_query_meta_for_sync_revamp("creator"),
+                                       get_members_query_meta_for_sync_revamp("creator")])
+
+        chatroom_with_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("dm_user"),
+                                                  get_members_query_meta_for_sync_revamp("dm_user")])
+
+        chat_requested_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("chat_requested"),
+                                                   get_members_query_meta_for_sync_revamp("chat_requested")])
+
+        topic_conversation_data_query = ",".join([get_users_query_meta_for_sync_revamp("last_conv"),
+                                                  get_members_query_meta_for_sync_revamp("last_conv"),
+                                                  get_conversation_query_meta_for_sync_revamp("topic")])
+
+        topic_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("topic"),
+                                          get_members_query_meta_for_sync_revamp("topic")])
+
+        sql = """
+                SELECT chatrooms_data.*, {} FROM
+                (SELECT 
+                  chat_conversation_data.*, 
+                  {} 
+                FROM 
+                  (
+                    SELECT 
+                      chatroom_users_data.*, 
+                      {}, 
+                      Row_number() OVER(
+                        partition BY togther_card_answers.card_id 
+                        ORDER BY 
+                          togther_card_answers.created_at DESC
+                      ) AS row_number 
+                    FROM 
+                      (
+                        (
+                          SELECT 
+                            chat_users_data.*, 
+                            {} 
+                          FROM 
+                            (
+                              SELECT 
+                                chat_creators_data.*, 
+                                {} 
+                              FROM 
+                                (
+                                  SELECT 
+                                    chatroom_community_data.*, 
+                                    {} 
+                                  FROM 
+                                    (
+                                      SELECT 
+                                        chatroom_data.*, 
+                                        {} 
+                                      FROM 
+                                        (
+                                          SELECT 
+                                            {} 
+                                          FROM 
+                                            togther_collabcardstate 
+                                            INNER JOIN togther_collabcard ON togther_collabcardstate.card_id = togther_collabcard.id 
+                                          WHERE 
+                                            (
+                                              togther_collabcardstate.user_id = {} 
+                                              AND togther_collabcardstate.follow_status = true 
+                                              AND togther_collabcardstate.community_id = {} 
+                                              AND togther_collabcardstate.remove_id IS NULL 
+                                              AND togther_collabcard.type IN {} 
+                                              AND togther_collabcardstate.updated_at >= {} 
+                                              AND togther_collabcardstate.updated_at <= {}
+                                            ) 
+                                          ORDER BY 
+                                            togther_collabcardstate.updated_at DESC offset {} 
+                                          limit 
+                                            {}
+                                        ) AS chatroom_data 
+                                        INNER JOIN togther_community ON chatroom_data.community_id = togther_community.id
+                                    ) AS chatroom_community_data 
+                                    INNER JOIN togther_userinfo ON (
+                                      togther_userinfo.user_id_id = chatroom_community_data.user_id
+                                    ) 
+                                    LEFT JOIN togther_members ON (
+                                      chatroom_community_data.user_id = togther_members.member_id_id 
+                                      AND chatroom_community_data.community_id = togther_members.community_id_id
+                                    )
+                                ) AS chat_creators_data 
+                                LEFT JOIN togther_userinfo ON (
+                                  togther_userinfo.user_id_id = chat_creators_data.chatroom_with_user_id
+                                ) 
+                                LEFT JOIN togther_members ON (
+                                  chat_creators_data.chatroom_with_user_id = togther_members.member_id_id 
+                                  AND chat_creators_data.community_id = togther_members.community_id_id
+                                )
+                            ) AS chat_users_data 
+                            LEFT JOIN togther_userinfo ON (
+                              togther_userinfo.user_id_id = chat_users_data.chat_requested_by_id
+                            ) 
+                            LEFT JOIN togther_members ON (
+                              chat_users_data.chat_requested_by_id = togther_members.member_id_id 
+                              AND chat_users_data.community_id = togther_members.community_id_id
+                            )
+                        ) AS chatroom_users_data 
+                        INNER JOIN togther_card_answers ON togther_card_answers.card_id = chatroom_users_data.id 
+                        AND togther_card_answers.state IN (0, 1, 10)
+                      )
+                  ) AS chat_conversation_data 
+                  LEFT JOIN togther_userinfo ON (
+                    togther_userinfo.user_id_id = chat_conversation_data.conversation___user_id___last
+                  )
+                  LEFT JOIN togther_members ON (
+                    chat_conversation_data.conversation___user_id___last = togther_members.member_id_id
+                  AND chat_conversation_data.conversation___community_id___last = togther_members.community_id_id)
+
+                  LEFT JOIN togther_card_answers ON togther_card_answers.id = chat_conversation_data.topic_id 
+                WHERE 
+                  chat_conversation_data.row_number = 1) AS chatrooms_data
+                  
+                  LEFT JOIN togther_userinfo ON (
+                    togther_userinfo.user_id_id = chatrooms_data.conversation___user_id___topic
+                  )
+                  LEFT JOIN togther_members ON (
+                    chatrooms_data.conversation___user_id___topic = togther_members.member_id_id
+                  AND chatrooms_data.conversation___community_id___topic = togther_members.community_id_id)
+                   
+                  ORDER BY chatrooms_data.updated_at DESC;
+        """.format(topic_user_data_query, topic_conversation_data_query,
+                   get_conversation_query_meta_for_sync_revamp("last"),
+                   chatroom_with_user_data_query, chat_requested_user_data_query, creator_data_query,
+                   get_community_query_meta_for_sync_revamp(""), chatroom_query, user_id, community_id,
+                   included_chatroom_types_query, min_timestamp, max_timestamp, offset, limit)
+
+        if only_query:
+            return sql
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        curr.execute(sql)
+        chatroom_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        chatroom_ids_list = [data.get('id') for data in chatroom_data]
+
+        return chatroom_data, chatroom_ids_list
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_chatroom_conversations_data(community_id, chatroom_id, min_timestamp: int = None,
+                                    max_timestamp: int = None, page: int = 1, limit: int = 10,
+                                    only_query: bool = False):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        chatroom_data_query = ",".join([get_chatroom_query_meta_for_sync_revamp("conv_room"),
+                                        get_community_query_meta_for_sync_revamp("conv_community"),
+                                        get_users_query_meta_for_sync_revamp("creator"),
+                                        get_members_query_meta_for_sync_revamp("creator"),
+                                        get_conversation_query_meta_for_sync_revamp("reply")])
+
+        chatroom_meta_query = ",".join([get_users_query_meta_for_sync_revamp("conv_deleter"),
+                                        get_members_query_meta_for_sync_revamp("conv_deleter"),
+                                        get_chatroom_query_meta_for_sync_revamp("preview"),
+                                        get_community_query_meta_for_sync_revamp("preview")])
+
+        sql = """
+                SELECT    chatroom_preview_meta.*,
+                          {}
+                FROM      (
+                                    SELECT    chatroom_meta.*,
+                                              {}
+                                    FROM      (
+                                                         SELECT     conversation_data.*,
+                                                                    {}
+                                                         FROM       (
+                                                                             SELECT   {}
+                                                                             FROM     togther_card_answers
+                                                                             WHERE    (
+                                                                                               togther_card_answers.card_id = {}
+                                                                                      AND      togther_card_answers.community_id = {}
+                                                                                      AND      togther_card_answers.last_updated >= {}
+                                                                                      AND      togther_card_answers.last_updated <= {} )
+                                                                             ORDER BY 
+                                                                             togther_card_answers.last_updated DESC 
+                                                                             offset {} limit {}) AS conversation_data
+                                                         INNER JOIN togther_collabcard
+                                                         ON         conversation_data.card_id = togther_collabcard.id
+                                                         INNER JOIN togther_community
+                                                         ON         conversation_data.community_id = togther_community.id
+                                                         INNER JOIN togther_userinfo
+                                                         ON         conversation_data.user_id = togther_userinfo.user_id_id
+                                                         LEFT JOIN  togther_members
+                                                         ON         (
+                                                                               conversation_data.user_id = togther_members.member_id_id
+                                                                    AND        conversation_data.community_id = togther_members.community_id_id)
+                                                         LEFT JOIN  togther_card_answers
+                                                         ON         conversation_data.reply_id = togther_card_answers.id) AS chatroom_meta
+                                    LEFT JOIN togther_userinfo
+                                    ON        chatroom_meta.deleted_by_user_id = togther_userinfo.user_id_id
+                                    LEFT JOIN togther_members
+                                    ON        (
+                                                        chatroom_meta.deleted_by_user_id = togther_members.member_id_id
+                                              AND       chatroom_meta.community_id = togther_members.community_id_id)
+                                    LEFT JOIN togther_collabcard
+                                    ON        chatroom_meta.preview_chatroom_id = togther_collabcard.id
+                                    LEFT JOIN togther_community
+                                    ON        chatroom_meta.preview_community_id = togther_community.id) AS chatroom_preview_meta
+                LEFT JOIN togther_collabcard
+                ON        chatroom_preview_meta.reply_chatroom_id = togther_collabcard.id 
+                ORDER BY chatroom_preview_meta.last_updated DESC;
+        """.format(get_chatroom_query_meta_for_sync_revamp("reply"), chatroom_meta_query, chatroom_data_query,
+                   get_conversation_query_meta_for_sync_revamp(), chatroom_id, community_id, min_timestamp,
+                   max_timestamp, offset, limit)
+
+        if only_query:
+            return sql
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        curr.execute(sql)
+        conversation_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        conversation_ids_list = [data.get('id') for data in conversation_data]
+
+        return conversation_data, conversation_ids_list
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_unseen_count_for_chatroom_ids(chatroom_ids_list: list, user_id: int):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        chatroom_ids_query = get_tuple_from_array(chatroom_ids_list)
+
+        included_conv_states = [conversation_states.ANSWER, conversation_states.CONVERSATION_HEADER,
+                                conversation_states.CONVERSATION_POLL]
+
+        included_conv_states_query = get_tuple_from_array(included_conv_states)
+
+        sql = """
+                SELECT state_data.card_id,
+                       Sum(state_data.is_unseen)
+                FROM   (SELECT togther_collabcardstate.card_id,
+                               ( CASE
+                                   WHEN COALESCE(last_seen_conversation_id, 0) <
+                                        togther_card_answers.id
+                                        AND togther_card_answers.state NOT IN ( 1 ) THEN 1
+                                   ELSE 0
+                                 END ) AS is_unseen
+                        FROM   togther_collabcardstate
+                               LEFT JOIN togther_card_answers
+                                      ON togther_card_answers.card_id =
+                                         togther_collabcardstate.card_id
+                        WHERE  togther_collabcardstate.user_id = {}
+                               AND togther_collabcardstate.card_id IN {}
+                               AND togther_card_answers.state IN {}) AS state_data
+                GROUP  BY state_data.card_id; 
+        """.format(user_id, chatroom_ids_query, included_conv_states_query)
+
+        curr.execute(sql)
+        chatroom_data = curr.fetchall()
+        curr.close()
+
+        return {data[0]: {'unseen_count': data[1]} for data in chatroom_data}
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_reactions_for_chatroom_or_conversations(community_id, reaction_type: int = SyncTypes.CHATROOM,
+                                                chatroom_ids: list = None, conversation_ids: list = None,
+                                                key_name_prefix: str = None):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        reactions_data = []
+
+        if reaction_type == SyncTypes.CHATROOM:
+
+            if (not chatroom_ids) or (not isinstance(chatroom_ids, list)):
+                return reactions_data
+
+            chatroom_ids_query = get_tuple_from_array(chatroom_ids)
+            query_string = "WHERE chatroom_id IN {} AND conversation_id IS NULL".format(chatroom_ids_query)
+
+        elif reaction_type == SyncTypes.CONVERSATION:
+
+            if (not conversation_ids) or (not isinstance(conversation_ids, list)):
+                return reactions_data
+
+            conversation_ids_query = get_tuple_from_array(conversation_ids)
+            query_string = "WHERE conversation_id IN {}".format(conversation_ids_query)
+
+        else:
+            return reactions_data
+
+        response_query = ",".join([get_reactions_query_meta_for_sync_revamp(key_name_prefix),
+                                   get_users_query_meta_for_sync_revamp("reactor"),
+                                   get_members_query_meta_for_sync_revamp("reactor")])
+
+        sql = """
+                SELECT {} FROM togther_messagereactions
+                LEFT JOIN togther_userinfo ON (
+                  togther_userinfo.user_id_id = togther_messagereactions.user_id
+                ) 
+                LEFT JOIN togther_members ON (
+                  togther_messagereactions.user_id = togther_members.member_id_id 
+                  AND togther_members.community_id_id = {}
+                ) {};
+        """.format(response_query, community_id, query_string)
+
+        curr.execute(sql)
+        reactions_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return reactions_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_attachments_data(attachment_type: int = SyncTypes.CHATROOM,
+                         chatroom_ids: list = None, conversation_ids: list = None,
+                         key_name_prefix: str = None):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        attachments_data = []
+
+        if attachment_type == SyncTypes.CHATROOM:
+
+            if (not chatroom_ids) or (not isinstance(chatroom_ids, list)):
+                return attachments_data
+
+            chatroom_ids_query = get_tuple_from_array(chatroom_ids)
+            sql = "SELECT {} FROM togther_card_attachment WHERE collabcard_id IN {}".format(
+                get_card_attachments_query_meta_for_sync_revamp(key_name_prefix), chatroom_ids_query)
+
+        elif attachment_type == SyncTypes.CONVERSATION:
+
+            if (not conversation_ids) or (not isinstance(conversation_ids, list)):
+                return attachments_data
+
+            conversation_ids_query = get_tuple_from_array(conversation_ids)
+            sql = "SELECT {} FROM togther_answerattachment WHERE answer_id IN {}".format(
+                get_conversation_attachments_query_meta_for_sync_revamp(key_name_prefix), conversation_ids_query)
+
+        else:
+            return attachments_data
+
+        curr.execute(sql)
+        attachments_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return attachments_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_conversation_polls_data(community_id, conversation_ids: list, user_id: int, key_name_prefix: str = None):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        conversation_ids_query = get_tuple_from_array(conversation_ids)
+        poll_data_query = ",".join([get_conversation_polls_query_meta_for_sync_revamp(key_name_prefix),
+                                    get_conversation_poll_members_query_meta_for_sync_revamp("voter")])
+
+        poll_options_creator = ",".join([get_users_query_meta_for_sync_revamp("options_creator"),
+                                         get_members_query_meta_for_sync_revamp("options_creator")])
+
+        sql = """
+            SELECT final_polls_data.*, no_votes * 100 / final_polls_data.count AS percentage, {}
+            FROM   (SELECT polls_data.conversation_id, id, no_votes, total_voters.count, is_selected, 
+                    Split_part(text_options,'___', 1) AS text,
+                    Cast(COALESCE(Split_part(poll_option_creator, '___', 1), '0') AS BIGINT) AS user_id
+                    FROM   (SELECT conversation_id, id, Sum(vote_count) AS no_votes,
+                                   CASE
+                                     WHEN Sum(is_selected) > 0 THEN true
+                                     ELSE false
+                                   END                              AS is_selected,
+                                   String_agg(Text(text), '___')    AS text_options,
+                                   String_agg(Text(user_id), '___') AS poll_option_creator
+                            FROM   (SELECT {},
+                                           CASE
+                                             WHEN togther_conversationpollmembers.user_id = {}
+                                           THEN 1
+                                             ELSE 0
+                                           END
+                                           AS
+                                           is_selected,
+                                           CASE
+                                             WHEN togther_conversationpollmembers.id IS NOT
+                                                  NULL
+                                           THEN 1
+                                             ELSE 0
+                                           END
+                                           AS
+                                           vote_count
+                                    FROM   togther_conversationpolls
+                                           LEFT JOIN togther_conversationpollmembers
+                                                  ON
+            togther_conversationpolls.conversation_id =
+                           togther_conversationpollmembers.conversation_id
+                           AND togther_conversationpolls.id =
+                           togther_conversationpollmembers.poll_id
+                           WHERE  togther_conversationpolls.conversation_id IN {}) AS polls_all_data
+                            GROUP  BY conversation_id,
+                                      id) AS polls_data
+                            LEFT JOIN (
+                                SELECT conversation_id, COUNT(DISTINCT(user_id)) FROM
+                                togther_conversationPollMembers GROUP BY conversation_id
+                                HAVING conversation_id IN {}) AS total_voters
+                                ON total_voters.conversation_id = polls_data.conversation_id
+                            ) AS final_polls_data
+                   LEFT JOIN togther_userinfo
+                          ON ( togther_userinfo.user_id_id = final_polls_data.user_id )
+                   LEFT JOIN togther_members
+                          ON ( final_polls_data.user_id = togther_members.member_id_id
+                               AND togther_members.community_id_id = {});
+        """.format(poll_options_creator, poll_data_query, user_id, conversation_ids_query, conversation_ids_query,
+                   community_id)
+
+        curr.execute(sql)
+        polls_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return polls_data
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
