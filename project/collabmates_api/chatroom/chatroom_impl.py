@@ -316,7 +316,9 @@ class ChatroomImpl(ChatroomManager):
         if card_content['is_secret']:
             card_content['is_secret'] = True
 
-            secret_chatroom_participants = req_body.get("secret_chatroom_participants", [])
+            secret_chatroom_participants = MemberCommunityImpl.get_valid_member_ids(
+                req_body.get("secret_chatroom_participants", []))
+
             secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
                 secret_chatroom_participants
             )
