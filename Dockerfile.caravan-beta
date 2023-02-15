@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1
+
+FROM ubuntu:20.04
+
+RUN apt-get update && apt-get install -y software-properties-common gcc && \
+    add-apt-repository -y ppa:deadsnakes/ppa
+
+RUN apt-get update && apt-get install -y python3.6 python3-distutils python3-pip python3-apt python3-venv libpq-dev python3-dev
+
+WORKDIR /usr/src/app
+
+COPY ./project/requirements.txt requirements.txt
+
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+RUN pip3 install -r requirements.txt
+
+ADD . $WORKDIR
+
+ADD https://beta-likeminds-media.s3.ap-south-1.amazonaws.com/environment/Caravan-Beta-Dot-Env/.env ./project/project/settings/.env
+
+RUN chmod +x ./entry-point/entry-caravan-beta.sh
+
+CMD [ "/bin/bash", "./entry-point/entry-caravan-beta.sh" ]
