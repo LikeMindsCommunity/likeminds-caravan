@@ -1982,9 +1982,6 @@ class MemberCommunityImpl(MemberCommunityManager):
                             feed_order_types.MOST_MESSAGES_ORDER_TYPE] and chatroom_ids:
             ordered_card_ids = validated_request.get('chatroom_ids')
 
-            print("swarm service")
-            print(ordered_card_ids)
-
         chatroom_queryset = MemberCommunityHelper.get_ordered_collabcard_state_list_based_on_card_ids(
             self.get_member_id(), ordered_card_ids)
 
@@ -2150,6 +2147,9 @@ class MemberCommunityHelper:
 
             if value.get('is_guest') is not None:
                 temp['is_guest'] = value.get('is_guest')
+
+            if value.get('custom_title'):
+                temp['custom_title'] = value.get('custom_title')
 
             member_list.append(temp)
 

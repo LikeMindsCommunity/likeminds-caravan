@@ -3,7 +3,6 @@
 from django.core.paginator import Paginator
 
 from .static_text import SINGLE_COMMUNITY_VIEW_VERSION_CODE, LM_PLATFORM_CODES, FREE_LINK_VERSION_CODE, \
-    M2CM_V2_IOS_VERSION_CODE, M2CM_V2_ANDROID_VERSION_CODE, M2CM_V2_WEB_VERSION_CODE, \
     DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS, DM_CHATROOMS_VERSION_CODE_WEB
 
 from utility.version_utilities import VersionUtilities
@@ -137,15 +136,11 @@ def create_chatroom_revamp_version_check(platform_code: str, version_code: int) 
     return VersionUtilities.check_version(platform_code, version_code, VersionUtilities.create_chatroom_revamp)
 
 
-def m2cm_v2_version_check(platform_code, version_code):
-    is_enabled = False
+def m2cm_v2_version_check(platform_code, version_code, is_sdk=False):
+    if is_sdk:
+        platform_code = VersionUtilities.PlatformCode.convert_platform_code_to_sdk(platform_code)
 
-    if any([((platform_code == 'ios') and (version_code >= M2CM_V2_IOS_VERSION_CODE)),
-            ((platform_code == 'web') and (version_code >= M2CM_V2_WEB_VERSION_CODE)),
-            ((platform_code == 'an') and (version_code >= M2CM_V2_ANDROID_VERSION_CODE))]):
-        is_enabled = True
-
-    return is_enabled
+    return VersionUtilities.check_version(platform_code, version_code, VersionUtilities.m2cm_v2)
 
 
 def m2cm_v1_version_check(platform_code, version_code):

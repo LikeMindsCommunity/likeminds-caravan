@@ -3,6 +3,7 @@ from togther.models import (ModelUtilities, Members, Collabcard, collabcardState
 from rest_framework import status as status_codes
 from utility.states import (member_states, card_types)
 from collabmates_api.sdk.models import (SdkClient)
+import json
 
 
 class ChatroomViewHelper:
@@ -17,7 +18,7 @@ class ChatroomViewHelper:
         return {}
 
     @staticmethod
-    def validate_fetch_all_chatroom_request(user_id, api_key):
+    def validate_fetch_all_chatroom_request(user_id, api_key, chatroom_filter_type, chatroom_excluded_type):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:
@@ -28,7 +29,22 @@ class ChatroomViewHelper:
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key!")
 
-        return {'user_instance': user_instance, 'community_instance': community_instance}
+        chatroom_type_filter = []
+        if isinstance(chatroom_filter_type, str):
+            try:
+                chatroom_type_filter = json.loads(chatroom_filter_type)
+            except:
+                return ResponseUtilities.get_inner_error_context("Invalid filter_type object")
+
+        chatroom_type_excluded = []
+        if isinstance(chatroom_excluded_type, str):
+            try:
+                chatroom_type_excluded = json.loads(chatroom_excluded_type)
+            except:
+                return ResponseUtilities.get_inner_error_context("Invalid excluded_type object")
+
+        return {'user_instance': user_instance, 'community_instance': community_instance,
+                'chatroom_filter_type': chatroom_type_filter, 'chatroom_excluded_type': chatroom_type_excluded}
 
     @staticmethod
     def validate_create_chatroom_request(user_id, api_key, req_body):
@@ -70,26 +86,6 @@ class ChatroomViewHelper:
 
         if card_instance.user_id != user_instance.id and not is_cm:
             return ResponseUtilities.get_inner_error_context("You don’t have ability to update chatroom meta data")
-
-        return {'user_instance': user_instance, 'card_instance': card_instance}
-
-    @staticmethod
-    def validate_fetch_participants_meta(user_id, chatroom_id, page, page_size):
-        if page < 1 or page_size < 1:
-            return ResponseUtilities.get_inner_error_context("Invalid page or page_size")
-
-        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
-
-        if not user_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid user id")
-
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
-
-        if not card_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid chatroom id")
-
-        if card_instance.is_secret:
-            return ResponseUtilities.get_inner_error_context("Chatroom is secret!")
 
         return {'user_instance': user_instance, 'card_instance': card_instance}
 

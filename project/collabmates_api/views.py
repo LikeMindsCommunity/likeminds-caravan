@@ -19,7 +19,7 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
-from utility.states import report_Tag_Types
+from utility.states import report_Tag_Types, member_states
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
@@ -54,8 +54,7 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     cm_onboarding_version_check, directory_questions_v2_version_check,
-                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail,
-                    invite_setting_version_check)
+                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail,)
 from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
     tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
@@ -85,6 +84,7 @@ from utility.request_utilities import RequestUtilities
 from utility.response_utilities import ResponseUtilities
 from utility.number_utilities import NumberUtilities
 from utility.exception_utilities import (CustomException, InvalidHeaderException)
+from utility.version_utilities import VersionUtilities
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.segment.segment_impl import SegmentImpl
 from external_services.email.email_wrapper import MailWrapper
@@ -284,6 +284,8 @@ def my_chatrooms_version_1(request):
         context = ResponseUtilities.get_view_impl_error_context("Invalid user ID",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
+
+    member_id = user_instance.id
 
     page = NumberUtilities.get_integer_from_string(request.GET.get('page', 1))
 
@@ -540,6 +542,28 @@ def my_chatrooms_version_1(request):
             total_unseen_count['total'] = 0
 
         context['total_unseen_count'] = total_unseen_count['total']
+
+        member_engages = ModelUtilities.get_model_filter(Member_Engage, {"member_id_id": member_id,
+                                                                        "community_id_id": community_id})
+        if member_engages:
+            member_engage = member_engages[0]
+
+            from .member_community.member_community_impl import MemberCommunityHelper
+
+            community_chatroom_count_dict = MemberCommunityHelper.fetch_chatroom_count_for_home(
+                [community_id], user_instance.id, is_chatroom_revamp=True)
+
+            if community_chatroom_count_dict.get(member_engage.community_id_id):
+                context['total_chatroom_count'] = community_chatroom_count_dict.get(member_engage.community_id_id)
+            else:
+                context['total_chatroom_count'] = 0
+
+            if member_engage.member_state == member_states.ADMIN or \
+                    member_engage.member_state == member_states.MEMBER or \
+                    member_engage.member_state == member_states.PROFILE_UNAVAILABLE:
+                context['unseen_chatroom_count'] = member_engage.last_unseen_count
+            else:
+                context['unseen_chatroom_count'] = 0
 
     return JsonResponse(context)
 
@@ -4894,9 +4918,11 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                          platform_code=None, api_type=api_types.Non_SDK):
     """ function to get chatroom actions """
 
+    is_sdk = api_type == api_types.SDK
+
     if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE]):
 
-        if not m2cm_v2_version_check(platform_code, version_code):
+        if not m2cm_v2_version_check(platform_code, version_code, is_sdk=is_sdk):
 
             if card_status.get('mute_status'):
                 return collabcard_action_dm_user_mute
@@ -4915,12 +4941,15 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
         if not card_instance.is_private_member:
             return dm_chatroom_actions
 
-        last_conversation = ModelUtilities.get_model_filter(card_answers, {'card': card_instance}).last()
+        card_state_instance = None
 
-        if last_conversation.state == conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT:
-            dm_chatroom_actions.append(unblock_member)
+        card_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                              'user': current_user_instance})
 
-        else:
+        if card_state_filter:
+            card_state_instance = card_state_filter[0]
+
+        if card_state_instance and (card_state_instance.chat_request_state != chat_request_states.REJECTED):
             dm_chatroom_actions.append(block_member_chatroom)
 
         return dm_chatroom_actions
@@ -4996,7 +5025,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
         if all([api_type == api_types.SDK,
                 action['id'] == chatroom_actions.ACTION_INVITE]):
 
-            if not invite_setting_version_check(platform_code, version_code):
+            if not VersionUtilities.check_version(platform_code, version_code, VersionUtilities.invite_settings):
                 continue
 
             action = {
@@ -5095,14 +5124,20 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                 current_user_id in participants_list:
             actions.append(leave_chatroom)
 
-    if promoter and ((platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
-                     or (
-                             platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) or platform_code == "web") \
+    if promoter and ((platform_code == VersionUtilities.PlatformCode.IOS and
+                      version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
+                     or (platform_code == VersionUtilities.PlatformCode.ANDROID and
+                         version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)
+                     or platform_code == VersionUtilities.PlatformCode.WEB) \
             and not master_intro_card and (api_type != api_types.SDK):
         actions.append(chatroom_settings)
 
-    if (platform_code == "ios" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
-            or (platform_code == "an" and version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) or platform_code == "web":
+    if (platform_code == VersionUtilities.PlatformCode.IOS and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
+            or (platform_code == VersionUtilities.PlatformCode.ANDROID and
+                version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN) \
+            or platform_code in [VersionUtilities.PlatformCode.WEB,
+                                 VersionUtilities.PlatformCode.FLUTTER,
+                                 VersionUtilities.PlatformCode.REACT_NATIVE]:
 
         if rename_chatroom in actions:
             actions.remove(rename_chatroom)
@@ -6197,7 +6232,7 @@ def follow_chatroom_async(collabcard_id,
     if not status and card_instance.is_secret:
         return {'success': False, "error_message": "Cannot unfollow chatroom"}
 
-    user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
     if not user_instance:
         return {'success': False, "error_message": "Invalid member id"}
@@ -8668,6 +8703,8 @@ def members_state(request, req_dict=None):
         response = get_error_context(False, "Invalid API key/community ID")
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
+    community_id = community_instance.id
+
     query_set = ModelUtilities.get_model_filter(Members,
                                                 {"member_id": member_id,
                                                  "community_id": community_instance})
@@ -8792,7 +8829,7 @@ def get_create_community_actions(community_id, promoter_name):
 
 
 def save_push_notification_details_for_web(user_id, token):
-    user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
     if not user_instance:
         return {'success': False, 'error_message': "Invalid user id"}
@@ -8847,10 +8884,17 @@ def push(request):
 
     success = False
     if is_member:
-        if platform_code == 'an':
+        if platform_code == VersionUtilities.PlatformCode.ANDROID:
             platform_code = 'Android'
-        elif platform_code == 'ios':
+        elif platform_code == VersionUtilities.PlatformCode.IOS:
             platform_code = 'iOS'
+        elif platform_code == VersionUtilities.PlatformCode.FLUTTER:
+            platform_code = 'Flutter'
+        elif platform_code == VersionUtilities.PlatformCode.REACT_NATIVE:
+            platform_code = 'React Native'
+        else:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Invalid platform code",
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
 
         success = True
         user_instance = User.objects.get(id=member_id)

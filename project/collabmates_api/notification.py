@@ -189,6 +189,54 @@ def send_notification_for_web(token_list, message, firebase_key=None):
     return result
 
 
+def send_notification_for_flutter(token_list, message, firebase_key=None):
+    """function to send notification to flutter"""
+
+    if not token_list:
+        return
+
+    firebase_key = firebase_key if firebase_key else server_key
+
+    push_service = FCMNotification(api_key=firebase_key)
+
+    extra_notification_kwargs = {
+        "android": {
+            "priority": "high",
+            "channel_id": "likeminds_flutter_channel"
+        },
+        "ios": {
+            "content_available": True,
+            "mutable_content": True
+        }
+    }
+
+    result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                  message_title=message['payload']['title'],
+                                                  message_body=message['payload']['sub_title'],
+                                                  data_message=message['payload'],
+                                                  timeout=fcm_timeout_seconds,
+                                                  extra_notification_kwargs=extra_notification_kwargs)
+
+    return result
+
+
+def send_notification_for_react_native(token_list, message, firebase_key=None):
+    """function to send notification to react native"""
+
+    if not token_list:
+        return
+
+    firebase_key = firebase_key if firebase_key else server_key
+
+    push_service = FCMNotification(api_key=firebase_key)
+
+    result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                  data_message=message['payload'],
+                                                  timeout=fcm_timeout_seconds)
+
+    return result
+
+
 def send_silent_notification(token_list):
     push_service = FCMNotification(api_key=server_key)
     result = push_service.notify_multiple_devices(registration_ids=token_list,
@@ -265,7 +313,9 @@ def notification_meta(notification_list, message, calling_notification=""):
     tokens = {
         'Android': [],
         'iOS': [],
-        'web': []
+        'web': [],
+        'Flutter': [],
+        'React Native': []
     }
 
     category_dict = message.get('category')
@@ -314,6 +364,10 @@ def notification_meta(notification_list, message, calling_notification=""):
     send_notification_for_ios(tokens['iOS'], message, firebase_key)
 
     send_notification_for_web(tokens['web'], message, firebase_key)
+
+    send_notification_for_flutter(tokens['Flutter'], message, firebase_key)
+
+    send_notification_for_react_native(tokens['React Native'], message, firebase_key)
 
     track_notification_with_notification_payload_list(notification_payload_list)
 

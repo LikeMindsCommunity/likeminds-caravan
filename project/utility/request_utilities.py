@@ -47,6 +47,18 @@ class RequestUtilities:
         return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "ios"
 
     @staticmethod
+    def is_request_flutter(request: object):
+        return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "fl"
+
+    @staticmethod
+    def is_request_react_native(request: object):
+        return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "rn"
+
+    @staticmethod
+    def is_request_any(request: object, platforms: list):
+        return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() in platforms
+
+    @staticmethod
     def get_request_type(request: object) -> str:
         platform_code = request.META.get('HTTP_X_PLATFORM_CODE', '').lower()
 
@@ -131,7 +143,7 @@ class RequestUtilities:
 
     @staticmethod
     def get_page_number(request: object, key: str = "page", default: int = 1) -> int:
-        page = NumberUtilities.get_integer_from_string(request.query_params.get(key, default))
+        page = NumberUtilities.get_integer_from_string(request.query_params.get(key, default), return_default=default)
 
         if page <= 0:
             page = default
@@ -140,7 +152,8 @@ class RequestUtilities:
 
     @staticmethod
     def get_page_size(request: object, key: str = "page_size", default: int = 100) -> int:
-        page_size = NumberUtilities.get_integer_from_string(request.query_params.get(key, default))
+        page_size = NumberUtilities.get_integer_from_string(request.query_params.get(key, default),
+                                                            return_default=default)
 
         if page_size <= 0:
             page_size = default

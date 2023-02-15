@@ -188,14 +188,14 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         )
 
     @abc.abstractmethod
-    def fetch_chatroom(self, is_internal=False, api_type: int = 0) -> dict:
+    def fetch_chatroom(self, is_internal=False) -> dict:
         """
         fetching the chatroom from chatroom id
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_all_chatroom(self, page: int = 1, chatroom_type: int = -1) -> dict:
+    def fetch_all_chatroom(self, chatroom_filter_type: str, chatroom_excluded_type: str, page: int = 1, ) -> dict:
         """
         Fetch all chatrooms in community
         """
@@ -237,7 +237,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_tagging_list(self) -> dict:
+    def get_tagging_list(self, search_name: str = None, page: int = None, page_size: int = None) -> dict:
         """return the tagging list of users in chatroom"""
 
         raise NotImplementedError
@@ -263,7 +263,8 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_participants_of_secret_chatroom(self, participant_name, page, page_size):
+    def fetch_participants_of_secret_chatroom(self, participant_name: str = None, page: int = None,
+                                              page_size: int = None):
         """returns list of participants of secret chatrooms"""
 
         raise NotImplementedError
@@ -434,7 +435,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_chatroom_participants(self, participant_name, page, page_size):
+    def fetch_chatroom_participants(self, participant_name: str = None, page: int = None, page_size: int = None):
         """
         function to fetch chatroom participants meta data
         """

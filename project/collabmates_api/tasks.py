@@ -45,8 +45,7 @@ from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24, CM_ONBOARD
     CM_ONBOARDING_JOIN_FORM_NOT_SETUP_BUTTON_TEXT, MEMBER_REPLY_EMAIL,FIVE_DAYS_IN_HOURS, \
     DIRECTORY_QUESTIONS_ANDROID_VERSION_CODE, DIRECTORY_QUESTIONS_IOS_VERSION_CODE, \
     DIRECTORY_QUESTIONS_WEB_VERSION_CODE, SDK_GUEST_USER_DAYS_VALIDITY, ALIAS_QUESTION_ANDROID_VERSION_CODE, \
-    ALIAS_QUESTION_IOS_VERSION_CODE, ALIAS_QUESTION_WEB_VERSION_CODE, INVITE_SETTING_IOS_VERSION_CODE, \
-    INVITE_SETTING_WEB_VERSION_CODE, INVITE_SETTING_ANDROID_VERSION_CODE
+    ALIAS_QUESTION_IOS_VERSION_CODE, ALIAS_QUESTION_WEB_VERSION_CODE
 from utility.mail_category_constants import *
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper, MailHelper
@@ -953,14 +952,3 @@ def get_user_last_active_check_timestamp():
     )
 
     return last_active_timestamp
-
-
-def invite_setting_version_check(platform_code, version_code):
-    is_enabled = False
-
-    if any([((platform_code == 'ios') and (version_code >= INVITE_SETTING_IOS_VERSION_CODE)),
-            ((platform_code == 'web') and (version_code >= INVITE_SETTING_WEB_VERSION_CODE)),
-            ((platform_code == 'an') and (version_code >= INVITE_SETTING_ANDROID_VERSION_CODE))]):
-        is_enabled = True
-
-    return is_enabled

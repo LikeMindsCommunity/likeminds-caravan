@@ -49,6 +49,8 @@ from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             conversationPollMembers, Userinfo, conversationEngage, answerAttachment,
                             conversationEventMembers, conversationEventNudge, UserEmailsSendStatus, userDevices,
                             userMemberRights)
+from collabmates_api.sdk.models import SdkClient
+
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.exception_utilities import CustomException, InvalidChatroomException
@@ -737,7 +739,7 @@ class ConversationImpl(ConversationManager):
             return {'success': True, 'conversations': conversations}
 
         # Client is not sending scroll direction and only sending conversation id
-        if self.get_conversation_id() and self.get_scroll_direction() is None:
+        if self.get_conversation_id() and not self.get_scroll_direction():
             conversation = ModelUtilities.get_model_instance_or_none(card_answers, self.get_conversation_id())
             conversations = [conversation]
             conversations = self._create_conversation_list(conversations)
@@ -1187,9 +1189,13 @@ class ConversationImpl(ConversationManager):
         poll_instance = poll_filter[0]
 
         community_instance = conversation_instance.community
-        user_list = self._fetch_member_list_for_poll_conversation(conversation_instance, poll_instance,
-                                                                  page, page_size)
-        member_list = self._create_member_instances_from_user_list(user_list, community_instance)
+
+        member_list = []
+
+        # Check if poll is not anonymous, then only send members list, else send empty list
+        if not conversation_instance.is_anonymous:
+            user_list = self._fetch_member_list_for_poll_conversation(conversation_instance, poll_instance,page, page_size)                                           
+            member_list = self._create_member_instances_from_user_list(user_list, community_instance)
 
         return {'success': True, 'members': member_list}
 
@@ -1281,7 +1287,9 @@ class ConversationImpl(ConversationManager):
                                     {'card': chatroom_instance},
                                     {'updated_at': TimeUtilities.current_time_in_sec()})
 
-        send_notification_on_chatroom_topic_update.delay(chatroom_instance.id, user_instance.id)
+        #If Chatroom is part of an SDK community, do not send notification
+        if not SdkClient.is_sdk_community(chatroom_instance.community_id):
+            send_notification_on_chatroom_topic_update.delay(chatroom_instance.id, user_instance.id)
 
         return {'success': True}
 

@@ -34,12 +34,12 @@ class FetchChatroomView(APIView):
         is_internal = StringUtilities.get_boolean_from_string(request.GET.get('is_internal'))
 
         chatroom_id = request.GET.get('chatroom_id')
-        api_type = NumberUtilities.get_integer_from_string(request.GET.get('api_type', api_types.Non_SDK),
-                                                           api_types.Non_SDK)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, device_id=device_id,
-                                        request_platform=request_platform, version_code=version_code)
-        chatroom_data = chatroom_manager.fetch_chatroom(is_internal=is_internal, api_type=api_type)
+                                        request_platform=request_platform, version_code=version_code,
+                                        api_key=api_key)
+        chatroom_data = chatroom_manager.fetch_chatroom(is_internal=is_internal)
 
         if 'error_message' in chatroom_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
@@ -57,11 +57,14 @@ class FetchAllChatroomView(APIView):
         version_code = RequestUtilities.get_version_code_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
         page = RequestUtilities.get_page_number(request)
-        chatroom_type = NumberUtilities.get_integer_from_string(request.GET.get("type"), -1)
+        chatroom_filter_type = request.GET.get('filter_type')
+        chatroom_excluded_type = request.GET.get('excluded_type')
 
         chatroom_manager = ChatroomImpl(member_id, device_id=device_id, request_platform=request_platform,
                                         version_code=version_code, api_key=api_key)
-        chatroom_data = chatroom_manager.fetch_all_chatroom(page=page, chatroom_type=chatroom_type)
+        chatroom_data = chatroom_manager.fetch_all_chatroom(chatroom_filter_type=chatroom_filter_type,
+                                                            chatroom_excluded_type=chatroom_excluded_type,
+                                                            page=page)
 
         if chatroom_data.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
@@ -195,6 +198,9 @@ class GetTaggingList(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         chatroom_id = request.GET.get('chatroom_id')
+        search_name = request.GET.get('search_name', None)
+        page = RequestUtilities.get_page_number(request, default=1)
+        page_size = RequestUtilities.get_page_size(request, default=50)
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
 
@@ -202,7 +208,7 @@ class GetTaggingList(APIView):
 
         try:
             if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.group_tags):
-                chatroom_data = chatroom_manager.get_tagging_list()
+                chatroom_data = chatroom_manager.get_tagging_list(search_name, page=page, page_size=page_size)
 
             else:
                 """
@@ -282,11 +288,20 @@ class FetchParticipantsOfSecretChatroom(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         chatroom_id = request.GET.get('chatroom_id')
-        page = NumberUtilities.get_integer_from_string(request.GET.get('page'), 1)
-        page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size'), 10)
+        page = RequestUtilities.get_page_number(request, default=1)
+        page_size = RequestUtilities.get_page_size(request, default=10)
         participant_name = request.GET.get('participant_name')
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
 
-        chatroom_manager = ChatroomImpl(member_id, chatroom_id)
+        chatroom_manager = ChatroomImpl(member_id, chatroom_id, request_platform=platform_code,
+                                        version_code=version_code)
+
+        pagination_version_check = VersionUtilities.check_version(platform_code, version_code,
+                                                                  VersionUtilities.participants_meta_pagination)
+
+        if not pagination_version_check:
+            page, page_size = None, None
 
         try:
             chatroom_data = chatroom_manager.fetch_participants_of_secret_chatroom(participant_name, page, page_size)
@@ -995,11 +1010,20 @@ class FetchChatroomParticipantsView(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         chatroom_id = request.GET.get('chatroom_id')
-        page = NumberUtilities.get_integer_from_string(request.GET.get('page'), 1)
-        page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size'), 10)
+        page = RequestUtilities.get_page_number(request, default=1)
+        page_size = RequestUtilities.get_page_size(request, default=10)
         participant_name = request.GET.get('participant_name')
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
 
-        chatroom_manager = ChatroomImpl(member_id, chatroom_id)
+        chatroom_manager = ChatroomImpl(member_id, chatroom_id, request_platform=platform_code,
+                                        version_code=version_code)
+
+        pagination_version_check = VersionUtilities.check_version(platform_code, version_code,
+                                                                  VersionUtilities.participants_meta_pagination)
+
+        if not pagination_version_check:
+            page, page_size = None, None
 
         try:
             chatroom_data = chatroom_manager.fetch_chatroom_participants(participant_name, page, page_size)
