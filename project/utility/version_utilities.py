@@ -44,9 +44,9 @@ class VersionUtilities:
     }
 
     create_conversation_revamp: dict = {
-        PlatformCode.ANDROID: unreleased_version_code,
-        PlatformCode.IOS: unreleased_version_code,
-        PlatformCode.WEB: unreleased_version_code,
+        PlatformCode.ANDROID: 213,
+        PlatformCode.IOS: 374,
+        PlatformCode.WEB: 16,
         PlatformCode.ANDROID_SDK: unreleased_version_code,
         PlatformCode.IOS_SDK: unreleased_version_code,
         PlatformCode.WEB_SDK: unreleased_version_code,
