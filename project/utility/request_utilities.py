@@ -47,6 +47,18 @@ class RequestUtilities:
         return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "ios"
 
     @staticmethod
+    def is_request_flutter(request: object):
+        return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "fl"
+
+    @staticmethod
+    def is_request_react_native(request: object):
+        return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "rn"
+
+    @staticmethod
+    def is_request_any(request: object, platforms: list):
+        return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() in platforms
+
+    @staticmethod
     def get_request_type(request: object) -> str:
         platform_code = request.META.get('HTTP_X_PLATFORM_CODE', '').lower()
 

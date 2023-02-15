@@ -8,6 +8,7 @@ from utility.number_utilities import NumberUtilities
 from utility.string_utilities import StringUtilities
 from utility.exception_utilities import InvalidHeaderException, CustomException
 from utility.response_utilities import ResponseUtilities
+from utility.version_utilities import VersionUtilities
 
 from collabmates_api.views import get_error_context
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -71,8 +72,10 @@ class FetchCommunityFeed(APIView):
         if order_type:
             order_type = NumberUtilities.get_integer_from_string(order_type)
 
-        if RequestUtilities.is_request_android(request) or RequestUtilities.is_request_ios(request):
-
+        if RequestUtilities.is_request_any(request, [VersionUtilities.PlatformCode.ANDROID,
+                                                     VersionUtilities.PlatformCode.IOS,
+                                                     VersionUtilities.PlatformCode.FLUTTER,
+                                                     VersionUtilities.PlatformCode.REACT_NATIVE]):
             chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
                                                             scroll_direction=scroll_direction,
                                                             api_version=api_version, order_type=order_type,

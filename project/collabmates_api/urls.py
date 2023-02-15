@@ -198,7 +198,8 @@ urlpatterns = [
     path('notifications/', include('collabmates_api.notifications.urls'), name='notifications'),
     path('automate_message/', include('collabmates_api.automate_message.urls'), name='automate_message'),
     path('webhooks', include('collabmates_api.webhook.urls'), name="webhooks"),
-    path('sdk/', include('collabmates_api.sdk.urls'), name='sdk')
+    path('sdk/', include('collabmates_api.sdk.urls'), name='sdk'),
+    path('sync/', include('collabmates_api.sync.urls'), name='sync')
 ]
 
 app_name = 'collabmates_api'
