@@ -21,6 +21,10 @@ ADD . $WORKDIR
 
 ADD https://beta-likeminds-media.s3.ap-south-1.amazonaws.com/environment/Caravan-Beta-Dot-Env/.env ./project/project/settings/.env
 
+RUN mkdir /usr/src/app/project/utility/logs && \
+    touch /usr/src/app/project/utility/logs/collabmates.log && \
+    touch /usr/src/app/project/utility/logs/custom.log
+
 RUN chmod +x ./docker-entrypoint/entry-caravan-beta.sh
 
 CMD [ "/bin/bash", "./docker-entrypoint/entry-caravan-beta.sh" ]
