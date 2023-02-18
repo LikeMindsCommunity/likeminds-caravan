@@ -1,6 +1,5 @@
 import json
 
-import time
 from django.db.models import QuerySet
 from collections import Iterable
 from typing import Union
@@ -17,7 +16,6 @@ from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.api_client import ApiClient
-from utility.list_utilities import ListUtilities
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_PLACEHOLDER_USER_ROUTE, \
     SUBSCRIPTION_VALIDATE_EVENT_ONLINE_LINK, EVENT_CARD_MAIL_DESCRIPTION, CHATROOM_URL, MAIL_EVENT_NOTIFICATION, \
@@ -36,7 +34,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_last_seen_non_member_access_event_for_user, \
     get_count_for_new_non_member_access_event_chatroom_community_managers, \
     get_count_for_non_member_access_event_for_user_non_community_manager, check_user_has_member_can_initiate_dm_right, \
-    get_participant_counts_on_basis_of_chatroom_ids, get_all_chatrooms_of_community, get_chatroom_participants_count,\
+    get_all_chatrooms_of_community, get_chatroom_participants_count,\
     get_sorted_user_data_on_basis_of_activity_in_chatroom, get_members_based_on_user_list_query, \
     get_community_members_data_on_basis_of_name_search, get_last_conversation_id_corresponding_to_chatrooms_list
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
@@ -102,6 +100,7 @@ from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from collabmates_api.conversation import conversation_impl
 from utility.validation_utilities import ValidationUtilities
+from utility.auth_utilities import AuthUtilities
 
 from collabmates_api.branch import create_community_feed_url_for_cm_onboarding, create_single_event_branch_url
 
@@ -1053,13 +1052,18 @@ class ChatroomImpl(ChatroomManager):
         chatroom_filter_type = validated_req.get('chatroom_filter_type')
         chatroom_excluded_type = validated_req.get('chatroom_excluded_type')
 
-        card_ids = get_all_chatrooms_of_community(community_instance.id, chatroom_filter_type,
-                                                  chatroom_excluded_type, page)
+        is_cm = AuthUtilities.is_cm(community_instance.id, self.get_member_id())
+        if 'error_message' in is_cm:
+            return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
+
+        card_ids = get_all_chatrooms_of_community(community_instance.id, chatroom_filter_type, chatroom_excluded_type)
         chatroom_list = ModelUtilities.get_model_filter(collabcardState,
                                                         {'card_id__in': card_ids,
                                                          'user': self.get_member_id(),
                                                          'secret_chatroom_left': False}).select_related('card',
                                                                                                         'card__user')
+        total_chatroom_count = len(chatroom_list)
+        chatroom_list = ModelUtilities.paginate_queryset(chatroom_list, page, 10)
 
         chatroom_context_list = []
 
@@ -1070,7 +1074,7 @@ class ChatroomImpl(ChatroomManager):
             chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
             chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
 
-        return {'success': True, 'chatrooms': chatroom_context_list}
+        return {'success': True, 'chatrooms': chatroom_context_list, 'total_chatroom_count': total_chatroom_count}
 
     def create_chatroom(self, req_body: dict) -> dict:
         validated_req = ChatroomViewHelper.validate_create_chatroom_request(self.get_member_id(),
