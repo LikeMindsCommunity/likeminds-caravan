@@ -1049,12 +1049,14 @@ class ChatroomImpl(ChatroomManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
+        user_instance = validated_req.get('user_instance')
         chatroom_filter_type = validated_req.get('chatroom_filter_type')
         chatroom_excluded_type = validated_req.get('chatroom_excluded_type')
 
-        is_cm = AuthUtilities.is_cm(community_instance.id, self.get_member_id())
-        if 'error_message' in is_cm:
-            return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
+        is_cm = Members.is_member_community_promoter(community_instance, user_instance)
+        if not is_cm:
+            return ResponseUtilities.get_impl_error_context('You are not the owner/CM of community',
+                                                     status_codes.HTTP_401_UNAUTHORIZED)
 
         card_ids = get_all_chatrooms_of_community(community_instance.id, chatroom_filter_type, chatroom_excluded_type)
         chatroom_list = ModelUtilities.get_model_filter(collabcardState,
