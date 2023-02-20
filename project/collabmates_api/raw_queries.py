@@ -3084,10 +3084,8 @@ def get_participant_counts_on_basis_of_chatroom_ids(card_ids_list):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_excluded_type, page=1, limit=10):
+def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_excluded_type):
     try:
-        page_number = int(page)
-        offset = (page_number - 1) * limit
 
         excluded_type_list = [10]
         if chatroom_excluded_type:
@@ -3108,9 +3106,7 @@ def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_
                        AND is_private = false
                        AND community_id = %s 
                        %s
-                       %s)
-                 OFFSET %s LIMIT %s;""" % (str(community_id), type_exclude_filter, type_include_filter,
-                                           str(offset), str(limit))
+                       %s);""" % (str(community_id), type_exclude_filter, type_include_filter)
 
         curr.execute(sql)
         card_list = curr.fetchall()
