@@ -47,9 +47,9 @@ class VersionUtilities:
         PlatformCode.ANDROID: 213,
         PlatformCode.IOS: 374,
         PlatformCode.WEB: 16,
-        PlatformCode.ANDROID_SDK: unreleased_version_code,
-        PlatformCode.IOS_SDK: unreleased_version_code,
-        PlatformCode.WEB_SDK: unreleased_version_code,
+        PlatformCode.ANDROID_SDK: 210,
+        PlatformCode.IOS_SDK: 372,
+        PlatformCode.WEB_SDK: 16,
         PlatformCode.FLUTTER: unreleased_version_code,
         PlatformCode.REACT_NATIVE: unreleased_version_code,
     }
