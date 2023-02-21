@@ -11358,6 +11358,11 @@ def fetch_community_member_rights(request):
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+
+    if api_key:
+        platform_code = VersionUtilities.PlatformCode.convert_platform_code_to_sdk(platform_code)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -11392,7 +11397,9 @@ def fetch_community_member_rights(request):
 
     if admin.exists():
         admin_rights = check_all_manager_rights(current_user_instance, community_instance)
-        user_rights = check_all_member_rights(user_instance, community_instance)
+        user_rights = check_all_member_rights(user_instance, community_instance,
+                                              is_feed_enabled=VersionUtilities.check_version(
+                                                  platform_code, version_code, VersionUtilities.feed_member_rights))
 
         rights_context = get_saved_member_rights_list(user_rights, admin_rights)
 
