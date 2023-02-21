@@ -11358,11 +11358,8 @@ def fetch_community_member_rights(request):
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
-    platform_code = RequestUtilities.get_platform_code(request)
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
-
-    if api_key:
-        platform_code = VersionUtilities.PlatformCode.convert_platform_code_to_sdk(platform_code)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -11395,13 +11392,13 @@ def fetch_community_member_rights(request):
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
 
+    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights)
+
     if admin.exists():
         admin_rights = check_all_manager_rights(current_user_instance, community_instance)
-        user_rights = check_all_member_rights(user_instance, community_instance,
-                                              is_feed_enabled=VersionUtilities.check_version(
-                                                  platform_code, version_code, VersionUtilities.feed_member_rights))
+        user_rights = check_all_member_rights(user_instance, community_instance, is_feed_enabled=is_feed_enabled)
 
-        rights_context = get_saved_member_rights_list(user_rights, admin_rights)
+        rights_context = get_saved_member_rights_list(user_rights, admin_rights, is_feed_enabled=is_feed_enabled)
 
         rights_context = update_member_rights_for_sdk(rights_context, community_instance)
 
