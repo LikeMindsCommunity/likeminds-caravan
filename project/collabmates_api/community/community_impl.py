@@ -75,6 +75,7 @@ from utility.constants import PLATFORM_CODE_WEB
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
+from utility.version_utilities import VersionUtilities
 
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
@@ -1133,6 +1134,8 @@ class CommunityImpl(CommunityManager):
         community_settings = json.loads(json.dumps(community_settings_serializer.data))
         filtered_community_settings_list = []
         is_m2cm_v2 = m2cm_v2_version_check(self.get_request_platform(), self.get_version_code())
+        is_chatroom_invite = VersionUtilities.check_version(self.get_request_platform(), self.get_version_code(),
+                                                            VersionUtilities.chatroom_invite)
 
         for community_setting in community_settings:
 
@@ -1141,6 +1144,13 @@ class CommunityImpl(CommunityManager):
                                                               community_setting_types.DIRECT_MESSAGE_SETTING,
                                                               community_setting_types.DIRECT_MSGS_GROUP_MSGS],
                     not is_m2cm_v2]):
+                continue
+
+            if all([community_setting.get('setting_type') in [community_setting_types.CHATROOMS,
+                                                              community_setting_types.SECRET_CHATROOMS_INVITE,
+                                                              community_setting_types.POST_GROUPS,
+                                                              community_setting_types.SECRET_GROUP_INVITE],
+                    not is_chatroom_invite]):
                 continue
 
             if all([not check_admin_moderate_dm_settings_right(user_instance, community_instance),
@@ -1196,6 +1206,74 @@ class CommunityImpl(CommunityManager):
             if all([community_setting["setting_type"] == community_setting_types.FEED,
                    not check_admin_moderate_feed_and_comments_right(user_instance, community_instance)]):
                 continue
+
+            if all([community_setting["setting_type"] == community_setting_types.SECRET_CHATROOMS_INVITE,
+                    community_setting['enabled']]):
+                is_chatroom_setting_enabled = False
+
+                chatroom_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                          {'community': self.get_community_id(),
+                                                                           'setting_type': community_setting_types.CHATROOMS})
+
+                if chatroom_setting_filter:
+                    is_chatroom_setting_enabled = chatroom_setting_filter[0].enabled
+
+                for com_setting in community_settings_list:
+
+                    if com_setting["setting_type"] == community_setting_types.CHATROOMS:
+                        is_chatroom_setting_enabled = com_setting["enabled"]
+
+                if not is_chatroom_setting_enabled:
+                    continue
+
+            if all([community_setting["setting_type"] == community_setting_types.CHATROOMS,
+                    not community_setting['enabled']]):
+                filter_dict = {
+                    "community_id": self.get_community_id(),
+                    "setting_type": community_setting_types.SECRET_CHATROOMS_INVITE,
+                }
+
+                update_dict = {
+                    'enabled': False,
+                    'updated_at': TimeUtilities.current_time_in_milliseconds(),
+                    'enabled_by': None
+                }
+
+                ModelUtilities.model_update(CommunitySettings, filter_dict, update_dict)
+
+            if all([community_setting["setting_type"] == community_setting_types.SECRET_GROUP_INVITE,
+                    community_setting['enabled']]):
+                is_post_group_setting_enabled = False
+
+                post_group_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                            {'community': self.get_community_id(),
+                                                                             'setting_type': community_setting_types.POST_GROUPS})
+
+                if post_group_setting_filter:
+                    is_post_group_setting_enabled = post_group_setting_filter[0].enabled
+
+                for com_setting in community_settings_list:
+
+                    if com_setting["setting_type"] == community_setting_types.POST_GROUPS:
+                        is_post_group_setting_enabled = com_setting["enabled"]
+
+                if not is_post_group_setting_enabled:
+                    continue
+
+            if all([community_setting["setting_type"] == community_setting_types.POST_GROUPS,
+                    not community_setting['enabled']]):
+                filter_dict = {
+                    "community_id": self.get_community_id(),
+                    "setting_type": community_setting_types.SECRET_GROUP_INVITE,
+                }
+
+                update_dict = {
+                    'enabled': False,
+                    'updated_at': TimeUtilities.current_time_in_milliseconds(),
+                    'enabled_by': None
+                }
+
+                ModelUtilities.model_update(CommunitySettings, filter_dict, update_dict)
 
             filter_dict = {
                 "community_id": self.get_community_id(),

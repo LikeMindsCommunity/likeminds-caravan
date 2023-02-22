@@ -14906,7 +14906,9 @@ def add_community_settings_for_community(community_instance, user_instance):
         is_enabled = True
 
         if setting_type in [community_setting_types.DIRECT_MESSAGES, community_setting_types.MEMBERS_CAN_DM,
-                            community_setting_types.DIRECT_MSGS_GROUP_MSGS, community_setting_types.FEED]:
+                            community_setting_types.DIRECT_MSGS_GROUP_MSGS, community_setting_types.FEED,
+                            community_setting_types.CHATROOMS, community_setting_types.SECRET_CHATROOMS_INVITE,
+                            community_setting_types.POST_GROUPS, community_setting_types.SECRET_GROUP_INVITE]:
             is_enabled = False
 
         community_settings_data = {
@@ -14915,7 +14917,7 @@ def add_community_settings_for_community(community_instance, user_instance):
             'setting_title': setting_title,
             'setting_sub_title': COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING.get(setting_type),
             'enabled': is_enabled,
-            'enabled_by': user_instance,
+            'enabled_by': user_instance if is_enabled else None,
         }
         community_settings_instance = CommunitySettings.create_instance(community_settings_data)
         community_settings_list.append(community_settings_instance)

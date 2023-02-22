@@ -476,6 +476,10 @@ class CommunitySettingTypes:
     MEMBERS_CAN_DM = "members_can_dm"
     DIRECT_MESSAGE_SETTING = "direct_messages_setting"
     DIRECT_MSGS_GROUP_MSGS = "direct_messages_with_group_messages"
+    CHATROOMS = "chatrooms"
+    SECRET_CHATROOMS_INVITE = "secret_chatrooms_invite"
+    POST_GROUPS = "post_groups"
+    SECRET_GROUP_INVITE = "secret_groups_invite"
 
 
 community_setting_types = CommunitySettingTypes()

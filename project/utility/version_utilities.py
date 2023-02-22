@@ -87,6 +87,17 @@ class VersionUtilities:
         PlatformCode.REACT_NATIVE: 1,
     }
 
+    chatroom_invite: dict = {
+        PlatformCode.ANDROID: unreleased_version_code,
+        PlatformCode.IOS: unreleased_version_code,
+        PlatformCode.WEB: unreleased_version_code,
+        PlatformCode.ANDROID_SDK: unreleased_version_code,
+        PlatformCode.IOS_SDK: unreleased_version_code,
+        PlatformCode.WEB_SDK: unreleased_version_code,
+        PlatformCode.FLUTTER: unreleased_version_code,
+        PlatformCode.REACT_NATIVE: unreleased_version_code,
+    }
+
     @staticmethod
     def check_version(platform_code: str, version_code: int, feature_version_dict: dict) -> bool:
         """
