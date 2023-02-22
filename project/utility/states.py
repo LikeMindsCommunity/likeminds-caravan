@@ -724,3 +724,12 @@ class FeedOrderTypes:
 
 
 feed_order_types = FeedOrderTypes()
+
+
+class ChatroomInviteStatusTypes:
+    INVITE_INITIATED = 0
+    INVITE_ACCEPTED = 1
+    INVITE_REJECTED = 2
+
+
+chatroom_invite_status_types = ChatroomInviteStatusTypes()

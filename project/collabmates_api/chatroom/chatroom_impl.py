@@ -71,14 +71,16 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             CollabcardPolls, draftChatroom, draftPolls, ModelUtilities, Userinfo, EventInstructor,
                             EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment,
                             EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember, removedMembers,
-                            CommunityGetStarted, EventRecordingsURL, ChatroomSecretTypeConversion, ScheduledChatroomFollow)
+                            CommunityGetStarted, EventRecordingsURL, ChatroomSecretTypeConversion,
+                            ScheduledChatroomFollow, CommunitySettings, ChatroomInvite)
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.webflow.webflow_impl import WebflowImpl
 from external_services.email.email_wrapper import MailWrapper, MailHelper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
-    event_online_link_types, block_chatroom_states, chat_request_states, api_types, noti_states
+    event_online_link_types, block_chatroom_states, chat_request_states, api_types, noti_states, \
+    community_setting_types, chatroom_invite_status_types
 
 from utility.utils import check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -1372,8 +1374,10 @@ class ChatroomImpl(ChatroomManager):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
+        user_instance = validated_req_body.get('user_instance')
         chatroom_instance = validated_req_body.get('card_instance')
         secret_chatroom_participants = validated_req_body.get('secret_chatroom_participants')
+        is_chatroom_invite = req_body.get('is_channel_invite', False)
 
         # support for user_unique_ids in secret chatroom participants parameter
         secret_chatroom_participants = MemberCommunityImpl.get_valid_member_ids(secret_chatroom_participants)
@@ -1384,6 +1388,14 @@ class ChatroomImpl(ChatroomManager):
             return {'success': True}
 
         existing_participants = json.loads(chatroom_instance.secret_chatroom_participants)
+
+        if is_chatroom_invite:
+            new_users_list = list(set(secret_chatroom_participants) - set(existing_participants))
+            ChatroomHelper.create_chatroom_invite_to_users.delay(user_instance.id,
+                                                                 chatroom_instance.id,
+                                                                 new_users_list)
+
+            return {'success': True}
 
         final_participants_list = set(secret_chatroom_participants) | set(existing_participants)
 
@@ -5434,3 +5446,70 @@ class ChatroomHelper:
             participant_count = ChatroomHelper.chatroom_participants_count(chatroom_instance)
 
         return participant_count
+
+    @staticmethod
+    @shared_task
+    def create_chatroom_invite_to_users(user_id: int, chatroom_id: int, users_list: list):
+        validation_params = {
+            'chatroom_id': chatroom_id,
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return
+
+        user_instance = validated_dict.get('user_id')
+        chatroom_instance = validated_dict.get('chatroom_id')
+
+        is_setting_enabled = False
+
+        filter_dict = {
+            'community': chatroom_instance.community,
+            'enabled': True
+        }
+
+        if chatroom_instance.type == card_types.CARD_NORMAL:
+            filter_dict['setting_type'] = community_setting_types.SECRET_CHATROOMS_INVITE
+            chatroom_invite_setting = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+
+            if chatroom_invite_setting:
+                is_setting_enabled = True
+
+        elif chatroom_instance.type == card_types.CARD_FEED_GROUP:
+            filter_dict['setting_type'] = community_setting_types.SECRET_GROUP_INVITE
+            post_group_invite_setting = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+
+            if post_group_invite_setting:
+                is_setting_enabled = True
+
+        if is_setting_enabled:
+            filter_dict = {
+                'chatroom': chatroom_instance,
+                'invite_status': chatroom_invite_status_types.INVITE_INITIATED
+            }
+
+            chatroom_invite_filter = ModelUtilities.get_model_filter(ChatroomInvite, filter_dict)
+            already_invited_users_list = list(chatroom_invite_filter.values_list('invite_receiver', flat=True))
+
+            new_users = list(set(users_list) - set(already_invited_users_list))
+
+            chatroom_invite_list = []
+
+            for user_id in new_users:
+                invite_receiver_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+                if not invite_receiver_instance:
+                    continue
+
+                chatroom_invite_list.append(ChatroomInvite(**{
+                    'chatroom': chatroom_instance,
+                    'invite_sender': user_instance,
+                    'invite_receiver': invite_receiver_instance,
+                    'invite_status': chatroom_invite_status_types.INVITE_INITIATED,
+                    'created_at': TimeUtilities.current_time_in_milliseconds(),
+                    'updated_at': TimeUtilities.current_time_in_milliseconds()
+                }))
+
+            ModelUtilities.bulk_create_instances(ChatroomInvite, chatroom_invite_list)
