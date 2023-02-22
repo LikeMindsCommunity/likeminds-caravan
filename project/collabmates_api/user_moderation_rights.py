@@ -134,7 +134,8 @@ def update_member_rights_for_sdk(rights_context, community_instance):
     return updated_rights
 
 
-def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=False, is_m2cm_v2=False):
+def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=False, is_m2cm_v2=False,
+                                 is_feed_enabled=False):
     """ function to return the selected and disabled rights of a member or community settings """
     all_member_rights = memberRights.objects.all().exclude(state=4).order_by("state")
     rights_list = []
@@ -146,10 +147,10 @@ def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=F
         if (right.state == member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM) and (not is_m2cm_v2):
             continue
 
-        if right.state == create_post_right['state'] and (not user_rights.get("create_posts", False)):
+        if right.state == create_post_right['state'] and (not is_feed_enabled):
             continue
 
-        if right.state == comment_and_reply_right['state'] and (not user_rights.get("comment_and_reply", False)):
+        if right.state == comment_and_reply_right['state'] and (not is_feed_enabled):
             continue
 
         right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title, "state": right.state,
@@ -314,7 +315,7 @@ def check_all_manager_rights(user, community):
     return rights_list
 
 
-def check_all_member_rights(user=None, community=None, is_m2cm_v2=False):
+def check_all_member_rights(user=None, community=None, is_m2cm_v2=False, is_feed_enabled=False):
     """function to give a manager all the rights """
 
     create_room = False
@@ -366,8 +367,11 @@ def check_all_member_rights(user=None, community=None, is_m2cm_v2=False):
 
     rights = {"create_room": create_room, "create_poll": create_poll, "create_event": create_event,
               "respond_in_rooms": respond_in_rooms, "auto_approve": auto_approve,
-              "create_secret_chatroom": secret_chatroom, "show_dm": show_direct_messages,
-              "create_posts": create_posts, "comment_and_reply": comment_and_reply}
+              "create_secret_chatroom": secret_chatroom, "show_dm": show_direct_messages}
+
+    if is_feed_enabled:
+        rights["create_posts"] = create_posts
+        rights["comment_and_reply"] = comment_and_reply
 
     if is_m2cm_v2:
         rights["members_can_dm"] = members_can_dm
