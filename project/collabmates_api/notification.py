@@ -142,7 +142,11 @@ def send_notification_for_android(token_list, message, firebase_key=None):
                                                   timeout=fcm_timeout_seconds,
                                                   extra_kwargs=extra_kwargs)
 
-    print(result)
+    # print(result)
+    log_statement = """
+        The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+    """.format("ANDROID", len(token_list), result.get('success'), result.get('failure'), message.get('payload'))
+    print(log_statement)
     return result
 
 
@@ -168,7 +172,11 @@ def send_notification_for_ios(token_list, message, firebase_key=None):
                                                   timeout=fcm_timeout_seconds,
                                                   extra_kwargs=extra_kwargs)
 
-    print(result)
+    # print(result)
+    log_statement = """
+            The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+        """.format("IOS", len(token_list), result.get('success'), result.get('failure'), message.get('payload'))
+    print(log_statement)
     return result
 
 
