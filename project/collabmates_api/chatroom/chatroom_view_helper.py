@@ -1,5 +1,5 @@
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, Members, Collabcard, collabcardState)
+from togther.models import (ModelUtilities, Members, Collabcard, collabcardState, userMemberRights)
 from rest_framework import status as status_codes
 from utility.states import (member_states, card_types)
 from collabmates_api.sdk.models import (SdkClient)
@@ -67,6 +67,11 @@ class ChatroomViewHelper:
 
         if not is_member:
             return ResponseUtilities.get_inner_error_context("You cannot create a chatroom")
+
+        has_rights = userMemberRights.check_member_create_room_right(user_instance, community_instance)
+        
+        if not has_rights:
+            return ResponseUtilities.get_inner_error_context("You don't have the rights to create a chatroom")
 
         return {'user_instance': user_instance, 'community_instance': community_instance}
 
