@@ -8,7 +8,8 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         CONVERSATIONS_META_KEY_VALUE, SYNC_DATA_KEYS, COMMUNITY_META_KEY_VALUE,
                         CHATROOM_META_KEY_VALUE, PARSE_JSON_KEYS, MESSAGE_REACTIONS_META_KEY_VALUE,
                         CONVERSATION_STATE_KEY_VALUE, POLL_CONVERSATION_TO_SHOW_RESULTS_KEY,
-                        CONVERSATION_POLLS_META_KEY_VALUE, CONVERSATIONS_DATE_KEY, CHATROOM_STATE_META_KEY_VALUE)
+                        CONVERSATION_POLLS_META_KEY_VALUE, CONVERSATIONS_DATE_KEY, CHATROOM_STATE_META_KEY_VALUE,
+                        CONVERSATIONS_CREATED_EPOCH_KEY, CONVERSATIONS_CREATED_AT_KEY)
 from utility.states import (conversation_states, conversation_poll_types)
 
 
@@ -314,16 +315,44 @@ class SyncHelper:
         return to_show_results
 
     @staticmethod
-    def add_additional_data_in_conversation_meta(sync_data, user_id: int, is_user_cm: bool = False):
-        conversation_meta = sync_data.get(CONVERSATIONS_META_KEY_VALUE)
+    def compute_conversation_additional_data(conversation_data, user_id: int, is_user_cm: bool = False,
+                                             conv_polls_data: list = None):
+
+        if not conv_polls_data:
+            conv_polls_data = {}
+
+        conversation_data[POLL_CONVERSATION_TO_SHOW_RESULTS_KEY] = \
+            SyncHelper.compute_show_poll_results_for_conversation_meta(
+                conversation_data, user_id, is_user_cm, conv_polls_data)
+
+        if conversation_data.get(CONVERSATIONS_CREATED_AT_KEY):
+            conversation_data[CONVERSATIONS_CREATED_EPOCH_KEY] = conversation_data.get(CONVERSATIONS_CREATED_AT_KEY)
+
+            conversation_data[CONVERSATIONS_DATE_KEY] = TimeUtilities.convert_epoch_time_in_date(
+                conversation_data.get(CONVERSATIONS_CREATED_AT_KEY))
+
+            conversation_data[CONVERSATIONS_CREATED_AT_KEY] = TimeUtilities.convert_epoch_time_in_hh_mm(
+                conversation_data.get(CONVERSATIONS_CREATED_AT_KEY))
+
+    @staticmethod
+    def add_additional_data_in_conversation_meta(sync_data,
+                                                 user_id: int,
+                                                 conversation_data_key: str = CONVERSATIONS_META_KEY_VALUE,
+                                                 is_user_cm: bool = False):
+        conversations_data = sync_data.get(conversation_data_key)
         conv_polls_data = sync_data.get(CONVERSATION_POLLS_META_KEY_VALUE)
 
-        for conversation_id, conversation_data in conversation_meta.items():
+        if isinstance(conversations_data, dict):
+            conversations_data_list = list(conversations_data.values())
 
-            conversation_data[POLL_CONVERSATION_TO_SHOW_RESULTS_KEY] = \
-                SyncHelper.compute_show_poll_results_for_conversation_meta(
-                    conversation_data, user_id, is_user_cm, conv_polls_data.get(conversation_data.get('id')))
+        elif isinstance(conversations_data, list):
+            conversations_data_list = conversations_data
 
-            if conversation_data.get('created_at'):
-                conversation_data[CONVERSATIONS_DATE_KEY] = TimeUtilities.convert_epoch_time_in_date(
-                    conversation_data.get('created_at'))
+        else:
+            return
+
+        for conversation_data in conversations_data_list:
+            SyncHelper.compute_conversation_additional_data(conversation_data,
+                                                            user_id,
+                                                            is_user_cm,
+                                                            conv_polls_data.get(conversation_data.get('id')))

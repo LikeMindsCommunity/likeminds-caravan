@@ -3490,7 +3490,7 @@ def get_chatroom_query_meta_for_sync_revamp(key_name_prefix: str = None):
 def get_chatroom_state_query_meta_for_sync_revamp(key_name_prefix: str = None):
     query_fields = ['state', 'mute_status', 'follow_status', 'is_tagged', 'last_seen_conversation_id',
                     'expiry_time', 'attending_status', 'updated_at', 'secret_chatroom_left', 'external_seen',
-                    'chat_request_state', 'chat_requested_by_id', 'chat_request_created_at']
+                    'chat_request_state', 'chat_requested_by_id', 'chat_request_created_at', 'card_id']
 
     meta_query = create_query_with_prefix(query_fields, 'togther_collabcardState', 'chatroom_state', key_name_prefix)
 
@@ -3794,9 +3794,7 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                               {}
                                     FROM      (
                                                          SELECT     conversation_data.*,
-                                                                    {},
-                                                                    togther_collabcardState.card_id AS 
-                                                                    chatroom_state___card_id___conv_room
+                                                                    {}
                                                          FROM       (
                                                                              SELECT   {}
                                                                              FROM     togther_card_answers
@@ -3844,7 +3842,7 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                 LEFT JOIN togther_collabcard
                 ON        chatroom_preview_meta.reply_chatroom_id = togther_collabcard.id 
                 ORDER BY chatroom_preview_meta.last_updated {};
-        """.format(get_chatroom_query_meta_for_sync_revamp("reply"), room_creator,chatroom_meta_query,
+        """.format(get_chatroom_query_meta_for_sync_revamp("reply"), room_creator, chatroom_meta_query,
                    chatroom_data_query, get_conversation_query_meta_for_sync_revamp(), chatroom_id, community_id,
                    min_timestamp, max_timestamp, order_by_query, offset, limit, user_id, order_by_query)
 
