@@ -328,23 +328,23 @@ class FetchMembersMeta(APIView):
 
     def get(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        
         community_id = request.GET.get('community_id')
         member_ids = request.GET.get('member_ids')
-        api_key = RequestUtilities.get_api_key_from_headers(request)
-
         search_name = request.GET.get('search_name', None)
         page = RequestUtilities.get_page_number(request, default=1)
         page_size = RequestUtilities.get_page_size(request, default=50)
 
-        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
-        version_code = RequestUtilities.get_version_code_from_headers(request)
 
         community_manager = CommunityImpl(member_id=member_id, community_id=community_id, api_key=api_key)
 
         try:
             # Pagination & search support for newer versions
-            if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.participants_meta_pagination):
-                community_data = community_manager.fetch_members_meta(member_ids,search_name, page, page_size)
+            if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.members_meta_pagination_and_search):
+                community_data = community_manager.fetch_members_meta(member_ids, search_name, page, page_size)
            
             else:
                 community_data = community_manager.fetch_members_meta(member_ids)
