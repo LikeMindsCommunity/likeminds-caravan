@@ -184,7 +184,6 @@ class SyncHelper:
                         sync_data[key] = JsonUtilities.load_json_data(sync_data[key], default=[])
 
                     else:
-                        print("Key", key, sync_data[key])
                         sync_data[key] = PARSE_JSON_KEYS_WITH_DEFAULT_VALUE.get(key)
 
                 chatroom_data_keys = key.split(SYNC_KEY_SPLIT_VALUE)
