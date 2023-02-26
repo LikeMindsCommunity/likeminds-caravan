@@ -21,4 +21,8 @@ CONVERSATIONS_CREATED_EPOCH_KEY = 'created_epoch'
 SYNC_DATA_KEYS = {
     'conversation___id___last': 'last_conversation_id'
 }
-PARSE_JSON_KEYS = ['secret_chatroom_participants', 'meta', 'og_tags']
+PARSE_JSON_KEYS_WITH_DEFAULT_VALUE = {
+    'secret_chatroom_participants': None,
+    'meta': None,
+    'og_tags': None
+}

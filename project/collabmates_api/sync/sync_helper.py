@@ -6,7 +6,7 @@ from utility.number_utilities import NumberUtilities
 from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFIX, SYNC_RESPONSE_MAP_PRIMARY_KEYS,
                         USERS_META_KEY_VALUE, MEMBERS_META_KEY_VALUE, MAIN_PRIMARY_KEY_VALUE,
                         CONVERSATIONS_META_KEY_VALUE, SYNC_DATA_KEYS, COMMUNITY_META_KEY_VALUE,
-                        CHATROOM_META_KEY_VALUE, PARSE_JSON_KEYS, MESSAGE_REACTIONS_META_KEY_VALUE,
+                        CHATROOM_META_KEY_VALUE, PARSE_JSON_KEYS_WITH_DEFAULT_VALUE, MESSAGE_REACTIONS_META_KEY_VALUE,
                         CONVERSATION_STATE_KEY_VALUE, POLL_CONVERSATION_TO_SHOW_RESULTS_KEY,
                         CONVERSATION_POLLS_META_KEY_VALUE, CONVERSATIONS_DATE_KEY, CHATROOM_STATE_META_KEY_VALUE,
                         CONVERSATIONS_CREATED_EPOCH_KEY, CONVERSATIONS_CREATED_AT_KEY)
@@ -178,8 +178,14 @@ class SyncHelper:
                 if key in list(SYNC_DATA_KEYS.keys()):
                     parsed_sync_data[SYNC_DATA_KEYS[key]] = sync_data.get(key)
 
-                if (key in PARSE_JSON_KEYS) and sync_data[key]:
-                    sync_data[key] = JsonUtilities.load_json_data(sync_data[key], default=[])
+                if key in list(PARSE_JSON_KEYS_WITH_DEFAULT_VALUE.keys()):
+
+                    if sync_data[key]:
+                        sync_data[key] = JsonUtilities.load_json_data(sync_data[key], default=[])
+
+                    else:
+                        print("Key", key, sync_data[key])
+                        sync_data[key] = PARSE_JSON_KEYS_WITH_DEFAULT_VALUE.get(key)
 
                 chatroom_data_keys = key.split(SYNC_KEY_SPLIT_VALUE)
 
@@ -334,10 +340,11 @@ class SyncHelper:
             conversation_data[CONVERSATIONS_CREATED_AT_KEY] = TimeUtilities.convert_epoch_time_in_hh_mm(
                 conversation_data.get(CONVERSATIONS_CREATED_AT_KEY))
 
-        if len(set(PARSE_JSON_KEYS).intersection(set(conversation_data.keys()))):
+        if len(set(PARSE_JSON_KEYS_WITH_DEFAULT_VALUE.keys()).intersection(set(conversation_data.keys()))):
 
-            for data_key in list(set(PARSE_JSON_KEYS).intersection(set(conversation_data.keys()))):
-                conversation_data[data_key] = JsonUtilities.load_json_data(conversation_data[data_key], default=[])
+            for data_key in list(set(PARSE_JSON_KEYS_WITH_DEFAULT_VALUE.keys()
+                                     ).intersection(set(conversation_data.keys()))):
+                conversation_data[data_key] = JsonUtilities.load_json_data(conversation_data[data_key], default=None)
 
     @staticmethod
     def add_additional_data_in_conversation_meta(sync_data,
