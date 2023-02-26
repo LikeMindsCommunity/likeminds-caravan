@@ -334,6 +334,11 @@ class SyncHelper:
             conversation_data[CONVERSATIONS_CREATED_AT_KEY] = TimeUtilities.convert_epoch_time_in_hh_mm(
                 conversation_data.get(CONVERSATIONS_CREATED_AT_KEY))
 
+        if len(set(PARSE_JSON_KEYS).intersection(set(conversation_data.keys()))):
+
+            for data_key in list(set(PARSE_JSON_KEYS).intersection(set(conversation_data.keys()))):
+                conversation_data[data_key] = JsonUtilities.load_json_data(conversation_data[data_key], default=[])
+
     @staticmethod
     def add_additional_data_in_conversation_meta(sync_data,
                                                  user_id: int,
