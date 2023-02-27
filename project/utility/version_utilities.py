@@ -28,7 +28,7 @@ class VersionUtilities:
         PlatformCode.ANDROID_SDK: 202,
         PlatformCode.IOS_SDK: 362,
         PlatformCode.WEB_SDK: unreleased_version_code,
-        PlatformCode.FLUTTER: unreleased_version_code,
+        PlatformCode.FLUTTER: 2,
         PlatformCode.REACT_NATIVE: unreleased_version_code,
     }
 
@@ -74,6 +74,17 @@ class VersionUtilities:
         PlatformCode.WEB_SDK: 17,
         PlatformCode.FLUTTER: 1,
         PlatformCode.REACT_NATIVE: 1,
+    }
+
+    members_meta_pagination_and_search: dict = {
+        PlatformCode.ANDROID: unreleased_version_code,
+        PlatformCode.IOS: unreleased_version_code,
+        PlatformCode.WEB: unreleased_version_code,
+        PlatformCode.ANDROID_SDK: unreleased_version_code,
+        PlatformCode.IOS_SDK: unreleased_version_code,
+        PlatformCode.WEB_SDK: unreleased_version_code,
+        PlatformCode.FLUTTER: 2,
+        PlatformCode.REACT_NATIVE: unreleased_version_code,
     }
 
     invite_settings: dict = {
