@@ -221,7 +221,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_members_meta(self, member_ids):
+    def fetch_members_meta(self, member_ids, search_name: str = None, page: int = None, page_size: int = None):
         """returns list of members to create secret chatrooms"""
 
         raise NotImplementedError

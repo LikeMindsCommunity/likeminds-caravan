@@ -9,6 +9,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.exception_utilities import InvalidHeaderException, CustomException
 from utility.number_utilities import NumberUtilities
 from utility.response_utilities import ResponseUtilities
+from utility.version_utilities import VersionUtilities
 from cms.cms_auth_utilities import CMSAuthUtilities
 from rest_framework import status as status_codes
 
@@ -327,13 +328,32 @@ class FetchMembersMeta(APIView):
 
     def get(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        # Using get_platform_code instead of get_platform_code_with_sdk for FLUTTER support
+        platform_code = RequestUtilities.get_platform_code(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        
         community_id = request.GET.get('community_id')
         member_ids = request.GET.get('member_ids')
-        api_key = RequestUtilities.get_api_key_from_headers(request)
+        search_name = request.GET.get('search_name', None)
+        page = RequestUtilities.get_page_number(request, default=1)
+        page_size = RequestUtilities.get_page_size(request, default=50)
+
 
         community_manager = CommunityImpl(member_id=member_id, community_id=community_id, api_key=api_key)
-        community_data = community_manager.fetch_members_meta(member_ids)
 
+        try:
+            # Pagination & search support for newer versions
+            if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.members_meta_pagination_and_search):
+                community_data = community_manager.fetch_members_meta(member_ids, search_name, page, page_size)
+           
+            else:
+                community_data = community_manager.fetch_members_meta(member_ids)
+
+        except Exception as e:
+            error_logger.error(e.args)
+            return JsonResponse({'error_message': "Internal server error"},status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+       
         if 'error_message' in community_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_data.get('error_message'),
                                                                                 community_data.get('status')))
