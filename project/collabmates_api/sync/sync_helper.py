@@ -323,6 +323,9 @@ class SyncHelper:
 
     @staticmethod
     def compute_poll_type_text_for_conversation_meta(conv_data: dict):
+        if conv_data.get(CONVERSATION_STATE_KEY_VALUE) != conversation_states.CONVERSATION_POLL:
+            return None
+
         if conv_data.get('poll_type') == conversation_poll_types.INSTANT:
             return INSTANT_POLL_NAME_VALUE
 
@@ -331,6 +334,9 @@ class SyncHelper:
 
     @staticmethod
     def compute_submit_type_text_for_conversation_meta(conv_data: dict):
+        if conv_data.get(CONVERSATION_STATE_KEY_VALUE) != conversation_states.CONVERSATION_POLL:
+            return None
+
         if conv_data.get('is_anonymous'):
             return SECRET_VOTING_NAME_VALUE
 
