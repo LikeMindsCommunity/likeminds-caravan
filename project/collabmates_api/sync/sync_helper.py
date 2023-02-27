@@ -351,8 +351,8 @@ class SyncHelper:
         conversation_data[CONVERSATION_POLL_TYPE_TEXT_KEY] = SyncHelper.compute_poll_type_text_for_conversation_meta(
             conversation_data)
 
-        conversation_data[CONVERSATION_SUBMIT_TYPE_TEXT_KEY] = SyncHelper.compute_poll_type_text_for_conversation_meta(
-            conversation_data)
+        conversation_data[CONVERSATION_SUBMIT_TYPE_TEXT_KEY] = \
+            SyncHelper.compute_submit_type_text_for_conversation_meta(conversation_data)
 
         if conversation_data.get(CONVERSATIONS_CREATED_AT_KEY):
             conversation_data[CONVERSATIONS_CREATED_EPOCH_KEY] = conversation_data.get(CONVERSATIONS_CREATED_AT_KEY)
