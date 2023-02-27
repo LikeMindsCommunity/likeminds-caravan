@@ -329,7 +329,8 @@ class FetchMembersMeta(APIView):
     def get(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
-        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        # Using get_platform_code instead of get_platform_code_with_sdk for FLUTTER support
+        platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         
         community_id = request.GET.get('community_id')
