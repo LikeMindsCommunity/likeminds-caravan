@@ -9,7 +9,9 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         CHATROOM_META_KEY_VALUE, PARSE_JSON_KEYS_WITH_DEFAULT_VALUE, MESSAGE_REACTIONS_META_KEY_VALUE,
                         CONVERSATION_STATE_KEY_VALUE, POLL_CONVERSATION_TO_SHOW_RESULTS_KEY,
                         CONVERSATION_POLLS_META_KEY_VALUE, CONVERSATIONS_DATE_KEY, CHATROOM_STATE_META_KEY_VALUE,
-                        CONVERSATIONS_CREATED_EPOCH_KEY, CONVERSATIONS_CREATED_AT_KEY)
+                        CONVERSATIONS_CREATED_EPOCH_KEY, CONVERSATIONS_CREATED_AT_KEY, CONVERSATION_POLL_TYPE_TEXT_KEY,
+                        INSTANT_POLL_NAME_VALUE, DEFERRED_POLL_NAME_VALUE, SECRET_VOTING_NAME_VALUE,
+                        PUBLIC_VOTING_NAME_VALUE, CONVERSATION_SUBMIT_TYPE_TEXT_KEY)
 from utility.states import (conversation_states, conversation_poll_types)
 
 
@@ -320,6 +322,22 @@ class SyncHelper:
         return to_show_results
 
     @staticmethod
+    def compute_poll_type_text_for_conversation_meta(conv_data: dict):
+        if conv_data.get('poll_type') == conversation_poll_types.INSTANT:
+            return INSTANT_POLL_NAME_VALUE
+
+        else:
+            return DEFERRED_POLL_NAME_VALUE
+
+    @staticmethod
+    def compute_submit_type_text_for_conversation_meta(conv_data: dict):
+        if conv_data.get('is_anonymous'):
+            return SECRET_VOTING_NAME_VALUE
+
+        else:
+            return PUBLIC_VOTING_NAME_VALUE
+
+    @staticmethod
     def compute_conversation_additional_data(conversation_data, user_id: int, is_user_cm: bool = False,
                                              conv_polls_data: list = None):
 
@@ -329,6 +347,12 @@ class SyncHelper:
         conversation_data[POLL_CONVERSATION_TO_SHOW_RESULTS_KEY] = \
             SyncHelper.compute_show_poll_results_for_conversation_meta(
                 conversation_data, user_id, is_user_cm, conv_polls_data)
+
+        conversation_data[CONVERSATION_POLL_TYPE_TEXT_KEY] = SyncHelper.compute_poll_type_text_for_conversation_meta(
+            conversation_data)
+
+        conversation_data[CONVERSATION_SUBMIT_TYPE_TEXT_KEY] = SyncHelper.compute_poll_type_text_for_conversation_meta(
+            conversation_data)
 
         if conversation_data.get(CONVERSATIONS_CREATED_AT_KEY):
             conversation_data[CONVERSATIONS_CREATED_EPOCH_KEY] = conversation_data.get(CONVERSATIONS_CREATED_AT_KEY)
