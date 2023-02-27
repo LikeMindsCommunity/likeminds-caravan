@@ -11,7 +11,8 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         CONVERSATION_POLLS_META_KEY_VALUE, CONVERSATIONS_DATE_KEY, CHATROOM_STATE_META_KEY_VALUE,
                         CONVERSATIONS_CREATED_EPOCH_KEY, CONVERSATIONS_CREATED_AT_KEY, CONVERSATION_POLL_TYPE_TEXT_KEY,
                         INSTANT_POLL_NAME_VALUE, DEFERRED_POLL_NAME_VALUE, SECRET_VOTING_NAME_VALUE,
-                        PUBLIC_VOTING_NAME_VALUE, CONVERSATION_SUBMIT_TYPE_TEXT_KEY)
+                        PUBLIC_VOTING_NAME_VALUE, CONVERSATION_SUBMIT_TYPE_TEXT_KEY, CHATROOM_DATE_KEY,
+                        CHATROOM_DATE_EPOCH_KEY)
 from utility.states import (conversation_states, conversation_poll_types)
 
 
@@ -397,3 +398,27 @@ class SyncHelper:
                                                             user_id,
                                                             is_user_cm,
                                                             conv_polls_data.get(conversation_data.get('id')))
+
+    @staticmethod
+    def compute_chatroom_additional_data(chatroom_data):
+
+        if chatroom_data.get(CHATROOM_DATE_EPOCH_KEY):
+            chatroom_data[CHATROOM_DATE_KEY] = TimeUtilities.convert_epoch_time_in_date(
+                chatroom_data.get(CHATROOM_DATE_EPOCH_KEY))
+
+    @staticmethod
+    def add_additional_data_in_chatroom_meta(sync_data,
+                                             chatroom_data_key: str = CHATROOM_META_KEY_VALUE):
+        chatroom_data = sync_data.get(chatroom_data_key)
+
+        if isinstance(chatroom_data, dict):
+            chatroom_data_list = list(chatroom_data.values())
+
+        elif isinstance(chatroom_data, list):
+            chatroom_data_list = chatroom_data
+
+        else:
+            return
+
+        for chatroom_data in chatroom_data_list:
+            SyncHelper.compute_chatroom_additional_data(chatroom_data)

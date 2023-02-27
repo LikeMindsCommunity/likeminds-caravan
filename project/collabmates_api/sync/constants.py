@@ -19,6 +19,8 @@ CONVERSATION_POLL_TYPE_TEXT_KEY = 'poll_type_text'
 CONVERSATION_SUBMIT_TYPE_TEXT_KEY = 'submit_type_text'
 CONVERSATIONS_CREATED_AT_KEY = 'created_at'
 CONVERSATIONS_DATE_KEY = 'date'
+CHATROOM_DATE_KEY = 'date'
+CHATROOM_DATE_EPOCH_KEY = 'date_epoch'
 CONVERSATIONS_CREATED_EPOCH_KEY = 'created_epoch'
 SYNC_DATA_KEYS = {
     'conversation___id___last': 'last_conversation_id'

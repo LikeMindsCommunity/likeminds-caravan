@@ -123,6 +123,9 @@ class SyncImpl(SyncManager):
                                                                 user_instance.id,
                                                                 is_user_cm=is_user_cm)
 
+            SyncHelper.add_additional_data_in_chatroom_meta(chatrooms_data,
+                                                            chatroom_data_key=SYNC_CHATROOMS_DATA_KEY)
+
         return {**{'success': True}, **chatrooms_data}
 
     def sync_conversations(self, chatroom_id: int = None, page: int = None, page_size: int = None,
@@ -195,5 +198,6 @@ class SyncImpl(SyncManager):
                                                             user_instance.id,
                                                             SYNC_CONVERSATIONS_DATA_KEY,
                                                             is_user_cm)
+        SyncHelper.add_additional_data_in_chatroom_meta(conversations_data)
 
         return {**{'success': True}, **conversations_data}
