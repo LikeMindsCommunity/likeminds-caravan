@@ -3,8 +3,10 @@ from rest_framework import status as status_codes
 from .sync_manager import SyncManager
 from .sync_helper import SyncHelper
 from utility.states import (card_types, SyncTypes)
-from .constants import (CONVERSATIONS_META_KEY_VALUE)
+from .constants import (CONVERSATIONS_META_KEY_VALUE, CONVERSATION_POLLS_META_KEY_VALUE, SYNC_CHATROOMS_DATA_KEY,
+                        SYNC_CONVERSATIONS_DATA_KEY)
 from utility.response_utilities import ResponseUtilities
+from togther.models import (Members)
 
 from collabmates_api.raw_queries import (get_home_feed_chatrooms_against_user, get_chatroom_conversations_data,
                                          get_unseen_count_for_chatroom_ids,
@@ -85,7 +87,7 @@ class SyncImpl(SyncManager):
         card_unseen_count_map = get_unseen_count_for_chatroom_ids(chatroom_ids_list, user_id=user_instance.id)
 
         # Chatroom data
-        chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, 'chatrooms_data',
+        chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, SYNC_CHATROOMS_DATA_KEY,
                                                                   extra_data=card_unseen_count_map)
 
         # Card Attachments data
@@ -112,7 +114,17 @@ class SyncImpl(SyncManager):
                                                      user_id=user_instance.id)
             polls_data = SyncHelper.parse_sync_raw_query_response(polls_data, 'conv_polls_meta')
             chatrooms_data = SyncHelper.add_meta_info_to_sync_response(polls_data, chatrooms_data,
-                                                                       'conv_polls_meta', 'conversation_id')
+                                                                       CONVERSATION_POLLS_META_KEY_VALUE,
+                                                                       'conversation_id')
+
+            # Add additional poll conversation meta
+            is_user_cm = Members.is_member_community_promoter(community_instance, user_instance)
+            SyncHelper.add_additional_data_in_conversation_meta(chatrooms_data,
+                                                                user_instance.id,
+                                                                is_user_cm=is_user_cm)
+
+            SyncHelper.add_additional_data_in_chatroom_meta(chatrooms_data,
+                                                            chatroom_data_key=SYNC_CHATROOMS_DATA_KEY)
 
         return {**{'success': True}, **chatrooms_data}
 
@@ -138,14 +150,15 @@ class SyncImpl(SyncManager):
         min_timestamp = validated_request_body.get('min_timestamp')
         max_timestamp = validated_request_body.get('max_timestamp')
 
-        conversations_data, conversation_ids_list = get_chatroom_conversations_data(community_instance.id,
+        conversations_data, conversation_ids_list = get_chatroom_conversations_data(user_instance.id,
+                                                                                    community_instance.id,
                                                                                     chatroom_instance.id,
                                                                                     min_timestamp,
                                                                                     max_timestamp,
                                                                                     page=page, limit=page_size)
 
         # Conversation data
-        conversations_data = SyncHelper.parse_sync_raw_query_response(conversations_data, 'conversations_data')
+        conversations_data = SyncHelper.parse_sync_raw_query_response(conversations_data, SYNC_CONVERSATIONS_DATA_KEY)
 
         # Chatroom reactions data
         reactions_data = get_reactions_for_chatroom_or_conversations(self.get_community_id(),
@@ -178,5 +191,13 @@ class SyncImpl(SyncManager):
         polls_data = SyncHelper.parse_sync_raw_query_response(polls_data, 'conv_polls_meta')
         conversations_data = SyncHelper.add_meta_info_to_sync_response(polls_data, conversations_data,
                                                                        'conv_polls_meta', 'conversation_id')
+
+        # Add additional poll conversation meta
+        is_user_cm = Members.is_member_community_promoter(community_instance, user_instance)
+        SyncHelper.add_additional_data_in_conversation_meta(conversations_data,
+                                                            user_instance.id,
+                                                            SYNC_CONVERSATIONS_DATA_KEY,
+                                                            is_user_cm)
+        SyncHelper.add_additional_data_in_chatroom_meta(conversations_data)
 
         return {**{'success': True}, **conversations_data}
