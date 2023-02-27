@@ -76,6 +76,17 @@ class VersionUtilities:
         PlatformCode.REACT_NATIVE: 1,
     }
 
+    members_meta_pagination_and_search: dict = {
+        PlatformCode.ANDROID: unreleased_version_code,
+        PlatformCode.IOS: unreleased_version_code,
+        PlatformCode.WEB: unreleased_version_code,
+        PlatformCode.ANDROID_SDK: unreleased_version_code,
+        PlatformCode.IOS_SDK: unreleased_version_code,
+        PlatformCode.WEB_SDK: unreleased_version_code,
+        PlatformCode.FLUTTER: 2,
+        PlatformCode.REACT_NATIVE: unreleased_version_code,
+    }
+
     invite_settings: dict = {
         PlatformCode.ANDROID: 190,
         PlatformCode.IOS: 360,
