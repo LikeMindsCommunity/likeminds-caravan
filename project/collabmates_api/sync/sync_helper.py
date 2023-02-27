@@ -374,7 +374,10 @@ class SyncHelper:
 
             for data_key in list(set(PARSE_JSON_KEYS_WITH_DEFAULT_VALUE.keys()
                                      ).intersection(set(conversation_data.keys()))):
-                conversation_data[data_key] = JsonUtilities.load_json_data(conversation_data[data_key], default=None)
+
+                if isinstance(conversation_data[data_key], str):
+                    conversation_data[data_key] = JsonUtilities.load_json_data(conversation_data[data_key],
+                                                                               default=None)
 
     @staticmethod
     def add_additional_data_in_conversation_meta(sync_data,
