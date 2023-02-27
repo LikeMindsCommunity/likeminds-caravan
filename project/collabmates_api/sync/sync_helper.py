@@ -6,10 +6,13 @@ from utility.number_utilities import NumberUtilities
 from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFIX, SYNC_RESPONSE_MAP_PRIMARY_KEYS,
                         USERS_META_KEY_VALUE, MEMBERS_META_KEY_VALUE, MAIN_PRIMARY_KEY_VALUE,
                         CONVERSATIONS_META_KEY_VALUE, SYNC_DATA_KEYS, COMMUNITY_META_KEY_VALUE,
-                        CHATROOM_META_KEY_VALUE, PARSE_JSON_KEYS, MESSAGE_REACTIONS_META_KEY_VALUE,
+                        CHATROOM_META_KEY_VALUE, PARSE_JSON_KEYS_WITH_DEFAULT_VALUE, MESSAGE_REACTIONS_META_KEY_VALUE,
                         CONVERSATION_STATE_KEY_VALUE, POLL_CONVERSATION_TO_SHOW_RESULTS_KEY,
                         CONVERSATION_POLLS_META_KEY_VALUE, CONVERSATIONS_DATE_KEY, CHATROOM_STATE_META_KEY_VALUE,
-                        CONVERSATIONS_CREATED_EPOCH_KEY, CONVERSATIONS_CREATED_AT_KEY)
+                        CONVERSATIONS_CREATED_EPOCH_KEY, CONVERSATIONS_CREATED_AT_KEY, CONVERSATION_POLL_TYPE_TEXT_KEY,
+                        INSTANT_POLL_NAME_VALUE, DEFERRED_POLL_NAME_VALUE, SECRET_VOTING_NAME_VALUE,
+                        PUBLIC_VOTING_NAME_VALUE, CONVERSATION_SUBMIT_TYPE_TEXT_KEY, CHATROOM_DATE_KEY,
+                        CHATROOM_DATE_EPOCH_KEY)
 from utility.states import (conversation_states, conversation_poll_types)
 
 
@@ -178,8 +181,13 @@ class SyncHelper:
                 if key in list(SYNC_DATA_KEYS.keys()):
                     parsed_sync_data[SYNC_DATA_KEYS[key]] = sync_data.get(key)
 
-                if (key in PARSE_JSON_KEYS) and sync_data[key]:
-                    sync_data[key] = JsonUtilities.load_json_data(sync_data[key], default=[])
+                if key in list(PARSE_JSON_KEYS_WITH_DEFAULT_VALUE.keys()):
+
+                    if sync_data[key]:
+                        sync_data[key] = JsonUtilities.load_json_data(sync_data[key], default=[])
+
+                    else:
+                        sync_data[key] = PARSE_JSON_KEYS_WITH_DEFAULT_VALUE.get(key)
 
                 chatroom_data_keys = key.split(SYNC_KEY_SPLIT_VALUE)
 
@@ -315,6 +323,28 @@ class SyncHelper:
         return to_show_results
 
     @staticmethod
+    def compute_poll_type_text_for_conversation_meta(conv_data: dict):
+        if conv_data.get(CONVERSATION_STATE_KEY_VALUE) != conversation_states.CONVERSATION_POLL:
+            return None
+
+        if conv_data.get('poll_type') == conversation_poll_types.INSTANT:
+            return INSTANT_POLL_NAME_VALUE
+
+        else:
+            return DEFERRED_POLL_NAME_VALUE
+
+    @staticmethod
+    def compute_submit_type_text_for_conversation_meta(conv_data: dict):
+        if conv_data.get(CONVERSATION_STATE_KEY_VALUE) != conversation_states.CONVERSATION_POLL:
+            return None
+
+        if conv_data.get('is_anonymous'):
+            return SECRET_VOTING_NAME_VALUE
+
+        else:
+            return PUBLIC_VOTING_NAME_VALUE
+
+    @staticmethod
     def compute_conversation_additional_data(conversation_data, user_id: int, is_user_cm: bool = False,
                                              conv_polls_data: list = None):
 
@@ -325,6 +355,12 @@ class SyncHelper:
             SyncHelper.compute_show_poll_results_for_conversation_meta(
                 conversation_data, user_id, is_user_cm, conv_polls_data)
 
+        conversation_data[CONVERSATION_POLL_TYPE_TEXT_KEY] = SyncHelper.compute_poll_type_text_for_conversation_meta(
+            conversation_data)
+
+        conversation_data[CONVERSATION_SUBMIT_TYPE_TEXT_KEY] = \
+            SyncHelper.compute_submit_type_text_for_conversation_meta(conversation_data)
+
         if conversation_data.get(CONVERSATIONS_CREATED_AT_KEY):
             conversation_data[CONVERSATIONS_CREATED_EPOCH_KEY] = conversation_data.get(CONVERSATIONS_CREATED_AT_KEY)
 
@@ -333,6 +369,15 @@ class SyncHelper:
 
             conversation_data[CONVERSATIONS_CREATED_AT_KEY] = TimeUtilities.convert_epoch_time_in_hh_mm(
                 conversation_data.get(CONVERSATIONS_CREATED_AT_KEY))
+
+        if len(set(PARSE_JSON_KEYS_WITH_DEFAULT_VALUE.keys()).intersection(set(conversation_data.keys()))):
+
+            for data_key in list(set(PARSE_JSON_KEYS_WITH_DEFAULT_VALUE.keys()
+                                     ).intersection(set(conversation_data.keys()))):
+
+                if isinstance(conversation_data[data_key], str):
+                    conversation_data[data_key] = JsonUtilities.load_json_data(conversation_data[data_key],
+                                                                               default=None)
 
     @staticmethod
     def add_additional_data_in_conversation_meta(sync_data,
@@ -356,3 +401,27 @@ class SyncHelper:
                                                             user_id,
                                                             is_user_cm,
                                                             conv_polls_data.get(conversation_data.get('id')))
+
+    @staticmethod
+    def compute_chatroom_additional_data(chatroom_data):
+
+        if chatroom_data.get(CHATROOM_DATE_EPOCH_KEY):
+            chatroom_data[CHATROOM_DATE_KEY] = TimeUtilities.convert_epoch_time_in_date(
+                chatroom_data.get(CHATROOM_DATE_EPOCH_KEY))
+
+    @staticmethod
+    def add_additional_data_in_chatroom_meta(sync_data,
+                                             chatroom_data_key: str = CHATROOM_META_KEY_VALUE):
+        chatroom_data = sync_data.get(chatroom_data_key)
+
+        if isinstance(chatroom_data, dict):
+            chatroom_data_list = list(chatroom_data.values())
+
+        elif isinstance(chatroom_data, list):
+            chatroom_data_list = chatroom_data
+
+        else:
+            return
+
+        for chatroom_data in chatroom_data_list:
+            SyncHelper.compute_chatroom_additional_data(chatroom_data)
