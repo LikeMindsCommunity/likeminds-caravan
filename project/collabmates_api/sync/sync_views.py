@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 
 from utility.request_utilities import RequestUtilities
 from utility.response_utilities import ResponseUtilities
+from utility.string_utilities import StringUtilities
 from .sync_impl import SyncImpl
 
 
@@ -18,7 +19,7 @@ class SyncChatrooms(APIView):
         page_size = RequestUtilities.get_page_size(request)
         min_timestamp = params.get('min_timestamp')
         max_timestamp = params.get('max_timestamp')
-        chatroom_type = params.get('chatroom_type', [])
+        chatroom_type = StringUtilities.get_list_from_string(params.get('chatroom_types', []), default=[])
 
         sync_manager = SyncImpl(member_id=member_id, community_id=params.get('community_id'),
                                 api_key=api_key, request_platform=platform, version_code=version_code)
