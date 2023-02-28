@@ -19,11 +19,13 @@ from django.conf.urls import url, include
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
+from project.home.views import HomeView
 
 urlpatterns = [
     url(r'^collabmates_admin/', admin.site.urls),
     path('api/', include('collabmates_api.urls'), name='api'),
     path('cms/', include('cms.urls'), name='cms'),
+    path('', HomeView.as_view(), name= 'home'),
 ]
 
 if settings.DEBUG:
