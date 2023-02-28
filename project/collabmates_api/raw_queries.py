@@ -3490,7 +3490,7 @@ def get_chatroom_query_meta_for_sync_revamp(key_name_prefix: str = None):
 def get_chatroom_state_query_meta_for_sync_revamp(key_name_prefix: str = None):
     query_fields = ['state', 'mute_status', 'follow_status', 'is_tagged', 'last_seen_conversation_id',
                     'expiry_time', 'attending_status', 'updated_at', 'secret_chatroom_left', 'external_seen',
-                    'chat_request_state', 'chat_requested_by_id', 'chat_request_created_at']
+                    'chat_request_state', 'chat_requested_by_id', 'chat_request_created_at', 'card_id']
 
     meta_query = create_query_with_prefix(query_fields, 'togther_collabcardState', 'chatroom_state', key_name_prefix)
 
@@ -3759,18 +3759,27 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_chatroom_conversations_data(community_id, chatroom_id, min_timestamp: int = None,
+def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_timestamp: int = None,
                                     max_timestamp: int = None, page: int = 1, limit: int = 10,
                                     only_query: bool = False):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
 
+        order_by_query = "DESC"
+
+        if (min_timestamp > 0) and (max_timestamp > 0):
+            order_by_query = "ASC"
+
         chatroom_data_query = ",".join([get_chatroom_query_meta_for_sync_revamp("conv_room"),
+                                        get_chatroom_state_query_meta_for_sync_revamp("conv_room"),
                                         get_community_query_meta_for_sync_revamp("conv_community"),
                                         get_users_query_meta_for_sync_revamp("creator"),
                                         get_members_query_meta_for_sync_revamp("creator"),
                                         get_conversation_query_meta_for_sync_revamp("reply")])
+
+        room_creator = ",".join([get_users_query_meta_for_sync_revamp("room_creator"),
+                                 get_members_query_meta_for_sync_revamp("room_creator")])
 
         chatroom_meta_query = ",".join([get_users_query_meta_for_sync_revamp("conv_deleter"),
                                         get_members_query_meta_for_sync_revamp("conv_deleter"),
@@ -3779,7 +3788,7 @@ def get_chatroom_conversations_data(community_id, chatroom_id, min_timestamp: in
 
         sql = """
                 SELECT    chatroom_preview_meta.*,
-                          {}
+                          {}, {}
                 FROM      (
                                     SELECT    chatroom_meta.*,
                                               {}
@@ -3795,10 +3804,15 @@ def get_chatroom_conversations_data(community_id, chatroom_id, min_timestamp: in
                                                                                       AND      togther_card_answers.last_updated >= {}
                                                                                       AND      togther_card_answers.last_updated <= {} )
                                                                              ORDER BY 
-                                                                             togther_card_answers.last_updated DESC 
+                                                                             togther_card_answers.last_updated {} 
                                                                              offset {} limit {}) AS conversation_data
                                                          INNER JOIN togther_collabcard
                                                          ON         conversation_data.card_id = togther_collabcard.id
+                                                         INNER JOIN togther_collabcardstate
+                                                         ON         (
+                                                                        togther_collabcardstate.card_id = togther_collabcard.id
+                                                                        AND togther_collabcardstate.user_id = {}
+                                                                    )
                                                          INNER JOIN togther_community
                                                          ON         conversation_data.community_id = togther_community.id
                                                          INNER JOIN togther_userinfo
@@ -3819,12 +3833,18 @@ def get_chatroom_conversations_data(community_id, chatroom_id, min_timestamp: in
                                     ON        chatroom_meta.preview_chatroom_id = togther_collabcard.id
                                     LEFT JOIN togther_community
                                     ON        chatroom_meta.preview_community_id = togther_community.id) AS chatroom_preview_meta
+                INNER JOIN togther_userinfo
+                ON         chatroom_preview_meta.chatroom___user_id___conv_room = togther_userinfo.user_id_id
+                LEFT JOIN  togther_members
+                ON   (
+                            chatroom_preview_meta.chatroom___user_id___conv_room = togther_members.member_id_id
+                       AND  chatroom_preview_meta.chatroom___community_id___conv_room = togther_members.community_id_id)
                 LEFT JOIN togther_collabcard
                 ON        chatroom_preview_meta.reply_chatroom_id = togther_collabcard.id 
-                ORDER BY chatroom_preview_meta.last_updated DESC;
-        """.format(get_chatroom_query_meta_for_sync_revamp("reply"), chatroom_meta_query, chatroom_data_query,
-                   get_conversation_query_meta_for_sync_revamp(), chatroom_id, community_id, min_timestamp,
-                   max_timestamp, offset, limit)
+                ORDER BY chatroom_preview_meta.last_updated {};
+        """.format(get_chatroom_query_meta_for_sync_revamp("reply"), room_creator, chatroom_meta_query,
+                   chatroom_data_query, get_conversation_query_meta_for_sync_revamp(), chatroom_id, community_id,
+                   min_timestamp, max_timestamp, order_by_query, offset, limit, user_id, order_by_query)
 
         if only_query:
             return sql

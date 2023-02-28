@@ -416,11 +416,11 @@ class CohortImpl(CohortManager):
         members_to_add = list(set(member_ids) - existing_cohort_members)
         CohortHelper.create_cohort_member_instance(cohort_instance=cohort_instance, member_ids=members_to_add)
 
-        if members_to_add:
-            add_new_participants_to_cohorts_secret_chatroom.delay(cohort_instance.id, self.get_member_id(), member_ids)
+        # Add all the member_ids passed, to Cohort's Secret Chatroom 
+        add_new_participants_to_cohorts_secret_chatroom(cohort_instance.id, self.get_member_id(), member_ids)
 
         # In case of cohort meta-data update, updating elasticsearch doc.
-        else:
+        if not members_to_add:
             ElasticSearchSync.update_members.delay(member_ids=list(existing_cohort_members),
                                                    community_id=cohort_instance.community_id)
 
