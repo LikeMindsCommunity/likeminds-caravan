@@ -3,9 +3,10 @@ from celery import shared_task
 import time
 import logging
 import psycopg2
-from utility.states import (card_types, conversation_states, SyncTypes)
+from utility.states import (card_types, conversation_states, SyncTypes, noti_states)
 from utility.utils import is_version_code_supported_for_intro_room
-from .static_text import (MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP)
+from .static_text import (MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP, SPECIFIC_MEMBER_TAG_REGEX, EVERYONE_TAG_REGEX,
+                          PARTICIPANTS_TAG_REGEX)
 from collabmates_api.static_files import (REMOVED_USER_URL)
 
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -4068,6 +4069,65 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
         curr.close()
 
         return polls_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_excluded_chatroom_ids_for_notification_settings_for_user(
+        user_id, chatroom_ids_list, notification_setting_type: int = noti_states.ONLY_MENTIONS_AND_REPLIES):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        if not (chatroom_ids_list and user_id):
+            return []
+
+        chatroom_ids_query = get_tuple_from_array(chatroom_ids_list)
+
+        exlcude_computation_query = "0 AS should_exclude"
+
+        if notification_setting_type == noti_states.ONLY_MENTIONS_AND_REPLIES:
+            exlcude_computation_query = """
+             ( CASE
+               WHEN answer ~* '{}' THEN 0
+               WHEN answer ~* '{}' THEN 0
+               WHEN answer ~* '{}' THEN 0
+               ELSE 1
+               END ) AS should_exclude
+            """.format(SPECIFIC_MEMBER_TAG_REGEX.format(user_id), PARTICIPANTS_TAG_REGEX, EVERYONE_TAG_REGEX)
+
+        sql = """
+                SELECT card_id
+                FROM   (WITH added_row_number
+                             AS (SELECT ca.card_id,
+                                        ca.answer,
+                                        Row_number()
+                                          over(
+                                            PARTITION BY ca.card_id
+                                            ORDER BY ( CASE WHEN ca.state IN (0) THEN 1 ELSE 2
+                                          END),
+                                          ca.created_at DESC)
+                                        AS row_number
+                                 FROM   togther_card_answers AS ca
+                                        inner join togther_collabcardstate AS cs
+                                                ON ( ca.card_id = cs.card_id
+                                                     AND cs.user_id = {} )
+                                 WHERE  cs.card_id IN {}
+                                        AND cs.noti_state = {})
+                        SELECT card_id,
+                               answer,
+                               {}
+                         FROM   added_row_number
+                         WHERE  row_number = 1) AS CONV_DATA
+                WHERE  CONV_DATA.should_exclude = 1; 
+        """.format(user_id, chatroom_ids_query, notification_setting_type, exlcude_computation_query)
+
+        curr.execute(sql)
+        card_ids = curr.fetchall()
+        curr.close()
+
+        return [card_id[0] for card_id in card_ids]
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
