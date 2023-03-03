@@ -153,7 +153,7 @@ def send_notification_for_android(token_list, message, firebase_key=None):
         notification_success.append(result.get('success'))
         notification_failures.append(result.get('failure'))
         final_result.append(result)
-        time.sleep(1)
+        time.sleep(10)
 
     log_statement = """
         The {} devices should have total {} notifications out of which {} success {} & {} failures {}. Payload is {}
