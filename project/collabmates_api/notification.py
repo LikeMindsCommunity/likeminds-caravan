@@ -129,7 +129,7 @@ def send_notification_for_android(token_list, message, firebase_key=None):
     if not token_list:
         return
 
-    token_chunks_list = ModelUtilities.divide_chunks(token_list)
+    token_chunks_list = ModelUtilities.divide_chunks(token_list, chunk_size=1500)
 
     firebase_key = firebase_key if firebase_key else server_key
 
