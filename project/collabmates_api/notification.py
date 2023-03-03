@@ -142,7 +142,11 @@ def send_notification_for_android(token_list, message, firebase_key=None):
                                                   timeout=fcm_timeout_seconds,
                                                   extra_kwargs=extra_kwargs)
 
-    print(result)
+    # print(result)
+    log_statement = """
+        The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+    """.format("ANDROID", len(token_list), result.get('success'), result.get('failure'), message.get('payload'))
+    print(log_statement)
     return result
 
 
@@ -168,7 +172,11 @@ def send_notification_for_ios(token_list, message, firebase_key=None):
                                                   timeout=fcm_timeout_seconds,
                                                   extra_kwargs=extra_kwargs)
 
-    print(result)
+    # print(result)
+    log_statement = """
+            The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+        """.format("IOS", len(token_list), result.get('success'), result.get('failure'), message.get('payload'))
+    print(log_statement)
     return result
 
 
@@ -1194,15 +1202,14 @@ def send_follow_notification(card_id, user_id, conversation_id):
     for obj in chatroom_follower_list:
 
         if all([obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES,
-                str(obj[0]) not in tagged_users_list,
-                not conversation_instance.reply,
-                conversation_instance.card.type != card_types.CARD_DIRECT_MESSAGE]):
-            continue
+                conversation_instance.card.type != card_types.CARD_DIRECT_MESSAGE,
+                str(obj[0]) not in tagged_users_list]):
 
-        if obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES and conversation_instance.reply and (
-                conversation_instance.reply.user_id != obj[0]) and (
-                conversation_instance.card.type != card_types.CARD_DIRECT_MESSAGE):
-            continue
+            if not conversation_instance.reply:
+                continue
+
+            elif conversation_instance.reply and (conversation_instance.reply.user_id != obj[0]):
+                continue
 
         user_context = dict()
 
@@ -1220,24 +1227,32 @@ def compute_mute_status_for_users(current_user_id):
     return mute_list
 
 
-def get_custom_data_for_new_conversation_created(user_id: str, community_id: str) -> list:
+def get_custom_data_for_new_conversation_created(user_id: str, community_id: str, page_size: int = 10) -> list:
     """function to send notification for new conversation posted to followed users"""
 
     mute_status_list = compute_mute_status_for_users(user_id)
 
     filter_dict = _get_conversation_engage_filter_for_new_conversation(user_id, community_id)
 
-    followed_chatrooms = conversationEngage.objects.filter(
-        **filter_dict
-    ).filter(
-        ~Q(card_id__in=mute_status_list)
+    followed_chatrooms = ModelUtilities.get_model_filter(conversationEngage, filter_dict)
+
+    followed_chatrooms_ids_list = list(followed_chatrooms.values_list('card_id', flat=True))
+
+    from collabmates_api.raw_queries import get_excluded_chatroom_ids_for_notification_settings_for_user
+    excluded_card_ids = get_excluded_chatroom_ids_for_notification_settings_for_user(
+        user_id, chatroom_ids_list=followed_chatrooms_ids_list)
+
+    excluded_card_ids = list(set(mute_status_list + excluded_card_ids))
+
+    followed_chatrooms = followed_chatrooms.exclude(
+        card_id__in=excluded_card_ids
     ).select_related(
         'card',
         'community'
     ).order_by(
         '-updated_at',
         '-id'
-    )[:10]
+    )[:page_size]
 
     unread_conversation = []
 
@@ -3178,6 +3193,8 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
         notification_list.append(temp)
 
     print("notification_list", notification_list)
+
+    message = TasksHelper.add_community_info_to_notification_payload(message, community_instance.id)
     notification_meta(notification_list, message)
 
 

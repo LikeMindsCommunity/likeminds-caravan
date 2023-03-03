@@ -972,7 +972,7 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True, 'access': user_has_access}
 
-    def fetch_members_meta(self, member_ids):
+    def fetch_members_meta(self, member_ids, search_name: str = None, page: int = None, page_size: int = None, order_by_name: bool = None):
         validated_req = CommunityViewHelper.validate_fetch_members_meta_request(self.get_member_id(),
                                                                                 self.get_community_id(),
                                                                                 member_ids,
@@ -985,7 +985,7 @@ class CommunityImpl(CommunityManager):
         community_instance = validated_req.get('community_instance')
         member_ids = validated_req.get('member_ids')
 
-        members = ChatroomImpl.compute_tagging_list_of_community_members(community_instance, member_ids)
+        members = ChatroomImpl.compute_tagging_list_of_community_members(community_instance, member_ids, search_name, page, page_size, order_by_name = order_by_name)
         members = ChatroomImpl.remove_guest_user_from_participants_data_list(members)
 
         return {'success': True, 'members': members}
@@ -2096,9 +2096,10 @@ class CommunityImpl(CommunityManager):
 
     def update_community_noti_settings(self, req_body):
         
-        validated_req_body = CommunityViewHelper.validate_update_community_noti_settings(self.get_member_id(),
-                                                                                         self.get_community_id(),
-                                                                                         req_body)
+        validated_req_body = CommunityHelper.validate_update_community_noti_settings(self.get_member_id(),
+                                                                                     self.get_community_id(),
+                                                                                     self.get_api_key(),
+                                                                                     req_body)
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -2129,8 +2130,9 @@ class CommunityImpl(CommunityManager):
 
     def fetch_community_noti_settings(self):
         
-        validated_req_body = CommunityViewHelper.validate_fetch_community_noti_settings(self.get_member_id(),
-                                                                                        self.get_community_id())
+        validated_req_body = CommunityHelper.validate_fetch_community_noti_settings(self.get_member_id(),
+                                                                                    self.get_community_id(),
+                                                                                    self.get_api_key())
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -4201,6 +4203,49 @@ class CommunityHelper:
 
         if not is_enabled:
             ModelUtilities.delete_record_in_model(FeedNotificationSettings, {'community': community_instance})
+
+    @staticmethod
+    def validate_fetch_community_noti_settings(user_id, community_id, api_key):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community_id or API Key")
+
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
+        if not is_admin:
+            return ResponseUtilities.get_inner_error_context("You are not CM/Owner of this community")
+
+        return {'community_instance': community_instance}
+
+    @staticmethod
+    def validate_update_community_noti_settings(user_id, community_id, api_key, req_body):
+
+        if not req_body:
+            return ResponseUtilities.get_inner_error_context("Invalid request body")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community_id")
+
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
+        if not is_admin:
+            return ResponseUtilities.get_inner_error_context("You are not CM/Owner of this community")
+
+        noti_state = int(req_body.get('noti_state'))
+        if not noti_state:
+            return ResponseUtilities.get_inner_error_context("noti_state is required")
+
+        if noti_state not in [noti_states.ALL_MESSAGES, noti_states.ONLY_MENTIONS_AND_REPLIES]:
+            return ResponseUtilities.get_inner_error_context("invalid noti_state")
+
+        return {'noti_state': noti_state, 'community_instance': community_instance}
 
     @staticmethod
     def validate_fetch_feed_notification_settings(user_id, api_key):

@@ -9,6 +9,9 @@ class VersionUtilities:
         ANDROID_SDK = 'an-sdk'
         IOS_SDK = 'ios-sdk'
         WEB_SDK = 'web-sdk'
+        FLUTTER_SDK = 'fl-sdk'
+        REACT_NATIVE_SDK = 'rn-sdk'
+
 
         @staticmethod
         def convert_platform_code_to_sdk(platform_code):
@@ -28,8 +31,10 @@ class VersionUtilities:
         PlatformCode.ANDROID_SDK: 202,
         PlatformCode.IOS_SDK: 362,
         PlatformCode.WEB_SDK: unreleased_version_code,
-        PlatformCode.FLUTTER: unreleased_version_code,
+        PlatformCode.FLUTTER: 2,
         PlatformCode.REACT_NATIVE: unreleased_version_code,
+        PlatformCode.FLUTTER_SDK: 2,
+        PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
     }
 
     create_chatroom_revamp: dict = {
@@ -41,17 +46,21 @@ class VersionUtilities:
         PlatformCode.WEB_SDK: 14,
         PlatformCode.FLUTTER: 1,
         PlatformCode.REACT_NATIVE: 1,
+        PlatformCode.FLUTTER_SDK: 1,
+        PlatformCode.REACT_NATIVE_SDK: 1,
     }
 
     create_conversation_revamp: dict = {
         PlatformCode.ANDROID: 213,
         PlatformCode.IOS: 374,
         PlatformCode.WEB: 16,
-        PlatformCode.ANDROID_SDK: 210,
+        PlatformCode.ANDROID_SDK: 207,
         PlatformCode.IOS_SDK: 372,
         PlatformCode.WEB_SDK: 16,
         PlatformCode.FLUTTER: unreleased_version_code,
         PlatformCode.REACT_NATIVE: unreleased_version_code,
+        PlatformCode.FLUTTER_SDK: unreleased_version_code,
+        PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
     }
 
     m2cm_v2: dict = {
@@ -63,6 +72,8 @@ class VersionUtilities:
         PlatformCode.WEB_SDK: 16,
         PlatformCode.FLUTTER: unreleased_version_code,
         PlatformCode.REACT_NATIVE: unreleased_version_code,
+        PlatformCode.FLUTTER_SDK: unreleased_version_code,
+        PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
     }
 
     participants_meta_pagination: dict = {
@@ -74,6 +85,21 @@ class VersionUtilities:
         PlatformCode.WEB_SDK: 17,
         PlatformCode.FLUTTER: 1,
         PlatformCode.REACT_NATIVE: 1,
+        PlatformCode.FLUTTER_SDK: 1,
+        PlatformCode.REACT_NATIVE_SDK: 1,
+    }
+
+    members_meta_pagination_and_search: dict = {
+        PlatformCode.ANDROID: unreleased_version_code,
+        PlatformCode.IOS: unreleased_version_code,
+        PlatformCode.WEB: unreleased_version_code,
+        PlatformCode.ANDROID_SDK: unreleased_version_code,
+        PlatformCode.IOS_SDK: unreleased_version_code,
+        PlatformCode.WEB_SDK: unreleased_version_code,
+        PlatformCode.FLUTTER: 2,
+        PlatformCode.REACT_NATIVE: unreleased_version_code,
+        PlatformCode.FLUTTER_SDK: 2,
+        PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
     }
 
     invite_settings: dict = {
@@ -85,6 +111,8 @@ class VersionUtilities:
         PlatformCode.WEB_SDK: unreleased_version_code,
         PlatformCode.FLUTTER: 1,
         PlatformCode.REACT_NATIVE: 1,
+        PlatformCode.FLUTTER_SDK: 1,
+        PlatformCode.REACT_NATIVE_SDK: 1,
     }
 
     feed_member_rights: dict = {
@@ -96,6 +124,8 @@ class VersionUtilities:
         PlatformCode.WEB_SDK: 15,
         PlatformCode.FLUTTER: 1,
         PlatformCode.REACT_NATIVE: unreleased_version_code,
+        PlatformCode.FLUTTER_SDK: 1,
+        PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
     }
 
     chatroom_invite: dict = {
