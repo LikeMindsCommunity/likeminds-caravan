@@ -129,6 +129,8 @@ def send_notification_for_android(token_list, message, firebase_key=None):
     if not token_list:
         return
 
+    token_chunks_list = ModelUtilities.divide_chunks(token_list, chunk_size=1500)
+
     firebase_key = firebase_key if firebase_key else server_key
 
     extra_kwargs = {
@@ -137,17 +139,28 @@ def send_notification_for_android(token_list, message, firebase_key=None):
         }
     }
     push_service = FCMNotification(api_key=firebase_key)
-    result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'],
-                                                  timeout=fcm_timeout_seconds,
-                                                  extra_kwargs=extra_kwargs)
 
-    # print(result)
+    notification_success = []
+    notification_failures = []
+    final_result = []
+
+    for token_chunk_list in token_chunks_list:
+        result = push_service.notify_multiple_devices(registration_ids=token_chunk_list,
+                                                      data_message=message['payload'],
+                                                      timeout=fcm_timeout_seconds,
+                                                      extra_kwargs=extra_kwargs)
+
+        notification_success.append(result.get('success'))
+        notification_failures.append(result.get('failure'))
+        final_result.append(result)
+        time.sleep(1)
+
     log_statement = """
-        The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
-    """.format("ANDROID", len(token_list), result.get('success'), result.get('failure'), message.get('payload'))
+        The {} devices should have total {} notifications out of which {} success {} & {} failures {}. Payload is {}
+    """.format("ANDROID", len(token_list), sum(notification_success), notification_success, sum(notification_failures),
+               notification_failures, message.get('payload'))
     print(log_statement)
-    return result
+    return final_result
 
 
 def send_notification_for_ios(token_list, message, firebase_key=None):
@@ -1227,24 +1240,32 @@ def compute_mute_status_for_users(current_user_id):
     return mute_list
 
 
-def get_custom_data_for_new_conversation_created(user_id: str, community_id: str) -> list:
+def get_custom_data_for_new_conversation_created(user_id: str, community_id: str, page_size: int = 10) -> list:
     """function to send notification for new conversation posted to followed users"""
 
     mute_status_list = compute_mute_status_for_users(user_id)
 
     filter_dict = _get_conversation_engage_filter_for_new_conversation(user_id, community_id)
 
-    followed_chatrooms = conversationEngage.objects.filter(
-        **filter_dict
-    ).filter(
-        ~Q(card_id__in=mute_status_list)
+    followed_chatrooms = ModelUtilities.get_model_filter(conversationEngage, filter_dict)
+
+    followed_chatrooms_ids_list = list(followed_chatrooms.values_list('card_id', flat=True))
+
+    from collabmates_api.raw_queries import get_excluded_chatroom_ids_for_notification_settings_for_user
+    excluded_card_ids = get_excluded_chatroom_ids_for_notification_settings_for_user(
+        user_id, chatroom_ids_list=followed_chatrooms_ids_list)
+
+    excluded_card_ids = list(set(mute_status_list + excluded_card_ids))
+
+    followed_chatrooms = followed_chatrooms.exclude(
+        card_id__in=excluded_card_ids
     ).select_related(
         'card',
         'community'
     ).order_by(
         '-updated_at',
         '-id'
-    )[:10]
+    )[:page_size]
 
     unread_conversation = []
 
