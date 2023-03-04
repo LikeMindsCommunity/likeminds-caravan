@@ -18,7 +18,7 @@ from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
                           get_removed_member_custom_text, get_collabcard_files, get_user_profile,
-                          get_answer_text_for_poll, CollabcardSerializer)
+                          get_answer_text_for_poll)
 from utility.states import (card_types, question_states, member_states, poll_types,
                             deleted_members, manager_rights, member_rights, conversation_states,
                             conversation_poll_types)
@@ -1490,53 +1490,3 @@ class FeedNotificationSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = FeedNotificationSettings
         fields = '__all__'
-
-
-class ChatroomShortSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Collabcard
-        fields = ('id', 'header', 'title', 'chatroom_image_url', 'is_secret', 'created_at', 'updated_at')
-
-
-class UserShortSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Userinfo
-        fields = ('name', 'image_link', 'user_unique_id', 'is_guest', 'user_id_id')
-
-    def to_representation(self, instance):
-        data = super(UserShortSerializer, self).to_representation(instance)
-
-        fields = self._readable_fields
-
-        for field in fields:
-            if field.field_name == 'user_id_id':
-                data['id'] = data['user_id_id']
-                del data['user_id_id']
-
-        return data
-
-
-class ChatroomInviteSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = ChatroomInvite
-        fields = '__all__'
-
-    def to_representation(self, instance):
-        data = super(ChatroomInviteSerializer, self).to_representation(instance)
-
-        fields = self._readable_fields
-
-        for field in fields:
-            if field.field_name == 'chatroom':
-                data['chatroom'] = ChatroomShortSerializer(instance.chatroom, many=False).data
-
-            if field.field_name == 'invite_sender':
-                data['invite_sender'] = UserShortSerializer(instance.invite_sender.userinfo, many=False).data
-
-            if field.field_name == 'invite_receiver':
-                data['invite_receiver'] = UserShortSerializer(instance.invite_receiver.userinfo, many=False).data
-
-        return data

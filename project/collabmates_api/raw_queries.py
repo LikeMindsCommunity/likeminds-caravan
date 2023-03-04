@@ -4073,6 +4073,7 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
+
 def get_excluded_chatroom_ids_for_notification_settings_for_user(
         user_id, chatroom_ids_list, notification_setting_type: int = noti_states.ONLY_MENTIONS_AND_REPLIES):
     try:
@@ -4128,38 +4129,5 @@ def get_excluded_chatroom_ids_for_notification_settings_for_user(
 
         return [card_id[0] for card_id in card_ids]
 
-    except (Exception, psycopg2.Error) as error:
-        error_logger.error("Error while connecting to PostgreSQL %s ", error)
-
-def get_chatroom_invites_for_user(user_id, community_id, chatroom_types: list, invite_status: int,
-                                  page: int = 1, limit: int = 10):
-    try:
-        page_number = int(page)
-        offset = (page_number - 1) * limit
-
-        chatroom_types_query = get_tuple_from_array(chatroom_types)
-
-        sql = """
-            SELECT togther_chatroominvite.id FROM togther_chatroominvite
-            INNER JOIN togther_collabcard
-            ON togther_chatroominvite.chatroom_id = togther_collabcard.id
-            WHERE (
-                togther_collabcard.community_id = {}
-                AND togther_collabcard.type IN {}
-                AND togther_chatroominvite.invite_receiver_id = {}
-                AND togther_chatroominvite.invite_status = {}
-            ) 
-            ORDER BY togther_chatroominvite.created_at DESC
-            OFFSET {} LIMIT {};
-        """.format(community_id, chatroom_types_query, user_id, invite_status, offset, limit)
-
-        conn = get_connection()
-        curr = conn.cursor()
-
-        curr.execute(sql)
-        chatroom_invite_data = curr.fetchall()
-        curr.close()
-
-        return [invite_id[0] for invite_id in chatroom_invite_data]
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)

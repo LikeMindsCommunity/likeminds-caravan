@@ -476,10 +476,6 @@ class CommunitySettingTypes:
     MEMBERS_CAN_DM = "members_can_dm"
     DIRECT_MESSAGE_SETTING = "direct_messages_setting"
     DIRECT_MSGS_GROUP_MSGS = "direct_messages_with_group_messages"
-    CHATROOMS = "chatrooms"
-    SECRET_CHATROOMS_INVITE = "secret_chatrooms_invite"
-    POST_GROUPS = "post_groups"
-    SECRET_GROUP_INVITE = "secret_groups_invite"
 
 
 community_setting_types = CommunitySettingTypes()
@@ -724,12 +720,3 @@ class FeedOrderTypes:
 
 
 feed_order_types = FeedOrderTypes()
-
-
-class ChatroomInviteStatusTypes:
-    INVITE_INITIATED = 0
-    INVITE_ACCEPTED = 1
-    INVITE_REJECTED = 2
-
-
-chatroom_invite_status_types = ChatroomInviteStatusTypes()

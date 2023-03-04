@@ -75,11 +75,7 @@ COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
     "direct_messages": "Enable direct messages",
     "members_can_dm": "Members can DM other members",
     "direct_messages_setting": "Direct message",
-    "direct_messages_with_group_messages": "DMs appear with group messages",
-    "chatrooms": "Chatrooms",
-    "secret_chatrooms_invite": "Send invite for secret chatrooms",
-    "post_groups": "Post Groups",
-    "secret_groups_invite": "Send invite for secret groups"
+    "direct_messages_with_group_messages": "DMs appear with group messages"
 }
 
 COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
@@ -90,13 +86,7 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
     "direct_messages": "If enabled, community managers will be able to message all  members and vice-versa.",
     "members_can_dm": "Members would have option to accept or reject another member’s DM request.",
     "direct_messages_setting": "",
-    "direct_messages_with_group_messages": "If disabled, DMs would appear in a separate tab",
-    "chatrooms": "",
-    "secret_chatrooms_invite": "If enabled, the invited user will receive a request to join the secret chatroom and "
-                               "will only become part of it once they accept it.",
-    "post_groups": "",
-    "secret_groups_invite": "If enabled, the invited user will receive a request to join the secret groups and "
-                            "will only become part of it once they accept it."
+    "direct_messages_with_group_messages": "If disabled, DMs would appear in a separate tab"
 }
 
 DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED = "Community managers will be able to message all members and vice-versa."
