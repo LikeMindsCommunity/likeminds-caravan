@@ -183,6 +183,14 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                     (
                             hasattr(subclass, 'get_chatroom_participants_list') and
                             callable(subclass.get_chatroom_participants_list)
+                    ) and
+                    (
+                        hasattr(subclass, 'get_chatroom_invites') and
+                        callable(subclass.get_chatroom_invites)
+                    ) and
+                    (
+                            hasattr(subclass, 'update_chatroom_invites') and
+                            callable(subclass.update_chatroom_invites)
                     ) or
                     NotImplemented
         )
@@ -521,4 +529,16 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         """
         returns chatroom participants list
         """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_chatroom_invites(self, chatroom_types: list = None, page: int = None, page_size: int = None) -> dict:
+        """Fetches chatroom invites of community"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_chatroom_invites(self, invite_status: int) -> dict:
+        """Updates chatroom invites of community"""
+
         raise NotImplementedError
