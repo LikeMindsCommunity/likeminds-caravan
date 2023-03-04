@@ -129,7 +129,7 @@ def send_notification_for_android(token_list, message, firebase_key=None):
     if not token_list:
         return
 
-    token_chunks_list = ModelUtilities.divide_chunks(token_list, chunk_size=1500)
+    token_chunks_list = ModelUtilities.divide_chunks(token_list, chunk_size=300)
 
     firebase_key = firebase_key if firebase_key else server_key
 
@@ -153,7 +153,8 @@ def send_notification_for_android(token_list, message, firebase_key=None):
         notification_success.append(result.get('success'))
         notification_failures.append(result.get('failure'))
         final_result.append(result)
-        time.sleep(1)
+        print("RESULTS:", result)
+        time.sleep(2)
 
     log_statement = """
         The {} devices should have total {} notifications out of which {} success {} & {} failures {}. Payload is {}
@@ -3206,8 +3207,6 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
         notification_list.append(temp)
 
     print("notification_list", notification_list)
-
-    message = TasksHelper.add_community_info_to_notification_payload(message, community_instance.id)
     notification_meta(notification_list, message)
 
 
