@@ -129,7 +129,7 @@ def send_notification_for_android(token_list, message, firebase_key=None):
     if not token_list:
         return
 
-    token_chunks_list = ModelUtilities.divide_chunks(token_list, chunk_size=1500)
+    token_chunks_list = ModelUtilities.divide_chunks(token_list, chunk_size=300)
 
     firebase_key = firebase_key if firebase_key else server_key
 
@@ -153,7 +153,8 @@ def send_notification_for_android(token_list, message, firebase_key=None):
         notification_success.append(result.get('success'))
         notification_failures.append(result.get('failure'))
         final_result.append(result)
-        time.sleep(10)
+        print("RESULTS:", result)
+        time.sleep(2)
 
     log_statement = """
         The {} devices should have total {} notifications out of which {} success {} & {} failures {}. Payload is {}
