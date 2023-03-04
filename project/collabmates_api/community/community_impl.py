@@ -1224,7 +1224,7 @@ class CommunityImpl(CommunityManager):
                         is_chatroom_setting_enabled = com_setting["enabled"]
 
                 if not is_chatroom_setting_enabled:
-                    continue
+                    return {'success': False, 'error_message': "Chatroom setting is disabled!"}
 
             if all([community_setting["setting_type"] == community_setting_types.CHATROOMS,
                     not community_setting['enabled']]):
@@ -1258,7 +1258,7 @@ class CommunityImpl(CommunityManager):
                         is_post_group_setting_enabled = com_setting["enabled"]
 
                 if not is_post_group_setting_enabled:
-                    continue
+                    return {'success': False, 'error_message': "Post group setting is disabled!"}
 
             if all([community_setting["setting_type"] == community_setting_types.POST_GROUPS,
                     not community_setting['enabled']]):
