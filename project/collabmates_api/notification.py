@@ -129,6 +129,8 @@ def send_notification_for_android(token_list, message, firebase_key=None):
     if not token_list:
         return
 
+    token_chunks_list = ModelUtilities.divide_chunks(token_list, chunk_size=1500)
+
     firebase_key = firebase_key if firebase_key else server_key
 
     extra_kwargs = {
@@ -137,17 +139,28 @@ def send_notification_for_android(token_list, message, firebase_key=None):
         }
     }
     push_service = FCMNotification(api_key=firebase_key)
-    result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'],
-                                                  timeout=fcm_timeout_seconds,
-                                                  extra_kwargs=extra_kwargs)
 
-    # print(result)
+    notification_success = []
+    notification_failures = []
+    final_result = []
+
+    for token_chunk_list in token_chunks_list:
+        result = push_service.notify_multiple_devices(registration_ids=token_chunk_list,
+                                                      data_message=message['payload'],
+                                                      timeout=fcm_timeout_seconds,
+                                                      extra_kwargs=extra_kwargs)
+
+        notification_success.append(result.get('success'))
+        notification_failures.append(result.get('failure'))
+        final_result.append(result)
+        time.sleep(1)
+
     log_statement = """
-        The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
-    """.format("ANDROID", len(token_list), result.get('success'), result.get('failure'), message.get('payload'))
+        The {} devices should have total {} notifications out of which {} success {} & {} failures {}. Payload is {}
+    """.format("ANDROID", len(token_list), sum(notification_success), notification_success, sum(notification_failures),
+               notification_failures, message.get('payload'))
     print(log_statement)
-    return result
+    return final_result
 
 
 def send_notification_for_ios(token_list, message, firebase_key=None):
