@@ -505,6 +505,7 @@ CHATROOM_TOPIC_NOTIFICATION_SUB_TITLE = "The topic of your followed chat room %s
 CHATROOM_TOPIC_NOTIFICATION_ROUTE = "route://chatroom_detail?chatroom_id=%s"
 
 CHATROOM_DETAIL_NOTIFICATION_ROUTE = "route://chatroom_detail?chatroom_id=%s"
+COLLABCARD_COMMUNITY_NOTIFICATION_ROUTE = "route://collabcard?collabcard_id=%s&community_id=%s"
 SECRET_CHATROOM_VERSION_CODE_IOS = 157
 
 PAID_COMMUNITY_LEVEL_4_TITLE = "Monetization"
