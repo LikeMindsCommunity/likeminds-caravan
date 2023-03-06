@@ -1183,7 +1183,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
         )
     )
 
-    tagged_users_list, answer_text, user_names, should_unmute_members, _ = get_tagged_members_list(
+    tagged_users_list, answer_text, user_names, should_unmute_members, is_group_tag = get_tagged_members_list(
         community_instance.id,
         card_id,
         answer
@@ -1200,11 +1200,18 @@ def send_follow_notification(card_id, user_id, conversation_id):
         get_notification_payload_metadata_for_conversation_creation(community_instance,
                                                                     card_instance, userinfo_instance,
                                                                     conversation_instance)
+    
+    # If @participants or @everyone tag is used, send different route, to not trigger unread_notification api from client side
+    if is_group_tag:
+        route = CHATROOM_DETAIL_NOTIFICATION_ROUTE % card_id
+    else:
+        route = COLLABCARD_COMMUNITY_NOTIFICATION_ROUTE %(card_id,community_instance.id)
+
     message = {
         'payload': {
             'title': card_instance.header,
             'sub_title': userinfo_instance.name + ":" + icon_string + " " + answer_text,
-            'route': f"route://collabcard?collabcard_id={str(card_id)}&community_id={str(community_instance.id)}",
+            'route': route,
             'unread_follow_notification': custom_conversation_notification_payload
         },
         'category': {
