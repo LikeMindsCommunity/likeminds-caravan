@@ -1204,8 +1204,9 @@ def send_follow_notification(card_id, user_id, conversation_id):
     # If @participants or @everyone tag is used, send different route, to not trigger unread_notification api from client side
     if is_group_tag:
         route = CHATROOM_DETAIL_NOTIFICATION_ROUTE % card_id
+
     else:
-        route = COLLABCARD_COMMUNITY_NOTIFICATION_ROUTE %(card_id,community_instance.id)
+        route = COLLABCARD_COMMUNITY_NOTIFICATION_ROUTE %(card_id, community_instance.id)
 
     message = {
         'payload': {
