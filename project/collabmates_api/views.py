@@ -11358,8 +11358,6 @@ def fetch_community_member_rights(request):
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
-    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
-    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -11392,13 +11390,11 @@ def fetch_community_member_rights(request):
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
 
-    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights)
-
     if admin.exists():
         admin_rights = check_all_manager_rights(current_user_instance, community_instance)
-        user_rights = check_all_member_rights(user_instance, community_instance, is_feed_enabled=is_feed_enabled)
+        user_rights = check_all_member_rights(user_instance, community_instance)
 
-        rights_context = get_saved_member_rights_list(user_rights, admin_rights, is_feed_enabled=is_feed_enabled)
+        rights_context = get_saved_member_rights_list(user_rights, admin_rights)
 
         rights_context = update_member_rights_for_sdk(rights_context, community_instance)
 
@@ -14910,7 +14906,9 @@ def add_community_settings_for_community(community_instance, user_instance):
         is_enabled = True
 
         if setting_type in [community_setting_types.DIRECT_MESSAGES, community_setting_types.MEMBERS_CAN_DM,
-                            community_setting_types.DIRECT_MSGS_GROUP_MSGS, community_setting_types.FEED]:
+                            community_setting_types.DIRECT_MSGS_GROUP_MSGS, community_setting_types.FEED,
+                            community_setting_types.CHATROOMS, community_setting_types.SECRET_CHATROOMS_INVITE,
+                            community_setting_types.POST_GROUPS, community_setting_types.SECRET_GROUP_INVITE]:
             is_enabled = False
 
         community_settings_data = {
@@ -14919,7 +14917,7 @@ def add_community_settings_for_community(community_instance, user_instance):
             'setting_title': setting_title,
             'setting_sub_title': COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING.get(setting_type),
             'enabled': is_enabled,
-            'enabled_by': user_instance,
+            'enabled_by': user_instance if is_enabled else None,
         }
         community_settings_instance = CommunitySettings.create_instance(community_settings_data)
         community_settings_list.append(community_settings_instance)

@@ -1304,3 +1304,53 @@ class ChatroomParticipants(APIView):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
                                                                                 response_context.get('status')))
         return JsonResponse(response_context)
+
+
+class ChatroomInvites(APIView):
+
+    def _validate_request(self, member_id, req_body):
+
+        if not member_id:
+            return {'success': False, 'error_message': "Send x-member-id in headers"}
+
+        if not req_body:
+            return {'success': False, 'error_message': "Invalid request body"}
+
+        if not req_body.get('chatroom_id'):
+            return {'success': False, 'error_message': "Invalid Chatroom ID!"}
+
+        return {'success': True}
+
+    def put(self, request):
+        req_body = RequestUtilities.load_request_body(request)
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+
+        validated_request = self._validate_request(member_id, req_body)
+
+        if not validated_request.get('success'):
+            return JsonResponse(validated_request, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
+        response_context = chatroom_manager.update_chatroom_invites(invite_status=req_body.get('invite_status'))
+
+        if 'error_message' in response_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
+        return JsonResponse(response_context)
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        req_body = RequestUtilities.fetch_request_query_params(request)
+        page = RequestUtilities.get_page_number(request)
+        page_size = RequestUtilities.get_page_size(request, default=10)
+        chatroom_types = StringUtilities.get_list_from_string(req_body.get('chatroom_types'), default=[])
+
+        community_manager = ChatroomImpl(member_id=member_id, api_key=api_key)
+        res = community_manager.get_chatroom_invites(chatroom_types, page, page_size)
+
+        if res.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)

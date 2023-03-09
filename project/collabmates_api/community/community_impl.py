@@ -75,6 +75,7 @@ from utility.constants import PLATFORM_CODE_WEB
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
+from utility.version_utilities import VersionUtilities
 
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
@@ -1133,6 +1134,8 @@ class CommunityImpl(CommunityManager):
         community_settings = json.loads(json.dumps(community_settings_serializer.data))
         filtered_community_settings_list = []
         is_m2cm_v2 = m2cm_v2_version_check(self.get_request_platform(), self.get_version_code())
+        is_chatroom_invite = VersionUtilities.check_version(self.get_request_platform(), self.get_version_code(),
+                                                            VersionUtilities.chatroom_invite)
 
         for community_setting in community_settings:
 
@@ -1141,6 +1144,13 @@ class CommunityImpl(CommunityManager):
                                                               community_setting_types.DIRECT_MESSAGE_SETTING,
                                                               community_setting_types.DIRECT_MSGS_GROUP_MSGS],
                     not is_m2cm_v2]):
+                continue
+
+            if all([community_setting.get('setting_type') in [community_setting_types.CHATROOMS,
+                                                              community_setting_types.SECRET_CHATROOMS_INVITE,
+                                                              community_setting_types.POST_GROUPS,
+                                                              community_setting_types.SECRET_GROUP_INVITE],
+                    not is_chatroom_invite]):
                 continue
 
             if all([not check_admin_moderate_dm_settings_right(user_instance, community_instance),
@@ -1196,6 +1206,74 @@ class CommunityImpl(CommunityManager):
             if all([community_setting["setting_type"] == community_setting_types.FEED,
                    not check_admin_moderate_feed_and_comments_right(user_instance, community_instance)]):
                 continue
+
+            if all([community_setting["setting_type"] == community_setting_types.SECRET_CHATROOMS_INVITE,
+                    community_setting['enabled']]):
+                is_chatroom_setting_enabled = False
+
+                chatroom_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                          {'community': self.get_community_id(),
+                                                                           'setting_type': community_setting_types.CHATROOMS})
+
+                if chatroom_setting_filter:
+                    is_chatroom_setting_enabled = chatroom_setting_filter[0].enabled
+
+                for com_setting in community_settings_list:
+
+                    if com_setting["setting_type"] == community_setting_types.CHATROOMS:
+                        is_chatroom_setting_enabled = com_setting["enabled"]
+
+                if not is_chatroom_setting_enabled:
+                    return {'success': False, 'error_message': "Chatroom setting is disabled!"}
+
+            if all([community_setting["setting_type"] == community_setting_types.CHATROOMS,
+                    not community_setting['enabled']]):
+                filter_dict = {
+                    "community_id": self.get_community_id(),
+                    "setting_type": community_setting_types.SECRET_CHATROOMS_INVITE,
+                }
+
+                update_dict = {
+                    'enabled': False,
+                    'updated_at': TimeUtilities.current_time_in_milliseconds(),
+                    'enabled_by': None
+                }
+
+                ModelUtilities.model_update(CommunitySettings, filter_dict, update_dict)
+
+            if all([community_setting["setting_type"] == community_setting_types.SECRET_GROUP_INVITE,
+                    community_setting['enabled']]):
+                is_post_group_setting_enabled = False
+
+                post_group_setting_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                            {'community': self.get_community_id(),
+                                                                             'setting_type': community_setting_types.POST_GROUPS})
+
+                if post_group_setting_filter:
+                    is_post_group_setting_enabled = post_group_setting_filter[0].enabled
+
+                for com_setting in community_settings_list:
+
+                    if com_setting["setting_type"] == community_setting_types.POST_GROUPS:
+                        is_post_group_setting_enabled = com_setting["enabled"]
+
+                if not is_post_group_setting_enabled:
+                    return {'success': False, 'error_message': "Post group setting is disabled!"}
+
+            if all([community_setting["setting_type"] == community_setting_types.POST_GROUPS,
+                    not community_setting['enabled']]):
+                filter_dict = {
+                    "community_id": self.get_community_id(),
+                    "setting_type": community_setting_types.SECRET_GROUP_INVITE,
+                }
+
+                update_dict = {
+                    'enabled': False,
+                    'updated_at': TimeUtilities.current_time_in_milliseconds(),
+                    'enabled_by': None
+                }
+
+                ModelUtilities.model_update(CommunitySettings, filter_dict, update_dict)
 
             filter_dict = {
                 "community_id": self.get_community_id(),
@@ -2018,9 +2096,10 @@ class CommunityImpl(CommunityManager):
 
     def update_community_noti_settings(self, req_body):
         
-        validated_req_body = CommunityViewHelper.validate_update_community_noti_settings(self.get_member_id(),
-                                                                                         self.get_community_id(),
-                                                                                         req_body)
+        validated_req_body = CommunityHelper.validate_update_community_noti_settings(self.get_member_id(),
+                                                                                     self.get_community_id(),
+                                                                                     self.get_api_key(),
+                                                                                     req_body)
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -2051,8 +2130,9 @@ class CommunityImpl(CommunityManager):
 
     def fetch_community_noti_settings(self):
         
-        validated_req_body = CommunityViewHelper.validate_fetch_community_noti_settings(self.get_member_id(),
-                                                                                        self.get_community_id())
+        validated_req_body = CommunityHelper.validate_fetch_community_noti_settings(self.get_member_id(),
+                                                                                    self.get_community_id(),
+                                                                                    self.get_api_key())
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -4123,6 +4203,49 @@ class CommunityHelper:
 
         if not is_enabled:
             ModelUtilities.delete_record_in_model(FeedNotificationSettings, {'community': community_instance})
+
+    @staticmethod
+    def validate_fetch_community_noti_settings(user_id, community_id, api_key):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community_id or API Key")
+
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
+        if not is_admin:
+            return ResponseUtilities.get_inner_error_context("You are not CM/Owner of this community")
+
+        return {'community_instance': community_instance}
+
+    @staticmethod
+    def validate_update_community_noti_settings(user_id, community_id, api_key, req_body):
+
+        if not req_body:
+            return ResponseUtilities.get_inner_error_context("Invalid request body")
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community_id")
+
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
+        if not is_admin:
+            return ResponseUtilities.get_inner_error_context("You are not CM/Owner of this community")
+
+        noti_state = int(req_body.get('noti_state'))
+        if not noti_state:
+            return ResponseUtilities.get_inner_error_context("noti_state is required")
+
+        if noti_state not in [noti_states.ALL_MESSAGES, noti_states.ONLY_MENTIONS_AND_REPLIES]:
+            return ResponseUtilities.get_inner_error_context("invalid noti_state")
+
+        return {'noti_state': noti_state, 'community_instance': community_instance}
 
     @staticmethod
     def validate_fetch_feed_notification_settings(user_id, api_key):
