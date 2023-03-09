@@ -409,6 +409,14 @@ class SyncHelper:
             chatroom_data[CHATROOM_DATE_KEY] = TimeUtilities.convert_epoch_time_in_date(
                 chatroom_data.get(CHATROOM_DATE_EPOCH_KEY))
 
+        if len(set(PARSE_JSON_KEYS_WITH_DEFAULT_VALUE.keys()).intersection(set(chatroom_data.keys()))):
+
+            for data_key in list(set(PARSE_JSON_KEYS_WITH_DEFAULT_VALUE.keys()
+                                     ).intersection(set(chatroom_data.keys()))):
+
+                if isinstance(chatroom_data[data_key], str):
+                    chatroom_data[data_key] = JsonUtilities.load_json_data(chatroom_data[data_key], default=None)
+
     @staticmethod
     def add_additional_data_in_chatroom_meta(sync_data,
                                              chatroom_data_key: str = CHATROOM_META_KEY_VALUE):
