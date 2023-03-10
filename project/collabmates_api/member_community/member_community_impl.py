@@ -2040,7 +2040,19 @@ class MemberCommunityImpl(MemberCommunityManager):
         user_chatroom_status_query = get_user_chatroom_status(member_instance.id, self.get_community_id(),
                                                               chatroom_types, page, page_size)
 
-        return {'success': True, 'chatrooms_data': user_chatroom_status_query}
+        filter_dict = {
+            'community': community_instance,
+            'type__in': chatroom_types,
+            'is_deleted': False
+        }
+
+        total_chatrooms_count = ModelUtilities.get_model_filter(Collabcard, filter_dict).count()
+
+        return {
+            'success': True,
+            'chatrooms_data': user_chatroom_status_query,
+            'total_chatrooms_count': total_chatrooms_count
+        }
 
 
 class MemberCommunityHelper:
