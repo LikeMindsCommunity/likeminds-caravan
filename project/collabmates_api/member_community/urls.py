@@ -3,7 +3,7 @@ from collabmates_api.member_community.views_impl import ViewsImpl, FetchCommunit
     FetchFeedMeta, FetchChatroomHome, FetchOnboardingCommunities, CompleteCommunityOnboarding, \
     FetchUserDeletedCommunities, FetchMemberDetails, ShowDmMessageIcon, FetchMemberProfileView, EditMemberProfileView, \
     RequestDMLimitView, FetchDMChatroomsView, MemberCanDMView, JoinCommunitySDKView, UnsubscribeEmailNotificationsView,\
-    FetchAccessView, FetchPostFeedView, FetchExcludedChatroomsView
+    FetchAccessView, FetchPostFeedView, FetchExcludedChatroomsView, FetchUserChatroomStatus
 
 urlpatterns = [
     path('', ViewsImpl.get_member_communities, name="get_member_communities"),
@@ -26,5 +26,6 @@ urlpatterns = [
          name="unsubscribe_email_notifications"),
     path('fetch_access', FetchAccessView.as_view(), name="fetch_access"),
     path('post_feed', FetchPostFeedView.as_view(), name="fetch_post_feed"),
-    path('excluded_chatrooms', FetchExcludedChatroomsView.as_view(), name="fetch_excluded_chatrooms")
+    path('excluded_chatrooms', FetchExcludedChatroomsView.as_view(), name="fetch_excluded_chatrooms"),
+    path('chatroom/status', FetchUserChatroomStatus.as_view(), name="user_chatroom_status")
 ]

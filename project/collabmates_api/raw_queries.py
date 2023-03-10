@@ -4073,6 +4073,7 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
+
 def get_excluded_chatroom_ids_for_notification_settings_for_user(
         user_id, chatroom_ids_list, notification_setting_type: int = noti_states.ONLY_MENTIONS_AND_REPLIES):
     try:
@@ -4131,6 +4132,7 @@ def get_excluded_chatroom_ids_for_notification_settings_for_user(
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
+
 def get_chatroom_invites_for_user(user_id, community_id, chatroom_types: list, invite_status: int,
                                   page: int = 1, limit: int = 10):
     try:
@@ -4161,5 +4163,44 @@ def get_chatroom_invites_for_user(user_id, community_id, chatroom_types: list, i
         curr.close()
 
         return [invite_id[0] for invite_id in chatroom_invite_data]
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_user_chatroom_status(user_id, community_id, chatroom_types: list, page: int = 1, limit: int = 10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        chatroom_types_query = get_tuple_from_array(chatroom_types)
+        chatroom_data_query = ",".join([get_chatroom_query_meta_for_sync_revamp(),
+                                        get_chatroom_state_query_meta_for_sync_revamp()])
+
+        sql = """
+            SELECT {}, COALESCE(togther_collabcardstate.follow_status, false) AS follow_status 
+            FROM togther_collabcard
+            LEFT JOIN togther_collabcardstate ON
+            (
+                togther_collabcard.id = togther_collabcardstate.card_id
+                AND togther_collabcardstate.user_id = {}
+            ) 
+            WHERE 
+            (
+                togther_collabcard.community_id = {}
+                AND togther_collabcard.is_deleted = false
+                AND togther_collabcard.type in {}
+            )
+            ORDER BY togther_collabcard.created_at DESC
+            OFFSET {} LIMIT {};
+        """.format(chatroom_data_query, user_id, community_id, chatroom_types_query, offset, limit)
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        curr.execute(sql)
+        user_chatroom_status_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return user_chatroom_status_data
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
