@@ -138,6 +138,16 @@ class VersionUtilities:
         PlatformCode.FLUTTER: unreleased_version_code,
     }
 
+    community_join_form: dict = {
+        PlatformCode.ANDROID: unreleased_version_code,
+        PlatformCode.IOS: unreleased_version_code,
+        PlatformCode.WEB: unreleased_version_code,
+        PlatformCode.ANDROID_SDK: 211,
+        PlatformCode.IOS_SDK: 374,
+        PlatformCode.WEB_SDK: unreleased_version_code,
+        PlatformCode.FLUTTER: unreleased_version_code,
+    }
+
     @staticmethod
     def check_version(platform_code: str, version_code: int, feature_version_dict: dict) -> bool:
         """
