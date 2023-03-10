@@ -88,7 +88,7 @@ class InitiateSdkView(APIView):
     def post(self, request):
 
         request_body = RequestUtilities.load_request_body(request)
-        request_platform = RequestUtilities.get_platform_code(request)
+        request_platform = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
