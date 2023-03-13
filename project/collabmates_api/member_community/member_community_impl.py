@@ -1515,6 +1515,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         question_answers = req_body.get('question_answers', [])
         image_url = req_body.get('image_url')
+        name = req_body.get('name')
 
         if question_answers:
 
@@ -1558,6 +1559,15 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                                                  community_instance)
 
         user_member_filter.update(edit_required=False, updated_at=TimeUtilities.current_time_in_sec())
+
+        if name:
+
+            from ..community.community_impl import CommunityHelper
+
+            CommunityHelper.update_user_alias_name(user_instance.id, community_instance.id, name, question_states.NAME)
+
+            update_preview = True
+
 
         if image_url:
             MemberCommunityHelper.update_users_image_url_in_community(user_member_filter, image_url,
