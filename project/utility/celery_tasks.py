@@ -2292,6 +2292,7 @@ def add_new_participants_to_cohorts_secret_chatroom(cohort_id, member_id, member
         req_body = {
             'chatroom_id': chatroom_cohort.chatroom_id,
             'secret_chatroom_participants': member_ids,
+            'is_channel_invite': False
         }
 
         chatroom_manager.add_secret_chatroom_participant(req_body)
