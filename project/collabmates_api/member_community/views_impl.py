@@ -648,3 +648,41 @@ class FetchExcludedChatroomsView(APIView):
                                                                                 community_context.get('status')))
 
         return JsonResponse(community_context)
+
+
+class FetchUserChatroomStatus(APIView):
+
+    @staticmethod
+    def _validate_request(member_id, api_key):
+
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context("Send x-member-id in headers")
+
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context("Send x-api-key in headers")
+
+        return {'success': True}
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        validated_req_params = self._validate_request(member_id, api_key)
+        req_params = RequestUtilities.fetch_request_query_params(request)
+        page = RequestUtilities.get_page_number(request, default=1)
+        page_size = RequestUtilities.get_page_size(request, default=10)
+        chatroom_types = StringUtilities.get_list_from_string(req_params.get('chatroom_types'), default=[])
+
+        if not validated_req_params.get('success', False):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                validated_req_params.get('error_message'), status_codes.HTTP_400_BAD_REQUEST))
+
+        member_community_manager = MemberCommunityImpl(member_id, None, api_key=api_key)
+        community_context = member_community_manager.fetch_user_chatroom_status(
+            user_id=req_params.get('user_id'), chatroom_types=chatroom_types, page=page, page_size=page_size)
+
+        if 'error_message' in community_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                                community_context.get('status')))
+
+        return JsonResponse(community_context)

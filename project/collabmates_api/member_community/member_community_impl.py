@@ -55,7 +55,8 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_ordered_card_id_on_the_basis_newest_chatroom_v2,
                            get_chatrooms_of_user_with_follow_status,
                            get_conversation_users_against_chatrooms_list,
-                           get_latest_conversations_against_chatrooms_list)
+                           get_latest_conversations_against_chatrooms_list,
+                           get_user_chatroom_status)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -71,6 +72,7 @@ from ..user_moderation_rights import check_admin_approve_right, check_admin_dele
 from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check, \
     m2cm_v2_version_check
 from utility.response_utilities import ResponseUtilities
+from utility.validation_utilities import ValidationUtilities
 from ..views import get_home_screen_community_actions, generate_internal_link_preview_for_conversation, \
     get_latest_conversation_members, post_introduction_card_for_community, update_community_get_started
 
@@ -1513,6 +1515,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         question_answers = req_body.get('question_answers', [])
         image_url = req_body.get('image_url')
+        name = req_body.get('name')
 
         if question_answers:
 
@@ -1556,6 +1559,15 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                                                  community_instance)
 
         user_member_filter.update(edit_required=False, updated_at=TimeUtilities.current_time_in_sec())
+
+        if name:
+
+            from ..community.community_impl import CommunityHelper
+
+            CommunityHelper.update_user_alias_name(user_instance.id, community_instance.id, name, question_states.NAME)
+
+            update_preview = True
+
 
         if image_url:
             MemberCommunityHelper.update_users_image_url_in_community(user_member_filter, image_url,
@@ -2017,6 +2029,39 @@ class MemberCommunityImpl(MemberCommunityManager):
         return {
             'success': True,
             'chatroom_ids': excluded_card_ids
+        }
+
+    def fetch_user_chatroom_status(self, user_id: str = None, chatroom_types: list = None, page: int = None,
+                                   page_size: int = None) -> dict:
+        validated_request = MemberCommunityHelper.validate_fetch_user_chatroom_status_request(
+            self.get_member_id(), self.get_api_key(), user_id)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        member_instance = validated_request.get('member_instance')
+        community_instance = validated_request.get('community_instance')
+        self.set_community_id(community_instance.id)
+
+        if not chatroom_types:
+            chatroom_types = [card_types.CARD_NORMAL, card_types.CARD_PURPOSE]
+
+        user_chatroom_status_query = get_user_chatroom_status(member_instance.id, self.get_community_id(),
+                                                              chatroom_types, page, page_size)
+
+        filter_dict = {
+            'community': community_instance,
+            'type__in': chatroom_types,
+            'is_deleted': False
+        }
+
+        total_chatrooms_count = ModelUtilities.get_model_filter(Collabcard, filter_dict).count()
+
+        return {
+            'success': True,
+            'chatrooms_data': user_chatroom_status_query,
+            'total_chatrooms_count': total_chatrooms_count
         }
 
 
@@ -2985,4 +3030,35 @@ class MemberCommunityHelper:
             'user_instance': user_instance,
             'chatroom_instance': chatroom_instance,
             'engage_instance': engage_filter[0]
+        }
+
+    @staticmethod
+    def validate_fetch_user_chatroom_status_request(user_id, api_key, member_id):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id,
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+
+        if not Members.is_member_community_promoter(community_instance, user_instance):
+            return ResponseUtilities.get_inner_error_context("You are not CM/Owner of community!")
+
+        member_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+        if not member_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID!")
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'member_instance': member_instance
         }
