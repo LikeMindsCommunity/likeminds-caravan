@@ -383,9 +383,6 @@ class ChatroomViewHelper:
 
         if not is_member:
             return ResponseUtilities.get_inner_error_context("User with member-id is not member of community")
-        
-        if user_instance.id == member_instance.id:
-            return ResponseUtilities.get_inner_error_context("You cannot create a chatroom with yourself")
 
         return {
             'user_instance': user_instance,
