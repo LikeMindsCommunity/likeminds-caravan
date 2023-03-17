@@ -5573,7 +5573,7 @@ class ChatroomHelper:
         chatroom_invite_filter = ModelUtilities.get_model_filter(ChatroomInvite, filter_dict)
         already_invited_users_list = list(chatroom_invite_filter.values_list('invite_receiver', flat=True))
 
-        new_users = list(set(users_list) - set(already_invited_users_list))
+        new_users = list(set(users_list) - set(already_invited_users_list) - {user_id})
 
         chatroom_invite_list = []
 
