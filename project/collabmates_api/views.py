@@ -2293,6 +2293,15 @@ def fetch_user_chatrooms(request):
     current_user_id = get_member_id_from_headers(request)
     chatrooms = []
 
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid user ID",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    user_id = user_instance.id
+
     if not page.isdigit():
         context = ResponseUtilities.get_view_impl_error_context("Send valid page",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
