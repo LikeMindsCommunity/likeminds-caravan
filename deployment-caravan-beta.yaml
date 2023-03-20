@@ -1,0 +1,20 @@
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  name: "caravan-beta"
+  namespace: "app-deploy"
+  labels:
+    app: "caravan-beta"
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: "caravan-beta"
+  template:
+    metadata:
+      labels:
+        app: "caravan-beta"
+    spec:
+      containers:
+      - name: "likeminds-caravan-beta-1"
+        image: "asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/togther/caravan-beta:8e5c5c6"
