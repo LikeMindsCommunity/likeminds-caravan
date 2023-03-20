@@ -11124,7 +11124,14 @@ def remove_community_manager(request):
     community_id = community_instance.id
 
     current_user_instance = User.objects.get(pk=current_user_id)
-    user_instance = User.objects.get(pk=user_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid user ID!",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    user_id = user_instance.id
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
