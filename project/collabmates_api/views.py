@@ -1926,7 +1926,13 @@ def remove_from_member(request):
         if is_promoter:
 
             member_ids = unquote(member_ids)
-            member_ids = json.loads(member_ids)
+            member_ids_list = StringUtilities.get_list_from_string(member_ids)
+
+            if not member_ids_list:
+                member_ids_list = member_ids.strip('][').split(', ')
+
+            from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+            member_ids = MemberCommunityImpl.get_valid_member_ids(member_ids_list)
 
             for member in member_ids:
                 member_filter = Members.objects.filter(community_id=community_instance, member_id=member)
