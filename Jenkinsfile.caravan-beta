@@ -15,7 +15,7 @@ pipeline {
         }
       
         stage("Building Application Docker Image"){
-          when { changeset "Jenkinsfile.caravan-beta"}
+          when { changeset "Dockerfile.caravan-beta"}
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
@@ -24,7 +24,7 @@ pipeline {
                 }
             }
          stage("Pushing Application Docker Image to Google Artifact Registry"){
-           when { changeset "Jenkinsfile.caravan-beta"}
+           when { changeset "Dockerfile.caravan-beta"}
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
@@ -34,7 +34,7 @@ pipeline {
             }
               
         stage('Deploy to GKE') {
-          when { changeset "Jenkinsfile.caravan-beta"}
+          when { changeset "Dockerfile.caravan-beta"}
             steps{
                 
                 sh "sed 's/caravan-beta:.*/caravan-beta:${BUILD_NUMBER}/g' deployment-caravan-beta.yaml"
