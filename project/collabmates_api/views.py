@@ -1926,7 +1926,13 @@ def remove_from_member(request):
         if is_promoter:
 
             member_ids = unquote(member_ids)
-            member_ids = json.loads(member_ids)
+            member_ids_list = StringUtilities.get_list_from_string(member_ids)
+
+            if not member_ids_list:
+                member_ids_list = member_ids.strip('][').split(', ')
+
+            from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+            member_ids = MemberCommunityImpl.get_valid_member_ids(member_ids_list)
 
             for member in member_ids:
                 member_filter = Members.objects.filter(community_id=community_instance, member_id=member)
@@ -2286,6 +2292,15 @@ def fetch_user_chatrooms(request):
     api_key = RequestUtilities.get_api_key_from_headers(request)
     current_user_id = get_member_id_from_headers(request)
     chatrooms = []
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid user ID",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    user_id = user_instance.id
 
     if not page.isdigit():
         context = ResponseUtilities.get_view_impl_error_context("Send valid page",
@@ -11118,7 +11133,14 @@ def remove_community_manager(request):
     community_id = community_instance.id
 
     current_user_instance = User.objects.get(pk=current_user_id)
-    user_instance = User.objects.get(pk=user_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid user ID!",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    user_id = user_instance.id
 
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
