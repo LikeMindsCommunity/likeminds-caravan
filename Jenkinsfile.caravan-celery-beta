@@ -19,7 +19,7 @@ pipeline {
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
-                    sh 'docker build -f Dockerfile.caravan-beta -t asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/likeminds-caravan-celery-beta/caravan-celery-beta:${BUILD_NUMBER} . '
+                    sh 'docker build -f Dockerfile.caravan-beta -t asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/likeminds-caravan-celery-beta/caravan-celery:${BUILD_NUMBER} . '
                     }
                 }
             }
@@ -28,7 +28,7 @@ pipeline {
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
-                    sh 'docker push asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/likeminds-caravan/caravan-celery-beta:${BUILD_NUMBER}'
+                    sh 'docker push asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/likeminds-caravan/caravan-celery:${BUILD_NUMBER}'
                       }
                  }
             }
@@ -37,10 +37,10 @@ pipeline {
           when { changeset "Jenkinsfile.caravan-celery-beta"}
             steps{
                 
-                sh "sed 's/caravan-celery-beta:.*/caravan-celery-beta:${BUILD_NUMBER}/g' deployment-caravan-celery-beta.yaml"
+                sh "sed 's/caravan-celery:.*/caravan-celery:${BUILD_NUMBER}/g' deployment-caravan-celery-beta.yaml"
                 sh "gcloud container clusters get-credentials ${env.CLUSTER_NAME} --region ${env.LOCATION} --project ${env.PROJECT_ID} --internal-ip"
                 sh "pwd"
-                sh "ls" 
+                sh "ls"
             }
         }
     }  
