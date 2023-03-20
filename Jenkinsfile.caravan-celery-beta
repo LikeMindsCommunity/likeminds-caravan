@@ -39,8 +39,8 @@ pipeline {
                 
                 sh "sed 's/caravan-celery-beta:.*/caravan-celery-beta:${BUILD_NUMBER}/g' deployment-caravan-celery-beta.yaml"
                 sh "gcloud container clusters get-credentials ${env.CLUSTER_NAME} --region ${env.LOCATION} --project ${env.PROJECT_ID} --internal-ip"
-                sh 'kubectl apply -f /var/lib/jenkins/workspace/likeminds-caravan-celery-beta/deployment-caravan-celery-beta.yaml'
-                
+                sh "pwd"
+                sh "ls" 
             }
         }
     }  
