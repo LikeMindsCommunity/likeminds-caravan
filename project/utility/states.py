@@ -733,3 +733,12 @@ class ChatroomInviteStatusTypes:
 
 
 chatroom_invite_status_types = ChatroomInviteStatusTypes()
+
+
+class ChatroomSettings:
+    TAG_ONLY_PARTICIPANTS_ID = 29
+
+    TAG_ONLY_PARTICIPANTS_TITLE = 'Tag only participants'
+
+
+chatroom_setting_states = ChatroomSettings()
