@@ -15,7 +15,7 @@ pipeline {
         }
       
         stage("Building Application Docker Image"){
-          when { changeset "Jenkinsfile.caravan-beta"}
+          when { changeset "Dockerfile.caravan-celery-beta"}
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
