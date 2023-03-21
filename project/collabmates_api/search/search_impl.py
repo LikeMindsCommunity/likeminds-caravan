@@ -95,8 +95,9 @@ class SearchImpl(SearchManager):
             }
         }
 
-    def _get_chatroom_search_ngram_query_dict(self, chatroom_id_list):
+    def _get_chatroom_search_ngram_query_dict(self, excluded_chatroom_id_list):
         """
+        @param excluded_chatroom_id_list: list of excluded chatroom ids
         @return: dict
         """
         return {
@@ -139,7 +140,7 @@ class SearchImpl(SearchManager):
                             "term": {"chatroom.type": card_types.CARD_DIRECT_MESSAGE}
                         },
                         {
-                            "term": {"chatroom.id": chatroom_id_list}
+                            "term": {"chatroom.id": excluded_chatroom_id_list}
                         }
                     ]
                 }
