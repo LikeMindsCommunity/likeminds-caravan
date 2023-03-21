@@ -97,7 +97,7 @@ class SearchImpl(SearchManager):
 
     def _get_chatroom_search_ngram_query_dict(self, excluded_chatroom_id_list):
         """
-        @param excluded_chatroom_id_list: list of excluded chatroom ids
+        @param excluded_chatroom_id_list: list of excluded chatroom ids on the basis of cohort access
         @return: dict
         """
         return {
