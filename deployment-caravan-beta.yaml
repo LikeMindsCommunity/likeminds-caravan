@@ -10,6 +10,12 @@ spec:
   selector:
     matchLabels:
       app: "caravan-beta"
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
   template:
     metadata:
       labels:
@@ -17,4 +23,35 @@ spec:
     spec:
       containers:
       - name: "likeminds-caravan-beta-1"
-        image: "asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/togther/caravan-beta:8e5c5c6"
+        image: "asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/togther/caravan-beta:93ce10d"
+        resources:
+          requests:
+            memory: "1000Mi"
+            cpu: "2000m"
+          limits:
+            memory: "3000Mi"
+            cpu: "2500m"
+  
+---
+
+apiVersion: "autoscaling/v2"
+kind: "HorizontalPodAutoscaler"
+metadata:
+  name: "caravan-beta"
+  namespace: "app-deploy"
+  labels:
+    app: "caravan-beta"
+spec:
+  scaleTargetRef:
+    kind: "Deployment"
+    name: "caravan-beta"
+    apiVersion: "apps/v1"
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+  - type: "Resource"
+    resource:
+      name: "cpu"
+      target:
+        type: "Utilization"
+        averageUtilization: 75
