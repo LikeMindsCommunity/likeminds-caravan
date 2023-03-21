@@ -3271,8 +3271,7 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=N
 
 def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id, user_id=None, page=1, limit=50,
                                                        is_guest=False, member_name_search: str = None,
-                                                       filter_user_ids: list = None,
-                                                       tag_only_participants: bool = False):
+                                                       filter_user_ids: list = None):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -3281,7 +3280,6 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
         curr = conn.cursor()
 
         filter_user_query = ""
-        tag_only_participants_user_query = ""
 
         if filter_user_ids is not None:
             filter_user_query = """ 
@@ -3291,14 +3289,6 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
                     togther_collabcardstate.follow_status = true AND
                     togther_collabcardstate.card_id = {})
             """.format(get_tuple_from_array(filter_user_ids), chatroom_id)
-
-        if tag_only_participants:
-            tag_only_participants_user_query = """ 
-                INNER JOIN togther_collabcardstate 
-                ON (togther_collabcardstate.user_id = togther_userinfo.user_id_id AND
-                    togther_collabcardstate.follow_status = true AND
-                    togther_collabcardstate.card_id = {})
-            """.format(chatroom_id)
 
         sql = """
                 SELECT     togther_userinfo.user_id_id AS id,
@@ -3312,14 +3302,13 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
                            togther_userinfo.user_unique_id
                 FROM       togther_userinfo
                 INNER JOIN togther_members
-                ON         togther_members.member_id_id=togther_userinfo.user_id_id {} {}
+                ON         togther_members.member_id_id=togther_userinfo.user_id_id {}
                 AND        togther_members.community_id_id={}
                 AND        togther_userinfo.is_guest={}
                 AND        togther_userinfo.user_id_id!={}
                 WHERE      togther_userinfo.NAME ILIKE '{}%'
                 ORDER BY togther_userinfo.NAME ASC limit {} offset {};
-        """.format(filter_user_query, tag_only_participants_user_query, community_id, is_guest, user_id,
-                   member_name_search, limit, offset)
+        """.format(filter_user_query, community_id, is_guest, user_id, member_name_search, limit, offset)
 
         curr.execute(sql)
         user_ids_list = curr.fetchall()

@@ -82,7 +82,7 @@ from external_services.email.email_wrapper import MailWrapper, MailHelper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
     event_online_link_types, block_chatroom_states, chat_request_states, api_types, noti_states, \
-    community_setting_types, chatroom_invite_status_types, chatroom_setting_states
+    community_setting_types, chatroom_invite_status_types
 
 from utility.utils import check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -608,9 +608,10 @@ class ChatroomImpl(ChatroomManager):
                                                                              limit=page_size)
 
         else:
-            tag_list = get_community_members_data_on_basis_of_name_search(
-                chatroom_instance.community_id, chatroom_instance.id, user_id=user_id, page=page, limit=page_size,
-                member_name_search=search_name, tag_only_participants=chatroom_instance.tag_only_participants)
+            tag_list = get_community_members_data_on_basis_of_name_search(chatroom_instance.community_id,
+                                                                          chatroom_instance.id, user_id=user_id,
+                                                                          page=page, limit=page_size,
+                                                                          member_name_search=search_name)
 
         return tag_list
 
@@ -2585,15 +2586,6 @@ class ChatroomImpl(ChatroomManager):
                 chatroom_settings.append(manage_permissions)
                 chatroom_settings.append(pin_chatroom)
 
-            if VersionUtilities.check_version(self.get_request_platform(),
-                                              self.get_version_code(),
-                                              VersionUtilities.tag_only_participants):
-                tag_participants_setting = {
-                    'id': chatroom_setting_states.TAG_ONLY_PARTICIPANTS_ID,
-                    'title': chatroom_setting_states.TAG_ONLY_PARTICIPANTS_TITLE
-                }
-                chatroom_settings.append(tag_participants_setting)
-
         else:
             chatroom_settings = settings_for_chatroom.copy()
             admin_has_delete_right = check_admin_delete_right(user=user_instance,
@@ -3869,31 +3861,6 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def update_chatroom_settings(self, chatroom_settings: list) -> dict:
-        validated_req_body = ChatroomHelper.validate_update_chatroom_settings_request(self.get_member_id(),
-                                                                                      self.get_chatroom_id(),
-                                                                                      chatroom_settings)
-
-        if validated_req_body.get('error_message'):
-            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
-                                                            status_codes.HTTP_400_BAD_REQUEST)
-
-        chatroom_instance = validated_req_body.get('chatroom_instance')
-
-        for chatroom_setting in chatroom_settings:
-            setting_id = chatroom_setting.get('id')
-            setting_title = chatroom_setting.get('title')
-            is_selected = chatroom_setting.get('is_selected', False)
-
-            if not (setting_id and setting_title):
-                continue
-
-            elif all([setting_id == chatroom_setting_states.TAG_ONLY_PARTICIPANTS_ID,
-                      setting_title == chatroom_setting_states.TAG_ONLY_PARTICIPANTS_TITLE]):
-                ChatroomHelper.update_tag_only_participants_chatroom_setting.delay(chatroom_instance.id, is_selected)
-
-        return {'success': True}
-
 
 class ChatroomHelper:
 
@@ -4806,9 +4773,6 @@ class ChatroomHelper:
             elif settings['id'] == auto_joined_by_all_members['id']:
                 settings_dict['is_selected'] = card_instance.include_members_later
 
-            elif settings['id'] == chatroom_setting_states.TAG_ONLY_PARTICIPANTS_ID:
-                settings_dict['is_selected'] = card_instance.tag_only_participants
-
             chatroom_settings.append(settings_dict)
 
         return chatroom_settings
@@ -5669,40 +5633,3 @@ class ChatroomHelper:
         user_instance = validated_dict.get('user_id')
 
         return {'user_instance': user_instance, 'chatroom_instance': chatroom_instance}
-
-    @staticmethod
-    def validate_update_chatroom_settings_request(user_id, chatroom_id, chatroom_settings: list = None):
-
-        if (not chatroom_settings) or (chatroom_settings and not isinstance(chatroom_settings, list)):
-            return ResponseUtilities.get_inner_error_context('Invalid chatroom settings list!')
-
-        validation_params = {
-            'chatroom_id': chatroom_id,
-            'user_id': user_id,
-        }
-
-        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
-
-        if validated_dict.get('error_message'):
-            return validated_dict
-
-        chatroom_instance = validated_dict.get('chatroom_id')
-        user_instance = validated_dict.get('user_id')
-
-        if not Members.is_member_community_promoter(chatroom_instance.community, user_instance):
-            return ResponseUtilities.get_inner_error_context('User cannot update chatroom settings!')
-
-        return {
-            'user_instance': user_instance,
-            'chatroom_instance': chatroom_instance
-        }
-
-    @staticmethod
-    @shared_task
-    def update_tag_only_participants_chatroom_setting(chatroom_id, is_selected=False):
-        update_dict = {
-            'tag_only_participants': is_selected,
-            'updated_at': TimeUtilities.current_time_in_sec()
-        }
-
-        ModelUtilities.model_update(Collabcard, {'id': chatroom_id}, update_dict)
