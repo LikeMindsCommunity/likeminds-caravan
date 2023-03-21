@@ -586,8 +586,6 @@ class Collabcard(models.Model):
 
     chatroom_image_url = models.TextField(null=True)
 
-    tag_only_participants = models.BooleanField(default=False)
-
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
         current_time_msec = TimeUtilities.current_time_in_milliseconds()
