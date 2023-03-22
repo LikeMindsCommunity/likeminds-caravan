@@ -133,15 +133,21 @@ class SearchImpl(SearchManager):
                                     }
                                 ]
                             }
-                        }
+                        },
+                        {
+                            "script": {
+                                "script": {
+                                    "inline": "for(int chatroom_id: doc['chatroom.id']) { boolean matches = true; for(int excluded_chatroom_id: params.chatroom_ids){if(chatroom_id==excluded_chatroom_id) matches = false;} if(matches) return true;} ",
+                                    "lang": "painless",
+                                    "params": {"chatroom_ids": excluded_chatroom_id_list}
+                                },
+                            },
+                        },
                     ],
                     "must_not": [
                         {
                             "term": {"chatroom.type": card_types.CARD_DIRECT_MESSAGE}
                         },
-                        {
-                            "term": {"chatroom.id": excluded_chatroom_id_list}
-                        }
                     ]
                 }
             }
