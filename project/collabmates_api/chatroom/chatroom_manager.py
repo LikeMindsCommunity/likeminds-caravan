@@ -191,6 +191,10 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                     (
                             hasattr(subclass, 'update_chatroom_invites') and
                             callable(subclass.update_chatroom_invites)
+                    ) and
+                    (
+                            hasattr(subclass, 'update_chatroom_settings') and
+                            callable(subclass.update_chatroom_settings)
                     ) or
                     NotImplemented
         )
@@ -540,5 +544,11 @@ class ChatroomManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def update_chatroom_invites(self, invite_status: int) -> dict:
         """Updates chatroom invites of community"""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_chatroom_settings(self, chatroom_settings: list) -> dict:
+        """Updates chatroom settings"""
 
         raise NotImplementedError

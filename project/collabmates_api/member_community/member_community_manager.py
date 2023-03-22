@@ -31,7 +31,9 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_member_access') and callable(subclass.fetch_member_access)) and
                 (hasattr(subclass, 'fetch_post_feed') and callable(subclass.fetch_post_feed)) and
                 (hasattr(subclass, 'fetch_excluded_chatrooms_for_user') and callable(
-                    subclass.fetch_excluded_chatrooms_for_user)) or
+                    subclass.fetch_excluded_chatrooms_for_user)) and
+                (hasattr(subclass, 'fetch_user_chatroom_status') and callable(
+                    subclass.fetch_user_chatroom_status)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -151,13 +153,19 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def fetch_post_feed(self, order_type:int = 0, pinned:bool = False, page:int = 1, page_size:int = 10,
-                        chatroom_ids:list = None):
+    def fetch_post_feed(self, order_type: int = 0, pinned:bool = False, page: int = 1, page_size: int = 10,
+                        chatroom_ids: list = None):
         """Fetches the post feed data"""
 
         raise NotImplementedError
 
     def fetch_excluded_chatrooms_for_user(self):
         """Fetches the list of excluded chatroom ids for a user"""
+
+        raise NotImplementedError
+
+    def fetch_user_chatroom_status(self, user_id: str = None, chatroom_types: list = None, page: int = None,
+                                   page_size: int = None) -> dict:
+        """Fetches user chatroom joining status"""
 
         raise NotImplementedError

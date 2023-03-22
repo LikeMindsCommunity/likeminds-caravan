@@ -69,7 +69,7 @@ class VersionUtilities:
         PlatformCode.WEB: unreleased_version_code,
         PlatformCode.ANDROID_SDK: unreleased_version_code,
         PlatformCode.IOS_SDK: unreleased_version_code,
-        PlatformCode.WEB_SDK: 16,
+        PlatformCode.WEB_SDK: 15,
         PlatformCode.FLUTTER: unreleased_version_code,
         PlatformCode.REACT_NATIVE: unreleased_version_code,
         PlatformCode.FLUTTER_SDK: unreleased_version_code,
@@ -134,8 +134,31 @@ class VersionUtilities:
         PlatformCode.WEB: unreleased_version_code,
         PlatformCode.ANDROID_SDK: unreleased_version_code,
         PlatformCode.IOS_SDK: unreleased_version_code,
+        PlatformCode.WEB_SDK: 15,
+        PlatformCode.FLUTTER: unreleased_version_code,
+    }
+
+    community_join_form: dict = {
+        PlatformCode.ANDROID: unreleased_version_code,
+        PlatformCode.IOS: unreleased_version_code,
+        PlatformCode.WEB: unreleased_version_code,
+        PlatformCode.ANDROID_SDK: 211,
+        PlatformCode.IOS_SDK: 374,
         PlatformCode.WEB_SDK: unreleased_version_code,
         PlatformCode.FLUTTER: unreleased_version_code,
+    }
+
+    tag_only_participants: dict = {
+        PlatformCode.ANDROID: unreleased_version_code,
+        PlatformCode.IOS: unreleased_version_code,
+        PlatformCode.WEB: unreleased_version_code,
+        PlatformCode.ANDROID_SDK: unreleased_version_code,
+        PlatformCode.IOS_SDK: unreleased_version_code,
+        PlatformCode.WEB_SDK: unreleased_version_code,
+        PlatformCode.FLUTTER: unreleased_version_code,
+        PlatformCode.REACT_NATIVE: unreleased_version_code,
+        PlatformCode.FLUTTER_SDK: unreleased_version_code,
+        PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
     }
 
     @staticmethod

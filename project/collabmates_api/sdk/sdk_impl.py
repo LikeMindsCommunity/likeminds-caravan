@@ -2,8 +2,9 @@ from rest_framework import status as status_codes
 
 from .sdk_manager import SdkManager
 from utility.response_utilities import ResponseUtilities
-from utility.states import (api_types, login_types)
+from utility.states import (api_types, login_types, question_states)
 from utility.auth_utilities import AuthUtilities
+from utility.version_utilities import VersionUtilities
 from togther.models import (ModelUtilities, communityAnswers)
 from .models import SdkClient, SdkPlatform, SdkOnboardingScreen
 from .sdk_view_helper import SdkViewHelper
@@ -255,10 +256,21 @@ class SdkImpl(SdkManager):
             'has_answers': True
         }
 
-        if sdk_client.is_join_form_enabled:
-            answers_filter = ModelUtilities.get_model_filter(communityAnswers,
-                                                             {'community': sdk_client.community,
-                                                              'member': user_object.get('id')})
+        is_community_join_form = VersionUtilities.check_version(self.get_request_platform(), self.get_version_code(),
+                                                                VersionUtilities.community_join_form)
+
+        if is_community_join_form and sdk_client.is_join_form_enabled:
+            filter_dict = {
+                'community': sdk_client.community,
+                'member': user_object.get('id')
+            }
+
+            exclude_filter_dict = {
+                'question__question_state__in': [question_states.NAME, question_states.INTRODUCTION]
+            }
+
+            answers_filter = ModelUtilities.get_model_filter(communityAnswers, filter_dict).exclude(
+                **exclude_filter_dict)
 
             if (not answers_filter) and (not req_body.get('question_answers')):
                 response['has_answers'] = False

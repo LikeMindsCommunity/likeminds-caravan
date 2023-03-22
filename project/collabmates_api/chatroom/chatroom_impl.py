@@ -82,7 +82,7 @@ from external_services.email.email_wrapper import MailWrapper, MailHelper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
     event_online_link_types, block_chatroom_states, chat_request_states, api_types, noti_states, \
-    community_setting_types, chatroom_invite_status_types
+    community_setting_types, chatroom_invite_status_types, chatroom_setting_states
 
 from utility.utils import check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -608,10 +608,9 @@ class ChatroomImpl(ChatroomManager):
                                                                              limit=page_size)
 
         else:
-            tag_list = get_community_members_data_on_basis_of_name_search(chatroom_instance.community_id,
-                                                                          chatroom_instance.id, user_id=user_id,
-                                                                          page=page, limit=page_size,
-                                                                          member_name_search=search_name)
+            tag_list = get_community_members_data_on_basis_of_name_search(
+                chatroom_instance.community_id, chatroom_instance.id, user_id=user_id, page=page, limit=page_size,
+                member_name_search=search_name, tag_only_participants=chatroom_instance.tag_only_participants)
 
         return tag_list
 
@@ -1379,7 +1378,7 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req_body.get('user_instance')
         chatroom_instance = validated_req_body.get('card_instance')
         secret_chatroom_participants = validated_req_body.get('secret_chatroom_participants')
-        is_chatroom_invite = req_body.get('is_channel_invite', False)
+        is_chatroom_invite = req_body.get('is_channel_invite', True)
 
         # support for user_unique_ids in secret chatroom participants parameter
         secret_chatroom_participants = MemberCommunityImpl.get_valid_member_ids(secret_chatroom_participants)
@@ -1391,13 +1390,35 @@ class ChatroomImpl(ChatroomManager):
 
         existing_participants = json.loads(chatroom_instance.secret_chatroom_participants)
 
-        if is_chatroom_invite:
-            new_users_list = list(set(secret_chatroom_participants) - set(existing_participants))
-            ChatroomHelper.create_chatroom_invite_to_users.delay(user_instance.id,
-                                                                 chatroom_instance.id,
-                                                                 new_users_list)
+        is_setting_enabled = False
 
-            return {'success': True}
+        if is_chatroom_invite:
+            filter_dict = {
+                'community': chatroom_instance.community,
+                'enabled': True
+            }
+
+            if chatroom_instance.type == card_types.CARD_NORMAL:
+                filter_dict['setting_type'] = community_setting_types.SECRET_CHATROOMS_INVITE
+                chatroom_invite_setting = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+
+                if chatroom_invite_setting:
+                    is_setting_enabled = True
+
+            elif chatroom_instance.type == card_types.CARD_FEED_GROUP:
+                filter_dict['setting_type'] = community_setting_types.SECRET_GROUP_INVITE
+                post_group_invite_setting = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+
+                if post_group_invite_setting:
+                    is_setting_enabled = True
+
+            if is_setting_enabled:
+                new_users_list = list(set(secret_chatroom_participants) - set(existing_participants))
+                ChatroomHelper.create_chatroom_invite_to_users.delay(user_instance.id,
+                                                                     chatroom_instance.id,
+                                                                     new_users_list)
+
+                return {'success': True}
 
         final_participants_list = set(secret_chatroom_participants) | set(existing_participants)
 
@@ -2563,6 +2584,15 @@ class ChatroomImpl(ChatroomManager):
                 chatroom_settings.append(auto_joined_by_all_members)
                 chatroom_settings.append(manage_permissions)
                 chatroom_settings.append(pin_chatroom)
+
+            if VersionUtilities.check_version(self.get_request_platform(),
+                                              self.get_version_code(),
+                                              VersionUtilities.tag_only_participants):
+                tag_participants_setting = {
+                    'id': chatroom_setting_states.TAG_ONLY_PARTICIPANTS_ID,
+                    'title': chatroom_setting_states.TAG_ONLY_PARTICIPANTS_TITLE
+                }
+                chatroom_settings.append(tag_participants_setting)
 
         else:
             chatroom_settings = settings_for_chatroom.copy()
@@ -3784,11 +3814,16 @@ class ChatroomImpl(ChatroomManager):
 
         chatroom_invites_data = []
 
+        serializer_context = {
+            'user_id': user_instance.id
+        }
+
         if chatroom_invite_ids_list:
             chatroom_invite_filter = ModelUtilities.get_model_filter(
                 ChatroomInvite, {'id__in': chatroom_invite_ids_list}).order_by('-created_at')
 
-            chatroom_invites_data = ChatroomInviteSerializer(chatroom_invite_filter, many=True).data
+            chatroom_invites_data = ChatroomInviteSerializer(chatroom_invite_filter, context=serializer_context,
+                                                             many=True).data
 
         return {'success': True, 'user_invites': chatroom_invites_data}
 
@@ -3820,7 +3855,9 @@ class ChatroomImpl(ChatroomManager):
             req_body = {
                 'chatroom_id': chatroom_instance.id,
                 'secret_chatroom_participants': [user_instance.id],
+                'is_channel_invite': False
             }
+
             self.add_secret_chatroom_participant(req_body)
             chatroom_invite_filter.update(invite_status=chatroom_invite_status_types.INVITE_ACCEPTED,
                                           updated_at=TimeUtilities.current_time_in_milliseconds())
@@ -3829,6 +3866,31 @@ class ChatroomImpl(ChatroomManager):
             chatroom_invite_filter.update(invite_status=chatroom_invite_status_types.INVITE_REJECTED,
                                           updated_at=TimeUtilities.current_time_in_milliseconds())
             update_models_for_syncing_apis(SyncTypes.CHATROOM, {'card': chatroom_instance}, {})
+
+        return {'success': True}
+
+    def update_chatroom_settings(self, chatroom_settings: list) -> dict:
+        validated_req_body = ChatroomHelper.validate_update_chatroom_settings_request(self.get_member_id(),
+                                                                                      self.get_chatroom_id(),
+                                                                                      chatroom_settings)
+
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        chatroom_instance = validated_req_body.get('chatroom_instance')
+
+        for chatroom_setting in chatroom_settings:
+            setting_id = chatroom_setting.get('id')
+            setting_title = chatroom_setting.get('title')
+            is_selected = chatroom_setting.get('is_selected', False)
+
+            if not (setting_id and setting_title):
+                continue
+
+            elif all([setting_id == chatroom_setting_states.TAG_ONLY_PARTICIPANTS_ID,
+                      setting_title == chatroom_setting_states.TAG_ONLY_PARTICIPANTS_TITLE]):
+                ChatroomHelper.update_tag_only_participants_chatroom_setting.delay(chatroom_instance.id, is_selected)
 
         return {'success': True}
 
@@ -4744,6 +4806,9 @@ class ChatroomHelper:
             elif settings['id'] == auto_joined_by_all_members['id']:
                 settings_dict['is_selected'] = card_instance.include_members_later
 
+            elif settings['id'] == chatroom_setting_states.TAG_ONLY_PARTICIPANTS_ID:
+                settings_dict['is_selected'] = card_instance.tag_only_participants
+
             chatroom_settings.append(settings_dict)
 
         return chatroom_settings
@@ -5536,56 +5601,34 @@ class ChatroomHelper:
         user_instance = validated_dict.get('user_id')
         chatroom_instance = validated_dict.get('chatroom_id')
 
-        is_setting_enabled = False
-
         filter_dict = {
-            'community': chatroom_instance.community,
-            'enabled': True
+            'chatroom': chatroom_instance,
+            'invite_status': chatroom_invite_status_types.INVITE_INITIATED
         }
 
-        if chatroom_instance.type == card_types.CARD_NORMAL:
-            filter_dict['setting_type'] = community_setting_types.SECRET_CHATROOMS_INVITE
-            chatroom_invite_setting = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+        chatroom_invite_filter = ModelUtilities.get_model_filter(ChatroomInvite, filter_dict)
+        already_invited_users_list = list(chatroom_invite_filter.values_list('invite_receiver', flat=True))
 
-            if chatroom_invite_setting:
-                is_setting_enabled = True
+        new_users = list(set(users_list) - set(already_invited_users_list) - {user_id})
 
-        elif chatroom_instance.type == card_types.CARD_FEED_GROUP:
-            filter_dict['setting_type'] = community_setting_types.SECRET_GROUP_INVITE
-            post_group_invite_setting = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+        chatroom_invite_list = []
 
-            if post_group_invite_setting:
-                is_setting_enabled = True
+        for user_id in new_users:
+            invite_receiver_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
-        if is_setting_enabled:
-            filter_dict = {
+            if not invite_receiver_instance:
+                continue
+
+            chatroom_invite_list.append(ChatroomInvite(**{
                 'chatroom': chatroom_instance,
-                'invite_status': chatroom_invite_status_types.INVITE_INITIATED
-            }
+                'invite_sender': user_instance,
+                'invite_receiver': invite_receiver_instance,
+                'invite_status': chatroom_invite_status_types.INVITE_INITIATED,
+                'created_at': TimeUtilities.current_time_in_milliseconds(),
+                'updated_at': TimeUtilities.current_time_in_milliseconds()
+            }))
 
-            chatroom_invite_filter = ModelUtilities.get_model_filter(ChatroomInvite, filter_dict)
-            already_invited_users_list = list(chatroom_invite_filter.values_list('invite_receiver', flat=True))
-
-            new_users = list(set(users_list) - set(already_invited_users_list))
-
-            chatroom_invite_list = []
-
-            for user_id in new_users:
-                invite_receiver_instance = ModelUtilities.get_user_instance_or_none(user_id)
-
-                if not invite_receiver_instance:
-                    continue
-
-                chatroom_invite_list.append(ChatroomInvite(**{
-                    'chatroom': chatroom_instance,
-                    'invite_sender': user_instance,
-                    'invite_receiver': invite_receiver_instance,
-                    'invite_status': chatroom_invite_status_types.INVITE_INITIATED,
-                    'created_at': TimeUtilities.current_time_in_milliseconds(),
-                    'updated_at': TimeUtilities.current_time_in_milliseconds()
-                }))
-
-            ModelUtilities.bulk_create_instances(ChatroomInvite, chatroom_invite_list)
+        ModelUtilities.bulk_create_instances(ChatroomInvite, chatroom_invite_list)
 
     @staticmethod
     def validate_get_chatroom_invites_request(user_id, api_key):
@@ -5626,3 +5669,40 @@ class ChatroomHelper:
         user_instance = validated_dict.get('user_id')
 
         return {'user_instance': user_instance, 'chatroom_instance': chatroom_instance}
+
+    @staticmethod
+    def validate_update_chatroom_settings_request(user_id, chatroom_id, chatroom_settings: list = None):
+
+        if (not chatroom_settings) or (chatroom_settings and not isinstance(chatroom_settings, list)):
+            return ResponseUtilities.get_inner_error_context('Invalid chatroom settings list!')
+
+        validation_params = {
+            'chatroom_id': chatroom_id,
+            'user_id': user_id,
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        chatroom_instance = validated_dict.get('chatroom_id')
+        user_instance = validated_dict.get('user_id')
+
+        if not Members.is_member_community_promoter(chatroom_instance.community, user_instance):
+            return ResponseUtilities.get_inner_error_context('User cannot update chatroom settings!')
+
+        return {
+            'user_instance': user_instance,
+            'chatroom_instance': chatroom_instance
+        }
+
+    @staticmethod
+    @shared_task
+    def update_tag_only_participants_chatroom_setting(chatroom_id, is_selected=False):
+        update_dict = {
+            'tag_only_participants': is_selected,
+            'updated_at': TimeUtilities.current_time_in_sec()
+        }
+
+        ModelUtilities.model_update(Collabcard, {'id': chatroom_id}, update_dict)
