@@ -140,7 +140,7 @@ class SearchImpl(SearchManager):
                             "term": {"chatroom.type": card_types.CARD_DIRECT_MESSAGE}
                         },
                         {
-                            "term": {"chatroom.id": excluded_chatroom_id_list}
+                            "terms": {"chatroom.id": excluded_chatroom_id_list}
                         }
                     ]
                 }
