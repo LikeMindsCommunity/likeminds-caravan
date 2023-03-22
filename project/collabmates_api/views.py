@@ -8889,7 +8889,7 @@ def push(request):
         return JsonResponse(response)
 
     if member_id:
-        is_member = Userinfo.objects.filter(user_id=member_id)
+        is_member = ModelUtilities.get_user_instance_or_none(member_id)
     else:
         is_member = None
         # send notification if the login drops
@@ -8912,7 +8912,7 @@ def push(request):
                                                                                 status_codes.HTTP_400_BAD_REQUEST))
 
         success = True
-        user_instance = User.objects.get(id=member_id)
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
         info_logger.info("push api hit")
 
