@@ -15,6 +15,7 @@ pipeline {
         }
       
         stage("Building Application Docker Image"){
+          when { changeset "Dockerfile.caravan-celery-prod"}
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
@@ -23,6 +24,7 @@ pipeline {
                 }
             }
          stage("Pushing Application Docker Image to Google Artifact Registry"){
+           when { changeset "Dockerfile.caravan-celery-prod"}
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
@@ -32,11 +34,13 @@ pipeline {
             }
               
         stage('Deploy to GKE') {
+          when { changeset "Dockerfile.caravan-celery-prod"}
             steps{
                 
                 sh "sed 's/caravan-celery-prod:.*/caravan-celery-prod:${BUILD_NUMBER}/g' deployment-caravan-celery-prod.yaml"
                 sh "gcloud container clusters get-credentials ${env.CLUSTER_NAME} --region ${env.LOCATION} --project ${env.PROJECT_ID} --internal-ip"
-                sh "pwd" 
+                sh 'kubectl apply -f /var/lib/jenkins/workspace/likeminds-caravan-celery-prod/deployment-caravan-celery-prod.yaml'
+                
             }
         }
     }  
