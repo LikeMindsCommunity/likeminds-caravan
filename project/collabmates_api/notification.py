@@ -3215,6 +3215,8 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
         notification_list.append(temp)
 
     print("notification_list", notification_list)
+
+    message = TasksHelper.add_community_info_to_notification_payload(message, community_instance.id)
     notification_meta(notification_list, message)
 
 
