@@ -13,6 +13,18 @@ pipeline {
                 checkout scm
             }
         }
+        stage("Executing the Script Migration step for caravan-beta") {
+          when { changeset "Migrationfile-caravan-beta.sh"}
+            steps {
+                script{
+                    sh '''
+                       gcloud compute ssh likeminds-nonprod-migration-vm --zone=asia-south1-a --internal-ip --command="chmod +x /home/apps/caravan-beta/Together/Migrationfile-caravan-beta.sh"
+                       gcloud compute ssh likeminds-nonprod-migration-vm --zone=asia-south1-a --internal-ip --command=". /home/apps/caravan-beta/Together/Migrationfile-caravan-beta.sh"
+                      '''
+                }
+                
+            }
+        }
       
         stage("Building Application Docker Image"){
           when { changeset "Dockerfile.caravan-beta"}
@@ -51,4 +63,3 @@ pipeline {
     }
 
 }
-
