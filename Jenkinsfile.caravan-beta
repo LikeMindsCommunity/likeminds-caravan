@@ -17,8 +17,8 @@ pipeline {
             steps {
                 script{
                     sh '''
-                       gcloud compute ssh likeminds-nonprod-migration-vm --zone=asia-south1-a --internal-ip --command="chmod +x /home/apps/caravan-beta/Together/Migrationfile-caravan-beta.sh"
-                       gcloud compute ssh likeminds-nonprod-migration-vm --zone=asia-south1-a --internal-ip --command=". /home/apps/caravan-beta/Together/Migrationfile-caravan-beta.sh"
+                       gcloud compute ssh likeminds-nonprod-migration-vm --zone=asia-south1-a --internal-ip --command="chmod +x /home/apps/caravan-beta/Togther/Migrationfile-caravan-beta.sh"
+                       gcloud compute ssh likeminds-nonprod-migration-vm --zone=asia-south1-a --internal-ip --command=". /home/apps/caravan-beta/Togther/Migrationfile-caravan-beta.sh"
                       '''
                 }
                 
