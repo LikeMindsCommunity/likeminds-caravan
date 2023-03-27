@@ -208,6 +208,11 @@ def send_notification_for_web(token_list, message, firebase_key=None):
                                                   data_message=message['payload'],
                                                   timeout=fcm_timeout_seconds)
 
+    log_statement = """
+                The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("WEB", len(token_list), result.get('success'), result.get('failure'), message.get('payload'))
+    print(log_statement)
+
     return result
 
 
@@ -239,6 +244,11 @@ def send_notification_for_flutter(token_list, message, firebase_key=None):
                                                   timeout=fcm_timeout_seconds,
                                                   extra_notification_kwargs=extra_notification_kwargs)
 
+    log_statement = """
+                The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("FLUTTER", len(token_list), result.get('success'), result.get('failure'), message.get('payload'))
+    print(log_statement)
+
     return result
 
 
@@ -255,6 +265,12 @@ def send_notification_for_react_native(token_list, message, firebase_key=None):
     result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                   data_message=message['payload'],
                                                   timeout=fcm_timeout_seconds)
+
+    log_statement = """
+                The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("REACT NATIVE", len(token_list), result.get('success'), result.get('failure'),
+                       message.get('payload'))
+    print(log_statement)
 
     return result
 
