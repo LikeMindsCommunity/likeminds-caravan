@@ -14,6 +14,7 @@ pipeline {
             }
         }
         stage("Executing the Script Migration step for caravan-beta") {
+          when { changeset "Migrationfile-caravan-beta.sh"}
             steps {
                 script{
                     sh '''
