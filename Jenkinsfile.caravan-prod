@@ -17,6 +17,7 @@ pipeline {
             steps {
                 script{
                     sh '''
+                       gcloud compute ssh likeminds-prod-mgmt-vm --zone=asia-south1-a --internal-ip --command="sudo chown -R jenkins  /home/apps/caravan-prod/"
                        gcloud compute ssh likeminds-prod-mgmt-vm --zone=asia-south1-a --internal-ip --command="chmod +x /home/apps/caravan-prod/Togther/Migrationfile-caravan-prod.sh"
                        gcloud compute ssh likeminds-prod-mgmt-vm --zone=asia-south1-a --internal-ip --command=". /home/apps/caravan-prod/Togther/Migrationfile-caravan-prod.sh"
                       '''
