@@ -12,6 +12,8 @@ from utility.response_utilities import ResponseUtilities
 from .constants import CUSTOM_INTRO_TEXT_FOR_ADMIN, CUSTOM_INTRO_TEXT_FOR_MEMBERS, CUSTOM_CLICK_TEXT_FOR_MEMBERS
 from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING,CHATROOM_FIELD_TITLE
 from collabmates_api.sdk.models import SdkClient
+from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
+                           get_chatrooms_of_user_with_follow_status)
 
 
 class SearchImpl(SearchManager):
@@ -93,8 +95,9 @@ class SearchImpl(SearchManager):
             }
         }
 
-    def _get_chatroom_search_ngram_query_dict(self):
+    def _get_chatroom_search_ngram_query_dict(self, excluded_chatroom_id_list):
         """
+        @param excluded_chatroom_id_list: list of excluded chatroom ids on the basis of cohort access
         @return: dict
         """
         return {
@@ -135,6 +138,9 @@ class SearchImpl(SearchManager):
                     "must_not": [
                         {
                             "term": {"chatroom.type": card_types.CARD_DIRECT_MESSAGE}
+                        },
+                        {
+                            "terms": {"chatroom.id": excluded_chatroom_id_list}
                         }
                     ]
                 }
@@ -308,8 +314,6 @@ class SearchImpl(SearchManager):
 
     def search_chatroom(self):
 
-        search_query_dict = self._get_chatroom_search_ngram_query_dict()
-
         if self.get_api_key() and not self.get_community_id():
             community_instance = SdkClient.get_community_instance_or_none(self.get_community_id(), self.get_api_key())
 
@@ -318,6 +322,15 @@ class SearchImpl(SearchManager):
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
 
             self.set_community_id(community_instance.id)
+
+        excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
+                                                                           self.get_community_id())
+        followed_card_ids = get_chatrooms_of_user_with_follow_status(self.get_member_id(),
+                                                                     self.get_community_id())
+
+        excluded_card_ids = list(set(excluded_card_ids) - set(followed_card_ids))
+
+        search_query_dict = self._get_chatroom_search_ngram_query_dict(excluded_card_ids)
 
         if self.get_community_id():
             self._append_community_id(search_query_dict, self.get_community_id())
