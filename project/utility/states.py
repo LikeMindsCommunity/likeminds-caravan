@@ -598,6 +598,7 @@ class CohortAccess(enum.Enum):
 class APIVersionHeaders:
     V1 = "v1"
     V2 = "v2"
+    V3 = "v3"
 
 
 api_version_headers = APIVersionHeaders()

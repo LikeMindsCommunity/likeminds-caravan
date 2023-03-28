@@ -9,6 +9,7 @@ from utility.string_utilities import StringUtilities
 from utility.exception_utilities import InvalidHeaderException, CustomException
 from utility.response_utilities import ResponseUtilities
 from utility.version_utilities import VersionUtilities
+from utility.states import (api_version_headers)
 
 from collabmates_api.views import get_error_context
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -62,6 +63,7 @@ class FetchCommunityFeed(APIView):
         scroll_direction = request.GET.get('scroll_direction')
         order_type = request.GET.get('order_type', 0)
         page = RequestUtilities.get_page_number(request)
+        page_size = RequestUtilities.get_page_size(request, default=10)
 
         if (chatroom_id and not scroll_direction) or (scroll_direction and not chatroom_id):
             return JsonResponse({'error_message': "Invalid request parameters", 'status': 400})
@@ -76,10 +78,16 @@ class FetchCommunityFeed(APIView):
                                                      VersionUtilities.PlatformCode.IOS,
                                                      VersionUtilities.PlatformCode.FLUTTER,
                                                      VersionUtilities.PlatformCode.REACT_NATIVE]):
-            chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
-                                                            scroll_direction=scroll_direction,
-                                                            api_version=api_version, order_type=order_type,
-                                                            page=page)
+
+            if api_version == api_version_headers.V3:
+                chatroom_context = community_manager.fetch_feed_v3(pin_status, order_type=order_type, page=page,
+                                                                   page_size=page_size)
+
+            else:
+                chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
+                                                                scroll_direction=scroll_direction,
+                                                                api_version=api_version, order_type=order_type,
+                                                                page=page)
 
         elif RequestUtilities.is_request_web(request):
 

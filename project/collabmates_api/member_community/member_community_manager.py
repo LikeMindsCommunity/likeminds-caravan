@@ -8,6 +8,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         return ((hasattr(subclass, 'extract_member_communities') and callable(subclass.extract_member_communities)) and
                 (hasattr(subclass, 'community_member_state') and callable(subclass.community_member_state)) and
                 (hasattr(subclass, 'fetch_feed') and callable(subclass.fetch_feed)) and
+                (hasattr(subclass, 'fetch_feed_v3') and callable(subclass.fetch_feed_v3)) and
                 (hasattr(subclass, 'fetch_home_communities') and callable(subclass.fetch_home_communities)) and
                 (hasattr(subclass, 'fetch_feed_meta') and callable(subclass.fetch_feed_meta)) and
                 (hasattr(subclass, 'fetch_feed_web') and callable(subclass.fetch_feed_web)) and
@@ -54,6 +55,13 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
     def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1) -> {}:
         """
         fetches the chatrooms of community
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_feed_v3(self, pin_status, order_type, page: int = None, page_size: int = None) -> {}:
+        """
+        fetches the chatrooms of community for explore
         """
         raise NotImplementedError
 

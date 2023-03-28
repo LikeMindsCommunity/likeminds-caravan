@@ -868,9 +868,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1) -> {}:
 
-        validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
-                                                                              self.get_community_id(),
-                                                                              self.get_api_key())
+        validated_req = MemberCommunityHelper.validate_fetch_feed_request(self.get_member_id(),
+                                                                          self.get_community_id(),
+                                                                          self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -955,12 +955,57 @@ class MemberCommunityImpl(MemberCommunityManager):
             'pinned_chatrooms_count': len(pinned_chatrooms_list)
         }
 
+    def fetch_feed_v3(self, pin_status, order_type, page: int = None, page_size: int = None) -> {}:
+
+        validated_req = MemberCommunityHelper.validate_fetch_feed_request(self.get_member_id(),
+                                                                          self.get_community_id(),
+                                                                          self.get_api_key())
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_req.get('community_instance')
+        self.set_community_id(community_instance.id)
+
+        filter_dict = {
+            'community_id': self.get_community_id(),
+            'setting_type': community_setting_types.INTRO_ROOM,
+            'enabled': True
+        }
+
+        intro_room_setting_enabled = False
+
+        intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+
+        if intro_room_setting_filter:
+            intro_room_setting_enabled = True
+
+        excluded_card_ids = []
+
+        if create_chatroom_revamp_version_check(self.get_platform_code(), self.get_version_code()):
+            excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
+                                                                               self.get_community_id())
+            followed_card_ids = get_chatrooms_of_user_with_follow_status(self.get_member_id(),
+                                                                         self.get_community_id())
+
+            excluded_card_ids = list(set(excluded_card_ids) - set(followed_card_ids))
+
+        chatroom_list, pinned_chatrooms_list = self._get_sorted_chatroom_queryset_based_on_order_type_v3(
+            intro_room_setting_enabled, pin_status, excluded_card_ids, order_type, page=page, limit=page_size)
+
+        return {
+            'success': True,
+            'chatrooms': chatroom_list,
+            'pinned_chatrooms_count': len(pinned_chatrooms_list)
+        }
+
     def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="",
                        page=1) -> {}:
 
-        validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
-                                                                              self.get_community_id(),
-                                                                              self.get_api_key())
+        validated_req = MemberCommunityHelper.validate_fetch_feed_request(self.get_member_id(),
+                                                                          self.get_community_id(),
+                                                                          self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -1679,6 +1724,57 @@ class MemberCommunityImpl(MemberCommunityManager):
             self.get_member_id(), ordered_card_ids)
 
         return chatroom_queryset
+
+    def _get_sorted_chatroom_queryset_based_on_order_type_v3(self, intro_room_settings_enabled, pin_status,
+                                                             excluded_card_ids, order_type, page=1,
+                                                             api_version=api_version_headers.V3, limit=10):
+
+        excluded_card_types = [card_types.CARD_INTRO, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]
+
+        if not intro_room_settings_enabled:
+            excluded_card_types.append(card_types.CARD_MASTER_INTRO)
+
+        pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
+            self.get_community_id())
+
+        # Recently created chatroom
+        if order_type == 0:
+            chatroom_list = get_ordered_card_id_on_the_basis_newest_chatroom_v2(self.get_member_id(),
+                                                                                self.get_community_id(),
+                                                                                pin_status, excluded_card_ids,
+                                                                                excluded_card_types,
+                                                                                pinned_chatrooms_list, page, limit,
+                                                                                api_version=api_version)
+
+        # Recently Active
+        elif order_type == 1:
+            chatroom_list = get_ordered_card_id_on_the_basis_last_message_v2(self.get_member_id(),
+                                                                             self.get_community_id(),
+                                                                             pin_status, excluded_card_ids,
+                                                                             excluded_card_types,
+                                                                             pinned_chatrooms_list, page, limit)
+
+        # Most Messages
+        elif order_type == 2:
+            chatroom_list = get_ordered_card_id_on_the_basis_of_message_count_v2(self.get_member_id(),
+                                                                                 self.get_community_id(),
+                                                                                 pin_status, excluded_card_ids,
+                                                                                 excluded_card_types,
+                                                                                 pinned_chatrooms_list, page, limit)
+
+        # Most Participants
+        elif order_type == 3:
+            chatroom_list = get_ordered_card_id_on_the_basis_of_participants_count_v2(self.get_member_id(),
+                                                                                      self.get_community_id(),
+                                                                                      pin_status, excluded_card_ids,
+                                                                                      excluded_card_types,
+                                                                                      pinned_chatrooms_list, page,
+                                                                                      limit)
+
+        else:
+            chatroom_list = []
+
+        return chatroom_list, pinned_chatrooms_list
 
     def request_dm_limit(self, member_id: str) -> {}:
         validated_request = MemberCommunityViewHelper.validate_request_dm_limit_request(self.get_member_id(),
@@ -3062,3 +3158,23 @@ class MemberCommunityHelper:
             'community_instance': community_instance,
             'member_instance': member_instance
         }
+
+    @staticmethod
+    def validate_fetch_feed_request(user_id, community_id, api_key: str = None):
+        validation_params = {
+            'community_id': {
+                'community_id': community_id,
+                'api_key': api_key
+            },
+            'user_id': user_id,
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+
+        return {'user_instance': user_instance, 'community_instance': community_instance}

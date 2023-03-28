@@ -3,7 +3,7 @@ from celery import shared_task
 import time
 import logging
 import psycopg2
-from utility.states import (card_types, conversation_states, SyncTypes, noti_states)
+from utility.states import (card_types, conversation_states, SyncTypes, noti_states, api_version_headers)
 from utility.utils import is_version_code_supported_for_intro_room
 from .static_text import (MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP, SPECIFIC_MEMBER_TAG_REGEX, EVERYONE_TAG_REGEX,
                           PARTICIPANTS_TAG_REGEX)
@@ -2774,7 +2774,7 @@ def get_ordered_card_id_on_the_basis_of_participants_count(user_id, community_id
 
 def get_ordered_card_id_on_the_basis_newest_chatroom_v2(user_id, community_id, is_pinned, excluded_card_ids,
                                                         excluded_card_types, pinned_chatrooms_list, page=1, limit=10,
-                                                        chatroom_type=None):
+                                                        chatroom_type=None, api_version=api_version_headers.V1):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -2783,44 +2783,58 @@ def get_ordered_card_id_on_the_basis_newest_chatroom_v2(user_id, community_id, i
 
         if excluded_card_ids:
             excluded_card_ids_tuple = get_tuple_from_array(excluded_card_ids)
-            excluded_card_id_string = "AND CA.id NOT IN {}".format(excluded_card_ids_tuple)
+            excluded_card_id_string = "AND togther_collabcard.id NOT IN {}".format(excluded_card_ids_tuple)
 
         excluded_card_types_tuple = get_tuple_from_array(excluded_card_types)
 
-        pinned_chatrooms_query = create_pinned_query_for_feed_revamp("AND CA.is_pinned = {}", is_pinned)
+        pinned_chatrooms_query = create_pinned_query_for_feed_revamp("AND togther_collabcard.is_pinned = {}", is_pinned)
 
-        order_by_query = "CA.created_at DESC"
+        order_by_query = "togther_collabcard.created_at DESC"
+        group_by_query = "GROUP  BY togther_collabcard.id"
 
         if (not is_pinned) and (len(pinned_chatrooms_list) <= MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP):
-            order_by_query = "CA.is_pinned DESC, CA.created_at DESC"
+            order_by_query = "togther_collabcard.is_pinned DESC, togther_collabcard.created_at DESC"
 
-        chatroom_type_filter = """ AND CA.type NOT IN (%s)""" % str(card_types.CARD_FEED_GROUP)
+        chatroom_type_filter = """ AND togther_collabcard.type NOT IN (%s)""" % str(card_types.CARD_FEED_GROUP)
 
         if chatroom_type:
-            chatroom_type_filter = """ AND CA.type IN (%s)""" % str(chatroom_type)
+            chatroom_type_filter = """ AND togther_collabcard.type IN (%s)""" % str(chatroom_type)
+
+        output_query = "togther_collabcard.id"
+
+        if api_version == api_version_headers.V3:
+            group_by_query = ""
+            output_query = ",".join([get_chatroom_query_meta_for_sync_revamp(),
+                                     get_chatroom_state_query_meta_for_sync_revamp()])
 
         conn = get_connection()
         curr = conn.cursor()
 
-        sql = """SELECT CA.id
-                    FROM   togther_collabcardstate AS CS
-                           INNER JOIN togther_collabcard AS CA
-                                   ON CS.card_id = CA.id
-                    WHERE  ( CS.secret_chatroom_left = false
-                             AND CA.community_id = {}
-                             AND CA.is_pending = false
-                             AND CA.is_deleted = false
-                             AND CA.is_private = false
-                             AND CA.type NOT IN {}
+        sql = """SELECT {}
+                    FROM   togther_collabcardstate
+                           INNER JOIN togther_collabcard
+                                   ON togther_collabcardstate.card_id = togther_collabcard.id
+                    WHERE  ( togther_collabcardstate.secret_chatroom_left = false
+                             AND togther_collabcard.community_id = {}
+                             AND togther_collabcard.is_pending = false
+                             AND togther_collabcard.is_deleted = false
+                             AND togther_collabcard.is_private = false
+                             AND togther_collabcard.type NOT IN {}
                              {}
-                             AND CS.user_id = {}
-                             {} {})
-                    GROUP  BY CA.id
+                             AND togther_collabcardstate.user_id = {}
+                             {} {}) {}
                     ORDER  BY {} LIMIT {} OFFSET {} ;
-        """.format(community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id, excluded_card_id_string,
-                   chatroom_type_filter, order_by_query, limit, offset)
+        """.format(output_query, community_id, excluded_card_types_tuple, pinned_chatrooms_query, user_id,
+                   excluded_card_id_string, chatroom_type_filter, group_by_query, order_by_query, limit, offset)
 
         curr.execute(sql)
+
+        if api_version == api_version_headers.V3:
+            chatroom_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+            curr.close()
+
+            return chatroom_data
+
         res = curr.fetchall()
         curr.close()
 
