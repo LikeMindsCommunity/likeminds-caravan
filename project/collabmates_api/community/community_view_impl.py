@@ -335,7 +335,7 @@ class FetchMembersMeta(APIView):
         
         community_id = request.GET.get('community_id')
         member_ids = request.GET.get('member_ids')
-        search_name = request.GET.get('search_name', None)
+        search_name = request.GET.get('search_name', "")
         page = RequestUtilities.get_page_number(request, default=1)
         page_size = RequestUtilities.get_page_size(request, default=50)
 
@@ -345,7 +345,7 @@ class FetchMembersMeta(APIView):
         try:
             # Pagination & search support for newer versions
             if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.members_meta_pagination_and_search):
-                community_data = community_manager.fetch_members_meta(member_ids, search_name, page, page_size, order_by_name = True)
+                community_data = community_manager.fetch_members_meta_v2(member_ids, page, page_size, search_name)
            
             else:
                 community_data = community_manager.fetch_members_meta(member_ids)
