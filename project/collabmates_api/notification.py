@@ -242,7 +242,7 @@ def send_notification_for_flutter(token_list, message, firebase_key=None):
                                                   message_body=message['payload']['sub_title'],
                                                   data_message=message['payload'],
                                                   timeout=fcm_timeout_seconds,
-                                                  extra_kwargs=extra_notification_kwargs)
+                                                  extra_notification_kwargs=extra_notification_kwargs)
 
     log_statement = """
                 The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
