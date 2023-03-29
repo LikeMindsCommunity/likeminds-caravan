@@ -272,6 +272,8 @@ def send_notification_for_react_native(token_list, message, firebase_key=None):
     }
 
     result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                  message_title=message['payload']['title'],
+                                                  message_body=message['payload']['sub_title'],
                                                   data_message=message['payload'],
                                                   timeout=fcm_timeout_seconds,
                                                   extra_kwargs=extra_kwargs)
