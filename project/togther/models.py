@@ -2337,7 +2337,7 @@ class ModelUtilities:
                                                                'community': community_id})
 
             if instance_filter:
-                return instance_filter[0].user_id
+                return instance_filter[0].user
 
         instance_filter = ModelUtilities.get_model_filter(model, {column_name: pk})
 
