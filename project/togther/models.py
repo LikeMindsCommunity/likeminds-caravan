@@ -2318,7 +2318,7 @@ class ModelUtilities:
         return instance
 
     @staticmethod
-    def get_user_instance_or_none(pk):
+    def get_user_instance_or_none(pk, community_id: int = None):
         instance = None
 
         if not pk:
@@ -2330,6 +2330,14 @@ class ModelUtilities:
         else:
             column_name = "user_unique_id"
             model = Userinfo
+
+        if community_id:
+            instance_filter = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                              {'user_unique_id': pk,
+                                                               'community': community_id})
+
+            if instance_filter:
+                return instance_filter[0].user_id
 
         instance_filter = ModelUtilities.get_model_filter(model, {column_name: pk})
 
@@ -2381,6 +2389,39 @@ class ModelUtilities:
     def serialize_instance(instance):
 
         return core_serializer.serialize('python', [instance], )[0].get('fields')
+
+    @staticmethod
+    def get_valid_member_ids(member_ids, community_id: int = None):
+        integer_member_ids = []
+        user_unique_ids = []
+
+        for member_id in member_ids:
+            if isinstance(member_id, int):
+                integer_member_ids.append(member_id)
+
+            if isinstance(member_id, str):
+                if member_id.isdigit():
+                    integer_member_ids.append(member_id)
+                else:
+                    user_unique_ids.append(member_id)
+
+        client_user_ids = []
+
+        if community_id:
+            sdk_client_user_filters = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                                      {'user_unique_id__in': member_ids,
+                                                                       'community': community_id})
+
+            user_unique_ids = list(set(user_unique_ids) - set(sdk_client_user_filters.values_list('user_unique_id',
+                                                                                                  flat=True)))
+
+            client_user_ids = list(sdk_client_user_filters.values_list('user_id', flat=True))
+
+        user_ids = list(Userinfo.objects.filter(
+            Q(user_id_id__in=integer_member_ids) | Q(user_unique_id__in=user_unique_ids)).values_list(
+            'user_id_id', flat=True))
+
+        return list(set(user_ids + client_user_ids))
 
 
 class MessageReactions(models.Model):
