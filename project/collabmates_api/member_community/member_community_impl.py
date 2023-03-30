@@ -53,10 +53,12 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_ordered_card_id_on_the_basis_last_message_v2,
                            get_ordered_card_id_on_the_basis_of_participants_count_v2,
                            get_ordered_card_id_on_the_basis_newest_chatroom_v2,
+                           get_ordered_card_id_on_the_basis_newest_chatroom_v3,
                            get_chatrooms_of_user_with_follow_status,
                            get_conversation_users_against_chatrooms_list,
                            get_latest_conversations_against_chatrooms_list,
                            get_user_chatroom_status)
+from ..raw_query_serializers import (DataSerializer)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -994,9 +996,19 @@ class MemberCommunityImpl(MemberCommunityManager):
         chatroom_list, pinned_chatrooms_list = self._get_sorted_chatroom_queryset_based_on_order_type_v3(
             intro_room_setting_enabled, pin_status, excluded_card_ids, order_type, page=page, limit=page_size)
 
+        from collabmates_api.sync.sync_helper import (SyncHelper)
+        from collabmates_api.sync.constants import (SYNC_CHATROOMS_DATA_KEY)
+
+        # chatroom_list = SyncHelper.parse_sync_raw_query_response(chatroom_list, SYNC_CHATROOMS_DATA_KEY)
+
+        chatroom_list = DataSerializer.create_chatroom_response(chatroom_list, includes_user_state=True)
+
+        print(chatroom_list)
+
         return {
             'success': True,
-            'chatrooms': chatroom_list,
+            # **chatroom_list,
+            'chatroom_data': chatroom_list,
             'pinned_chatrooms_count': len(pinned_chatrooms_list)
         }
 
@@ -1726,8 +1738,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         return chatroom_queryset
 
     def _get_sorted_chatroom_queryset_based_on_order_type_v3(self, intro_room_settings_enabled, pin_status,
-                                                             excluded_card_ids, order_type, page=1,
-                                                             api_version=api_version_headers.V3, limit=10):
+                                                             excluded_card_ids, order_type, page=1, limit=10):
 
         excluded_card_types = [card_types.CARD_INTRO, card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]
 
@@ -1739,12 +1750,11 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         # Recently created chatroom
         if order_type == 0:
-            chatroom_list = get_ordered_card_id_on_the_basis_newest_chatroom_v2(self.get_member_id(),
+            chatroom_list = get_ordered_card_id_on_the_basis_newest_chatroom_v3(self.get_member_id(),
                                                                                 self.get_community_id(),
                                                                                 pin_status, excluded_card_ids,
                                                                                 excluded_card_types,
-                                                                                pinned_chatrooms_list, page, limit,
-                                                                                api_version=api_version)
+                                                                                pinned_chatrooms_list, page, limit)
 
         # Recently Active
         elif order_type == 1:
