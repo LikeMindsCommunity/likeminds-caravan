@@ -1,13 +1,13 @@
 #!/bin/bash
 
-APPLICATION_ENVIRONMENT="BETA"
-APPLICATION_DOT_ENV_LOCATION="/home/apps/caravan-beta/Togther/project/project/settings/.env"
-APPLICATION_DOT_ENV_REMOTE_LOCATION="https://beta-likeminds-media.s3.ap-south-1.amazonaws.com/environment/Caravan-Beta-Dot-Env/.env"
-APPLICATION_LOCATION="/home/apps/caravan-beta/Togther/project/"
-APPLICATION_MANAGE_SCRIPT_LOCATION="/home/apps/caravan-beta/Togther/project/manage.py"
+APPLICATION_ENVIRONMENT="PRODUCTION"
+APPLICATION_DOT_ENV_LOCATION="/home/apps/caravan-prod/Togther/project/project/settings/.env"
+APPLICATION_DOT_ENV_REMOTE_LOCATION="https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/environment/caravan-prod-dot-env-public"
+APPLICATION_LOCATION="/home/apps/caravan-prod/Togther/project/"
+APPLICATION_MANAGE_SCRIPT_LOCATION="/home/apps/caravan-prod/Togther/project/manage.py"
 APPLICATION_NAME="CARAVAN"
-APPLICATION_REQUIREMENTS_LOCATION="/home/apps/caravan-beta/Togther/project/requirements.txt"
-APPLICATION_VENV_LOCATION="/home/apps/caravan-beta/caravan-beta-venv/bin/activate"
+APPLICATION_REQUIREMENTS_LOCATION="/home/apps/caravan-prod/Togther/project/requirements.txt"
+APPLICATION_VENV_LOCATION="/home/apps/caravan-prod/caravan-prod-venv/bin/activate"
 
 print_internal() {
     PREFIX="\n\n **** "
@@ -19,11 +19,11 @@ print_internal() {
 get_project_branch_latest() {
   cd "$APPLICATION_LOCATION" || exit
 
-  if [ "$APPLICATION_ENVIRONMENT" == "BETA" ]
+  if [ "$APPLICATION_ENVIRONMENT" == "PRODUCTION" ]
   then
 
-    print_internal "pull branch origin/development"
-    git checkout development
+    print_internal "pull branch origin/master"
+    git checkout master
     git pull
     print_internal "latest refs pull success"
 
@@ -69,12 +69,12 @@ migrate_database() {
 migrate_database_internal() {
   cd "$APPLICATION_LOCATION" || exit
 
-  if [ "$APPLICATION_ENVIRONMENT" == "BETA" ]
+  if [ "$APPLICATION_ENVIRONMENT" == "PRODUCTION" ]
   then
 
     print_internal "make and perform database migrations"
-    DJANGO_SETTINGS_MODULE=project.settings.beta python3 "$APPLICATION_MANAGE_SCRIPT_LOCATION" makemigrations
-    DJANGO_SETTINGS_MODULE=project.settings.beta python3 "$APPLICATION_MANAGE_SCRIPT_LOCATION" migrate
+    DJANGO_SETTINGS_MODULE=project.settings.production python3 "$APPLICATION_MANAGE_SCRIPT_LOCATION" makemigrations
+    DJANGO_SETTINGS_MODULE=project.settings.production python3 "$APPLICATION_MANAGE_SCRIPT_LOCATION" migrate
     print_internal "database migration success"
 
   else
@@ -91,7 +91,7 @@ deactivate_project_venv() {
 
 migrate() {
 
-  print_internal "migrating caravan-beta database.."
+  print_internal "migrating caravan-prod database.."
 
   get_project_branch_latest
   get_project_dot_env
@@ -100,7 +100,7 @@ migrate() {
   migrate_database
   deactivate_project_venv
 
-  print_internal "migrated caravan-beta database.."
+  print_internal "migrated caravan-prod database.."
 }
 
 migrate
