@@ -6,6 +6,7 @@ class VersionUtilities:
         WEB = 'web'
         FLUTTER = 'fl'
         REACT_NATIVE = 'rn'
+        REACT = 'rt'
         ANDROID_SDK = 'an-sdk'
         IOS_SDK = 'ios-sdk'
         WEB_SDK = 'web-sdk'
@@ -61,6 +62,7 @@ class VersionUtilities:
         PlatformCode.REACT_NATIVE: unreleased_version_code,
         PlatformCode.FLUTTER_SDK: unreleased_version_code,
         PlatformCode.REACT_NATIVE_SDK: 4,
+        PlatformCode.REACT: unreleased_version_code,
         PlatformCode.REACT_SDK: 21,
     }
 
