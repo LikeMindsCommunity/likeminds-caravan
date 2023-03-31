@@ -996,19 +996,21 @@ class MemberCommunityImpl(MemberCommunityManager):
         chatroom_list, pinned_chatrooms_list = self._get_sorted_chatroom_queryset_based_on_order_type_v3(
             intro_room_setting_enabled, pin_status, excluded_card_ids, order_type, page=page, limit=page_size)
 
-        from collabmates_api.sync.sync_helper import (SyncHelper)
-        from collabmates_api.sync.constants import (SYNC_CHATROOMS_DATA_KEY)
+        chatroom_list = DataSerializer.parse_sync_raw_query_response(chatroom_list, 'chatroom_data')
 
-        # chatroom_list = SyncHelper.parse_sync_raw_query_response(chatroom_list, SYNC_CHATROOMS_DATA_KEY)
+        chatroom_list['chatroom_data'] = DataSerializer.serialize_chatroom_data(chatroom_list.get('chatroom_data'),
+                                                                                includes_user_state=True)
 
-        chatroom_list = DataSerializer.create_chatroom_response(chatroom_list, includes_user_state=True)
+        if chatroom_list.get('community_meta'):
+            chatroom_list['community_meta'] = DataSerializer.serialize_community_data(
+                chatroom_list.get('community_meta'))
 
-        print(chatroom_list)
+        if chatroom_list.get('user_meta'):
+            chatroom_list['user_meta'] = DataSerializer.serialize_users_data(chatroom_list.get('user_meta'))
 
         return {
             'success': True,
-            # **chatroom_list,
-            'chatroom_data': chatroom_list,
+            **chatroom_list,
             'pinned_chatrooms_count': len(pinned_chatrooms_list)
         }
 
