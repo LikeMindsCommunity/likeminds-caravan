@@ -1,11 +1,11 @@
 pipeline {
     agent any
-    environment {
-        PROJECT_ID = 'likeminds-prod-prj-5464'
-        CLUSTER_NAME = 'likeminds-prod-autopilot-cluster'
-        LOCATION = 'asia-south1'
-        CREDENTIALS_ID = 'likeminds-prod-prj-5464'
-    }
+    // environment {
+    //     PROJECT_ID = 'likeminds-prod-prj-5464'
+    //     CLUSTER_NAME = 'likeminds-prod-autopilot-cluster'
+    //     LOCATION = 'asia-south1'
+    //     CREDENTIALS_ID = 'likeminds-prod-prj-5464'
+    // }
    
     stages {
         stage("Checkout code") {
@@ -48,11 +48,11 @@ pipeline {
         stage('Deploy to GKE') {
           when { changeset "Dockerfile.caravan-prod"}
             steps{
-                
-                sh "sed 's/caravan-prod:.*/caravan-prod:${BUILD_NUMBER}/g' deployment-caravan-prod.yaml"
-                sh "gcloud container clusters get-credentials ${env.CLUSTER_NAME} --region ${env.LOCATION} --project ${env.PROJECT_ID} --internal-ip"
-                sh 'kubectl apply -f /var/lib/jenkins/workspace/likeminds-caravan-prod/deployment-caravan-prod.yaml'
-                
+                sh '''
+                sed -i 's/caravan-prod:.*/caravan-prod:'${BUILD_NUMBER}'"/g' deployment-caravan-prod.yaml
+                gcloud container clusters get-credentials ${CLUSTER_NAME} --region ${LOCATION} --project ${PROJECT_ID} --internal-ip
+                kubectl apply -f /var/lib/jenkins/workspace/likeminds-caravan-prod/deployment-caravan-prod.yaml
+                '''
             }
         }
     }  

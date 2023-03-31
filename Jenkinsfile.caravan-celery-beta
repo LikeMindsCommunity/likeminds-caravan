@@ -1,11 +1,11 @@
 pipeline {
     agent any
-    environment {
-        PROJECT_ID = 'likeminds-nonprod-prj-24e1'
-        CLUSTER_NAME = 'likeminds-nonprod-autopilot-cluster'
-        LOCATION = 'asia-south1'
-        CREDENTIALS_ID = 'likeminds-nonprod-prj-24e1'
-    }
+    // environment {
+    //     PROJECT_ID = 'likeminds-nonprod-prj-24e1'
+    //     CLUSTER_NAME = 'likeminds-nonprod-autopilot-cluster'
+    //     LOCATION = 'asia-south1'
+    //     CREDENTIALS_ID = 'likeminds-nonprod-prj-24e1'
+    // }
    
     stages {
         stage("Checkout code") {
@@ -36,11 +36,11 @@ pipeline {
         stage('Deploy to GKE') {
           when { changeset "Dockerfile.caravan-celery-beta"}
             steps{
-                
-                sh "sed 's/caravan-celery:.*/caravan-celery:${BUILD_NUMBER}/g' deployment-caravan-celery-beta.yaml"
-                sh "gcloud container clusters get-credentials ${env.CLUSTER_NAME} --region ${env.LOCATION} --project ${env.PROJECT_ID} --internal-ip"
-                sh 'kubectl apply -f /var/lib/jenkins/workspace/likeminds-caravan-celery-beta/deployment-caravan-celery-beta.yaml'
-                
+                sh '''
+                sed -i 's/caravan-celery:.*/caravan-celery:'${BUILD_NUMBER}'"/g' deployment-caravan-celery-beta.yaml
+                gcloud container clusters get-credentials ${CLUSTER_NAME} --region ${LOCATION} --project ${PROJECT_ID} --internal-ip
+                kubectl apply -f /var/lib/jenkins/workspace/likeminds-caravan-celery-beta/deployment-caravan-celery-beta.yaml
+                '''
             }
         }
     }  
@@ -51,4 +51,3 @@ pipeline {
     }
 
 }
-
