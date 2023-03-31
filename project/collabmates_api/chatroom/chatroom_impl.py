@@ -4036,11 +4036,28 @@ class ChatroomHelper:
         member_filter = ModelUtilities.get_model_filter(Members,
                                                         {'community_id': community_instance,
                                                          'state': member_states.ADMIN}).select_related('member_id')
+
         bulk_create_list = []
         promoter_list = []
         for data in member_filter:
 
-            if data.member_id_id not in member_dict:
+            if (data.member_id == card_instance.user) and (data.member_id_id not in member_dict):
+                user_instance = data.member_id
+                instance = collabcardState.create_chatroom_state_instances_for_bulk_create \
+                    (card_instance,
+                     user_instance,
+                     follow_status=False,
+                     state=0,
+                     community_instance=community_instance,
+                     external_seen=False,
+                     expire_at=None)
+
+                if not ModelUtilities.get_model_filter(collabcardState,
+                                                       {'card': card_instance,
+                                                        'user': data.member_id}):
+                    instance.save()
+
+            elif data.member_id_id not in member_dict:
                 user_instance = data.member_id
                 instance = collabcardState.create_chatroom_state_instances_for_bulk_create \
                     (card_instance,
