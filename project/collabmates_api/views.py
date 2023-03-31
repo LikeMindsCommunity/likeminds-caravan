@@ -1931,8 +1931,7 @@ def remove_from_member(request):
             if not member_ids_list:
                 member_ids_list = member_ids.strip('][').split(', ')
 
-            from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
-            member_ids = MemberCommunityImpl.get_valid_member_ids(member_ids_list)
+            member_ids = ModelUtilities.get_valid_member_ids(member_ids_list, community_id=community_id)
 
             for member in member_ids:
                 member_filter = Members.objects.filter(community_id=community_instance, member_id=member)
@@ -11133,7 +11132,7 @@ def remove_community_manager(request):
     community_id = community_instance.id
 
     current_user_instance = User.objects.get(pk=current_user_id)
-    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
 
     if not user_instance:
         context = ResponseUtilities.get_view_impl_error_context("Invalid user ID!",
