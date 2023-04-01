@@ -13447,7 +13447,7 @@ class SyncConversation(APIView):
         state = query_params.get('state')
         chatroom_type = query_params.get('chatroom_type')
 
-        if chatroom_id:
+        if chatroom_id and page > 1:
             return JsonResponse({'success': True, 'conversations': []})
 
         if chatroom_id:
