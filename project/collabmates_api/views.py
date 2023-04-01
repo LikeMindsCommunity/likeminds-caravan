@@ -12301,6 +12301,10 @@ class SyncChatrooms(APIView):
         last_updated = RequestUtilities.get_page_size(request, key='last_updated', default=0)
 
         chatroom_id = query_params.get('chatroom_id', '')
+
+        if chatroom_id:
+            return JsonResponse({'success': True, 'chatrooms': []})
+
         community_id = query_params.get('community_id', '')
         chatroom_status = query_params.get('chatroom_status', '')
         chatroom_type = query_params.get('type')
@@ -13444,6 +13448,9 @@ class SyncConversation(APIView):
         chatroom_type = query_params.get('chatroom_type')
 
         if chatroom_id:
+            return JsonResponse({'success': True, 'conversations': []})
+
+        if chatroom_id:
             # seen conversation support for old versions of android users to be removed after stable release
             seen_conversation = request.GET.get('seen_conversation')
 
@@ -14375,6 +14382,9 @@ class SyncMembers(APIView):
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', None)
 
+        if chatroom_id:
+            return JsonResponse({'success': True, 'members': []})
+
         member_data = dict()
 
         if members_type == "members":
@@ -14712,6 +14722,9 @@ class SyncCommunities(APIView):
         chatroom_id = query_params.get('chatroom_id', '')
         community_id = query_params.get('community_id', '')
         guest = query_params.get('guest', '')
+
+        if chatroom_id:
+            return JsonResponse({'success': True, 'communities': []})
 
         member_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
 
