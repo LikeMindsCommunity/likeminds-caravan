@@ -2304,7 +2304,8 @@ class ConversationHelper:
     @staticmethod
     def _send_conversation_creation_notifications(user_instance, chatroom_instance, conversation_instance, has_files):
 
-        is_poll_conversation = (conversation_instance.state == conversation_states.CONVERSATION_POLL)
+        # is_poll_conversation = (conversation_instance.state == conversation_states.CONVERSATION_POLL)
+        is_poll_conversation = False
 
         if is_poll_conversation:
             send_poll_conversation_creation_notification.delay(conversation_instance.card_id,
