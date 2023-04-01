@@ -13447,9 +13447,6 @@ class SyncConversation(APIView):
         state = query_params.get('state')
         chatroom_type = query_params.get('chatroom_type')
 
-        if chatroom_id and page > 1:
-            return JsonResponse({'success': True, 'conversations': []})
-
         if chatroom_id:
             # seen conversation support for old versions of android users to be removed after stable release
             seen_conversation = request.GET.get('seen_conversation')
