@@ -667,14 +667,13 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
         return reports.count()
     
     # if is_closed is provided, then return the reports accordingly
-    if "is_closed" in kwargs and kwargs["is_closed"] is not None:
+    if "is_closed" in kwargs and kwargs["is_closed"] :
         is_closed = StringUtilities.get_boolean_from_string(kwargs["is_closed"])
         reports = reports.filter(is_closed=is_closed)
 
     # if report_type is provided, then return the reports of that type
-    if "filter_type" in kwargs and kwargs["filter_type"] is not None:
-        filter_types = StringUtilities.get_list_from_string(kwargs["filter_type"])
-        reports = reports.filter(type__in=filter_types)
+    if "filter_type" in kwargs and kwargs["filter_type"] :
+        reports = reports.filter(type__in=kwargs["filter_type"])
     
     # Pagination for newer versions
     if "page" in kwargs and "page_size" in kwargs:
