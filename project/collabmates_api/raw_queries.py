@@ -1760,7 +1760,7 @@ def get_members_meta_list(community_id: int, member_ids:list = None, page=1, pag
         get_removed_members = ""
         join_removed_members_table = ""
 
-        # If member_ids are passed get users from the user_ids and join remoedMembers table
+        # If member_ids are passed get users from the user_ids and join removedMembers table
         if member_ids:  
             user_ids = get_tuple_from_array(member_ids)
 
@@ -1781,29 +1781,26 @@ def get_members_meta_list(community_id: int, member_ids:list = None, page=1, pag
         # Sql Query
         sql = f""" 
                select 
-                {members_meta_data_query}
-                , togther_userinfo.user_id_id as "id"
-                , togther_userinfo.image_link as "img_url"
-                , CASE when (togther_members.custom_title = 'Member') then Null else togther_members.custom_title END as "custom_title"
-                , CASE when (togther_members.community_id_id = {community_id}) then false else true END as "is_deleted"
+                {members_meta_data_query}, 
+                togther_userinfo.user_id_id as "id", 
+                togther_userinfo.image_link as "img_url", 
+                CASE when (togther_members.custom_title = 'Member') then Null else togther_members.custom_title END as "custom_title", 
+                CASE when (togther_members.community_id_id = {community_id}) then false else true END as "is_deleted"
 
                 from  togther_userinfo
-                left join togther_members on togther_userinfo.user_id_id = togther_members.member_id_id
+                left join togther_members 
+                on togther_userinfo.user_id_id = togther_members.member_id_id
                 {join_removed_members_table}
 
                 where
-                togther_userinfo.is_guest is false
-                And togther_members.community_id_id = {community_id} 
-                And togther_members.state in (1,4,9)
-
-                {get_removed_members}
-
-                AND ("togther_userinfo"."name" ILIKE '{search_string}%')
+                    togther_userinfo.is_guest is false
+                    And togther_members.community_id_id = {community_id} 
+                    And togther_members.state in (1,4,9)
+                    {get_removed_members}
+                    AND ("togther_userinfo"."name" ILIKE '{search_string}%')
 
                 order by lower(togther_userinfo.name) ASC
-
-                OFFSET {offset} LIMIT {page_size}
-                ;
+                OFFSET {offset} LIMIT {page_size};
               """
 
         conn = get_connection()
