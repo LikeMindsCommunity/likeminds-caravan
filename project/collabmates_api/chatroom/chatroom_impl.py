@@ -1056,30 +1056,16 @@ class ChatroomImpl(ChatroomManager):
         chatroom_filter_type = validated_req.get('chatroom_filter_type')
         chatroom_excluded_type = validated_req.get('chatroom_excluded_type')
 
-        is_cm = Members.is_member_community_promoter(community_instance, user_instance)
-        if not is_cm:
-            return ResponseUtilities.get_impl_error_context('You are not the owner/CM of community',
-                                                     status_codes.HTTP_401_UNAUTHORIZED)
+        chatrooms_data = get_all_chatrooms_of_community(community_instance.id, chatroom_filter_type,
+                                                        chatroom_excluded_type, page)
+        filter_dict = {
+            'is_deleted': False,
+            'is_private': False,
+            'community': community_instance.id
+        }
 
-        card_ids = get_all_chatrooms_of_community(community_instance.id, chatroom_filter_type, chatroom_excluded_type)
-        chatroom_list = ModelUtilities.get_model_filter(collabcardState,
-                                                        {'card_id__in': card_ids,
-                                                         'user': self.get_member_id(),
-                                                         'secret_chatroom_left': False}).select_related('card',
-                                                                                                        'card__user')
-        total_chatroom_count = len(chatroom_list)
-        chatroom_list = ModelUtilities.paginate_queryset(chatroom_list, page, 10)
-
-        chatroom_context_list = []
-
-        if chatroom_list:
-
-            from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
-
-            chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
-            chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
-
-        return {'success': True, 'chatrooms': chatroom_context_list, 'total_chatroom_count': total_chatroom_count}
+        total_chatroom_count = ModelUtilities.get_model_filter(Collabcard, filter_dict).count()
+        return {'success': True, 'chatrooms': chatrooms_data, 'total_chatroom_count': total_chatroom_count}
 
     def create_chatroom(self, req_body: dict) -> dict:
         validated_req = ChatroomViewHelper.validate_create_chatroom_request(self.get_member_id(),
