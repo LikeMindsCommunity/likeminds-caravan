@@ -1783,7 +1783,7 @@ def get_members_meta_list(community_id: int, member_ids:list = None, page=1, pag
                select 
                 {members_meta_data_query}, 
                 togther_userinfo.user_id_id as "id", 
-                togther_userinfo.image_link as "img_url", 
+                togther_userinfo.image_link as "image_url", 
                 CASE when (togther_members.custom_title = 'Member') then Null else togther_members.custom_title END as "custom_title", 
                 CASE when (togther_members.community_id_id = {community_id}) then false else true END as "is_deleted"
 
