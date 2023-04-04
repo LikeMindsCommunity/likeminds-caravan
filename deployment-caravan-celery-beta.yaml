@@ -53,7 +53,7 @@ spec:
     name: "caravan-celery"
     apiVersion: "apps/v1"
   minReplicas: 2
-  maxReplicas: 6
+  maxReplicas: 5
   metrics:
   - type: "Resource"
     resource:
