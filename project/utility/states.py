@@ -711,6 +711,9 @@ class AccessTypes:
     CREATE_ACTIVITY = "create_activity"
     VIEW_ACTIVITY = "view_activity"
     VIEW_REPORT_ENTITY = "view_report_entity"
+    EDIT_COMMENT = "edit_comment"
+    EDIT_POST = "edit_post"
+    
 
 
 access_types = AccessTypes()
