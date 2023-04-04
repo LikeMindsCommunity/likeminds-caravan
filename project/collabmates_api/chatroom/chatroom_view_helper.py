@@ -29,6 +29,11 @@ class ChatroomViewHelper:
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key!")
 
+        is_cm = Members.is_member_community_promoter(community_instance, user_instance)
+
+        if not is_cm:
+            return ResponseUtilities.get_inner_error_context('You are not the owner/CM of community')
+
         chatroom_type_filter = []
         if isinstance(chatroom_filter_type, str):
             try:
