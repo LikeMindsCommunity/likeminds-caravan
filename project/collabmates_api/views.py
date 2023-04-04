@@ -1931,8 +1931,7 @@ def remove_from_member(request):
             if not member_ids_list:
                 member_ids_list = member_ids.strip('][').split(', ')
 
-            from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
-            member_ids = MemberCommunityImpl.get_valid_member_ids(member_ids_list)
+            member_ids = ModelUtilities.get_valid_member_ids(member_ids_list, community_id=community_id)
 
             for member in member_ids:
                 member_filter = Members.objects.filter(community_id=community_instance, member_id=member)
@@ -11133,7 +11132,7 @@ def remove_community_manager(request):
     community_id = community_instance.id
 
     current_user_instance = User.objects.get(pk=current_user_id)
-    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
 
     if not user_instance:
         context = ResponseUtilities.get_view_impl_error_context("Invalid user ID!",
@@ -11680,6 +11679,17 @@ def fetch_reports(request):
     community_id = request.GET.get('community_id', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
 
+    # For version Check
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+
+    # For Newer Versions
+    page = NumberUtilities.get_integer_from_string(request.GET.get('page', 1))
+    page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size', 20))
+
+    is_closed = request.GET.get('is_closed', None)
+    filter_type = request.GET.get('filter_type', None)
+    
     if not current_user_id:
         context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
@@ -11727,10 +11737,21 @@ def fetch_reports(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
 
-    reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
-                                           is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
-                                           parent_cm_list=parent_cm_list)
 
+    try:    
+        # Version check for pagination & filter
+        if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.fetch_reports_pagination_and_filter):
+            reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
+                                            is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                            parent_cm_list=parent_cm_list, page = page, page_size = page_size, is_closed=is_closed, filter_type=filter_type)
+        else:
+            reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
+                                                is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                                parent_cm_list=parent_cm_list)
+    except Exception as e:
+        error_logger.error(e.args)
+        return JsonResponse({'error_message': "Internal Server Error"}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+    
     report_list = []
 
     for report in reports:
