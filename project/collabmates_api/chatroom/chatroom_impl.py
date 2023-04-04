@@ -37,7 +37,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_all_chatrooms_of_community, get_chatroom_participants_count,\
     get_sorted_user_data_on_basis_of_activity_in_chatroom, get_members_based_on_user_list_query, \
     get_community_members_data_on_basis_of_name_search, get_last_conversation_id_corresponding_to_chatrooms_list, \
-    get_chatroom_invites_for_user
+    get_chatroom_invites_for_user, get_all_chatrooms_of_community_old
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, \
@@ -1057,6 +1057,10 @@ class ChatroomImpl(ChatroomManager):
 
         chatrooms_data = get_all_chatrooms_of_community(community_instance.id, chatroom_filter_type,
                                                         chatroom_excluded_type, page)
+
+        from collabmates_api.sync.sync_helper import SyncHelper
+        chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, 'chatrooms')
+
         filter_dict = {
             'is_deleted': False,
             'is_private': False,
@@ -1064,7 +1068,43 @@ class ChatroomImpl(ChatroomManager):
         }
 
         total_chatroom_count = ModelUtilities.get_model_filter(Collabcard, filter_dict).count()
-        return {'success': True, 'chatrooms': chatrooms_data, 'total_chatroom_count': total_chatroom_count}
+        return {'success': True, **chatrooms_data, 'total_chatroom_count': total_chatroom_count}
+
+    def fetch_all_chatroom_old(self, chatroom_filter_type: str, chatroom_excluded_type: str, page: int = 1) -> dict:
+        validated_req = ChatroomViewHelper.validate_fetch_all_chatroom_request(self.get_member_id(),
+                                                                               self.get_api_key(),
+                                                                               chatroom_filter_type,
+                                                                               chatroom_excluded_type)
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_req.get('community_instance')
+        user_instance = validated_req.get('user_instance')
+        chatroom_filter_type = validated_req.get('chatroom_filter_type')
+        chatroom_excluded_type = validated_req.get('chatroom_excluded_type')
+
+        card_ids = get_all_chatrooms_of_community_old(community_instance.id, chatroom_filter_type,
+                                                      chatroom_excluded_type)
+        chatroom_list = ModelUtilities.get_model_filter(collabcardState,
+                                                        {'card_id__in': card_ids,
+                                                         'user': self.get_member_id(),
+                                                         'secret_chatroom_left': False}).select_related('card',
+                                                                                                        'card__user')
+        total_chatroom_count = len(chatroom_list)
+        chatroom_list = ModelUtilities.paginate_queryset(chatroom_list, page, 10)
+
+        chatroom_context_list = []
+
+        if chatroom_list:
+
+            from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
+
+            chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
+            chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
+
+        return {'success': True, 'chatrooms': chatroom_context_list, 'total_chatroom_count': total_chatroom_count}
 
     def create_chatroom(self, req_body: dict) -> dict:
         validated_req = ChatroomViewHelper.validate_create_chatroom_request(self.get_member_id(),
