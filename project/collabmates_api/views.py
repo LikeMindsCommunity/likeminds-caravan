@@ -11690,13 +11690,6 @@ def fetch_reports(request):
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
-    # For Newer Versions
-    page = NumberUtilities.get_integer_from_string(request.GET.get('page', 1))
-    page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size', 20))
-
-    is_closed = request.GET.get('is_closed', None)
-    filter_type = request.GET.get('filter_type', None)
-    
     if not current_user_id:
         context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
@@ -11748,16 +11741,29 @@ def fetch_reports(request):
     try:    
         # Version check for pagination & filter
         if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.fetch_reports_pagination_and_filter):
+            
+            # For Newer Versions
+            page = NumberUtilities.get_integer_from_string(request.GET.get('page', 1))
+            page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size', 20))
+
+            is_closed = request.GET.get('is_closed', None)
+            filter_type =  request.GET.get('filter_type', None)
+    
+            # Check if correct filter_type is provided
+            filter_types = StringUtilities.get_list_from_string(filter_type)
+            if filter_type and not isinstance(filter_types, list) :
+                return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
+            
             reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
                                             is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
-                                            parent_cm_list=parent_cm_list, page = page, page_size = page_size, is_closed=is_closed, filter_type=filter_type)
+                                            parent_cm_list=parent_cm_list, page = page, page_size = page_size, is_closed=is_closed, filter_type=filter_types)
         else:
             reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
                                                 is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
                                                 parent_cm_list=parent_cm_list)
     except Exception as e:
         error_logger.error(e.args)
-        return JsonResponse({'error_message': "Internal Server Error"}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse({'error_message': str(e)}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
     
     report_list = []
 
