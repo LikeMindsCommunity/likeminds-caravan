@@ -22,31 +22,28 @@ pipeline {
                        gcloud compute ssh likeminds-prod-migration-instance --zone=asia-south1-a --internal-ip --command=". /home/apps/caravan-prod/Togther/Migrationfile-caravan-prod.sh"
                       '''
                 }
-                
             }
         }
       
         stage("Building Application Docker Image"){
-          when { changeset "Dockerfile.caravan-prod"}
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
                     sh 'docker build -f Dockerfile.caravan-prod -t asia.gcr.io/likeminds-prod-prj-5464/togther/caravan-prod:${BUILD_NUMBER} . '
-                    }
                 }
             }
-         stage("Pushing Application Docker Image to Google Artifact Registry"){
-           when { changeset "Dockerfile.caravan-prod"}
+        }
+
+        stage("Pushing Application Docker Image to Google Artifact Registry"){
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
                     sh 'docker push asia.gcr.io/likeminds-prod-prj-5464/togther/caravan-prod:${BUILD_NUMBER}'
-                      }
-                 }
+                }
             }
+        }
               
         stage('Deploy to GKE') {
-          when { changeset "Dockerfile.caravan-prod"}
             steps{
                 sh '''
                 sed -i 's/caravan-prod:.*/caravan-prod:'${BUILD_NUMBER}'"/g' deployment-caravan-prod.yaml
@@ -56,10 +53,10 @@ pipeline {
             }
         }
     }  
-        post { 
+
+    post {
         always { 
             cleanWs()
         }
     }
-
 }

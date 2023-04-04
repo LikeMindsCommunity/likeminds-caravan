@@ -13,6 +13,7 @@ pipeline {
                 checkout scm
             }
         }
+
         stage("Executing the Script Migration step for caravan-beta") {
             steps {
                 script{
@@ -22,31 +23,28 @@ pipeline {
                        gcloud compute ssh likeminds-nonprod-migration-vm --zone=asia-south1-a --internal-ip --command=". /home/apps/caravan-beta/Togther/Migrationfile-caravan-beta.sh"
                       '''
                 }
-                
             }
         }
       
         stage("Building Application Docker Image"){
-          when { changeset "Dockerfile.caravan-beta"}
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
                     sh 'docker build -f Dockerfile.caravan-beta -t asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/likeminds-caravan/caravan-beta:${BUILD_NUMBER} . '
-                    }
                 }
             }
+        }
+
          stage("Pushing Application Docker Image to Google Artifact Registry"){
-           when { changeset "Dockerfile.caravan-beta"}
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
                     sh 'docker push asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/likeminds-caravan/caravan-beta:${BUILD_NUMBER}'
-                      }
-                 }
+                }
             }
+        }
               
         stage('Deploy to GKE') {
-          when { changeset "Dockerfile.caravan-beta"}
             steps{
                 sh '''
                 sed -i 's/caravan-beta:.*/caravan-beta:'${BUILD_NUMBER}'"/g' deployment-caravan-beta.yaml
@@ -55,11 +53,11 @@ pipeline {
                 '''
             }
         }
-    }  
-        post { 
+    }
+
+    post {
         always { 
             cleanWs()
         }
     }
-
 }

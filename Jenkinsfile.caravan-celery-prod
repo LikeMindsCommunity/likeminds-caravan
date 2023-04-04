@@ -15,26 +15,24 @@ pipeline {
         }
       
         stage("Building Application Docker Image"){
-          when { changeset "Dockerfile.caravan-celery-prod"}
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
                     sh 'docker build -f Dockerfile.caravan-celery-prod -t asia.gcr.io/likeminds-prod-prj-5464/togther/caravan-celery-prod:${BUILD_NUMBER} . '
-                    }
                 }
             }
-         stage("Pushing Application Docker Image to Google Artifact Registry"){
-           when { changeset "Dockerfile.caravan-celery-prod"}
+        }
+
+        stage("Pushing Application Docker Image to Google Artifact Registry"){
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
                     sh 'docker push asia.gcr.io/likeminds-prod-prj-5464/togther/caravan-celery-prod:${BUILD_NUMBER}'
-                      }
-                 }
+                }
             }
+        }
               
         stage('Deploy to GKE') {
-          when { changeset "Dockerfile.caravan-celery-prod"}
             steps{
                 sh '''
                 sed -i 's/caravan-celery-prod:.*/caravan-celery-prod:'${BUILD_NUMBER}'"/g' deployment-caravan-celery-prod.yaml
@@ -44,10 +42,10 @@ pipeline {
             }
         }
     }  
-        post { 
+
+    post {
         always { 
             cleanWs()
         }
     }
-
 }
