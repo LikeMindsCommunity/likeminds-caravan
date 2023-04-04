@@ -1052,7 +1052,6 @@ class ChatroomImpl(ChatroomManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
-        user_instance = validated_req.get('user_instance')
         chatroom_filter_type = validated_req.get('chatroom_filter_type')
         chatroom_excluded_type = validated_req.get('chatroom_excluded_type')
 
