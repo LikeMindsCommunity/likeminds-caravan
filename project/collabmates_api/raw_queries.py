@@ -1749,6 +1749,77 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
 
         return []
 
+def get_members_meta_list(community_id: int, member_ids:list = None, page=1, page_size = 50, search_string:str = '') :
+    """returns meta data of members based on community_id and or member_ids"""
+
+    try:
+
+        page_number = int(page)
+        offset = (page_number - 1) * page_size
+
+        get_removed_members = ""
+        join_removed_members_table = ""
+
+        # If member_ids are passed get users from the user_ids and join removedMembers table
+        if member_ids:  
+            user_ids = get_tuple_from_array(member_ids)
+
+            join_removed_members_table = """
+                                            left join togther_removedmembers 
+                                            on togther_userinfo.user_id_id = togther_removedmembers.member_id
+                                         """
+            
+            get_removed_members = f""" 
+                                    And togther_members.member_id_id in {user_ids}
+                                    or togther_removedmembers.community_id = {community_id}
+                                    And togther_removedmembers.member_id in {user_ids}
+                                    """
+
+        # select query for members meta 
+        members_meta_data_query = get_query_fields_for_members_meta()
+
+        # Sql Query
+        sql = f""" 
+               select 
+                {members_meta_data_query}, 
+                togther_userinfo.user_id_id as "id", 
+                togther_userinfo.image_link as "img_url", 
+                CASE when (togther_members.custom_title = 'Member') then Null else togther_members.custom_title END as "custom_title", 
+                CASE when (togther_members.community_id_id = {community_id}) then false else true END as "is_deleted"
+
+                from  togther_userinfo
+                left join togther_members 
+                on togther_userinfo.user_id_id = togther_members.member_id_id
+                {join_removed_members_table}
+
+                where
+                    togther_userinfo.is_guest is false
+                    And togther_members.community_id_id = {community_id} 
+                    And togther_members.state in (1,4,9)
+                    {get_removed_members}
+                    AND ("togther_userinfo"."name" ILIKE '{search_string}%')
+
+                order by lower(togther_userinfo.name) ASC
+                OFFSET {offset} LIMIT {page_size};
+              """
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        curr.execute(sql)
+
+        # Map query result to column names
+        query_result = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return query_result
+    
+    except (Exception, psycopg2.Error) as error:
+        print(error)
+        error_logger.error("Error while running query: %s ", error)
+
+        return []
+
 
 def get_community_introductions_based_on_user_list_query(user_list, community_id, question_id) -> list:
     try:
@@ -3619,6 +3690,17 @@ def get_conversation_poll_members_query_meta_for_sync_revamp(key_name_prefix: st
                                           key_name_prefix)
 
     return ",".join(meta_query)
+
+
+def get_query_fields_for_members_meta(key_name_prefix: str = None):
+
+    members_query = ['custom_title']
+    members_meta_query = create_query_with_prefix(members_query, 'togther_members', 'member', key_name_prefix)
+  
+    user_info_fields = ['name', 'user_unique_id', 'is_guest']
+    user_meta_query = create_query_with_prefix(user_info_fields, 'togther_userinfo', 'user', key_name_prefix)
+
+    return ",".join(members_meta_query + user_meta_query)
 
 
 def convert_sql_query_result_to_dict(cursor, result):

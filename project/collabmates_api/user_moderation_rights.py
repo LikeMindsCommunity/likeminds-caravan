@@ -14,6 +14,7 @@ from .static_text import *
 import time
 import json
 from utility.time_utilities import TimeUtilities
+from utility.string_utilities import StringUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -647,8 +648,7 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
 
     reports = Report.objects.select_related("reported_by", "user_reported", "tag", "action_taken_by",
                                             "action_taken_tag", "community", "collabcard",
-                                            "conversation").filter(community=community_id).exclude(type=3).order_by(
-        "-id")
+                                            "conversation").filter(community=community_id).exclude(type=3).order_by("-id")
 
     # no once can see those reports which are reported on himself
     reports = reports.exclude(user_reported__id=user_id)
@@ -665,6 +665,21 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
     if return_reports_count:
         reports = reports.exclude(is_closed=True)
         return reports.count()
+    
+    # if is_closed is provided, then return the reports accordingly
+    if "is_closed" in kwargs and kwargs["is_closed"] :
+        is_closed = StringUtilities.get_boolean_from_string(kwargs["is_closed"])
+        reports = reports.filter(is_closed=is_closed)
+
+    # if report_type is provided, then return the reports of that type
+    if "filter_type" in kwargs and kwargs["filter_type"] :
+        reports = reports.filter(type__in=kwargs["filter_type"])
+    
+    # Pagination for newer versions
+    if "page" in kwargs and "page_size" in kwargs:
+        limit = kwargs["page"] * kwargs["page_size"]
+        offset = (kwargs["page"] - 1) * kwargs["page_size"]
+        reports = reports[offset:limit]
 
     return reports
 

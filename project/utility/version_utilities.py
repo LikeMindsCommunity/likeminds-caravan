@@ -6,12 +6,13 @@ class VersionUtilities:
         WEB = 'web'
         FLUTTER = 'fl'
         REACT_NATIVE = 'rn'
+        REACT = 'rt'
         ANDROID_SDK = 'an-sdk'
         IOS_SDK = 'ios-sdk'
         WEB_SDK = 'web-sdk'
         FLUTTER_SDK = 'fl-sdk'
         REACT_NATIVE_SDK = 'rn-sdk'
-
+        REACT_SDK = 'rt-sdk'
 
         @staticmethod
         def convert_platform_code_to_sdk(platform_code):
@@ -60,7 +61,9 @@ class VersionUtilities:
         PlatformCode.FLUTTER: unreleased_version_code,
         PlatformCode.REACT_NATIVE: unreleased_version_code,
         PlatformCode.FLUTTER_SDK: unreleased_version_code,
-        PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+        PlatformCode.REACT_NATIVE_SDK: 4,
+        PlatformCode.REACT: unreleased_version_code,
+        PlatformCode.REACT_SDK: 21,
     }
 
     m2cm_v2: dict = {
@@ -149,6 +152,19 @@ class VersionUtilities:
     }
 
     tag_only_participants: dict = {
+        PlatformCode.ANDROID: unreleased_version_code,
+        PlatformCode.IOS: unreleased_version_code,
+        PlatformCode.WEB: unreleased_version_code,
+        PlatformCode.ANDROID_SDK: unreleased_version_code,
+        PlatformCode.IOS_SDK: unreleased_version_code,
+        PlatformCode.WEB_SDK: unreleased_version_code,
+        PlatformCode.FLUTTER: unreleased_version_code,
+        PlatformCode.REACT_NATIVE: unreleased_version_code,
+        PlatformCode.FLUTTER_SDK: unreleased_version_code,
+        PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+    }
+
+    fetch_reports_pagination_and_filter: dict = {
         PlatformCode.ANDROID: unreleased_version_code,
         PlatformCode.IOS: unreleased_version_code,
         PlatformCode.WEB: unreleased_version_code,
