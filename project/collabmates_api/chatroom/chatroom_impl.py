@@ -1057,6 +1057,16 @@ class ChatroomImpl(ChatroomManager):
 
         chatrooms_data = get_all_chatrooms_of_community(community_instance.id, chatroom_filter_type,
                                                         chatroom_excluded_type, page)
+
+        from collabmates_api.sync.sync_helper import SyncHelper
+        chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, 'chatrooms')
+
+        chatrooms_query_data = chatrooms_data.get('chatrooms')
+        chatroom_creator_data = chatrooms_data.get('user_meta')
+
+        for chatroom_data in chatrooms_query_data:
+            chatroom_data['member'] = chatroom_creator_data.get(chatroom_data.get('user_id'), {})
+
         filter_dict = {
             'is_deleted': False,
             'is_private': False,
@@ -1064,7 +1074,7 @@ class ChatroomImpl(ChatroomManager):
         }
 
         total_chatroom_count = ModelUtilities.get_model_filter(Collabcard, filter_dict).count()
-        return {'success': True, 'chatrooms': chatrooms_data, 'total_chatroom_count': total_chatroom_count}
+        return {'success': True, 'chatrooms': chatrooms_query_data, 'total_chatroom_count': total_chatroom_count}
 
     def create_chatroom(self, req_body: dict) -> dict:
         validated_req = ChatroomViewHelper.validate_create_chatroom_request(self.get_member_id(),

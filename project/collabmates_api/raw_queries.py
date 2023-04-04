@@ -3172,10 +3172,14 @@ def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_
             excluded_type_list else ""
         type_include_filter = """AND togther_collabcard.type IN (%s)""" % filter_type_list if filter_type_list else ""
 
+        get_creator_data = ",".join([get_users_query_meta_for_sync_revamp("creator"),
+                                     get_members_query_meta_for_sync_revamp("creator")])
+
         conn = get_connection()
         curr = conn.cursor()
 
-        sql = """SELECT %s, COUNT(*) as participants_count, 
+        sql = """SELECT chatrooms_data.*, %s FROM
+                 (SELECT %s, COUNT(*) as participants_count, 
                  TO_CHAR(to_timestamp(togther_collabcard.created_at / 1000), 'DD Mon YYYY') AS date
                  FROM  togther_collabcard
                  INNER JOIN togther_collabcardstate
@@ -3191,9 +3195,17 @@ def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_
                        AND togther_userinfo.is_guest = false %s %s)
                        GROUP BY togther_collabcard.id
                        ORDER BY togther_collabcard.created_at DESC
-                       limit %s offset %s;""" % \
-              (get_chatroom_query_meta_for_sync_revamp(), str(community_id), type_exclude_filter, type_include_filter,
-               limit, offset)
+                       limit %s offset %s) AS chatrooms_data
+                 
+                LEFT JOIN togther_userinfo ON (
+                  togther_userinfo.user_id_id = chatrooms_data.user_id
+                ) 
+                LEFT JOIN togther_members ON (
+                  chatrooms_data.user_id = togther_members.member_id_id 
+                  AND chatrooms_data.community_id = togther_members.community_id_id
+                );""" % \
+              (get_creator_data, get_chatroom_query_meta_for_sync_revamp(), str(community_id), type_exclude_filter,
+               type_include_filter, limit, offset)
 
         curr.execute(sql)
         chatroom_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
