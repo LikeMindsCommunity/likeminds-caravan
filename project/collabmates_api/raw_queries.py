@@ -3217,6 +3217,40 @@ def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
+def get_all_chatrooms_of_community_old(community_id, chatroom_filter_type, chatroom_excluded_type):
+    try:
+
+        excluded_type_list = [10]
+        if chatroom_excluded_type:
+            excluded_type_list.extend(chatroom_excluded_type)
+
+        excluded_type_list = ",".join([str(i) for i in excluded_type_list])
+        filter_type_list = ",".join([str(i) for i in chatroom_filter_type])
+
+        type_exclude_filter = """AND type NOT IN (%s)""" % excluded_type_list if excluded_type_list else ""
+        type_include_filter = """AND type IN (%s)""" % filter_type_list if filter_type_list else ""
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """SELECT id
+                 FROM  togther_collabcard
+                 WHERE (is_deleted = false
+                       AND is_private = false
+                       AND community_id = %s 
+                       %s
+                       %s);""" % (str(community_id), type_exclude_filter, type_include_filter)
+
+        curr.execute(sql)
+        card_list = curr.fetchall()
+        curr.close()
+
+        return [data[0] for data in card_list]
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
 def fetch_user_communities_sorted_by_order_time(user_id, community_id=None):
     try:
         conn = get_connection()
