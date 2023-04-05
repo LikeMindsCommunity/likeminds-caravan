@@ -16,24 +16,6 @@ print_internal() {
     printf "$STR"
 }
 
-get_project_branch_latest() {
-  cd "$APPLICATION_LOCATION" || exit
-
-  if [ "$APPLICATION_ENVIRONMENT" == "PRODUCTION" ]
-  then
-
-    print_internal "pull branch origin/master"
-    git checkout master
-    git pull
-    print_internal "latest refs pull success"
-
-  else
-    print_internal "Unknown application environment $APPLICATION_ENVIRONMENT"
-  fi
-
-  cd ~ || exit
-}
-
 get_project_dot_env() {
   print_internal "get and write dot env into project folder"
   print_internal "writing file at $APPLICATION_DOT_ENV_LOCATION"
@@ -93,7 +75,6 @@ migrate() {
 
   print_internal "migrating caravan-prod database.."
 
-  get_project_branch_latest
   get_project_dot_env
   activate_project_venv
   install_project_requirements
