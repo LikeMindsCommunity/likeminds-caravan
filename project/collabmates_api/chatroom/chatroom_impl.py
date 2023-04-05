@@ -319,8 +319,8 @@ class ChatroomImpl(ChatroomManager):
         if card_content['is_secret']:
             card_content['is_secret'] = True
 
-            secret_chatroom_participants = MemberCommunityImpl.get_valid_member_ids(
-                req_body.get("secret_chatroom_participants", []))
+            secret_chatroom_participants = ModelUtilities.get_valid_member_ids(
+                req_body.get("secret_chatroom_participants", []), community_id=community.id)
 
             secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
                 secret_chatroom_participants
@@ -1406,7 +1406,8 @@ class ChatroomImpl(ChatroomManager):
         is_chatroom_invite = req_body.get('is_channel_invite', True)
 
         # support for user_unique_ids in secret chatroom participants parameter
-        secret_chatroom_participants = MemberCommunityImpl.get_valid_member_ids(secret_chatroom_participants)
+        secret_chatroom_participants = ModelUtilities.get_valid_member_ids(secret_chatroom_participants,
+                                                                           community_id=chatroom_instance.community_id)
         secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
             secret_chatroom_participants)
 
@@ -2655,8 +2656,10 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req.get('user_instance')
         card_instance = validated_req.get('card_instance')
 
-        #support for user_unique_ids in chatroom participants parameter
-        chatroom_participants = MemberCommunityImpl.get_valid_member_ids(chatroom_participants)
+        # Support for user_unique_ids in chatroom participants parameter
+        chatroom_participants = ModelUtilities.get_valid_member_ids(chatroom_participants,
+                                                                    community_id=card_instance.community_id)
+
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants)
 
         conversation_impl.ConversationHelper.create_conversation_state(card_instance, user_instance,
@@ -3766,7 +3769,8 @@ class ChatroomImpl(ChatroomManager):
         chatroom_state = conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM
 
         # support for user_unique_ids in secret chatroom participants parameter
-        removed_members_list = MemberCommunityImpl.get_valid_member_ids(removed_members_list)
+        removed_members_list = ModelUtilities.get_valid_member_ids(removed_members_list,
+                                                                   community_id=chatroom_instance.community_id)
 
         filter_dict = {
             'card': chatroom_instance,

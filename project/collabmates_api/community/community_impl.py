@@ -1008,7 +1008,7 @@ class CommunityImpl(CommunityManager):
         member_ids = validated_req.get('member_ids')
 
         # Get members meta list
-        members_list =  CommunityHelper.compute_members_meta_list(community_instance, member_ids, page, page_size, search_name)
+        members_list = CommunityHelper.compute_members_meta_list(community_instance, member_ids, page, page_size, search_name)
 
         return {'success': True, 'members': members_list}
 
@@ -4346,19 +4346,19 @@ class CommunityHelper:
         members_data = []
 
         # Get valid user_ids from member_ids
-        user_ids = MemberCommunityImpl.get_valid_member_ids(member_ids)
+        user_ids = ModelUtilities.get_valid_member_ids(member_ids, community_id=community_instance.id)
 
         # If all member_ids are invalid return empty list
-        if member_ids and not user_ids :
+        if member_ids and not user_ids:
             return members_data
-    
+
         # Get query result
-        members_data = get_members_meta_list(community_id = community_instance.id ,
-                                                member_ids = user_ids, 
-                                                page = page, 
-                                                page_size = page_size, 
-                                                search_string = search_name)
-        
+        members_data = get_members_meta_list(community_id=community_instance.id,
+                                             member_ids=user_ids,
+                                             page=page,
+                                             page_size=page_size,
+                                             search_string=search_name)
+
         return members_data
     
 
