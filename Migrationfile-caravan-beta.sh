@@ -93,7 +93,7 @@ migrate() {
 
   print_internal "migrating caravan-beta database.."
 
-  get_project_branch_latest
+  // get_project_branch_latest
   get_project_dot_env
   activate_project_venv
   install_project_requirements
