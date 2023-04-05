@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+    // environment {
+    //     PROJECT_ID = 'likeminds-nonprod-prj-24e1'
+    //     CLUSTER_NAME = 'likeminds-nonprod-autopilot-cluster'
+    //     LOCATION = 'asia-south1'
+    //     CREDENTIALS_ID = 'likeminds-nonprod-prj-24e1'
+    // }
+   
+    stages {
+        stage("Checkout code") {
+            steps {
+                checkout scm
+            }
+        }
+      
+        stage("Building Application Docker Image"){
+            steps{
+                script{
+                    sh 'gcloud auth configure-docker asia.gcr.io'
+                    sh 'docker build -f Dockerfile.caravan-celery-beta -t asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/togther/caravan-celery:${BUILD_NUMBER} . '
+                }
+            }
+        }
+
+        stage("Pushing Application Docker Image to Google Artifact Registry"){
+            steps{
+                script{
+                    sh 'gcloud auth configure-docker asia.gcr.io'
+                    sh 'docker push asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/togther/caravan-celery:${BUILD_NUMBER}'
+                }
+            }
+        }
+              
+        stage('Deploy to GKE') {
+            steps{
+                sh '''
+                sed -i 's/caravan-celery:.*/caravan-celery:'${BUILD_NUMBER}'"/g' deployment-caravan-celery-beta.yaml
+                gcloud container clusters get-credentials ${CLUSTER_NAME} --region ${LOCATION} --project ${PROJECT_ID} --internal-ip
+                kubectl apply -f /var/lib/jenkins/workspace/likeminds-caravan-celery-beta/deployment-caravan-celery-beta.yaml
+                '''
+            }
+        }
+    }
+
+    post {
+        always { 
+            cleanWs()
+        }
+    }
+}
