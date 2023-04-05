@@ -17,6 +17,10 @@ class ChatroomManager(metaclass=abc.ABCMeta):
                             callable(subclass.fetch_all_chatroom)
                     ) and
                     (
+                            hasattr(subclass, 'fetch_all_chatroom_old') and
+                            callable(subclass.fetch_all_chatroom_old)
+                    ) and
+                    (
                             hasattr(subclass, 'create_chatroom') and
                             callable(subclass.create_chatroom)
                     ) and
@@ -208,6 +212,13 @@ class ChatroomManager(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def fetch_all_chatroom(self, chatroom_filter_type: str, chatroom_excluded_type: str, page: int = 1, ) -> dict:
+        """
+        Revamped version of fetch all chatrooms in community
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_all_chatroom_old(self, chatroom_filter_type: str, chatroom_excluded_type: str, page: int = 1, ) -> dict:
         """
         Fetch all chatrooms in community
         """

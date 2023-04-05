@@ -88,6 +88,8 @@ from ..notifications.tasks import send_mail_for_first_time_edit_community_questi
 from ..notifications.tasks_impl import TasksHelper
 from ..user.user_impl import UserHelper, UserImpl
 
+from ..raw_queries import get_members_meta_list
+
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
     directory_questions_v2_version_check, get_user_phone, fetch_alias_question_version_check
 
@@ -989,6 +991,26 @@ class CommunityImpl(CommunityManager):
         members = ChatroomImpl.remove_guest_user_from_participants_data_list(members)
 
         return {'success': True, 'members': members}
+
+    # Fetch members meta v2, with pagination & search and returns is_deleted key in member object
+    def fetch_members_meta_v2(self, member_ids, page, page_size, search_name):
+
+        # validate request and load validated data
+        validated_req = CommunityViewHelper.validate_fetch_members_meta_request(self.get_member_id(),
+                                                                                self.get_community_id(),
+                                                                                member_ids,
+                                                                                api_key=self.get_api_key())
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_req.get('community_instance')
+        member_ids = validated_req.get('member_ids')
+
+        # Get members meta list
+        members_list = CommunityHelper.compute_members_meta_list(community_instance, member_ids, page, page_size, search_name)
+
+        return {'success': True, 'members': members_list}
 
     def fetch_content_download_settings(self, chatroom_id=None):
 
@@ -4317,3 +4339,26 @@ class CommunityHelper:
                 })
 
         return {'community_instance': community_instance, 'notification_settings': new_notification_settings}
+    
+    @staticmethod
+    def compute_members_meta_list(community_instance, member_ids, page, page_size, search_name):
+        
+        members_data = []
+
+        # Get valid user_ids from member_ids
+        user_ids = ModelUtilities.get_valid_member_ids(member_ids, community_id=community_instance.id)
+
+        # If all member_ids are invalid return empty list
+        if member_ids and not user_ids:
+            return members_data
+
+        # Get query result
+        members_data = get_members_meta_list(community_id=community_instance.id,
+                                             member_ids=user_ids,
+                                             page=page,
+                                             page_size=page_size,
+                                             search_string=search_name)
+
+        return members_data
+    
+

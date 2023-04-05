@@ -225,6 +225,12 @@ class CommunityManager(metaclass=abc.ABCMeta):
         """returns list of members to create secret chatrooms"""
 
         raise NotImplementedError
+    
+    def fetch_members_meta_v2(self, member_ids, page, page_size, search_name):
+        """returns members meta data of given community or member_ids"""
+
+        raise NotImplementedError
+
 
     def fetch_content_download_settings(self):
         """returns List of Content Download Settings for a community"""

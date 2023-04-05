@@ -8706,6 +8706,7 @@ def members_state(request, req_dict=None):
     tool_state = 0
     custom_title = "Member"
 
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
@@ -8788,6 +8789,8 @@ def members_state(request, req_dict=None):
     json_response['member']['state'] = state
     json_response['member']['is_owner'] = is_owner
 
+    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights)
+
     if custom_title:
         json_response['member']['custom_title'] = custom_title
 
@@ -8796,12 +8799,12 @@ def members_state(request, req_dict=None):
         json_response['manager_rights'] = get_saved_manager_rights_list(admin_rights)
 
     if state in [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
-        user_rights = check_all_member_rights(query_set[0].member_id, community_instance)
-        moderated_member_rights = get_saved_member_rights_list(user_rights)
+        user_rights = check_all_member_rights(query_set[0].member_id, community_instance, is_feed_enabled=is_feed_enabled)
+        moderated_member_rights = get_saved_member_rights_list(user_rights, is_feed_enabled=is_feed_enabled)
 
     else:
-        user_rights = check_all_member_rights()
-        moderated_member_rights = get_saved_member_rights_list(user_rights)
+        user_rights = check_all_member_rights(is_feed_enabled=is_feed_enabled)
+        moderated_member_rights = get_saved_member_rights_list(user_rights, is_feed_enabled=is_feed_enabled)
 
     if RequestUtilities.is_request_ios(request):
         json_response['member_rights'] = compute_moderation_member_rights_list_for_ios(moderated_member_rights,
@@ -11379,6 +11382,8 @@ def fetch_community_member_rights(request):
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -11411,11 +11416,13 @@ def fetch_community_member_rights(request):
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
 
+    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights)
+
     if admin.exists():
         admin_rights = check_all_manager_rights(current_user_instance, community_instance)
-        user_rights = check_all_member_rights(user_instance, community_instance)
+        user_rights = check_all_member_rights(user_instance, community_instance, is_feed_enabled=is_feed_enabled)
 
-        rights_context = get_saved_member_rights_list(user_rights, admin_rights)
+        rights_context = get_saved_member_rights_list(user_rights, admin_rights, is_feed_enabled=is_feed_enabled)
 
         rights_context = update_member_rights_for_sdk(rights_context, community_instance)
 
@@ -11679,6 +11686,10 @@ def fetch_reports(request):
     community_id = request.GET.get('community_id', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
 
+    # For version Check
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+
     if not current_user_id:
         context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
@@ -11726,10 +11737,41 @@ def fetch_reports(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
 
-    reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
-                                           is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
-                                           parent_cm_list=parent_cm_list)
 
+    try:    
+        # Version check for pagination & filter
+        if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.fetch_reports_pagination_and_filter):
+            
+            # For Newer Versions
+            page = NumberUtilities.get_integer_from_string(request.GET.get('page'), 1)
+            
+            if page <= 0:
+                page = 1
+
+            page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size'), 20)
+
+            if page_size <= 0:
+                page_size = 20
+
+            is_closed = request.GET.get('is_closed', None)
+            filter_type =  request.GET.get('filter_type', None)
+    
+            # Check if correct filter_type is provided
+            filter_types = StringUtilities.get_list_from_string(filter_type)
+            if filter_type and not isinstance(filter_types, list) :
+                return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
+            
+            reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
+                                            is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                            parent_cm_list=parent_cm_list, page = page, page_size = page_size, is_closed=is_closed, filter_type=filter_types)
+        else:
+            reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
+                                                is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                                parent_cm_list=parent_cm_list)
+    except Exception as e:
+        error_logger.error(e.args)
+        return JsonResponse({'error_message': str(e)}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+    
     report_list = []
 
     for report in reports:
@@ -12086,6 +12128,8 @@ def fetch_community_setting_rights(request):
 
     is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code)
 
+    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights)
+
     if is_m2cm_v2:
         can_show = False
 
@@ -12110,9 +12154,11 @@ def fetch_community_setting_rights(request):
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
     # checking if the logged in user is Manager of the community or not
     if admin.exists():
-        user_rights = check_all_member_rights(community=community_instance, is_m2cm_v2=is_m2cm_v2)
+        user_rights = check_all_member_rights(community=community_instance, is_m2cm_v2=is_m2cm_v2,
+                                              is_feed_enabled=is_feed_enabled)
         # fetching all the rights of the community
-        rights_context = get_saved_member_rights_list(user_rights, show_dm_right=can_show, is_m2cm_v2=is_m2cm_v2)
+        rights_context = get_saved_member_rights_list(user_rights, show_dm_right=can_show, is_m2cm_v2=is_m2cm_v2,
+                                                      is_feed_enabled=is_feed_enabled)
         return JsonResponse({"rights": rights_context})
     else:
         context = get_error_context(False, "user is not a admin")

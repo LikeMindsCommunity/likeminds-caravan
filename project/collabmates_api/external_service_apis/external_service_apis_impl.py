@@ -9,6 +9,7 @@ from ..notification import notification_meta, get_token_for_fcm
 from ..notifications.tasks_impl import TasksHelper
 from utility.response_utilities import ResponseUtilities
 from collabmates_api.sdk.models import (SdkClient)
+from togther.models import (ModelUtilities)
 
 
 class ExternalServiceApisImpl(ExternalServiceApisManager):
@@ -153,7 +154,7 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
             community_id = community_instance.id
 
         notification_details_list = []
-        member_ids_list = MemberCommunityImpl.get_valid_member_ids(member_ids_list)
+        member_ids_list = ModelUtilities.get_valid_member_ids(member_ids_list, community_id=community_id)
 
         for member_id in member_ids_list:
             notification_details = get_token_for_fcm(member_id, True)

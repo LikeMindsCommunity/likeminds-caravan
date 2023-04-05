@@ -1749,6 +1749,77 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
 
         return []
 
+def get_members_meta_list(community_id: int, member_ids:list = None, page=1, page_size = 50, search_string:str = '') :
+    """returns meta data of members based on community_id and or member_ids"""
+
+    try:
+
+        page_number = int(page)
+        offset = (page_number - 1) * page_size
+
+        get_removed_members = ""
+        join_removed_members_table = ""
+
+        # If member_ids are passed get users from the user_ids and join removedMembers table
+        if member_ids:  
+            user_ids = get_tuple_from_array(member_ids)
+
+            join_removed_members_table = """
+                                            left join togther_removedmembers 
+                                            on togther_userinfo.user_id_id = togther_removedmembers.member_id
+                                         """
+            
+            get_removed_members = f""" 
+                                    And togther_members.member_id_id in {user_ids}
+                                    or togther_removedmembers.community_id = {community_id}
+                                    And togther_removedmembers.member_id in {user_ids}
+                                    """
+
+        # select query for members meta 
+        members_meta_data_query = get_query_fields_for_members_meta()
+
+        # Sql Query
+        sql = f""" 
+               select 
+                {members_meta_data_query}, 
+                togther_userinfo.user_id_id as "id", 
+                togther_userinfo.image_link as "image_url", 
+                CASE when (togther_members.custom_title = 'Member') then Null else togther_members.custom_title END as "custom_title", 
+                CASE when (togther_members.community_id_id = {community_id}) then false else true END as "is_deleted"
+
+                from  togther_userinfo
+                left join togther_members 
+                on togther_userinfo.user_id_id = togther_members.member_id_id
+                {join_removed_members_table}
+
+                where
+                    togther_userinfo.is_guest is false
+                    And togther_members.community_id_id = {community_id} 
+                    And togther_members.state in (1,4,9)
+                    {get_removed_members}
+                    AND ("togther_userinfo"."name" ILIKE '{search_string}%')
+
+                order by lower(togther_userinfo.name) ASC
+                OFFSET {offset} LIMIT {page_size};
+              """
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        curr.execute(sql)
+
+        # Map query result to column names
+        query_result = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return query_result
+    
+    except (Exception, psycopg2.Error) as error:
+        print(error)
+        error_logger.error("Error while running query: %s ", error)
+
+        return []
+
 
 def get_community_introductions_based_on_user_list_query(user_list, community_id, question_id) -> list:
     try:
@@ -3085,7 +3156,68 @@ def get_participant_counts_on_basis_of_chatroom_ids(card_ids_list):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_excluded_type):
+def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_excluded_type, page=1, limit=10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        excluded_type_list = [10]
+        if chatroom_excluded_type:
+            excluded_type_list.extend(chatroom_excluded_type)
+
+        excluded_type_list = ",".join([str(i) for i in excluded_type_list])
+        filter_type_list = ",".join([str(i) for i in chatroom_filter_type])
+
+        type_exclude_filter = """AND togther_collabcard.type NOT IN (%s)""" % excluded_type_list if \
+            excluded_type_list else ""
+        type_include_filter = """AND togther_collabcard.type IN (%s)""" % filter_type_list if filter_type_list else ""
+
+        get_creator_data = ",".join([get_users_query_meta_for_sync_revamp("creator"),
+                                     get_members_query_meta_for_sync_revamp("creator")])
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        sql = """SELECT chatrooms_data.*, %s FROM
+                 (SELECT %s, COUNT(*) as participants_count, 
+                 TO_CHAR(to_timestamp(togther_collabcard.created_at / 1000), 'DD Mon YYYY') AS date
+                 FROM  togther_collabcard
+                 INNER JOIN togther_collabcardstate
+                 ON togther_collabcard.id = togther_collabcardstate.card_id
+                 INNER JOIN togther_userinfo
+                 ON togther_userinfo.user_id_id = togther_collabcardstate.user_id
+                 WHERE (togther_collabcard.is_deleted = false
+                       AND togther_collabcard.is_private = false
+                       AND togther_collabcard.community_id = %s 
+                       AND "togther_collabcardstate"."follow_status" = true
+                       AND "togther_collabcardstate"."is_tagged" = false
+                       AND "togther_collabcardstate"."remove_id" is NULL
+                       AND togther_userinfo.is_guest = false %s %s)
+                       GROUP BY togther_collabcard.id
+                       ORDER BY togther_collabcard.created_at DESC
+                       limit %s offset %s) AS chatrooms_data
+                 
+                LEFT JOIN togther_userinfo ON (
+                  togther_userinfo.user_id_id = chatrooms_data.user_id
+                ) 
+                LEFT JOIN togther_members ON (
+                  chatrooms_data.user_id = togther_members.member_id_id 
+                  AND chatrooms_data.community_id = togther_members.community_id_id
+                );""" % \
+              (get_creator_data, get_chatroom_query_meta_for_sync_revamp(), str(community_id), type_exclude_filter,
+               type_include_filter, limit, offset)
+
+        curr.execute(sql)
+        chatroom_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return chatroom_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_all_chatrooms_of_community_old(community_id, chatroom_filter_type, chatroom_excluded_type):
     try:
 
         excluded_type_list = [10]
@@ -3604,6 +3736,17 @@ def get_conversation_poll_members_query_meta_for_sync_revamp(key_name_prefix: st
                                           key_name_prefix)
 
     return ",".join(meta_query)
+
+
+def get_query_fields_for_members_meta(key_name_prefix: str = None):
+
+    members_query = ['custom_title']
+    members_meta_query = create_query_with_prefix(members_query, 'togther_members', 'member', key_name_prefix)
+  
+    user_info_fields = ['name', 'user_unique_id', 'is_guest']
+    user_meta_query = create_query_with_prefix(user_info_fields, 'togther_userinfo', 'user', key_name_prefix)
+
+    return ",".join(members_meta_query + user_meta_query)
 
 
 def convert_sql_query_result_to_dict(cursor, result):

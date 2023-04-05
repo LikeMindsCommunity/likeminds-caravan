@@ -37,7 +37,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_all_chatrooms_of_community, get_chatroom_participants_count,\
     get_sorted_user_data_on_basis_of_activity_in_chatroom, get_members_based_on_user_list_query, \
     get_community_members_data_on_basis_of_name_search, get_last_conversation_id_corresponding_to_chatrooms_list, \
-    get_chatroom_invites_for_user
+    get_chatroom_invites_for_user, get_all_chatrooms_of_community_old
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, \
@@ -319,8 +319,8 @@ class ChatroomImpl(ChatroomManager):
         if card_content['is_secret']:
             card_content['is_secret'] = True
 
-            secret_chatroom_participants = MemberCommunityImpl.get_valid_member_ids(
-                req_body.get("secret_chatroom_participants", []))
+            secret_chatroom_participants = ModelUtilities.get_valid_member_ids(
+                req_body.get("secret_chatroom_participants", []), community_id=community.id)
 
             secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
                 secret_chatroom_participants
@@ -1052,16 +1052,41 @@ class ChatroomImpl(ChatroomManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
+        chatroom_filter_type = validated_req.get('chatroom_filter_type')
+        chatroom_excluded_type = validated_req.get('chatroom_excluded_type')
+
+        chatrooms_data = get_all_chatrooms_of_community(community_instance.id, chatroom_filter_type,
+                                                        chatroom_excluded_type, page)
+
+        from collabmates_api.sync.sync_helper import SyncHelper
+        chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, 'chatrooms')
+
+        filter_dict = {
+            'is_deleted': False,
+            'is_private': False,
+            'community': community_instance.id
+        }
+
+        total_chatroom_count = ModelUtilities.get_model_filter(Collabcard, filter_dict).count()
+        return {'success': True, **chatrooms_data, 'total_chatroom_count': total_chatroom_count}
+
+    def fetch_all_chatroom_old(self, chatroom_filter_type: str, chatroom_excluded_type: str, page: int = 1) -> dict:
+        validated_req = ChatroomViewHelper.validate_fetch_all_chatroom_request(self.get_member_id(),
+                                                                               self.get_api_key(),
+                                                                               chatroom_filter_type,
+                                                                               chatroom_excluded_type)
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_req.get('community_instance')
         user_instance = validated_req.get('user_instance')
         chatroom_filter_type = validated_req.get('chatroom_filter_type')
         chatroom_excluded_type = validated_req.get('chatroom_excluded_type')
 
-        is_cm = Members.is_member_community_promoter(community_instance, user_instance)
-        if not is_cm:
-            return ResponseUtilities.get_impl_error_context('You are not the owner/CM of community',
-                                                     status_codes.HTTP_401_UNAUTHORIZED)
-
-        card_ids = get_all_chatrooms_of_community(community_instance.id, chatroom_filter_type, chatroom_excluded_type)
+        card_ids = get_all_chatrooms_of_community_old(community_instance.id, chatroom_filter_type,
+                                                      chatroom_excluded_type)
         chatroom_list = ModelUtilities.get_model_filter(collabcardState,
                                                         {'card_id__in': card_ids,
                                                          'user': self.get_member_id(),
@@ -1381,7 +1406,8 @@ class ChatroomImpl(ChatroomManager):
         is_chatroom_invite = req_body.get('is_channel_invite', True)
 
         # support for user_unique_ids in secret chatroom participants parameter
-        secret_chatroom_participants = MemberCommunityImpl.get_valid_member_ids(secret_chatroom_participants)
+        secret_chatroom_participants = ModelUtilities.get_valid_member_ids(secret_chatroom_participants,
+                                                                           community_id=chatroom_instance.community_id)
         secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
             secret_chatroom_participants)
 
@@ -2630,8 +2656,10 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req.get('user_instance')
         card_instance = validated_req.get('card_instance')
 
-        #support for user_unique_ids in chatroom participants parameter
-        chatroom_participants = MemberCommunityImpl.get_valid_member_ids(chatroom_participants)
+        # Support for user_unique_ids in chatroom participants parameter
+        chatroom_participants = ModelUtilities.get_valid_member_ids(chatroom_participants,
+                                                                    community_id=card_instance.community_id)
+
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants)
 
         conversation_impl.ConversationHelper.create_conversation_state(card_instance, user_instance,
@@ -3741,7 +3769,8 @@ class ChatroomImpl(ChatroomManager):
         chatroom_state = conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM
 
         # support for user_unique_ids in secret chatroom participants parameter
-        removed_members_list = MemberCommunityImpl.get_valid_member_ids(removed_members_list)
+        removed_members_list = ModelUtilities.get_valid_member_ids(removed_members_list,
+                                                                   community_id=chatroom_instance.community_id)
 
         filter_dict = {
             'card': chatroom_instance,
@@ -4036,11 +4065,28 @@ class ChatroomHelper:
         member_filter = ModelUtilities.get_model_filter(Members,
                                                         {'community_id': community_instance,
                                                          'state': member_states.ADMIN}).select_related('member_id')
+
         bulk_create_list = []
         promoter_list = []
         for data in member_filter:
 
-            if data.member_id_id not in member_dict:
+            if (data.member_id == card_instance.user) and (data.member_id_id not in member_dict):
+                user_instance = data.member_id
+                instance = collabcardState.create_chatroom_state_instances_for_bulk_create \
+                    (card_instance,
+                     user_instance,
+                     follow_status=False,
+                     state=0,
+                     community_instance=community_instance,
+                     external_seen=False,
+                     expire_at=None)
+
+                if not ModelUtilities.get_model_filter(collabcardState,
+                                                       {'card': card_instance,
+                                                        'user': data.member_id}):
+                    instance.save()
+
+            elif data.member_id_id not in member_dict:
                 user_instance = data.member_id
                 instance = collabcardState.create_chatroom_state_instances_for_bulk_create \
                     (card_instance,

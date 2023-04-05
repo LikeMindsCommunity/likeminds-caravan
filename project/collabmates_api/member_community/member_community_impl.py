@@ -614,29 +614,9 @@ class MemberCommunityImpl(MemberCommunityManager):
         return chatroom_list
 
     @staticmethod
-    def get_valid_member_ids(member_ids):
-        integer_member_ids = []
-        user_unique_ids = []
-
-        for member_id in member_ids:
-            if isinstance(member_id, int):
-                integer_member_ids.append(member_id)
-
-            if isinstance(member_id, str):
-                if member_id.isdigit():
-                    integer_member_ids.append(member_id)
-                else:
-                    user_unique_ids.append(member_id)
-
-        user_ids = list(Userinfo.objects.filter(
-            Q(user_id_id__in=integer_member_ids) | Q(user_unique_id__in=user_unique_ids)).values_list(
-            'user_id_id', flat=True))
-        return user_ids
-
-    @staticmethod
     def fetch_list_of_community_members(community_instance, member_ids=None):
         if member_ids:
-            user_ids = MemberCommunityImpl.get_valid_member_ids(member_ids)
+            user_ids = ModelUtilities.get_valid_member_ids(member_ids, community_id=community_instance.id)
             member_list = list(Members.objects.filter(
                 Q(community_id=community_instance),
                 Q(member_id_id__in=user_ids),
@@ -1899,7 +1879,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             output_context['is_cm'] = True
 
             if all([access_type in [access_types.DELETE_POST, access_types.PIN_POST, access_types.DELETE_COMMENT,
-                                    access_types.CREATE_ACTIVITY],
+                                    access_types.CREATE_ACTIVITY, access_types.EDIT_COMMENT, access_types.EDIT_POST],
                     check_admin_moderate_feed_and_comments_right(user_instance, community_instance)]):
                 output_context['access'] = True
 
@@ -1919,7 +1899,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             if access_type in [access_types.VIEW_POST, access_types.DELETE_POST, access_types.LIKE_POST,
                                access_types.VIEW_COMMENT, access_types.DELETE_COMMENT, access_types.LIKE_COMMENT,
-                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY]:
+                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY, access_types.EDIT_COMMENT, access_types.EDIT_POST]:
                 output_context['access'] = True
 
             if access_type in [access_types.PIN_POST, access_types.CREATE_ACTIVITY, access_types.VIEW_REPORT_ENTITY]:
@@ -2950,7 +2930,7 @@ class MemberCommunityHelper:
 
         member_state = Members.get_community_member_state(community_instance, user_instance)
 
-        valid_access_types = [access_types.CREATE_POST, access_types.VIEW_POST, access_types.DELETE_POST,
+        valid_access_types = [access_types.CREATE_POST, access_types.VIEW_POST, access_types.DELETE_POST, access_types.EDIT_POST, access_types.EDIT_COMMENT,
                               access_types.PIN_POST, access_types.LIKE_POST, access_types.SAVE_POST,
                               access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.DELETE_COMMENT,
                               access_types.LIKE_COMMENT, access_types.CREATE_ACTIVITY, access_types.VIEW_ACTIVITY]
