@@ -11743,8 +11743,8 @@ def fetch_reports(request):
         if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.fetch_reports_pagination_and_filter):
             
             # For Newer Versions
-            page = NumberUtilities.get_integer_from_string(request.GET.get('page', 1))
-            page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size', 20))
+            page = NumberUtilities.get_integer_from_string(request.GET.get('page'), 1)
+            page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size'), 20)
 
             is_closed = request.GET.get('is_closed', None)
             filter_type =  request.GET.get('filter_type', None)
