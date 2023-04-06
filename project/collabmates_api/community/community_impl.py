@@ -76,6 +76,7 @@ from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
 from utility.version_utilities import VersionUtilities
+from utility.string_utilities import StringUtilities
 
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
@@ -88,7 +89,7 @@ from ..notifications.tasks import send_mail_for_first_time_edit_community_questi
 from ..notifications.tasks_impl import TasksHelper
 from ..user.user_impl import UserHelper, UserImpl
 
-from ..raw_queries import get_members_meta_list
+from ..raw_queries import get_members_meta_list, get_users_meta_info
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
     directory_questions_v2_version_check, get_user_phone, fetch_alias_question_version_check
@@ -2216,6 +2217,30 @@ class CommunityImpl(CommunityManager):
             ModelUtilities.update_or_create_model(FeedNotificationSettings, filter_dict, update_dict)
 
         return {'success': True}
+
+    def fetch_users_meta_info(self, member_ids: list) -> dict:
+        validated_request = CommunityHelper.validate_fetch_users_meta_info_request(self.get_member_id(),
+                                                                                   self.get_api_key(),
+                                                                                   member_ids)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        member_ids = validated_request.get('member_ids')
+
+        integer_member_ids = []
+
+        for member_id in member_ids:
+
+            if any([isinstance(member_id, int),
+                    isinstance(member_id, str) and member_id.isdigit()]):
+                integer_member_ids.append(member_id)
+
+        user_data = get_users_meta_info(community_instance.id, member_ids, int_member_ids=integer_member_ids)
+
+        return {'success': True, 'users': user_data}
 
 
 class CommunityHelper:
@@ -4361,4 +4386,29 @@ class CommunityHelper:
 
         return members_data
     
+    @staticmethod
+    def validate_fetch_users_meta_info_request(user_id, api_key, member_ids):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id,
+        }
 
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        member_ids = StringUtilities.get_list_from_string(member_ids)
+
+        if (not member_ids) or (member_ids and not isinstance(member_ids, list)):
+            return ResponseUtilities.get_inner_error_context('Invalid member ids')
+
+        member_ids = [str(member_id) for member_id in member_ids]
+
+        return {
+            'user_instance': validated_dict.get('user_id'),
+            'community_instance': validated_dict.get('community_id'),
+            'member_ids': member_ids
+        }

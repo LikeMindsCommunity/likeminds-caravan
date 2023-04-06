@@ -1396,6 +1396,16 @@ def get_tuple_from_array(array):
     return tupp
 
 
+def get_tuple_from_array_v2(array):
+    if len(array) == 1:
+        tupp = "('" + str(array[0]) + "')"
+
+    else:
+        tupp = tuple(array)
+
+    return tupp
+
+
 def get_dictionary_of_member_responses(res):
     responses_dict = dict()
 
@@ -4357,4 +4367,47 @@ def get_user_chatroom_status(user_id, community_id, chatroom_types: list, page: 
 
         return user_chatroom_status_data
     except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_users_meta_info(community_id, member_ids: list, int_member_ids: list = None):
+    try:
+        int_member_ids_query = ""
+
+        if int_member_ids:
+            int_member_ids_query = "togther_userinfo.user_id_id IN {} OR".format(get_tuple_from_array(int_member_ids))
+
+        member_ids_query = get_tuple_from_array_v2(member_ids)
+
+        sql = """
+                SELECT togther_userinfo.user_id_id AS user_id,
+                       togther_sdkclientusersinfo.user_unique_id AS clients_user_unique_id,
+                       togther_userinfo.user_unique_id
+                FROM   togther_userinfo
+                       LEFT JOIN togther_sdkclientusersinfo
+                              ON togther_sdkclientusersinfo.user_id =
+                                 togther_userinfo.user_id_id
+                WHERE  ( {} togther_userinfo.user_unique_id IN {} )
+                UNION
+                SELECT togther_userinfo.user_id_id AS user_id,
+                       togther_sdkclientusersinfo.user_unique_id AS clients_user_unique_id,
+                       togther_userinfo.user_unique_id
+                FROM   togther_userinfo
+                       INNER JOIN togther_sdkclientusersinfo
+                               ON togther_sdkclientusersinfo.user_id =
+                                  togther_userinfo.user_id_id
+                WHERE  togther_sdkclientusersinfo.community_id = {}
+                       AND togther_sdkclientusersinfo.user_unique_id IN {};
+        """.format(int_member_ids_query, member_ids_query, community_id, member_ids_query)
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        curr.execute(sql)
+        user_meta_info = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return user_meta_info
+    except (Exception, psycopg2.Error) as error:
+        print(error)
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
