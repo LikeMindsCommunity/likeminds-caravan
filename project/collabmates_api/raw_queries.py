@@ -4409,5 +4409,4 @@ def get_users_meta_info(community_id, member_ids: list, int_member_ids: list = N
 
         return user_meta_info
     except (Exception, psycopg2.Error) as error:
-        print(error)
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
