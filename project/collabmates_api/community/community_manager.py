@@ -149,6 +149,10 @@ class CommunityManager(metaclass=abc.ABCMeta):
                     (
                             hasattr(subclass, 'update_feed_notification_settings') and
                             callable(subclass.update_feed_notification_settings)
+                    ) and
+                    (
+                            hasattr(subclass, 'fetch_users_meta_info') and
+                            callable(subclass.fetch_users_meta_info)
                     ) or
                     NotImplemented
         )
@@ -372,4 +376,11 @@ class CommunityManager(metaclass=abc.ABCMeta):
     def update_feed_notification_settings(self, notification_settings: list) -> {}:
         """Updates feed notification settings of community"""
 
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_users_meta_info(self, member_ids: list) -> dict:
+        """
+        Fetches users meta info
+        """
         raise NotImplementedError

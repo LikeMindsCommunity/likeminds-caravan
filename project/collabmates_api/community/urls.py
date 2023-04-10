@@ -14,7 +14,8 @@ from collabmates_api.community.community_view_impl import (FetchCommunity, Fetch
                                                            FetchCommunityBrandingView, FetchCommunityFromDomainView,
                                                            UpdateCommunityDMSettingsView, FetchCommunityDMSettingsView, 
                                                            FetchCommunityDMRightView, CommunityMemberView,
-                                                           CommunityNotificationSettings, FeedNotificationSettings)
+                                                           CommunityNotificationSettings, FeedNotificationSettings,
+                                                           UsersView)
 
 urlpatterns = [
     path('create', CreateCommunityView.as_view(), name="create_community"),
@@ -51,5 +52,6 @@ urlpatterns = [
     path('fetch_community_dm_right', FetchCommunityDMRightView.as_view(), name="fetch_community_dm_right"),
     path('member', CommunityMemberView.as_view(), name="community_member"),
     path('notification_settings', CommunityNotificationSettings.as_view(), name="community_notifications_settings"),
-    path('feed_notification_setting', FeedNotificationSettings.as_view(), name="feed_notification_settings")
+    path('feed_notification_setting', FeedNotificationSettings.as_view(), name="feed_notification_settings"),
+    path('users', UsersView.as_view(), name="users")
 ]
