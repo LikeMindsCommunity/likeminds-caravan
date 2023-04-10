@@ -13,15 +13,12 @@ class StringUtilities:
             return return_default
 
     @staticmethod
-    def get_boolean_from_string(string, default: bool = False) -> bool:
+    def get_boolean_from_string(string) -> bool:
 
         if string == "true":
             return True
-        
-        elif string == "false":
-            return False
-        
-        return default
+
+        return False
 
     @staticmethod
     def replace_character_in_string(string, char_to_replace, replacement_char):
