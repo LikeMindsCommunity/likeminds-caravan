@@ -3931,16 +3931,14 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
         page_number = int(page)
         offset = (page_number - 1) * limit
 
-        order_by_query = "DESC"
-        order_by_card_answers = " togther_card_answers.last_updated DESC "
+        order_by_query = "last_updated DESC"
 
         if (min_timestamp > 0) and (max_timestamp > 0):
-            order_by_query = "ASC"
-            order_by_card_answers = " togther_card_answers.last_updated ASC "
+            order_by_query = "last_updated ASC"
 
         # If is_local_db is false, then order conversations response by created_at DESC
         if is_local_db is False:
-            order_by_card_answers = " togther_card_answers.created_at DESC"
+            order_by_query = "created_at DESC"
 
         chatroom_data_query = ",".join([get_chatroom_query_meta_for_sync_revamp("conv_room"),
                                         get_chatroom_state_query_meta_for_sync_revamp("conv_room"),
@@ -3975,7 +3973,7 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                                                                       AND      togther_card_answers.last_updated >= {}
                                                                                       AND      togther_card_answers.last_updated <= {} )
                                                                              ORDER BY 
-                                                                            {}
+                                                                            togther_card_answers.{}
                                                                              offset {} limit {}) AS conversation_data
                                                          INNER JOIN togther_collabcard
                                                          ON         conversation_data.card_id = togther_collabcard.id
@@ -4012,10 +4010,10 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                        AND  chatroom_preview_meta.chatroom___community_id___conv_room = togther_members.community_id_id)
                 LEFT JOIN togther_collabcard
                 ON        chatroom_preview_meta.reply_chatroom_id = togther_collabcard.id 
-                ORDER BY chatroom_preview_meta.last_updated {};
+                ORDER BY chatroom_preview_meta.{};
         """.format(get_chatroom_query_meta_for_sync_revamp("reply"), room_creator, chatroom_meta_query,
                    chatroom_data_query, get_conversation_query_meta_for_sync_revamp(), chatroom_id, community_id,
-                   min_timestamp, max_timestamp, order_by_card_answers, offset, limit, user_id, order_by_query)
+                   min_timestamp, max_timestamp, order_by_query, offset, limit, user_id, order_by_query)
 
         if only_query:
             return sql
