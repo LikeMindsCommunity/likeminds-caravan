@@ -46,7 +46,7 @@ class SyncConversations(APIView):
         min_timestamp = params.get('min_timestamp')
         max_timestamp = params.get('max_timestamp')
         chatroom_id = params.get('chatroom_id')
-        is_local_db = False if params.get('is_local_db') == 'false' else True
+        is_local_db = StringUtilities.get_boolean_from_string(params.get('is_local_db'), True)
 
         sync_manager = SyncImpl(member_id=member_id, community_id=params.get('community_id'),
                                 api_key=api_key, request_platform=platform, version_code=version_code)
