@@ -1,0 +1,26 @@
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  name: "caravan-celery"
+  namespace: "app-deploy"
+  labels:
+    app: "caravan-celery"
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: "caravan-celery"
+  template:
+    metadata:
+      labels:
+        app: "caravan-celery"
+    spec:
+      containers:
+      - name: "likeminds-caravan-celery-1"
+        image: "asia.gcr.io/likeminds-prod-prj-5464/togther/caravan-celery-prod:5661bfc"
+        env:
+        - name: CELERY_BROKER_URL
+          valueFrom:
+            secretKeyRef:
+              name: caravan-celery-secret
+              key: CELERY_BROKER_URL          

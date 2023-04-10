@@ -1,0 +1,65 @@
+pipeline {
+    agent any
+    // environment {
+    //     PROJECT_ID = 'likeminds-prod-prj-5464'
+    //     CLUSTER_NAME = 'likeminds-prod-autopilot-cluster'
+    //     LOCATION = 'asia-south1'
+    //     CREDENTIALS_ID = 'likeminds-prod-prj-5464'
+    // }
+   
+    stages {
+        stage("Checkout code") {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage("Executing the Script Migration step for caravan-prod") {
+            steps {
+                script{
+                    sh '''
+                       gcloud compute ssh likeminds-prod-migration-instance --zone=asia-south1-a --internal-ip --command="sudo chown -R jenkins /home/apps/caravan-prod/"
+                       gcloud compute ssh likeminds-prod-migration-instance --zone=asia-south1-a --internal-ip --command="cd /home/apps/caravan-prod/Togther && git checkout master && git pull"
+                       gcloud compute ssh likeminds-prod-migration-instance --zone=asia-south1-a --internal-ip --command="chmod +x /home/apps/caravan-prod/Togther/Migrationfile-caravan-prod.sh"
+                       gcloud compute ssh likeminds-prod-migration-instance --zone=asia-south1-a --internal-ip --command=". /home/apps/caravan-prod/Togther/Migrationfile-caravan-prod.sh"
+                       gcloud compute ssh likeminds-prod-migration-instance --zone=asia-south1-a --internal-ip --command="cd /home/apps/caravan-prod/Togther && git checkout ."
+                      '''
+                }
+            }
+        }
+      
+        stage("Building Application Docker Image"){
+            steps{
+                script{
+                    sh 'gcloud auth configure-docker asia.gcr.io'
+                    sh 'docker build -f Dockerfile.caravan-prod -t asia.gcr.io/likeminds-prod-prj-5464/togther/caravan-prod:${BUILD_NUMBER} . '
+                }
+            }
+        }
+
+        stage("Pushing Application Docker Image to Google Artifact Registry"){
+            steps{
+                script{
+                    sh 'gcloud auth configure-docker asia.gcr.io'
+                    sh 'docker push asia.gcr.io/likeminds-prod-prj-5464/togther/caravan-prod:${BUILD_NUMBER}'
+                }
+            }
+        }
+              
+        stage('Deploy to GKE') {
+            steps{
+                sh '''
+                sed -i 's/caravan-prod:.*/caravan-prod:'${BUILD_NUMBER}'"/g' deployment-caravan-prod.yaml
+                gcloud container clusters get-credentials ${CLUSTER_NAME} --region ${LOCATION} --project ${PROJECT_ID} --internal-ip
+                kubectl apply -f /var/lib/jenkins/workspace/likeminds-caravan-prod/deployment-caravan-prod.yaml
+                '''
+            }
+        }
+    }  
+
+    post {
+        always { 
+            cleanWs()
+        }
+    }
+}
