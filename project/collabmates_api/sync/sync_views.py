@@ -46,10 +46,11 @@ class SyncConversations(APIView):
         min_timestamp = params.get('min_timestamp')
         max_timestamp = params.get('max_timestamp')
         chatroom_id = params.get('chatroom_id')
+        is_local_db = False if params.get('is_local_db') == 'false' else True
 
         sync_manager = SyncImpl(member_id=member_id, community_id=params.get('community_id'),
                                 api_key=api_key, request_platform=platform, version_code=version_code)
-        response_data = sync_manager.sync_conversations(chatroom_id, page, page_size, min_timestamp, max_timestamp)
+        response_data = sync_manager.sync_conversations(chatroom_id, page, page_size, min_timestamp, max_timestamp, is_local_db)
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data.get('error_message'),
