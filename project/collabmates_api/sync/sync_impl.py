@@ -129,7 +129,7 @@ class SyncImpl(SyncManager):
         return {**{'success': True}, **chatrooms_data}
 
     def sync_conversations(self, chatroom_id: int = None, page: int = None, page_size: int = None,
-                           min_timestamp: int = None, max_timestamp: int = None, is_local_db: bool = True) -> dict:
+                           min_timestamp: int = None, max_timestamp: int = None) -> dict:
 
         validated_request_body = SyncHelper.validate_sync_conversations_request(self.get_member_id(),
                                                                                 self.get_community_id(),
@@ -155,8 +155,7 @@ class SyncImpl(SyncManager):
                                                                                     chatroom_instance.id,
                                                                                     min_timestamp,
                                                                                     max_timestamp,
-                                                                                    page=page, limit=page_size,
-                                                                                    is_local_db=is_local_db)
+                                                                                    page=page, limit=page_size)
 
         # Conversation data
         conversations_data = SyncHelper.parse_sync_raw_query_response(conversations_data, SYNC_CONVERSATIONS_DATA_KEY)

@@ -96,7 +96,7 @@ class VersionUtilities:
         PlatformCode.ANDROID: unreleased_version_code,
         PlatformCode.IOS: unreleased_version_code,
         PlatformCode.WEB: unreleased_version_code,
-        PlatformCode.ANDROID_SDK: unreleased_version_code,
+        PlatformCode.ANDROID_SDK: 1,
         PlatformCode.IOS_SDK: unreleased_version_code,
         PlatformCode.WEB_SDK: unreleased_version_code,
         PlatformCode.FLUTTER: 2,
