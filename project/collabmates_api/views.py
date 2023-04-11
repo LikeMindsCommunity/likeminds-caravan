@@ -2293,8 +2293,8 @@ def fetch_user_chatrooms(request):
     current_user_id = get_member_id_from_headers(request)
     chatrooms = []
 
-    filter_types = StringUtilities.get_list_from_string(filter_type)
-    if filter_type and not isinstance(filter_types, list):
+    filter_type = StringUtilities.get_list_from_string(filter_type)
+    if filter_type and not isinstance(filter_type, list):
         context = ResponseUtilities.get_view_impl_error_context("Invalid filter_type",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
