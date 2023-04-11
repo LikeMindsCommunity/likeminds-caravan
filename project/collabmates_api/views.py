@@ -19,7 +19,7 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
-from utility.states import report_Tag_Types, member_states
+from utility.states import report_Tag_Types, member_states, card_types
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
@@ -2288,9 +2288,23 @@ def fetch_user_chatrooms(request):
     state = request.GET.get('state', 0)
     user_id = request.GET.get('user_id')
     community_id = request.GET.get('community_id')
+    filter_type = request.GET.get('filter_type')
     api_key = RequestUtilities.get_api_key_from_headers(request)
     current_user_id = get_member_id_from_headers(request)
     chatrooms = []
+
+    if isinstance(filter_type, str):
+        try:
+            filter_type = json.loads(filter_type)
+        except:
+            context = ResponseUtilities.get_view_impl_error_context("Invalid filter_type",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(context['data'], status=context['status'])
+
+    # for backward compatibility
+    if not filter_type:
+        filter_type = [card_types.CARD_NORMAL, card_types.CARD_INTRO, card_types.CARD_EVENT, card_types.CARD_POLL,
+                       card_types.CARD_PUBLIC_EVENT, card_types.CARD_PURPOSE, card_types.CARD_MASTER_INTRO]
 
     user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
@@ -2325,7 +2339,8 @@ def fetch_user_chatrooms(request):
 
         chatroom_filter = Collabcard.objects.filter(user_id=user_id, community_id=community_id,
                                                     is_pending=False, is_deleted=False,
-                                                    is_secret=False, is_private=False).order_by('-id')
+                                                    is_secret=False, is_private=False,
+                                                    type__in=filter_type).order_by('-id')
         created_chatroom_count = chatroom_filter.count()
         chatroom_filter = pagination(chatroom_filter, page, paginate_by=10)
 
@@ -2347,13 +2362,16 @@ def fetch_user_chatrooms(request):
     elif int(state) == 1:
 
         chatroom_list = list(Collabcard.objects.filter(user_id=user_id, community_id=community_id,
-                                                       is_pending=False, is_deleted=False,
+                                                       is_pending=False, is_deleted=False, type__in=filter_type,
                                                        is_private=False).values_list('id', flat=True))
 
         state_filter = collabcardState.objects.filter(user_id=user_id, community_id=community_id,
                                                       follow_status=True,
+                                                      card__is_pending=False,
                                                       card__is_secret=False,
-                                                      card__is_private=False).exclude(
+                                                      card__is_deleted=False,
+                                                      card__is_private=False,
+                                                      card__type__in=filter_type).exclude(
             card__in=chatroom_list).order_by('-updated_at', '-id')
 
         followed_chatroom_count = len(state_filter)
