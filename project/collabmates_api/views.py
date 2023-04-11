@@ -8909,6 +8909,8 @@ def push(request):
             platform_code = 'Flutter'
         elif platform_code == VersionUtilities.PlatformCode.REACT_NATIVE:
             platform_code = 'React Native'
+        elif platform_code == VersionUtilities.PlatformCode.REACT:
+            platform_code = 'React'
         else:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Invalid platform code",
                                                                                 status_codes.HTTP_400_BAD_REQUEST))

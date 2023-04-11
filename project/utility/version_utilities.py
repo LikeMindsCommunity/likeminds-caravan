@@ -36,6 +36,8 @@ class VersionUtilities:
         PlatformCode.REACT_NATIVE: unreleased_version_code,
         PlatformCode.FLUTTER_SDK: 2,
         PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+        PlatformCode.REACT: unreleased_version_code,
+        PlatformCode.REACT_SDK: unreleased_version_code,
     }
 
     create_chatroom_revamp: dict = {
@@ -49,6 +51,8 @@ class VersionUtilities:
         PlatformCode.REACT_NATIVE: 1,
         PlatformCode.FLUTTER_SDK: 1,
         PlatformCode.REACT_NATIVE_SDK: 1,
+        PlatformCode.REACT: unreleased_version_code,
+        PlatformCode.REACT_SDK: 14,
     }
 
     create_conversation_revamp: dict = {
@@ -77,6 +81,8 @@ class VersionUtilities:
         PlatformCode.REACT_NATIVE: unreleased_version_code,
         PlatformCode.FLUTTER_SDK: unreleased_version_code,
         PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+        PlatformCode.REACT: unreleased_version_code,
+        PlatformCode.REACT_SDK: 15,
     }
 
     participants_meta_pagination: dict = {
@@ -90,6 +96,8 @@ class VersionUtilities:
         PlatformCode.REACT_NATIVE: 1,
         PlatformCode.FLUTTER_SDK: 1,
         PlatformCode.REACT_NATIVE_SDK: 1,
+        PlatformCode.REACT: unreleased_version_code,
+        PlatformCode.REACT_SDK: 17,
     }
 
     members_meta_pagination_and_search: dict = {
@@ -103,6 +111,8 @@ class VersionUtilities:
         PlatformCode.REACT_NATIVE: unreleased_version_code,
         PlatformCode.FLUTTER_SDK: 2,
         PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+        PlatformCode.REACT: unreleased_version_code,
+        PlatformCode.REACT_SDK: unreleased_version_code,
     }
 
     invite_settings: dict = {
@@ -116,6 +126,8 @@ class VersionUtilities:
         PlatformCode.REACT_NATIVE: 1,
         PlatformCode.FLUTTER_SDK: 1,
         PlatformCode.REACT_NATIVE_SDK: 1,
+        PlatformCode.REACT: unreleased_version_code,
+        PlatformCode.REACT_SDK: unreleased_version_code,
     }
 
     feed_member_rights: dict = {
@@ -129,6 +141,8 @@ class VersionUtilities:
         PlatformCode.REACT_NATIVE: unreleased_version_code,
         PlatformCode.FLUTTER_SDK: 1,
         PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+        PlatformCode.REACT: unreleased_version_code,
+        PlatformCode.REACT_SDK: 15,
     }
 
     chatroom_invite: dict = {
@@ -149,6 +163,11 @@ class VersionUtilities:
         PlatformCode.IOS_SDK: 374,
         PlatformCode.WEB_SDK: unreleased_version_code,
         PlatformCode.FLUTTER: unreleased_version_code,
+        PlatformCode.REACT_NATIVE: unreleased_version_code,
+        PlatformCode.FLUTTER_SDK: unreleased_version_code,
+        PlatformCode.REACT_NATIVE_SDK: 4,
+        PlatformCode.REACT: unreleased_version_code,
+        PlatformCode.REACT_SDK: unreleased_version_code,
     }
 
     tag_only_participants: dict = {
@@ -162,6 +181,8 @@ class VersionUtilities:
         PlatformCode.REACT_NATIVE: unreleased_version_code,
         PlatformCode.FLUTTER_SDK: unreleased_version_code,
         PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+        PlatformCode.REACT: unreleased_version_code,
+        PlatformCode.REACT_SDK: unreleased_version_code,
     }
 
     fetch_reports_pagination_and_filter: dict = {
@@ -175,6 +196,8 @@ class VersionUtilities:
         PlatformCode.REACT_NATIVE: unreleased_version_code,
         PlatformCode.FLUTTER_SDK: unreleased_version_code,
         PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+        PlatformCode.REACT: unreleased_version_code,
+        PlatformCode.REACT_SDK: unreleased_version_code,
     }
 
     fetch_all_chatrooms: dict = {
@@ -188,6 +211,8 @@ class VersionUtilities:
         PlatformCode.REACT_NATIVE: unreleased_version_code,
         PlatformCode.FLUTTER_SDK: unreleased_version_code,
         PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+        PlatformCode.REACT: unreleased_version_code,
+        PlatformCode.REACT_SDK: unreleased_version_code,
     }
 
     @staticmethod
