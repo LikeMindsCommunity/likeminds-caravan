@@ -189,7 +189,7 @@ class AddSecretChatroomParticipantView(APIView):
         chatroom_id = req_body.get('chatroom_id', None)
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id=chatroom_id)
-        chatroom_data = chatroom_manager.add_secret_chatroom_participant(req_body)
+        chatroom_data = chatroom_manager.add_secret_chatroom_participant(req_body, is_internal=False)
 
         if 'error_message' in chatroom_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
