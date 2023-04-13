@@ -6,7 +6,7 @@ metadata:
   labels:
     app: "caravan-beta"
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: "caravan-beta"
@@ -27,10 +27,10 @@ spec:
         resources:
           requests:
             memory: "1000Mi"
-            cpu: "2000m"
+            cpu: "1000m"
           limits:
-            memory: "3000Mi"
-            cpu: "2500m"
+            memory: "1500Mi"
+            cpu: "1500m"
   
 ---
 
@@ -46,8 +46,8 @@ spec:
     kind: "Deployment"
     name: "caravan-beta"
     apiVersion: "apps/v1"
-  minReplicas: 2
-  maxReplicas: 5
+  minReplicas: 1
+  maxReplicas: 3
   metrics:
   - type: "Resource"
     resource:
