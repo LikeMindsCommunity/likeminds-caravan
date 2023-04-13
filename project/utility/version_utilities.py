@@ -31,13 +31,13 @@ class VersionUtilities:
         PlatformCode.WEB: unreleased_version_code,
         PlatformCode.ANDROID_SDK: 202,
         PlatformCode.IOS_SDK: 362,
-        PlatformCode.WEB_SDK: unreleased_version_code,
+        PlatformCode.WEB_SDK: 22,
         PlatformCode.FLUTTER: 2,
         PlatformCode.REACT_NATIVE: unreleased_version_code,
         PlatformCode.FLUTTER_SDK: 2,
         PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
         PlatformCode.REACT: unreleased_version_code,
-        PlatformCode.REACT_SDK: unreleased_version_code,
+        PlatformCode.REACT_SDK: 22,
     }
 
     create_chatroom_revamp: dict = {
