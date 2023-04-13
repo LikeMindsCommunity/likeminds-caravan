@@ -253,7 +253,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_secret_chatroom_participant(self, req_body: dict) -> dict:
+    def add_secret_chatroom_participant(self, req_body: dict, is_internal: bool = False) -> dict:
         """
         to add a participant in secret chatroom
         """

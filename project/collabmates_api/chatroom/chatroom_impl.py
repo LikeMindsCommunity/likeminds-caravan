@@ -1391,7 +1391,7 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_state == conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM:
             send_notification_for_removed_secret_room_participant.delay(member_id, self.get_chatroom_id())
 
-    def add_secret_chatroom_participant(self, req_body: dict) -> dict:
+    def add_secret_chatroom_participant(self, req_body: dict, is_internal: bool = True) -> dict:
         validated_req_body = ChatroomViewHelper.validate_add_secret_chatroom_participants_request(self.get_member_id(),
                                                                                                   self.get_chatroom_id(),
                                                                                                   req_body)
@@ -1405,9 +1405,11 @@ class ChatroomImpl(ChatroomManager):
         secret_chatroom_participants = validated_req_body.get('secret_chatroom_participants')
         is_chatroom_invite = req_body.get('is_channel_invite', True)
 
-        # support for user_unique_ids in secret chatroom participants parameter
-        secret_chatroom_participants = ModelUtilities.get_valid_member_ids(secret_chatroom_participants,
-                                                                           community_id=chatroom_instance.community_id)
+        if not is_internal:
+            # support for user_unique_ids in secret chatroom participants parameter
+            secret_chatroom_participants = ModelUtilities.get_valid_member_ids(secret_chatroom_participants,
+                                                                               community_id=chatroom_instance.community_id)
+
         secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
             secret_chatroom_participants)
 
