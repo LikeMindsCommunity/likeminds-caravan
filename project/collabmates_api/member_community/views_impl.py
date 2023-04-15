@@ -81,8 +81,8 @@ class FetchCommunityFeed(APIView):
                                                             api_version=api_version, order_type=order_type,
                                                             page=page)
 
-        elif RequestUtilities.is_request_web(request):
-
+        elif RequestUtilities.is_request_any(request, [VersionUtilities.PlatformCode.WEB,
+                                                     VersionUtilities.PlatformCode.REACT]):
             chatroom_context = community_manager.fetch_feed_web(pin_status, order_type,
                                                                 chatroom_id, scroll_direction, api_version=api_version,
                                                                 page=page)
