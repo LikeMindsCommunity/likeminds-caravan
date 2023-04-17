@@ -45,6 +45,7 @@ class FetchCommunity(APIView):
 
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         community_id = request.GET.get('community_id')
         request_status = CommunityViewsHelper.request_validator(request, community_id, member_id)
 
@@ -59,20 +60,15 @@ class FetchCommunity(APIView):
             platform_code = RequestUtilities.get_platform_code(request)
             version_code = RequestUtilities.get_version_code_from_headers(request)
 
-            community_manager = CommunityImpl(member_id, community_id)
-            community_response = community_manager.fetch_community(client_type=request_type,
-                                                                   platform_code=platform_code,
-                                                                   version_code=version_code)
+            community_manager = CommunityImpl(member_id, community_id, api_key=api_key)
+            community_data = community_manager.fetch_community(client_type=request_type,
+                                                               platform_code=platform_code,
+                                                               version_code=version_code)
 
-            if community_response['status']:
-                return JsonResponse({
-                    'community': community_response['community_context']
-                }, status=community_response['response_code'])
-
-            else:
-                return JsonResponse({
-                    'error_message': community_response['error_message']
-                }, status=community_response['response_code'])
+            if 'error_message' in community_data:
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_data.get('error_message'),
+                                                                                    community_data.get('status')))
+            return JsonResponse(community_data)
 
 
 class FetchAllCommunities(APIView):
@@ -364,16 +360,18 @@ class FetchContentDownloadSettings(APIView):
 
     def get(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         community_id = request.GET.get('community_id')
         chatroom_id = request.GET.get('chatroom_id')
 
-        community_manager = CommunityImpl(member_id=member_id, community_id=community_id)
+        community_manager = CommunityImpl(member_id=member_id, community_id=community_id, api_key=api_key)
 
         content_settings_data = community_manager.fetch_content_download_settings(chatroom_id)
 
         if 'error_message' in content_settings_data:
-            return JsonResponse(content_settings_data, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                content_settings_data.get('error_message'), content_settings_data.get('status')))
 
         return JsonResponse(content_settings_data)
 
@@ -382,17 +380,19 @@ class UpdateContentDownloadSettings(APIView):
 
     def post(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         req_body = RequestUtilities.load_request_body(request)
 
         content_download_settings = req_body.get('content_download_settings', [])
 
-        community_manager = CommunityImpl(member_id=member_id)
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
 
         content_setting_status = community_manager.update_content_download_settings(content_download_settings)
 
         if 'error_message' in content_setting_status:
-            return JsonResponse(content_setting_status, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                content_setting_status.get('error_message'), content_setting_status.get('status')))
 
         return JsonResponse(content_setting_status)
 
