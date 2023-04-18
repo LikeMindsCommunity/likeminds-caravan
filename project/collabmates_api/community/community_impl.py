@@ -1299,6 +1299,8 @@ class CommunityImpl(CommunityManager):
                 update_dict['setting_sub_title'] = DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED
                 update_direct_message_right_in_member_rights_schema.delay(community_id=community_instance.id,
                                                                           is_enabled=True)
+                community_instance.hide_dm_tab = False
+                community_instance.save()
 
             elif all([community_setting["setting_type"] == community_setting_types.DIRECT_MESSAGES,
                       not community_setting['enabled']]):
@@ -1306,6 +1308,9 @@ class CommunityImpl(CommunityManager):
                     community_setting_types.DIRECT_MESSAGES)
                 update_direct_message_right_in_member_rights_schema.delay(community_id=community_instance.id,
                                                                           is_enabled=False)
+
+                community_instance.hide_dm_tab = True
+                community_instance.save()
 
             if community_setting["setting_type"] == community_setting_types.FEED:
                 update_feed_rights_in_user_member_rights_table.delay(community_id=community_instance.id,
