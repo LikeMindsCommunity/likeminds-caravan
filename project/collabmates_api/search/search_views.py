@@ -149,20 +149,12 @@ class MemberDirectorySearchView(APIView):
 
         search_term = request.GET.get('search')
         search_field = request.GET.get('search_type', MEMBER_DIRECTORY_FIELD_NAME)
-        order_by = request.GET.get('order_by', MEMBER_DIRECTORY_ORDER_BY_RECENT)
+        order_by = request.GET.get('order_by')
 
         if search_field.lower() not in MEMBER_DIRECTORY_SEARCHABLE_FIELDS:
             response = {
                 "success": False,
                 "error_message": "Invalid search type"
-            }
-
-            raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
-        
-        if order_by.lower() not in MEMBER_DIRECTORY_ORDER_BY_FIELDS:
-            response = {
-                "success": False,
-                "error_message": "Invalid order_by type"
             }
 
             raise CustomException(response, status_code=status_codes.HTTP_400_BAD_REQUEST)
