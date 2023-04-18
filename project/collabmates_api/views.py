@@ -852,7 +852,7 @@ def community(request, community_id, req_dict=None):
             return context
         return JsonResponse(context)
 
-    context = {'community': new_dict}
+    context = {'success': True, 'community': new_dict}
 
     if menu:
         context['menu'] = menu
@@ -14231,6 +14231,14 @@ def fetch_user_meta(request):
         context = get_error_context(False, "send x-member-id in header")
         return JsonResponse(context)
 
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+    if not user_instance:
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid member ID!',
+                                                                            status_codes.HTTP_400_BAD_REQUEST))
+
+    member_id = user_instance.id
+
     community_list = list(
         Members.objects.filter(member_id=member_id).values_list("community_id", flat=True).order_by('-updated_at'))
 
@@ -14241,7 +14249,7 @@ def fetch_user_meta(request):
         temp['id'] = community_id
         community_ids.append(temp)
 
-    return JsonResponse({'community_ids': community_ids})
+    return JsonResponse({'success': True, 'community_ids': community_ids})
 
 
 def get_guest_users_of_member_joined_communities(community_list):

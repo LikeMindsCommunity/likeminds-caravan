@@ -286,16 +286,15 @@ class CommunityImpl(CommunityManager):
         return chatroom_list
 
     def fetch_community(self, client_type, platform_code: str, version_code: int) -> {}:
+        validated_req = CommunityHelper.validate_fetch_community_request(self.get_community_id(),
+                                                                         api_key=self.get_api_key())
 
-        community_instance = CommunityHelper.fetch_community_instance(self.get_community_id())
-        response_context = dict()
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not community_instance:
-            response_context['error_message'] = "Invalid community_id"
-            response_context['response_code'] = 400
-            response_context['status'] = False
-
-            return response_context
+        community_instance = validated_req.get('community_instance')
+        self.set_community_id(community_instance.id)
 
         community_member = MemberCommunityImpl(self.get_member_id(), self.get_community_id())
         state = community_member.community_member_state()
@@ -316,11 +315,8 @@ class CommunityImpl(CommunityManager):
 
         community_serialized_instance = self._fetch_serialize_community(community_instance)
         community_context.update(community_serialized_instance)
-        response_context['community_context'] = community_context
-        response_context['response_code'] = 200
-        response_context['status'] = True
 
-        return response_context
+        return {'success': True, 'community_context': community_context}
 
     def get_community_members(self) -> list:
         return Members.fetch_community_members([self.get_community_id()])
@@ -1014,48 +1010,36 @@ class CommunityImpl(CommunityManager):
         return {'success': True, 'members': members_list}
 
     def fetch_content_download_settings(self, chatroom_id=None):
+        validated_req = CommunityHelper.validate_fetch_content_download_settings_request(
+            self.get_member_id(), self.get_community_id(), self.get_api_key(), chatroom_id)
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not user_instance:
-            return {'error_message': "Invalid user ID"}
-
-        community_id = self.get_community_id()
-
-        community_instance = None
-
-        if community_id:
-            community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
-
-        if not community_instance:
-            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
-
-            if not chatroom_instance:
-                return {"error_message": "Invalid community/chatroom ID."}
-
-            else:
-                community_instance = chatroom_instance.community
+        community_instance = validated_req.get('community_instance')
 
         # Now fetch settings from ContentDownloadSettings table
         content_settings_instance = ModelUtilities.get_model_filter(ContentDownloadSettings,
                                                                     {"community_id": community_instance}).order_by("id")
 
         content_settings = {
+            "success": True,
             "content_download_settings": self.content_download_settings_serializer(content_settings_instance)
         }
 
         return content_settings
 
     def update_content_download_settings(self, content_download_settings_list):
+        validated_req = CommunityHelper.validate_update_content_download_settings_request(
+            self.get_member_id(), self.get_api_key())
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not user_instance:
-            return {'error_message': "Invalid user ID"}
-
-        content_setting_status = {
-            "success": False
-        }
+        user_instance = validated_req.get('user_instance')
+        community_instance = validated_req.get('community_instance')
 
         member_community_mapping = {}
         community_mapping = {}
@@ -1064,19 +1048,20 @@ class CommunityImpl(CommunityManager):
 
             for content_download_setting in content_download_settings_list:
 
-                if content_download_setting["community_id"] in community_mapping:
-                    community_instance = community_mapping[content_download_setting["community_id"]]
+                community_id = community_instance.id if community_instance else content_download_setting["community_id"]
 
-                else:
-                    community_instance = ModelUtilities.get_model_instance_or_none(Community,
-                                                                                   content_download_setting[
-                                                                                       "community_id"])
+                if community_id in community_mapping:
+                    community_instance = community_mapping[community_id]
+
+                elif not community_instance:
+                    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
                     if not community_instance:
-                        return {'error_message': "Invalid community ID"}
+                        return ResponseUtilities.get_impl_error_context("Invalid community ID",
+                                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
                     else:
-                        community_mapping[content_download_setting["community_id"]] = community_instance
+                        community_mapping[community_id] = community_instance
 
                 if community_instance.id in member_community_mapping:
                     member_state = member_community_mapping[community_instance.id]
@@ -1092,7 +1077,7 @@ class CommunityImpl(CommunityManager):
                 if member_state == member_states.ADMIN:
                     ModelUtilities.model_update(ContentDownloadSettings,
                                                 {
-                                                    "community_id_id": content_download_setting["community_id"],
+                                                    "community_id_id": community_id,
                                                     "download_setting_type": content_download_setting[
                                                         "download_setting_type"],
                                                     "download_setting_title": content_download_setting[
@@ -1102,18 +1087,17 @@ class CommunityImpl(CommunityManager):
                                                     "enabled": content_download_setting["enabled"],
                                                     "updated_at": TimeUtilities.current_time_in_milliseconds()
                                                 })
-                    content_setting_status["success"] = True
 
                 else:
-                    content_setting_status["error_message"] = "User doesn’t have ability to update content download " \
-                                                              "settings"
-                    content_setting_status["success"] = False
-                    break
+                    return ResponseUtilities.get_impl_error_context("User doesn’t have ability to update content "
+                                                                    "download settings",
+                                                                    status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         else:
-            content_setting_status["error_message"] = "Error in fetching content download settings."
+            return ResponseUtilities.get_impl_error_context("Error in fetching content download settings.",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        return content_setting_status
+        return {'success': True}
 
     @staticmethod
     def content_download_settings_serializer(content_settings_filter):
@@ -4416,4 +4400,80 @@ class CommunityHelper:
             'user_instance': validated_dict.get('user_id'),
             'community_instance': validated_dict.get('community_id'),
             'member_ids': member_ids
+        }
+
+    @staticmethod
+    def validate_fetch_content_download_settings_request(user_id, community_id, api_key, chatroom_id):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return {'error_message': "Invalid user ID"}
+
+        validation_params = {
+            'community_id': {
+                'community_id': community_id,
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if not validated_dict.get('error_message'):
+            community_instance = validated_dict.get('community_id')
+
+        else:
+            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+            if not chatroom_instance:
+                return ResponseUtilities.get_inner_error_context("Invalid community/chatroom ID.")
+
+            else:
+                community_instance = chatroom_instance.community
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance
+        }
+
+    @staticmethod
+    def validate_update_content_download_settings_request(user_id, api_key):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return {'error_message': "Invalid user ID"}
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        community_instance = None
+
+        if not validated_dict.get('error_message'):
+            community_instance = validated_dict.get('community_id')
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance
+        }
+
+    @staticmethod
+    def validate_fetch_community_request(community_id, api_key):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key,
+                'community_id': community_id
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        return {
+            'community_instance': validated_dict.get('community_id')
         }
