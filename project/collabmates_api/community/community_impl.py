@@ -316,7 +316,7 @@ class CommunityImpl(CommunityManager):
         community_serialized_instance = self._fetch_serialize_community(community_instance)
         community_context.update(community_serialized_instance)
 
-        return {'success': True, 'community_context': community_context}
+        return {'success': True, 'community': community_context}
 
     def get_community_members(self) -> list:
         return Members.fetch_community_members([self.get_community_id()])
