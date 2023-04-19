@@ -5,7 +5,7 @@ from utility.request_utilities import RequestUtilities
 from utility.response_utilities import ResponseUtilities
 from utility.exception_utilities import InvalidHeaderException, CustomException
 from .constants import CHATROOM_SEARCHABLE_FIELDS, CHATROOM_FIELD_HEADER
-from .constants import MEMBER_DIRECTORY_SEARCHABLE_FIELDS, MEMBER_DIRECTORY_FIELD_NAME
+from .constants import MEMBER_DIRECTORY_SEARCHABLE_FIELDS, MEMBER_DIRECTORY_FIELD_NAME, MEMBER_DIRECTORY_ORDER_BY_RECENT, MEMBER_DIRECTORY_ORDER_BY_FIELDS
 
 # ------------  do not remove these imports --------------
 from .chatroom_index import ChatroomDocument
@@ -35,6 +35,9 @@ class ChatroomSearchView(APIView):
 
         search_term = request.GET.get('search')
         search_field = request.GET.get('search_type', CHATROOM_FIELD_HEADER)
+
+        if search_field.lower() == 'chatroom_id':
+            search_field = 'id'
 
         if search_field.lower() not in CHATROOM_SEARCHABLE_FIELDS:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid search type!',
@@ -146,6 +149,7 @@ class MemberDirectorySearchView(APIView):
 
         search_term = request.GET.get('search')
         search_field = request.GET.get('search_type', MEMBER_DIRECTORY_FIELD_NAME)
+        order_by = request.GET.get('order_type', "")
 
         if search_field.lower() not in MEMBER_DIRECTORY_SEARCHABLE_FIELDS:
             response = {
@@ -164,7 +168,7 @@ class MemberDirectorySearchView(APIView):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Community ID/API Key is required!",
                                                                                 status_codes.HTTP_400_BAD_REQUEST))
 
-        search_manager = SearchImpl(member_id=member_id, search_term=search_term, search_field=search_field,
+        search_manager = SearchImpl(member_id=member_id, search_term=search_term, search_field=search_field, order_by=order_by,
                                     follow_status=True, page=page, page_size=page_size, community_id=community_id,
                                     api_key=api_key)
 

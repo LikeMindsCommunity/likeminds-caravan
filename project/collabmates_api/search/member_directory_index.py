@@ -5,7 +5,7 @@ from django_elasticsearch_dsl import Document, Index, fields, KeywordField, Bool
 from django_elasticsearch_dsl_drf.compat import StringField
 from elasticsearch_dsl import analyzer, token_filter
 
-from togther.models import Members, ModelUtilities, CohortMember, Cohort
+from togther.models import Members, ModelUtilities, CohortMember, Cohort, SDKClientUsersInfo
 
 # Max index length
 max_index_length = settings.MAX_INDEX_LENGTH_ELASTICSEARCH
@@ -107,9 +107,33 @@ class MemberDirectoryDocument(Document):
     cohorts = fields.ObjectField(
         properties={
             'cohort_id': IntegerField(),
-            'name': StringField(),
+            'name': StringField(
+                analyzer=autocomplete,
+                search_analyzer="standard",
+                fields={
+                    'raw': KeywordField(ignore_above=max_index_length)
+                }
+            ),
         },
         multi=True
+    )
+
+    client_user_unique_id = TextField(
+        analyzer=autocomplete,
+        search_analyzer="standard",
+        fields={
+            'raw': KeywordField(ignore_above=max_index_length),
+            'lower': TextField(analyzer=autocomplete)
+        }
+    )
+
+    user_unique_id = TextField(
+        analyzer=autocomplete,
+        search_analyzer="standard",
+        fields={
+            'raw': KeywordField(ignore_above=max_index_length),
+            'lower': TextField(analyzer=autocomplete)
+        }
     )
 
     class Django(object):
@@ -130,3 +154,23 @@ class MemberDirectoryDocument(Document):
         member_cohort_context = list(member_cohort_filter.values('cohort_id', 'name'))
 
         return member_cohort_context
+
+    @staticmethod
+    def prepare_client_user_unique_id(instance):
+        """
+            This method is called before indexing the client_user_unique_id field in the MemberDirectoryDocument.
+        """
+        ClientUsersInfo = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'community_id': instance.community_id_id, 'user_id': instance.member_id.id})
+        
+        if ClientUsersInfo.exists():
+            return ClientUsersInfo.first().user_unique_id
+
+        return None
+    
+    @staticmethod
+    def prepare_user_unique_id(instance):
+        """
+            This method is called before indexing the user_unique_id field in the MemberDirectoryDocument.
+        """
+
+        return instance.member_id.userinfo.user_unique_id
