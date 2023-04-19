@@ -19,12 +19,12 @@ from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
 class SearchImpl(SearchManager):
 
     def __init__(self, member_id: str, search_term: str, search_field: str = None, order_by: str = "",
-                 member_state: int = None, follow_status: bool = False, page: int = 1, page_size: int = 300,
+                 member_states: list = None, follow_status: bool = False, page: int = 1, page_size: int = 300,
                  device_id: str = None, community_id: str = None, api_key: str = None):
         self.member_id = member_id
         self.search_term = search_term
         self.search_field = search_field
-        self.member_state = member_state
+        self.member_states = member_states
         self.follow_status = follow_status
         self.page = page
         self.page_size = page_size
@@ -48,8 +48,8 @@ class SearchImpl(SearchManager):
     def get_order_by(self) -> str:
         return self.order_by.lower()
 
-    def get_member_state(self) -> int:
-        return self.member_state
+    def get_member_states(self) -> list:
+        return self.member_states
     
     def get_follow_status(self) -> bool:
         return self.follow_status
@@ -279,9 +279,10 @@ class SearchImpl(SearchManager):
                 }
             }
 
-        if self.get_member_state() :
+        # If member state is provided, then filter by member state
+        if self.get_member_states() and isinstance(self.get_member_states(), list) :
             query_dict['query']['bool']['must'].append({
-                "term": {"state": self.get_member_state()}
+                "terms": {"state": self.get_member_states()}
             })
 
         return query_dict
