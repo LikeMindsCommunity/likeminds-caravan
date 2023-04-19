@@ -1727,8 +1727,8 @@ class ChatroomImpl(ChatroomManager):
         card_image_url = req_body.get('chatroom_image_url')
         custom_tag = req_body.get('tag')
 
-        if not (title or header or text or card_image_url):
-            return ResponseUtilities.get_impl_error_context("Send title/header/chatroom_image_url to update",
+        if not (title or header or text or card_image_url or custom_tag):
+            return ResponseUtilities.get_impl_error_context("Send title/header/chatroom_image_url/tag to update",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         update_analytics_data = {

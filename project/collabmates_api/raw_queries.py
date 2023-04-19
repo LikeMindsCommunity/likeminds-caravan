@@ -135,7 +135,7 @@ def get_my_chatrooms_count(user_id,
 
         custom_tag_filter = ""
         if custom_tag:
-            custom_tag_filter = """ AND custom_tag ILIKE '%s'""" % str(custom_tag)
+            custom_tag_filter = f""" AND custom_tag ILIKE '%{custom_tag.replace("'", "''")}%'"""
 
         conn = get_connection()
         curr = conn.cursor()
@@ -321,7 +321,7 @@ def get_followed_chatrooms(user_id,
 
         custom_tag_filter = ""
         if custom_tag:
-            custom_tag_filter = """ AND custom_tag ILIKE '%s'""" % str(custom_tag)
+            custom_tag_filter = f""" AND custom_tag ILIKE '%{custom_tag.replace("'", "''")}%'"""
 
         conn = get_connection()
         curr = conn.cursor()
@@ -2674,7 +2674,7 @@ def get_dm_chatrooms_of_user(user_id, community_id, custom_tag=''):
 
         custom_tag_filter = ""
         if custom_tag:
-            custom_tag_filter = """ AND ccrd.custom_tag ILIKE '%s'""" % str(custom_tag)
+            custom_tag_filter = f""" AND ccrd.custom_tag ILIKE '%{custom_tag.replace("'", "''")}%'"""
 
         sql = """
                 SELECT cs.card_id,
@@ -3652,7 +3652,7 @@ def get_chatroom_query_meta_for_sync_revamp(key_name_prefix: str = None):
                     'deleted_by_user_id', 'attachment_count', 'attachments_uploaded', 'is_secret',
                     'secret_chatroom_participants', 'has_reactions', 'device_id', 'topic_id', 'auto_follow_done',
                     'is_edited', 'is_paid', 'access', 'is_private', 'chatroom_with_user_id', 'member_can_message',
-                    'online_link_type', 'is_private_member', 'chatroom_image_url', 'created_at']
+                    'online_link_type', 'is_private_member', 'chatroom_image_url', 'created_at', 'custom_tag']
 
     meta_query = create_query_with_prefix(query_fields, 'togther_collabcard', 'chatroom', key_name_prefix)
 
