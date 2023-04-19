@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework import status as status_codes
 from utility.request_utilities import RequestUtilities
 from utility.response_utilities import ResponseUtilities
+from utility.number_utilities  import NumberUtilities
 from utility.exception_utilities import InvalidHeaderException, CustomException
 from .constants import CHATROOM_SEARCHABLE_FIELDS, CHATROOM_FIELD_HEADER
 from .constants import MEMBER_DIRECTORY_SEARCHABLE_FIELDS, MEMBER_DIRECTORY_FIELD_NAME
@@ -146,6 +147,7 @@ class MemberDirectorySearchView(APIView):
 
         search_term = request.GET.get('search')
         search_field = request.GET.get('search_type', MEMBER_DIRECTORY_FIELD_NAME)
+        member_state =  NumberUtilities.get_integer_from_string(request.GET.get('member_state'), -1)
 
         if search_field.lower() not in MEMBER_DIRECTORY_SEARCHABLE_FIELDS:
             response = {
@@ -165,7 +167,7 @@ class MemberDirectorySearchView(APIView):
                                                                                 status_codes.HTTP_400_BAD_REQUEST))
 
         search_manager = SearchImpl(member_id=member_id, search_term=search_term, search_field=search_field,
-                                    follow_status=True, page=page, page_size=page_size, community_id=community_id,
+                                    member_state=member_state, follow_status=True, page=page, page_size=page_size, community_id=community_id,
                                     api_key=api_key)
 
         members_data = search_manager.search_member_directory()

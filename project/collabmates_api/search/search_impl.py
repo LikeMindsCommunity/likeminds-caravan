@@ -19,11 +19,12 @@ from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
 class SearchImpl(SearchManager):
 
     def __init__(self, member_id: str, search_term: str, search_field: str = None,
-                 follow_status: bool = False, page: int = 1, page_size: int = 300,
+                 member_state: int = None, follow_status: bool = False, page: int = 1, page_size: int = 300,
                  device_id: str = None, community_id: str = None, api_key: str = None):
         self.member_id = member_id
         self.search_term = search_term
         self.search_field = search_field
+        self.member_state = member_state
         self.follow_status = follow_status
         self.page = page
         self.page_size = page_size
@@ -43,6 +44,9 @@ class SearchImpl(SearchManager):
     def get_search_field(self) -> str:
         return self.search_field.lower()
 
+    def get_member_state(self) -> int:
+        return self.member_state
+    
     def get_follow_status(self) -> bool:
         return self.follow_status
 
@@ -224,7 +228,7 @@ class SearchImpl(SearchManager):
         @param search_field: Field of member index
         @return: dict
         """
-        return {
+        query_dict =  {
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
             "sort": {
@@ -259,6 +263,13 @@ class SearchImpl(SearchManager):
                 }
             }
         }
+
+        if self.get_member_state() :
+            query_dict['query']['bool']['must'].append({
+                "term": {"state": self.get_member_state()}
+            })
+
+        return query_dict
 
     def _fetch_user_chatrooms_id_list(self, community_id: int) -> list:
         filter_dict = {
