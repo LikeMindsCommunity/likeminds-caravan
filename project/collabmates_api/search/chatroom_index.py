@@ -53,7 +53,7 @@ class ChatroomDocument(Document):
         attr='card',
         properties={
             'id': TextField(
-                    attr="id_to_string",
+                    attr="parse_id_to_string",
                     analyzer=autocomplete,
                     search_analyzer="standard",
                     ),

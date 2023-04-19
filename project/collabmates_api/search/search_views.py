@@ -149,7 +149,7 @@ class MemberDirectorySearchView(APIView):
 
         search_term = request.GET.get('search')
         search_field = request.GET.get('search_type', MEMBER_DIRECTORY_FIELD_NAME)
-        order_by = request.GET.get('order_by')
+        order_by = request.GET.get('order_type', "")
 
         if search_field.lower() not in MEMBER_DIRECTORY_SEARCHABLE_FIELDS:
             response = {

@@ -18,7 +18,7 @@ from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
 
 class SearchImpl(SearchManager):
 
-    def __init__(self, member_id: str, search_term: str, search_field: str = None, order_by: str = None,
+    def __init__(self, member_id: str, search_term: str, search_field: str = None, order_by: str = "",
                  follow_status: bool = False, page: int = 1, page_size: int = 300,
                  device_id: str = None, community_id: str = None, api_key: str = None):
         self.member_id = member_id
