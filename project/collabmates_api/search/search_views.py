@@ -151,7 +151,7 @@ class MemberDirectorySearchView(APIView):
         search_term = request.GET.get('search')
         search_field = request.GET.get('search_type', MEMBER_DIRECTORY_FIELD_NAME)
         order_by = request.GET.get('order_type', "")
-        member_states = StringUtilities.get_list_from_string(request.GET.get('member_states', None)) 
+        member_state = StringUtilities.get_list_from_string(request.GET.get('member_state', None)) 
 
         if search_field.lower() not in MEMBER_DIRECTORY_SEARCHABLE_FIELDS:
             response = {
@@ -171,7 +171,7 @@ class MemberDirectorySearchView(APIView):
                                                                                 status_codes.HTTP_400_BAD_REQUEST))
 
         search_manager = SearchImpl(member_id=member_id, search_term=search_term, search_field=search_field, order_by=order_by,
-                                    member_states=member_states, follow_status=True, page=page, page_size=page_size, community_id=community_id,
+                                    member_state=member_state, follow_status=True, page=page, page_size=page_size, community_id=community_id,
                                     api_key=api_key)
 
         members_data = search_manager.search_member_directory()
