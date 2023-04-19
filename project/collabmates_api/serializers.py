@@ -237,7 +237,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'is_private': card.is_private,
         'has_event_recording': card.has_event_recording,
         'is_private_member': card.is_private_member,
-        'include_members_later': card.include_members_later
+        'include_members_later': card.include_members_later,
+        'custom_tag': card.custom_tag,
     }
 
     if card.chatroom_image_url:

@@ -128,7 +128,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def fetch_dm_chatrooms(self, page: int) -> {}:
+    def fetch_dm_chatrooms(self, page: int, custom_tag: str) -> {}:
         """Returns list of DM chatrooms user is part of"""
 
         raise NotImplementedError
