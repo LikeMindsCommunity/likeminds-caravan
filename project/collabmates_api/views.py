@@ -307,6 +307,7 @@ def my_chatrooms_version_1(request):
         community_id = community_instance.id
 
     show_dm = request.GET.get('show_dm', False)
+    custom_tag = request.GET.get('tag', '')
 
     is_ios = RequestUtilities.is_request_ios(request)
     platform_code = RequestUtilities.get_platform_code(request)
@@ -369,7 +370,8 @@ def my_chatrooms_version_1(request):
                                                    dm_instance_community_ids_list=dm_instance_community_ids_list,
                                                    community_id=community_id,
                                                    intro_room_community_list=intro_room_community_list,
-                                                   should_add_dm_chatrooms=should_add_dm_chatrooms)
+                                                   should_add_dm_chatrooms=should_add_dm_chatrooms,
+                                                   custom_tag=custom_tag)
 
     page_count = get_total_pages(joined_chatroom_count, limit=10)
 
@@ -385,7 +387,8 @@ def my_chatrooms_version_1(request):
                                          dm_instance_community_ids_list=dm_instance_community_ids_list,
                                          community_id=community_id,
                                          intro_room_community_list=intro_room_community_list,
-                                         should_add_dm_chatrooms=should_add_dm_chatrooms)
+                                         should_add_dm_chatrooms=should_add_dm_chatrooms,
+                                         custom_tag=custom_tag)
 
     chatroom_ids_list = []
 
@@ -451,6 +454,8 @@ def my_chatrooms_version_1(request):
             chatroom['community'] = CommunitySerializerV1(draft_instance.community, context=context,
                                                           many=False).data
             chatroom['is_draft'] = True
+
+        chatroom['custom_tag'] = card_instance.custom_tag
 
         chatrooms_conversation_ids_list = chatroom_conversations.get(card_instance.id)
 

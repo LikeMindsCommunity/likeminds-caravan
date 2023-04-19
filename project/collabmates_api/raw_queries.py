@@ -84,7 +84,8 @@ def get_my_chatrooms_count(user_id,
                            dm_instance_community_ids_list=[],
                            community_id=None,
                            intro_room_community_list=[],
-                           should_add_dm_chatrooms=False):
+                           should_add_dm_chatrooms=False,
+                           custom_tag=""):
     '''function to give the count of active my chatrooms'''
     try:
         is_private = "FALSE"
@@ -132,6 +133,10 @@ def get_my_chatrooms_count(user_id,
         if chatroom_type != -1:
             chatroom_type_filter = """ AND type in (%s)""" % str(chatroom_type)
 
+        custom_tag_filter = ""
+        if custom_tag:
+            custom_tag_filter = """ AND custom_tag ILIKE '%s'""" % str(custom_tag)
+
         conn = get_connection()
         curr = conn.cursor()
 
@@ -147,7 +152,7 @@ def get_my_chatrooms_count(user_id,
                                               AND card_id IN (SELECT id
                                                               FROM   togther_collabcard
                                                               WHERE  (%s is_deleted = FALSE
-                                                                     AND not (%s) %s) %s %s)
+                                                                     AND not (%s) %s) %s %s %s)
 
                   ) """ % (
             str(user_id),
@@ -156,7 +161,8 @@ def get_my_chatrooms_count(user_id,
             str(filter_intro_rooms_query),
             dm_chatrooms_communities_filter,
             excluded_card_ids_filter,
-            chatroom_type_filter
+            chatroom_type_filter,
+            custom_tag_filter
         )
 
         curr.execute(sql)
@@ -252,7 +258,8 @@ def get_followed_chatrooms(user_id,
                            dm_instance_community_ids_list=[],
                            community_id=None,
                            intro_room_community_list=[],
-                           should_add_dm_chatrooms=False):
+                           should_add_dm_chatrooms=False,
+                           custom_tag=''):
     '''function to get the active followed chatroom count'''
     try:
         page_number = int(page)
@@ -312,6 +319,10 @@ def get_followed_chatrooms(user_id,
         if chatroom_type != -1:
             chatroom_type_filter = """ AND type in (%s)""" % str(chatroom_type)
 
+        custom_tag_filter = ""
+        if custom_tag:
+            custom_tag_filter = """ AND custom_tag ILIKE '%s'""" % str(custom_tag)
+
         conn = get_connection()
         curr = conn.cursor()
 
@@ -328,13 +339,14 @@ def get_followed_chatrooms(user_id,
                                               FROM   togther_collabcard
                                               WHERE  (%s    is_deleted = FALSE
                                                      AND    NOT (%s)
-                                                    %s) %s %s)""" % (
+                                                    %s) %s %s %s)""" % (
             str(user_id),
             str(dm_chatrooms_filter),
             str(filter_intro_rooms_query),
             str(dm_chatrooms_communities_filter),
             str(excluded_card_ids_filter),
-            str(chatroom_type_filter))
+            str(chatroom_type_filter),
+            custom_tag_filter)
 
         curr.execute(fetch_card_ids_sql)
         card_ids_res = curr.fetchall()
@@ -2648,7 +2660,7 @@ def check_user_has_member_can_initiate_dm_right(user_id, community_id, member_ri
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_dm_chatrooms_of_user(user_id, community_id):
+def get_dm_chatrooms_of_user(user_id, community_id, custom_tag=''):
     try:
         conn = get_connection()
         curr = conn.cursor()
@@ -2659,6 +2671,10 @@ def get_dm_chatrooms_of_user(user_id, community_id):
             community_id = "=" + str(community_id)
 
         non_guest_user_query = get_user_ids_based_on_guest_filter(is_guest=False, only_sql_query=True)
+
+        custom_tag_filter = ""
+        if custom_tag:
+            custom_tag_filter = """ AND ccrd.custom_tag ILIKE '%s'""" % str(custom_tag)
 
         sql = """
                 SELECT cs.card_id,
@@ -2677,7 +2693,9 @@ def get_dm_chatrooms_of_user(user_id, community_id):
                               OR ccrd.chatroom_with_user_id = %s )
                        AND ( ccrd.user_id IN ( %s )
                              AND ccrd.chatroom_with_user_id IN ( %s ) ) 
-        """ % (str(community_id), str(user_id), str(user_id), str(user_id), non_guest_user_query, non_guest_user_query)
+                       %s
+        """ % (str(community_id), str(user_id), str(user_id), str(user_id), non_guest_user_query, non_guest_user_query,
+               custom_tag_filter)
 
         curr.execute(sql)
         card_list = curr.fetchall()
