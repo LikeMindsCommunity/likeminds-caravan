@@ -589,6 +589,10 @@ class Collabcard(models.Model):
 
     tag_only_participants = models.BooleanField(default=False)
 
+    # method for indexing id as string in elastic search
+    def parse_id_to_string(self):
+        return str(self.id)
+
     @staticmethod
     def update_time_for_community_members(community: Community) -> None:
         current_time_msec = TimeUtilities.current_time_in_milliseconds()
