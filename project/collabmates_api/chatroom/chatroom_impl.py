@@ -4530,7 +4530,7 @@ class ChatroomHelper:
 
         ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance)
 
-        preview_url = settings.URL + "/collabcard/" + str(card_instance.id)
+        preview_url = settings.WEB_URL + "/collabcard/" + str(card_instance.id)
         conversation_context = {'answer': card_instance.title, 'card': master_intro_instance, 'user': user_instance,
                                 'community': community_instance, 'has_files': False, 'attachment_count': 0,
                                 'attachments_uploaded': False, 'api_version': 1, 'preview_chatroom': card_instance,
@@ -4752,7 +4752,7 @@ class ChatroomHelper:
         if not user_email_list:
             return {}
 
-        chatroom_url = CHATROOM_URL % (settings.URL, str(card_instance.id))
+        chatroom_url = CHATROOM_URL % (settings.WEB_URL, str(card_instance.id))
 
         event_metadata = {
             'summary': card_instance.header,
