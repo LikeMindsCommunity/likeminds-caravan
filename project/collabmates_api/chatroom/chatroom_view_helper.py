@@ -396,7 +396,7 @@ class ChatroomViewHelper:
             'user_instance': user_instance,
             'community_instance': community_instance,
             'member_instance': member_instance,
-            'custom_tag': req_body.get('tag'),
+            'custom_tag': req_body.get('tag', ''),
         }
 
     @staticmethod
