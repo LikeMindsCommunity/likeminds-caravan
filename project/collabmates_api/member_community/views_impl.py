@@ -428,7 +428,8 @@ class FetchDMChatroomsView(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id, validated_req_body.get('community_id'),
                                                        device_id=device_id, api_key=api_key)
-        community_context = member_community_manager.fetch_dm_chatrooms(page=page)
+        community_context = member_community_manager.fetch_dm_chatrooms(page=page,
+                                                                        custom_tag=req_body.get('tag', ''))
 
         if 'error_message' in community_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),

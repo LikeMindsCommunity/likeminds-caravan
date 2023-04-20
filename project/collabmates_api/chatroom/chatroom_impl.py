@@ -1157,6 +1157,8 @@ class ChatroomImpl(ChatroomManager):
 
         card_content['third_party_unique_id'] = req_body.get('third_party_unique_id')
 
+        card_content['custom_tag'] = req_body.get('tag')
+
         if card_content['is_secret'] and \
                 not ChatroomHelper.check_user_secret_room_creation_right(user_instance, community_instance):
             error_message = "Only CM or member with secret chatroom creation right can create secret chatroom"
@@ -1723,15 +1725,17 @@ class ChatroomImpl(ChatroomManager):
         text = req_body.get('text')
         header = req_body.get('header')
         card_image_url = req_body.get('chatroom_image_url')
+        custom_tag = req_body.get('tag')
 
-        if not (title or header or text or card_image_url):
-            return ResponseUtilities.get_impl_error_context("Send title/header/chatroom_image_url to update",
+        if not (title or header or text or card_image_url or custom_tag):
+            return ResponseUtilities.get_impl_error_context("Send title/header/chatroom_image_url/tag to update",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         update_analytics_data = {
             'updated_title': False,
             'updated_description': False,
-            'updated_card_image': False
+            'updated_card_image': False,
+            'updated_custom_tag': False,
         }
 
         update_dict = {'is_edited': True, 'updated_at': TimeUtilities.current_time_in_milliseconds()}
@@ -1747,6 +1751,10 @@ class ChatroomImpl(ChatroomManager):
         if card_image_url:
             update_dict['chatroom_image_url'] = card_image_url
             update_analytics_data['updated_card_image'] = True
+
+        if custom_tag:
+            update_dict['custom_tag'] = custom_tag
+            update_analytics_data['updated_custom_tag'] = True
 
         ModelUtilities.model_update(Collabcard, {'id': card_instance.id}, update_dict)
 
@@ -3442,6 +3450,7 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_request.get('user_instance')
         community_instance = validated_request.get('community_instance')
         member_instance = validated_request.get('member_instance')
+        custom_tag = validated_request.get('custom_tag')
 
         filter_dict = {
             'is_private': True,
@@ -3484,6 +3493,7 @@ class ChatroomImpl(ChatroomManager):
             card_content['header'] = chatroom_name
             card_content['has_been_named'] = True
             card_content['is_private'] = True
+            card_content['custom_tag'] = custom_tag
 
             is_private_member = all([user_member_state == member_states.MEMBER,
                                      member_state == member_states.MEMBER])

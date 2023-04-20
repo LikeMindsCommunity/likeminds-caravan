@@ -1703,7 +1703,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return response
 
-    def fetch_dm_chatrooms(self, page: int = 1) -> {}:
+    def fetch_dm_chatrooms(self, page: int = 1, custom_tag: str = '') -> {}:
         validated_request = MemberCommunityViewHelper.validate_fetch_dm_chatrooms_request(self.get_member_id(),
                                                                                           self.get_community_id(),
                                                                                           self.get_api_key())
@@ -1725,7 +1725,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         total_pages = 0
 
-        card_state_tuple = get_dm_chatrooms_of_user(user_instance.id, community_instance.id)
+        card_state_tuple = get_dm_chatrooms_of_user(user_instance.id, community_instance.id, custom_tag=custom_tag)
 
         card_state_map = {data[0]: data[1] for data in card_state_tuple}
 
@@ -2581,6 +2581,7 @@ class MemberCommunityHelper:
         if card_instance:
             chatroom['chatroom'] = get_chatroom_instance(card_instance, user_instance.id, send_profile=False)
             chatroom['is_draft'] = False
+            chatroom['custom_tag'] = card_instance.custom_tag
 
         if card_answer_instance:
             last_conversation_dict = conversationSerializer(card_answer_instance,
