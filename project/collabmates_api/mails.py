@@ -25,9 +25,7 @@ from datetime import datetime, timedelta
 
 url = settings.URL
 is_beta = settings.IS_BETA
-# url = 'https://beta.likeminds.community'
 
-import time
 
 @shared_task
 def send_feedback_mail_to_webmaster(feedback_id):

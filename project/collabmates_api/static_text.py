@@ -5,7 +5,12 @@ from utility.states import member_states
 SERVER_URL = settings.URL
 
 if SERVER_URL is None:
-    SERVER_URL = 'https://beta.likeminds.community'
+
+    if settings.IS_BETA:
+        SERVER_URL = 'https://betacaravan.likeminds.community'
+
+    else:
+        SERVER_URL = 'https://caravan.likeminds.community'
 
 # variables
 HOURS_24 = 86400
