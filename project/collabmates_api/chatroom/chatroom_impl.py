@@ -3450,6 +3450,7 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_request.get('user_instance')
         community_instance = validated_request.get('community_instance')
         member_instance = validated_request.get('member_instance')
+        custom_tag = validated_request.get('custom_tag')
 
         filter_dict = {
             'is_private': True,
@@ -3492,6 +3493,7 @@ class ChatroomImpl(ChatroomManager):
             card_content['header'] = chatroom_name
             card_content['has_been_named'] = True
             card_content['is_private'] = True
+            card_content['custom_tag'] = custom_tag
 
             is_private_member = all([user_member_state == member_states.MEMBER,
                                      member_state == member_states.MEMBER])
