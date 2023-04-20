@@ -5119,7 +5119,7 @@ class ChatroomHelper:
 
         else:
 
-            domain_url = domain_url if domain_url else url
+            domain_url = domain_url if domain_url else settings.WEB_URL
             chatroom_url = CHATROOM_URL_WITH_COMMUNITY_ID % (domain_url, str(chatroom_instance.id),
                                                              str(chatroom_instance.community.id))
 
