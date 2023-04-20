@@ -1228,7 +1228,7 @@ def update_chatroom_conversation_homescreen(card_instance, user_instance, conver
 
 
 def create_conversation_context_for_intro_chatrooms(card_instance, user_instance, master_intro):
-    preview_url = settings.URL + "/collabcard/" + str(card_instance.id)
+    preview_url = settings.WEB_URL + "/collabcard/" + str(card_instance.id)
 
     conversation_context = {}
     community_instance = card_instance.community
@@ -1242,7 +1242,7 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
     conversation_context['api_version'] = 1
     conversation_context['preview_chatroom'] = card_instance
     conversation_context['preview_community'] = community_instance
-    conversation_context['internal_link'] = settings.URL + "/collabcard/" + str(card_instance.id)
+    conversation_context['internal_link'] = settings.WEB_URL + "/collabcard/" + str(card_instance.id)
     conversation_context['preview_type'] = "chatroom"
 
     answer_instance = card_answers(**conversation_context)
@@ -2809,7 +2809,7 @@ def post_member_directory_link(user_instance, community_instance):
         return
 
     card_instance = card_filter[0]
-    member_directory_link = url + "/community/" + str(community_instance.id) + "?source=members_directory"
+    member_directory_link = settings.WEB_URL + "/community/" + str(community_instance.id) + "?source=members_directory"
     conversation = card_answers()
     conversation.answer = "Here is a link to view our member directory"
     conversation.card = card_instance

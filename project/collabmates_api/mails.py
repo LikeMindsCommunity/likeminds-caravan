@@ -23,7 +23,7 @@ import json
 from utility.mail_category_constants import *
 from datetime import datetime, timedelta
 
-url = settings.URL
+url = settings.WEB_URL
 is_beta = settings.IS_BETA
 
 
