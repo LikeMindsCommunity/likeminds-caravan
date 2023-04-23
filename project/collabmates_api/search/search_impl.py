@@ -19,12 +19,11 @@ from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
 class SearchImpl(SearchManager):
 
     def __init__(self, member_id: str, search_term: str, search_field: str = None, order_by: str = "",
-                 member_state: list = None, follow_status: bool = False, page: int = 1, page_size: int = 300,
+                 follow_status: bool = False, page: int = 1, page_size: int = 300,
                  device_id: str = None, community_id: str = None, api_key: str = None):
         self.member_id = member_id
         self.search_term = search_term
         self.search_field = search_field
-        self.member_state = member_state
         self.follow_status = follow_status
         self.page = page
         self.page_size = page_size
@@ -47,9 +46,6 @@ class SearchImpl(SearchManager):
     
     def get_order_by(self) -> str:
         return self.order_by.lower()
-
-    def get_member_state(self) -> list:
-        return self.member_state
     
     def get_follow_status(self) -> bool:
         return self.follow_status
@@ -227,7 +223,7 @@ class SearchImpl(SearchManager):
             }
         }
     
-    def _get_member_directory_search_ngram_query_dict(self, search_field):
+    def _get_member_directory_search_ngram_query_dict(self, search_field, member_states):
         """
         @param search_field: Field of member index
         @return: dict
@@ -280,10 +276,12 @@ class SearchImpl(SearchManager):
             }
 
         # If member state is provided, then filter by member state
-        if self.get_member_state() and isinstance(self.get_member_state(), list) :
-            query_dict['query']['bool']['must'].append({
-                "terms": {"state": self.get_member_state()}
-            })
+        if member_states :
+            # If member_states is not a list, then convert it to list
+            if not isinstance(member_states, list):
+                member_states = [member_states]
+
+            query_dict['query']['bool']['must'].append({"terms": {"state": member_states}})
 
         return query_dict
 
@@ -470,7 +468,7 @@ class SearchImpl(SearchManager):
 
         return member_img
 
-    def search_member_directory(self):
+    def search_member_directory(self, member_states: list = None):
 
         community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
                                                                       api_key=self.get_api_key())
@@ -479,7 +477,7 @@ class SearchImpl(SearchManager):
             self.set_community_id(community_instance.id)
 
         res = Search.from_dict(self._get_member_directory_search_ngram_query_dict(
-            self.get_search_field())).execute()
+            self.get_search_field(), member_states)).execute()
 
         members_list = []
 
