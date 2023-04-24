@@ -33,7 +33,9 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_excluded_chatrooms_for_user') and callable(
                     subclass.fetch_excluded_chatrooms_for_user)) and
                 (hasattr(subclass, 'fetch_user_chatroom_status') and callable(
-                    subclass.fetch_user_chatroom_status)) or
+                    subclass.fetch_user_chatroom_status)) and
+                (hasattr(subclass, 'fetch_user_home_meta') and callable(
+                    subclass.fetch_user_home_meta)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -128,7 +130,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def fetch_dm_chatrooms(self, page: int) -> {}:
+    def fetch_dm_chatrooms(self, page: int, custom_tag: str) -> {}:
         """Returns list of DM chatrooms user is part of"""
 
         raise NotImplementedError
@@ -167,5 +169,10 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
     def fetch_user_chatroom_status(self, user_id: str = None, chatroom_types: list = None, page: int = None,
                                    page_size: int = None) -> dict:
         """Fetches user chatroom joining status"""
+
+        raise NotImplementedError
+
+    def fetch_user_home_meta(self):
+        """Fetches user home meta data"""
 
         raise NotImplementedError

@@ -24,7 +24,7 @@ def strip_scheme(url):
     return parsed.geturl().replace(scheme, '', 1)
 
 
-host_url = strip_scheme(settings.URL)
+host_url = strip_scheme(settings.WEB_URL)
 web_host_url = strip_scheme(settings.WEB_URL)
 api_endpoint = BRANCH_QUICKLINK_URI % settings.BRANCH_KEY
 

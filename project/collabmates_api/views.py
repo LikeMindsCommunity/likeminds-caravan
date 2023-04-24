@@ -307,6 +307,7 @@ def my_chatrooms_version_1(request):
         community_id = community_instance.id
 
     show_dm = request.GET.get('show_dm', False)
+    custom_tag = request.GET.get('tag', '')
 
     is_ios = RequestUtilities.is_request_ios(request)
     platform_code = RequestUtilities.get_platform_code(request)
@@ -369,7 +370,8 @@ def my_chatrooms_version_1(request):
                                                    dm_instance_community_ids_list=dm_instance_community_ids_list,
                                                    community_id=community_id,
                                                    intro_room_community_list=intro_room_community_list,
-                                                   should_add_dm_chatrooms=should_add_dm_chatrooms)
+                                                   should_add_dm_chatrooms=should_add_dm_chatrooms,
+                                                   custom_tag=custom_tag)
 
     page_count = get_total_pages(joined_chatroom_count, limit=10)
 
@@ -385,7 +387,8 @@ def my_chatrooms_version_1(request):
                                          dm_instance_community_ids_list=dm_instance_community_ids_list,
                                          community_id=community_id,
                                          intro_room_community_list=intro_room_community_list,
-                                         should_add_dm_chatrooms=should_add_dm_chatrooms)
+                                         should_add_dm_chatrooms=should_add_dm_chatrooms,
+                                         custom_tag=custom_tag)
 
     chatroom_ids_list = []
 
@@ -451,6 +454,8 @@ def my_chatrooms_version_1(request):
             chatroom['community'] = CommunitySerializerV1(draft_instance.community, context=context,
                                                           many=False).data
             chatroom['is_draft'] = True
+
+        chatroom['custom_tag'] = card_instance.custom_tag
 
         chatrooms_conversation_ids_list = chatroom_conversations.get(card_instance.id)
 
@@ -852,7 +857,7 @@ def community(request, community_id, req_dict=None):
             return context
         return JsonResponse(context)
 
-    context = {'community': new_dict}
+    context = {'success': True, 'community': new_dict}
 
     if menu:
         context['menu'] = menu
@@ -1223,7 +1228,7 @@ def update_chatroom_conversation_homescreen(card_instance, user_instance, conver
 
 
 def create_conversation_context_for_intro_chatrooms(card_instance, user_instance, master_intro):
-    preview_url = settings.URL + "/collabcard/" + str(card_instance.id)
+    preview_url = settings.WEB_URL + "/collabcard/" + str(card_instance.id)
 
     conversation_context = {}
     community_instance = card_instance.community
@@ -1237,7 +1242,7 @@ def create_conversation_context_for_intro_chatrooms(card_instance, user_instance
     conversation_context['api_version'] = 1
     conversation_context['preview_chatroom'] = card_instance
     conversation_context['preview_community'] = community_instance
-    conversation_context['internal_link'] = settings.URL + "/collabcard/" + str(card_instance.id)
+    conversation_context['internal_link'] = settings.WEB_URL + "/collabcard/" + str(card_instance.id)
     conversation_context['preview_type'] = "chatroom"
 
     answer_instance = card_answers(**conversation_context)
@@ -2804,7 +2809,7 @@ def post_member_directory_link(user_instance, community_instance):
         return
 
     card_instance = card_filter[0]
-    member_directory_link = url + "/community/" + str(community_instance.id) + "?source=members_directory"
+    member_directory_link = settings.WEB_URL + "/community/" + str(community_instance.id) + "?source=members_directory"
     conversation = card_answers()
     conversation.answer = "Here is a link to view our member directory"
     conversation.card = card_instance
@@ -14231,6 +14236,14 @@ def fetch_user_meta(request):
         context = get_error_context(False, "send x-member-id in header")
         return JsonResponse(context)
 
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+
+    if not user_instance:
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid member ID!',
+                                                                            status_codes.HTTP_400_BAD_REQUEST))
+
+    member_id = user_instance.id
+
     community_list = list(
         Members.objects.filter(member_id=member_id).values_list("community_id", flat=True).order_by('-updated_at'))
 
@@ -14241,7 +14254,7 @@ def fetch_user_meta(request):
         temp['id'] = community_id
         community_ids.append(temp)
 
-    return JsonResponse({'community_ids': community_ids})
+    return JsonResponse({'success': True, 'community_ids': community_ids})
 
 
 def get_guest_users_of_member_joined_communities(community_list):

@@ -52,14 +52,14 @@ from external_services.email.email_wrapper import MailWrapper, MailHelper
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
-url = settings.URL
+url = settings.WEB_URL
 
 
 @shared_task
 def send_email_to_nominated_admin(NominatedAdmin, email, ProposedAdmin, CommunityName, community_id,
                                   proposedAdminState):
     time.sleep(5)
-    url = settings.URL
+    url = settings.WEB_URL
     url = url + "/community/" + str(community_id) + "?source=email&cta=accept_admin"
     fail_silently = True
     to = email

@@ -24,8 +24,9 @@ from project.home.views import HomeView
 urlpatterns = [
     url(r'^collabmates_admin/', admin.site.urls),
     path('api/', include('collabmates_api.urls'), name='api'),
+    path('', include('collabmates_api.urls'), name='lm_api'),
     path('cms/', include('cms.urls'), name='cms'),
-    path('', HomeView.as_view(), name= 'home'),
+    path('status', HomeView.as_view(), name='home'),
 ]
 
 if settings.DEBUG:
