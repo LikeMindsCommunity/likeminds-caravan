@@ -37,7 +37,7 @@ class ChatroomSearchView(APIView):
         search_field = request.GET.get('search_type', CHATROOM_FIELD_HEADER)
 
         if search_field.lower() == 'chatroom_id':
-            search_field = 'id'
+            search_field = 'chatroom_id_string'
 
         if search_field.lower() not in CHATROOM_SEARCHABLE_FIELDS:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid search type!',
