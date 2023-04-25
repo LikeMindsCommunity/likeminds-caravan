@@ -151,8 +151,14 @@ class MemberDirectorySearchView(APIView):
         search_term = request.GET.get('search')
         search_field = request.GET.get('search_type', MEMBER_DIRECTORY_FIELD_NAME)
         order_by = request.GET.get('order_type', "").lower()
-        member_states = StringUtilities.get_list_from_string(request.GET.get('member_state', None)) 
+        member_states = request.GET.get('member_states')
+        parsed_member_states = StringUtilities.get_list_from_string(member_states) 
 
+        # Validation for member states list
+        if member_states and (parsed_member_states == None or not isinstance(parsed_member_states, list)):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Send valid list in member_states!",
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
+        
         if search_field.lower() not in MEMBER_DIRECTORY_SEARCHABLE_FIELDS:
             response = {
                 "success": False,
@@ -174,6 +180,6 @@ class MemberDirectorySearchView(APIView):
                                     follow_status=True, page=page, page_size=page_size, community_id=community_id,
                                     api_key=api_key)
 
-        members_data = search_manager.search_member_directory(member_states, order_by)
+        members_data = search_manager.search_member_directory(parsed_member_states, order_by)
 
         return JsonResponse(members_data)
