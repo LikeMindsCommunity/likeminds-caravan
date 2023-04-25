@@ -1,7 +1,7 @@
 import requests
 from django.conf import settings
 from django.shortcuts import get_object_or_404
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import Community
@@ -24,7 +24,20 @@ def strip_scheme(url):
     return parsed.geturl().replace(scheme, '', 1)
 
 
-host_url = strip_scheme(settings.WEB_URL)
+def replace_host_url(url):
+
+    if "://" not in url:
+        parsed_url = urlparse("https://" + url)
+
+    else:
+        parsed_url = urlparse(url)
+
+    parsed_url = parsed_url._replace(netloc="beta.likeminds.community")
+
+    return strip_scheme(urlunparse(parsed_url))
+
+
+host_url = strip_scheme(settings.URL)
 web_host_url = strip_scheme(settings.WEB_URL)
 api_endpoint = BRANCH_QUICKLINK_URI % settings.BRANCH_KEY
 
@@ -49,7 +62,7 @@ def create_community_branch_links(community_id, member_id, platform_code, versio
 
     data = []
 
-    base_url = f'{host_url}/community/{community_instance.id}'
+    base_url = f'{web_host_url}/community/{community_instance.id}'
 
     is_free_trial = False
     free_trial_public_url = base_url
@@ -60,7 +73,7 @@ def create_community_branch_links(community_id, member_id, platform_code, versio
         is_free_trial = True
 
     if is_free_trial:
-        free_trial_public_url = FREE_TRIAL_PUBLIC_URL.format(host_url, community_instance.id)
+        free_trial_public_url = FREE_TRIAL_PUBLIC_URL.format(web_host_url, community_instance.id)
 
     # create public url
     if member_id:
@@ -173,9 +186,9 @@ def create_link_item(base_url, community, channel, feature, private=False):
         "feature": feature,
         "data": {
             # '$deeplink_path':'likeminds://%s'%(base_url),
-            '$android_deeplink_path': 'likeminds://%s' % base_url,
+            '$android_deeplink_path': 'likeminds://%s' % replace_host_url(base_url),
             # '$ios_deeplink_path':'likeminds://%s'%(base_url),
-            '$deep_link': 'likeminds://%s' % base_url,
+            '$deep_link': 'likeminds://%s' % replace_host_url(base_url),
             '$og_title': '%s on LikeMinds' % community.name,
             '$og_description': community.purpose,
             '$og_image_url': get_community_image(community),
@@ -235,7 +248,7 @@ def create_link_item(base_url, community, channel, feature, private=False):
 def create_community_feed_url(community_instance):
     data = []
 
-    feed_url = f'{host_url}/community_feed?community_id={community_instance.id}'
+    feed_url = f'{web_host_url}/community_feed?community_id={community_instance.id}'
 
     long_url_item = create_link_item(feed_url, community_instance, "AppBackend", "CommunityFeed", private=True)
     data.append(long_url_item)
@@ -261,7 +274,7 @@ def create_community_feed_url(community_instance):
 def create_community_feed_url_for_cm_onboarding(community_instance):
     data = []
 
-    feed_url = CM_ONBOARDING_COMMUNITY_FEED_URL.format(host_url, community_instance.id, community_instance.name)
+    feed_url = CM_ONBOARDING_COMMUNITY_FEED_URL.format(web_host_url, community_instance.id, community_instance.name)
 
     long_url_item = create_link_item(feed_url, community_instance, "AppBackend",
                                      BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL,
@@ -289,7 +302,7 @@ def create_community_feed_url_for_cm_onboarding(community_instance):
 def create_community_otl_url(community_instance, payment_id, shared_by=None):
     data = []
 
-    base_url = f'{host_url}/community/{community_instance.id}'
+    base_url = f'{web_host_url}/community/{community_instance.id}'
 
     if payment_id and shared_by:
         private_url = base_url + f'?shared_by={shared_by}&payment_id={payment_id}'
@@ -350,7 +363,7 @@ def create_payment_page_url(community_instance, payment_id):
 def create_single_event_branch_url(card_instance, should_register=False):
     data = []
 
-    single_event_url = SINGLE_EVENT_URL.format(host_url, card_instance.id)
+    single_event_url = SINGLE_EVENT_URL.format(web_host_url, card_instance.id)
 
     if should_register:
         single_event_url = single_event_url + AUTO_REGISTER_PARAMS
