@@ -27,9 +27,9 @@ info_logger = LoggingWrapper.get_instance()
 
 if url is None:
     if settings.IS_BETA:
-        url = 'https://beta.likeminds.community'
+        url = 'https://betacaravan.likeminds.community'
     else:
-        url = 'https://www.likeminds.community'
+        url = 'https://caravan.likeminds.community'
 
 api_url = url + '/api/'
 

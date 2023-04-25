@@ -10,7 +10,7 @@ from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
 from utility.response_utilities import ResponseUtilities
 from .constants import CUSTOM_INTRO_TEXT_FOR_ADMIN, CUSTOM_INTRO_TEXT_FOR_MEMBERS, CUSTOM_CLICK_TEXT_FOR_MEMBERS
-from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING,CHATROOM_FIELD_TITLE
+from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING,CHATROOM_FIELD_TITLE, MEMBER_DIRECTORY_ORDER_BY_NAME
 from collabmates_api.sdk.models import SdkClient
 from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
                            get_chatrooms_of_user_with_follow_status)
@@ -42,7 +42,7 @@ class SearchImpl(SearchManager):
 
     def get_search_field(self) -> str:
         return self.search_field.lower()
-
+    
     def get_follow_status(self) -> bool:
         return self.follow_status
 
@@ -219,12 +219,12 @@ class SearchImpl(SearchManager):
             }
         }
     
-    def _get_member_directory_search_ngram_query_dict(self, search_field):
+    def _get_member_directory_search_ngram_query_dict(self, search_field, member_states, order_by):
         """
         @param search_field: Field of member index
         @return: dict
         """
-        return {
+        query_dict = {
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
             "sort": {
@@ -259,6 +259,23 @@ class SearchImpl(SearchManager):
                 }
             }
         }
+
+        # If order_by is alphabetical, then sort by search_field
+        if order_by == MEMBER_DIRECTORY_ORDER_BY_NAME:
+            query_dict['sort'] = {
+                "_score": {
+                    "order": "desc"
+                },
+                MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING[search_field] + ".raw": {
+                    "order": "asc"
+                }
+            }
+
+        # If member state is provided, then filter by member state
+        if member_states :
+            query_dict['query']['bool']['must'].append({"terms": {"state": member_states}})
+
+        return query_dict
 
     def _fetch_user_chatrooms_id_list(self, community_id: int) -> list:
         filter_dict = {
@@ -443,7 +460,7 @@ class SearchImpl(SearchManager):
 
         return member_img
 
-    def search_member_directory(self):
+    def search_member_directory(self, member_states: list = None, order_by: str = None):
 
         community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
                                                                       api_key=self.get_api_key())
@@ -452,7 +469,7 @@ class SearchImpl(SearchManager):
             self.set_community_id(community_instance.id)
 
         res = Search.from_dict(self._get_member_directory_search_ngram_query_dict(
-            self.get_search_field())).execute()
+            self.get_search_field(), member_states, order_by)).execute()
 
         members_list = []
 
@@ -508,6 +525,10 @@ class SearchImpl(SearchManager):
 
             if hit['custom_title'] and not hit['custom_title'] == 'Member':
                 member_introduction_dict['custom_title'] = hit['custom_title']
+
+            member_introduction_dict['client_user_unique_id'] = hit['client_user_unique_id'] if 'client_user_unique_id' in hit else None
+
+            member_introduction_dict['user_unique_id'] = hit['user_unique_id'] if 'user_unique_id' in hit else None
 
             members_list.append(member_introduction_dict)
 

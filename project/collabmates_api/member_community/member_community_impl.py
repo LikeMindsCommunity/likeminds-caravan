@@ -1703,7 +1703,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return response
 
-    def fetch_dm_chatrooms(self, page: int = 1) -> {}:
+    def fetch_dm_chatrooms(self, page: int = 1, custom_tag: str = '') -> {}:
         validated_request = MemberCommunityViewHelper.validate_fetch_dm_chatrooms_request(self.get_member_id(),
                                                                                           self.get_community_id(),
                                                                                           self.get_api_key())
@@ -1725,7 +1725,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         total_pages = 0
 
-        card_state_tuple = get_dm_chatrooms_of_user(user_instance.id, community_instance.id)
+        card_state_tuple = get_dm_chatrooms_of_user(user_instance.id, community_instance.id, custom_tag=custom_tag)
 
         card_state_map = {data[0]: data[1] for data in card_state_tuple}
 
@@ -2042,6 +2042,36 @@ class MemberCommunityImpl(MemberCommunityManager):
             'success': True,
             'chatrooms_data': user_chatroom_status_query,
             'total_chatrooms_count': total_chatrooms_count
+        }
+
+    def fetch_user_home_meta(self):
+        validated_request = MemberCommunityHelper.validate_fetch_user_home_meta_request(self.get_member_id(),
+                                                                                        self.get_api_key())
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = validated_request.get('user_instance')
+        community_instance = validated_request.get('community_instance')
+        self.set_community_id(community_instance.id)
+
+        community_chatroom_count_dict = MemberCommunityHelper.fetch_chatroom_count_for_home(
+            [self.get_community_id()], user_instance.id, is_chatroom_revamp=False)
+
+        user_engage_filter = ModelUtilities.get_model_filter(Member_Engage,
+                                                             {'member_id': self.get_member_id(),
+                                                              'community_id': self.get_community_id()})
+
+        unseen_channel_count = 0
+
+        if user_engage_filter:
+            unseen_channel_count = user_engage_filter[0].last_unseen_count
+
+        return {
+            'success': True,
+            'total_channel_count': community_chatroom_count_dict.get(self.get_community_id()),
+            'unseen_channel_count': unseen_channel_count
         }
 
 
@@ -2581,6 +2611,7 @@ class MemberCommunityHelper:
         if card_instance:
             chatroom['chatroom'] = get_chatroom_instance(card_instance, user_instance.id, send_profile=False)
             chatroom['is_draft'] = False
+            chatroom['custom_tag'] = card_instance.custom_tag
 
         if card_answer_instance:
             last_conversation_dict = conversationSerializer(card_answer_instance,
@@ -3041,4 +3072,26 @@ class MemberCommunityHelper:
             'user_instance': user_instance,
             'community_instance': community_instance,
             'member_instance': member_instance
+        }
+
+    @staticmethod
+    def validate_fetch_user_home_meta_request(user_id, api_key):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id,
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance
         }

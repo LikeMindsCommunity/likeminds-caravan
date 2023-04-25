@@ -639,7 +639,8 @@ class ChatroomMemberHelper:
                             'is_private_member': card_instance.is_private_member,
                             'third_party_unique_id': card_instance.third_party_unique_id,
                             'is_pinned': card_instance.is_pinned,
-                            'include_members_later': card_instance.include_members_later}
+                            'include_members_later': card_instance.include_members_later,
+                            'custom_tag': card_instance.custom_tag}
 
         if card_instance.chatroom_image_url:
             chatroom_context['chatroom_image_url'] = card_instance.chatroom_image_url
