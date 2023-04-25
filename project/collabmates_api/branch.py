@@ -24,6 +24,16 @@ def strip_scheme(url):
     return parsed.geturl().replace(scheme, '', 1)
 
 
+host_url = strip_scheme(settings.URL)
+web_host_url = strip_scheme(settings.WEB_URL)
+api_endpoint = BRANCH_QUICKLINK_URI % settings.BRANCH_KEY
+
+APPS_INTERNAL_URL = "beta.likeminds.community"
+
+if not settings.IS_BETA:
+    APPS_INTERNAL_URL = "www.likeminds.community"
+
+
 def replace_host_url(url):
 
     if "://" not in url:
@@ -32,14 +42,9 @@ def replace_host_url(url):
     else:
         parsed_url = urlparse(url)
 
-    parsed_url = parsed_url._replace(netloc="beta.likeminds.community")
+    parsed_url = parsed_url._replace(netloc=APPS_INTERNAL_URL)
 
     return strip_scheme(urlunparse(parsed_url))
-
-
-host_url = strip_scheme(settings.URL)
-web_host_url = strip_scheme(settings.WEB_URL)
-api_endpoint = BRANCH_QUICKLINK_URI % settings.BRANCH_KEY
 
 
 def create_community_branch_links(community_id, member_id, platform_code, version_code=None, aj=None):
