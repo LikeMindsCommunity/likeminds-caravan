@@ -10393,9 +10393,10 @@ def unread_conversation_notification(request):
     community_id: str = request.GET.get('community_id')
 
     community_instance = SdkClient.get_community_instance_or_none(community_id, api_key)
+    
     if not community_instance:
-        context = get_error_context(False, "Invalid community ID/API key!")
-        return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        context = ResponseUtilities.get_view_impl_error_context("Invalid community ID/API key!", status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(**context)
     
     temp = {
         'success': True,
