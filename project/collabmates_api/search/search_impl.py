@@ -273,10 +273,6 @@ class SearchImpl(SearchManager):
 
         # If member state is provided, then filter by member state
         if member_states :
-            # If member_states is not a list, then convert it to list
-            if not isinstance(member_states, list):
-                member_states = [member_states]
-
             query_dict['query']['bool']['must'].append({"terms": {"state": member_states}})
 
         return query_dict
