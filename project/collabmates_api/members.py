@@ -689,7 +689,8 @@ def filtered_member_list(current_user_id, community_id, filter_list, page, membe
 def unfiltered_member_list(current_user_id, community_id, page, member_state=None):
     member_list = get_member_query_set(current_user_id, community_id, page=page, remove_guest_user=True,
                                        member_state=member_state)
-    members = get_member_instances_without_filter(member_list, current_user_id, community_id, page=page)
+
+    members = get_member_instances_without_filter(member_list, current_user_id, community_id, page=page, member_state=member_state)
 
     unfilter_context = {
         'members': members
@@ -714,7 +715,7 @@ def get_community_managers(community_instance):
     return temp
 
 
-def get_member_instances_without_filter(member_list, current_user_id, community_id, page=1):
+def get_member_instances_without_filter(member_list, current_user_id, community_id, page=1, member_state: int = None):
     '''function to get members instances from members table'''
 
     members = []
@@ -755,7 +756,10 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
         else:
             members.append(userinfo_serialized_object)
 
-    if current_user:
+    if current_user and member_state and current_user['state'] != member_state:
+        return members
+    
+    if current_user :        
         members.insert(0, current_user)
 
     return members
