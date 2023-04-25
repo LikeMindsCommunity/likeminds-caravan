@@ -1320,6 +1320,13 @@ class CommunityImpl(CommunityManager):
 
             if all([community_setting["setting_type"] == community_setting_types.MEMBERS_CAN_DM,
                     community_setting['enabled']]):
+                community_dm_settings = ModelUtilities.get_model_filter(CommunityDirectMessageSettings,
+                                                                        {'community_id': community_instance.id})
+                if not community_dm_settings:
+                    ModelUtilities.update_or_create_model(CommunityDirectMessageSettings,
+                                                          {'community_id': community_instance.id},
+                                                          {'state': community_dm_settings_state_types.UNLIMITED})
+
                 cohort_right_add = CohortHelper.add_members_can_dm_right_in_all_member_cohort(community_instance)
 
                 if not cohort_right_add.get('success'):
