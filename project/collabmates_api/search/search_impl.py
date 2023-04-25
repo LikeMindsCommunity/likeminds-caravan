@@ -18,7 +18,7 @@ from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
 
 class SearchImpl(SearchManager):
 
-    def __init__(self, member_id: str, search_term: str, search_field: str = None, order_by: str = "",
+    def __init__(self, member_id: str, search_term: str, search_field: str = None,
                  follow_status: bool = False, page: int = 1, page_size: int = 300,
                  device_id: str = None, community_id: str = None, api_key: str = None):
         self.member_id = member_id
@@ -30,7 +30,6 @@ class SearchImpl(SearchManager):
         self.device_id = device_id
         self.community_id = community_id
         self.api_key = api_key
-        self.order_by = order_by
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -44,9 +43,6 @@ class SearchImpl(SearchManager):
     def get_search_field(self) -> str:
         return self.search_field.lower()
     
-    def get_order_by(self) -> str:
-        return self.order_by.lower()
-
     def get_follow_status(self) -> bool:
         return self.follow_status
 
@@ -223,7 +219,7 @@ class SearchImpl(SearchManager):
             }
         }
     
-    def _get_member_directory_search_ngram_query_dict(self, search_field):
+    def _get_member_directory_search_ngram_query_dict(self, search_field, member_states, order_by):
         """
         @param search_field: Field of member index
         @return: dict
@@ -265,15 +261,23 @@ class SearchImpl(SearchManager):
         }
 
         # If order_by is alphabetical, then sort by search_field
-        if self.get_order_by() == MEMBER_DIRECTORY_ORDER_BY_NAME:
+        if order_by == MEMBER_DIRECTORY_ORDER_BY_NAME:
             query_dict['sort'] = {
                 "_score": {
                     "order": "desc"
                 },
-                 MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING[search_field] + ".raw": {
+                MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING[search_field] + ".raw": {
                     "order": "asc"
                 }
             }
+
+        # If member state is provided, then filter by member state
+        if member_states :
+            # If member_states is not a list, then convert it to list
+            if not isinstance(member_states, list):
+                member_states = [member_states]
+
+            query_dict['query']['bool']['must'].append({"terms": {"state": member_states}})
 
         return query_dict
 
@@ -460,7 +464,7 @@ class SearchImpl(SearchManager):
 
         return member_img
 
-    def search_member_directory(self):
+    def search_member_directory(self, member_states: list = None, order_by: str = None):
 
         community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
                                                                       api_key=self.get_api_key())
@@ -469,7 +473,7 @@ class SearchImpl(SearchManager):
             self.set_community_id(community_instance.id)
 
         res = Search.from_dict(self._get_member_directory_search_ngram_query_dict(
-            self.get_search_field())).execute()
+            self.get_search_field(), member_states, order_by)).execute()
 
         members_list = []
 
@@ -526,11 +530,9 @@ class SearchImpl(SearchManager):
             if hit['custom_title'] and not hit['custom_title'] == 'Member':
                 member_introduction_dict['custom_title'] = hit['custom_title']
 
-            if 'client_user_unique_id' in hit and hit['client_user_unique_id'] is not None:
-                member_introduction_dict['client_user_unique_id'] = hit['client_user_unique_id']
+            member_introduction_dict['client_user_unique_id'] = hit['client_user_unique_id'] if 'client_user_unique_id' in hit else None
 
-            if 'user_unique_id' in hit:
-                member_introduction_dict['user_unique_id'] = hit['user_unique_id']
+            member_introduction_dict['user_unique_id'] = hit['user_unique_id'] if 'user_unique_id' in hit else None
 
             members_list.append(member_introduction_dict)
 

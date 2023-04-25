@@ -52,11 +52,12 @@ class ChatroomDocument(Document):
     chatroom = fields.ObjectField(
         attr='card',
         properties={
-            'id': TextField(
-                    attr="parse_id_to_string",
-                    analyzer=autocomplete,
-                    search_analyzer="standard",
-                    ),
+            'id': IntegerField(),
+            'chatroom_id_string' : StringField(
+                attr="parse_id_to_string",
+                analyzer=autocomplete,
+                search_analyzer="standard",
+            ),
             'title': TextField(
                 analyzer=autocomplete,
                 search_analyzer="standard",
