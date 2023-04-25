@@ -4,7 +4,7 @@ from rest_framework import status as status_codes
 from utility.request_utilities import RequestUtilities
 from utility.response_utilities import ResponseUtilities
 from utility.exception_utilities import InvalidHeaderException, CustomException
-from .constants import CHATROOM_SEARCHABLE_FIELDS, CHATROOM_FIELD_HEADER
+from .constants import CHATROOM_SEARCHABLE_FIELDS, CHATROOM_FIELD_HEADER, CHATROOM_FIELD_ID, CHATROOM_FIELD_ID_STRING
 from .constants import MEMBER_DIRECTORY_SEARCHABLE_FIELDS, MEMBER_DIRECTORY_FIELD_NAME, MEMBER_DIRECTORY_ORDER_BY_RECENT, MEMBER_DIRECTORY_ORDER_BY_FIELDS
 
 # ------------  do not remove these imports --------------
@@ -36,8 +36,8 @@ class ChatroomSearchView(APIView):
         search_term = request.GET.get('search')
         search_field = request.GET.get('search_type', CHATROOM_FIELD_HEADER)
 
-        if search_field.lower() == 'chatroom_id':
-            search_field = 'chatroom_id_string'
+        if search_field.lower() == CHATROOM_FIELD_ID:
+            search_field = CHATROOM_FIELD_ID_STRING
 
         if search_field.lower() not in CHATROOM_SEARCHABLE_FIELDS:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid search type!',
