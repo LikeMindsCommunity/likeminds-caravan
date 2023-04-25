@@ -530,11 +530,9 @@ class SearchImpl(SearchManager):
             if hit['custom_title'] and not hit['custom_title'] == 'Member':
                 member_introduction_dict['custom_title'] = hit['custom_title']
 
-            if 'client_user_unique_id' in hit and hit['client_user_unique_id'] is not None:
-                member_introduction_dict['client_user_unique_id'] = hit['client_user_unique_id']
+            member_introduction_dict['client_user_unique_id'] = hit['client_user_unique_id'] if 'client_user_unique_id' in hit else None
 
-            if 'user_unique_id' in hit:
-                member_introduction_dict['user_unique_id'] = hit['user_unique_id']
+            member_introduction_dict['user_unique_id'] = hit['user_unique_id'] if 'user_unique_id' in hit else None
 
             members_list.append(member_introduction_dict)
 
