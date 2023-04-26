@@ -8730,6 +8730,7 @@ def members_state(request, req_dict=None):
 
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
 
     community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
     user_instance = ModelUtilities.get_user_instance_or_none(member_id)
@@ -8811,7 +8812,8 @@ def members_state(request, req_dict=None):
     json_response['member']['state'] = state
     json_response['member']['is_owner'] = is_owner
 
-    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights)
+    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights,
+                                                     sdk_source)
 
     if custom_title:
         json_response['member']['custom_title'] = custom_title
@@ -11415,6 +11417,7 @@ def fetch_community_member_rights(request):
     api_key = RequestUtilities.get_api_key_from_headers(request)
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -11447,7 +11450,8 @@ def fetch_community_member_rights(request):
     admin = Members.objects.filter(member_id=current_user_instance,
                                    community_id=community_instance, state=member_states.ADMIN)  # who is viewing
 
-    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights)
+    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights,
+                                                     sdk_source)
 
     if admin.exists():
         admin_rights = check_all_manager_rights(current_user_instance, community_instance)

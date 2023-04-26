@@ -121,6 +121,10 @@ class RequestUtilities:
         return request.META.get('HTTP_X_API_KEY')
 
     @staticmethod
+    def get_sdk_source_from_headers(request: object) -> str:
+        return request.META.get('HTTP_X_SDK_SOURCE', None)
+
+    @staticmethod
     def load_request_body(request):
 
         try:
