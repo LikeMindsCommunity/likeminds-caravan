@@ -369,7 +369,7 @@ class VersionUtilities:
 
     @staticmethod
     def check_version(platform_code: str, version_code: int, feature_version_dict: dict,
-                      sdk_source: str) -> bool:
+                      sdk_source: str = None) -> bool:
         """
         returns True if,
           version code >= feature_version_code for the given platform
