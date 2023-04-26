@@ -246,6 +246,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'x-member-id',
     'x-platform-code',
     'x-version-code',
+    'x-sdk-source',
     'x-username',
     'x-password',
     'x-device-id',
@@ -371,4 +372,4 @@ FCM_TIMEOUT_SECONDS = 120
 
 MAX_INDEX_LENGTH_ELASTICSEARCH = 32765
 
-APP_VERSION = '1.24.0'
+APP_VERSION = '1.24.1'

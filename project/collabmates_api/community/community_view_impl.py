@@ -325,10 +325,10 @@ class FetchMembersMeta(APIView):
     def get(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
-        # Using get_platform_code instead of get_platform_code_with_sdk for FLUTTER support
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
-        
+        sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+
         community_id = request.GET.get('community_id')
         member_ids = request.GET.get('member_ids')
         search_name = request.GET.get('search_name', "")
@@ -340,7 +340,8 @@ class FetchMembersMeta(APIView):
 
         try:
             # Pagination & search support for newer versions
-            if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.members_meta_pagination_and_search):
+            if VersionUtilities.check_version(platform_code, version_code,
+                                              VersionUtilities.members_meta_pagination_and_search, sdk_source):
                 community_data = community_manager.fetch_members_meta_v2(member_ids, page, page_size, search_name)
 
             else:
