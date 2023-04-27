@@ -133,6 +133,7 @@ class Community(models.Model):
         community_instance.branding = community_object['branding']
         community_instance.is_whitelabel = community_object['is_whitelabel']
         community_instance.whitelabel_info = community_object['whitelabel_info']
+        community_instance.hide_dm_tab = community_object.get('hide_dm_tab', True)
         community_instance.save()
 
         return community_instance
