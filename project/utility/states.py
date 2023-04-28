@@ -659,9 +659,11 @@ api_types = APITypes()
 class NotificationStates:
     ALL_MESSAGES = 1
     ONLY_MENTIONS_AND_REPLIES = 2
+    DM_MENTION_REPLIES_POLL = 3
 
     ALL_MESSAGES_ANALYTICS = "all_messages"
     ONLY_MENTIONS_AND_REPLIES_ANALYTICS = "mentions_replies"
+    DM_MENTION_REPLIES_POLL_ANALYTICS = "dm_mention_replies_poll"
 
 
 noti_states = NotificationStates()

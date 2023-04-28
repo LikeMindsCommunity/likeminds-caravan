@@ -5376,8 +5376,11 @@ class ChatroomHelper:
         if noti_state == noti_states.ALL_MESSAGES:
             setting = noti_states.ALL_MESSAGES_ANALYTICS
 
-        else:
+        elif noti_state == noti_states.ONLY_MENTIONS_AND_REPLIES:
             setting = noti_states.ONLY_MENTIONS_AND_REPLIES_ANALYTICS
+
+        else:
+            setting = noti_states.DM_MENTION_REPLIES_POLL_ANALYTICS
 
         event_dict = {
             'chatroom_id': chatroom_id,
