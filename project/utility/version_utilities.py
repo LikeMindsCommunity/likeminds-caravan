@@ -84,7 +84,7 @@ class VersionUtilities:
     create_conversation_revamp: dict = {
         SdkSource.CHAT: {
             PlatformCode.ANDROID: 213,
-            PlatformCode.FLUTTER: unreleased_version_code,
+            PlatformCode.FLUTTER: 1,
             PlatformCode.IOS: 374,
             PlatformCode.REACT: unreleased_version_code,
             PlatformCode.REACT_NATIVE: unreleased_version_code,
