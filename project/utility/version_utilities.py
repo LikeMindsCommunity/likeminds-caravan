@@ -19,7 +19,9 @@ class VersionUtilities:
             if platform_code in [VersionUtilities.PlatformCode.IOS,
                                  VersionUtilities.PlatformCode.ANDROID,
                                  VersionUtilities.PlatformCode.WEB,
-                                 VersionUtilities.PlatformCode.REACT_NATIVE]:
+                                 VersionUtilities.PlatformCode.REACT_NATIVE,
+                                 VersionUtilities.PlatformCode.REACT,
+                                 VersionUtilities.PlatformCode.FLUTTER]:
                 platform_code = platform_code + '-sdk'
 
             return platform_code
