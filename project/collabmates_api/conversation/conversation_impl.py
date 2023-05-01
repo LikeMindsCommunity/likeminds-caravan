@@ -20,7 +20,7 @@ from .conversation_view_helper import ConversationViewHelper
 from .reactions import fetch_chatroom_or_conversation_reactions
 from ..chatroom import chatroom_impl
 from ..notification import send_notification_to_message_creator_on_reaction, get_tagged_members_list, \
-    send_notification_on_chatroom_topic_update
+    send_notification_on_chatroom_topic_update, send_poll_conversation_creation_notification_v1
 from ..notifications.tasks import send_communication_when_chatroom_not_opened
 from ..member_community.member_community_impl import MemberCommunityImpl, MemberCommunityHelper
 from ..raw_queries import activate_chatroom_on_conversation_creation, \
@@ -2304,13 +2304,12 @@ class ConversationHelper:
     @staticmethod
     def _send_conversation_creation_notifications(user_instance, chatroom_instance, conversation_instance, has_files):
 
-        """
         is_poll_conversation = (conversation_instance.state == conversation_states.CONVERSATION_POLL)
 
         if is_poll_conversation:
-            send_poll_conversation_creation_notification.delay(conversation_instance.card_id,
-                                                               conversation_instance.user_id, conversation_instance.id)
-        """
+            send_poll_conversation_creation_notification_v1.delay(conversation_instance.card_id,
+                                                                  conversation_instance.user_id,
+                                                                  conversation_instance.id)
 
         update_chatroom_for_users_and_send_follow_notification.delay(chatroom_instance.id,
                                                                      user_instance.id,

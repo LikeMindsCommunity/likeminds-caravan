@@ -54,7 +54,10 @@ class ApiLogger(MiddlewareMixin):
             'protocol': request_headers.get('SERVER_PROTOCOL', ''),
             'user_agent': request_headers.get('HTTP_USER_AGENT', ''),
             'platform_code': request_headers.get('HTTP_X_PLATFORM_CODE', ''),
-            'version_code': request_headers.get('HTTP_X_VERSION_CODE', '')
+            'version_code': request_headers.get('HTTP_X_VERSION_CODE', ''),
+            'sdk_source' : request_headers.get('HTTP_X_SDK_SOURCE', ''),
+            'accept_version': request_headers.get('HTTP_X_ACCEPT_VERSION', ''),
+            'device_id': request_headers.get('HTTP_X_DEVICE_ID', ''),
         }
 
         return headers_dict

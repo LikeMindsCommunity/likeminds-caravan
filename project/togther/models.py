@@ -985,9 +985,10 @@ class conversationEventNudge(models.Model):
 
 class collabcardState(models.Model):
 
-    NOTI_STATE_CHOICES = NOTI_STATE_CHOICES = (
-        (1,1),
-        (2,2)
+    NOTI_STATE_CHOICES = (
+        (1, 1),
+        (2, 2),
+        (3, 3)
     )
 
     card = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
@@ -1026,7 +1027,7 @@ class collabcardState(models.Model):
         default=noti_states.ALL_MESSAGES,
         choices=NOTI_STATE_CHOICES,
         help_text=_(
-            '1 - All messages, 2 - Only @mentions and replies'
+            '1 - All messages, 2 - Only @mentions and replies, 3 - DM, Mentions, Replies and Poll'
         )
     )
     is_noti_paused = models.BooleanField(default=False)
@@ -3472,8 +3473,9 @@ class ScheduledChatroomFollow(models.Model):
 class CommunityNotificationSettings(models.Model):
 
     NOTI_STATE_CHOICES = (
-        (1,1),
-        (2,2)
+        (1, 1),
+        (2, 2),
+        (3, 3)
     )
 
     id = models.UUIDField(default=uuid.uuid4, primary_key=True)
