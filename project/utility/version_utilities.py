@@ -18,7 +18,8 @@ class VersionUtilities:
         def convert_platform_code_to_sdk(platform_code):
             if platform_code in [VersionUtilities.PlatformCode.IOS,
                                  VersionUtilities.PlatformCode.ANDROID,
-                                 VersionUtilities.PlatformCode.WEB]:
+                                 VersionUtilities.PlatformCode.WEB,
+                                 VersionUtilities.PlatformCode.REACT_NATIVE]:
                 platform_code = platform_code + '-sdk'
 
             return platform_code
