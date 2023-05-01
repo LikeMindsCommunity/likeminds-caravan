@@ -3249,6 +3249,71 @@ def send_poll_conversation_creation_notification(card_id, poll_conversation_crea
 
 
 @shared_task
+def send_poll_conversation_creation_notification_v1(card_id, poll_conversation_creator_id, conversation_id):
+    card_instance = Collabcard.get_chatroom_or_None(card_id)
+
+    if not card_instance:
+        return
+
+    print("poll conversation notification", card_instance)
+
+    community_instance = card_instance.community
+
+    userinfo_instance = Userinfo.objects.filter(user_id=poll_conversation_creator_id)
+
+    if not userinfo_instance:
+        return
+
+    print("userinfo poll conversation", userinfo_instance)
+
+    current_time = TimeUtilities.current_time_in_milliseconds()
+
+    filter_dict = {
+        "card": card_instance,
+        "remove": None,
+        "follow_status": True,
+        "mute_status": False
+    }
+
+    collabcardstate_user_ids = list(ModelUtilities.get_model_filter(collabcardState, filter_dict).filter(
+        noti_state__in=[noti_states.ALL_MESSAGES, noti_states.DM_MENTION_REPLIES_POLL]).filter(
+        Q(is_noti_paused=False) | (Q(is_noti_paused=True) & Q(unpause_noti_at__lte=current_time))
+    ).values_list("user_id", flat=True))
+
+    member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                              'member_id__in': collabcardstate_user_ids})
+
+    notification_list = []
+
+    message = {
+        'payload': {
+            'title': "Time to vote",
+            'sub_title': POLL_CONVERSATION_SUBTITLE % (userinfo_instance[0].name, card_instance.header,
+                                                       community_instance.name),
+            'route': POLL_CONVERSATION_ROUTE % (community_instance.id, card_instance.id, conversation_id)
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.CHATROOM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.MICRO_POLL_CREATED
+        }
+    }
+
+    for member in member_filter:
+
+        if member.member_id_id == poll_conversation_creator_id:
+            continue
+
+        temp = {
+            'id': member.member_id_id
+        }
+
+        notification_list.append(temp)
+
+    message = TasksHelper.add_community_info_to_notification_payload(message, community_instance.id)
+    notification_meta(notification_list, message)
+
+
+@shared_task
 def send_notification_for_auto_follow_chatroom_for_all_members(chatroom_id, cm_id, user_ids):
     notification_list = []
 
