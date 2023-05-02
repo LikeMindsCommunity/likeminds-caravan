@@ -15,7 +15,7 @@ from .view_chatroom_impl import (FetchChatroomView, CreateChatroomView, PinUnpin
                                  RemoveCohortFromChatroomView, AddCohortToChatroomView, FetchChatroomParticipantsView,
                                  PublishEventWebflowView, FetchUserAllEventsMeta, ChangeChatroomTypeView,
                                  CreateDMChatroomView, BlockMemberView, RequestDMView, ScheduledChatroomFollow,
-                                 ChatroomNotificationSettings, ChatroomParticipants, ChatroomInvites, ChatroomSettings)
+                                 ChatroomNotificationSettings, ChatroomParticipants, ChatroomInvites, ChatroomSettings, ChatroomUserSettings)
 
 urlpatterns = [
     path('fetch', FetchChatroomView.as_view(), name="fetch_chatroom"),
@@ -72,5 +72,6 @@ urlpatterns = [
     path('notification_settings', ChatroomNotificationSettings.as_view(), name='notifications_settings'),
     path('participants', ChatroomParticipants.as_view(), name='chatroom_participants'),
     path('invites', ChatroomInvites.as_view(), name="chatroom_invites"),
-    path('settings', ChatroomSettings.as_view(), name="chatroom_settings")
+    path('settings', ChatroomSettings.as_view(), name="chatroom_settings"),
+    path(':chatroom_id/settings/member/:member_id', ChatroomUserSettings.as_view(), name="chatroom_user_settings"),
 ]

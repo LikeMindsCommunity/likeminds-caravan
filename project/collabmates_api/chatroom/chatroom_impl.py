@@ -24,6 +24,7 @@ from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_P
     SUB_TITLE_FOR_NO_PAST_EVENTS_FOUND, FIRST_EVENT_CM_MAIL_SUBJECT, FIRST_EVENT_CM_MAIL_BUTTON_TEXT, \
     FIRST_EVENT_CM_REPLY_EMAIL, DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR, CHATROOM_URL_WITH_COMMUNITY_ID, \
     DM_CHATROOM_NAME, CHATROOM_NOTIFICATION_PAUSE_EVENT, CHATROOM_NOTIFICATION_SETTING_UPDATED_EVENT , \
+    CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE, CHATROOM_USER_SETTINGS, \
     PauseChatroomNotificationTime
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
@@ -74,7 +75,7 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment,
                             EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember, removedMembers,
                             CommunityGetStarted, EventRecordingsURL, ChatroomSecretTypeConversion,
-                            ScheduledChatroomFollow, CommunitySettings, ChatroomInvite)
+                            ScheduledChatroomFollow, CommunitySettings, ChatroomInvite, UserChannelSettings)
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.webflow.webflow_impl import WebflowImpl
@@ -3934,6 +3935,51 @@ class ChatroomImpl(ChatroomManager):
                 ChatroomHelper.update_tag_only_participants_chatroom_setting.delay(chatroom_instance.id, is_selected)
 
         return {'success': True}
+    
+    def get_chatroom_user_settings(self, user_id, setting_types) -> dict:
+
+        # Validate request and get instances
+        validated_req = ChatroomHelper.validate_chatroom_user_settings_request( user_id = user_id,
+                                                                                api_key = self.get_api_key(),
+                                                                                chatroom_id = self.get_chatroom_id(),
+                                                                                setting_types = setting_types)
+        
+        # If any error occured, return Bad Request resposne
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+        
+        chatroom_instance = validated_req.get('chatroom_instance')
+        user_instance = validated_req.get('user_instance')
+        member_instance = validated_req.get('member_instance')
+
+        # Get User Channel settings
+        user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
+                                                                {'member': member_instance,
+                                                                'chatroom': chatroom_instance}).values_list('setting_type', flat=True)
+
+        # Create chatroom user settings if not present 
+        for setting_type in setting_types:
+            if setting_type not in user_settings_list:
+                user_channel_settings_instance = UserChannelSettings(member=member_instance,
+                                                                    chatroom=chatroom_instance,
+                                                                    setting_type=setting_type,
+                                                                    enabled=False)
+                
+                user_channel_settings_instance.save()
+        
+        # Get chatroom user settings
+        user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
+                                                            {'member': member_instance,
+                                                            'chatroom': chatroom_instance})
+        
+    
+        
+
+
+
+        return "success"
+
 
 
 class ChatroomHelper:
@@ -5757,6 +5803,60 @@ class ChatroomHelper:
             'user_instance': user_instance,
             'chatroom_instance': chatroom_instance
         }
+    
+    @staticmethod
+    def validate_chatroom_user_settings_request(user_id, api_key, member_id, chatroom_id, setting_types):
+        """
+            This method validates chatroom user settings requests and returns user, community, chatroom and member instances
+        """    
+
+        # Validate setting_types
+        if not setting_types or isinstance(setting_types, list):
+            return ResponseUtilities.get_inner_error_context('Invalid setting types!')
+        
+        # Check if correct setting_types are passed
+        for setting_type in setting_types:
+            if setting_type.lower() not in CHATROOM_USER_SETTINGS:
+                return ResponseUtilities.get_inner_error_context('Invalid setting types!')
+            
+        # Get user and community instances
+        validation_params = {
+        'community_id': {
+            'api_key': api_key
+            },
+        'user_id': user_id,
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        # If any error occured while getting user or community instance, return error
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        community_instance = validated_dict.get('community_id')
+        user_instance = validated_dict.get('user_id')
+
+        chatroom_instance = ModelUtilities.get_model_filter(Collabcard, chatroom_id)
+        if not chatroom_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid chatroom_id!')
+
+        member_instance = ModelUtilities.get_user_instance_or_none(member_id, community_instance.id)
+        if not member_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid member_uuid!')
+        
+        # If user_instance not equal to member_instance and user is not ADMIN
+        if user_instance != member_instance and not Members.is_member_community_promoter(community_instance, user_instance):
+            return ResponseUtilities.get_inner_error_context('You are not authorized to peform this action!')
+
+        validated_dict = {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'chatroom_instance': chatroom_instance,
+            'member_instance': member_instance,
+        }
+
+        return validated_dict
+            
 
     @staticmethod
     @shared_task
