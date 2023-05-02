@@ -12171,6 +12171,8 @@ def fetch_community_setting_rights(request):
     user_id = request.GET.get('user_id', None)
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+
 
     can_show = False
 
@@ -12179,7 +12181,7 @@ def fetch_community_setting_rights(request):
 
     is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code)
 
-    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights)
+    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights, sdk_source)
 
     if is_m2cm_v2:
         can_show = False
