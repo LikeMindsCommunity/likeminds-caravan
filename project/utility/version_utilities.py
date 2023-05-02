@@ -18,7 +18,10 @@ class VersionUtilities:
         def convert_platform_code_to_sdk(platform_code):
             if platform_code in [VersionUtilities.PlatformCode.IOS,
                                  VersionUtilities.PlatformCode.ANDROID,
-                                 VersionUtilities.PlatformCode.WEB]:
+                                 VersionUtilities.PlatformCode.WEB,
+                                 VersionUtilities.PlatformCode.REACT_NATIVE,
+                                 VersionUtilities.PlatformCode.REACT,
+                                 VersionUtilities.PlatformCode.FLUTTER]:
                 platform_code = platform_code + '-sdk'
 
             return platform_code
@@ -32,14 +35,14 @@ class VersionUtilities:
     group_tags: dict = {
         SdkSource.CHAT: {
             PlatformCode.ANDROID: unreleased_version_code,
-            PlatformCode.FLUTTER: 2,
+            PlatformCode.FLUTTER: unreleased_version_code,
             PlatformCode.IOS: 367,
             PlatformCode.REACT: unreleased_version_code,
             PlatformCode.REACT_NATIVE: unreleased_version_code,
             PlatformCode.WEB: unreleased_version_code,
 
             PlatformCode.ANDROID_SDK: 202,
-            PlatformCode.FLUTTER_SDK: 2,
+            PlatformCode.FLUTTER_SDK: 1,
             PlatformCode.IOS_SDK: 362,
             PlatformCode.REACT_SDK: 22,
             PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
@@ -47,7 +50,7 @@ class VersionUtilities:
         },
         SdkSource.FEED: {
             PlatformCode.ANDROID_SDK: unreleased_version_code,
-            PlatformCode.FLUTTER_SDK: unreleased_version_code,
+            PlatformCode.FLUTTER_SDK: 2, 
             PlatformCode.IOS_SDK: unreleased_version_code,
             PlatformCode.REACT_SDK: unreleased_version_code,
             PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
@@ -58,17 +61,17 @@ class VersionUtilities:
     create_chatroom_revamp: dict = {
         SdkSource.CHAT: {
             PlatformCode.ANDROID: unreleased_version_code,
-            PlatformCode.FLUTTER: 1,
+            PlatformCode.FLUTTER: unreleased_version_code,
             PlatformCode.IOS: unreleased_version_code,
             PlatformCode.REACT: unreleased_version_code,
-            PlatformCode.REACT_NATIVE: 1,
+            PlatformCode.REACT_NATIVE: unreleased_version_code,
             PlatformCode.WEB: 14,
 
             PlatformCode.ANDROID_SDK: 207,
-            PlatformCode.FLUTTER_SDK: 1,
+            PlatformCode.FLUTTER_SDK: unreleased_version_code,
             PlatformCode.IOS_SDK: unreleased_version_code,
             PlatformCode.REACT_SDK: 14,
-            PlatformCode.REACT_NATIVE_SDK: 1,
+            PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
             PlatformCode.WEB_SDK: 14,
         },
         SdkSource.FEED: {
@@ -91,7 +94,7 @@ class VersionUtilities:
             PlatformCode.WEB: 16,
 
             PlatformCode.ANDROID_SDK: 207,
-            PlatformCode.FLUTTER_SDK: unreleased_version_code,
+            PlatformCode.FLUTTER_SDK: 1,
             PlatformCode.IOS_SDK: 372,
             PlatformCode.REACT_SDK: 21,
             PlatformCode.REACT_NATIVE_SDK: 4,
@@ -120,7 +123,7 @@ class VersionUtilities:
             PlatformCode.FLUTTER_SDK: unreleased_version_code,
             PlatformCode.IOS_SDK: unreleased_version_code,
             PlatformCode.REACT_SDK: 15,
-            PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+            PlatformCode.REACT_NATIVE_SDK: 7,
             PlatformCode.WEB_SDK: 15,
         },
         SdkSource.FEED: {
@@ -136,7 +139,7 @@ class VersionUtilities:
     participants_meta_pagination: dict = {
         SdkSource.CHAT: {
             PlatformCode.ANDROID: 214,
-            PlatformCode.FLUTTER: 1,
+            PlatformCode.FLUTTER: unreleased_version_code, 
             PlatformCode.IOS: 373,
             PlatformCode.REACT: unreleased_version_code,
             PlatformCode.REACT_NATIVE: 1,
@@ -162,14 +165,14 @@ class VersionUtilities:
     members_meta_pagination_and_search: dict = {
         SdkSource.CHAT: {
             PlatformCode.ANDROID: unreleased_version_code,
-            PlatformCode.FLUTTER: 2,
+            PlatformCode.FLUTTER: unreleased_version_code,
             PlatformCode.IOS: unreleased_version_code,
             PlatformCode.REACT: unreleased_version_code,
             PlatformCode.REACT_NATIVE: unreleased_version_code,
             PlatformCode.WEB: unreleased_version_code,
 
             PlatformCode.ANDROID_SDK: unreleased_version_code,
-            PlatformCode.FLUTTER_SDK: 2,
+            PlatformCode.FLUTTER_SDK: unreleased_version_code,
             PlatformCode.IOS_SDK: unreleased_version_code,
             PlatformCode.REACT_SDK: unreleased_version_code,
             PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
@@ -188,17 +191,17 @@ class VersionUtilities:
     invite_settings: dict = {
         SdkSource.CHAT: {
             PlatformCode.ANDROID: 190,
-            PlatformCode.FLUTTER: 1,
+            PlatformCode.FLUTTER: unreleased_version_code,
             PlatformCode.IOS: 360,
             PlatformCode.REACT: unreleased_version_code,
-            PlatformCode.REACT_NATIVE: 1,
+            PlatformCode.REACT_NATIVE: unreleased_version_code,
             PlatformCode.WEB: unreleased_version_code,
 
             PlatformCode.ANDROID_SDK: 190,
-            PlatformCode.FLUTTER_SDK: 1,
+            PlatformCode.FLUTTER_SDK: unreleased_version_code,
             PlatformCode.IOS_SDK: 360,
             PlatformCode.REACT_SDK: unreleased_version_code,
-            PlatformCode.REACT_NATIVE_SDK: 1,
+            PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
             PlatformCode.WEB_SDK: unreleased_version_code,
         },
         SdkSource.FEED: {
@@ -214,22 +217,22 @@ class VersionUtilities:
     feed_member_rights: dict = {
         SdkSource.CHAT: {
             PlatformCode.ANDROID: unreleased_version_code,
-            PlatformCode.FLUTTER: 1,
+            PlatformCode.FLUTTER: unreleased_version_code, 
             PlatformCode.IOS: unreleased_version_code,
             PlatformCode.REACT: unreleased_version_code,
             PlatformCode.REACT_NATIVE: unreleased_version_code,
             PlatformCode.WEB: unreleased_version_code,
 
             PlatformCode.ANDROID_SDK: unreleased_version_code,
-            PlatformCode.FLUTTER_SDK: 1,
+            PlatformCode.FLUTTER_SDK: unreleased_version_code, 
             PlatformCode.IOS_SDK: unreleased_version_code,
-            PlatformCode.REACT_SDK: 15,
+            PlatformCode.REACT_SDK: unreleased_version_code,
             PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
             PlatformCode.WEB_SDK: 15,
         },
         SdkSource.FEED: {
             PlatformCode.ANDROID_SDK: 2,
-            PlatformCode.FLUTTER_SDK: unreleased_version_code,
+            PlatformCode.FLUTTER_SDK: 1, 
             PlatformCode.IOS_SDK: unreleased_version_code,
             PlatformCode.REACT_SDK: unreleased_version_code,
             PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
@@ -376,14 +379,17 @@ class VersionUtilities:
         returns False for all other cases
         """
 
-        if not sdk_source:
-            sdk_source = VersionUtilities.SdkSource.CHAT
-
         if not type(version_code) == int:
             return False
 
         if not type(platform_code) == str:
             return False
+        
+        if not sdk_source:
+            if platform_code in [VersionUtilities.PlatformCode.FLUTTER_SDK, VersionUtilities.PlatformCode.FLUTTER]:
+                sdk_source = VersionUtilities.SdkSource.FEED   
+            else:     
+                sdk_source = VersionUtilities.SdkSource.CHAT
 
         if not type(sdk_source) == str:
             return False

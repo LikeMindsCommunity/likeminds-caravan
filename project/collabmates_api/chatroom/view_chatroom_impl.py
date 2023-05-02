@@ -210,11 +210,12 @@ class GetTaggingList(APIView):
         page_size = RequestUtilities.get_page_size(request, default=50)
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id)
 
         try:
-            if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.group_tags):
+            if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.group_tags, sdk_source):
                 chatroom_data = chatroom_manager.get_tagging_list(search_name, page=page, page_size=page_size)
 
             else:
@@ -300,12 +301,14 @@ class FetchParticipantsOfSecretChatroom(APIView):
         participant_name = request.GET.get('participant_name')
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, request_platform=platform_code,
-                                        version_code=version_code)
+                                        version_code=version_code, sdk_source=sdk_source)
 
         pagination_version_check = VersionUtilities.check_version(platform_code, version_code,
-                                                                  VersionUtilities.participants_meta_pagination)
+                                                                  VersionUtilities.participants_meta_pagination,
+                                                                  sdk_source)
 
         if not pagination_version_check:
             page, page_size = None, None
@@ -1022,12 +1025,15 @@ class FetchChatroomParticipantsView(APIView):
         participant_name = request.GET.get('participant_name')
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, request_platform=platform_code,
-                                        version_code=version_code)
+                                        version_code=version_code, sdk_source=sdk_source)
 
         pagination_version_check = VersionUtilities.check_version(platform_code, version_code,
-                                                                  VersionUtilities.participants_meta_pagination)
+                                                                  VersionUtilities.participants_meta_pagination,
+                                                                  sdk_source)
 
         if not pagination_version_check:
             page, page_size = None, None

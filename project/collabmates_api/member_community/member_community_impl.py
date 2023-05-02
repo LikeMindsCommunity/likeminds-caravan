@@ -2595,7 +2595,16 @@ class MemberCommunityHelper:
             chat_request_state=None)
 
         if card_state_filter.count() >= community_dm_settings_instance.number_in_duration:
-            return {'is_request_dm_limit_exceeded': True, 'new_request_dm_timestamp': end_epoch_time, 'success': True}
+            limit_response = {
+                'is_request_dm_limit_exceeded': True,
+                'new_request_dm_timestamp': end_epoch_time,
+                'success': True
+            }
+
+            if response.get('chatroom_id'):
+                limit_response['chatroom_id'] = response.get('chatroom_id')
+
+            return limit_response
 
         return response
 

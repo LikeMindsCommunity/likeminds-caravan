@@ -4985,8 +4985,24 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
         if card_state_filter:
             card_state_instance = card_state_filter[0]
 
-        if card_state_instance and (card_state_instance.chat_request_state != chat_request_states.REJECTED):
+        if not card_state_instance:
+            return dm_chatroom_actions
+
+        if card_state_instance.chat_request_state not in [chat_request_states.ACCEPTED, chat_request_states.REJECTED]:
+            return dm_chatroom_actions
+
+        if isinstance(current_user_instance, User):
+            current_user_id = current_user_instance.id
+
+        else:
+            current_user_id = current_user_instance
+
+        if card_state_instance.chat_request_state != chat_request_states.REJECTED:
             dm_chatroom_actions.append(block_member_chatroom)
+
+        elif current_user_instance and (card_state_instance.chat_request_state == chat_request_states.REJECTED) and \
+                (card_state_instance.chat_requested_by_id == current_user_id):
+            dm_chatroom_actions.append(unblock_member)
 
         return dm_chatroom_actions
 
@@ -12155,6 +12171,8 @@ def fetch_community_setting_rights(request):
     user_id = request.GET.get('user_id', None)
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+
 
     can_show = False
 
@@ -12163,7 +12181,7 @@ def fetch_community_setting_rights(request):
 
     is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code)
 
-    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights)
+    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights, sdk_source)
 
     if is_m2cm_v2:
         can_show = False

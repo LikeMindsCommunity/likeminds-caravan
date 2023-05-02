@@ -650,11 +650,10 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
                                             "action_taken_tag", "community", "collabcard",
                                             "conversation").filter(community=community_id).exclude(type=3).order_by("-id")
 
-    # no once can see those reports which are reported on himself
-    reports = reports.exclude(user_reported__id=user_id)
     if not is_owner:
-
-        reports = reports.exclude(user_reported__id__in=parent_cm_list)
+    
+        # remove reports of parent cms and self reports
+        reports = reports.exclude(user_reported__id__in=parent_cm_list).exclude(user_reported__id=user_id)
         if has_right_0 and not has_right_1 and not has_right_2:
             # if user has only right 0
             reports = reports.exclude(type=0)
