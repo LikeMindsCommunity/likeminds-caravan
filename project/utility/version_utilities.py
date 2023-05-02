@@ -393,6 +393,13 @@ class VersionUtilities:
 
         if not type(sdk_source) == str:
             return False
+        
+        if not sdk_source:
+            if sdk_source in [VersionUtilities.PlatformCode.FLUTTER_SDK, VersionUtilities.PlatformCode.FLUTTER]:
+                sdk_source = VersionUtilities.SdkSource.FEED   
+            else:     
+                sdk_source = VersionUtilities.SdkSource.CHAT
+
 
 
         if not feature_version_dict.get(sdk_source, None):
