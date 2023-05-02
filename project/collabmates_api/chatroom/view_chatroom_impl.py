@@ -304,7 +304,7 @@ class FetchParticipantsOfSecretChatroom(APIView):
         sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, request_platform=platform_code,
-                                        version_code=version_code, sdk_source= sdk_source)
+                                        version_code=version_code, sdk_source=sdk_source)
 
         pagination_version_check = VersionUtilities.check_version(platform_code, version_code,
                                                                   VersionUtilities.participants_meta_pagination,
