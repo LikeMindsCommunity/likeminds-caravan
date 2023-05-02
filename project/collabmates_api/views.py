@@ -4998,9 +4998,6 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
             current_user_id = current_user_instance
 
         if card_state_instance.chat_request_state != chat_request_states.REJECTED:
-            pass
-
-        if card_state_instance.chat_request_state != chat_request_states.REJECTED:
             dm_chatroom_actions.append(block_member_chatroom)
 
         elif current_user_instance and (card_state_instance.chat_request_state == chat_request_states.REJECTED) and \
