@@ -133,7 +133,7 @@ class ChatroomImpl(ChatroomManager):
     request_platform = None
 
     def __init__(self, member_id: str, chatroom_id: str = None, source_id: str = None, aj: str = None,
-                 device_id: str = None, request_platform: str = None, version_code: int = 0, api_key: str = None):
+                 device_id: str = None, request_platform: str = None, version_code: int = 0, api_key: str = None, sdk_source: str = None):
         self.member_id = member_id
         self.chatroom_id = chatroom_id
         self.source_id = source_id
@@ -142,6 +142,7 @@ class ChatroomImpl(ChatroomManager):
         self.request_platform = request_platform
         self.version_code = version_code
         self.api_key = api_key
+        self.sdk_source = sdk_source
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -172,7 +173,10 @@ class ChatroomImpl(ChatroomManager):
 
     def get_request_platform(self):
         return self.request_platform
-
+    
+    def get_sdk_source(self):
+        return self.sdk_source
+    
     def get_device_id(self):
         return self.device_id
 
@@ -1801,7 +1805,8 @@ class ChatroomImpl(ChatroomManager):
 
             pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
                                                                       self.get_version_code(),
-                                                                      VersionUtilities.participants_meta_pagination)
+                                                                      VersionUtilities.participants_meta_pagination,
+                                                                      self.get_sdk_source())
 
             order_by_name = False
 
@@ -2929,7 +2934,8 @@ class ChatroomImpl(ChatroomManager):
 
         pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
                                                                   self.get_version_code(),
-                                                                  VersionUtilities.participants_meta_pagination)
+                                                                  VersionUtilities.participants_meta_pagination,
+                                                                  self.get_sdk_source())
 
         order_by_name = False
 
