@@ -384,16 +384,15 @@ class VersionUtilities:
 
         if not type(platform_code) == str:
             return False
-
-        if not type(sdk_source) == str:
-            return False
         
         if not sdk_source:
-            if sdk_source in [VersionUtilities.PlatformCode.FLUTTER_SDK, VersionUtilities.PlatformCode.FLUTTER]:
+            if platform_code in [VersionUtilities.PlatformCode.FLUTTER_SDK, VersionUtilities.PlatformCode.FLUTTER]:
                 sdk_source = VersionUtilities.SdkSource.FEED   
             else:     
                 sdk_source = VersionUtilities.SdkSource.CHAT
 
+        if not type(sdk_source) == str:
+            return False
 
         if not feature_version_dict.get(sdk_source, None):
             return False
