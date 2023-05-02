@@ -4985,17 +4985,25 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
         if card_state_filter:
             card_state_instance = card_state_filter[0]
 
+        if not card_state_instance:
+            return dm_chatroom_actions
+
+        if card_state_instance.chat_request_state not in [chat_request_states.ACCEPTED, chat_request_states.REJECTED]:
+            return dm_chatroom_actions
+
         if isinstance(current_user_instance, User):
             current_user_id = current_user_instance.id
 
         else:
             current_user_id = current_user_instance
 
-        if card_state_instance and (card_state_instance.chat_request_state != chat_request_states.REJECTED):
+        if card_state_instance.chat_request_state != chat_request_states.REJECTED:
+            pass
+
+        if card_state_instance.chat_request_state != chat_request_states.REJECTED:
             dm_chatroom_actions.append(block_member_chatroom)
 
-        elif card_state_instance and current_user_instance and \
-                (card_state_instance.chat_request_state == chat_request_states.REJECTED) and \
+        elif current_user_instance and (card_state_instance.chat_request_state == chat_request_states.REJECTED) and \
                 (card_state_instance.chat_requested_by_id == current_user_id):
             dm_chatroom_actions.append(unblock_member)
 
