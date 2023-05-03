@@ -2543,6 +2543,24 @@ def send_chatroom_updated_analytics_data(chatroom_id, user_id, update_dict):
     event_data.update(update_dict)
     SegmentImpl.track_event(user_id, "Chatroom updated (Core service)", event_data)
 
+@shared_task
+def update_user_chatroom_settings(chatroom_id: int = None, setting_type: str = None, enabled: bool = False):
+    chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id).first()
+
+    if not chatroom_instance:
+        return
+
+    filter_dict = {
+        'chatroom': chatroom_instance,
+        'setting_type': setting_type
+        }
+    
+    update_dict = {
+        'enabled': enabled
+        }
+
+    ModelUtilities.model_update(UserChannelSettings, filter_dict, update_dict)
+
 
 @shared_task
 def update_community_pin_chatrooms_list_in_cache(pin_info):

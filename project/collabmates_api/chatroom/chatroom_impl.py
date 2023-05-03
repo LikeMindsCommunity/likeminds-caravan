@@ -98,7 +98,7 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     fetch_conversations_unread, create_chatroom_cohort_instances, convert_chatroom_to_secret_chatroom, \
     convert_chatroom_to_open_chatroom, send_chatroom_creation_analytics_data, \
     send_participants_added_in_chatroom_analytics_data, send_chatroom_updated_analytics_data, \
-    initial_message_dm_chatroom, update_community_pin_chatrooms_list_in_cache
+    initial_message_dm_chatroom, update_community_pin_chatrooms_list_in_cache, update_user_chatroom_settings
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException, InvalidSecretChatroomParticipantsException)
 from utility.time_utilities import TimeUtilities
@@ -2590,6 +2590,10 @@ class ChatroomImpl(ChatroomManager):
             return {'success': False, 'error_message': "User can’t enable/disable member messaging setting option"}
 
         card_filter.update(member_can_message=value, updated_at=TimeUtilities.current_time_in_sec())
+
+        # Update user chatroom settings of all members if member_can_message is set to False
+        if value is False:
+            update_user_chatroom_settings.delay(self.get_chatroom_id(), CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE, False)
 
         send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(),
                                                    int(self.get_member_id()),
