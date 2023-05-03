@@ -2809,12 +2809,7 @@ class MemberCommunityHelper:
         members_can_dm_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
 
         if members_can_dm_filter and not members_can_dm_filter[0].enabled:
-            return {
-                'success': True,
-                'show_dm': True,
-                'cta': CTA_ROUTE_DIRECT_MESSAGES_DM_FEED_V2.format(community_instance.id,
-                                                                   DMFabShowList.ONLY_CM)
-            }
+            show_list_type = DMFabShowList.ONLY_CM
 
         else:
             member_can_dm_right_state = member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM
@@ -2823,19 +2818,16 @@ class MemberCommunityHelper:
                                                                             member_can_dm_right_state)
 
             if not user_has_dm_right:
-                return {
-                    'success': True,
-                    'show_dm': True,
-                    'cta': CTA_ROUTE_DIRECT_MESSAGES_DM_FEED_V2.format(community_instance.id,
-                                                                       DMFabShowList.ONLY_CM)
-                }
+                show_list_type = DMFabShowList.ONLY_CM
 
-            return {
-                'success': True,
-                'show_dm': True,
-                'cta': CTA_ROUTE_DIRECT_MESSAGES_DM_FEED_V2.format(community_instance.id,
-                                                                   DMFabShowList.ALL_MEMBERS)
-            }
+            else:
+                show_list_type = DMFabShowList.ALL_MEMBERS
+
+        return {
+            'success': True,
+            'show_dm': True,
+            'cta': CTA_ROUTE_DIRECT_MESSAGES_DM_FEED_V2.format(community_instance.id, show_list_type)
+        }
 
     @staticmethod
     def can_member_dm_from_dm_chatroom(user_instance, validated_request):
