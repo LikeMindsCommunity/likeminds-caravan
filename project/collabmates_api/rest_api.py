@@ -1544,3 +1544,21 @@ class ChatroomInviteSerializer(serializers.ModelSerializer):
                 data['invite_receiver'] = UserShortSerializer(instance.invite_receiver.userinfo, many=False).data
 
         return data
+
+class UserChannelSettingsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserChannelSettings
+        fields = ( 'chatroom_id', 'member_id', 'setting_type', 'enabled', 'changed_by_id',  'created_at', 'updated_at')
+
+    def to_representation(self, instance):
+        data = super(UserChannelSettingsSerializer, self).to_representation(instance)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if field.field_name == 'changed_by_id':
+                data['changed_by'] =  data['changed_by_id']
+                del data['changed_by_id']
+            
+        return data

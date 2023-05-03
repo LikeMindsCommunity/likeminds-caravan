@@ -42,7 +42,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, \
-    ScheduledChatroomFollowSerializer, ChatroomInviteSerializer
+    ScheduledChatroomFollowSerializer, ChatroomInviteSerializer, UserChannelSettingsSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
                            UserinfoSerializer, get_chatroom_instance, CollabcardSerializer)
 from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
@@ -106,6 +106,7 @@ from utility.number_utilities import NumberUtilities
 from collabmates_api.conversation import conversation_impl
 from utility.validation_utilities import ValidationUtilities
 from utility.auth_utilities import AuthUtilities
+from utility.string_utilities import StringUtilities
 
 from collabmates_api.branch import create_community_feed_url_for_cm_onboarding, create_single_event_branch_url
 
@@ -3936,13 +3937,60 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
     
-    def get_chatroom_user_settings(self, user_id, setting_types) -> dict:
+    def get_chatroom_user_settings(self, user_id: str, setting_types: list = None) -> dict:
 
         # Validate request and get instances
         validated_req = ChatroomHelper.validate_chatroom_user_settings_request( user_id = user_id,
                                                                                 api_key = self.get_api_key(),
+                                                                                member_id = self.get_member_id(),
+                                                                                chatroom_id = self.get_chatroom_id()
+                                                                              )
+        
+        # If any error occured, return Bad Request resposne
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+        
+        chatroom_instance = validated_req.get('chatroom_instance')
+        member_instance = validated_req.get('member_instance')
+
+        # Get User Channel settings
+        user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
+                                                                {'member': member_instance,
+                                                                 'chatroom': chatroom_instance})
+        
+        # Create `member_can_message` user settings if not present (for backfilling)
+        if not user_channel_settings:
+                user_channel_settings_instance = UserChannelSettings(member=member_instance,
+                                                                    chatroom=chatroom_instance,
+                                                                    setting_type=CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE,
+                                                                    enabled=False)
+                user_channel_settings_instance.save()
+
+                # Get updated User settings
+                user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
+                                                                {'member': member_instance,
+                                                                 'chatroom': chatroom_instance})
+        
+        # Filter by setting types if provided   
+        if setting_types:
+            user_channel_settings = user_channel_settings.filter(setting_type__in=setting_types)
+        
+        # Serialize User Channel settings
+        user_cannel_settings_data = UserChannelSettingsSerializer(user_channel_settings, many=True).data
+
+        # Return chatroom user settings
+        return {'success': True, 'channel_settings': user_cannel_settings_data} 
+
+    def update_chatroom_user_settings(self, user_id: str, chatroom_settings: list ) -> dict:
+
+        # Validate request and get instances
+        validated_req = ChatroomHelper.validate_chatroom_user_settings_request( user_id = user_id,
+                                                                                api_key = self.get_api_key(),
+                                                                                member_id = self.get_member_id(),
                                                                                 chatroom_id = self.get_chatroom_id(),
-                                                                                setting_types = setting_types)
+                                                                                update_settings = True
+                                                                                )
         
         # If any error occured, return Bad Request resposne
         if validated_req.get('error_message'):
@@ -3953,32 +4001,34 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req.get('user_instance')
         member_instance = validated_req.get('member_instance')
 
+        # Update User Channel settings based on request
+        for setting in chatroom_settings:
+            setting_type = setting.get('setting_type')
+            enabled = True if setting.get('enabled') == True else False
+
+            if setting_type == CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE:
+                filter_dict = {
+                    'member': member_instance,
+                    'chatroom': chatroom_instance,
+                    'setting_type': setting_type}
+                
+                update_dict = {
+                    'enabled': enabled,
+                    'changed_by': user_instance,
+                }
+
+                ModelUtilities.update_or_create_model(UserChannelSettings, filter_dict, update_dict)
+                
         # Get User Channel settings
         user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
                                                                 {'member': member_instance,
-                                                                'chatroom': chatroom_instance}).values_list('setting_type', flat=True)
-
-        # Create chatroom user settings if not present 
-        for setting_type in setting_types:
-            if setting_type not in user_settings_list:
-                user_channel_settings_instance = UserChannelSettings(member=member_instance,
-                                                                    chatroom=chatroom_instance,
-                                                                    setting_type=setting_type,
-                                                                    enabled=False)
-                
-                user_channel_settings_instance.save()
+                                                                 'chatroom': chatroom_instance})
         
-        # Get chatroom user settings
-        user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
-                                                            {'member': member_instance,
-                                                            'chatroom': chatroom_instance})
-        
-    
-        
+        # Serialize User Channel settings
+        user_cannel_settings_data = UserChannelSettingsSerializer(user_channel_settings, many=True).data
 
-
-
-        return "success"
+        # Return chatroom user settings
+        return {'success': True, 'channel_settings': user_cannel_settings_data} 
 
 
 
@@ -5805,20 +5855,11 @@ class ChatroomHelper:
         }
     
     @staticmethod
-    def validate_chatroom_user_settings_request(user_id, api_key, member_id, chatroom_id, setting_types):
+    def validate_chatroom_user_settings_request(user_id, api_key, member_id, chatroom_id, update_settings: bool = False):
         """
             This method validates chatroom user settings requests and returns user, community, chatroom and member instances
         """    
 
-        # Validate setting_types
-        if not setting_types or isinstance(setting_types, list):
-            return ResponseUtilities.get_inner_error_context('Invalid setting types!')
-        
-        # Check if correct setting_types are passed
-        for setting_type in setting_types:
-            if setting_type.lower() not in CHATROOM_USER_SETTINGS:
-                return ResponseUtilities.get_inner_error_context('Invalid setting types!')
-            
         # Get user and community instances
         validation_params = {
         'community_id': {
@@ -5836,16 +5877,22 @@ class ChatroomHelper:
         community_instance = validated_dict.get('community_id')
         user_instance = validated_dict.get('user_id')
 
-        chatroom_instance = ModelUtilities.get_model_filter(Collabcard, chatroom_id)
+        is_admin =  Members.is_member_community_promoter(community_instance, user_instance)
+    
+        chatroom_instance = ModelUtilities.get_model_filter(Collabcard,  {'id': chatroom_id}).first()
         if not chatroom_instance:
             return ResponseUtilities.get_inner_error_context('Invalid chatroom_id!')
 
         member_instance = ModelUtilities.get_user_instance_or_none(member_id, community_instance.id)
         if not member_instance:
             return ResponseUtilities.get_inner_error_context('Invalid member_uuid!')
-        
+         
         # If user_instance not equal to member_instance and user is not ADMIN
-        if user_instance != member_instance and not Members.is_member_community_promoter(community_instance, user_instance):
+        if user_instance != member_instance and not is_admin:
+            return ResponseUtilities.get_inner_error_context('You are not authorized to peform this action!')
+        
+        # Validate request for update request
+        if update_settings and not is_admin:
             return ResponseUtilities.get_inner_error_context('You are not authorized to peform this action!')
 
         validated_dict = {

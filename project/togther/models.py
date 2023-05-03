@@ -3563,7 +3563,7 @@ class UserChannelSettings(models.Model):
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     setting_type = models.CharField(max_length=255)
     enabled = models.BooleanField(default=True)
-    changed_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="changed_by")
+    changed_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name="changed_by")
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
