@@ -1399,6 +1399,9 @@ class ChatroomSettings(APIView):
 class ChatroomUserSettings(APIView):
 
     def _validate_request(self, member_id, api_key, req_params = None, req_body = None):
+        '''
+            Validates request parameters for Chatroom User Settings requests
+        '''
 
         setting_types = StringUtilities.get_list_from_string(req_params.get('setting_types') if req_params else None)
         channel_settings = req_body.get('channel_settings') if req_body else None
@@ -1436,7 +1439,7 @@ class ChatroomUserSettings(APIView):
 
         # Get user specific chatroom settings
         chatroom_manager = ChatroomImpl(member_id=member_uuid, chatroom_id=chatroom_id, api_key=api_key)
-        response_context = chatroom_manager.get_chatroom_user_settings(user_id = member_id, setting_types = setting_types)
+        response_context = chatroom_manager.get_chatroom_user_settings(user_id=member_id, setting_types=setting_types)
 
         # Return error response if any error occured
         if 'error_message' in response_context:

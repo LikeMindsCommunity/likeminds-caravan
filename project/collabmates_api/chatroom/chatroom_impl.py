@@ -3948,8 +3948,7 @@ class ChatroomImpl(ChatroomManager):
         
         # If any error occured, return Bad Request resposne
         if validated_req.get('error_message'):
-            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
-                                                            status_codes.HTTP_400_BAD_REQUEST)
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'), status_codes.HTTP_400_BAD_REQUEST)
         
         chatroom_instance = validated_req.get('chatroom_instance')
         member_instance = validated_req.get('member_instance')
@@ -3961,16 +3960,16 @@ class ChatroomImpl(ChatroomManager):
         
         # Create `member_can_message` user settings if not present (for backfilling)
         if not user_channel_settings:
-                user_channel_settings_instance = UserChannelSettings(member=member_instance,
-                                                                    chatroom=chatroom_instance,
-                                                                    setting_type=CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE,
-                                                                    enabled=False)
-                user_channel_settings_instance.save()
+            user_channel_settings_instance = UserChannelSettings(member=member_instance,
+                                                                chatroom=chatroom_instance,
+                                                                setting_type=CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE,
+                                                                enabled=False)
+            user_channel_settings_instance.save()
 
-                # Get updated User settings
-                user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
-                                                                {'member': member_instance,
-                                                                 'chatroom': chatroom_instance})
+            # Get updated User settings
+            user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
+                                                            {'member': member_instance,
+                                                            'chatroom': chatroom_instance})
         
         # Filter by setting types if provided   
         if setting_types:
@@ -3989,13 +3988,11 @@ class ChatroomImpl(ChatroomManager):
                                                                                 api_key = self.get_api_key(),
                                                                                 member_id = self.get_member_id(),
                                                                                 chatroom_id = self.get_chatroom_id(),
-                                                                                update_settings = True
-                                                                                )
+                                                                                update_settings = True)
         
         # If any error occured, return Bad Request resposne
         if validated_req.get('error_message'):
-            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
-                                                            status_codes.HTTP_400_BAD_REQUEST)
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'), status_codes.HTTP_400_BAD_REQUEST)
         
         chatroom_instance = validated_req.get('chatroom_instance')
         user_instance = validated_req.get('user_instance')
