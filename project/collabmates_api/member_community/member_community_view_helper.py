@@ -1,8 +1,8 @@
 from rest_framework import status as status_codes
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, Community, Collabcard)
+from togther.models import (ModelUtilities, Community, Collabcard, Members)
 from collabmates_api.sdk.models import (SdkClient)
-from utility.states import (dm_icon_from_states, unsubscribe_types)
+from utility.states import (dm_icon_from_states, unsubscribe_types, member_states)
 
 
 class MemberCommunityViewHelper:
@@ -83,10 +83,19 @@ class MemberCommunityViewHelper:
         if not member_instance:
             return ResponseUtilities.get_inner_error_context("Invalid member ID")
 
+        is_cm = Members.get_community_member_state(community_instance, user_instance) == member_states.ADMIN
+
+        if not is_cm:
+            is_one_user_cm = Members.get_community_member_state(community_instance, member_instance) == member_states.ADMIN
+
+        else:
+            is_one_user_cm = True
+
         return {
             'user_instance': user_instance,
             'community_instance': community_instance,
-            'member_instance': member_instance
+            'member_instance': member_instance,
+            'is_one_user_cm': is_one_user_cm
         }
 
     @staticmethod
@@ -123,7 +132,7 @@ class MemberCommunityViewHelper:
 
         if req_body.get('req_from') not in [dm_icon_from_states.MEMBER_PROFILE, dm_icon_from_states.COMMUNITY_DETAIL,
                                             dm_icon_from_states.DM_FEED, dm_icon_from_states.MEMBER_DIRECTORY,
-                                            dm_icon_from_states.CHATROOM]:
+                                            dm_icon_from_states.DM_FEED_V2, dm_icon_from_states.CHATROOM]:
             return ResponseUtilities.get_inner_error_context("Invalid req_from")
 
         member_instance = None

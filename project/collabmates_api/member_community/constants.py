@@ -56,6 +56,7 @@ CTA_ROUTE_DIRECT_MESSAGES = "route://direct_messages"
 CTA_ROUTE_DIRECT_MESSAGES_COMMUNITY_DETAIL_SINGLE_CM = "route://direct_messages?chatroom_id={}"
 CTA_ROUTE_DIRECT_MESSAGES_COMMUNITY_DETAIL_MULTIPLE_CM = "route://direct_messages?community_id={}"
 CTA_ROUTE_DIRECT_MESSAGES_DM_FEED = "route://direct_messages_member?community_id={}"
+CTA_ROUTE_DIRECT_MESSAGES_DM_FEED_V2 = "route://direct_messages_member?community_id={}&show_list={}"
 CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE = "route://direct_messages?chatroom_id={}&community_id={}"
 
 COMMUNITY_FEED_ACTIONS = {

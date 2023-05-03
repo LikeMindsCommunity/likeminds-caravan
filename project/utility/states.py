@@ -641,6 +641,7 @@ class DMIconFromStates:
     MEMBER_PROFILE = "member_profile"
     COMMUNITY_DETAIL = "community_detail"
     DM_FEED = "dm_feed"
+    DM_FEED_V2 = "dm_feed_v2"
     MEMBER_DIRECTORY = "member_directory"
     CHATROOM = "chatroom"
 
@@ -747,3 +748,8 @@ class ChatroomSettings:
 
 
 chatroom_setting_states = ChatroomSettings()
+
+
+class DMFabShowList:
+    ALL_MEMBERS = 1
+    ONLY_CM = 2
