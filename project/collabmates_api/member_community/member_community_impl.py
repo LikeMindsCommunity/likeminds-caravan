@@ -2782,22 +2782,21 @@ class MemberCommunityHelper:
 
     @staticmethod
     def can_member_from_dm_feed_v2(user_instance, community_instance):
+        response_dict = {
+            'success': True,
+            'show_dm': False
+        }
+
         dm_filter = ModelUtilities.get_model_filter(CommunitySettings,
                                                     {'community': community_instance,
                                                      'setting_type': community_setting_types.DIRECT_MESSAGES})
 
         if dm_filter and not dm_filter[0].enabled:
-            return {
-                'success': True,
-                'show_dm': False
-            }
+            return response_dict
 
         is_user_admin = Members.get_community_member_state(community_instance, user_instance) == member_states.ADMIN
 
-        response_dict = {
-            'success': True,
-            'show_dm': True,
-        }
+        response_dict['show_dm'] = True
 
         if is_user_admin:
             response_dict['cta'] = CTA_ROUTE_DIRECT_MESSAGES_DM_FEED_V2.format(community_instance.id,
