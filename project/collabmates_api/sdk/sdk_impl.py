@@ -281,6 +281,7 @@ class SdkImpl(SdkManager):
                                                            community_id=sdk_client.community.id,
                                                            device_id=self.get_device_id(),
                                                            platform_code=self.get_request_platform(),
+                                                           version_code=self.get_version_code(),
                                                            api_key=self.get_api_key())
             join_community_context = member_community_manager.join_community_sdk(
                 validated_request_body.get('join_req_body'))

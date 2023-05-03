@@ -916,9 +916,12 @@ class CommunityMemberView(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
         req_body = RequestUtilities.load_request_body(request)
 
-        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key,
+                                          request_platform=platform_code, version_code=version_code)
         community_data = community_manager.add_community_member(req_body)
 
         if community_data.get('error_message'):

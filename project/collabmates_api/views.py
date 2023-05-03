@@ -10977,7 +10977,7 @@ def update_community_manager_rights(request):
     selected_rights = req_body['rights'] if "rights" in req_body else []
     custom_title = req_body['custom_title'] if "custom_title" in req_body else None
     api_key = RequestUtilities.get_api_key_from_headers(request)
-    platform_code = RequestUtilities.get_platform_code(request)
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
