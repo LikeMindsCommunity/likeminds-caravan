@@ -43,12 +43,13 @@ from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
 from ..static_text import EVERYONE_TAG_REGEX, PARTICIPANTS_TAG_REGEX
 
 from .constants import *
+from ..chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE
 
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
                             conversationPollMembers, Userinfo, conversationEngage, answerAttachment,
                             conversationEventMembers, conversationEventNudge, UserEmailsSendStatus, userDevices,
-                            userMemberRights)
+                            userMemberRights, UserChannelSettings)
 from collabmates_api.sdk.models import SdkClient
 
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -2440,7 +2441,17 @@ class ConversationHelper:
 
         if not has_right:
             return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
-
+        
+        # Defensive check if member_can_message is set to false and a member is trying to create conversation with User Channel Settings disabled
+        if chatroom_instance.member_can_message == False and member_state == member_states.MEMBER:
+            user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
+                                                                    {'member': user_instance,
+                                                                     'chatroom': chatroom_instance,
+                                                                     'setting_type': CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE,
+                                                                     'enabled': True}).first()
+            if not user_channel_settings:
+                return ResponseUtilities.get_inner_error_context("You don't have the rights to respond in chatroom!")
+        
         return {
             'user_instance': user_instance,
             'chatroom_instance': chatroom_instance,

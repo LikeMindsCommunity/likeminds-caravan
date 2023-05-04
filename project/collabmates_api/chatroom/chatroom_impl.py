@@ -2591,9 +2591,9 @@ class ChatroomImpl(ChatroomManager):
 
         card_filter.update(member_can_message=value, updated_at=TimeUtilities.current_time_in_sec())
 
-        # Update user chatroom settings of all members if member_can_message is set to False
+        # Disable user chatroom settings of all members if member_can_message is set to False
         if value is False:
-            update_user_chatroom_settings.delay(self.get_chatroom_id(), CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE, False)
+            update_user_chatroom_settings.delay(card_instance, CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE, False)
 
         send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(),
                                                    int(self.get_member_id()),
@@ -3962,8 +3962,8 @@ class ChatroomImpl(ChatroomManager):
                                                                 {'member': member_instance,
                                                                  'chatroom': chatroom_instance})
         
-        # Create `member_can_message` user settings if not present (for backfilling)
-        if not user_channel_settings:
+        # Create `member_can_message` user settings for MEMBERS if not exists
+        if member_instance.state == member_states.MEMBER and not user_channel_settings:
             user_channel_settings_instance = UserChannelSettings(member=member_instance,
                                                                 chatroom=chatroom_instance,
                                                                 setting_type=CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE,
@@ -5882,8 +5882,8 @@ class ChatroomHelper:
 
         is_admin =  Members.is_member_community_promoter(community_instance, user_instance)
 
-        member_instance = ModelUtilities.get_user_instance_or_none(member_id, community_instance.id)
-        
+        member_instance = ModelUtilities.get_model_filter(Members, {'community_id': community_instance.id,
+                                                                    'member_id': member_id}).first()      
         if not member_instance:
             return ResponseUtilities.get_inner_error_context('Invalid member_uuid!')
          
@@ -5892,9 +5892,16 @@ class ChatroomHelper:
             return ResponseUtilities.get_inner_error_context('You are not authorized to peform this action!')
         
         # Validate request for update request
-        if update_settings and not is_admin:
-            return ResponseUtilities.get_inner_error_context('You are not authorized to peform this action!')
+        if update_settings:
 
+            # If logged in user is not admin 
+            if not is_admin:
+                return ResponseUtilities.get_inner_error_context('You are not authorized to peform this action!')
+            
+            # Do not update settings for Admin
+            if member_instance.state == member_states.ADMIN:
+                return ResponseUtilities.get_inner_error_context('You cannot update settings of an Admin!')
+        
         validated_dict = {
             'user_instance': user_instance,
             'community_instance': community_instance,

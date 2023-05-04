@@ -2544,25 +2544,6 @@ def send_chatroom_updated_analytics_data(chatroom_id, user_id, update_dict):
     SegmentImpl.track_event(user_id, "Chatroom updated (Core service)", event_data)
 
 @shared_task
-def update_user_chatroom_settings(chatroom_id: int = None, setting_type: str = None, enabled: bool = False):
-    chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id).first()
-
-    if not chatroom_instance:
-        return
-
-    filter_dict = {
-        'chatroom': chatroom_instance,
-        'setting_type': setting_type
-        }
-    
-    update_dict = {
-        'enabled': enabled
-        }
-
-    ModelUtilities.model_update(UserChannelSettings, filter_dict, update_dict)
-
-
-@shared_task
 def update_community_pin_chatrooms_list_in_cache(pin_info):
     chatroom_id = pin_info.get('chatroom_id')
     community_id = pin_info.get('community_id')
@@ -2622,4 +2603,34 @@ def update_unseen_count_based_on_cohort_access(cohort_id=None, user_id=None, com
     for user_id in user_id_list:
         update_last_unseen_in_engage(user=user_id, community=community_id)
 
+@shared_task
+def update_user_chatroom_settings(chatroom_instance = None, setting_type: str = None, enabled: bool = False):
+    
+    if not chatroom_instance:
+        return
 
+    filter_dict = {
+        'chatroom': chatroom_instance,
+        'setting_type': setting_type,
+        'enabled': not enabled
+        }
+    
+    update_dict = {
+        'enabled': enabled
+        }
+
+    ModelUtilities.model_update(UserChannelSettings, filter_dict, update_dict)
+
+@shared_task
+def delete_user_channel_settings(user_instance = None, community_instance = None, setting_type: str = None):
+    
+    if not user_instance or not community_instance:
+        return
+
+    filter_dict = {
+        'member': user_instance,
+        'community': community_instance,
+        'setting_type': setting_type
+        }
+    
+    ModelUtilities.delete_record_in_model(UserChannelSettings, filter_dict)
