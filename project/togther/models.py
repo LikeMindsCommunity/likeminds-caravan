@@ -3560,6 +3560,7 @@ class ChatroomInvite(models.Model):
 
 class UserChannelSettings(models.Model):
     chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     setting_type = models.CharField(max_length=255)
     enabled = models.BooleanField(default=True)
