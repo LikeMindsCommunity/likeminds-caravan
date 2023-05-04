@@ -1431,7 +1431,8 @@ class ChatroomUserSettings(APIView):
         req_params = RequestUtilities.fetch_request_query_params(request)
 
         # Validate request
-        validated_request = self._validate_request(member_id, api_key, req_params = req_params)
+        validated_request = self._validate_request(member_id, api_key, req_params=req_params)
+        
         if not validated_request.get('success'):
             return JsonResponse(validated_request, status=status_codes.HTTP_400_BAD_REQUEST)
         
@@ -1461,7 +1462,8 @@ class ChatroomUserSettings(APIView):
         req_body = RequestUtilities.load_request_body(request)
 
         # Validate request
-        validated_request = self._validate_request(member_id, api_key, req_body = req_body)
+        validated_request = self._validate_request(member_id, api_key, req_body=req_body)
+        
         if not validated_request.get('success'):
             return JsonResponse(validated_request, status=status_codes.HTTP_400_BAD_REQUEST)
         

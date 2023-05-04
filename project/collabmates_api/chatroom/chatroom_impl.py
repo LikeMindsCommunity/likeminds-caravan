@@ -3944,10 +3944,10 @@ class ChatroomImpl(ChatroomManager):
     def get_chatroom_user_settings(self, user_id: str, setting_types: list = None) -> dict:
 
         # Validate request and get instances
-        validated_req = ChatroomHelper.validate_chatroom_user_settings_request( user_id = user_id,
-                                                                                api_key = self.get_api_key(),
-                                                                                member_id = self.get_member_id(),
-                                                                                chatroom_id = self.get_chatroom_id()
+        validated_req = ChatroomHelper.validate_chatroom_user_settings_request( user_id=user_id,
+                                                                                api_key=self.get_api_key(),
+                                                                                member_id=self.get_member_id(),
+                                                                                chatroom_id=self.get_chatroom_id()
                                                                               )
         
         # If any error occured, return Bad Request resposne
@@ -3988,11 +3988,11 @@ class ChatroomImpl(ChatroomManager):
     def update_chatroom_user_settings(self, user_id: str, chatroom_settings: list ) -> dict:
 
         # Validate request and get instances
-        validated_req = ChatroomHelper.validate_chatroom_user_settings_request( user_id = user_id,
-                                                                                api_key = self.get_api_key(),
-                                                                                member_id = self.get_member_id(),
-                                                                                chatroom_id = self.get_chatroom_id(),
-                                                                                update_settings = True)
+        validated_req = ChatroomHelper.validate_chatroom_user_settings_request( user_id=user_id,
+                                                                                api_key=self.get_api_key(),
+                                                                                member_id=self.get_member_id(),
+                                                                                chatroom_id=self.get_chatroom_id(),
+                                                                                update_settings=True)
         
         # If any error occured, return Bad Request resposne
         if validated_req.get('error_message'):
@@ -5867,6 +5867,7 @@ class ChatroomHelper:
             'api_key': api_key
             },
         'user_id': user_id,
+        'chatroom_id': chatroom_id
         }
 
         validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
@@ -5877,14 +5878,12 @@ class ChatroomHelper:
         
         community_instance = validated_dict.get('community_id')
         user_instance = validated_dict.get('user_id')
+        chatroom_instance = validated_dict.get('chatroom_id')
 
         is_admin =  Members.is_member_community_promoter(community_instance, user_instance)
-    
-        chatroom_instance = ModelUtilities.get_model_filter(Collabcard,  {'id': chatroom_id}).first()
-        if not chatroom_instance:
-            return ResponseUtilities.get_inner_error_context('Invalid chatroom_id!')
 
         member_instance = ModelUtilities.get_user_instance_or_none(member_id, community_instance.id)
+        
         if not member_instance:
             return ResponseUtilities.get_inner_error_context('Invalid member_uuid!')
          
