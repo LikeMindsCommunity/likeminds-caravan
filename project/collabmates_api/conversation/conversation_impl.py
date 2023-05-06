@@ -2441,16 +2441,19 @@ class ConversationHelper:
 
         if not has_right:
             return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
+
+        # Get user specific chatroom settings
+        api_key = SdkClient.get_api_key_of_community(community_instance.id)
+        chatroom_manager = chatroom_impl.ChatroomImpl(member_id=user_instance.id, chatroom_id=chatroom_id, api_key=api_key)
+        response_context = chatroom_manager.get_chatroom_user_settings(member_uuid=user_instance.id, setting_types=[CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE])
+
+        if not response_context.get('success'):
+            return ResponseUtilities.get_inner_error_context(response_context.get('error_message'))
         
-        # Defensive check if member_can_message is set to false and a member is trying to create conversation with User Channel Settings disabled
-        if chatroom_instance.member_can_message == False and member_state == member_states.MEMBER:
-            user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
-                                                                    {'member': user_instance,
-                                                                     'chatroom': chatroom_instance,
-                                                                     'setting_type': CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE,
-                                                                     'enabled': True}).first()
-            if not user_channel_settings:
-                return ResponseUtilities.get_inner_error_context("You don't have the rights to respond in chatroom!")
+        user_chatroom_settings = response_context.get('channel_settings')
+
+        if len(user_chatroom_settings) > 0 and user_chatroom_settings[0].get('enabled') == False:
+            return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
         
         return {
             'user_instance': user_instance,

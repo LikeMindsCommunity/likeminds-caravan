@@ -73,6 +73,20 @@ class SdkClient(models.Model):
             filter_dict['api_key'] = api_key
 
         return True if ModelUtilities.get_model_filter(SdkClient, filter_dict) else False
+    
+    @staticmethod
+    def get_api_key_of_community(community_id = None):
+        filter_dict = {
+            'is_deleted': False,
+            'community': community_id
+        }
+
+        sdkClient_instance =  ModelUtilities.get_model_filter(SdkClient, filter_dict).first()
+
+        if sdkClient_instance:
+            return sdkClient_instance.api_key
+        else:
+            return None
 
 
 class SdkPlatform(models.Model):
