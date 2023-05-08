@@ -2680,8 +2680,10 @@ def get_dm_chatrooms_of_user(user_id, community_id, custom_tag=''):
                 SELECT cs.card_id,
                        cs.id
                 FROM   togther_collabcardstate AS cs
-                       inner join togther_collabcard AS ccrd
+                       INNER JOIN togther_collabcard AS ccrd
                                ON cs.card_id = CCRD.id
+                       INNER JOIN togther_card_answers as ca
+                               ON ca.card_id = ccrd.id
                 WHERE  ccrd.community_id %s
                        AND cs.follow_status = TRUE
                        AND cs.remove_id IS NULL
@@ -2689,11 +2691,13 @@ def get_dm_chatrooms_of_user(user_id, community_id, custom_tag=''):
                        AND cs.user_id = %s
                        AND ccrd.is_private = TRUE
                        AND ccrd.TYPE = 10
+                       AND ca.state = 0
                        AND ( ccrd.user_id = %s
                               OR ccrd.chatroom_with_user_id = %s )
                        AND ( ccrd.user_id IN ( %s )
                              AND ccrd.chatroom_with_user_id IN ( %s ) ) 
                        %s
+                       GROUP BY cs.card_id, cs.id;
         """ % (str(community_id), str(user_id), str(user_id), str(user_id), non_guest_user_query, non_guest_user_query,
                custom_tag_filter)
 
