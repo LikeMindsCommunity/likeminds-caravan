@@ -4,7 +4,7 @@ from collabmates_api.sdk.models import (SdkClient)
 from togther.models import (ModelUtilities, Collabcard, card_answers, collabcardState, conversationEngage)
 from utility.states import (card_types, conversation_states)
 
-api_key = '5bf0d9d9-5864-4863-b2fb-364298b612a2'
+api_key = None
 
 
 def remove_auto_created_dm_chatrooms_no_messages():
