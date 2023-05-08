@@ -58,7 +58,7 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_latest_conversations_against_chatrooms_list,
                            get_user_chatroom_status)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
-    get_error_context
+    get_error_context, CommunityDMSettingsSerializer
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
     conversationSerializer, get_members_profile
 from ..static_files import REMOVED_USER_URL, ICONS
@@ -1691,7 +1691,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         response = {
             'is_request_dm_limit_exceeded': False,
             'new_request_dm_timestamp': None,
-            'success': True
+            'success': True,
+            'user_dm_limit': None
         }
 
         if user_member_dm_chatroom:
@@ -2610,10 +2611,27 @@ class MemberCommunityHelper:
             chat_request_state=None)
 
         if card_state_filter.count() >= community_dm_settings_instance.number_in_duration:
+            user_dm_limit = None
+
+            filter_dict = {
+                'community': community_instance
+            }
+
+            community_dm_settings_filter = ModelUtilities.get_model_filter(CommunityDirectMessageSettings, filter_dict)
+
+            if community_dm_settings_filter:
+                context_dict = {
+                    'send_community_id': False
+                }
+
+                user_dm_limit = CommunityDMSettingsSerializer(community_dm_settings_filter[0],
+                                                              context=context_dict).data
+
             limit_response = {
                 'is_request_dm_limit_exceeded': True,
                 'new_request_dm_timestamp': end_epoch_time,
-                'success': True
+                'success': True,
+                'user_dm_limit': user_dm_limit
             }
 
             if response.get('chatroom_id'):
