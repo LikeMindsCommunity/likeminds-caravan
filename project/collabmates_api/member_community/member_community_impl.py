@@ -1803,7 +1803,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             response = MemberCommunityHelper.can_member_from_dm_feed_or_member_directory(user_instance,
                                                                                          community_instance)
 
-        elif req_from == dm_icon_from_states.DM_FEED_V2:
+        elif req_from in [dm_icon_from_states.DM_FEED_V2, dm_icon_from_states.GROUP_CHANNEL]:
             response = MemberCommunityHelper.can_member_from_dm_feed_v2(user_instance, community_instance)
 
         else:
