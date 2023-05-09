@@ -612,9 +612,9 @@ community_dm_settings_state_types = CommunityDMSettingsStateTypes()
 
 
 class CommunityDMSettingsDurationTypes:
-    DAYS = "days"
-    WEEKS = "weeks"
-    MONTHS = "months"
+    DAYS = "day"
+    WEEKS = "week"
+    MONTHS = "month"
 
 
 community_dm_settings_duration_types = CommunityDMSettingsDurationTypes()
