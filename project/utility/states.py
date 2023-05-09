@@ -644,6 +644,7 @@ class DMIconFromStates:
     DM_FEED_V2 = "dm_feed_v2"
     MEMBER_DIRECTORY = "member_directory"
     CHATROOM = "chatroom"
+    GROUP_CHANNEL = "group_channel"
 
 
 dm_icon_from_states = DMIconFromStates()
