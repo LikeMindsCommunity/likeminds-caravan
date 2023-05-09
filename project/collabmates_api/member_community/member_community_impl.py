@@ -1698,19 +1698,6 @@ class MemberCommunityImpl(MemberCommunityManager):
         if user_member_dm_chatroom:
             response['chatroom_id'] = user_member_dm_chatroom.id
 
-            filter_dict = {
-                'card': user_member_dm_chatroom,
-                'state': conversation_states.ANSWER
-            }
-
-            chatroom_user_messages_filter = ModelUtilities.get_model_filter(card_answers, filter_dict)
-
-            if chatroom_user_messages_filter.exists():
-                response['messages_exists'] = True
-
-            else:
-                response['messages_exists'] = False
-
         if not is_one_user_cm:
             response = MemberCommunityHelper.member_request_dm_limit(user_instance, community_instance, response)
 
@@ -1816,7 +1803,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             response = MemberCommunityHelper.can_member_from_dm_feed_or_member_directory(user_instance,
                                                                                          community_instance)
 
-        elif req_from == dm_icon_from_states.DM_FEED_V2:
+        elif req_from in [dm_icon_from_states.DM_FEED_V2, dm_icon_from_states.GROUP_CHANNEL]:
             response = MemberCommunityHelper.can_member_from_dm_feed_v2(user_instance, community_instance)
 
         else:
@@ -2635,8 +2622,15 @@ class MemberCommunityHelper:
             }
 
             if response.get('chatroom_id'):
-                limit_response['chatroom_id'] = response.get('chatroom_id')
-                limit_response['messages_exists'] = response.get('messages_exists', False)
+                filter_dict = {
+                    'card': response.get('chatroom_id'),
+                    'state': conversation_states.ANSWER
+                }
+
+                chatroom_user_messages_filter = ModelUtilities.get_model_filter(card_answers, filter_dict)
+
+                if chatroom_user_messages_filter.exists():
+                    limit_response['chatroom_id'] = response.get('chatroom_id')
 
             return limit_response
 
