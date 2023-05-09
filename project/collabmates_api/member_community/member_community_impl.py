@@ -2591,6 +2591,7 @@ class MemberCommunityHelper:
             'card__type': card_types.CARD_DIRECT_MESSAGE,
             'follow_status': True,
             'chat_requested_by': user_instance,
+            'user': user_instance,
             'chat_request_created_at__gte': start_epoch_time,
             'chat_request_created_at__lte': end_epoch_time
         }
