@@ -3637,7 +3637,8 @@ class ChatroomImpl(ChatroomManager):
 
         elif chat_request_state == chat_request_states.ACCEPTED:
             response = ChatroomHelper.accept_dm_connection_request(user_instance, card_instance, user_member_state,
-                                                                   member_state, chat_request_state, card_state_filter)
+                                                                   member_state, chat_request_state, card_state_filter,
+                                                                   message, user_instances_list)
 
             if not response.get('success'):
                 return response
@@ -5264,7 +5265,7 @@ class ChatroomHelper:
 
     @staticmethod
     def accept_dm_connection_request(user_instance, card_instance, user_member_state, member_state,
-                                     chat_request_state, card_state_filter):
+                                     chat_request_state, card_state_filter, message=None, user_instances_list=None):
 
         if any([user_member_state == member_states.ADMIN, member_state == member_states.ADMIN]):
             ModelUtilities.model_update(collabcardState, {'card': card_instance},
@@ -5272,7 +5273,24 @@ class ChatroomHelper:
                                          'chat_requested_by': user_instance,
                                          'chat_request_created_at': TimeUtilities.current_time_in_milliseconds(),
                                          'updated_at': TimeUtilities.current_time_in_sec()})
-            return {'success': True}
+
+            conv_state = conversation_states.ANSWER
+
+            if card_instance.user == user_instance:
+                other_member_instance = card_instance.chatroom_with_user
+
+            else:
+                other_member_instance = card_instance.user
+
+            conversation_instance = initial_message_dm_chatroom(card_instance, user_instance, other_member_instance,
+                                                                card_instance.community, user_instances_list,
+                                                                message, user_member_state, member_state,
+                                                                conversation_state=conv_state)
+
+            context = {"current_user_id": user_instance.id, "fetch_reply": True}
+            conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
+
+            return {'success': True, 'should_call_block_unblock': True, 'conversation': conversation}
 
         if card_state_filter.exclude(chat_request_state=chat_request_states.INITIATED):
             return get_error_context(False, 'Connection request either not initiated or is rejected!')
