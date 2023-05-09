@@ -2556,6 +2556,12 @@ class MemberCommunityHelper:
         if not community_dm_settings_filter:
             return get_error_context(False, "Community DM settings are not set yet!")
 
+        start_epoch_time = TimeUtilities.get_epoch_time_for_start_of_day_in_millisec(
+            TimeUtilities.get_current_datetime())
+
+        end_epoch_time = TimeUtilities.get_epoch_time_for_end_of_day_in_millisec(
+            TimeUtilities.get_current_datetime())
+
         community_dm_settings_instance = community_dm_settings_filter[0]
 
         if community_dm_settings_instance.state == community_dm_settings_state_types.UNLIMITED:
