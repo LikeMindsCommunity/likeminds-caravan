@@ -1020,6 +1020,8 @@ class collabcardState(models.Model):
     attended = models.BooleanField(default=False)
 
     chat_request_state = models.IntegerField(null=True)
+    chat_request_initiated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                                  related_name='chat_request_initiated_by')
     chat_requested_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='chat_requested_by')
     chat_request_created_at = models.BigIntegerField(null=True)
 
