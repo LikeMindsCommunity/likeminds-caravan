@@ -2592,7 +2592,7 @@ class ChatroomImpl(ChatroomManager):
         card_filter.update(member_can_message=value, updated_at=TimeUtilities.current_time_in_sec())
 
         # Update 'member_can_message' user_channel_settings of all members
-        update_user_chatroom_settings.delay(card_instance, CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE, value)
+        update_user_chatroom_settings.delay(card_instance.id, CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE, value)
 
         send_chatroom_updated_analytics_data.delay(self.get_chatroom_id(),
                                                    int(self.get_member_id()),

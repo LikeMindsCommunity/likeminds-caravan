@@ -2604,13 +2604,13 @@ def update_unseen_count_based_on_cohort_access(cohort_id=None, user_id=None, com
         update_last_unseen_in_engage(user=user_id, community=community_id)
 
 @shared_task
-def update_user_chatroom_settings(chatroom_instance = None, setting_type: str = None, enabled: bool = False):
+def update_user_chatroom_settings(chatroom_id = None, setting_type: str = None, enabled: bool = False):
     
-    if not chatroom_instance:
+    if not chatroom_id:
         return
 
     filter_dict = {
-        'chatroom': chatroom_instance,
+        'chatroom_id': chatroom_id,
         'setting_type': setting_type,
         'enabled': not enabled
         }
