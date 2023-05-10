@@ -2417,6 +2417,7 @@ class ConversationHelper:
 
         community_instance = chatroom_instance.community
         member_state = Members.get_community_member_state(community_instance, user_instance)
+        is_admin = (member_state == member_states.ADMIN)
 
         is_tag_allowed = ConversationHelper._validate_group_tags(
             message,
@@ -2427,10 +2428,6 @@ class ConversationHelper:
         )
         if not is_tag_allowed:
             return ResponseUtilities.get_inner_error_context('tag not allowed')
-
-        if chatroom_instance.type == card_types.CARD_PURPOSE and \
-                member_state != member_states.ADMIN:
-            return ResponseUtilities.get_inner_error_context(ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
 
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return ResponseUtilities.get_inner_error_context("Responding is disabled")
@@ -2443,18 +2440,15 @@ class ConversationHelper:
             return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
 
         # Get user specific chatroom settings
-        api_key = SdkClient.get_api_key_of_community(community_instance.id)
-        chatroom_manager = chatroom_impl.ChatroomImpl(member_id=user_instance.id, chatroom_id=chatroom_id, api_key=api_key)
-        response_context = chatroom_manager.get_chatroom_user_settings(member_uuid=user_instance.id, setting_types=[CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE])
+        user_chatroom_settings = chatroom_impl.ChatroomHelper.compute_user_chatroom_settings(user_instance, 
+                                                                                             chatroom_instance, 
+                                                                                             is_admin, 
+                                                                                             [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE])
 
-        if not response_context.get('success'):
-            return ResponseUtilities.get_inner_error_context(response_context.get('error_message'))
-        
-        user_chatroom_settings = response_context.get('channel_settings')
-
-        if len(user_chatroom_settings) > 0 and user_chatroom_settings[0].get('enabled') == False:
+        # If user_chatroom_settings for 'member_can_message' is false, then return error
+        if len(user_chatroom_settings) > 0 and user_chatroom_settings[0].enabled == False:
             return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
-        
+           
         return {
             'user_instance': user_instance,
             'chatroom_instance': chatroom_instance,
