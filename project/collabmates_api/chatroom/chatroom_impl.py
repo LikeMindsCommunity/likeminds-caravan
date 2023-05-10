@@ -3592,7 +3592,8 @@ class ChatroomImpl(ChatroomManager):
             from collabmates_api.conversation.conversation_impl import ConversationHelper
             ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(card_instance.id,
                                                                                   conversation_instance.id,
-                                                                                  card_instance.community_id)
+                                                                                  card_instance.community_id,
+                                                                                  only_update_home_feed=True)
 
             context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
             conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
@@ -5267,7 +5268,8 @@ class ChatroomHelper:
         from collabmates_api.conversation.conversation_impl import ConversationHelper
         ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(card_instance.id,
                                                                               conversation_instance.id,
-                                                                              card_instance.community_id)
+                                                                              card_instance.community_id,
+                                                                              only_update_home_feed=True)
 
         context = {"current_user_id": user_instance.id, "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
