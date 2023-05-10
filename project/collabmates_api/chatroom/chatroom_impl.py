@@ -3941,58 +3941,36 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
     
-    def get_chatroom_user_settings(self, user_id: str, setting_types: list = None) -> dict:
+    def get_chatroom_user_settings(self, participant_uuid: str, setting_types: list = None) -> dict:
 
         # Validate request and get instances
-        validated_req = ChatroomHelper.validate_chatroom_user_settings_request( user_id=user_id,
-                                                                                api_key=self.get_api_key(),
-                                                                                member_id=self.get_member_id(),
-                                                                                chatroom_id=self.get_chatroom_id()
-                                                                              )
+        validated_req = ChatroomHelper.validate_chatroom_user_settings_request(member_id=self.get_member_id(),
+                                                                               api_key=self.get_api_key(),
+                                                                               participant_uuid=participant_uuid,
+                                                                               chatroom_id=self.get_chatroom_id())
         
         # If any error occured, return Bad Request resposne
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'), status_codes.HTTP_400_BAD_REQUEST)
         
         chatroom_instance = validated_req.get('chatroom_instance')
-        member_instance = validated_req.get('member_instance')
+        participant_instance = validated_req.get('participant_instance')
+        is_participant_admin = validated_req.get('participant_is_admin')
 
-        # Get User Channel settings
-        user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
-                                                                {'member': member_instance,
-                                                                 'chatroom': chatroom_instance})
-        
-        # Create `member_can_message` user settings for MEMBERS if not exists
-        if member_instance.state == member_states.MEMBER and not user_channel_settings:
-            user_channel_settings_instance = UserChannelSettings(member=member_instance,
-                                                                chatroom=chatroom_instance,
-                                                                setting_type=CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE,
-                                                                enabled=False)
-            user_channel_settings_instance.save()
+        # Get computed User Channel settings
+        computed_channel_settings = ChatroomHelper.compute_user_chatroom_settings(participant_instance, chatroom_instance, is_participant_admin, setting_types)
+        serialized_data = UserChannelSettingsSerializer(computed_channel_settings, many=True).data
 
-            # Get updated User settings
-            user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
-                                                            {'member': member_instance,
-                                                            'chatroom': chatroom_instance})
-        
-        # Filter by setting types if provided   
-        if setting_types:
-            user_channel_settings = user_channel_settings.filter(setting_type__in=setting_types)
-        
-        # Serialize User Channel settings
-        user_cannel_settings_data = UserChannelSettingsSerializer(user_channel_settings, many=True).data
+        return {'success': True, 'channel_settings':serialized_data}
 
-        # Return chatroom user settings
-        return {'success': True, 'channel_settings': user_cannel_settings_data} 
-
-    def update_chatroom_user_settings(self, user_id: str, chatroom_settings: list ) -> dict:
+    def update_chatroom_user_settings(self, participant_uuid: str, chatroom_settings: list ) -> dict:
 
         # Validate request and get instances
-        validated_req = ChatroomHelper.validate_chatroom_user_settings_request( user_id=user_id,
-                                                                                api_key=self.get_api_key(),
-                                                                                member_id=self.get_member_id(),
-                                                                                chatroom_id=self.get_chatroom_id(),
-                                                                                update_settings=True)
+        validated_req = ChatroomHelper.validate_chatroom_user_settings_request(user_id=self.get_member_id(),
+                                                                               api_key=self.get_api_key(),
+                                                                               participant_uuid=participant_uuid,
+                                                                               chatroom_id=self.get_chatroom_id(),
+                                                                               update_settings=True)
         
         # If any error occured, return Bad Request resposne
         if validated_req.get('error_message'):
@@ -4009,7 +3987,7 @@ class ChatroomImpl(ChatroomManager):
 
             if setting_type == CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE:
                 filter_dict = {
-                    'member': member_instance,
+                    'user': member_instance,
                     'chatroom': chatroom_instance,
                     'setting_type': setting_type}
                 
@@ -4022,7 +4000,7 @@ class ChatroomImpl(ChatroomManager):
                 
         # Get User Channel settings
         user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
-                                                                {'member': member_instance,
+                                                                {'user': member_instance,
                                                                  'chatroom': chatroom_instance})
         
         # Serialize User Channel settings
@@ -5856,7 +5834,50 @@ class ChatroomHelper:
         }
     
     @staticmethod
-    def validate_chatroom_user_settings_request(user_id, api_key, member_id, chatroom_id, update_settings: bool = False):
+    def compute_user_chatroom_settings(participant_instance, chatroom_instance, is_admin: bool = False, setting_types: list = None) -> list:
+        
+        if not all([participant_instance, chatroom_instance]):
+            return []
+        
+        defaut_channel_settings = []
+
+        # Create default chatroom settings
+        for setting in CHATROOM_USER_SETTINGS:
+            
+            # For member_can_message setting
+            if setting == CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE:
+                defaut_channel_settings.append(UserChannelSettings(user=participant_instance,
+                                                                   chatroom=chatroom_instance,
+                                                                   setting_type=setting,
+                                                                   enabled=chatroom_instance.member_can_message))
+        
+        # Filter default chatroom settings based on setting_types
+        if setting_types:
+            defaut_channel_settings = [setting for setting in defaut_channel_settings if setting.setting_type in setting_types]
+
+        # If ADMIN, return settings with enabled as TRUE
+        if is_admin:
+            for setting in defaut_channel_settings:
+                setting.enabled = True
+
+            return defaut_channel_settings
+        
+        else:
+            # Get User Channel settings for participant
+            user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
+                                                                    {'user': participant_instance,
+                                                                     'chatroom': chatroom_instance})
+        
+            for setting in user_channel_settings:
+                for default_setting in defaut_channel_settings:
+                    if setting.setting_type == default_setting.setting_type:
+                        default_setting.enabled = setting.enabled
+
+            return defaut_channel_settings
+
+
+    @staticmethod
+    def validate_chatroom_user_settings_request(member_id, api_key, participant_uuid, chatroom_id, update_settings: bool = False):
         """
             This method validates chatroom user settings requests and returns user, community, chatroom and member instances
         """    
@@ -5866,7 +5887,7 @@ class ChatroomHelper:
         'community_id': {
             'api_key': api_key
             },
-        'user_id': user_id,
+        'user_id': member_id,
         'chatroom_id': chatroom_id
         }
 
@@ -5877,36 +5898,58 @@ class ChatroomHelper:
             return validated_dict
         
         community_instance = validated_dict.get('community_id')
-        user_instance = validated_dict.get('user_id')
+        member_instance = validated_dict.get('user_id')
         chatroom_instance = validated_dict.get('chatroom_id')
 
-        is_admin =  Members.is_member_community_promoter(community_instance, user_instance)
+        member_state = Members.get_community_member_state(community_instance, member_instance)
+        
+        if not member_state:
+            return ResponseUtilities.get_inner_error_context('You are not part of the community!')
+        
+        participant_instance = ModelUtilities.get_user_instance_or_none(participant_uuid)
+        
+        if not participant_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid participant_uuid!')
+        
+        participant_state = Members.get_community_member_state(community_instance, participant_instance)
 
-        member_instance = ModelUtilities.get_model_filter(Members, {'community_id': community_instance.id,
-                                                                    'member_id': member_id}).first()      
-        if not member_instance:
-            return ResponseUtilities.get_inner_error_context('Invalid member_uuid!')
-         
-        # If user_instance not equal to member_instance and user is not ADMIN
-        if user_instance != member_instance and not is_admin:
+        if not participant_state:
+            return ResponseUtilities.get_inner_error_context('participant_uuid is not part of the community!')
+        
+        # Get collabcardstate for participant and chatroom
+        collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {
+            'user': participant_instance,
+            'card': chatroom_instance
+        })
+
+        # If participant is not part of the chatroom then return error
+        if not collabcard_state_filter:
+            return ResponseUtilities.get_inner_error_context('participant_uuid is not part of the chatroom!')
+        
+        member_is_admin = (member_state == member_states.ADMIN)
+        participant_is_admin = (participant_state == member_states.ADMIN)
+
+        # If member_instance not equal to participant_instance and member is not ADMIN
+        if member_instance != participant_instance and not member_is_admin:
             return ResponseUtilities.get_inner_error_context('You are not authorized to peform this action!')
         
         # Validate request for update request
         if update_settings:
 
             # If logged in user is not admin 
-            if not is_admin:
+            if not member_is_admin:
                 return ResponseUtilities.get_inner_error_context('You are not authorized to peform this action!')
             
             # Do not update settings for Admin
-            if member_instance.state == member_states.ADMIN:
+            if participant_is_admin:
                 return ResponseUtilities.get_inner_error_context('You cannot update settings of an Admin!')
         
         validated_dict = {
-            'user_instance': user_instance,
+            'member_instance': member_instance,
             'community_instance': community_instance,
             'chatroom_instance': chatroom_instance,
-            'member_instance': member_instance,
+            'participant_instance': participant_instance,
+            'participant_is_admin': participant_is_admin,
         }
 
         return validated_dict

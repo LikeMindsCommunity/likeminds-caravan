@@ -1420,7 +1420,7 @@ class ChatroomUserSettings(APIView):
 
         return {'success': True, 'setting_types': setting_types, 'channel_settings': channel_settings}
     
-    def get(self, request, chatroom_id, member_uuid):
+    def get(self, request, chatroom_id, participant_uuid):
         '''
             Fetch user specific chatroom settings
         '''
@@ -1439,8 +1439,8 @@ class ChatroomUserSettings(APIView):
         setting_types = validated_request.get('setting_types')
 
         # Get user specific chatroom settings
-        chatroom_manager = ChatroomImpl(member_id=member_uuid, chatroom_id=chatroom_id, api_key=api_key)
-        response_context = chatroom_manager.get_chatroom_user_settings(user_id=member_id, setting_types=setting_types)
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id, api_key=api_key)
+        response_context = chatroom_manager.get_chatroom_user_settings(participant_uuid=participant_uuid, setting_types=setting_types)
 
         # Return error response if any error occured
         if 'error_message' in response_context:
@@ -1451,7 +1451,7 @@ class ChatroomUserSettings(APIView):
         return JsonResponse(response_context)
 
 
-    def put(self, request, chatroom_id, member_uuid):
+    def put(self, request, chatroom_id, participant_uuid):
         '''
             Update user specific chatroom settings
         '''
@@ -1470,8 +1470,8 @@ class ChatroomUserSettings(APIView):
         channel_settings = validated_request.get('channel_settings')
         
         # Get user specific chatroom settings
-        chatroom_manager = ChatroomImpl(member_id=member_uuid, chatroom_id=chatroom_id, api_key=api_key)
-        response_context = chatroom_manager.update_chatroom_user_settings(user_id=member_id, chatroom_settings=channel_settings)
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id, api_key=api_key)
+        response_context = chatroom_manager.update_chatroom_user_settings(participant_uuid==participant_uuid, chatroom_settings=channel_settings)
 
         # Return error response if any error occured
         if 'error_message' in response_context:

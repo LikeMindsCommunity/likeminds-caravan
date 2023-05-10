@@ -73,5 +73,5 @@ urlpatterns = [
     path('participants', ChatroomParticipants.as_view(), name='chatroom_participants'),
     path('invites', ChatroomInvites.as_view(), name="chatroom_invites"),
     path('settings', ChatroomSettings.as_view(), name="chatroom_settings"),
-    path('<str:chatroom_id>/settings/member/<str:member_uuid>', ChatroomUserSettings.as_view(), name="chatroom_user_settings"),
+    path('<str:chatroom_id>/settings/member/<str:participant_uuid>', ChatroomUserSettings.as_view(), name="chatroom_user_settings"),
 ]

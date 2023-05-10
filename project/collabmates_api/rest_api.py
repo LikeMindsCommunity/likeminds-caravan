@@ -1549,7 +1549,7 @@ class UserChannelSettingsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserChannelSettings
-        fields = ( 'chatroom_id', 'member_id', 'setting_type', 'enabled', 'changed_by_id',  'created_at', 'updated_at')
+        fields = ( 'chatroom_id', 'user_id', 'setting_type', 'enabled', 'changed_by_id',  'created_at', 'updated_at')
 
     def to_representation(self, instance):
         data = super(UserChannelSettingsSerializer, self).to_representation(instance)
