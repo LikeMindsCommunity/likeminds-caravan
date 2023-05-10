@@ -1557,6 +1557,7 @@ class UserChannelSettingsSerializer(serializers.ModelSerializer):
         fields = self._readable_fields
 
         for field in fields:
+            
             if field.field_name == 'changed_by_id':
                 data['changed_by'] =  data['changed_by_id']
                 del data['changed_by_id']

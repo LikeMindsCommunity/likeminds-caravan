@@ -2442,7 +2442,7 @@ class ConversationHelper:
         # Get user specific chatroom settings
         user_chatroom_settings = chatroom_impl.ChatroomHelper.compute_user_chatroom_settings(user_instance, 
                                                                                              chatroom_instance, 
-                                                                                             is_admin, 
+                                                                                             is_admin,
                                                                                              [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE])
 
         # If user_chatroom_settings for 'member_can_message' is false, then return error

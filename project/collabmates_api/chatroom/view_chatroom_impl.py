@@ -1440,7 +1440,8 @@ class ChatroomUserSettings(APIView):
 
         # Get user specific chatroom settings
         chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id, api_key=api_key)
-        response_context = chatroom_manager.get_chatroom_user_settings(participant_uuid=participant_uuid, setting_types=setting_types)
+        response_context = chatroom_manager.get_chatroom_user_settings(participant_uuid=participant_uuid, 
+                                                                       setting_types=setting_types)
 
         # Return error response if any error occured
         if 'error_message' in response_context:
@@ -1449,7 +1450,6 @@ class ChatroomUserSettings(APIView):
         
         # Return success response
         return JsonResponse(response_context)
-
 
     def put(self, request, chatroom_id, participant_uuid):
         '''
@@ -1471,7 +1471,8 @@ class ChatroomUserSettings(APIView):
         
         # Get user specific chatroom settings
         chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id, api_key=api_key)
-        response_context = chatroom_manager.update_chatroom_user_settings(participant_uuid=participant_uuid, chatroom_settings=channel_settings)
+        response_context = chatroom_manager.update_chatroom_user_settings(participant_uuid=participant_uuid, 
+                                                                          chatroom_settings=channel_settings)
 
         # Return error response if any error occured
         if 'error_message' in response_context:

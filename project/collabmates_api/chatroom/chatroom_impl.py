@@ -3950,14 +3950,19 @@ class ChatroomImpl(ChatroomManager):
         
         # If any error occured, return Bad Request resposne
         if validated_req.get('error_message'):
-            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'), status_codes.HTTP_400_BAD_REQUEST)
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'), 
+                                                            status_codes.HTTP_400_BAD_REQUEST)
         
         chatroom_instance = validated_req.get('chatroom_instance')
         participant_instance = validated_req.get('participant_instance')
         is_participant_admin = validated_req.get('participant_is_admin')
 
         # Get computed User Channel settings
-        computed_channel_settings = ChatroomHelper.compute_user_chatroom_settings(participant_instance, chatroom_instance, is_participant_admin, setting_types)
+        computed_channel_settings = ChatroomHelper.compute_user_chatroom_settings(participant_instance, 
+                                                                                  chatroom_instance, 
+                                                                                  is_participant_admin, 
+                                                                                  setting_types)
+        
         serialized_data = UserChannelSettingsSerializer(computed_channel_settings, many=True).data
 
         return {'success': True, 'channel_settings':serialized_data}
@@ -3973,15 +3978,19 @@ class ChatroomImpl(ChatroomManager):
         
         # If any error occured, return Bad Request resposne
         if validated_req.get('error_message'):
-            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'), status_codes.HTTP_400_BAD_REQUEST)
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'), 
+                                                            status_codes.HTTP_400_BAD_REQUEST)
         
         chatroom_instance = validated_req.get('chatroom_instance')
         member_instance = validated_req.get('member_instance')
         participant_instance = validated_req.get('participant_instance')
 
         # Update User Channel settings
-        updated_channel_settings = ChatroomHelper.update_user_chatroom_settings_helper(participant_instance, member_instance, chatroom_instance, chatroom_settings)
-                
+        updated_channel_settings = ChatroomHelper.update_user_chatroom_settings_helper(participant_instance, 
+                                                                                       member_instance, 
+                                                                                       chatroom_instance, 
+                                                                                       chatroom_settings)
+        
         # Serialize User Channel settings
         serialized_data = UserChannelSettingsSerializer(updated_channel_settings, many=True).data
 
