@@ -2622,14 +2622,14 @@ def update_user_chatroom_settings(chatroom_id = None, setting_type: str = None, 
     ModelUtilities.model_update(UserChannelSettings, filter_dict, update_dict)
 
 @shared_task
-def delete_user_channel_settings(user_instance = None, community_instance = None, setting_type: str = None):
+def delete_user_channel_settings(user_id = None, community_id = None, setting_type: str = None):
     
-    if not user_instance or not community_instance:
+    if not user_id or not community_id:
         return
 
     filter_dict = {
-        'user': user_instance,
-        'chatroom__community': community_instance,
+        'user': user_id,
+        'chatroom__community_id': community_id,
         'setting_type': setting_type
         }
     

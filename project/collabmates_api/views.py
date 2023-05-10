@@ -11105,7 +11105,7 @@ def update_community_manager_rights(request):
                 member_becomes_cm_dm_chatroom.delay(user_id, community_id, is_m2cm_v2=is_m2cm_v2)
 
                 # Delete 'member_can_message' user_channe_settings for the user in the community
-                delete_user_channel_settings.delay(user_instance, community_instance, CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE)
+                delete_user_channel_settings.delay(user_instance.id, community_instance.id, CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE)
 
             elif custom_title_changed:
                 member_title_changed = True
