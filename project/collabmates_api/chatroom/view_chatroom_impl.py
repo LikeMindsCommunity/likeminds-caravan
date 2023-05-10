@@ -1471,7 +1471,7 @@ class ChatroomUserSettings(APIView):
         
         # Get user specific chatroom settings
         chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id, api_key=api_key)
-        response_context = chatroom_manager.update_chatroom_user_settings(participant_uuid==participant_uuid, chatroom_settings=channel_settings)
+        response_context = chatroom_manager.update_chatroom_user_settings(participant_uuid=participant_uuid, chatroom_settings=channel_settings)
 
         # Return error response if any error occured
         if 'error_message' in response_context:

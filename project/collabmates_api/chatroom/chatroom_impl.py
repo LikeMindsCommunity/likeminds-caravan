@@ -3966,7 +3966,7 @@ class ChatroomImpl(ChatroomManager):
     def update_chatroom_user_settings(self, participant_uuid: str, chatroom_settings: list ) -> dict:
 
         # Validate request and get instances
-        validated_req = ChatroomHelper.validate_chatroom_user_settings_request(user_id=self.get_member_id(),
+        validated_req = ChatroomHelper.validate_chatroom_user_settings_request(member_id=self.get_member_id(),
                                                                                api_key=self.get_api_key(),
                                                                                participant_uuid=participant_uuid,
                                                                                chatroom_id=self.get_chatroom_id(),
@@ -3977,37 +3977,17 @@ class ChatroomImpl(ChatroomManager):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'), status_codes.HTTP_400_BAD_REQUEST)
         
         chatroom_instance = validated_req.get('chatroom_instance')
-        user_instance = validated_req.get('user_instance')
         member_instance = validated_req.get('member_instance')
+        participant_instance = validated_req.get('participant_instance')
 
-        # Update User Channel settings based on request
-        for setting in chatroom_settings:
-            setting_type = setting.get('setting_type')
-            enabled = True if setting.get('enabled') == True else False
-
-            if setting_type == CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE:
-                filter_dict = {
-                    'user': member_instance,
-                    'chatroom': chatroom_instance,
-                    'setting_type': setting_type}
+        # Update User Channel settings
+        updated_channel_settings = ChatroomHelper.update_user_chatroom_settings_helper(participant_instance, member_instance, chatroom_instance, chatroom_settings)
                 
-                update_dict = {
-                    'enabled': enabled,
-                    'changed_by': user_instance,
-                }
-
-                ModelUtilities.update_or_create_model(UserChannelSettings, filter_dict, update_dict)
-                
-        # Get User Channel settings
-        user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
-                                                                {'user': member_instance,
-                                                                 'chatroom': chatroom_instance})
-        
         # Serialize User Channel settings
-        user_cannel_settings_data = UserChannelSettingsSerializer(user_channel_settings, many=True).data
+        serialized_data = UserChannelSettingsSerializer(updated_channel_settings, many=True).data
 
         # Return chatroom user settings
-        return {'success': True, 'channel_settings': user_cannel_settings_data} 
+        return {'success': True, 'channel_settings': serialized_data} 
 
 
 
@@ -5875,6 +5855,32 @@ class ChatroomHelper:
 
             return defaut_channel_settings
 
+    def update_user_chatroom_settings_helper(participant_instance, member_instance, chatroom_instance, chatroom_settings: list):
+        
+        if not all([participant_instance, member_instance, chatroom_instance, chatroom_settings]):
+            return []
+        
+        updated_settings = []
+
+        # Update User Channel settings based on request
+        for setting in chatroom_settings:
+            setting_type = setting.get('setting_type')
+            enabled = True if setting.get('enabled') == True else False
+
+            if setting_type == CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE:
+                filter_dict = {
+                    'user': participant_instance,
+                    'chatroom': chatroom_instance,
+                    'setting_type': setting_type}
+                
+                update_dict = {
+                    'enabled': enabled,
+                    'changed_by': member_instance,
+                }
+            
+                updated_settings.append(ModelUtilities.update_or_create_model(UserChannelSettings, filter_dict, update_dict)[0])
+
+        return updated_settings
 
     @staticmethod
     def validate_chatroom_user_settings_request(member_id, api_key, participant_uuid, chatroom_id, update_settings: bool = False):
