@@ -2590,14 +2590,13 @@ class MemberCommunityHelper:
             'card__is_private': True,
             'card__type': card_types.CARD_DIRECT_MESSAGE,
             'follow_status': True,
-            'chat_requested_by': user_instance,
+            'chat_request_initiated_by': user_instance,
             'user': user_instance,
             'chat_request_created_at__gte': start_epoch_time,
             'chat_request_created_at__lte': end_epoch_time
         }
 
-        card_state_filter = ModelUtilities.get_model_filter(collabcardState, card_state_filter_object).exclude(
-            chat_request_state=None)
+        card_state_filter = ModelUtilities.get_model_filter(collabcardState, card_state_filter_object)
 
         if card_state_filter.count() >= community_dm_settings_instance.number_in_duration:
             user_dm_limit = None
