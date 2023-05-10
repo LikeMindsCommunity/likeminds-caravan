@@ -2628,7 +2628,7 @@ def delete_user_channel_settings(user_instance = None, community_instance = None
         return
 
     filter_dict = {
-        'member': user_instance,
+        'user': user_instance,
         'chatroom__community': community_instance,
         'setting_type': setting_type
         }
