@@ -1,4 +1,7 @@
-from togther.models import (ModelUtilities, Collabcard)
+from togther.models import (ModelUtilities, Collabcard, Members)
+from collabmates_api.serializers import (get_menu_for_members)
+from utility.states import (member_states)
+from collabmates_api.user_moderation_rights import (check_all_manager_rights)
 
 
 class SearchHelper:
@@ -33,3 +36,34 @@ class SearchHelper:
             }
 
         return chatroom_data
+
+    @staticmethod
+    def get_menu_items_for_member_in_search(current_user_id, user_id, community_id, user_data):
+        user_menu = []
+
+        if not (current_user_id or user_id or community_id):
+            return user_menu
+
+        current_member_instance = ModelUtilities.get_model_filter(Members,
+                                                                  {'community_id': community_id,
+                                                                   'member_id': current_user_id}).first()
+
+        if not current_member_instance:
+            return user_menu
+
+        current_user_is_promoter = current_member_instance.state == member_states.ADMIN
+
+        user_admin_rights = None
+
+        if current_member_instance.is_owner or current_user_is_promoter:
+            user_admin_rights = check_all_manager_rights(current_user_id, community_id)
+
+        return get_menu_for_members(current_user_id=current_user_id,
+                                    item_member_id=user_id,
+                                    community_id=community_id,
+                                    current_user_is_promoter=current_user_is_promoter,
+                                    current_user_is_owner=current_member_instance.is_owner,
+                                    item_member_state=user_data.get('state'),
+                                    item_member_is_owner=user_data.get('is_owner'),
+                                    parents_list=user_data.get('parent_cm_list'),
+                                    current_user_admin_rights=user_admin_rights)
