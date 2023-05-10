@@ -2,6 +2,8 @@ from togther.models import (ModelUtilities, Collabcard, Members)
 from collabmates_api.serializers import (get_menu_for_members)
 from utility.states import (member_states)
 from collabmates_api.user_moderation_rights import (check_all_manager_rights)
+from utility.time_utilities import TimeUtilities
+from ..raw_queries import (get_chatroom_participants_count)
 
 
 class SearchHelper:
@@ -14,7 +16,7 @@ class SearchHelper:
         return True
 
     @staticmethod
-    def update_chatroom_member_to_creator_for_card_data(chatroom_data):
+    def serialize_chatroom_data_response(chatroom_data):
 
         chatroom_ids_list = [state_data.get('chatroom').get('id') for state_data in chatroom_data
                              if state_data.get('chatroom')]
@@ -28,12 +30,17 @@ class SearchHelper:
         for card_data in chatroom_data:
             creator_data = card_creators_data.get(card_data.get('chatroom').get('id'))
 
-            card_data['member'] = {
+            creator = {
                 'id': creator_data.get('user__id'),
                 'profile': {
                     'name': creator_data.get('user__userinfo__name')
                 }
             }
+
+            card_data['member'] = creator
+            card_data['chatroom']['member'] = creator
+            card_data['chatroom']['date'] = TimeUtilities.convert_epoch_time_in_date(card_data['chatroom']['created_at'])
+            card_data['chatroom']['participants_count'] = get_chatroom_participants_count(card_data['chatroom']['id'], card_data['community']['id'])
 
         return chatroom_data
 
