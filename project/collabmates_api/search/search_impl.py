@@ -357,8 +357,7 @@ class SearchImpl(SearchManager):
 
         chatroom_data = [hit.to_dict() for hit in res]
 
-        if self.get_search_field() == CHATROOM_FIELD_TITLE:
-            SearchHelper.update_chatroom_member_to_creator_for_card_data(chatroom_data)
+        SearchHelper.serialize_chatroom_data_response(chatroom_data)
 
         context = {
             'success': True,
