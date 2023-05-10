@@ -5241,6 +5241,7 @@ class ChatroomHelper:
 
         ModelUtilities.model_update(collabcardState, {'card': card_instance},
                                     {'chat_request_state': chat_request_state,
+                                     'chat_request_initiated_by': user_instance,
                                      'chat_requested_by': user_instance,
                                      'chat_request_created_at': TimeUtilities.current_time_in_milliseconds(),
                                      'updated_at': TimeUtilities.current_time_in_sec()})

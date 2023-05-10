@@ -1804,7 +1804,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                                          community_instance)
 
         elif req_from in [dm_icon_from_states.DM_FEED_V2, dm_icon_from_states.GROUP_CHANNEL]:
-            response = MemberCommunityHelper.can_member_from_dm_feed_v2(user_instance, community_instance)
+            response = MemberCommunityHelper.can_member_request_from_dm_feed_v2(user_instance, community_instance)
 
         else:
             response = MemberCommunityHelper.can_member_dm_from_dm_chatroom(user_instance, validated_request)
@@ -2590,13 +2590,13 @@ class MemberCommunityHelper:
             'card__is_private': True,
             'card__type': card_types.CARD_DIRECT_MESSAGE,
             'follow_status': True,
-            'chat_requested_by': user_instance,
+            'chat_request_initiated_by': user_instance,
+            'user': user_instance,
             'chat_request_created_at__gte': start_epoch_time,
             'chat_request_created_at__lte': end_epoch_time
         }
 
-        card_state_filter = ModelUtilities.get_model_filter(collabcardState, card_state_filter_object).exclude(
-            chat_request_state=None)
+        card_state_filter = ModelUtilities.get_model_filter(collabcardState, card_state_filter_object)
 
         if card_state_filter.count() >= community_dm_settings_instance.number_in_duration:
             user_dm_limit = None
@@ -2808,7 +2808,7 @@ class MemberCommunityHelper:
                 'cta': CTA_ROUTE_DIRECT_MESSAGES_DM_FEED.format(community_instance.id)}
 
     @staticmethod
-    def can_member_from_dm_feed_v2(user_instance, community_instance):
+    def can_member_request_from_dm_feed_v2(user_instance, community_instance):
         response_dict = {
             'success': True,
             'show_dm': False
