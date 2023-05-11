@@ -5976,7 +5976,10 @@ class ChatroomHelper:
         # Get collabcardstate for participant and chatroom
         collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {
             'user': participant_instance,
-            'card': chatroom_instance
+            'card': chatroom_instance,
+            'follow_status': True,
+            'remove_id': None,
+            'is_tagged': False,
         })
 
         # If participant is not part of the chatroom then return error
