@@ -2604,7 +2604,7 @@ def update_unseen_count_based_on_cohort_access(cohort_id=None, user_id=None, com
         update_last_unseen_in_engage(user=user_id, community=community_id)
 
 @shared_task
-def update_user_chatroom_settings(chatroom_id = None, setting_type: str = None, enabled: bool = False):
+def toggle_user_chatroom_settings(chatroom_id = None, setting_type: str = None, enabled: bool = False):
     
     if not chatroom_id:
         return
