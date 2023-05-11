@@ -5919,8 +5919,13 @@ class ChatroomHelper:
         
         if not member_state:
             return ResponseUtilities.get_inner_error_context('You are not part of the community!')
+
+        participant_ids = ModelUtilities.get_valid_member_ids([participant_uuid], community_instance.id)
         
-        participant_instance = ModelUtilities.get_user_instance_or_none(participant_uuid)
+        if not participant_ids or len(participant_ids) < 1:
+            return ResponseUtilities.get_inner_error_context('Invalid participant_uuid!')
+        
+        participant_instance = ModelUtilities.get_user_instance_or_none(participant_ids[0])
         
         if not participant_instance:
             return ResponseUtilities.get_inner_error_context('Invalid participant_uuid!')

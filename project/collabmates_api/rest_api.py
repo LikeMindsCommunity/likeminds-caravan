@@ -1549,7 +1549,7 @@ class UserChannelSettingsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserChannelSettings
-        fields = ( 'chatroom_id', 'user_id', 'setting_type', 'enabled', 'changed_by_id',  'created_at', 'updated_at')
+        fields = ( 'chatroom_id', 'user_id', 'setting_type', 'enabled', 'changed_by_id')
 
     def to_representation(self, instance):
         data = super(UserChannelSettingsSerializer, self).to_representation(instance)
@@ -1561,5 +1561,18 @@ class UserChannelSettingsSerializer(serializers.ModelSerializer):
             if field.field_name == 'changed_by_id':
                 data['changed_by'] =  data['changed_by_id']
                 del data['changed_by_id']
+
+
+            if field.field_name == 'user_id':
+                user = Userinfo.get_userinfo_or_None(data['user_id'])
+
+                if user:
+                    data['user'] = UserShortSerializer(user, many=False).data
+
+                    client_user_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id' : user.user_id}).first()
+                    if client_user_info:
+                        data['user']['client_user_unique_id'] = client_user_info.user_unique_id
+                
+                del data['user_id']
             
         return data
