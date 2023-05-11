@@ -5982,9 +5982,9 @@ class ChatroomHelper:
             'is_tagged': False,
         })
 
-        # If participant is not part of the chatroom then return error
-        if not collabcard_state_filter:
-            return ResponseUtilities.get_inner_error_context('participant_uuid is not part of the chatroom!')
+        # If participant is not part of the chatroom and is secret
+        if not collabcard_state_filter and chatroom_instance.is_secret:
+            return ResponseUtilities.get_inner_error_context('participant_uuid is not part of this secret chatroom!')
         
         member_is_admin = (member_state == member_states.ADMIN)
         participant_is_admin = (participant_state == member_states.ADMIN)
