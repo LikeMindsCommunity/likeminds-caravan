@@ -1401,3 +1401,92 @@ class ChatroomSettings(APIView):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
                                                                                 response_context.get('status')))
         return JsonResponse(response_context)
+    
+class ChatroomUserSettings(APIView):
+
+    def _validate_request(self, member_id, api_key, req_params = None, req_body = None):
+        '''
+            Validates request parameters for Chatroom User Settings requests
+        '''
+
+        setting_types = StringUtilities.get_list_from_string(req_params.get('setting_types') if req_params else None)
+        channel_settings = req_body.get('channel_settings') if req_body else None
+
+        if not member_id:
+            return {'success': False, 'error_message': "Send x-member-id in headers"}
+
+        if not api_key:
+            return {'success': False, 'error_message': "Send x-api-key in headers"}
+
+        if req_params and req_params.get('setting_types') and not isinstance(setting_types, list):
+            return {'success': False, 'error_message': "Invalid setting_types!"}
+        
+        if req_body is not None and not isinstance(channel_settings, list):
+            return {'success': False, 'error_message': "Invalid channel_settings!"}
+
+        return {'success': True, 'setting_types': setting_types, 'channel_settings': channel_settings}
+    
+    def get(self, request, chatroom_id, participant_uuid):
+        '''
+            Fetch user specific chatroom settings
+        '''
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        req_params = RequestUtilities.fetch_request_query_params(request)
+
+        # Validate request
+        validated_request = self._validate_request(member_id, api_key, req_params=req_params)
+        
+        if not validated_request.get('success'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_request.get('error_message'),
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
+        
+        setting_types = validated_request.get('setting_types')
+
+        # Get user specific chatroom settings
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id, api_key=api_key)
+        response_context = chatroom_manager.get_chatroom_user_settings(participant_uuid=participant_uuid, 
+                                                                       setting_types=setting_types)
+
+        # Return error response if any error occured
+        if 'error_message' in response_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
+        
+        # Return success response
+        return JsonResponse(response_context)
+
+    def put(self, request, chatroom_id, participant_uuid):
+        '''
+            Update user specific chatroom settings
+        '''
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        req_body = RequestUtilities.load_request_body(request)
+
+        # Validate request
+        validated_request = self._validate_request(member_id, api_key, req_body=req_body)
+        
+        if not validated_request.get('success'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_request.get('error_message'),
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
+        
+        channel_settings = validated_request.get('channel_settings')
+        
+        # Get user specific chatroom settings
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id, api_key=api_key)
+        response_context = chatroom_manager.update_chatroom_user_settings(participant_uuid=participant_uuid, 
+                                                                          chatroom_settings=channel_settings)
+
+        # Return error response if any error occured
+        if 'error_message' in response_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
+        
+        # Return success response
+        return JsonResponse(response_context)
+

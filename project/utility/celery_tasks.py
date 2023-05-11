@@ -2546,7 +2546,6 @@ def send_chatroom_updated_analytics_data(chatroom_id, user_id, update_dict):
     event_data.update(update_dict)
     SegmentImpl.track_event(user_id, "Chatroom updated (Core service)", event_data)
 
-
 @shared_task
 def update_community_pin_chatrooms_list_in_cache(pin_info):
     chatroom_id = pin_info.get('chatroom_id')
@@ -2607,4 +2606,34 @@ def update_unseen_count_based_on_cohort_access(cohort_id=None, user_id=None, com
     for user_id in user_id_list:
         update_last_unseen_in_engage(user=user_id, community=community_id)
 
+@shared_task
+def toggle_user_chatroom_settings(chatroom_id = None, setting_type: str = None, enabled: bool = False):
+    
+    if not chatroom_id:
+        return
 
+    filter_dict = {
+        'chatroom_id': chatroom_id,
+        'setting_type': setting_type,
+        'enabled': not enabled
+        }
+    
+    update_dict = {
+        'enabled': enabled
+        }
+
+    ModelUtilities.model_update(UserChannelSettings, filter_dict, update_dict)
+
+@shared_task
+def delete_user_channel_settings_for_a_user(user_id = None, community_id = None, setting_type: str = None):
+    
+    if not user_id or not community_id:
+        return
+
+    filter_dict = {
+        'user': user_id,
+        'chatroom__community_id': community_id,
+        'setting_type': setting_type
+        }
+    
+    ModelUtilities.delete_record_in_model(UserChannelSettings, filter_dict)

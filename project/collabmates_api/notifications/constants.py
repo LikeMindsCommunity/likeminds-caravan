@@ -111,6 +111,7 @@ class NotificationCategories:
     CHATROOM = "Chat room"
     HOME = "Home"
     FEED = "Feed"
+    DM = "Direct messages"
 
 
 class NotificationSubCategories:
@@ -178,6 +179,8 @@ class NotificationSubCategories:
     POST_COMMENT = "Post Comment"
     FOLLOWED_POST = "Followed Post"
     COMMENT_REPLY = "Comment Reply"
+
+    DM_REQUEST_SENT = "Request Sent"
 
 
 NOTIFICATION_CATEGORY_KEY = 'category'
