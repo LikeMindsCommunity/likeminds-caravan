@@ -1161,6 +1161,23 @@ def create_notification_flag(member, notification_list, card_id=None, community_
 
         ModelUtilities.update_or_create_model(memberNotificationFlag, filter_dict, update_dict)
 
+def fetch_notification_flag(member, community ,card=None):
+    """
+    function to get notification flag
+    """
+    filter_dict = {
+        'member': member,
+        'community': community
+    }
+    if card:
+        filter_dict['card'] = card
+    member_notification_filter = ModelUtilities.get_model_filter(memberNotificationFlag, filter_dict)
+    reponse_dict = {}
+    for index, objects in enumerate(member_notification_filter):
+        reponse_dict[member_notification_filter[index].code] = member_notification_filter[index].flag
+
+    return reponse_dict
+
 
 def filter_user_instances_based_on_notification_flag(user_ids: list,
                                                      community_id: int = None,
