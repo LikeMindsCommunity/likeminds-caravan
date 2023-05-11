@@ -753,6 +753,7 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
         
         # Add sdk_client_info data to userinfo_serialized_object
         sdk_client = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id': member_id}).first()
+       
         if sdk_client:
             userinfo_serialized_object['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client).data
 
