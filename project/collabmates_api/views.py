@@ -40,7 +40,7 @@ from utility.celery_tasks import (
     reset_unread_message_count_in_cache, fetch_conversations_unread, update_deferred_card_poll_updated_at_value,
     get_to_show_results_for_conversation_poll, send_chatroom_deleted_analytics_data, cm_removed_dm_chatroom,
     member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data,
-    update_community_pin_chatrooms_list_in_cache, delete_user_channel_settings)
+    update_community_pin_chatrooms_list_in_cache, delete_user_channel_settings_for_a_user)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -11105,7 +11105,7 @@ def update_community_manager_rights(request):
                 member_becomes_cm_dm_chatroom.delay(user_id, community_id, is_m2cm_v2=is_m2cm_v2)
 
                 # Delete user channel settings with settings type as member_can_message for all the members of community
-                delete_user_channel_settings.delay(user_instance.id, community_instance.id, CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE)
+                delete_user_channel_settings_for_a_user.delay(user_instance.id, community_instance.id, CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE)
 
             elif custom_title_changed:
                 member_title_changed = True

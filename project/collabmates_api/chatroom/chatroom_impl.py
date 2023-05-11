@@ -3967,7 +3967,7 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True, 'channel_settings':serialized_data}
 
-    def update_chatroom_user_settings(self, participant_uuid: str, chatroom_settings: list ) -> dict:
+    def update_chatroom_user_settings(self, participant_uuid: str, chatroom_settings: list) -> dict:
 
         # Validate request and get instances
         validated_req = ChatroomHelper.validate_chatroom_user_settings_request(member_id=self.get_member_id(),
@@ -5827,29 +5827,27 @@ class ChatroomHelper:
         if not all([participant_instance, chatroom_instance]):
             return []
         
-        defaut_channel_settings = []
+        response_user_channel_settings = []
 
-        # Create default chatroom settings
+        # Create user chatroom settings response list
         for setting in CHATROOM_USER_SETTINGS:
             
             # For member_can_message setting
             if setting == CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE:
-                defaut_channel_settings.append(UserChannelSettings(user=participant_instance,
+                response_user_channel_settings.append(UserChannelSettings(user=participant_instance,
                                                                    chatroom=chatroom_instance,
                                                                    setting_type=setting,
                                                                    enabled=chatroom_instance.member_can_message))
         
-        # Filter default chatroom settings based on setting_types
+        # Filter user chatroom settings based on setting_types
         if setting_types:
-            defaut_channel_settings = [setting for setting in defaut_channel_settings if setting.setting_type in setting_types]
+            response_user_channel_settings = [setting for setting in response_user_channel_settings if setting.setting_type in setting_types]
 
         # If ADMIN, return settings with enabled as TRUE
         if is_admin:
-            for setting in defaut_channel_settings:
+            for setting in response_user_channel_settings:
                 setting.enabled = True
 
-            return defaut_channel_settings
-        
         else:
             # Get User Channel settings for participant
             user_channel_settings = ModelUtilities.get_model_filter(UserChannelSettings,
@@ -5857,11 +5855,11 @@ class ChatroomHelper:
                                                                      'chatroom': chatroom_instance})
         
             for setting in user_channel_settings:
-                for default_setting in defaut_channel_settings:
-                    if setting.setting_type == default_setting.setting_type:
-                        default_setting.enabled = setting.enabled
+                for response_setting in response_user_channel_settings:
+                    if setting.setting_type == response_setting.setting_type:
+                        response_setting.enabled = setting.enabled
 
-            return defaut_channel_settings
+        return response_user_channel_settings
 
     def update_user_chatroom_settings_helper(participant_instance, member_instance, chatroom_instance, chatroom_settings: list):
         
@@ -5893,7 +5891,7 @@ class ChatroomHelper:
     @staticmethod
     def validate_chatroom_user_settings_request(member_id, api_key, participant_uuid, chatroom_id, update_settings: bool = False):
         """
-            This method validates chatroom user settings requests and returns user, community, chatroom and member instances
+            This method validates chatroom user settings requests and returns instances
         """    
 
         # Get user and community instances

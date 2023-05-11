@@ -2446,7 +2446,7 @@ class ConversationHelper:
                                                                                              [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE])
 
         # If user_chatroom_settings for 'member_can_message' is false, then return error
-        if len(user_chatroom_settings) > 0 and user_chatroom_settings[0].enabled == False:
+        if not user_chatroom_settings or not user_chatroom_settings[0].enabled :
             return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
            
         return {

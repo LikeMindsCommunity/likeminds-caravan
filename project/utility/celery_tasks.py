@@ -2622,7 +2622,7 @@ def toggle_user_chatroom_settings(chatroom_id = None, setting_type: str = None, 
     ModelUtilities.model_update(UserChannelSettings, filter_dict, update_dict)
 
 @shared_task
-def delete_user_channel_settings(user_id = None, community_id = None, setting_type: str = None):
+def delete_user_channel_settings_for_a_user(user_id = None, community_id = None, setting_type: str = None):
     
     if not user_id or not community_id:
         return
