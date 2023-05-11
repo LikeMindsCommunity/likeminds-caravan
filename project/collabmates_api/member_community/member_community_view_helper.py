@@ -180,3 +180,29 @@ class MemberCommunityViewHelper:
             'community_instance': community_instance,
             'code_flag': code_flags
         }
+
+    @staticmethod
+    def validate_fetch_unsubscribe_email_notifications_request(user_id, community_id, card_id: str = None):
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user ID")
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid community ID")
+
+        chatroom_instance = None
+
+        if card_id:
+            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+            if not chatroom_instance:
+                return ResponseUtilities.get_inner_error_context("Invalid chatroom ID")
+
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'chatroom_instance':chatroom_instance
+        }

@@ -531,6 +531,36 @@ class UnsubscribeEmailNotificationsView(APIView):
 
         return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
 
+    @staticmethod
+    def _validate_fetch_request(member_id,community_id):
+
+        if not member_id:
+            return {'error_message': 'Query params missing'}
+
+        if not community_id:
+            return {'error_message': 'Query params missing'}
+
+        return {'success': True}
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_params = RequestUtilities.fetch_request_query_params(request)
+        community_id = req_params.get("community_id")
+        chatroom_id = req_params.get("chatroom_id")
+
+        validated_req_body = self._validate_fetch_request(member_id, community_id)
+
+        if not validated_req_body.get('success', False):
+            return JsonResponse({'success': False, 'error_message': "Invalid request body"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        member_community_manager = MemberCommunityImpl(member_id, community_id=community_id)
+        community_context = member_community_manager.fetch_unsubscribe_email_notifications()
+        if chatroom_id:
+            community_context = member_community_manager.fetch_unsubscribe_email_notifications(card_id=chatroom_id)
+
+        return JsonResponse(community_context)
+
 
 class FetchAccessView(APIView):
 

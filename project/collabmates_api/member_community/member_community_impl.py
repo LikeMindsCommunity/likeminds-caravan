@@ -28,7 +28,7 @@ from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from utility.utils import (get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room,
-                           create_notification_flag)
+                           create_notification_flag,fetch_notification_flag)
 from utility.cache_keys import (COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY)
 from .constants import *
 from .member_community_view_helper import MemberCommunityViewHelper
@@ -77,6 +77,8 @@ from ..views import get_home_screen_community_actions, generate_internal_link_pr
     get_latest_conversation_members, post_introduction_card_for_community, update_community_get_started
 
 from collabmates_api.search.sync import ElasticSearchSync
+
+
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -1857,6 +1859,26 @@ class MemberCommunityImpl(MemberCommunityManager):
             create_notification_flag(user_instance, [code], community_id=community_instance.id, flag=value)
 
         return {'success': True}
+
+    def fetch_unsubscribe_email_notifications(self, card_id: str = None) -> {}:
+        validated_request = MemberCommunityViewHelper.validate_fetch_unsubscribe_email_notifications_request(
+            self.get_member_id(), self.get_community_id())
+        if card_id:
+            validated_request = MemberCommunityViewHelper.validate_fetch_unsubscribe_email_notifications_request(
+                self.get_member_id(), self.get_community_id(),card_id=card_id)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        chatroom_instance = validated_request.get('chatroom_instance')
+        notification_flags = fetch_notification_flag(user_instance,community_instance)
+        if chatroom_instance:
+            notification_flags = fetch_notification_flag(user_instance, community_instance,chatroom_instance)
+
+        return notification_flags
 
     def fetch_member_access(self, access_type: str) -> {}:
         validated_request = MemberCommunityHelper.validate_fetch_member_access_request(
