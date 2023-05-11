@@ -4,7 +4,7 @@ from utility.request_utilities import RequestUtilities
 from .serializers import *
 from .utility import *
 from .user_moderation_rights import check_admin_approve_right
-from .rest_api import CommunitySerializerV1
+from .rest_api import CommunitySerializerV1, SDKClientUsersInfoSerializer
 from collabmates_api.sdk.models import (SdkClient)
 from utility.response_utilities import ResponseUtilities
 
@@ -750,6 +750,12 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
                                                        send_profile=True,
                                                        all_members_api=True, is_promoter=is_promoter,
                                                        is_owner=is_owner, user_admin_rights=user_admin_rights)
+        
+        # Add sdk_client_info data to userinfo_serialized_object
+        sdk_client = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id': member_id}).first()
+       
+        if sdk_client:
+            userinfo_serialized_object['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client).data
 
         if current_user_id and member_id == int(current_user_id):
             pass
