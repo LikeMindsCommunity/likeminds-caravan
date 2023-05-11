@@ -3559,3 +3559,22 @@ class ChatroomInvite(models.Model):
         self.updated_at = current_time
 
         super(ChatroomInvite, self).save(*args, **kwargs)
+
+class UserChannelSettings(models.Model):
+    chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    setting_type = models.CharField(max_length=255)
+    enabled = models.BooleanField(default=True)
+    changed_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name="changed_by")
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(UserChannelSettings, self).save(*args, **kwargs)
