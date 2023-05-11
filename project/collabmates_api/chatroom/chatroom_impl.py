@@ -63,7 +63,7 @@ from ..notification import (get_tagged_members_list, send_notification_to_event_
                             send_pin_chatroom_notification, send_notification_for_new_secret_room_participant,
                             send_notification_for_removed_secret_room_participant,
                             send_notification_for_auto_follow_chatroom_for_all_members,
-                            send_notification_for_event_update)
+                            send_notification_for_event_update, send_notification_on_dm_request_initiation)
 
 from ..search.sync import ElasticSearchSync
 
@@ -5264,6 +5264,9 @@ class ChatroomHelper:
                                                             card_instance.community, user_instances_list,
                                                             message, user_member_state, member_state,
                                                             conversation_state=conv_state)
+
+        send_notification_on_dm_request_initiation.delay(card_instance.id, user_instance.id,
+                                                         user_instance.userinfo.name)
 
         from collabmates_api.conversation.conversation_impl import ConversationHelper
         ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(card_instance.id,
