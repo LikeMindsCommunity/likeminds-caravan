@@ -1567,11 +1567,11 @@ class UserChannelSettingsSerializer(serializers.ModelSerializer):
                 user = Userinfo.get_userinfo_or_None(data['user_id'])
 
                 if user:
-                    data['user'] = UserShortSerializer(user, many=False).data
+                    data['user'] = UserShortSerializer(user).data
 
                     client_user_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id' : user.user_id}).first()
                     if client_user_info:
-                        data['user']['client_user_unique_id'] = client_user_info.user_unique_id
+                        data['user']['sdk_client_info'] = SDKClientUsersInfoSerializer(client_user_info).data
                 
                 del data['user_id']
             
