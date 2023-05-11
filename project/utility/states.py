@@ -612,9 +612,9 @@ community_dm_settings_state_types = CommunityDMSettingsStateTypes()
 
 
 class CommunityDMSettingsDurationTypes:
-    DAYS = "days"
-    WEEKS = "weeks"
-    MONTHS = "months"
+    DAYS = "day"
+    WEEKS = "week"
+    MONTHS = "month"
 
 
 community_dm_settings_duration_types = CommunityDMSettingsDurationTypes()
@@ -641,8 +641,10 @@ class DMIconFromStates:
     MEMBER_PROFILE = "member_profile"
     COMMUNITY_DETAIL = "community_detail"
     DM_FEED = "dm_feed"
+    DM_FEED_V2 = "dm_feed_v2"
     MEMBER_DIRECTORY = "member_directory"
     CHATROOM = "chatroom"
+    GROUP_CHANNEL = "group_channel"
 
 
 dm_icon_from_states = DMIconFromStates()
@@ -747,3 +749,8 @@ class ChatroomSettings:
 
 
 chatroom_setting_states = ChatroomSettings()
+
+
+class DMFabShowList:
+    ALL_MEMBERS = 1
+    ONLY_CM = 2

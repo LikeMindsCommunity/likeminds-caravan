@@ -1698,8 +1698,11 @@ class ConversationHelper:
 
     @staticmethod
     @shared_task
-    def update_latest_conversation_id_to_firebase_v1(chatroom_id, conversation_id, community_id=None):
-        update_last_answer_id(chatroom_id, conversation_id)
+    def update_latest_conversation_id_to_firebase_v1(chatroom_id, conversation_id, community_id=None,
+                                                     only_update_home_feed=False):
+        if not only_update_home_feed:
+            update_last_answer_id(chatroom_id, conversation_id)
+
         update_chatroom_conversation_ids_against_community(community_id, card_id=chatroom_id,
                                                            conversation_id=conversation_id)
 

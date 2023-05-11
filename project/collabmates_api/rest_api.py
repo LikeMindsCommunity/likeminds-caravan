@@ -1463,6 +1463,21 @@ class CommunityDMSettingsSerializer(serializers.ModelSerializer):
         model = CommunityDirectMessageSettings
         fields = ('community', 'state', 'duration', 'number_in_duration')
 
+    def __init__(self, *args, **kwargs):
+        super(CommunityDMSettingsSerializer, self).__init__(*args, **kwargs)
+        self.send_community_id = self.context.get('send_community_id', True)
+
+    def to_representation(self, instance):
+        data = super(CommunityDMSettingsSerializer, self).to_representation(instance)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if (field.field_name == 'community') and not self.send_community_id:
+                del data['community']
+
+        return data
+
 
 class ScheduledChatroomFollowSerializer(serializers.ModelSerializer):
 

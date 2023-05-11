@@ -64,7 +64,7 @@ from ..notification import (get_tagged_members_list, send_notification_to_event_
                             send_pin_chatroom_notification, send_notification_for_new_secret_room_participant,
                             send_notification_for_removed_secret_room_participant,
                             send_notification_for_auto_follow_chatroom_for_all_members,
-                            send_notification_for_event_update)
+                            send_notification_for_event_update, send_notification_on_dm_request_initiation)
 
 from ..search.sync import ElasticSearchSync
 
@@ -135,7 +135,7 @@ class ChatroomImpl(ChatroomManager):
     request_platform = None
 
     def __init__(self, member_id: str, chatroom_id: str = None, source_id: str = None, aj: str = None,
-                 device_id: str = None, request_platform: str = None, version_code: int = 0, api_key: str = None):
+                 device_id: str = None, request_platform: str = None, version_code: int = 0, api_key: str = None, sdk_source: str = None):
         self.member_id = member_id
         self.chatroom_id = chatroom_id
         self.source_id = source_id
@@ -144,6 +144,7 @@ class ChatroomImpl(ChatroomManager):
         self.request_platform = request_platform
         self.version_code = version_code
         self.api_key = api_key
+        self.sdk_source = sdk_source
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -174,7 +175,10 @@ class ChatroomImpl(ChatroomManager):
 
     def get_request_platform(self):
         return self.request_platform
-
+    
+    def get_sdk_source(self):
+        return self.sdk_source
+    
     def get_device_id(self):
         return self.device_id
 
@@ -1803,7 +1807,8 @@ class ChatroomImpl(ChatroomManager):
 
             pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
                                                                       self.get_version_code(),
-                                                                      VersionUtilities.participants_meta_pagination)
+                                                                      VersionUtilities.participants_meta_pagination,
+                                                                      self.get_sdk_source())
 
             order_by_name = False
 
@@ -2934,7 +2939,8 @@ class ChatroomImpl(ChatroomManager):
 
         pagination_version_check = VersionUtilities.check_version(self.get_request_platform(),
                                                                   self.get_version_code(),
-                                                                  VersionUtilities.participants_meta_pagination)
+                                                                  VersionUtilities.participants_meta_pagination,
+                                                                  self.get_sdk_source())
 
         order_by_name = False
 
@@ -3588,6 +3594,12 @@ class ChatroomImpl(ChatroomManager):
                                                                 answer, user_member_state, member_state,
                                                                 conversation_state=conv_state)
 
+            from collabmates_api.conversation.conversation_impl import ConversationHelper
+            ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(card_instance.id,
+                                                                                  conversation_instance.id,
+                                                                                  card_instance.community_id,
+                                                                                  only_update_home_feed=True)
+
             context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
             conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
 
@@ -3636,7 +3648,8 @@ class ChatroomImpl(ChatroomManager):
 
         elif chat_request_state == chat_request_states.ACCEPTED:
             response = ChatroomHelper.accept_dm_connection_request(user_instance, card_instance, user_member_state,
-                                                                   member_state, chat_request_state, card_state_filter)
+                                                                   member_state, chat_request_state, card_state_filter,
+                                                                   message, user_instances_list)
 
             if not response.get('success'):
                 return response
@@ -5297,6 +5310,7 @@ class ChatroomHelper:
 
         ModelUtilities.model_update(collabcardState, {'card': card_instance},
                                     {'chat_request_state': chat_request_state,
+                                     'chat_request_initiated_by': user_instance,
                                      'chat_requested_by': user_instance,
                                      'chat_request_created_at': TimeUtilities.current_time_in_milliseconds(),
                                      'updated_at': TimeUtilities.current_time_in_sec()})
@@ -5314,6 +5328,15 @@ class ChatroomHelper:
                                                             message, user_member_state, member_state,
                                                             conversation_state=conv_state)
 
+        send_notification_on_dm_request_initiation.delay(card_instance.id, user_instance.id,
+                                                         user_instance.userinfo.name)
+
+        from collabmates_api.conversation.conversation_impl import ConversationHelper
+        ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(card_instance.id,
+                                                                              conversation_instance.id,
+                                                                              card_instance.community_id,
+                                                                              only_update_home_feed=True)
+
         context = {"current_user_id": user_instance.id, "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
 
@@ -5321,7 +5344,7 @@ class ChatroomHelper:
 
     @staticmethod
     def accept_dm_connection_request(user_instance, card_instance, user_member_state, member_state,
-                                     chat_request_state, card_state_filter):
+                                     chat_request_state, card_state_filter, message=None, user_instances_list=None):
 
         if any([user_member_state == member_states.ADMIN, member_state == member_states.ADMIN]):
             ModelUtilities.model_update(collabcardState, {'card': card_instance},
@@ -5329,7 +5352,24 @@ class ChatroomHelper:
                                          'chat_requested_by': user_instance,
                                          'chat_request_created_at': TimeUtilities.current_time_in_milliseconds(),
                                          'updated_at': TimeUtilities.current_time_in_sec()})
-            return {'success': True}
+
+            conv_state = conversation_states.ANSWER
+
+            if card_instance.user == user_instance:
+                other_member_instance = card_instance.chatroom_with_user
+
+            else:
+                other_member_instance = card_instance.user
+
+            conversation_instance = initial_message_dm_chatroom(card_instance, user_instance, other_member_instance,
+                                                                card_instance.community, user_instances_list,
+                                                                message, user_member_state, member_state,
+                                                                conversation_state=conv_state)
+
+            context = {"current_user_id": user_instance.id, "fetch_reply": True}
+            conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
+
+            return {'success': True, 'should_call_block_unblock': True, 'conversation': conversation}
 
         if card_state_filter.exclude(chat_request_state=chat_request_states.INITIATED):
             return get_error_context(False, 'Connection request either not initiated or is rejected!')
