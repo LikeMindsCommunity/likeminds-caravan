@@ -1860,7 +1860,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True}
 
-    def fetch_unsubscribe_email_notifications(self, card_id: str = None) -> {}:
+    def fetch_unsubscribe_email_notifications(self, card_id: str = None, codes: list = None) -> {}:
         validated_request = MemberCommunityViewHelper.validate_fetch_unsubscribe_email_notifications_request(
             self.get_member_id(), self.get_community_id())
         if card_id:
@@ -1874,9 +1874,14 @@ class MemberCommunityImpl(MemberCommunityManager):
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
         chatroom_instance = validated_request.get('chatroom_instance')
-        notification_flags = fetch_notification_flag(user_instance,community_instance)
-        if chatroom_instance:
+        if chatroom_instance and not codes:
             notification_flags = fetch_notification_flag(user_instance, community_instance,chatroom_instance)
+        elif codes and not chatroom_instance:
+            notification_flags = fetch_notification_flag(user_instance, community_instance,code=codes)
+        elif chatroom_instance and codes:
+            notification_flags = fetch_notification_flag(user_instance, community_instance, chatroom_instance, code=codes)
+        else:
+            notification_flags = fetch_notification_flag(user_instance, community_instance)
 
         return notification_flags
 

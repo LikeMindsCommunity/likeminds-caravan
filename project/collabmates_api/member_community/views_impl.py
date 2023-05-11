@@ -547,6 +547,7 @@ class UnsubscribeEmailNotificationsView(APIView):
         req_params = RequestUtilities.fetch_request_query_params(request)
         community_id = req_params.get("community_id")
         chatroom_id = req_params.get("chatroom_id")
+        notification_flag_code = req_params.get("codes")
 
         validated_req_body = self._validate_fetch_request(member_id, community_id)
 
@@ -555,11 +556,23 @@ class UnsubscribeEmailNotificationsView(APIView):
                                 status=status_codes.HTTP_400_BAD_REQUEST)
 
         member_community_manager = MemberCommunityImpl(member_id, community_id=community_id)
-        community_context = member_community_manager.fetch_unsubscribe_email_notifications()
-        if chatroom_id:
-            community_context = member_community_manager.fetch_unsubscribe_email_notifications(card_id=chatroom_id)
+        if chatroom_id and not notification_flag_code:
+            community_notification_flag_context = member_community_manager.fetch_unsubscribe_email_notifications(card_id=chatroom_id)
+        elif notification_flag_code and not chatroom_id:
+            notification_flag_code_list = notification_flag_code.split(",")
+            community_notification_flag_context = member_community_manager.fetch_unsubscribe_email_notifications(codes=notification_flag_code_list)
+        elif chatroom_id and notification_flag_code:
+            notification_flag_code_list = notification_flag_code.split(",")
+            community_notification_flag_context = member_community_manager.fetch_unsubscribe_email_notifications(card_id=chatroom_id,codes=notification_flag_code_list)
+        else:
+            community_notification_flag_context = member_community_manager.fetch_unsubscribe_email_notifications()
 
-        return JsonResponse(community_context)
+        response = {'member_id':member_id,
+                    'community_id':community_id,
+                    'card_id':chatroom_id,
+                    'notification_flag':community_notification_flag_context}
+
+        return JsonResponse(response)
 
 
 class FetchAccessView(APIView):

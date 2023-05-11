@@ -150,7 +150,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def fetch_unsubscribe_email_notifications(self, card_id: str = None) -> {}:
+    def fetch_unsubscribe_email_notifications(self, card_id: str = None, codes: list = None) -> {}:
         """Updates unsubscribe table according to whether notification send or not"""
 
         raise NotImplementedError

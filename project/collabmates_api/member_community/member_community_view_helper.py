@@ -197,6 +197,7 @@ class MemberCommunityViewHelper:
 
         if card_id:
             chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+            print(card_id)
             if not chatroom_instance:
                 return ResponseUtilities.get_inner_error_context("Invalid chatroom ID")
 

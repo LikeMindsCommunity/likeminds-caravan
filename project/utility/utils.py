@@ -1161,7 +1161,7 @@ def create_notification_flag(member, notification_list, card_id=None, community_
 
         ModelUtilities.update_or_create_model(memberNotificationFlag, filter_dict, update_dict)
 
-def fetch_notification_flag(member, community ,card=None):
+def fetch_notification_flag(member, community ,card=None, code=None):
     """
     function to get notification flag
     """
@@ -1169,12 +1169,37 @@ def fetch_notification_flag(member, community ,card=None):
         'member': member,
         'community': community
     }
-    if card:
-        filter_dict['card'] = card
-    member_notification_filter = ModelUtilities.get_model_filter(memberNotificationFlag, filter_dict)
     reponse_dict = {}
-    for index, objects in enumerate(member_notification_filter):
-        reponse_dict[member_notification_filter[index].code] = member_notification_filter[index].flag
+    if code and not code:
+        for flags in code:
+            filter_dict['code'] = flags
+            if card:
+                filter_dict['card'] = card
+            print(filter_dict)
+            member_notification_filter = ModelUtilities.get_model_filter(memberNotificationFlag, filter_dict)
+            for index, objects in enumerate(member_notification_filter):
+                reponse_dict[member_notification_filter[index].code] = member_notification_filter[index].flag
+
+    elif card and not code:
+        filter_dict['card'] = card
+        member_notification_filter = ModelUtilities.get_model_filter(memberNotificationFlag, filter_dict)
+        for index, objects in enumerate(member_notification_filter):
+            reponse_dict[member_notification_filter[index].code] = member_notification_filter[index].flag
+
+    elif card and code:
+        filter_dict['card'] = card
+        for flags in code:
+            filter_dict['code'] = flags
+            if card:
+                filter_dict['card'] = card
+            member_notification_filter = ModelUtilities.get_model_filter(memberNotificationFlag, filter_dict)
+            for index, objects in enumerate(member_notification_filter):
+                reponse_dict[member_notification_filter[index].code] = member_notification_filter[index].flag
+
+    else:
+        member_notification_filter = ModelUtilities.get_model_filter(memberNotificationFlag, filter_dict)
+        for index, objects in enumerate(member_notification_filter):
+            reponse_dict[member_notification_filter[index].code] = member_notification_filter[index].flag
 
     return reponse_dict
 
