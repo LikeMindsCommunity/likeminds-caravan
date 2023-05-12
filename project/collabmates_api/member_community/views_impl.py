@@ -531,48 +531,29 @@ class UnsubscribeEmailNotificationsView(APIView):
 
         return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
 
-    @staticmethod
-    def _validate_fetch_request(member_id,community_id):
-
-        if not member_id:
-            return {'error_message': 'Query params missing'}
-
-        if not community_id:
-            return {'error_message': 'Query params missing'}
-
-        return {'success': True}
-
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         req_params = RequestUtilities.fetch_request_query_params(request)
-        community_id = req_params.get("community_id")
-        chatroom_id = req_params.get("chatroom_id")
-        notification_flag_code = req_params.get("codes")
 
-        validated_req_body = self._validate_fetch_request(member_id, community_id)
+        validated_req_body = self._validate_request(member_id, req_params)
 
         if not validated_req_body.get('success', False):
-            return JsonResponse({'success': False, 'error_message': "Invalid request body"},
+            return JsonResponse({'success': False, 'error_message': "Invalid request params"},
                                 status=status_codes.HTTP_400_BAD_REQUEST)
 
+        community_id = req_params.get("community_id")
+        chatroom_id = req_params.get("chatroom_id")
+        notification_codes = req_params.get("codes")
+
         member_community_manager = MemberCommunityImpl(member_id, community_id=community_id)
-        if chatroom_id and not notification_flag_code:
-            community_notification_flag_context = member_community_manager.fetch_unsubscribe_email_notifications(card_id=chatroom_id)
-        elif notification_flag_code and not chatroom_id:
-            notification_flag_code_list = notification_flag_code.split(",")
-            community_notification_flag_context = member_community_manager.fetch_unsubscribe_email_notifications(codes=notification_flag_code_list)
-        elif chatroom_id and notification_flag_code:
-            notification_flag_code_list = notification_flag_code.split(",")
-            community_notification_flag_context = member_community_manager.fetch_unsubscribe_email_notifications(card_id=chatroom_id,codes=notification_flag_code_list)
-        else:
-            community_notification_flag_context = member_community_manager.fetch_unsubscribe_email_notifications()
+        community_context = member_community_manager.fetch_unsubscribe_email_notifications(chatroom_id=chatroom_id,
+                                                                                           codes=notification_codes)
 
-        response = {'member_id':member_id,
-                    'community_id':community_id,
-                    'card_id':chatroom_id,
-                    'notification_flag':community_notification_flag_context}
+        if 'error_message' in community_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                                community_context.get('status_code')))
 
-        return JsonResponse(response)
+        return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
 
 
 class FetchAccessView(APIView):

@@ -1,5 +1,6 @@
 from rest_framework import status as status_codes
 from utility.response_utilities import ResponseUtilities
+from utility.string_utilities import StringUtilities
 from togther.models import (ModelUtilities, Community, Collabcard, Members)
 from collabmates_api.sdk.models import (SdkClient)
 from utility.states import (dm_icon_from_states, unsubscribe_types, member_states)
@@ -182,7 +183,8 @@ class MemberCommunityViewHelper:
         }
 
     @staticmethod
-    def validate_fetch_unsubscribe_email_notifications_request(user_id, community_id, card_id: str = None):
+    def validate_fetch_unsubscribe_email_notifications_request(user_id, community_id, chatroom_id: str = None,
+                                                               codes: str = None):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:
@@ -194,16 +196,23 @@ class MemberCommunityViewHelper:
             return ResponseUtilities.get_inner_error_context("Invalid community ID")
 
         chatroom_instance = None
+        notification_codes = []
 
-        if card_id:
-            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
-            print(card_id)
+        if chatroom_id:
+            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
             if not chatroom_instance:
                 return ResponseUtilities.get_inner_error_context("Invalid chatroom ID")
 
+        if codes:
+            notification_codes = StringUtilities.get_list_from_string(codes, [])
+
+            if not notification_codes:
+                return ResponseUtilities.get_inner_error_context("Send valid codes")
 
         return {
             'user_instance': user_instance,
             'community_instance': community_instance,
-            'chatroom_instance':chatroom_instance
+            'chatroom_instance':chatroom_instance,
+            'notification_codes': notification_codes
         }

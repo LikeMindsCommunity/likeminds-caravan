@@ -26,6 +26,8 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_dm_chatrooms') and callable(subclass.fetch_dm_chatrooms)) and
                 (hasattr(subclass, 'join_community_sdk') and callable(subclass.join_community_sdk)) and
                 (hasattr(subclass, 'member_can_dm') and callable(subclass.member_can_dm)) and
+                (hasattr(subclass, 'fetch_unsubscribe_email_notifications') and
+                 callable(subclass.fetch_unsubscribe_email_notifications)) and
                 (hasattr(subclass, 'unsubscribe_email_notifications') and
                  callable(subclass.unsubscribe_email_notifications)) and
                 (hasattr(subclass, 'fetch_member_access') and callable(subclass.fetch_member_access)) and
@@ -150,8 +152,8 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def fetch_unsubscribe_email_notifications(self, card_id: str = None, codes: list = None) -> {}:
-        """Updates unsubscribe table according to whether notification send or not"""
+    def fetch_unsubscribe_email_notifications(self, chatroom_id: str = None, codes: str = None) -> {}:
+        """Fetches unsubscribe table according to whether notification send or not"""
 
         raise NotImplementedError
 
