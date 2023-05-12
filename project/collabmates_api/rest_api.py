@@ -1463,6 +1463,21 @@ class CommunityDMSettingsSerializer(serializers.ModelSerializer):
         model = CommunityDirectMessageSettings
         fields = ('community', 'state', 'duration', 'number_in_duration')
 
+    def __init__(self, *args, **kwargs):
+        super(CommunityDMSettingsSerializer, self).__init__(*args, **kwargs)
+        self.send_community_id = self.context.get('send_community_id', True)
+
+    def to_representation(self, instance):
+        data = super(CommunityDMSettingsSerializer, self).to_representation(instance)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if (field.field_name == 'community') and not self.send_community_id:
+                del data['community']
+
+        return data
+
 
 class ScheduledChatroomFollowSerializer(serializers.ModelSerializer):
 
@@ -1543,4 +1558,36 @@ class ChatroomInviteSerializer(serializers.ModelSerializer):
             if field.field_name == 'invite_receiver':
                 data['invite_receiver'] = UserShortSerializer(instance.invite_receiver.userinfo, many=False).data
 
+        return data
+
+class UserChannelSettingsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserChannelSettings
+        fields = ( 'chatroom_id', 'user_id', 'setting_type', 'enabled', 'changed_by_id')
+
+    def to_representation(self, instance):
+        data = super(UserChannelSettingsSerializer, self).to_representation(instance)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            
+            if field.field_name == 'changed_by_id':
+                data['changed_by'] =  data['changed_by_id']
+                del data['changed_by_id']
+
+
+            if field.field_name == 'user_id':
+                user = Userinfo.get_userinfo_or_None(data['user_id'])
+
+                if user:
+                    data['user'] = UserShortSerializer(user).data
+
+                    client_user_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id' : user.user_id}).first()
+                    if client_user_info:
+                        data['user']['sdk_client_info'] = SDKClientUsersInfoSerializer(client_user_info).data
+                
+                del data['user_id']
+            
         return data

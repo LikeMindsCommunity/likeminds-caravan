@@ -537,6 +537,10 @@ MEMBER_BECOMES_CM_DM_CHATROOM_MESSAGE = "{} is a community manager now"
 BLOCK_MEMBER_DM_CHATROOM_MESSAGE = "Direct messaging request rejected."
 UNBLOCK_MEMBER_DM_CHATROOM_MESSAGE = "{} and {} are now connected."
 
+DM_REQUEST_INITIATION_NOTIFICATION_TITLE = "New DM request!"
+DM_REQUEST_INITIATION_NOTIFICATION_SUB_TITLE = "{} has sent you a DM request."
+DM_REQUEST_INITIATION_NOTIFICATION_ROUTE = "route://chatroom_detail?chatroom_id={}"
+
 ATTENDEES_FILTER_NAME = "attendees"
 CO_HOSTS_FILTER_NAME = "co_hosts"
 

@@ -3415,3 +3415,43 @@ def send_notification_for_event_update(chatroom_id):
 
     notification_meta(notification_list, message)
 
+
+@shared_task
+def send_notification_on_dm_request_initiation(chatroom_id, current_user_id, current_user_name):
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+    if not card_instance:
+        return
+
+    filter_dict = {
+        'card': card_instance,
+        'follow_status': True,
+        'remove': None
+    }
+
+    user_list = list(ModelUtilities.get_model_filter(collabcardState, filter_dict).values_list('user_id', flat=True))
+
+    notification_list = []
+
+    for user_id in user_list:
+
+        if user_id == current_user_id:
+            continue
+
+        notification_list.append({'id': user_id})
+
+    message = {
+        'payload': {
+            'title': DM_REQUEST_INITIATION_NOTIFICATION_TITLE,
+            'sub_title': DM_REQUEST_INITIATION_NOTIFICATION_SUB_TITLE.format(current_user_name),
+            'route': CHATROOM_TOPIC_NOTIFICATION_ROUTE % str(card_instance.id)
+        },
+        'category': {
+            NOTIFICATION_CATEGORY_KEY: NotificationCategories.DM,
+            NOTIFICATION_SUB_CATEGORY_KEY: NotificationSubCategories.DM_REQUEST_SENT,
+        }
+    }
+
+    message = TasksHelper.add_community_info_to_notification_payload(message, card_instance.community.id)
+    notification_meta(notification_list, message)
+

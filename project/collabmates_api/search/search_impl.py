@@ -9,6 +9,7 @@ from utility.states import member_rights, card_types, member_states, question_st
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
 from utility.response_utilities import ResponseUtilities
+from utility.json_utilities import JsonUtilities
 from .constants import CUSTOM_INTRO_TEXT_FOR_ADMIN, CUSTOM_INTRO_TEXT_FOR_MEMBERS, CUSTOM_CLICK_TEXT_FOR_MEMBERS
 from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING,CHATROOM_FIELD_TITLE, MEMBER_DIRECTORY_ORDER_BY_NAME
 from collabmates_api.sdk.models import SdkClient
@@ -356,8 +357,7 @@ class SearchImpl(SearchManager):
 
         chatroom_data = [hit.to_dict() for hit in res]
 
-        if self.get_search_field() == CHATROOM_FIELD_TITLE:
-            SearchHelper.update_chatroom_member_to_creator_for_card_data(chatroom_data)
+        SearchHelper.serialize_chatroom_data_response(chatroom_data)
 
         context = {
             'success': True,
@@ -529,6 +529,15 @@ class SearchImpl(SearchManager):
             member_introduction_dict['client_user_unique_id'] = hit['client_user_unique_id'] if 'client_user_unique_id' in hit else None
 
             member_introduction_dict['user_unique_id'] = hit['user_unique_id'] if 'user_unique_id' in hit else None
+
+            user_data = {
+                'state': hit['state'],
+                'is_owner': hit['is_owner'],
+                'parent_cm_list': JsonUtilities.load_json_data(hit['parent_cm_list'])
+            }
+
+            member_introduction_dict['menu'] = SearchHelper.get_menu_items_for_member_in_search(
+                self.get_member_id(), hit['member']['id'], self.get_community_id(), user_data)
 
             members_list.append(member_introduction_dict)
 

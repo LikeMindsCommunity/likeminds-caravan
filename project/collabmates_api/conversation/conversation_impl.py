@@ -43,12 +43,13 @@ from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
 from ..static_text import EVERYONE_TAG_REGEX, PARTICIPANTS_TAG_REGEX
 
 from .constants import *
+from ..chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE
 
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
                             conversationPollMembers, Userinfo, conversationEngage, answerAttachment,
                             conversationEventMembers, conversationEventNudge, UserEmailsSendStatus, userDevices,
-                            userMemberRights)
+                            userMemberRights, UserChannelSettings)
 from collabmates_api.sdk.models import SdkClient
 
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -1697,8 +1698,11 @@ class ConversationHelper:
 
     @staticmethod
     @shared_task
-    def update_latest_conversation_id_to_firebase_v1(chatroom_id, conversation_id, community_id=None):
-        update_last_answer_id(chatroom_id, conversation_id)
+    def update_latest_conversation_id_to_firebase_v1(chatroom_id, conversation_id, community_id=None,
+                                                     only_update_home_feed=False):
+        if not only_update_home_feed:
+            update_last_answer_id(chatroom_id, conversation_id)
+
         update_chatroom_conversation_ids_against_community(community_id, card_id=chatroom_id,
                                                            conversation_id=conversation_id)
 
@@ -2416,6 +2420,7 @@ class ConversationHelper:
 
         community_instance = chatroom_instance.community
         member_state = Members.get_community_member_state(community_instance, user_instance)
+        is_admin = (member_state == member_states.ADMIN)
 
         is_tag_allowed = ConversationHelper._validate_group_tags(
             message,
@@ -2427,10 +2432,6 @@ class ConversationHelper:
         if not is_tag_allowed:
             return ResponseUtilities.get_inner_error_context('tag not allowed')
 
-        if chatroom_instance.type == card_types.CARD_PURPOSE and \
-                member_state != member_states.ADMIN:
-            return ResponseUtilities.get_inner_error_context(ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
-
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return ResponseUtilities.get_inner_error_context("Responding is disabled")
 
@@ -2441,6 +2442,16 @@ class ConversationHelper:
         if not has_right:
             return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
 
+        # Get user specific chatroom settings
+        user_chatroom_settings = chatroom_impl.ChatroomHelper.compute_user_chatroom_settings(user_instance, 
+                                                                                             chatroom_instance, 
+                                                                                             is_admin,
+                                                                                             [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE])
+
+        # If user_chatroom_settings for 'member_can_message' is false, then return error
+        if not user_chatroom_settings or not user_chatroom_settings[0].enabled :
+            return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
+           
         return {
             'user_instance': user_instance,
             'chatroom_instance': chatroom_instance,

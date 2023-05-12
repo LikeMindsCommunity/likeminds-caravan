@@ -612,9 +612,9 @@ community_dm_settings_state_types = CommunityDMSettingsStateTypes()
 
 
 class CommunityDMSettingsDurationTypes:
-    DAYS = "days"
-    WEEKS = "weeks"
-    MONTHS = "months"
+    DAYS = "day"
+    WEEKS = "week"
+    MONTHS = "month"
 
 
 community_dm_settings_duration_types = CommunityDMSettingsDurationTypes()
@@ -644,6 +644,7 @@ class DMIconFromStates:
     DM_FEED_V2 = "dm_feed_v2"
     MEMBER_DIRECTORY = "member_directory"
     CHATROOM = "chatroom"
+    GROUP_CHANNEL = "group_channel"
 
 
 dm_icon_from_states = DMIconFromStates()
