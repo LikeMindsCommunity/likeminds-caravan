@@ -1591,3 +1591,10 @@ class UserChannelSettingsSerializer(serializers.ModelSerializer):
                 del data['user_id']
             
         return data
+
+
+class MemberNotificationFlagSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = memberNotificationFlag
+        fields = ('member', 'community', 'card', 'code', 'flag')
