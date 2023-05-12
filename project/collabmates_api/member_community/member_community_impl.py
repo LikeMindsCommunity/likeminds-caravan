@@ -58,7 +58,7 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_latest_conversations_against_chatrooms_list,
                            get_user_chatroom_status)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
-    get_error_context, CommunityDMSettingsSerializer
+    get_error_context, CommunityDMSettingsSerializer, MemberNotificationFlagSerializer
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
     conversationSerializer, get_members_profile
 from ..static_files import REMOVED_USER_URL, ICONS
@@ -1875,7 +1875,9 @@ class MemberCommunityImpl(MemberCommunityManager):
         notification_flags = fetch_notification_flag(user_instance, community_instance, chatroom=chatroom_instance,
                                                      notification_codes=notification_codes)
 
-        return {'success': True, 'notification_flags': notification_flags}
+        serialized_flags = MemberNotificationFlagSerializer(notification_flags, many=True)
+
+        return {'success': True, 'notification_flags': serialized_flags.data}
 
     def fetch_member_access(self, access_type: str) -> {}:
         validated_request = MemberCommunityHelper.validate_fetch_member_access_request(
