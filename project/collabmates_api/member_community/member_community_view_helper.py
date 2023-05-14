@@ -133,7 +133,7 @@ class MemberCommunityViewHelper:
 
         if req_body.get('req_from') not in [dm_icon_from_states.MEMBER_PROFILE, dm_icon_from_states.COMMUNITY_DETAIL,
                                             dm_icon_from_states.DM_FEED, dm_icon_from_states.MEMBER_DIRECTORY,
-                                            dm_icon_from_states.DM_FEED_V2, dm_icon_from_states.CHATROOM]:
+                                            dm_icon_from_states.DM_FEED_V2, dm_icon_from_states.CHATROOM, dm_icon_from_states.GROUP_CHANNEL]: 
             return ResponseUtilities.get_inner_error_context("Invalid req_from")
 
         member_instance = None
