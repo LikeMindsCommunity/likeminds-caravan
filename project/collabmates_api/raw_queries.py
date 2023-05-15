@@ -3794,6 +3794,8 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
         page_number = int(page)
         offset = (page_number - 1) * limit
 
+        is_dm_chatroom = card_types.CARD_DIRECT_MESSAGE in included_chatroom_types
+
         included_chatroom_types_query = get_tuple_from_array(included_chatroom_types)
 
         chatroom_query = ",".join([get_chatroom_query_meta_for_sync_revamp(),
@@ -3814,6 +3816,31 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
 
         topic_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("topic"),
                                           get_members_query_meta_for_sync_revamp("topic")])
+
+        dm_chatroom_conversation_query = ""
+        dm_chatroom_message_query = ""
+        dm_chatroom_message_filter_query = ""
+
+        if is_dm_chatroom:
+            dm_chatroom_conversation_query = """LEFT JOIN togther_card_answers ON 
+            togther_card_answers.card_id = togther_collabcard.id"""
+
+            dm_chatroom_message_query = """
+            ,(
+                CASE
+                    WHEN togther_collabcard.type = 10 AND togther_collabcard.is_private = true AND 
+                    togther_card_answers.state NOT IN (0, 10) THEN 0
+                    ELSE 1
+                END
+            ) AS dm_message
+            """
+
+            dm_chatroom_message_filter_query = """
+            WHERE 
+            (
+                chatroom_data.dm_message = 1
+            )
+            """
 
         sql = """
                 SELECT chatrooms_data.*, {} FROM
@@ -3854,10 +3881,11 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                       FROM 
                                         (
                                           SELECT 
-                                            {} 
+                                            {} {}
                                           FROM 
                                             togther_collabcardstate 
-                                            INNER JOIN togther_collabcard ON togther_collabcardstate.card_id = togther_collabcard.id 
+                                            INNER JOIN togther_collabcard ON togther_collabcardstate.card_id = togther_collabcard.id
+                                            {} 
                                           WHERE 
                                             (
                                               togther_collabcardstate.user_id = {} 
@@ -3874,7 +3902,8 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                             {}
                                         ) AS chatroom_data 
                                         INNER JOIN togther_community ON chatroom_data.community_id = togther_community.id
-                                    ) AS chatroom_community_data 
+                                        {}
+                                    ) AS chatroom_community_data
                                     INNER JOIN togther_userinfo ON (
                                       togther_userinfo.user_id_id = chatroom_community_data.user_id
                                     ) 
@@ -3925,8 +3954,9 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
         """.format(topic_user_data_query, topic_conversation_data_query,
                    get_conversation_query_meta_for_sync_revamp("last"),
                    chatroom_with_user_data_query, chat_requested_user_data_query, creator_data_query,
-                   get_community_query_meta_for_sync_revamp(""), chatroom_query, user_id, community_id,
-                   included_chatroom_types_query, min_timestamp, max_timestamp, offset, limit)
+                   get_community_query_meta_for_sync_revamp(""), chatroom_query, dm_chatroom_message_query,
+                   dm_chatroom_conversation_query, user_id, community_id, included_chatroom_types_query,
+                   min_timestamp, max_timestamp, offset, limit, dm_chatroom_message_filter_query)
 
         if only_query:
             return sql
