@@ -1028,7 +1028,7 @@ def get_paginated_member_queryset(page, community_id, remove_guest_user=False, i
             INNER JOIN togther_userinfo
                 ON togther_members.member_id_id = togther_userinfo.user_id_id
                     AND togther_members.community_id_id = %s %s %s
-            ORDER BY  togther_userinfo.name, togther_members.member_id_id limit %s offset %s
+            ORDER BY togther_members.created_at DESC limit %s offset %s
     """ % (str(community_id), guest_user_query, included_member_state_query, str(limit), str(offset))
 
     cursor.execute(sql)
@@ -1036,7 +1036,7 @@ def get_paginated_member_queryset(page, community_id, remove_guest_user=False, i
 
     member_id_list = [obj[0] for obj in res]
 
-    member_ids = Members.objects.filter(pk__in=member_id_list)
+    member_ids = Members.objects.filter(pk__in=member_id_list).order_by('-created_at')
 
     return member_ids
 

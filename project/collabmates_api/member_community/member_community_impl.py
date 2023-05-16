@@ -28,7 +28,7 @@ from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from utility.utils import (get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room,
-                           create_notification_flag)
+                           create_notification_flag, fetch_notification_flag)
 from utility.cache_keys import (COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY)
 from .constants import *
 from .member_community_view_helper import MemberCommunityViewHelper
@@ -58,7 +58,7 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_latest_conversations_against_chatrooms_list,
                            get_user_chatroom_status)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
-    get_error_context, CommunityDMSettingsSerializer
+    get_error_context, CommunityDMSettingsSerializer, MemberNotificationFlagSerializer
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
     conversationSerializer, get_members_profile
 from ..static_files import REMOVED_USER_URL, ICONS
@@ -1858,6 +1858,26 @@ class MemberCommunityImpl(MemberCommunityManager):
             create_notification_flag(user_instance, [code], community_id=community_instance.id, flag=value)
 
         return {'success': True}
+
+    def fetch_unsubscribe_email_notifications(self, chatroom_id: str = None, codes: str = None) -> {}:
+        validated_request = MemberCommunityViewHelper.validate_fetch_unsubscribe_email_notifications_request(
+            self.get_member_id(), self.get_community_id(), chatroom_id=chatroom_id, codes=codes)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        chatroom_instance = validated_request.get('chatroom_instance')
+        notification_codes = validated_request.get('notification_codes')
+
+        notification_flags = fetch_notification_flag(user_instance, community_instance, chatroom=chatroom_instance,
+                                                     notification_codes=notification_codes)
+
+        serialized_flags = MemberNotificationFlagSerializer(notification_flags, many=True)
+
+        return {'success': True, 'notification_flags': serialized_flags.data}
 
     def fetch_member_access(self, access_type: str) -> {}:
         validated_request = MemberCommunityHelper.validate_fetch_member_access_request(

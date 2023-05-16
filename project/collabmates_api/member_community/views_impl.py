@@ -531,6 +531,30 @@ class UnsubscribeEmailNotificationsView(APIView):
 
         return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
 
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_params = RequestUtilities.fetch_request_query_params(request)
+
+        validated_req_body = self._validate_request(member_id, req_params)
+
+        if not validated_req_body.get('success', False):
+            return JsonResponse({'success': False, 'error_message': "Invalid request params"},
+                                status=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_id = req_params.get("community_id")
+        chatroom_id = req_params.get("chatroom_id")
+        notification_codes = req_params.get("codes")
+
+        member_community_manager = MemberCommunityImpl(member_id, community_id=community_id)
+        community_context = member_community_manager.fetch_unsubscribe_email_notifications(chatroom_id=chatroom_id,
+                                                                                           codes=notification_codes)
+
+        if 'error_message' in community_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                                community_context.get('status_code')))
+
+        return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+
 
 class FetchAccessView(APIView):
 

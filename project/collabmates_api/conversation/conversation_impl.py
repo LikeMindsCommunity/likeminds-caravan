@@ -31,7 +31,7 @@ from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, UserinfoSerializer
 from ..sync.model_update import update_models_for_syncing_apis
 # from ..tasks import send_chatroom_owner_mail
-from ..utility import pagination
+from ..utility import (pagination, m2cm_v2_version_check)
 from ..user.user_impl import UserHelper
 from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
                      save_the_latest_conversation, update_activity_in_chatroom_for_conversation_creation,
@@ -59,7 +59,7 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
     conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types, \
-    member_rights, unsubscribe_types, noti_states
+    member_rights, unsubscribe_types, noti_states, chat_request_states
 
 from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
     is_member_verified, filter_user_instances_based_on_notification_flag
@@ -973,6 +973,15 @@ class ConversationImpl(ConversationManager):
 
         if state_filter:
             chatroom_state_instance = state_filter[0]
+
+            is_m2cm_v2 = m2cm_v2_version_check(self.get_platform_code(), self.get_version_code())
+
+            if all([is_m2cm_v2, chatroom_instance.is_private,
+                    chatroom_instance.type == card_types.CARD_DIRECT_MESSAGE,
+                    chatroom_instance.is_private_member,
+                    chatroom_state_instance.chat_request_state == chat_request_states.REJECTED]):
+                return ResponseUtilities.get_impl_error_context("Chatroom messaging is blocked!",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
 
         if chatroom_instance.access_without_subscription:
             status = is_member_verified(community_instance.id, self.get_member_id())
