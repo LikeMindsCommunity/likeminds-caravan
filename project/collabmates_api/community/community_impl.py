@@ -3224,7 +3224,7 @@ class CommunityHelper:
         give_all_member_rights(user=user_instance, community=community_instance)
 
     @staticmethod
-    def send_community_creation_email_to_team(member_instance, community_instance):
+    def send_community_creation_email_to_team(member_instance, community_instance, project_instance=None):
         # send community created mail to the team
         email_context = {
             'member_name': member_instance.member_id.userinfo.name,
@@ -3232,6 +3232,12 @@ class CommunityHelper:
             'member_email': member_instance.member_id.userinfo.email,
             'community_id': community_instance.id
         }
+
+        if project_instance:
+            project_creator = project_instance.project_creator
+            email_context['member_name'] = project_creator.userinfo.name
+            email_context['member_email'] = project_creator.userinfo.email
+
         send_created_community_email_to_team.delay(email_context)
 
     @staticmethod
@@ -3536,8 +3542,10 @@ class CommunityHelper:
                                 moderation_by=user_instance,
                                 type=moderation_history_types.STARTED_COMMUNITY)
 
+        project_instance = ModelUtilities.get_model_filter(SdkClient, {'community':community_instance})
+
         # send community created mail to the team
-        CommunityHelper.send_community_creation_email_to_team(member_instance, community_instance)
+        CommunityHelper.send_community_creation_email_to_team(member_instance, community_instance, project_instance=project_instance)
 
         # Create Content Download Settings
         CommunityHelper.create_content_download_settings_for_community(community_instance)
