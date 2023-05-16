@@ -666,6 +666,12 @@ class AddMembersToChatroomView(APIView):
                                 status=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_participants = req_body.get('chatroom_participants')
+        uuids = req_body.get('uuids')
+
+        # If uuids are passed, replace chatroom_participants with uuids
+        if uuids:
+            chatroom_participants = uuids
+
         chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
         response_context = chatroom_manager.add_members_to_chatroom(chatroom_participants)
 
