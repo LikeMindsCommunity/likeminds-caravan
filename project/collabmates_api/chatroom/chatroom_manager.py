@@ -246,7 +246,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def leave_secret_chatroom(self, member_id: Union[int, str] = None) -> None:
+    def leave_secret_chatroom(self, member_id: Union[int, str] = None, uuid = None) -> None:
         """
         to leave or remove a participant from secret chatroom
         """

@@ -1326,7 +1326,7 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def leave_secret_chatroom(self, member_id: Union[int, str] = None) -> None:
+    def leave_secret_chatroom(self, member_id: Union[int, str] = None, uuid = None) -> None:
 
         chatroom_instance = Collabcard.get_chatroom_with_joins_or_raise_exception(self.get_chatroom_id())
 
@@ -1334,6 +1334,13 @@ class ChatroomImpl(ChatroomManager):
         if member_id is None:
             member_id = self.get_member_id()
             chatroom_state = conversation_states.CONVERSATION_LEAVE_CHATROOM
+
+        # Support for user unique id if uuid is passed 
+        if uuid:
+            valid_id = ModelUtilities.get_valid_member_ids([uuid], chatroom_instance.community_id)
+            
+            if valid_id:
+                member_id = valid_id[0]
 
         user_instance = ModelUtilities.get_user_instance_or_none(member_id)
         if not user_instance:

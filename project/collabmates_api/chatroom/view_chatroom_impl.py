@@ -165,10 +165,11 @@ class LeaveSecretChatroomView(APIView):
 
         chatroom_id = request.data.get('chatroom_id', None)
         member_id = request.data.get('member_id', None)
+        uuid = request.data.get('uuid', None)
 
         chatroom_manager = ChatroomImpl(header_member_id, chatroom_id=chatroom_id)
 
-        chatroom_manager.leave_secret_chatroom(member_id)
+        context = chatroom_manager.leave_secret_chatroom(member_id, uuid=uuid)
 
         context = {
             "success": True
@@ -1315,9 +1316,15 @@ class ChatroomParticipants(APIView):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_request.get('error_message'),
                                                                                 status_codes.HTTP_400_BAD_REQUEST))
 
+        removed_members = req_body.get('removed_members')
+        uuids = req_body.get('uuids')
+
+        if uuids:
+            removed_members = uuids
+
         chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
         response_context = chatroom_manager.remove_chatroom_participant(
-            removed_members_list=req_body.get('removed_members'))
+            removed_members_list=removed_members)
 
         if 'error_message' in response_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
