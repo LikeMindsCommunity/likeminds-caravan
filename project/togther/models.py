@@ -2403,28 +2403,30 @@ class ModelUtilities:
     def get_valid_member_ids(member_ids, community_id: int = None):
         integer_member_ids = []
         user_unique_ids = []
-
-        for member_id in member_ids:
-            if isinstance(member_id, int):
-                integer_member_ids.append(member_id)
-
-            if isinstance(member_id, str):
-                if member_id.isdigit():
-                    integer_member_ids.append(member_id)
-                else:
-                    user_unique_ids.append(member_id)
-
         client_user_ids = []
 
+        # Type case all member ids to string
+        member_ids = list(map(str, member_ids))
+
+        # Get client user unique ids if community id is passed
         if community_id:
             sdk_client_user_filters = ModelUtilities.get_model_filter(SDKClientUsersInfo,
                                                                       {'user_unique_id__in': member_ids,
                                                                        'community': community_id})
 
-            user_unique_ids = list(set(user_unique_ids) - set(sdk_client_user_filters.values_list('user_unique_id',
-                                                                                                  flat=True)))
-
             client_user_ids = list(sdk_client_user_filters.values_list('user_id', flat=True))
+            client_user_unique_ids = list(sdk_client_user_filters.values_list('user_unique_id', flat=True))
+
+            # Remove client user unique ids from member ids                  
+            member_ids = list(set(member_ids) - set(client_user_unique_ids))
+
+
+
+        for member_id in member_ids:
+            if member_id.isdigit():
+                integer_member_ids.append(member_id)
+            else:
+                user_unique_ids.append(member_id)
 
         user_ids = list(Userinfo.objects.filter(
             Q(user_id_id__in=integer_member_ids) | Q(user_unique_id__in=user_unique_ids)).values_list(
