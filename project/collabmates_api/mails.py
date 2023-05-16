@@ -86,7 +86,7 @@ def send_created_community_email_to_team(context):
     template = get_template("mails/send_community_created_mail_to_webmaster.html").render(context)
 
     if is_beta:
-        to = ['himanshu@likeminds.community', ]
+        to = ['himanshu@likeminds.community', 'dheeraj.gurjar@likeminds.community']
     else:
         to = settings.TEAM
 
