@@ -3225,7 +3225,7 @@ class CommunityHelper:
         give_all_member_rights(user=user_instance, community=community_instance)
 
     @staticmethod
-    def send_community_creation_email_to_team(member_instance, community_instance, project_instance=None):
+    def send_community_creation_email_to_team(member_instance, community_instance, project_creator_instance=None):
         # send community created mail to the team
         email_context = {
             'member_name': member_instance.member_id.userinfo.name,
@@ -3234,10 +3234,17 @@ class CommunityHelper:
             'community_id': community_instance.id
         }
 
-        if project_instance:
-            project_creator = project_instance.project_creator
-            email_context['member_name'] = project_creator.userinfo.name
-            email_context['member_email'] = project_creator.userinfo.email
+        if project_creator_instance:
+            email_context['member_name'] = project_creator_instance.userinfo.name
+            project_creator_email_instance = ModelUtilities.get_model_filter(userEmails,
+                                                                             {'user': project_creator_instance,
+                                                                              'email_state': email_states.PRIMARY}).first()
+
+            if project_creator_email_instance:
+                email_context['member_email'] = project_creator_email_instance.email
+
+            else:
+                email_context['member_email'] = project_creator_instance.userinfo.email
 
         send_created_community_email_to_team.delay(email_context)
 
@@ -3543,10 +3550,13 @@ class CommunityHelper:
                                 moderation_by=user_instance,
                                 type=moderation_history_types.STARTED_COMMUNITY)
 
-        project_instance = ModelUtilities.get_model_filter(SdkClient, {'community':community_instance})
+        project_creator_instance = None
+
+        if req_body.get('project_creator'):
+            project_creator_instance = ModelUtilities.get_user_instance_or_none(req_body.get('project_creator'))
 
         # send community created mail to the team
-        CommunityHelper.send_community_creation_email_to_team(member_instance, community_instance, project_instance=project_instance)
+        CommunityHelper.send_community_creation_email_to_team(member_instance, community_instance, project_creator_instance=project_creator_instance)
 
         # Create Content Download Settings
         CommunityHelper.create_content_download_settings_for_community(community_instance)
