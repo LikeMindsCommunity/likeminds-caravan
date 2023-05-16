@@ -4,7 +4,7 @@ from utility.request_utilities import RequestUtilities
 from .serializers import *
 from .utility import *
 from .user_moderation_rights import check_admin_approve_right
-from .rest_api import CommunitySerializerV1
+from .rest_api import CommunitySerializerV1, SDKClientUsersInfoSerializer
 from collabmates_api.sdk.models import (SdkClient)
 from utility.response_utilities import ResponseUtilities
 
@@ -750,6 +750,12 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
                                                        send_profile=True,
                                                        all_members_api=True, is_promoter=is_promoter,
                                                        is_owner=is_owner, user_admin_rights=user_admin_rights)
+        
+        # Add sdk_client_info data to userinfo_serialized_object
+        sdk_client = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id': member_id}).first()
+       
+        if sdk_client:
+            userinfo_serialized_object['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client).data
 
         if current_user_id and member_id == int(current_user_id):
             pass
@@ -1022,7 +1028,7 @@ def get_paginated_member_queryset(page, community_id, remove_guest_user=False, i
             INNER JOIN togther_userinfo
                 ON togther_members.member_id_id = togther_userinfo.user_id_id
                     AND togther_members.community_id_id = %s %s %s
-            ORDER BY  togther_userinfo.name, togther_members.member_id_id limit %s offset %s
+            ORDER BY togther_members.created_at DESC limit %s offset %s
     """ % (str(community_id), guest_user_query, included_member_state_query, str(limit), str(offset))
 
     cursor.execute(sql)
@@ -1030,7 +1036,7 @@ def get_paginated_member_queryset(page, community_id, remove_guest_user=False, i
 
     member_id_list = [obj[0] for obj in res]
 
-    member_ids = Members.objects.filter(pk__in=member_id_list)
+    member_ids = Members.objects.filter(pk__in=member_id_list).order_by('-created_at')
 
     return member_ids
 

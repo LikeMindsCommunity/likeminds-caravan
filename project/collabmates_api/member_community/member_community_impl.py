@@ -28,7 +28,7 @@ from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
 from utility.utils import (get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room,
-                           create_notification_flag)
+                           create_notification_flag, fetch_notification_flag)
 from utility.cache_keys import (COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY)
 from .constants import *
 from .member_community_view_helper import MemberCommunityViewHelper
@@ -58,7 +58,7 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_latest_conversations_against_chatrooms_list,
                            get_user_chatroom_status)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
-    get_error_context
+    get_error_context, CommunityDMSettingsSerializer, MemberNotificationFlagSerializer
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
     conversationSerializer, get_members_profile
 from ..static_files import REMOVED_USER_URL, ICONS
@@ -1691,7 +1691,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         response = {
             'is_request_dm_limit_exceeded': False,
             'new_request_dm_timestamp': None,
-            'success': True
+            'success': True,
+            'user_dm_limit': None
         }
 
         if user_member_dm_chatroom:
@@ -1802,8 +1803,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             response = MemberCommunityHelper.can_member_from_dm_feed_or_member_directory(user_instance,
                                                                                          community_instance)
 
-        elif req_from == dm_icon_from_states.DM_FEED_V2:
-            response = MemberCommunityHelper.can_member_from_dm_feed_v2(user_instance, community_instance)
+        elif req_from in [dm_icon_from_states.DM_FEED_V2, dm_icon_from_states.GROUP_CHANNEL]:
+            response = MemberCommunityHelper.can_member_request_from_dm_feed_v2(user_instance, community_instance)
 
         else:
             response = MemberCommunityHelper.can_member_dm_from_dm_chatroom(user_instance, validated_request)
@@ -1857,6 +1858,26 @@ class MemberCommunityImpl(MemberCommunityManager):
             create_notification_flag(user_instance, [code], community_id=community_instance.id, flag=value)
 
         return {'success': True}
+
+    def fetch_unsubscribe_email_notifications(self, chatroom_id: str = None, codes: str = None) -> {}:
+        validated_request = MemberCommunityViewHelper.validate_fetch_unsubscribe_email_notifications_request(
+            self.get_member_id(), self.get_community_id(), chatroom_id=chatroom_id, codes=codes)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        chatroom_instance = validated_request.get('chatroom_instance')
+        notification_codes = validated_request.get('notification_codes')
+
+        notification_flags = fetch_notification_flag(user_instance, community_instance, chatroom=chatroom_instance,
+                                                     notification_codes=notification_codes)
+
+        serialized_flags = MemberNotificationFlagSerializer(notification_flags, many=True)
+
+        return {'success': True, 'notification_flags': serialized_flags.data}
 
     def fetch_member_access(self, access_type: str) -> {}:
         validated_request = MemberCommunityHelper.validate_fetch_member_access_request(
@@ -2555,6 +2576,13 @@ class MemberCommunityHelper:
         if not community_dm_settings_filter:
             return get_error_context(False, "Community DM settings are not set yet!")
 
+        # Start, end epoch for day
+        start_epoch_time = TimeUtilities.get_epoch_time_for_start_of_day_in_millisec(
+            TimeUtilities.get_current_datetime())
+
+        end_epoch_time = TimeUtilities.get_epoch_time_for_end_of_day_in_millisec(
+            TimeUtilities.get_current_datetime())
+
         community_dm_settings_instance = community_dm_settings_filter[0]
 
         if community_dm_settings_instance.state == community_dm_settings_state_types.UNLIMITED:
@@ -2562,13 +2590,7 @@ class MemberCommunityHelper:
 
         elif community_dm_settings_instance.state == community_dm_settings_state_types.LIMITED:
 
-            if community_dm_settings_instance.duration == community_dm_settings_duration_types.DAYS:
-                start_epoch_time = TimeUtilities.get_epoch_time_for_start_of_day_in_millisec(
-                    TimeUtilities.get_current_datetime())
-                end_epoch_time = TimeUtilities.get_epoch_time_for_end_of_day_in_millisec(
-                    TimeUtilities.get_current_datetime())
-
-            elif community_dm_settings_instance.duration == community_dm_settings_duration_types.WEEKS:
+            if community_dm_settings_instance.duration == community_dm_settings_duration_types.WEEKS:
                 start_epoch_time = TimeUtilities.get_epoch_time_for_start_of_day_in_millisec(
                     TimeUtilities.get_week_first_day_in_datetime())
                 end_epoch_time = TimeUtilities.get_epoch_time_for_end_of_day_in_millisec(
@@ -2588,23 +2610,48 @@ class MemberCommunityHelper:
             'card__is_private': True,
             'card__type': card_types.CARD_DIRECT_MESSAGE,
             'follow_status': True,
-            'chat_requested_by': user_instance,
+            'chat_request_initiated_by': user_instance,
+            'user': user_instance,
             'chat_request_created_at__gte': start_epoch_time,
             'chat_request_created_at__lte': end_epoch_time
         }
 
-        card_state_filter = ModelUtilities.get_model_filter(collabcardState, card_state_filter_object).exclude(
-            chat_request_state=None)
+        card_state_filter = ModelUtilities.get_model_filter(collabcardState, card_state_filter_object)
 
         if card_state_filter.count() >= community_dm_settings_instance.number_in_duration:
+            user_dm_limit = None
+
+            filter_dict = {
+                'community': community_instance
+            }
+
+            community_dm_settings_filter = ModelUtilities.get_model_filter(CommunityDirectMessageSettings, filter_dict)
+
+            if community_dm_settings_filter:
+                context_dict = {
+                    'send_community_id': False
+                }
+
+                user_dm_limit = CommunityDMSettingsSerializer(community_dm_settings_filter[0],
+                                                              context=context_dict).data
+
             limit_response = {
                 'is_request_dm_limit_exceeded': True,
                 'new_request_dm_timestamp': end_epoch_time,
-                'success': True
+                'success': True,
+                'user_dm_limit': user_dm_limit
             }
 
             if response.get('chatroom_id'):
-                limit_response['chatroom_id'] = response.get('chatroom_id')
+                filter_dict = {
+                    'card': response.get('chatroom_id'),
+                    'state': conversation_states.ANSWER
+                }
+
+                chatroom_user_messages_filter = ModelUtilities.get_model_filter(card_answers, filter_dict)
+
+                if chatroom_user_messages_filter.exists():
+                    limit_response['chatroom_id'] = response.get('chatroom_id')
 
             return limit_response
 
@@ -2781,7 +2828,7 @@ class MemberCommunityHelper:
                 'cta': CTA_ROUTE_DIRECT_MESSAGES_DM_FEED.format(community_instance.id)}
 
     @staticmethod
-    def can_member_from_dm_feed_v2(user_instance, community_instance):
+    def can_member_request_from_dm_feed_v2(user_instance, community_instance):
         response_dict = {
             'success': True,
             'show_dm': False

@@ -31,7 +31,7 @@ from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, UserinfoSerializer
 from ..sync.model_update import update_models_for_syncing_apis
 # from ..tasks import send_chatroom_owner_mail
-from ..utility import pagination
+from ..utility import (pagination, m2cm_v2_version_check)
 from ..user.user_impl import UserHelper
 from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
                      save_the_latest_conversation, update_activity_in_chatroom_for_conversation_creation,
@@ -43,12 +43,13 @@ from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
 from ..static_text import EVERYONE_TAG_REGEX, PARTICIPANTS_TAG_REGEX
 
 from .constants import *
+from ..chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE
 
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
                             conversationPollMembers, Userinfo, conversationEngage, answerAttachment,
                             conversationEventMembers, conversationEventNudge, UserEmailsSendStatus, userDevices,
-                            userMemberRights)
+                            userMemberRights, UserChannelSettings)
 from collabmates_api.sdk.models import SdkClient
 
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -58,7 +59,7 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
     conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types, \
-    member_rights, unsubscribe_types, noti_states
+    member_rights, unsubscribe_types, noti_states, chat_request_states
 
 from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
     is_member_verified, filter_user_instances_based_on_notification_flag
@@ -973,6 +974,15 @@ class ConversationImpl(ConversationManager):
         if state_filter:
             chatroom_state_instance = state_filter[0]
 
+            is_m2cm_v2 = m2cm_v2_version_check(self.get_platform_code(), self.get_version_code())
+
+            if all([is_m2cm_v2, chatroom_instance.is_private,
+                    chatroom_instance.type == card_types.CARD_DIRECT_MESSAGE,
+                    chatroom_instance.is_private_member,
+                    chatroom_state_instance.chat_request_state == chat_request_states.REJECTED]):
+                return ResponseUtilities.get_impl_error_context("Chatroom messaging is blocked!",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+
         if chatroom_instance.access_without_subscription:
             status = is_member_verified(community_instance.id, self.get_member_id())
 
@@ -1697,8 +1707,11 @@ class ConversationHelper:
 
     @staticmethod
     @shared_task
-    def update_latest_conversation_id_to_firebase_v1(chatroom_id, conversation_id, community_id=None):
-        update_last_answer_id(chatroom_id, conversation_id)
+    def update_latest_conversation_id_to_firebase_v1(chatroom_id, conversation_id, community_id=None,
+                                                     only_update_home_feed=False):
+        if not only_update_home_feed:
+            update_last_answer_id(chatroom_id, conversation_id)
+
         update_chatroom_conversation_ids_against_community(community_id, card_id=chatroom_id,
                                                            conversation_id=conversation_id)
 
@@ -2416,6 +2429,7 @@ class ConversationHelper:
 
         community_instance = chatroom_instance.community
         member_state = Members.get_community_member_state(community_instance, user_instance)
+        is_admin = (member_state == member_states.ADMIN)
 
         is_tag_allowed = ConversationHelper._validate_group_tags(
             message,
@@ -2427,10 +2441,6 @@ class ConversationHelper:
         if not is_tag_allowed:
             return ResponseUtilities.get_inner_error_context('tag not allowed')
 
-        if chatroom_instance.type == card_types.CARD_PURPOSE and \
-                member_state != member_states.ADMIN:
-            return ResponseUtilities.get_inner_error_context(ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
-
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return ResponseUtilities.get_inner_error_context("Responding is disabled")
 
@@ -2441,6 +2451,16 @@ class ConversationHelper:
         if not has_right:
             return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
 
+        # Get user specific chatroom settings
+        user_chatroom_settings = chatroom_impl.ChatroomHelper.compute_user_chatroom_settings(user_instance, 
+                                                                                             chatroom_instance, 
+                                                                                             is_admin,
+                                                                                             [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE])
+
+        # If user_chatroom_settings for 'member_can_message' is false, then return error
+        if not user_chatroom_settings or not user_chatroom_settings[0].enabled :
+            return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
+           
         return {
             'user_instance': user_instance,
             'chatroom_instance': chatroom_instance,
