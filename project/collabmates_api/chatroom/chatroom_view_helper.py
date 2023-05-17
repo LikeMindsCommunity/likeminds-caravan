@@ -385,14 +385,17 @@ class ChatroomViewHelper:
         # If uuid is present, get valid user id and update member_id
         if uuid:
             valid_id = ModelUtilities.get_valid_member_ids([uuid], community_instance.id)
-            if valid_id:
-                member_id = valid_id[0]
+            
+            if not valid_id:
+                return ResponseUtilities.get_inner_error_context("Invalid uuid")
+            
+            member_id = valid_id[0]
 
         member_instance = ModelUtilities.get_user_instance_or_none(member_id,
                                                                    community_id=community_instance.id)
 
         if not member_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid member or user id")
+            return ResponseUtilities.get_inner_error_context("Invalid member id")
 
         is_user_member = Members.is_community_member(community=community_instance, member=user_instance)
 

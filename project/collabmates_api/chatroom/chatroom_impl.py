@@ -1351,8 +1351,10 @@ class ChatroomImpl(ChatroomManager):
         if uuid:
             valid_id = ModelUtilities.get_valid_member_ids([uuid], chatroom_instance.community_id)
             
-            if valid_id:
-                member_id = valid_id[0]
+            if not valid_id:
+                return ResponseUtilities.get_impl_error_context("Invalid uuid sent", status_codes.HTTP_400_BAD_REQUEST)
+            
+            member_id = valid_id[0]
 
         user_instance = ModelUtilities.get_user_instance_or_none(member_id)
         if not user_instance:
