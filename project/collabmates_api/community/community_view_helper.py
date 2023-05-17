@@ -123,7 +123,7 @@ class CommunityViewHelper:
         if not is_admin:
             return ResponseUtilities.get_inner_error_context("Invalid credentials")
 
-        member_instance = ModelUtilities.get_user_instance_or_none(req_body.get('user_unique_id'))
+        member_instance = ModelUtilities.get_user_instance_or_none(req_body.get('user_unique_id'), community_instance.id)
 
         if not member_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user_unique_id")
