@@ -174,7 +174,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     def fetch_user_chatroom_status(self, user_id: str = None, chatroom_types: list = None, page: int = None,
-                                   page_size: int = None) -> dict:
+                                   page_size: int = None, uuid: str = None) -> dict:
         """Fetches user chatroom joining status"""
 
         raise NotImplementedError

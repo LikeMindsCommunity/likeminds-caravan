@@ -710,7 +710,7 @@ class FetchUserChatroomStatus(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id, None, api_key=api_key)
         community_context = member_community_manager.fetch_user_chatroom_status(
-            user_id=req_params.get('user_id'), chatroom_types=chatroom_types, page=page, page_size=page_size)
+            user_id=req_params.get('user_id'), chatroom_types=chatroom_types, page=page, page_size=page_size, uuid=req_params.get('uuid'))
 
         if 'error_message' in community_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),

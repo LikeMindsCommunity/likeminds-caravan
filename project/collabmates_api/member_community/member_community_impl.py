@@ -2037,9 +2037,9 @@ class MemberCommunityImpl(MemberCommunityManager):
         }
 
     def fetch_user_chatroom_status(self, user_id: str = None, chatroom_types: list = None, page: int = None,
-                                   page_size: int = None) -> dict:
+                                   page_size: int = None, uuid: str = None) -> dict:
         validated_request = MemberCommunityHelper.validate_fetch_user_chatroom_status_request(
-            self.get_member_id(), self.get_api_key(), user_id)
+            self.get_member_id(), self.get_api_key(), user_id, uuid)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -3154,7 +3154,7 @@ class MemberCommunityHelper:
         }
 
     @staticmethod
-    def validate_fetch_user_chatroom_status_request(user_id, api_key, member_id):
+    def validate_fetch_user_chatroom_status_request(user_id, api_key, member_id, uuid: str = None):
         validation_params = {
             'community_id': {
                 'api_key': api_key
@@ -3173,10 +3173,16 @@ class MemberCommunityHelper:
         if not Members.is_member_community_promoter(community_instance, user_instance):
             return ResponseUtilities.get_inner_error_context("You are not CM/Owner of community!")
 
-        member_instance = ModelUtilities.get_user_instance_or_none(member_id)
+        community_id = None
+
+        if uuid:
+            community_id = community_instance.id    
+            member_id = uuid
+
+        member_instance = ModelUtilities.get_user_instance_or_none(member_id, community_id)
 
         if not member_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid user ID!")
+            return ResponseUtilities.get_inner_error_context("Invalid user_id or uuid!")
 
         return {
             'user_instance': user_instance,
