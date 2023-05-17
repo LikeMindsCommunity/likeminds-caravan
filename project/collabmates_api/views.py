@@ -10894,6 +10894,7 @@ def fetch_community_manager_rights(request):
     current_user_id = get_member_id_from_headers(request)
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
+    uuid = request.GET.get('uuid', None)
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
     api_key = RequestUtilities.get_api_key_from_headers(request)
@@ -10904,8 +10905,8 @@ def fetch_community_manager_rights(request):
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not user_id:
-        context = get_error_context(False, "send user_id in params")
+    if not (user_id or uuid):
+        context = get_error_context(False, "send user_id or uuid in params")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     if community_dict.get('error_message'):
@@ -10918,6 +10919,16 @@ def fetch_community_manager_rights(request):
     if not current_user_instance:
         context = get_error_context(False, "Invalid member_id in headers")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    # If uuid is passed, get valid user_id
+    if uuid:
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+        if not valid_id:
+            context = get_error_context(False, "Invalid uuid")
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        
+        user_id = valid_id[0]
 
     user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
@@ -11004,6 +11015,7 @@ def update_community_manager_rights(request):
     current_user_id = get_member_id_from_headers(request)
     req_body = json.loads(request.body)
     user_id = req_body['user_id'] if "user_id" in req_body else None
+    uuid = req_body['uuid'] if "uuid" in req_body else None
     community_id = req_body['community_id'] if "community_id" in req_body else None
     selected_rights = req_body['rights'] if "rights" in req_body else []
     custom_title = req_body['custom_title'] if "custom_title" in req_body else None
@@ -11017,7 +11029,7 @@ def update_community_manager_rights(request):
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not user_id:
+    if not (user_id or uuid):
         context = get_error_context(False, "send user_id in params")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
@@ -11033,6 +11045,16 @@ def update_community_manager_rights(request):
     if not current_user_instance:
         context = get_error_context(False, "Invalid x-member-id")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    # If uuid is passed, get valid user_id
+    if uuid:
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+        if not valid_id:
+            context = get_error_context(False, "Invalid uuid")
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        
+        user_id = valid_id[0]
 
     user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
@@ -11469,6 +11491,7 @@ def fetch_community_member_rights(request):
     current_user_id = get_member_id_from_headers(request)
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
+    uuid = request.GET.get('uuid', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
@@ -11480,8 +11503,8 @@ def fetch_community_member_rights(request):
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not user_id:
-        context = get_error_context(False, "send user_id in params")
+    if not (user_id or uuid):
+        context = get_error_context(False, "send user_id or uuid in params")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     if community_dict.get('error_message'):
@@ -11495,6 +11518,16 @@ def fetch_community_member_rights(request):
     if not current_user_instance:
         context = get_error_context(False, "Invalid x-member-id")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    # If uuid is passed, get valid user_id 
+    if uuid:
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+        if not valid_id:
+            context = get_error_context(False, "Invalid uuid")
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        
+        user_id = valid_id[0]
 
     user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
@@ -11536,6 +11569,7 @@ def update_community_member_rights(request):
     current_user_id = get_member_id_from_headers(request)
     req_body = json.loads(request.body)
     user_id = req_body['user_id'] if "user_id" in req_body else None
+    uuid = req_body['uuid'] if "uuid" in req_body else None
     community_id = req_body['community_id'] if "community_id" in req_body else None
     selected_rights = req_body['rights'] if "rights" in req_body else []
     custom_title = req_body['custom_title'] if "custom_title" in req_body else None
@@ -11547,8 +11581,8 @@ def update_community_member_rights(request):
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not user_id:
-        context = get_error_context(False, "send user_id in params")
+    if not (user_id or uuid):
+        context = get_error_context(False, "send user_id or uuid in params")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     if community_dict.get('error_message'):
@@ -11563,6 +11597,16 @@ def update_community_member_rights(request):
     if not current_user_instance:
         context = get_error_context(False, "Invalid x-member-id")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    # if uuid is passed, get valid user_id
+    if uuid:
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+        if not valid_id:
+            context = get_error_context(False, "Invalid uuid")
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_id = valid_id[0]
 
     user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
