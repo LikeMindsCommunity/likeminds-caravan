@@ -2293,11 +2293,13 @@ def fetch_user_chatrooms(request):
     page = request.GET.get('page', 1)
     state = request.GET.get('state', 0)
     user_id = request.GET.get('user_id')
+    uuid = request.GET.get('uuid')
     community_id = request.GET.get('community_id')
     filter_type = request.GET.get('filter_type')
     api_key = RequestUtilities.get_api_key_from_headers(request)
     current_user_id = get_member_id_from_headers(request)
     chatrooms = []
+    user_community_id = None
 
     filter_type = StringUtilities.get_list_from_string(filter_type)
 
@@ -2310,15 +2312,6 @@ def fetch_user_chatrooms(request):
     if not filter_type:
         filter_type = [card_types.CARD_NORMAL, card_types.CARD_INTRO, card_types.CARD_EVENT, card_types.CARD_POLL,
                        card_types.CARD_PUBLIC_EVENT, card_types.CARD_PURPOSE, card_types.CARD_MASTER_INTRO]
-
-    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
-
-    if not user_instance:
-        context = ResponseUtilities.get_view_impl_error_context("Invalid user ID",
-                                                                status_codes.HTTP_400_BAD_REQUEST)
-        return JsonResponse(context['data'], status=context['status'])
-
-    user_id = user_instance.id
 
     if not page.isdigit():
         context = ResponseUtilities.get_view_impl_error_context("Send valid page",
@@ -2338,6 +2331,21 @@ def fetch_user_chatrooms(request):
         return JsonResponse(context['data'], status=context['status'])
 
     community_id = community_instance.id
+    
+    # If uuid is passed, filter from client user unique id as well
+    if uuid:
+        user_community_id = community_id
+        user_id = uuid
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id, user_community_id)
+
+    if not user_instance:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid user_id or uuid",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    user_id = user_instance.id
+
 
     # chatrooms created by user
     if int(state) == 0:
@@ -6288,16 +6296,13 @@ def follow_chatroom_async(collabcard_id,
     if not status and card_instance.is_secret:
         return {'success': False, "error_message": "Cannot unfollow chatroom"}
 
-    # If uuid is present, get valid user id and update member_id
-    if uuid:
-        valid_id = ModelUtilities.get_valid_member_ids([uuid], card_instance.community_id)
-        
-        if not valid_id:
-            return {'success': False, "error_message": "Invalid uuid"}
-        
-        member_id = valid_id[0]
+    community_id = None
 
-    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
+    # If uuid is present, filter for client user uniquue id as well
+    if uuid:
+       community_id = card_instance.community_id
+
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id, community_id)
 
     if not user_instance:
         return {'success': False, "error_message": "Invalid member id"}

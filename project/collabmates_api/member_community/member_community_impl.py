@@ -1402,10 +1402,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         else:
             return get_error_context(False, "Invalid value of key 'from'.")
 
-    def fetch_member_profile(self, user_id):
+    def fetch_member_profile(self, user_id, uuid: str = None):
         validated_req = MemberCommunityViewHelper.validate_fetch_member_profile_request(self.get_member_id(), user_id,
                                                                                         self.get_community_id(),
-                                                                                        self.get_api_key())
+                                                                                        self.get_api_key(),
+                                                                                        uuid)
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),

@@ -45,7 +45,7 @@ class MemberCommunityViewHelper:
         return {'user_instance': user_instance, 'community_instance': community_instance}
 
     @staticmethod
-    def validate_fetch_member_profile_request(current_user_id, user_id, community_id, api_key):
+    def validate_fetch_member_profile_request(current_user_id, user_id, community_id, api_key, uuid = None):
         current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
 
         if not current_user_instance:
@@ -56,7 +56,14 @@ class MemberCommunityViewHelper:
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid community ID or x-api-key")
 
-        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        community_id = None
+        
+        # If uuid is present, filter for client user unique id as well
+        if uuid:
+            community_id = community_instance.id
+            user_id = uuid
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
 
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user ID")
@@ -152,13 +159,14 @@ class MemberCommunityViewHelper:
         uuid = req_body.get('uuid')
 
         if member_id or uuid:
-            if uuid:
-                valid_id = ModelUtilities.get_valid_member_ids([uuid], community_instance.id)
-                
-                if valid_id:
-                    member_id = valid_id[0]
+            community_id = None
 
-            member_instance = ModelUtilities.get_user_instance_or_none(member_id)
+            # If uuid is passed, update community_id to filter client user unique id as well
+            if uuid:
+                member_id = uuid
+                community_id = community_instance.id
+                
+            member_instance = ModelUtilities.get_user_instance_or_none(member_id, community_id)
 
             if not member_instance:
                 return ResponseUtilities.get_inner_error_context("Invalid member ID or uuid")
