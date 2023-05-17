@@ -2299,7 +2299,6 @@ def fetch_user_chatrooms(request):
     api_key = RequestUtilities.get_api_key_from_headers(request)
     current_user_id = get_member_id_from_headers(request)
     chatrooms = []
-    user_community_id = None
 
     filter_type = StringUtilities.get_list_from_string(filter_type)
 
@@ -2334,10 +2333,16 @@ def fetch_user_chatrooms(request):
     
     # If uuid is passed, filter from client user unique id as well
     if uuid:
-        user_community_id = community_id
-        user_id = uuid
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_id)
 
-    user_instance = ModelUtilities.get_user_instance_or_none(user_id, user_community_id)
+        if not valid_id:
+            context = ResponseUtilities.get_view_impl_error_context("Invalid uuid",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(context['data'], status=context['status'])
+        
+        user_id = valid_id[0]
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
     if not user_instance:
         context = ResponseUtilities.get_view_impl_error_context("Invalid user_id or uuid",
@@ -6296,13 +6301,16 @@ def follow_chatroom_async(collabcard_id,
     if not status and card_instance.is_secret:
         return {'success': False, "error_message": "Cannot unfollow chatroom"}
 
-    community_id = None
-
-    # If uuid is present, filter for client user uniquue id as well
+    # If uuid is present, get valid user id 
     if uuid:
-       community_id = card_instance.community_id
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], card_instance.community_id)
 
-    user_instance = ModelUtilities.get_user_instance_or_none(member_id, community_id)
+        if not valid_id:
+            return {'success': False, "error_message": "Invalid uuid"}
+
+        member_id = valid_id[0]
+
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
     if not user_instance:
         return {'success': False, "error_message": "Invalid member id"}
@@ -6653,7 +6661,7 @@ def collabcards_seen(request):
 
     # If uuid is passed, get valid user id and update user_id
     if uuid:
-        valid_id = ModelUtilities.get_valid_member_ids([uuid], community_instance.id)
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
         
         if not valid_id:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Invalid uuid",
@@ -11243,9 +11251,17 @@ def remove_community_manager(request):
     current_user_instance = User.objects.get(pk=current_user_id)
 
     if uuid:
-        user_id = uuid
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
 
-    user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
+        if not valid_id:
+            context = ResponseUtilities.get_view_impl_error_context("Invalid uuid",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            
+            return JsonResponse(context['data'], status=context['status'])
+        
+        user_id = valid_id[0]
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
     if not user_instance:
         context = ResponseUtilities.get_view_impl_error_context("Invalid user ID!",

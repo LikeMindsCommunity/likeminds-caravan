@@ -3173,11 +3173,14 @@ class MemberCommunityHelper:
         if not Members.is_member_community_promoter(community_instance, user_instance):
             return ResponseUtilities.get_inner_error_context("You are not CM/Owner of community!")
 
-        community_id = None
-
+        # If uuid is passed, get valid user id and update member_id
         if uuid:
-            community_id = community_instance.id    
-            member_id = uuid
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+            if not valid_id:
+                return ResponseUtilities.get_inner_error_context("Invalid uuid!")
+            
+            member_id = valid_id[0]
 
         member_instance = ModelUtilities.get_user_instance_or_none(member_id, community_id)
 

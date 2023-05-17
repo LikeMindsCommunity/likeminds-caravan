@@ -56,12 +56,10 @@ class MemberCommunityViewHelper:
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid community ID or x-api-key")
 
-        community_id = None
-        
         # If uuid is present, filter for client user unique id as well
         if uuid:
-            community_id = community_instance.id
-            user_id = uuid
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
 
         user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
 
@@ -88,7 +86,7 @@ class MemberCommunityViewHelper:
 
         # If uuid is passed, get valid user id and update member_id
         if uuid:
-            valid_id = ModelUtilities.get_valid_member_ids([uuid], community_instance.id)
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
 
             if not valid_id:
                 return ResponseUtilities.get_inner_error_context("Invalid uuid")
@@ -159,17 +157,20 @@ class MemberCommunityViewHelper:
         uuid = req_body.get('uuid')
 
         if member_id or uuid:
-            community_id = None
 
-            # If uuid is passed, update community_id to filter client user unique id as well
+            # If uuid is passed, get valid user id and update member_id
             if uuid:
-                member_id = uuid
-                community_id = community_instance.id
+                valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+                if not valid_id:
+                    return ResponseUtilities.get_inner_error_context("Invalid uuid")
                 
-            member_instance = ModelUtilities.get_user_instance_or_none(member_id, community_id)
+                member_id = valid_id[0]
+
+            member_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
             if not member_instance:
-                return ResponseUtilities.get_inner_error_context("Invalid member ID or uuid")
+                return ResponseUtilities.get_inner_error_context("Invalid member ID")
 
         if req_body.get('chatroom_id'):
             chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))

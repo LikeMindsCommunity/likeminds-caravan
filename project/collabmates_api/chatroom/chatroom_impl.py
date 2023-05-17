@@ -1347,9 +1347,9 @@ class ChatroomImpl(ChatroomManager):
             member_id = self.get_member_id()
             chatroom_state = conversation_states.CONVERSATION_LEAVE_CHATROOM
 
-        # Support for user unique id if uuid is passed 
+        # If uuid is passed, get valid user id and update member_id
         if uuid:
-            valid_id = ModelUtilities.get_valid_member_ids([uuid], chatroom_instance.community_id)
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], chatroom_instance.community_id)
             
             if not valid_id:
                 return ResponseUtilities.get_impl_error_context("Invalid uuid sent", status_codes.HTTP_400_BAD_REQUEST)
