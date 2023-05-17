@@ -96,6 +96,9 @@ class CommunityViewHelper:
         if req_body.get('user_unique_id'):
             user_body['user_unique_id'] = req_body.get('user_unique_id')
 
+        if req_body.get('uuid'):
+            user_body['user_unique_id'] = req_body.get('uuid')
+
         if req_body.get('image_url'):
             user_body['image_url'] = req_body.get('image_url')
 
@@ -122,8 +125,19 @@ class CommunityViewHelper:
 
         if not is_admin:
             return ResponseUtilities.get_inner_error_context("Invalid credentials")
+        
+        user_unique_id = req_body.get('user_unique_id')
+        uuid = req_body.get('uuid')
 
-        member_instance = ModelUtilities.get_user_instance_or_none(req_body.get('user_unique_id'), community_instance.id)
+        if uuid:
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+            if not valid_id:
+                return ResponseUtilities.get_inner_error_context("Invalid uuid")
+            
+            user_unique_id = valid_id[0]
+
+        member_instance = ModelUtilities.get_user_instance_or_none(user_unique_id)
 
         if not member_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user_unique_id")
