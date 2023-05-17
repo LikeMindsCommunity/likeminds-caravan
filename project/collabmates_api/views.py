@@ -6257,12 +6257,14 @@ def collabcard_follow(request, function_dict=None):
 
     collabcard_id = request.GET.get('collabcard_id', '')
     member_id = request.GET.get('member_id', '')
+    uuid = request.GET.get('uuid', '')
     status = request.GET.get('value', 'true')
     status = (status == "true")
 
     context = follow_chatroom_async(collabcard_id,
                                     member_id,
-                                    status)
+                                    status,
+                                    uuid)
 
     if context.get('success'):
         return JsonResponse(context)
@@ -6273,7 +6275,8 @@ def collabcard_follow(request, function_dict=None):
 @shared_task
 def follow_chatroom_async(collabcard_id,
                           member_id,
-                          status=True):
+                          status=True,
+                          uuid=None):
     # local imports from conversations in order to resolve circular import
     from .conversation.conversation_impl import ConversationHelper
 
@@ -6284,6 +6287,15 @@ def follow_chatroom_async(collabcard_id,
 
     if not status and card_instance.is_secret:
         return {'success': False, "error_message": "Cannot unfollow chatroom"}
+
+    # If uuid is present, get valid user id and update member_id
+    if uuid:
+        valid_id = ModelUtilities.get_valid_member_ids([uuid], card_instance.community_id)
+        
+        if not valid_id:
+            return {'success': False, "error_message": "Invalid uuid"}
+        
+        member_id = valid_id[0]
 
     user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
@@ -6610,6 +6622,7 @@ def collabcards_seen(request):
     community_id = None
     card_id = None
     user_id = None
+    uuid = None
 
     if 'community_id' in params:
         community_id = params['community_id']
@@ -6620,6 +6633,9 @@ def collabcards_seen(request):
     if 'member_id' in params:
         user_id = params['member_id']
 
+    if 'uuid' in params:
+        uuid = params['uuid']
+
     api_key = RequestUtilities.get_api_key_from_headers(request)
 
     community = validate_community_id_or_api_key(community_id, api_key)
@@ -6629,6 +6645,15 @@ def collabcards_seen(request):
                                                                             status_codes.HTTP_400_BAD_REQUEST))
 
     community_instance = community.get('community_instance')
+
+    # If uuid is passed, get valid user id and update user_id
+    if uuid:
+        valid_id = ModelUtilities.get_valid_member_ids([uuid], community_instance.id)
+        
+        if not valid_id:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Invalid uuid",
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
+        user_id = valid_id[0]
 
     context = collabcards_seen_internal(card_id, user_id, community_instance)
 

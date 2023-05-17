@@ -68,7 +68,7 @@ class MemberCommunityViewHelper:
         }
 
     @staticmethod
-    def validate_request_dm_limit_request(user_id, community_id, api_key, member_id):
+    def validate_request_dm_limit_request(user_id, community_id, api_key, member_id, uuid = None):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:
@@ -78,6 +78,15 @@ class MemberCommunityViewHelper:
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid community ID/API key")
+
+        # If uuid is passed, get valid user id and update member_id
+        if uuid:
+            valid_id = ModelUtilities.get_valid_member_ids([uuid], community_instance.id)
+
+            if not valid_id:
+                return ResponseUtilities.get_inner_error_context("Invalid uuid")
+            
+            member_id = valid_id[0]
 
         member_instance = ModelUtilities.get_user_instance_or_none(member_id)
 

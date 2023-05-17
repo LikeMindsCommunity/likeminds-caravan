@@ -1660,11 +1660,12 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return chatroom_queryset
 
-    def request_dm_limit(self, member_id: str) -> {}:
+    def request_dm_limit(self, member_id: str, uuid: str = None) -> {}:
         validated_request = MemberCommunityViewHelper.validate_request_dm_limit_request(self.get_member_id(),
                                                                                         self.get_community_id(),
                                                                                         self.get_api_key(),
-                                                                                        member_id)
+                                                                                        member_id,
+                                                                                        uuid)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),

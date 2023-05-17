@@ -127,7 +127,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def request_dm_limit(self, member_id: str) -> {}:
+    def request_dm_limit(self, member_id: str, uuid: str = None) -> {}:
         """Returns DM limit connection request meta for user"""
 
         raise NotImplementedError

@@ -1101,8 +1101,8 @@ class CreateDMChatroomView(APIView):
         if not req_body:
             return {'success': False, 'error_message': "Invalid request body"}
 
-        if not req_body.get('member_id'):
-            return {'success': False, 'error_message': "Empty Member ID!"}
+        if not (req_body.get('member_id') or req_body.get('uuid')):
+            return {'success': False, 'error_message': "Empty Member or User ID!"}
 
         return {'success': True}
 
