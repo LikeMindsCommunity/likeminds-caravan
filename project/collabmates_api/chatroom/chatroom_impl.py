@@ -1140,6 +1140,13 @@ class ChatroomImpl(ChatroomManager):
         include_members_later = req_body.get('include_members_later', False)
         chatroom_image_url = req_body.get('chatroom_image_url', None)
 
+        uuids = req_body.get('uuids', None)
+        is_secret = req_body.get('is_secret', False)
+        
+        # If uuids are passed and chatroom is secret, update secret_chatroom_participants
+        if uuids and is_secret:
+            req_body['secret_chatroom_participants'] = uuids
+
         card_content = {}
 
         self._fill_chatroom_basic_info(card_content, chatroom_name,
@@ -1214,6 +1221,11 @@ class ChatroomImpl(ChatroomManager):
             ChatroomHelper.auto_follow_event_co_hosts_and_send_notification(chatroom_instance, user_instance.userinfo)
 
         open_chatroom_participants = req_body.get('chatroom_participants', [])
+
+        # If uuids are passed and chatroom is open, update open_chatroom_participants with valid member_ids
+        if uuids and not is_secret:
+            valid_ids = ModelUtilities.get_valid_member_ids(uuids, community_id)
+            open_chatroom_participants = valid_ids
 
         self._send_additional_notifications_and_tasks_after_room_creation(user_instance, community_instance,
                                                                           chatroom_instance, req_body,
