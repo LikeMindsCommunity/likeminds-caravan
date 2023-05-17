@@ -11187,6 +11187,7 @@ def remove_community_manager(request):
     community_id = request.POST.get('community_id', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
     user_id = request.POST.get('user_id', None)
+    uuid = request.POST.get('uuid', None)
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
@@ -11194,8 +11195,8 @@ def remove_community_manager(request):
         context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
-    if not user_id:
-        context = ResponseUtilities.get_view_impl_error_context("send user_id in params",
+    if not (user_id or uuid):
+        context = ResponseUtilities.get_view_impl_error_context("send user_id or uuid in body",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
     if not community_id and not api_key:
@@ -11213,6 +11214,10 @@ def remove_community_manager(request):
     community_id = community_instance.id
 
     current_user_instance = User.objects.get(pk=current_user_id)
+
+    if uuid:
+        user_id = uuid
+
     user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
 
     if not user_instance:
