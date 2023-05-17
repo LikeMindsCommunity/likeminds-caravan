@@ -2726,7 +2726,7 @@ class MemberCommunityHelper:
             return {'success': True, 'show_dm': False}
 
         if not member_instance:
-            return get_error_context(False, 'Invalid member_id')
+            return get_error_context(False, 'Invalid member_id or uuid')
 
         is_member_admin = Members.get_community_member_state(community_instance, member_instance) == member_states.ADMIN
         is_user_admin = Members.get_community_member_state(community_instance, user_instance) == member_states.ADMIN

@@ -148,11 +148,20 @@ class MemberCommunityViewHelper:
         member_instance = None
         chatroom_instance = None
 
-        if req_body.get('member_id'):
-            member_instance = ModelUtilities.get_user_instance_or_none(req_body.get('member_id'))
+        member_id = req_body.get('member_id')
+        uuid = req_body.get('uuid')
+
+        if member_id or uuid:
+            if uuid:
+                valid_id = ModelUtilities.get_valid_member_ids([uuid], community_instance.id)
+                
+                if valid_id:
+                    member_id = valid_id[0]
+
+            member_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
             if not member_instance:
-                return ResponseUtilities.get_inner_error_context("Invalid member ID")
+                return ResponseUtilities.get_inner_error_context("Invalid member ID or uuid")
 
         if req_body.get('chatroom_id'):
             chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
