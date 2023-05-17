@@ -2405,7 +2405,7 @@ class ModelUtilities:
         user_unique_ids = []
         client_user_ids = []
 
-        # Type case all member ids to string
+        # Type cast all member ids to string
         member_ids = list(map(str, member_ids))
 
         # Get client user unique ids if community id is passed
@@ -2431,6 +2431,29 @@ class ModelUtilities:
         user_ids = list(Userinfo.objects.filter(
             Q(user_id_id__in=integer_member_ids) | Q(user_unique_id__in=user_unique_ids)).values_list(
             'user_id_id', flat=True))
+
+        return list(set(user_ids + client_user_ids))
+    
+    @staticmethod
+    def get_valid_user_ids_from_uuids(uuids: list, community_id: int) -> list:
+
+        if not isinstance(uuids, list):
+            return []
+        
+        client_user_ids = []
+
+        # Filter client user unique ids from SDkClientUsersInfo
+        sdk_client_user_filters = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                                    {'user_unique_id__in': uuids,
+                                                                    'community': community_id})
+
+        client_user_ids = list(sdk_client_user_filters.values_list('user_id', flat=True))
+        client_user_unique_ids = list(sdk_client_user_filters.values_list('user_unique_id', flat=True))
+
+        # Remove client user unique ids from member ids                  
+        uuids = list(set(uuids) - set(client_user_unique_ids))
+
+        user_ids = list(Userinfo.objects.filter(user_unique_id__in=uuids).values_list('user_id_id', flat=True))
 
         return list(set(user_ids + client_user_ids))
 
