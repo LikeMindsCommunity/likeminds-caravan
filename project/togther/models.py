@@ -2401,6 +2401,10 @@ class ModelUtilities:
 
     @staticmethod
     def get_valid_member_ids(member_ids, community_id: int = None):
+
+        if not isinstance(member_ids, list):
+            return []
+        
         integer_member_ids = []
         user_unique_ids = []
         client_user_ids = []
