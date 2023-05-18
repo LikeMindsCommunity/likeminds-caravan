@@ -10053,6 +10053,7 @@ def push_report_v1(request):
         entity_id = request_body['entity_id'] if 'entity_id' in request_body else None
         entity_type = request_body['entity_type'] if 'entity_type' in request_body else None
         entity_creator_id = request_body['entity_creator_id'] if 'entity_creator_id' in request_body else None
+        uuid = request_body['uuid'] if 'uuid' in request_body else None
 
         report_type = report_Types.REPORT_COMMUNITY  # assume as community reported
         reported_member_instance = None
@@ -10064,6 +10065,24 @@ def push_report_v1(request):
         has_right_1 = False  # right to approve or reject pending requests
 
         member_instance = Members.objects.filter(community_id=community_id, member_id=member_id)
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+        if not community_instance:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                "Invalid API key/community ID", status_codes.HTTP_400_BAD_REQUEST))
+
+        if uuid: 
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+            if not valid_id:
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                    "invalid uuid", status_codes.HTTP_400_BAD_REQUEST))
+                
+            if (entity_type or entity_id):
+                entity_creator_id = valid_id[0]
+            else:
+                reported_member_id = valid_id[0]
+        
         if member_instance.exists():
             member = member_instance[0]
             is_owner = member.is_owner
@@ -10082,8 +10101,7 @@ def push_report_v1(request):
                     "invalid collabcard_id", status_codes.HTTP_400_BAD_REQUEST))
 
             report_type = report_Types.REPORT_CHATROOM
-            if not reported_member_id:
-                reported_member_instance = collabcard_instance.user
+            reported_member_instance = collabcard_instance.user
 
             if not community_id:
                 community_id = collabcard_instance.community.id
@@ -10103,13 +10121,12 @@ def push_report_v1(request):
             if collabcard_instance is None:
                 collabcard_instance = conversation_instance.card
 
-            if not reported_member_id:
-                reported_member_instance = conversation_instance.user
+            reported_member_instance = conversation_instance.user
 
             if not community_id:
                 community_id = conversation_instance.community.id
 
-        elif reported_member_id and not reported_member_instance:
+        elif reported_member_id:
             if is_promoter and has_right_1:
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
                     "you have no right to report a member", status_codes.HTTP_400_BAD_REQUEST))
@@ -10123,13 +10140,13 @@ def push_report_v1(request):
             reported_member_instance = ModelUtilities.get_model_instance_or_none(User, reported_member_id)
             if not reported_member_instance:
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
-                    "invalid reported_member_id", status_codes.HTTP_400_BAD_REQUEST))
+                    "invalid reported_member_id or uuid", status_codes.HTTP_400_BAD_REQUEST))
 
-        elif entity_id and entity_creator_id and entity_type and not reported_member_instance:
+        elif entity_id and entity_creator_id and entity_type:
             reported_member_instance = ModelUtilities.get_user_instance_or_none(entity_creator_id)
             if not reported_member_instance:
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
-                    "invalid reported_member_id", status_codes.HTTP_400_BAD_REQUEST))
+                    "invalid reported_member_id or uuid", status_codes.HTTP_400_BAD_REQUEST))
 
             if entity_type not in [report_Types.REPORT_POST, report_Types.REPORT_COMMENT, report_Types.REPORT_REPLY]:
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
@@ -10138,11 +10155,6 @@ def push_report_v1(request):
             report_type = entity_type
 
         report_tag_instance = ModelUtilities.get_model_instance_or_none(Report_Tags, tag_id)
-
-        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
-        if not community_instance:
-            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
-                "Invalid API key/community ID", status_codes.HTTP_400_BAD_REQUEST))
 
         community_id = community_instance.id
 
