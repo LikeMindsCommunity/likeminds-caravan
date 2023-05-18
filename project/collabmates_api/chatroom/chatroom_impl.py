@@ -98,7 +98,8 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     fetch_conversations_unread, create_chatroom_cohort_instances, convert_chatroom_to_secret_chatroom, \
     convert_chatroom_to_open_chatroom, send_chatroom_creation_analytics_data, \
     send_participants_added_in_chatroom_analytics_data, send_chatroom_updated_analytics_data, \
-    initial_message_dm_chatroom, update_community_pin_chatrooms_list_in_cache, toggle_user_chatroom_settings
+    initial_message_dm_chatroom, update_community_pin_chatrooms_list_in_cache, toggle_user_chatroom_settings, \
+    add_new_participants_to_secret_chatroom
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException, InvalidSecretChatroomParticipantsException)
 from utility.time_utilities import TimeUtilities
@@ -2848,6 +2849,7 @@ class ChatroomImpl(ChatroomManager):
     def add_cohort_to_chatroom(self, request_body) -> dict:
         cohort_ids = request_body.get('cohort_ids')
         chatroom_id = request_body.get('chatroom_id')
+        add_existing_members = request_body.get('add_existing_members', False)
 
         validated_req = ChatroomHelper.validate_add_chatroom_cohort_request(self.get_member_id(),
                                                                             chatroom_id,
@@ -2858,7 +2860,12 @@ class ChatroomImpl(ChatroomManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_instance = validated_req.get('chatroom_instance')
-        create_chatroom_cohort_instances.delay(chatroom_instance.id, cohort_ids)
+        create_chatroom_cohort_instances(chatroom_instance.id, cohort_ids)
+
+        if chatroom_instance.is_secret and add_existing_members:
+            ChatroomHelper.add_cohort_members_to_secret_chatroom(self.get_member_id(),
+                                                                 chatroom_instance.id,
+                                                                 cohort_ids)
 
         return {'success': True}
 
@@ -6013,7 +6020,6 @@ class ChatroomHelper:
         }
 
         return validated_dict
-            
 
     @staticmethod
     @shared_task
@@ -6024,3 +6030,17 @@ class ChatroomHelper:
         }
 
         ModelUtilities.model_update(Collabcard, {'id': chatroom_id}, update_dict)
+
+    @staticmethod
+    @shared_task
+    def add_cohort_members_to_secret_chatroom(current_user_id: int, chatroom_id: int, cohort_ids: list):
+        if not (current_user_id or chatroom_id or cohort_ids):
+            pass
+
+        user_ids_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort__in': cohort_ids}).values_list(
+            'user_id', flat=True))
+
+        if not user_ids_list:
+            return
+
+        add_new_participants_to_secret_chatroom(current_user_id, chatroom_id, user_ids_list)
