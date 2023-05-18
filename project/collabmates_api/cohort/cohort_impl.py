@@ -509,7 +509,7 @@ class CohortHelper:
         bulk_create_list = []
 
         if uuids:
-            member_ids = ModelUtilities.get_valid_member_ids(uuids, cohort_instance.community_id)
+            member_ids = ModelUtilities.get_valid_user_ids_from_uuids(uuids, cohort_instance.community_id)
 
         user_dict = CohortHelper.pre_compute_users_by_member_id_list(member_ids)
 

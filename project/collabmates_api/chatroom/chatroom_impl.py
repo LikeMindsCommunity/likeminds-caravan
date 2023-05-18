@@ -1224,7 +1224,7 @@ class ChatroomImpl(ChatroomManager):
 
         # If uuids are passed and chatroom is open, update open_chatroom_participants with valid member_ids
         if uuids and not is_secret:
-            valid_ids = ModelUtilities.get_valid_member_ids(uuids, community_id)
+            valid_ids = ModelUtilities.get_valid_user_ids_from_uuids(uuids, community_id)
             open_chatroom_participants = valid_ids
 
         self._send_additional_notifications_and_tasks_after_room_creation(user_instance, community_instance,
