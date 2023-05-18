@@ -55,13 +55,17 @@ class MemberCommunityViewHelper:
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid community ID or x-api-key")
-
-        # If uuid is present, filter for client user unique id as well
+        
+        # If uuid is present, get valid member instance
         if uuid:
             valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
 
+            if not valid_id:
+                return ResponseUtilities.get_inner_error_context("Invalid uuid")
+            
+            user_id = valid_id[0]
 
-        user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user ID")

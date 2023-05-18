@@ -128,7 +128,7 @@ class ChatroomViewHelper:
                 'secret_chatroom_participants': secret_chatroom_participants}
 
     @staticmethod
-    def validate_add_members_to_open_chatroom(user_id, chatroom_id, chatroom_participants):
+    def validate_add_members_to_open_chatroom(user_id, chatroom_id, chatroom_participants, uuids = None):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:
@@ -142,8 +142,8 @@ class ChatroomViewHelper:
         if card_instance.is_secret:
             return ResponseUtilities.get_inner_error_context("Chatroom is secret!")
 
-        if not chatroom_participants:
-            return ResponseUtilities.get_inner_error_context("Invalid Chatroom participants")
+        if not (chatroom_participants or uuids):
+            return ResponseUtilities.get_inner_error_context("Invalid Chatroom participants or uuids")
 
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
                                                                   'member_id': user_instance})
@@ -382,17 +382,20 @@ class ChatroomViewHelper:
         member_id = req_body.get('member_id')
         uuid = req_body.get('uuid')
 
-        # If uuid is present, get valid user id and update member_id
+        member_instance = None
+
+        # If uuid is present, get valid user id from uuid 
         if uuid:
             valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
             
             if not valid_id:
                 return ResponseUtilities.get_inner_error_context("Invalid uuid")
             
-            member_id = valid_id[0]
-
-        member_instance = ModelUtilities.get_user_instance_or_none(member_id,
-                                                                   community_id=community_instance.id)
+            member_instance = ModelUtilities.get_user_instance_or_none(valid_id[0])
+        
+        else:    
+            member_instance = ModelUtilities.get_user_instance_or_none(member_id,
+                                                                    community_id=community_instance.id)
 
         if not member_instance:
             return ResponseUtilities.get_inner_error_context("Invalid member id")

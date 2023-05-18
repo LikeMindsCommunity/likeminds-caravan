@@ -669,12 +669,8 @@ class AddMembersToChatroomView(APIView):
         chatroom_participants = req_body.get('chatroom_participants')
         uuids = req_body.get('uuids')
 
-        # If uuids are passed, replace chatroom_participants with uuids
-        if uuids:
-            chatroom_participants = uuids
-
         chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
-        response_context = chatroom_manager.add_members_to_chatroom(chatroom_participants)
+        response_context = chatroom_manager.add_members_to_chatroom(chatroom_participants, uuids)
 
         if response_context.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
@@ -1102,7 +1098,7 @@ class CreateDMChatroomView(APIView):
             return {'success': False, 'error_message': "Invalid request body"}
 
         if not (req_body.get('member_id') or req_body.get('uuid')):
-            return {'success': False, 'error_message': "Empty Member or User ID!"}
+            return {'success': False, 'error_message': "Empty Member_id or uuid!"}
 
         return {'success': True}
 
@@ -1319,12 +1315,10 @@ class ChatroomParticipants(APIView):
         removed_members = req_body.get('removed_members')
         uuids = req_body.get('uuids')
 
-        if uuids:
-            removed_members = uuids
-
         chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
         response_context = chatroom_manager.remove_chatroom_participant(
-            removed_members_list=removed_members)
+            removed_members_list=removed_members,
+            uuids=uuids)
 
         if 'error_message' in response_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
