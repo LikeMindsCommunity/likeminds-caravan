@@ -115,17 +115,13 @@ class ChatroomViewHelper:
             return ResponseUtilities.get_inner_error_context("Chatroom is not secret!")
 
         secret_chatroom_participants = req_body.get('secret_chatroom_participants', None)
-        
         uuids = req_body.get('uuids', None)
         
-        if uuids:
-            secret_chatroom_participants = uuids
-
-        if secret_chatroom_participants is None:
+        if (secret_chatroom_participants or uuids) is None:
             return ResponseUtilities.get_inner_error_context("send secret_chatroom_participants or uuids in body")
 
         return {'user_instance': user_instance, 'card_instance': card_instance,
-                'secret_chatroom_participants': secret_chatroom_participants}
+                'secret_chatroom_participants': secret_chatroom_participants, 'uuids': uuids}
 
     @staticmethod
     def validate_add_members_to_open_chatroom(user_id, chatroom_id, chatroom_participants, uuids = None):

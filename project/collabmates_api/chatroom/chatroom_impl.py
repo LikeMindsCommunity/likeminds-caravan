@@ -1346,7 +1346,7 @@ class ChatroomImpl(ChatroomManager):
         chatroom_instance = Collabcard.get_chatroom_with_joins_or_raise_exception(self.get_chatroom_id())
 
         chatroom_state = conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM
-        if member_id is None:
+        if (member_id or uuid) is None:
             member_id = self.get_member_id()
             chatroom_state = conversation_states.CONVERSATION_LEAVE_CHATROOM
 
@@ -1435,12 +1435,19 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req_body.get('user_instance')
         chatroom_instance = validated_req_body.get('card_instance')
         secret_chatroom_participants = validated_req_body.get('secret_chatroom_participants')
+        uuids = validated_req_body.get('uuids')
         is_chatroom_invite = req_body.get('is_channel_invite', True)
 
         if not is_internal:
-            # support for user_unique_ids in secret chatroom participants parameter
-            secret_chatroom_participants = ModelUtilities.get_valid_member_ids(secret_chatroom_participants,
-                                                                               community_id=chatroom_instance.community_id)
+
+            # If uuids is passed, get valid user ids
+            if uuids:
+                secret_chatroom_participants = ModelUtilities.get_valid_user_ids_from_uuids(uuids, chatroom_instance.community_id)
+
+            else:
+                # support for user_unique_ids in secret chatroom participants parameter
+                secret_chatroom_participants = ModelUtilities.get_valid_member_ids(secret_chatroom_participants,
+                                                                                community_id=chatroom_instance.community_id)
 
         secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
             secret_chatroom_participants)
