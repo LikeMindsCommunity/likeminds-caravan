@@ -2424,11 +2424,11 @@ class ModelUtilities:
             # Remove client user unique ids from member ids                  
             member_ids = list(set(member_ids) - set(client_user_unique_ids))
 
-
-
         for member_id in member_ids:
+
             if member_id.isdigit():
                 integer_member_ids.append(member_id)
+                
             else:
                 user_unique_ids.append(member_id)
 

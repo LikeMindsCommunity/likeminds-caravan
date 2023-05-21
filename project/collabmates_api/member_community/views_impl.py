@@ -329,7 +329,8 @@ class FetchMemberProfileView(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id, validated_req_body.get('community_id'),
                                                        api_key=api_key)
-        community_context = member_community_manager.fetch_member_profile(validated_req_body.get('user_id'), uuid=validated_req_body.get('uuid'))
+        community_context = member_community_manager.fetch_member_profile(validated_req_body.get('user_id'), 
+                                                                          uuid=validated_req_body.get('uuid'))
 
         if 'error_message' in community_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
@@ -400,7 +401,8 @@ class RequestDMLimitView(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id, validated_req_body.get('community_id'),
                                                        api_key=api_key)
-        community_context = member_community_manager.request_dm_limit(validated_req_body.get('user_id'), validated_req_body.get('uuid'))
+        community_context = member_community_manager.request_dm_limit(validated_req_body.get('user_id'), 
+                                                                      validated_req_body.get('uuid'))
 
         if 'error_message' in community_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),

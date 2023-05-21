@@ -10067,6 +10067,7 @@ def push_report_v1(request):
         member_instance = Members.objects.filter(community_id=community_id, member_id=member_id)
 
         community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+        
         if not community_instance:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
                 "Invalid API key/community ID", status_codes.HTTP_400_BAD_REQUEST))
@@ -10080,6 +10081,7 @@ def push_report_v1(request):
                 
             if (entity_type or entity_id):
                 entity_creator_id = valid_id[0]
+
             else:
                 reported_member_id = valid_id[0]
         
@@ -11242,10 +11244,12 @@ def remove_community_manager(request):
         context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
+    
     if not (user_id or uuid):
         context = ResponseUtilities.get_view_impl_error_context("send user_id or uuid in body",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
+    
     if not community_id and not api_key:
         context = ResponseUtilities.get_view_impl_error_context("send community_id in params or api_key in headers",
                                                                 status_codes.HTTP_400_BAD_REQUEST)

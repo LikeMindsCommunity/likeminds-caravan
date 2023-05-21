@@ -391,7 +391,7 @@ class ChatroomViewHelper:
         
         else:    
             member_instance = ModelUtilities.get_user_instance_or_none(member_id,
-                                                                    community_id=community_instance.id)
+                                                                       community_id=community_instance.id)
 
         if not member_instance:
             return ResponseUtilities.get_inner_error_context("Invalid member id")

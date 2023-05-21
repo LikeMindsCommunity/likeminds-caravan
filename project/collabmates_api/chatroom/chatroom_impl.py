@@ -325,7 +325,6 @@ class ChatroomImpl(ChatroomManager):
         if card_content['is_secret']:
             card_content['is_secret'] = True
             
-            secret_chatroom_participants = req_body.get("secret_chatroom_participants", [])
             uuids = req_body.get("uuids", [])   
 
             if uuids:
@@ -1447,7 +1446,7 @@ class ChatroomImpl(ChatroomManager):
             else:
                 # support for user_unique_ids in secret chatroom participants parameter
                 secret_chatroom_participants = ModelUtilities.get_valid_member_ids(secret_chatroom_participants,
-                                                                                community_id=chatroom_instance.community_id)
+                                                                                   community_id=chatroom_instance.community_id)
 
         secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
             secret_chatroom_participants)
@@ -2714,7 +2713,7 @@ class ChatroomImpl(ChatroomManager):
         else:
             # Support for user_unique_ids in chatroom participants parameter
             chatroom_participants = ModelUtilities.get_valid_member_ids(chatroom_participants,
-                                                                          community_id=card_instance.community_id)
+                                                                        community_id=card_instance.community_id)
 
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants)
 
@@ -3842,7 +3841,7 @@ class ChatroomImpl(ChatroomManager):
         else:
             # support for user_unique_ids in secret chatroom participants parameter
             removed_members_list = ModelUtilities.get_valid_member_ids(removed_members_list,
-                                                                    community_id=chatroom_instance.community_id)
+                                                                       community_id=chatroom_instance.community_id)
 
         filter_dict = {
             'card': chatroom_instance,
