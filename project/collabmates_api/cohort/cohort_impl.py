@@ -59,6 +59,7 @@ class CohortImpl(CohortManager):
 
         name = request_body.get('name')
         member_ids = request_body.get('member_ids')
+        uuids = request_body.get('uuids')
         community_id = request_body.get('community_id')
         type = request_body.get('type', 0)
         type_id = request_body.get('type_id', '')
@@ -71,7 +72,8 @@ class CohortImpl(CohortManager):
                                                                          member_ids=member_ids,
                                                                          cohort_type=type,
                                                                          type_id=type_id,
-                                                                         filter_list=filter_list)
+                                                                         filter_list=filter_list,
+                                                                         uuids=uuids)
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -91,7 +93,7 @@ class CohortImpl(CohortManager):
 
         cohort_instance = Cohort.create_instance(cohort_info)
 
-        CohortHelper.create_cohort_member_instance(cohort_instance=cohort_instance, member_ids=member_ids)
+        CohortHelper.create_cohort_member_instance(cohort_instance=cohort_instance, member_ids=member_ids, uuids=uuids)
         CohortHelper.create_cohort_rights_instance(cohort_instance=cohort_instance,
                                                    community_instance=community_instance)
 
@@ -133,6 +135,7 @@ class CohortImpl(CohortManager):
         cohort_id = request_body.get('cohort_id')
         name = request_body.get('name')
         member_ids = request_body.get('member_ids') if request_body.get('member_ids') else []
+        uuids = request_body.get('uuids') if request_body.get('uuids') else []
         rights = request_body.get('rights') if request_body.get('rights') else []
         type = request_body.get('type')
         type_id = request_body.get('type_id')
@@ -148,7 +151,8 @@ class CohortImpl(CohortManager):
                                                                        member_ids=member_ids,
                                                                        cohort_type=type,
                                                                        type_id=type_id,
-                                                                       filter_list=filter_list)
+                                                                       filter_list=filter_list,
+                                                                       uuids=uuids)
 
         if validated_req_body.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
@@ -157,6 +161,10 @@ class CohortImpl(CohortManager):
         cohort_instance = validated_req_body.get('cohort_instance')
         user_instance = validated_req_body.get('user_instance')
         member_instance = validated_req_body.get('member_instance')
+
+        # If uudids are passed, get valid user ids and update member_ids
+        if uuids:
+            member_ids = ModelUtilities.get_valid_user_ids_from_uuids(uuids, cohort_instance.community_id)
 
         if not member_instance:
             member_ids = [int(self.get_member_id())]
@@ -263,6 +271,7 @@ class CohortImpl(CohortManager):
 
     def remove_member_from_cohort(self, request_body):
         user_id = request_body.get('user_id', "")
+        uuid = request_body.get('uuid', "")
         cohort_id = request_body.get('cohort_id', "")
         cohort_instance = ModelUtilities.get_model_instance_or_none(Cohort, cohort_id)
 
@@ -275,6 +284,12 @@ class CohortImpl(CohortManager):
 
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user id passed in header"}
+
+        if uuid:
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+            
+            if valid_id:
+                user_id = valid_id[0]
 
         cohort_member_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
@@ -490,8 +505,12 @@ class CohortImpl(CohortManager):
 class CohortHelper:
 
     @staticmethod
-    def create_cohort_member_instance(cohort_instance, member_ids):
+    def create_cohort_member_instance(cohort_instance, member_ids, uuids = None):
         bulk_create_list = []
+
+        if uuids:
+            member_ids = ModelUtilities.get_valid_user_ids_from_uuids(uuids, cohort_instance.community_id)
+
         user_dict = CohortHelper.pre_compute_users_by_member_id_list(member_ids)
 
         for member_id in member_ids:
@@ -1101,7 +1120,7 @@ class CohortHelper:
     @staticmethod
     def validate_create_cohort_request(user_id, community_id: str = None, api_key: str = None,
                                        name: str = None, member_ids: list = None, cohort_type: int = 0,
-                                       type_id: str = None, filter_list: list = None):
+                                       type_id: str = None, filter_list: list = None, uuids: list = None):
 
         if cohort_type not in cohort_type_list:
             return ResponseUtilities.get_inner_error_context("Invalid cohort type!")
@@ -1111,9 +1130,6 @@ class CohortHelper:
 
         if not name:
             return ResponseUtilities.get_inner_error_context("Invalid cohort name!")
-
-        if not isinstance(member_ids, list):
-            return ResponseUtilities.get_inner_error_context("Invalid member ID list!")
 
         if filter_list and not isinstance(filter_list, list):
             return ResponseUtilities.get_inner_error_context("Invalid filter list!")
@@ -1137,6 +1153,11 @@ class CohortHelper:
 
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': community_id,
                                                                   'member_id': user_instance})
+        
+                        
+        if (member_ids and not isinstance(member_ids, list)) or (
+            uuids and not isinstance(uuids, list)) or (not member_ids and not uuids):
+            return ResponseUtilities.get_inner_error_context("Invalid member ID or UUID list!")
 
         if cohort_type in [cohort_types.SUBSCRIPTION_EXPIRED_PLAN, cohort_types.ALL_MEMBER]:
 
@@ -1237,7 +1258,7 @@ class CohortHelper:
     @staticmethod
     def validate_edit_cohort_request(user_id, cohort_id, community_id: str = None, api_key: str = None,
                                      member_ids: list = None, cohort_type: int = 0, type_id: str = None,
-                                     filter_list: list = None):
+                                     filter_list: list = None, uuids: list = None):
 
         if cohort_type not in cohort_type_list:
             return ResponseUtilities.get_inner_error_context("Invalid cohort type!")
@@ -1245,8 +1266,9 @@ class CohortHelper:
         if (cohort_type == cohort_types.SUBSCRIPTION_PLAN) and (not type_id):
             return ResponseUtilities.get_inner_error_context("Invalid type ID!")
 
-        if not isinstance(member_ids, list):
-            return ResponseUtilities.get_inner_error_context("Invalid member ID list!")
+        if (member_ids and not isinstance(member_ids, list)) or (
+            uuids and not isinstance(uuids, list)) or (not member_ids and not uuids):
+            return ResponseUtilities.get_inner_error_context("Invalid member ID or uuid list!")
 
         if not isinstance(filter_list, list):
             return ResponseUtilities.get_inner_error_context("Invalid filter list!")
