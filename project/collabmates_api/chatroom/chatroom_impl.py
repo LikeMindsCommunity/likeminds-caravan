@@ -1423,7 +1423,8 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_state == conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM:
             send_notification_for_removed_secret_room_participant.delay(member_id, self.get_chatroom_id())
 
-    def add_secret_chatroom_participant(self, req_body: dict, is_internal: bool = True) -> dict:
+    def add_secret_chatroom_participant(self, req_body: dict, is_internal: bool = True,
+                                        add_user_joined_message: bool = True) -> dict:
         validated_req_body = ChatroomViewHelper.validate_add_secret_chatroom_participants_request(self.get_member_id(),
                                                                                                   self.get_chatroom_id(),
                                                                                                   req_body)
@@ -1515,7 +1516,8 @@ class ChatroomImpl(ChatroomManager):
 
         ChatroomHelper.add_new_secret_chatroom_participants.delay(new_participants_list,
                                                                   self.get_chatroom_id(),
-                                                                  self.get_member_id())
+                                                                  self.get_member_id(),
+                                                                  add_user_joined_message)
 
         send_participants_added_in_chatroom_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()))
 
@@ -4245,7 +4247,8 @@ class ChatroomHelper:
 
     @staticmethod
     @shared_task
-    def add_new_secret_chatroom_participants(participants_list, chatroom_id, current_user_id):
+    def add_new_secret_chatroom_participants(participants_list, chatroom_id, current_user_id,
+                                             add_user_joined_message: bool = True):
 
         chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
 
@@ -4264,7 +4267,7 @@ class ChatroomHelper:
                                        external_seen=False,
                                        set_expiry_time_none=True)
 
-            if user.id != NumberUtilities.get_integer_from_string(current_user_id):
+            if (user.id != NumberUtilities.get_integer_from_string(current_user_id)) and add_user_joined_message:
                 ChatroomHelper.create_answer(chatroom_instance=chatroom_instance, user_instance=user,
                                              state=conversation_states.CONVERSATION_ADD_PARTICIPANT,
                                              current_user_id=current_user_id)
