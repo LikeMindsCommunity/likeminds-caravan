@@ -6296,24 +6296,24 @@ def follow_chatroom_async(collabcard_id,
     card_instance = Collabcard.get_chatroom_or_None(collabcard_id)
 
     if not card_instance:
-        return {'success': False, "error_message": "Invalid chatroom id"}
-
+        return ResponseUtilities.get_error_context(success=False, error_message="Invalid chatroom id")
+    
     if not status and card_instance.is_secret:
-        return {'success': False, "error_message": "Cannot unfollow chatroom"}
+        return ResponseUtilities.get_error_context(success=False, error_message="Cannot unfollow chatroom")
 
     # If uuid is present, get valid user id 
     if uuid:
         valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], card_instance.community_id)
 
         if not valid_id:
-            return {'success': False, "error_message": "Invalid uuid"}
-
+            return ResponseUtilities.get_error_context(success=False, error_message="Invalid uuid")
+        
         member_id = valid_id[0]
 
     user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
     if not user_instance:
-        return {'success': False, "error_message": "Invalid member id"}
+        return ResponseUtilities.get_error_context(success=False, error_message="Invalid member id")
 
     # user cant unfollow his own collabcard
     if not status and card_instance.user_id == user_instance.id:
@@ -6324,7 +6324,7 @@ def follow_chatroom_async(collabcard_id,
 
     if all(['are_participants_created' in are_chatroom_participants_created,
             not are_chatroom_participants_created.get('are_participants_created')]):
-        return {'success': False, "error_message": "Chatroom creation in progress. Try again after some time."}
+        return ResponseUtilities.get_error_context(success=False, error_message="Chatroom creation in progress. Try again after some time.")
 
     community_instance = card_instance.community
     member_state = Members.get_community_member_state(community_instance.id, user_instance.id)

@@ -1155,7 +1155,8 @@ class CohortHelper:
                                                                   'member_id': user_instance})
         
                         
-        if (member_ids and not isinstance(member_ids, list)) or (uuids and not isinstance(uuids, list)) or (not member_ids and not uuids):
+        if (member_ids and not isinstance(member_ids, list)) or (
+            uuids and not isinstance(uuids, list)) or (not member_ids and not uuids):
             return ResponseUtilities.get_inner_error_context("Invalid member ID or UUID list!")
 
         if cohort_type in [cohort_types.SUBSCRIPTION_EXPIRED_PLAN, cohort_types.ALL_MEMBER]:
@@ -1265,7 +1266,8 @@ class CohortHelper:
         if (cohort_type == cohort_types.SUBSCRIPTION_PLAN) and (not type_id):
             return ResponseUtilities.get_inner_error_context("Invalid type ID!")
 
-        if (member_ids and not isinstance(member_ids, list)) or (uuids and not isinstance(uuids, list)) or (not member_ids and not uuids):
+        if (member_ids and not isinstance(member_ids, list)) or (
+            uuids and not isinstance(uuids, list)) or (not member_ids and not uuids):
             return ResponseUtilities.get_inner_error_context("Invalid member ID or uuid list!")
 
         if not isinstance(filter_list, list):
