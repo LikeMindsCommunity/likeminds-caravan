@@ -2302,7 +2302,8 @@ def add_new_participants_to_cohorts_secret_chatroom(cohort_id, member_id, member
 
 
 @shared_task
-def add_new_participants_to_secret_chatroom(current_user_id, chatroom_id, member_ids):
+def add_new_participants_to_secret_chatroom(current_user_id, chatroom_id, member_ids,
+                                            add_user_joined_message: bool = False):
     chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
     if not (chatroom_instance and chatroom_instance.is_secret):
@@ -2318,7 +2319,7 @@ def add_new_participants_to_secret_chatroom(current_user_id, chatroom_id, member
         'is_channel_invite': False
     }
 
-    chatroom_manager.add_secret_chatroom_participant(req_body)
+    chatroom_manager.add_secret_chatroom_participant(req_body, add_user_joined_message=add_user_joined_message)
 
 
 @shared_task
