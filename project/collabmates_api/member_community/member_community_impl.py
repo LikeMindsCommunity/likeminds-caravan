@@ -1402,10 +1402,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         else:
             return get_error_context(False, "Invalid value of key 'from'.")
 
-    def fetch_member_profile(self, user_id):
+    def fetch_member_profile(self, user_id, uuid: str = None):
         validated_req = MemberCommunityViewHelper.validate_fetch_member_profile_request(self.get_member_id(), user_id,
                                                                                         self.get_community_id(),
-                                                                                        self.get_api_key())
+                                                                                        self.get_api_key(),
+                                                                                        uuid)
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -1660,11 +1661,12 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return chatroom_queryset
 
-    def request_dm_limit(self, member_id: str) -> {}:
+    def request_dm_limit(self, member_id: str, uuid: str = None) -> {}:
         validated_request = MemberCommunityViewHelper.validate_request_dm_limit_request(self.get_member_id(),
                                                                                         self.get_community_id(),
                                                                                         self.get_api_key(),
-                                                                                        member_id)
+                                                                                        member_id,
+                                                                                        uuid)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2035,9 +2037,9 @@ class MemberCommunityImpl(MemberCommunityManager):
         }
 
     def fetch_user_chatroom_status(self, user_id: str = None, chatroom_types: list = None, page: int = None,
-                                   page_size: int = None) -> dict:
+                                   page_size: int = None, uuid: str = None) -> dict:
         validated_request = MemberCommunityHelper.validate_fetch_user_chatroom_status_request(
-            self.get_member_id(), self.get_api_key(), user_id)
+            self.get_member_id(), self.get_api_key(), user_id, uuid)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2725,7 +2727,7 @@ class MemberCommunityHelper:
             return {'success': True, 'show_dm': False}
 
         if not member_instance:
-            return get_error_context(False, 'Invalid member_id')
+            return get_error_context(False, 'Invalid member_id or uuid')
 
         is_member_admin = Members.get_community_member_state(community_instance, member_instance) == member_states.ADMIN
         is_user_admin = Members.get_community_member_state(community_instance, user_instance) == member_states.ADMIN
@@ -3152,7 +3154,7 @@ class MemberCommunityHelper:
         }
 
     @staticmethod
-    def validate_fetch_user_chatroom_status_request(user_id, api_key, member_id):
+    def validate_fetch_user_chatroom_status_request(user_id, api_key, member_id, uuid: str = None):
         validation_params = {
             'community_id': {
                 'api_key': api_key
@@ -3171,10 +3173,19 @@ class MemberCommunityHelper:
         if not Members.is_member_community_promoter(community_instance, user_instance):
             return ResponseUtilities.get_inner_error_context("You are not CM/Owner of community!")
 
+        # If uuid is passed, get valid member instance
+        if uuid:
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+            if not valid_id:
+                return ResponseUtilities.get_inner_error_context("Invalid uuid!")
+            
+            member_id = valid_id[0]
+
         member_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
         if not member_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid user ID!")
+            return ResponseUtilities.get_inner_error_context("Invalid user_id or uuid!")
 
         return {
             'user_instance': user_instance,

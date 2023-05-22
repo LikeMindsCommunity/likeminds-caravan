@@ -308,10 +308,13 @@ class FetchMemberProfileView(APIView):
         if not req_body.get('community_id') and not api_key:
             return {'error_message': 'Send community_id or x-api-key'}
 
-        if not req_body.get('user_id'):
-            return {'error_message': 'Send user_id'}
+        if not (req_body.get('user_id') or req_body.get('uuid')):
+            return {'error_message': 'Send user_id or uuid'}
 
-        return {'success': True, 'community_id': req_body.get('community_id'), 'user_id': req_body.get('user_id')}
+        return {'success': True, 
+                'community_id': req_body.get('community_id'), 
+                'user_id': req_body.get('user_id'),
+                'uuid': req_body.get('uuid')}
 
     def get(self, request):
 
@@ -326,7 +329,8 @@ class FetchMemberProfileView(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id, validated_req_body.get('community_id'),
                                                        api_key=api_key)
-        community_context = member_community_manager.fetch_member_profile(validated_req_body.get('user_id'))
+        community_context = member_community_manager.fetch_member_profile(validated_req_body.get('user_id'), 
+                                                                          uuid=validated_req_body.get('uuid'))
 
         if 'error_message' in community_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
@@ -376,10 +380,13 @@ class RequestDMLimitView(APIView):
         if not member_id:
             return {'error_message': 'Send member_id'}
 
-        if not req_body.get('member_id'):
-            return {'error_message': 'Send member_id'}
+        if not (req_body.get('member_id') or req_body.get('uuid')):
+            return {'error_message': 'Send member_id or uuid'}
 
-        return {'success': True, 'community_id': req_body.get('community_id'), 'user_id': req_body.get('member_id')}
+        return {'success': True, 
+                'community_id': req_body.get('community_id'), 
+                'user_id': req_body.get('member_id'),
+                'uuid': req_body.get('uuid')}
 
     def get(self, request):
 
@@ -394,7 +401,8 @@ class RequestDMLimitView(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id, validated_req_body.get('community_id'),
                                                        api_key=api_key)
-        community_context = member_community_manager.request_dm_limit(validated_req_body.get('user_id'))
+        community_context = member_community_manager.request_dm_limit(validated_req_body.get('user_id'), 
+                                                                      validated_req_body.get('uuid'))
 
         if 'error_message' in community_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
@@ -704,7 +712,7 @@ class FetchUserChatroomStatus(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id, None, api_key=api_key)
         community_context = member_community_manager.fetch_user_chatroom_status(
-            user_id=req_params.get('user_id'), chatroom_types=chatroom_types, page=page, page_size=page_size)
+            user_id=req_params.get('user_id'), chatroom_types=chatroom_types, page=page, page_size=page_size, uuid=req_params.get('uuid'))
 
         if 'error_message' in community_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
