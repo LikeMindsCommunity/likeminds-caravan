@@ -313,22 +313,22 @@ class UserImpl(UserManager):
         community_instance = None
         existing_user = False
         app_access = True
+        is_bot = user_context.get('is_bot', False)
 
-        if not user_unique_id:
-            should_create_user = True
+        if not (is_bot or api_key):
+            return ResponseUtilities.get_inner_error_context("Invalid API key!")
 
-        else:
+        if api_key:
+            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key}).first()
 
-            if not api_key:
+            if not sdk_client_instance:
                 return ResponseUtilities.get_inner_error_context("Invalid API key!")
 
-            sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key})
+            community_instance = sdk_client_instance.community
 
-            if not sdk_client_filter:
-                return ResponseUtilities.get_inner_error_context("Invalid API key!")
+        should_create_user = True
 
-            community_instance = sdk_client_filter[0].community
-
+        if user_unique_id:
             sdk_client_users_info_filter = ModelUtilities.get_model_filter(SDKClientUsersInfo,
                                                                            {'community': community_instance,
                                                                             'user_unique_id': user_unique_id})
@@ -352,22 +352,25 @@ class UserImpl(UserManager):
             user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_unique_id': user_unique_id})
 
             if user_info_filter:
-                existing_user = True
                 user_instance = user_info_filter[0].user_id
 
-                removed_member = ModelUtilities.get_model_filter(removedMembers,
-                                                                 {'community': community_instance,
-                                                                  'member': user_instance})
+                member_instance = ModelUtilities.get_model_filter(Members, {'member_id': user_instance,
+                                                                            'community_id': community_instance}).first()
 
-                if len(removed_member):
-                    app_access = False
+                if member_instance:
+                    existing_user = True
 
-                return {'user_instance': user_instance,
-                        'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                        'existing_user': existing_user,
-                        'app_access': app_access}
+                    removed_member = ModelUtilities.get_model_filter(removedMembers,
+                                                                     {'community': community_instance,
+                                                                      'member': user_instance})
 
-            should_create_user = True
+                    if len(removed_member):
+                        app_access = False
+
+                    return {'user_instance': user_instance,
+                            'sdk_client_user_info_instance': sdk_client_user_info_instance,
+                            'existing_user': existing_user,
+                            'app_access': app_access}
 
         if should_create_user:
             if not user_context.get('name'):
@@ -398,11 +401,11 @@ class UserImpl(UserManager):
             if user_context.get('email'):
                 UserImpl.create_user_primary_email(user_instance, user_context)
 
-            if user_unique_id and community_instance:
+            if (user_unique_id or unique_id) and community_instance:
                 sdk_client_user_info_instance = SDKClientUsersInfo()
                 sdk_client_user_info_instance.community = community_instance
                 sdk_client_user_info_instance.user = user_instance
-                sdk_client_user_info_instance.user_unique_id = user_unique_id
+                sdk_client_user_info_instance.user_unique_id = user_unique_id if user_unique_id else unique_id
                 sdk_client_user_info_instance.save()
 
         return {'user_instance': user_instance,

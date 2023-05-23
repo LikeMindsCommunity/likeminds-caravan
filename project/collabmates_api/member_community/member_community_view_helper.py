@@ -45,7 +45,7 @@ class MemberCommunityViewHelper:
         return {'user_instance': user_instance, 'community_instance': community_instance}
 
     @staticmethod
-    def validate_fetch_member_profile_request(current_user_id, user_id, community_id, api_key):
+    def validate_fetch_member_profile_request(current_user_id, user_id, community_id, api_key, uuid = None):
         current_user_instance = ModelUtilities.get_user_instance_or_none(current_user_id)
 
         if not current_user_instance:
@@ -55,6 +55,15 @@ class MemberCommunityViewHelper:
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid community ID or x-api-key")
+        
+        # If uuid is present, get valid member instance
+        if uuid:
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+            if not valid_id:
+                return ResponseUtilities.get_inner_error_context("Invalid uuid")
+            
+            user_id = valid_id[0]
 
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
@@ -68,7 +77,7 @@ class MemberCommunityViewHelper:
         }
 
     @staticmethod
-    def validate_request_dm_limit_request(user_id, community_id, api_key, member_id):
+    def validate_request_dm_limit_request(user_id, community_id, api_key, member_id, uuid = None):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:
@@ -78,6 +87,15 @@ class MemberCommunityViewHelper:
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid community ID/API key")
+
+        # If uuid is passed, get valid user id and update member_id
+        if uuid:
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+            if not valid_id:
+                return ResponseUtilities.get_inner_error_context("Invalid uuid")
+            
+            member_id = valid_id[0]
 
         member_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
@@ -139,8 +157,21 @@ class MemberCommunityViewHelper:
         member_instance = None
         chatroom_instance = None
 
-        if req_body.get('member_id'):
-            member_instance = ModelUtilities.get_user_instance_or_none(req_body.get('member_id'))
+        member_id = req_body.get('member_id')
+        uuid = req_body.get('uuid')
+
+        if member_id or uuid:
+
+            # If uuid is passed, get valid user id and update member_id
+            if uuid:
+                valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+                if not valid_id:
+                    return ResponseUtilities.get_inner_error_context("Invalid uuid")
+                
+                member_id = valid_id[0]
+
+            member_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
             if not member_instance:
                 return ResponseUtilities.get_inner_error_context("Invalid member ID")

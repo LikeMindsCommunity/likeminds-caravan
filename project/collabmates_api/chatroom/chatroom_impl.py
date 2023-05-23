@@ -98,7 +98,8 @@ from utility.celery_tasks import set_chatroom_state_for_all_members_on_card_crea
     fetch_conversations_unread, create_chatroom_cohort_instances, convert_chatroom_to_secret_chatroom, \
     convert_chatroom_to_open_chatroom, send_chatroom_creation_analytics_data, \
     send_participants_added_in_chatroom_analytics_data, send_chatroom_updated_analytics_data, \
-    initial_message_dm_chatroom, update_community_pin_chatrooms_list_in_cache, toggle_user_chatroom_settings
+    initial_message_dm_chatroom, update_community_pin_chatrooms_list_in_cache, toggle_user_chatroom_settings, \
+    add_new_participants_to_secret_chatroom
 from utility.firebase import update_last_answer_id
 from utility.exception_utilities import (CustomException, InvalidSecretChatroomParticipantsException)
 from utility.time_utilities import TimeUtilities
@@ -324,9 +325,15 @@ class ChatroomImpl(ChatroomManager):
 
         if card_content['is_secret']:
             card_content['is_secret'] = True
+            
+            uuids = req_body.get("uuids", [])   
 
-            secret_chatroom_participants = ModelUtilities.get_valid_member_ids(
-                req_body.get("secret_chatroom_participants", []), community_id=community.id)
+            if uuids:
+                secret_chatroom_participants = ModelUtilities.get_valid_user_ids_from_uuids(uuids, community.id)
+
+            else:
+                secret_chatroom_participants = ModelUtilities.get_valid_member_ids(
+                    req_body.get("secret_chatroom_participants", []), community_id=community.id)
 
             secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
                 secret_chatroom_participants
@@ -1140,6 +1147,9 @@ class ChatroomImpl(ChatroomManager):
         include_members_later = req_body.get('include_members_later', False)
         chatroom_image_url = req_body.get('chatroom_image_url', None)
 
+        uuids = req_body.get('uuids', None)
+        is_secret = req_body.get('is_secret', False)
+        
         card_content = {}
 
         self._fill_chatroom_basic_info(card_content, chatroom_name,
@@ -1214,6 +1224,11 @@ class ChatroomImpl(ChatroomManager):
             ChatroomHelper.auto_follow_event_co_hosts_and_send_notification(chatroom_instance, user_instance.userinfo)
 
         open_chatroom_participants = req_body.get('chatroom_participants', [])
+
+        # If uuids are passed and chatroom is open, update open_chatroom_participants with valid member_ids
+        if uuids and not is_secret:
+            valid_ids = ModelUtilities.get_valid_user_ids_from_uuids(uuids, community_id)
+            open_chatroom_participants = valid_ids
 
         self._send_additional_notifications_and_tasks_after_room_creation(user_instance, community_instance,
                                                                           chatroom_instance, req_body,
@@ -1326,14 +1341,23 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def leave_secret_chatroom(self, member_id: Union[int, str] = None) -> None:
+    def leave_secret_chatroom(self, member_id: Union[int, str] = None, uuid = None) -> None:
 
         chatroom_instance = Collabcard.get_chatroom_with_joins_or_raise_exception(self.get_chatroom_id())
 
         chatroom_state = conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM
-        if member_id is None:
+        if (member_id or uuid) is None:
             member_id = self.get_member_id()
             chatroom_state = conversation_states.CONVERSATION_LEAVE_CHATROOM
+
+        # If uuid is passed, get valid user id and update member_id
+        if uuid:
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], chatroom_instance.community_id)
+            
+            if not valid_id:
+                return ResponseUtilities.get_impl_error_context("Invalid uuid sent", status_codes.HTTP_400_BAD_REQUEST)
+            
+            member_id = valid_id[0]
 
         user_instance = ModelUtilities.get_user_instance_or_none(member_id)
         if not user_instance:
@@ -1399,7 +1423,8 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_state == conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM:
             send_notification_for_removed_secret_room_participant.delay(member_id, self.get_chatroom_id())
 
-    def add_secret_chatroom_participant(self, req_body: dict, is_internal: bool = True) -> dict:
+    def add_secret_chatroom_participant(self, req_body: dict, is_internal: bool = True,
+                                        add_user_joined_message: bool = True) -> dict:
         validated_req_body = ChatroomViewHelper.validate_add_secret_chatroom_participants_request(self.get_member_id(),
                                                                                                   self.get_chatroom_id(),
                                                                                                   req_body)
@@ -1411,12 +1436,19 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req_body.get('user_instance')
         chatroom_instance = validated_req_body.get('card_instance')
         secret_chatroom_participants = validated_req_body.get('secret_chatroom_participants')
+        uuids = validated_req_body.get('uuids')
         is_chatroom_invite = req_body.get('is_channel_invite', True)
 
         if not is_internal:
-            # support for user_unique_ids in secret chatroom participants parameter
-            secret_chatroom_participants = ModelUtilities.get_valid_member_ids(secret_chatroom_participants,
-                                                                               community_id=chatroom_instance.community_id)
+
+            # If uuids is passed, get valid user ids
+            if uuids:
+                secret_chatroom_participants = ModelUtilities.get_valid_user_ids_from_uuids(uuids, chatroom_instance.community_id)
+
+            else:
+                # support for user_unique_ids in secret chatroom participants parameter
+                secret_chatroom_participants = ModelUtilities.get_valid_member_ids(secret_chatroom_participants,
+                                                                                   community_id=chatroom_instance.community_id)
 
         secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
             secret_chatroom_participants)
@@ -1484,7 +1516,8 @@ class ChatroomImpl(ChatroomManager):
 
         ChatroomHelper.add_new_secret_chatroom_participants.delay(new_participants_list,
                                                                   self.get_chatroom_id(),
-                                                                  self.get_member_id())
+                                                                  self.get_member_id(),
+                                                                  add_user_joined_message)
 
         send_participants_added_in_chatroom_analytics_data.delay(self.get_chatroom_id(), int(self.get_member_id()))
 
@@ -2656,10 +2689,11 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True, 'settings': settings_list}
 
-    def add_members_to_chatroom(self, chatroom_participants) -> dict:
+    def add_members_to_chatroom(self, chatroom_participants, uuids = None) -> dict:
         validated_req = ChatroomViewHelper.validate_add_members_to_open_chatroom(self.get_member_id(),
                                                                                  self.get_chatroom_id(),
-                                                                                 chatroom_participants)
+                                                                                 chatroom_participants,
+                                                                                 uuids)
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -2676,9 +2710,13 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req.get('user_instance')
         card_instance = validated_req.get('card_instance')
 
-        # Support for user_unique_ids in chatroom participants parameter
-        chatroom_participants = ModelUtilities.get_valid_member_ids(chatroom_participants,
-                                                                    community_id=card_instance.community_id)
+        if uuids:
+            chatroom_participants = ModelUtilities.get_valid_user_ids_from_uuids(uuids, card_instance.community_id)
+
+        else:
+            # Support for user_unique_ids in chatroom participants parameter
+            chatroom_participants = ModelUtilities.get_valid_member_ids(chatroom_participants,
+                                                                        community_id=card_instance.community_id)
 
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants)
 
@@ -2848,6 +2886,7 @@ class ChatroomImpl(ChatroomManager):
     def add_cohort_to_chatroom(self, request_body) -> dict:
         cohort_ids = request_body.get('cohort_ids')
         chatroom_id = request_body.get('chatroom_id')
+        add_existing_members = request_body.get('add_existing_members', False)
 
         validated_req = ChatroomHelper.validate_add_chatroom_cohort_request(self.get_member_id(),
                                                                             chatroom_id,
@@ -2858,7 +2897,12 @@ class ChatroomImpl(ChatroomManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_instance = validated_req.get('chatroom_instance')
-        create_chatroom_cohort_instances.delay(chatroom_instance.id, cohort_ids)
+        create_chatroom_cohort_instances(chatroom_instance.id, cohort_ids)
+
+        if chatroom_instance.is_secret and add_existing_members:
+            ChatroomHelper.add_cohort_members_to_secret_chatroom(self.get_member_id(),
+                                                                 chatroom_instance.id,
+                                                                 cohort_ids)
 
         return {'success': True}
 
@@ -3786,10 +3830,11 @@ class ChatroomImpl(ChatroomManager):
             'chatroom_notification_settings': settings_data
         }
 
-    def remove_chatroom_participant(self, removed_members_list: list = None):
+    def remove_chatroom_participant(self, removed_members_list: list = None, uuids: list = None):
         validated_req = ChatroomHelper.validate_remove_chatroom_participant_request(self.get_member_id(),
                                                                                     self.get_chatroom_id(),
-                                                                                    removed_members_list)
+                                                                                    removed_members_list,
+                                                                                    uuids)
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -3798,9 +3843,14 @@ class ChatroomImpl(ChatroomManager):
         chatroom_instance = validated_req.get('chatroom_instance')
         chatroom_state = conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM
 
-        # support for user_unique_ids in secret chatroom participants parameter
-        removed_members_list = ModelUtilities.get_valid_member_ids(removed_members_list,
-                                                                   community_id=chatroom_instance.community_id)
+        # If uuids are present, get valid user ids and update removed_members_list
+        if uuids:
+            removed_members_list = ModelUtilities.get_valid_user_ids_from_uuids(uuids, chatroom_instance.community_id)
+
+        else:
+            # support for user_unique_ids in secret chatroom participants parameter
+            removed_members_list = ModelUtilities.get_valid_member_ids(removed_members_list,
+                                                                       community_id=chatroom_instance.community_id)
 
         filter_dict = {
             'card': chatroom_instance,
@@ -4197,7 +4247,8 @@ class ChatroomHelper:
 
     @staticmethod
     @shared_task
-    def add_new_secret_chatroom_participants(participants_list, chatroom_id, current_user_id):
+    def add_new_secret_chatroom_participants(participants_list, chatroom_id, current_user_id,
+                                             add_user_joined_message: bool = True):
 
         chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
 
@@ -4216,7 +4267,7 @@ class ChatroomHelper:
                                        external_seen=False,
                                        set_expiry_time_none=True)
 
-            if user.id != NumberUtilities.get_integer_from_string(current_user_id):
+            if (user.id != NumberUtilities.get_integer_from_string(current_user_id)) and add_user_joined_message:
                 ChatroomHelper.create_answer(chatroom_instance=chatroom_instance, user_instance=user,
                                              state=conversation_states.CONVERSATION_ADD_PARTICIPANT,
                                              current_user_id=current_user_id)
@@ -5586,10 +5637,10 @@ class ChatroomHelper:
             ElasticSearchSync.delete_chatroom_for_user(chatroom_id, user_id)
 
     @staticmethod
-    def validate_remove_chatroom_participant_request(user_id, chatroom_id, removed_members_list: list):
+    def validate_remove_chatroom_participant_request(user_id, chatroom_id, removed_members_list: list, uuids: list = None):
 
-        if not (isinstance(removed_members_list, list) and removed_members_list):
-            return ResponseUtilities.get_inner_error_context("Invalid removed members list!")
+        if (removed_members_list and not isinstance(removed_members_list, list)) or (uuids and not isinstance(uuids, list)) or (not removed_members_list and not uuids):
+            return ResponseUtilities.get_inner_error_context("Invalid removed members or uuids list!")
 
         validation_params = {
             'chatroom_id': chatroom_id,
@@ -6013,7 +6064,6 @@ class ChatroomHelper:
         }
 
         return validated_dict
-            
 
     @staticmethod
     @shared_task
@@ -6024,3 +6074,17 @@ class ChatroomHelper:
         }
 
         ModelUtilities.model_update(Collabcard, {'id': chatroom_id}, update_dict)
+
+    @staticmethod
+    @shared_task
+    def add_cohort_members_to_secret_chatroom(current_user_id: int, chatroom_id: int, cohort_ids: list):
+        if not (current_user_id or chatroom_id or cohort_ids):
+            pass
+
+        user_ids_list = list(ModelUtilities.get_model_filter(CohortMember, {'cohort__in': cohort_ids}).values_list(
+            'user_id', flat=True))
+
+        if not user_ids_list:
+            return
+
+        add_new_participants_to_secret_chatroom(current_user_id, chatroom_id, user_ids_list)

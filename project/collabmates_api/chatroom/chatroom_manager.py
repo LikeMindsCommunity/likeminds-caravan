@@ -246,7 +246,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def leave_secret_chatroom(self, member_id: Union[int, str] = None) -> None:
+    def leave_secret_chatroom(self, member_id: Union[int, str] = None, uuid = None) -> None:
         """
         to leave or remove a participant from secret chatroom
         """
@@ -403,7 +403,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_members_to_chatroom(self, chatroom_participants) -> dict:
+    def add_members_to_chatroom(self, chatroom_participants, uuids = None) -> dict:
         """
         function to add members to the chatroom
         """
@@ -534,7 +534,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def remove_chatroom_participant(self, removed_members_list: list = None) -> {}:
+    def remove_chatroom_participant(self, removed_members_list: list = None, uuids: list = None) -> {}:
         """Removes a participant from chatroom"""
 
         raise NotImplementedError
