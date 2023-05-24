@@ -16,6 +16,8 @@ from external_services.wa_notification.wa_notification_impl import NotificationI
 from collabmates_api.notification import notification_meta
 from external_services.calender.calendar_impl import CalendarImpl
 
+from ..chatroom.constants import (EMAIL_UNSUBSCRIBE_URL_BETA, EMAIL_UNSUBSCRIBE_URL_PROD)
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 url = settings.URL
@@ -478,20 +480,28 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         if event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS and payload_for_email_comms.get('user') in final_user_instances:
                 final_user_instances.remove(payload_for_email_comms.get('user'))
 
-        context = TasksHelper.create_context_for_sending_emails(final_user_instances, event_type, event_instance,\
-                                                                data_dict=response_dict)
+        for user_id in final_user_instances:
 
-        send_allowed = TasksHelper.should_send_notification(event_instance)
+            if settings.IS_BETA:
+                response_dict['unsub'] = EMAIL_UNSUBSCRIBE_URL_BETA % (str(community_id), str(user_id))
 
-        is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
+            else:
+                response_dict['unsub'] = EMAIL_UNSUBSCRIBE_URL_PROD % (str(community_id), str(user_id))
 
-        if send_allowed and not is_task_deleted:
-            MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
-                                                          from_email=context['from_email'],
-                                                          to_mails_list=context['to_mails_list'],
-                                                          reply_to=context['reply_to'],
-                                                          from_name=context['from_name'],
-                                                          categories=context['categories'])
+            context = TasksHelper.create_context_for_sending_emails([user_id], event_type, event_instance, \
+                                                                    data_dict=response_dict)
+
+            send_allowed = TasksHelper.should_send_notification(event_instance)
+
+            is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
+
+            if send_allowed and not is_task_deleted:
+                MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
+                                                              from_email=context['from_email'],
+                                                              to_mails_list=context['to_mails_list'],
+                                                              reply_to=context['reply_to'],
+                                                              from_name=context['from_name'],
+                                                              categories=context['categories'])
 
         else:
             info_logger.info("No email notification scheuduled for event_type = %s | chatroom_deleted = %s | \
