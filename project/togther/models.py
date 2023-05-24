@@ -484,7 +484,7 @@ class Collabcard(models.Model):
     answer_text = models.CharField(max_length=100, default='')
     share_link = models.CharField(max_length=2048, default='')
     og_tags = models.TextField(default='')
-    custom_tag = models.TextField(default='')
+    custom_tag = models.TextField(default='', null=True)
 
     image_count = models.IntegerField(default=0, null=True)
     pdf_count = models.IntegerField(default=0, null=True)
