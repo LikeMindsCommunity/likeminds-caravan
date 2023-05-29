@@ -84,7 +84,10 @@ class SyncImpl(SyncManager):
             user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
             included_chatroom_types=included_chatroom_types)
 
-        card_unseen_count_map = get_unseen_count_for_chatroom_ids(chatroom_ids_list, user_id=user_instance.id)
+        card_unseen_count_map = None
+
+        if chatroom_ids_list:
+            card_unseen_count_map = get_unseen_count_for_chatroom_ids(chatroom_ids_list, user_id=user_instance.id)
 
         # Chatroom data
         chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, SYNC_CHATROOMS_DATA_KEY,
@@ -109,9 +112,13 @@ class SyncImpl(SyncManager):
                                                                        'conv_attachments_meta', 'answer_id')
 
             # Polls data
-            polls_data = get_conversation_polls_data(self.get_community_id(),
-                                                     conversation_ids=conversation_ids_list,
-                                                     user_id=user_instance.id)
+            polls_data = None
+
+            if conversation_ids_list:
+                polls_data = get_conversation_polls_data(self.get_community_id(),
+                                                         conversation_ids=conversation_ids_list,
+                                                         user_id=user_instance.id)
+
             polls_data = SyncHelper.parse_sync_raw_query_response(polls_data, 'conv_polls_meta')
             chatrooms_data = SyncHelper.add_meta_info_to_sync_response(polls_data, chatrooms_data,
                                                                        CONVERSATION_POLLS_META_KEY_VALUE,
@@ -189,9 +196,13 @@ class SyncImpl(SyncManager):
                                                                        'conv_attachments_meta', 'answer_id')
 
         # Polls data
-        polls_data = get_conversation_polls_data(self.get_community_id(),
-                                                 conversation_ids=conversation_ids_list,
-                                                 user_id=user_instance.id)
+        polls_data = None
+
+        if conversation_ids_list:
+            polls_data = get_conversation_polls_data(self.get_community_id(),
+                                                     conversation_ids=conversation_ids_list,
+                                                     user_id=user_instance.id)
+
         polls_data = SyncHelper.parse_sync_raw_query_response(polls_data, 'conv_polls_meta')
         conversations_data = SyncHelper.add_meta_info_to_sync_response(polls_data, conversations_data,
                                                                        'conv_polls_meta', 'conversation_id')
