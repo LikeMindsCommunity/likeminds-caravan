@@ -19,7 +19,8 @@ class SyncManager(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def sync_conversations(self, chatroom_id: int = None, page: int = None, page_size: int = None,
-                           min_timestamp: int = None, max_timestamp: int = None, is_local_db: bool = True) -> dict:
+                           min_timestamp: int = None, max_timestamp: int = None, is_local_db: bool = True,
+                           conversation_id: str = None) -> dict:
         """
         Sync conversations data for local db
         """

@@ -14,6 +14,7 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         PUBLIC_VOTING_NAME_VALUE, CONVERSATION_SUBMIT_TYPE_TEXT_KEY, CHATROOM_DATE_KEY,
                         CHATROOM_DATE_EPOCH_KEY)
 from utility.states import (conversation_states, conversation_poll_types)
+from togther.models import (ModelUtilities, card_answers)
 
 
 class SyncHelper:
@@ -55,7 +56,8 @@ class SyncHelper:
 
     @staticmethod
     def validate_sync_conversations_request(user_id, community_id, api_key: str = None, chatroom_id: int = None,
-                                            min_timestamp: int = None, max_timestamp: int = None):
+                                            min_timestamp: int = None, max_timestamp: int = None,
+                                            conversation_id: str = None):
         validation_params = {
             'community_id': {
                 'community_id': community_id,
@@ -81,6 +83,12 @@ class SyncHelper:
 
         else:
             min_timestamp = NumberUtilities.get_integer_from_string(min_timestamp, return_default=0)
+
+        if conversation_id:
+            conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+            if not conversation_instance:
+                return ResponseUtilities.get_inner_error_context("Invalid conversation ID!")
 
         user_instance = validated_dict.get('user_id')
         community_instance = validated_dict.get('community_id')
