@@ -329,9 +329,9 @@ class UserImpl(UserManager):
         should_create_user = True
 
         if user_unique_id:
-            sdk_client_users_info_filter = ModelUtilities.get_model_filter(SDKClientUsersInfo,
-                                                                           {'community': community_instance,
-                                                                            'user_unique_id': user_unique_id})
+            sdk_client_users_info_filter = ModelUtilities.get_model_filter(
+                SDKClientUsersInfo, {'community': community_instance}).filter(
+                Q(user_unique_id=user_unique_id) | Q(user__userinfo__user_unique_id=user_unique_id))
 
             if sdk_client_users_info_filter:
                 existing_user = True
@@ -348,29 +348,6 @@ class UserImpl(UserManager):
                         'sdk_client_user_info_instance': sdk_client_user_info_instance,
                         'existing_user': existing_user,
                         'app_access': app_access}
-
-            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_unique_id': user_unique_id})
-
-            if user_info_filter:
-                user_instance = user_info_filter[0].user_id
-
-                member_instance = ModelUtilities.get_model_filter(Members, {'member_id': user_instance,
-                                                                            'community_id': community_instance}).first()
-
-                if member_instance:
-                    existing_user = True
-
-                    removed_member = ModelUtilities.get_model_filter(removedMembers,
-                                                                     {'community': community_instance,
-                                                                      'member': user_instance})
-
-                    if len(removed_member):
-                        app_access = False
-
-                    return {'user_instance': user_instance,
-                            'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                            'existing_user': existing_user,
-                            'app_access': app_access}
 
         if should_create_user:
             if not user_context.get('name'):
