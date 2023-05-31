@@ -2,7 +2,7 @@ import time
 
 from togther.models import (ModelUtilities, SDKClientUsersInfo, Userinfo)
 
-community_id = 50455
+community_id = None
 
 
 def remove_user_records_created_during_bug():
