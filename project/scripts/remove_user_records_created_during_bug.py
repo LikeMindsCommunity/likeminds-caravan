@@ -5,6 +5,7 @@ from togther.models import (ModelUtilities, SDKClientUsersInfo, Userinfo)
 community_id = None
 
 
+# Script for removing of bug LM-8885
 def remove_user_records_created_during_bug():
 
     if not community_id:
