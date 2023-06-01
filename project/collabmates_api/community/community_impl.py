@@ -2653,8 +2653,7 @@ class CommunityHelper:
     def save_user_selected_options_for_member_directory_filter(question_instance, value, user_instance,
                                                                community_instance):
 
-        if question_instance.can_add_options and (
-                question_instance.question_state == question_states.CHOICE_SINGLE
+        if (question_instance.question_state == question_states.CHOICE_SINGLE
                 or question_instance.question_state == question_states.CHOICE_MULTIPLE):
             selected_choices = value.split("$#")
 
@@ -2663,7 +2662,8 @@ class CommunityHelper:
             for choice in selected_choices:
                 option = choice.strip()
 
-                if not CommunityHelper.is_dropdown_option_present(option, dropdown_list):
+                if question_instance.can_add_options and not CommunityHelper.is_dropdown_option_present(option,
+                                                                                                        dropdown_list):
                     new_answer_instance = NewAnswer()
                     new_answer_instance.option = option
                     new_answer_instance.question = question_instance
