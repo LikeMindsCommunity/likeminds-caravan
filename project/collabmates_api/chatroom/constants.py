@@ -35,6 +35,10 @@ CHATROOM_NOTIFICATION_SETTING_UPDATED_EVENT = "User Notification setting updated
 
 CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE = "member_can_message"
 CHATROOM_USER_SETTINGS = [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE]
+
+EMAIL_UNSUBSCRIBE_URL_BETA = "https://betaweb.likeminds.community/email_unsubscribe?communityId=%s&memberId=%s"
+EMAIL_UNSUBSCRIBE_URL_PROD = "https://web.likeminds.community/email_unsubscribe?communityId=%s&memberId=%s"
+
 class PauseChatroomNotificationTime:
     EIGHT_HR = 8
     TWENTY_FOUR_HR = 24
