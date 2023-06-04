@@ -510,15 +510,9 @@ class TasksImpl(TaskManager):
 
             final_time = TasksHelper.calculate_notification_time(event_last_call_time, TIME_10_AM)
 
-            # Send last call mail exactly 24 hrs before (Only for testing on Beta)
-            final_time = event_date_time_in_IST - timedelta(hours=24)
-
         elif self.get_event_type() == EVENT_TYPE.ATTENDANCE_9_AM:
 
             final_time = TasksHelper.calculate_9_am_attendance_time_for_email_comms(event_date_time_in_IST)
-
-            # Send 9 am attendance mail 23:50 hrs before the event (Only for testing on Beta)
-            final_time = event_date_time_in_IST - timedelta(hours=23, minutes=50)
 
         elif self.get_event_type() == EVENT_TYPE.POST_EVENT_ATTENDEES:
 
