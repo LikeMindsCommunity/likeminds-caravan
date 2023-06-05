@@ -392,8 +392,8 @@ def send_email_notification_for_event_type(payload_for_email_comms, event_type):
         if task_begin_time != 0:
             args = [payload_for_email_comms, response_dict, event_type]
 
-            info_logger.info("Scheduling email notification for event_type = %s | response_dict = %s | \
-                            payload received = %s" % (event_type, response_dict, payload))
+            info_logger.info("Scheduling email notification for event_type = %s | Eta = %s | response_dict = %s | \
+                            payload received = %s" % (event_type, str(task_begin_time), response_dict, payload))
 
             task_id = schedule_email_notifications_for_event.apply_async(
                 args,

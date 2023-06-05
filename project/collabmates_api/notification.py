@@ -546,8 +546,13 @@ def send_notification(fcm_token, message, is_android):
 
 def get_tagged_members_list(community_id, chatroom_id, answer):
     tagged_users_list = re.findall("route:\/\/[member member_profile]+\/([0-9]+)", answer)
+    tagged_uuids_list = re.findall("route:\/\/user_profile\/([\s\S]*?)>>", answer)
     answer_text = re.sub(r'\|route://[member member_profile]+/[0-9]+>>|<<', '', answer)
     tagged_user_names = "@" + ' @'.join(re.findall('(?<=\<\<).+?(?=\|)', answer))
+
+    if tagged_uuids_list:
+        valid_ids = ModelUtilities.get_valid_user_ids_from_uuids(tagged_uuids_list, community_id)
+        tagged_users_list.extend(valid_ids)
 
     group_tagged_users, conversation_text, should_unmute_members, is_group_tag = process_group_tags(
         community_id,
