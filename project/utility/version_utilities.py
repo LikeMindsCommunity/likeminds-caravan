@@ -181,7 +181,7 @@ class VersionUtilities:
         SdkSource.FEED: {
             PlatformCode.ANDROID_SDK: 1,
             PlatformCode.FLUTTER_SDK: 2,
-            PlatformCode.IOS_SDK: unreleased_version_code,
+            PlatformCode.IOS_SDK: 1,
             PlatformCode.REACT_SDK: unreleased_version_code,
             PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
             PlatformCode.WEB_SDK: unreleased_version_code,
@@ -233,7 +233,7 @@ class VersionUtilities:
         SdkSource.FEED: {
             PlatformCode.ANDROID_SDK: 2,
             PlatformCode.FLUTTER_SDK: 1, 
-            PlatformCode.IOS_SDK: unreleased_version_code,
+            PlatformCode.IOS_SDK: 1,
             PlatformCode.REACT_SDK: unreleased_version_code,
             PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
             PlatformCode.WEB_SDK: unreleased_version_code,
