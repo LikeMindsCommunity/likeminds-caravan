@@ -3578,3 +3578,58 @@ class UserChannelSettings(models.Model):
         self.updated_at = current_time
 
         super(UserChannelSettings, self).save(*args, **kwargs)
+
+
+class CommunityBillingDates(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    sdk = models.CharField(max_length=255)
+    start_date = models.IntegerField(default=1)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(CommunityBillingDates, self).save(*args, **kwargs)
+
+
+class ActiveUserMonthlyData(models.Model):
+    billing = models.ForeignKey(CommunityBillingDates, on_delete=models.CASCADE)
+    start_date = models.BigIntegerField(default=0)
+    end_date = models.BigIntegerField(default=0)
+    mau_count = models.IntegerField(default=0)
+    users_list = models.TextField()
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(ActiveUserMonthlyData, self).save(*args, **kwargs)
+
+
+class ActiveUser(models.Model):
+    billing = models.ForeignKey(CommunityBillingDates, on_delete=models.CASCADE)
+    uuid = models.CharField(max_length=255, unique=True, null=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(ActiveUser, self).save(*args, **kwargs)

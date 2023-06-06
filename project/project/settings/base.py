@@ -375,4 +375,14 @@ MAX_INDEX_LENGTH_ELASTICSEARCH = 32765
 # Indexing only settings
 ELASTICSEARCH_DSL_QUERYSET_PAGINATION = 10000
 
+# Cronjob Settings
+CRONJOB_LOG_FILE = ">> " + str(BASE_DIR) + "/scheduled_job.log"
+CRONJOBS = [
+    ('5 0 * * *', 'collabmates_api.cron.mau_tracker.track', CRONJOB_LOG_FILE),
+]
+CRONTAB_COMMAND_SUFFIX = '2>&1'
+
+# Coralogix Settings
+CORALOGIX_API_KEY = os.getenv('CORALOGIX_API_KEY')
+
 APP_VERSION = '1.27.0'
