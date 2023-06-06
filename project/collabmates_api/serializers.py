@@ -180,7 +180,7 @@ def get_user_email_list(user_id):
     return email_list
 
 
-def get_logged_in_user(user_instance):
+def get_logged_in_user(user_instance, sdk_client_info:bool = False):
     if isinstance(user_instance, Userinfo):
         context = UserinfoSerializer(user_instance)
         user_id = user_instance.user_id_id
@@ -188,6 +188,17 @@ def get_logged_in_user(user_instance):
     else:
         context = UserinfoSerializer(user_instance.userinfo)
         user_id = user_instance.id
+
+    # Add sdk_client_info to context if sdk_client_info is True
+    if sdk_client_info:
+
+        from .rest_api import SDKClientUsersInfoSerializer
+
+        client_user_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id' : user_id}).first()
+        
+        if client_user_info:
+            context['sdk_client_info'] = SDKClientUsersInfoSerializer(client_user_info).data
+
 
     email_list = get_user_email_list(user_id)
     mobile_list = get_user_mobile_no_list(user_id)
