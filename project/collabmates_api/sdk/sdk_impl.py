@@ -5,7 +5,7 @@ from utility.response_utilities import ResponseUtilities
 from utility.states import (api_types, login_types, question_states)
 from utility.auth_utilities import AuthUtilities
 from utility.version_utilities import VersionUtilities
-from togther.models import (ModelUtilities, communityAnswers)
+from togther.models import (ModelUtilities, communityAnswers, Community, SDKClientUsersInfo)
 from .models import SdkClient, SdkPlatform, SdkOnboardingScreen
 from .sdk_view_helper import SdkViewHelper
 from .serializers import SdkProjectSerializer, OnboardingScreenSerializer
@@ -110,6 +110,16 @@ class SdkImpl(SdkManager):
                                firebase_server_key=firebase_server_key,
                                is_join_form_enabled=is_join_form_enabled)
         sdk_client.save()
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        user_instance = ModelUtilities.get_user_instance_or_none(self.get_member_id())
+
+        if community_instance and user_instance:
+            sdk_client_user_info_instance = SDKClientUsersInfo()
+            sdk_client_user_info_instance.community = community_instance
+            sdk_client_user_info_instance.user = user_instance
+            sdk_client_user_info_instance.user_unique_id = user_instance.userinfo.user_unique_id
+            sdk_client_user_info_instance.save()
 
         platforms = req_body.get('platform')
 

@@ -84,7 +84,10 @@ class SyncImpl(SyncManager):
             user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
             included_chatroom_types=included_chatroom_types)
 
-        card_unseen_count_map = get_unseen_count_for_chatroom_ids(chatroom_ids_list, user_id=user_instance.id)
+        card_unseen_count_map = None
+
+        if chatroom_ids_list:
+            card_unseen_count_map = get_unseen_count_for_chatroom_ids(chatroom_ids_list, user_id=user_instance.id)
 
         # Chatroom data
         chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, SYNC_CHATROOMS_DATA_KEY,
@@ -109,9 +112,13 @@ class SyncImpl(SyncManager):
                                                                        'conv_attachments_meta', 'answer_id')
 
             # Polls data
-            polls_data = get_conversation_polls_data(self.get_community_id(),
-                                                     conversation_ids=conversation_ids_list,
-                                                     user_id=user_instance.id)
+            polls_data = None
+
+            if conversation_ids_list:
+                polls_data = get_conversation_polls_data(self.get_community_id(),
+                                                         conversation_ids=conversation_ids_list,
+                                                         user_id=user_instance.id)
+
             polls_data = SyncHelper.parse_sync_raw_query_response(polls_data, 'conv_polls_meta')
             chatrooms_data = SyncHelper.add_meta_info_to_sync_response(polls_data, chatrooms_data,
                                                                        CONVERSATION_POLLS_META_KEY_VALUE,
@@ -129,14 +136,16 @@ class SyncImpl(SyncManager):
         return {**{'success': True}, **chatrooms_data}
 
     def sync_conversations(self, chatroom_id: int = None, page: int = None, page_size: int = None,
-                           min_timestamp: int = None, max_timestamp: int = None, is_local_db: bool = True) -> dict:
+                           min_timestamp: int = None, max_timestamp: int = None, is_local_db: bool = True,
+                           conversation_id: str = None) -> dict:
 
         validated_request_body = SyncHelper.validate_sync_conversations_request(self.get_member_id(),
                                                                                 self.get_community_id(),
                                                                                 self.get_api_key(),
                                                                                 chatroom_id,
                                                                                 min_timestamp,
-                                                                                max_timestamp)
+                                                                                max_timestamp,
+                                                                                conversation_id)
 
         if 'error_message' in validated_request_body:
             return ResponseUtilities.get_impl_error_context(validated_request_body.get('error_message'),
@@ -156,7 +165,8 @@ class SyncImpl(SyncManager):
                                                                                     min_timestamp,
                                                                                     max_timestamp,
                                                                                     page=page, limit=page_size,
-                                                                                    is_local_db=is_local_db)
+                                                                                    is_local_db=is_local_db,
+                                                                                    conversation_id=conversation_id)
 
         # Conversation data
         conversations_data = SyncHelper.parse_sync_raw_query_response(conversations_data, SYNC_CONVERSATIONS_DATA_KEY)
@@ -186,9 +196,13 @@ class SyncImpl(SyncManager):
                                                                        'conv_attachments_meta', 'answer_id')
 
         # Polls data
-        polls_data = get_conversation_polls_data(self.get_community_id(),
-                                                 conversation_ids=conversation_ids_list,
-                                                 user_id=user_instance.id)
+        polls_data = None
+
+        if conversation_ids_list:
+            polls_data = get_conversation_polls_data(self.get_community_id(),
+                                                     conversation_ids=conversation_ids_list,
+                                                     user_id=user_instance.id)
+
         polls_data = SyncHelper.parse_sync_raw_query_response(polls_data, 'conv_polls_meta')
         conversations_data = SyncHelper.add_meta_info_to_sync_response(polls_data, conversations_data,
                                                                        'conv_polls_meta', 'conversation_id')

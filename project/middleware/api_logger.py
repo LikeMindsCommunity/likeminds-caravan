@@ -58,6 +58,7 @@ class ApiLogger(MiddlewareMixin):
             'sdk_source' : request_headers.get('HTTP_X_SDK_SOURCE', ''),
             'accept_version': request_headers.get('HTTP_X_ACCEPT_VERSION', ''),
             'device_id': request_headers.get('HTTP_X_DEVICE_ID', ''),
+            'api_key': request_headers.get('HTTP_X_API_KEY', ''),
         }
 
         return headers_dict

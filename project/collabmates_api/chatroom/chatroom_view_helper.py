@@ -115,15 +115,16 @@ class ChatroomViewHelper:
             return ResponseUtilities.get_inner_error_context("Chatroom is not secret!")
 
         secret_chatroom_participants = req_body.get('secret_chatroom_participants', None)
-
-        if secret_chatroom_participants is None:
-            return ResponseUtilities.get_inner_error_context("send secret_chatroom_participants in body")
+        uuids = req_body.get('uuids', None)
+        
+        if (secret_chatroom_participants or uuids) is None:
+            return ResponseUtilities.get_inner_error_context("send secret_chatroom_participants or uuids in body")
 
         return {'user_instance': user_instance, 'card_instance': card_instance,
-                'secret_chatroom_participants': secret_chatroom_participants}
+                'secret_chatroom_participants': secret_chatroom_participants, 'uuids': uuids}
 
     @staticmethod
-    def validate_add_members_to_open_chatroom(user_id, chatroom_id, chatroom_participants):
+    def validate_add_members_to_open_chatroom(user_id, chatroom_id, chatroom_participants, uuids = None):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:
@@ -137,8 +138,8 @@ class ChatroomViewHelper:
         if card_instance.is_secret:
             return ResponseUtilities.get_inner_error_context("Chatroom is secret!")
 
-        if not chatroom_participants:
-            return ResponseUtilities.get_inner_error_context("Invalid Chatroom participants")
+        if not (chatroom_participants or uuids):
+            return ResponseUtilities.get_inner_error_context("Invalid Chatroom participants or uuids")
 
         member_filter = ModelUtilities.get_model_filter(Members, {'community_id': card_instance.community,
                                                                   'member_id': user_instance})
@@ -373,9 +374,24 @@ class ChatroomViewHelper:
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid community id")
+        
+        member_id = req_body.get('member_id')
+        uuid = req_body.get('uuid')
 
-        member_instance = ModelUtilities.get_user_instance_or_none(req_body.get('member_id'),
-                                                                   community_id=community_instance.id)
+        member_instance = None
+
+        # If uuid is present, get valid user id from uuid 
+        if uuid:
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+            
+            if not valid_id:
+                return ResponseUtilities.get_inner_error_context("Invalid uuid")
+            
+            member_instance = ModelUtilities.get_user_instance_or_none(valid_id[0])
+        
+        else:    
+            member_instance = ModelUtilities.get_user_instance_or_none(member_id,
+                                                                       community_id=community_instance.id)
 
         if not member_instance:
             return ResponseUtilities.get_inner_error_context("Invalid member id")
