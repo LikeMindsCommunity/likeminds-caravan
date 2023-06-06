@@ -14,7 +14,9 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         PUBLIC_VOTING_NAME_VALUE, CONVERSATION_SUBMIT_TYPE_TEXT_KEY, CHATROOM_DATE_KEY,
                         CHATROOM_DATE_EPOCH_KEY)
 from utility.states import (conversation_states, conversation_poll_types)
-from togther.models import (ModelUtilities, card_answers)
+from togther.models import (ModelUtilities, card_answers, SDKClientUsersInfo)
+from ..rest_api import (SDKClientUsersInfoSerializer)
+
 
 
 class SyncHelper:
@@ -441,3 +443,19 @@ class SyncHelper:
 
         for chatroom_data in chatroom_data_list:
             SyncHelper.compute_chatroom_additional_data(chatroom_data)
+
+    @staticmethod
+    def add_sdk_client_info_to_users_meta(users_meta):
+        '''
+            This method adds sdk_client_info for all users in user_meta of chatroom_data
+        '''
+
+        # Iterate over all users in user_meta
+        for user in users_meta.values():
+            
+            # Get client_user_info for user
+            client_user_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id' : user['id']}).first()
+
+            # If client_user_info exists, add it to user_meta
+            if client_user_info:
+                user['sdk_client_info'] = SDKClientUsersInfoSerializer(client_user_info, many=False).data

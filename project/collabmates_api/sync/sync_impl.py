@@ -4,7 +4,7 @@ from .sync_manager import SyncManager
 from .sync_helper import SyncHelper
 from utility.states import (card_types, SyncTypes)
 from .constants import (CONVERSATIONS_META_KEY_VALUE, CONVERSATION_POLLS_META_KEY_VALUE, SYNC_CHATROOMS_DATA_KEY,
-                        SYNC_CONVERSATIONS_DATA_KEY)
+                        SYNC_CONVERSATIONS_DATA_KEY, USERS_META_KEY_VALUE)
 from utility.response_utilities import ResponseUtilities
 from togther.models import (Members)
 
@@ -92,6 +92,10 @@ class SyncImpl(SyncManager):
         # Chatroom data
         chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, SYNC_CHATROOMS_DATA_KEY,
                                                                   extra_data=card_unseen_count_map)
+        
+        # Add sdk_client_info to user_meta objects in chatrooms_data
+        if chatrooms_data.get(USERS_META_KEY_VALUE):
+            SyncHelper.add_sdk_client_info_to_users_meta(chatrooms_data.get(USERS_META_KEY_VALUE))
 
         # Card Attachments data
         attachments_data = get_attachments_data(chatroom_ids=chatroom_ids_list)
