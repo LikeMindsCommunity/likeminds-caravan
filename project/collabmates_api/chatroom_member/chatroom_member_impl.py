@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 from collabmates_api.chatroom_member.chatroom_member_manager import ChatroomMemberManager
 from collabmates_api.rest_api import EventFAQSerializer, EventMemberTestimonialsSerializer, EventHighlightsSerializer, \
-    EventInstructorSerializer
+    EventInstructorSerializer, SDKClientUsersInfoSerializer
 from utility.cache_keys import EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CHATROOM
 from utility.celery_tasks import update_chatroom_conversation_count_in_cache, \
@@ -25,7 +25,7 @@ from utility.number_utilities import NumberUtilities
 from utility.states import card_types, poll_types, conversation_states
 from utility.time_utilities import TimeUtilities
 from togther.models import collabcardState, Members, ModelUtilities, MemberPollVotes, card_answers, EventInstructor, \
-    EventHighlights, EventMemberTestimonials, EventFAQ, Cohort, CohortMember, ChatroomCohort, Collabcard
+    EventHighlights, EventMemberTestimonials, EventFAQ, Cohort, CohortMember, ChatroomCohort, Collabcard, SDKClientUsersInfo
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -299,7 +299,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
         return conversation_creator_list
 
-    def create_last_response_members_images(self, card_instance, community_instance):
+    def create_last_response_members_images(self, card_instance, community_instance, sdk_client_info_flag:bool = False):
 
         conversation_members = []
 
@@ -335,6 +335,14 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             if not member_data:
                 continue
 
+            # if sdk_client_info_flag is True, then add sdk_client_info to member context
+            if sdk_client_info_flag and member_data.get('id'):
+                sdk_client_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                                           {'user_id': member_data.get('id')}).first()
+
+                if sdk_client_info_instance:
+                    member_data['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client_info_instance, many=False).data
+
             conversation_members.append(member_data)
 
         return conversation_members
@@ -364,7 +372,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         chatroom_context['cohorts'] = cohort_context_list
 
     def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
-                         poll_votes) -> {}:
+                         poll_votes, sdk_client_info_flag:bool = False) -> {}:
 
         chatroom_context = ChatroomMemberHelper.serialize_chatroom(card_instance, user=self.get_member_id(),
                                                                    return_topic=True)
@@ -418,14 +426,15 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
         if chatroom_context['total_response_count']:
             chatroom_context['last_response_members'] = self.create_last_response_members_images(card_instance,
-                                                                                                 community_instance)
+                                                                                                 community_instance,
+                                                                                                 sdk_client_info_flag=sdk_client_info_flag)
 
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
         chatroom_context['participants_count'] = ChatroomHelper.chatroom_participants_count(card_instance)
 
         return chatroom_context
 
-    def process_chatroom_list(self, chatroom_list, community_instance) -> []:
+    def process_chatroom_list(self, chatroom_list, community_instance, sdk_client_info_flag:bool = False) -> []:
 
         chatroom_context_list = []
         user_list = self.compute_user_id_list_of_chatroom_creators(chatroom_list)
@@ -447,7 +456,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                 continue
 
             chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance
-                                                     , poll_data, poll_votes)
+                                                     , poll_data, poll_votes, sdk_client_info_flag=sdk_client_info_flag)
 
             if member_dict.get(card_creator_id):
                 chatroom_context['member'] = member_dict[card_creator_id]
@@ -461,6 +470,15 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                         community_instance).compute_removed_user_context(card_instance.user,
                                                                          community_instance)
                     removed_member_dict[card_creator_id] = chatroom_context['member']
+
+            # if sdk_client_info_flag is True, then add sdk_client_info to member context
+            if sdk_client_info_flag:
+                sdk_client_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                                           {'user_id': chatroom_context['member']['id']}).first()
+
+                if sdk_client_info_instance:
+                    chatroom_context['member']['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client_info_instance, many=False).data
+
 
             chatroom_context['chat_request_state'] = data.chat_request_state
             chatroom_context['chat_request_created_at'] = data.chat_request_created_at

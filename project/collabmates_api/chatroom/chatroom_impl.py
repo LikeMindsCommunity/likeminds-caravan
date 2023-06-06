@@ -964,7 +964,8 @@ class ChatroomImpl(ChatroomManager):
                                                                     status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_data = ChatroomHelper.compute_chatroom_response(card_instance, user_instance,
-                                                                 community_instance=community_instance)
+                                                                 community_instance=community_instance,
+                                                                 sdk_client_info_flag=True)
 
         if not chatroom_data:
             return ResponseUtilities.get_impl_error_context("User is not associated with chatroom",
@@ -1256,7 +1257,7 @@ class ChatroomImpl(ChatroomManager):
 
         context = {
             'success': True,
-            'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, community_instance),
+            'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, community_instance, sdk_client_info_flag=True),
             'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
                                                                                            chatroom_instance)
         }
@@ -4770,7 +4771,7 @@ class ChatroomHelper:
                                                       'right__state': member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM})
 
     @staticmethod
-    def compute_chatroom_response(card_instance, user_instance, community_instance=None):
+    def compute_chatroom_response(card_instance, user_instance, community_instance=None, sdk_client_info_flag=False):
 
         if community_instance is None:
             community_instance = card_instance.community
@@ -4780,7 +4781,8 @@ class ChatroomHelper:
             select_related('card')
 
         chatroom_member_instance = ChatroomMemberImpl(member_id=user_instance.id)
-        chatroom_list = chatroom_member_instance.process_chatroom_list(chatroom_list, community_instance)
+        chatroom_list = chatroom_member_instance.process_chatroom_list(chatroom_list, community_instance, 
+                                                                       sdk_client_info_flag=sdk_client_info_flag)
 
         if chatroom_list:
             return chatroom_list[0]
