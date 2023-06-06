@@ -62,6 +62,10 @@ app.conf.beat_schedule = {
     'international_otp_generate_requests_blocked_task': {
         'task': 'collabmates_api.tasks.international_otp_generate_requests_blocked_task',
         'schedule': crontab(hour=8, minute=0),
+    },
+    'mau_tracking': {
+        'task': 'collabmates_api.cron.mau_tracker.track',
+        'schedule': crontab(hour=0, minute=5),
     }
 }
 
