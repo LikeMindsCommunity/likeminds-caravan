@@ -480,6 +480,8 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         if event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS and payload_for_email_comms.get('user') in final_user_instances:
                 final_user_instances.remove(payload_for_email_comms.get('user'))
 
+        response_dict['community_name'] = event_instance.community.name
+
         for user_id in final_user_instances:
 
             if settings.IS_BETA:
