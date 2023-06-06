@@ -11,7 +11,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
                             Collabcard, card_answers, conversationEngage, communityQuestions, CommunityUserDelete,
                             communityRightsSettings, CommunitySettings, communityAnswers, questionFilters,
-                            Card_Attachment, CommunityDirectMessageSettings, userMemberRights, Userinfo)
+                            Card_Attachment, CommunityDirectMessageSettings, userMemberRights, Userinfo, SDKClientUsersInfo)
 from collabmates_api.sdk.models import (SdkClient)
 from utility.celery_tasks import update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery, \
     update_multiple_previews_in_chatroom, set_level_click_state, create_member_dm_chatroom, \
@@ -58,7 +58,7 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_latest_conversations_against_chatrooms_list,
                            get_user_chatroom_status)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
-    get_error_context, CommunityDMSettingsSerializer, MemberNotificationFlagSerializer
+    get_error_context, CommunityDMSettingsSerializer, MemberNotificationFlagSerializer, SDKClientUsersInfoSerializer
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
     conversationSerializer, get_members_profile
 from ..static_files import REMOVED_USER_URL, ICONS
@@ -2213,7 +2213,7 @@ class MemberCommunityHelper:
         return header
 
     @staticmethod
-    def extract_member_tagging_data(member_data) -> []:
+    def extract_member_tagging_data(member_data, sdk_client_info_flag:bool = None) -> []:
 
         member_list = []
 
@@ -2230,6 +2230,12 @@ class MemberCommunityHelper:
 
             if value.get('custom_title'):
                 temp['custom_title'] = value.get('custom_title')
+
+            if sdk_client_info_flag:
+                sdk_client_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id': value['id']}).first()
+
+                if sdk_client_info:
+                    temp['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client_info, many=False).data
 
             member_list.append(temp)
 

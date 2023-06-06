@@ -668,7 +668,7 @@ class ChatroomImpl(ChatroomManager):
 
     @staticmethod
     def compute_tagging_list_for_secret_participants(chatroom_instance, community_instance, page=0, page_size=0,
-                                                     member_name_search_string="", order_by_name=False):
+                                                     member_name_search_string="", order_by_name=False, sdk_client_info_flag: bool = False):
 
         try:
             member_list = json.loads(chatroom_instance.secret_chatroom_participants)
@@ -680,7 +680,7 @@ class ChatroomImpl(ChatroomManager):
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(
             member_list, community_instance, page=page, page_size=page_size,
             member_name_search_string=member_name_search_string, order_by_name=order_by_name)
-        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
+        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data, sdk_client_info_flag=sdk_client_info_flag)
 
         return tagging_list
 
@@ -1851,7 +1851,7 @@ class ChatroomImpl(ChatroomManager):
 
             participant_list = self.compute_tagging_list_for_secret_participants(
                 card_instance, community_instance, page=page, page_size=page_size,
-                member_name_search_string=participant_name, order_by_name=order_by_name)
+                member_name_search_string=participant_name, order_by_name=order_by_name, sdk_client_info_flag=True)
             participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
             response_dict = {
@@ -2996,7 +2996,7 @@ class ChatroomImpl(ChatroomManager):
                                                                            page=page, page_size=page_size,
                                                                            member_name_search_string=participant_name,
                                                                            order_by_name=order_by_name)
-        participant_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
+        participant_list = MemberCommunityHelper.extract_member_tagging_data(member_data, sdk_client_info_flag=True)
 
         response_dict = {
             'success': True,
