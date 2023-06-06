@@ -290,9 +290,10 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     final_user_list = getUUIDOfUsers(billingRecord.community.id, users_list)
 
     # Create or Update the records for each active user UUID for each billing record
-    for user in final_user_list:
-        ModelUtilities.update_or_create_model(ActiveUser, {'billing': billingRecord,
-                                                           'uuid': user.get('user_unique_id')}, {})
+    if final_user_list:
+        for user in final_user_list:
+            ModelUtilities.update_or_create_model(ActiveUser, {'billing': billingRecord,
+                                                               'uuid': user.get('user_unique_id')}, {})
 
 def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
     # Fetch active user IDs for a specific billing record
