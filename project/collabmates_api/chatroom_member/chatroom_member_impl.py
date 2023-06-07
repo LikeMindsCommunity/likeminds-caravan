@@ -375,7 +375,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                          poll_votes, sdk_client_info_flag:bool = False) -> {}:
 
         chatroom_context = ChatroomMemberHelper.serialize_chatroom(card_instance, user=self.get_member_id(),
-                                                                   return_topic=True)
+                                                                   return_topic=True, sdk_client_info_flag=sdk_client_info_flag)
 
         if card_instance.has_reactions:
             reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
@@ -439,7 +439,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         chatroom_context_list = []
         user_list = self.compute_user_id_list_of_chatroom_creators(chatroom_list)
         member_dict = self.get_member_community_impl_instance(community_instance).fetch_members_based_on_user_list(
-            user_list, community_instance)
+            user_list, community_instance, sdk_client_info_flag=sdk_client_info_flag)
         poll_list = self.fetch_poll_id_list(chatroom_list)
         poll_data, poll_votes = self.process_poll_list(poll_list)
 
@@ -471,15 +471,6 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                                                                          community_instance)
                     removed_member_dict[card_creator_id] = chatroom_context['member']
 
-            # if sdk_client_info_flag is True, then add sdk_client_info to member context
-            if sdk_client_info_flag:
-                sdk_client_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
-                                                                           {'user_id': chatroom_context['member']['id']}).first()
-
-                if sdk_client_info_instance:
-                    chatroom_context['member']['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client_info_instance, many=False).data
-
-
             chatroom_context['chat_request_state'] = data.chat_request_state
             chatroom_context['chat_request_created_at'] = data.chat_request_created_at
             chatroom_context['chat_requested_by'] = None
@@ -487,7 +478,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             if data.chat_requested_by:
                 chatroom_context['chat_requested_by'] = get_members_profile([data.chat_requested_by.id],
                                                                             community_instance.id,
-                                                                            send_profile=False)
+                                                                            send_profile=False, 
+                                                                            sdk_client_info_flag=sdk_client_info_flag)
 
             chatroom_context_list.append(chatroom_context)
 
@@ -617,7 +609,7 @@ class ChatroomMemberHelper:
         return poll_context
 
     @staticmethod
-    def serialize_chatroom(card_instance, user, return_topic=False) -> dict:
+    def serialize_chatroom(card_instance, user, return_topic=False, sdk_client_info_flag:bool=False) -> dict:
 
         chatroom_context = {'id': card_instance.id,
                             'title': card_instance.title,
@@ -714,14 +706,15 @@ class ChatroomMemberHelper:
 
         if card_instance.chatroom_with_user:
             chatroom_member = get_members_profile([card_instance.chatroom_with_user_id], card_instance.community_id,
-                                                  send_profile=False)
+                                                  send_profile=False, sdk_client_info_flag=sdk_client_info_flag)
 
             chatroom_context['chatroom_with_user'] = chatroom_member[0]
 
         if card_instance.is_deleted:
             member_ids = [card_instance.deleted_by_user]
             temp = get_members_profile(member_ids=member_ids, community_id=card_instance.community_id,
-                                       current_user_id=user, send_profile=False)
+                                       current_user_id=user, send_profile=False, 
+                                       sdk_client_info_flag=sdk_client_info_flag)
             member_obj = temp[0]
             member_obj['community_id'] = card_instance.community_id
             member_obj['chatroom_id'] = card_instance.id

@@ -3571,7 +3571,8 @@ class ChatroomImpl(ChatroomManager):
 
         context = {
             'success': True,
-            'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, community_instance),
+            'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, 
+                                                                 community_instance, sdk_client_info_flag=True),
             'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
                                                                                            chatroom_instance)
         }
@@ -4787,7 +4788,8 @@ class ChatroomHelper:
         if chatroom_list:
             return chatroom_list[0]
 
-        return get_chatroom_instance(card_instance, user_instance.id, send_profile=False)
+        return get_chatroom_instance(card_instance, user_instance.id, send_profile=False, 
+                                     sdk_client_info_flag=sdk_client_info_flag)
 
     @staticmethod
     def bulk_follow_chatroom_users(card_instance, user_list):
