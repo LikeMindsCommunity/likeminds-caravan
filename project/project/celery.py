@@ -39,30 +39,30 @@ app.conf.beat_schedule = {
         minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
     }
     """    
-    'send_pending_request_notification_at_8am': {
-        'task': 'collabmates_api.notification.send_morning_pending_request_notification',
-        'schedule': crontab(hour=8, minute=0),
-    },
-    'send_uninstall_notification_3am': {
-        'task': 'cms.utils.find_uninstall_devices',
-        'schedule': crontab(hour=3, minute=0),
-    },
+    # 'send_pending_request_notification_at_8am': {
+    #     'task': 'collabmates_api.notification.send_morning_pending_request_notification',
+    #     'schedule': crontab(hour=8, minute=0),
+    # },
+    # 'send_uninstall_notification_3am': {
+    #     'task': 'cms.utils.find_uninstall_devices',
+    #     'schedule': crontab(hour=3, minute=0),
+    # },
     # 'new_test_task_for_intro_room': {
     #     'task': 'collabmates_api.tasks.task_to_send_intro_notifications',
     #     'schedule': crontab(hour=20, minute=53),
     # },
-    'send_daily_emails': {
-        'task': 'collabmates_api.tasks.send_daily_emails',
-        'schedule': crontab(hour=10, minute=0),
-    },
-    'remove_guest_users_sdk': {
-        'task': 'collabmates_api.tasks.remove_guest_users_sdk',
-        'schedule': crontab(hour=2, minute=0),
-    },
-    'international_otp_generate_requests_blocked_task': {
-        'task': 'collabmates_api.tasks.international_otp_generate_requests_blocked_task',
-        'schedule': crontab(hour=8, minute=0),
-    },
+    # 'send_daily_emails': {
+    #     'task': 'collabmates_api.tasks.send_daily_emails',
+    #     'schedule': crontab(hour=10, minute=0),
+    # },
+    # 'remove_guest_users_sdk': {
+    #     'task': 'collabmates_api.tasks.remove_guest_users_sdk',
+    #     'schedule': crontab(hour=2, minute=0),
+    # },
+    # 'international_otp_generate_requests_blocked_task': {
+    #     'task': 'collabmates_api.tasks.international_otp_generate_requests_blocked_task',
+    #     'schedule': crontab(hour=8, minute=0),
+    # },
     'mau_tracking': {
         'task': 'collabmates_api.cron.mau_tracker.track',
         'schedule': crontab(minute='*/1'),
