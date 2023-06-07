@@ -15,7 +15,7 @@ from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING,CHATROOM
 from collabmates_api.sdk.models import SdkClient
 from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
                            get_chatrooms_of_user_with_follow_status)
-
+from ..serializers import (get_sdk_client_info_meta_or_none)
 
 class SearchImpl(SearchManager):
 
@@ -529,6 +529,8 @@ class SearchImpl(SearchManager):
             member_introduction_dict['client_user_unique_id'] = hit['client_user_unique_id'] if 'client_user_unique_id' in hit else None
 
             member_introduction_dict['user_unique_id'] = hit['user_unique_id'] if 'user_unique_id' in hit else None
+
+            member_introduction_dict['sdk_client_info'] = get_sdk_client_info_meta_or_none(member_introduction_dict['id']) 
 
             user_data = {
                 'state': hit['state'],

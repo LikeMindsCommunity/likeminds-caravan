@@ -11947,7 +11947,7 @@ def fetch_reports(request):
     report_list = []
 
     for report in reports:
-        report_dict = report_serializer(report, current_user_id)
+        report_dict = report_serializer(report, current_user_id, sdk_client_info_flag=True)
         report_list.append(report_dict)
 
     return JsonResponse({"success": True, "reports": report_list})

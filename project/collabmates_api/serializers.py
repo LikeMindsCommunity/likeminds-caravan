@@ -1768,7 +1768,7 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
     return member_profile_list
 
 
-def report_serializer(report_instance, current_user_id):
+def report_serializer(report_instance, current_user_id, sdk_client_info_flag:bool=False):
     report = {"id": report_instance.id}
 
     community_instance = report_instance.community
@@ -1779,12 +1779,14 @@ def report_serializer(report_instance, current_user_id):
 
     if report_instance.conversation is not None:
         report["conversation"] = conversationSerializer(report_instance.conversation, current_user_id=current_user_id,
-                                                        fetch_poll_conversation=True)
-        report["chatroom"] = get_chatroom_instance(report_instance.conversation.card, current_user_id)
+                                                        fetch_poll_conversation=True, sdk_client_info_flag=sdk_client_info_flag)
+        report["chatroom"] = get_chatroom_instance(report_instance.conversation.card, current_user_id, 
+                                                   sdk_client_info_flag=sdk_client_info_flag)
         report["conversation_users"] = get_last_two_conversation_user_images(report_instance.conversation.card)
 
     elif report_instance.collabcard is not None:
-        report["chatroom"] = get_chatroom_instance(report_instance.collabcard, current_user_id)
+        report["chatroom"] = get_chatroom_instance(report_instance.collabcard, current_user_id, 
+                                                   sdk_client_info_flag=sdk_client_info_flag)
         report["conversation_users"] = get_last_two_conversation_user_images(report_instance.collabcard)
 
     if report_instance.entity_id:
@@ -1797,11 +1799,13 @@ def report_serializer(report_instance, current_user_id):
         report["reason"] = report_instance.reason
 
     if report_instance.user_reported:
-        user_profile = get_members_profile(member_ids=[report_instance.user_reported.id], community_id=community_id)
+        user_profile = get_members_profile(member_ids=[report_instance.user_reported.id], community_id=community_id,
+                                           sdk_client_info_flag=sdk_client_info_flag)
         report["user_reported"] = user_profile[0]
 
     if report_instance.reported_by:
-        user_profile = get_members_profile(member_ids=[report_instance.reported_by.id], community_id=community_id)
+        user_profile = get_members_profile(member_ids=[report_instance.reported_by.id], community_id=community_id,
+                                           sdk_client_info_flag=sdk_client_info_flag)
         report["reported_by"] = user_profile[0]
 
     if report_instance.type is not None:
@@ -1814,7 +1818,8 @@ def report_serializer(report_instance, current_user_id):
         report["action_taken_reason"] = report_instance.action_taken_reason
 
     if report_instance.action_taken_by:
-        user_profile = get_members_profile(member_ids=[report_instance.action_taken_by.id], community_id=community_id)
+        user_profile = get_members_profile(member_ids=[report_instance.action_taken_by.id], community_id=community_id,
+                                           sdk_client_info_flag=sdk_client_info_flag)
         report["action_taken_by"] = user_profile[0]
 
     if report_instance.action_taken is not None:
@@ -1830,7 +1835,8 @@ def report_serializer(report_instance, current_user_id):
     report["is_closed"] = report_instance.is_closed if report_instance.is_closed is not None else False
 
     if report_instance.closed_by is not None:
-        user_profile = get_members_profile(member_ids=[report_instance.closed_by.id], community_id=community_id)
+        user_profile = get_members_profile(member_ids=[report_instance.closed_by.id], community_id=community_id,
+                                           sdk_client_info_flag=sdk_client_info_flag)
         report["closed_by"] = user_profile[0]
 
     if report_instance.closed_time:
@@ -1968,7 +1974,8 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
         temp['temporary_id'] = conversation.temporary_id
 
     if conversation.has_reactions:
-        reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation.id)
+        reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation.id, 
+                                                             sdk_client_info_flag=sdk_client_info_flag)
     else:
         reactions = []
 
