@@ -65,7 +65,7 @@ app.conf.beat_schedule = {
     },
     'mau_tracking': {
         'task': 'collabmates_api.cron.mau_tracker.track',
-        'schedule': crontab(hour=0, minute=5),
+        'schedule': crontab(minute='*/10'),
     }
 }
 
