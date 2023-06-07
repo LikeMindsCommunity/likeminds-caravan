@@ -27,7 +27,7 @@ def getCoralogixData(filters):
                                  'query': filters
                              },
                              headers={
-                                 'token': settings.CORALOGIX_API_KEY,
+                                 'token': settings.CORALOGIX_LOGGER.get('PRIVATE_API_KEY'),
                                  'Content-type': 'application/json'
                              })
 
@@ -129,7 +129,7 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
             'must': [
                 {
                     'match_phrase': {
-                        'coralogix.metadata.applicationName': applicationName
+                        'coralogix.metadata.applicationName': settings.CORALOGIX_LOGGER.get('APPLICATION_NAME')
                     }
                 },
                 {
