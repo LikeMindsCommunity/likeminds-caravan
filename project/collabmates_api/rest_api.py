@@ -18,7 +18,7 @@ from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
                           get_removed_member_custom_text, get_collabcard_files, get_user_profile,
-                          get_answer_text_for_poll, CollabcardSerializer)
+                          get_answer_text_for_poll, CollabcardSerializer, get_sdk_client_info_meta)
 from utility.states import (card_types, question_states, member_states, poll_types,
                             deleted_members, manager_rights, member_rights, conversation_states,
                             conversation_poll_types)
@@ -1492,7 +1492,13 @@ class SDKClientUsersInfoSerializer(serializers.ModelSerializer):
         model = SDKClientUsersInfo
         fields = ('user', 'community', 'user_unique_id')
 
+    def to_representation(self, instance):
+        data = super(SDKClientUsersInfoSerializer, self).to_representation(instance)
 
+        data['uuid'] = data['user_unique_id']
+
+        return data
+    
 class CommunityNotificationSettingsSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -1583,10 +1589,7 @@ class UserChannelSettingsSerializer(serializers.ModelSerializer):
 
                 if user:
                     data['user'] = UserShortSerializer(user).data
-
-                    client_user_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id' : user.user_id}).first()
-                    if client_user_info:
-                        data['user']['sdk_client_info'] = SDKClientUsersInfoSerializer(client_user_info).data
+                    data['user']['sdk_client_info'] = get_sdk_client_info_meta(data['user_id'])
                 
                 del data['user_id']
             

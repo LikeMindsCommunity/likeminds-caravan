@@ -60,7 +60,7 @@ from ..raw_queries import (get_members_based_on_user_list_query,
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context, CommunityDMSettingsSerializer, MemberNotificationFlagSerializer, SDKClientUsersInfoSerializer
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
-    conversationSerializer, get_members_profile
+    conversationSerializer, get_members_profile, get_sdk_client_info_meta
 from ..static_files import REMOVED_USER_URL, ICONS
 from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_ITEMS, COMMUNITY_LEVEL_3_TEXT, \
     IMAGE_URLS_FOR_QUESTION_TITLES, CREATE_COMMUNITY_QUESTION_NAME_TITLE
@@ -654,7 +654,7 @@ class MemberCommunityImpl(MemberCommunityManager):
     @staticmethod
     def fetch_members_based_on_user_list(user_list, community_instance, order_by_name=False,
                                          send_expired_info=True, page=0, page_size=0,
-                                         member_name_search_string="") -> {}:
+                                         member_name_search_string="", sdk_client_info_flag:bool=False) -> {}:
 
         member_dict = {}
         membership_expired_dict = {}
@@ -713,6 +713,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                    TimeUtilities.convert_epoch_time_in_date(
                                                        membership_expired_instance.created_at))
 
+                # Add sdk_client_info to member if sdk_client_info_flag is True
+                if sdk_client_info_flag:
+                    member['sdk_client_info'] = get_sdk_client_info_meta(member['id'])
+                
                 member_dict[data['member_id']] = member
 
         return member_dict
@@ -2232,11 +2236,8 @@ class MemberCommunityHelper:
                 temp['custom_title'] = value.get('custom_title')
 
             if sdk_client_info_flag:
-                sdk_client_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id': value['id']}).first()
-
-                if sdk_client_info:
-                    temp['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client_info, many=False).data
-
+                temp['sdk_client_info'] = get_sdk_client_info_meta(value['id'])
+                
             member_list.append(temp)
 
         return member_list

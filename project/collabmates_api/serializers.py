@@ -191,14 +191,7 @@ def get_logged_in_user(user_instance, sdk_client_info:bool = False):
 
     # Add sdk_client_info to context if sdk_client_info is True
     if sdk_client_info:
-
-        from .rest_api import SDKClientUsersInfoSerializer
-
-        client_user_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id' : user_id}).first()
-        
-        if client_user_info:
-            context['sdk_client_info'] = SDKClientUsersInfoSerializer(client_user_info).data
-
+        context['sdk_client_info'] = get_sdk_client_info_meta(user_id)
 
     email_list = get_user_email_list(user_id)
     mobile_list = get_user_mobile_no_list(user_id)
@@ -1620,12 +1613,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
     # Add sdk_client_info to profile if sdk_client_info_flag is True
     if sdk_client_info_flag:
 
-        from .rest_api import SDKClientUsersInfoSerializer
-
-        client_user_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id' : member_id}).first()
-        
-        if client_user_info:
-            community_profile['sdk_client_info'] = SDKClientUsersInfoSerializer(client_user_info).data
+        community_profile['sdk_client_info'] = get_sdk_client_info_meta(member_id)
 
     return community_profile
 
@@ -2548,5 +2536,18 @@ def get_chatroom_preview(card_instance, member_id, active=None):
     chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
     return chatroom_instance
+
+def get_sdk_client_info_meta(user_id) -> dict :
+    """ This functions returns sdk_client_info meta of a user """
+
+    from .rest_api import SDKClientUsersInfoSerializer
+
+    client_user_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id' : user_id}).first()
+
+    if client_user_info:
+        return SDKClientUsersInfoSerializer(client_user_info, many=False).data
+    
+    else:
+        return None
 
 # =========================================================================#
