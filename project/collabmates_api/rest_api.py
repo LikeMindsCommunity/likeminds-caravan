@@ -1556,13 +1556,17 @@ class ChatroomInviteSerializer(serializers.ModelSerializer):
 
         for field in fields:
             if field.field_name == 'chatroom':
-                data['chatroom'] = CollabcardSerializer(instance.chatroom, user=self.user_id)
+                data['chatroom'] = CollabcardSerializer(instance.chatroom, user=self.user_id, 
+                                                        sdk_client_info_flag=True)
 
             if field.field_name == 'invite_sender':
                 data['invite_sender'] = UserShortSerializer(instance.invite_sender.userinfo, many=False).data
+                data['invite_sender']['sdk_client_info'] = get_sdk_client_info_meta_or_none(data['invite_sender']['id'])
+                
 
             if field.field_name == 'invite_receiver':
                 data['invite_receiver'] = UserShortSerializer(instance.invite_receiver.userinfo, many=False).data
+                data['invite_receiver']['sdk_client_info'] = get_sdk_client_info_meta_or_none(data['invite_receiver']['id'])
 
         return data
 

@@ -3176,7 +3176,8 @@ class ChatroomImpl(ChatroomManager):
 
                 event_serializer_local = GetChatroomInstanceSerializer(event_obj, context=member_data, many=False)
 
-                event_serializer = CollabcardSerializer(card=event_obj, user=member_id)
+                event_serializer = CollabcardSerializer(card=event_obj, user=member_id, 
+                                                        sdk_client_info_flag=True)
 
                 res = {
                     'success': True,
