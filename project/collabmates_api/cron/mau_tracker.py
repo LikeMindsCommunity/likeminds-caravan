@@ -6,6 +6,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from django.conf import settings
 from datetime import date
 from dateutil import relativedelta
+from celery import shared_task
 from project.celery import app
 import requests
 
@@ -308,6 +309,7 @@ def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
                                           {'mau_count': len(activeUsers),
                                            'user_list': str(activeUsers)})
 @app.task
+@shared_task
 def track():
     # Fetch all the billing records for which MAU needs to be computed
     billingRecords = ModelUtilities.get_model_filter(CommunityBillingDates, {})
