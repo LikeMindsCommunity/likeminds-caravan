@@ -44,7 +44,7 @@ from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstance
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, \
     ScheduledChatroomFollowSerializer, ChatroomInviteSerializer, UserChannelSettingsSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
-                           UserinfoSerializer, get_chatroom_instance, CollabcardSerializer)
+                           UserinfoSerializer, get_chatroom_instance, CollabcardSerializer, get_sdk_client_info_meta_or_none)
 from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
     delete_chatroom, accessible_without_subscription, settings_for_chatroom_with_revamp, make_it_secret, \
     auto_joined_by_all_members, manage_permissions, BLOCK_MEMBER_DM_CHATROOM_MESSAGE, UNBLOCK_MEMBER_DM_CHATROOM_MESSAGE
@@ -625,6 +625,10 @@ class ChatroomImpl(ChatroomManager):
                 chatroom_instance.community_id, chatroom_instance.id, user_id=user_id, page=page, limit=page_size,
                 member_name_search=search_name, tag_only_participants=chatroom_instance.tag_only_participants)
 
+        # add sdk_client_info to all members
+        for member in tag_list:
+            member['sdk_client_info'] = get_sdk_client_info_meta_or_none(member['id'])
+
         return tag_list
 
     @staticmethod
@@ -652,6 +656,10 @@ class ChatroomImpl(ChatroomManager):
             tag_list = get_community_members_data_on_basis_of_name_search(
                 chatroom_instance.community_id, chatroom_instance.id, user_id=user_id, page=page, limit=page_size,
                 member_name_search=search_name, filter_user_ids=member_list)
+            
+        # add sdk_client_info to all members
+        for member in tag_list:
+            member['sdk_client_info'] = get_sdk_client_info_meta_or_none(member['id'])
 
         return tag_list
 

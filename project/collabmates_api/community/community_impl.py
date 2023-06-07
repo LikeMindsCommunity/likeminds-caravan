@@ -98,6 +98,8 @@ from ..sms import send_community_confirmation_sms
 from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check, \
     m2cm_v2_version_check
 
+from ..serializers import (get_sdk_client_info_meta_or_none)
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -4403,7 +4405,11 @@ class CommunityHelper:
                                              page=page,
                                              page_size=page_size,
                                              search_string=search_name)
-
+        
+        # Add sdk_client_info to all member objects
+        for member in members_data:
+            member['sdk_client_info'] = get_sdk_client_info_meta_or_none(member['id'])
+        
         return members_data
     
     @staticmethod

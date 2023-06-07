@@ -15,7 +15,7 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         CHATROOM_DATE_EPOCH_KEY)
 from utility.states import (conversation_states, conversation_poll_types)
 from togther.models import (ModelUtilities, card_answers, SDKClientUsersInfo)
-from ..serializers import (get_sdk_client_info_meta)
+from ..serializers import (get_sdk_client_info_meta_or_none)
 
 
 
@@ -453,5 +453,5 @@ class SyncHelper:
         # Iterate over all users in user_meta and add sdk_client_info
         for user in users_meta.values():
             
-            user['sdk_client_info'] = get_sdk_client_info_meta(user['id'])
+            user['sdk_client_info'] = get_sdk_client_info_meta_or_none(user['id'])
 

@@ -60,7 +60,7 @@ from ..raw_queries import (get_members_based_on_user_list_query,
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context, CommunityDMSettingsSerializer, MemberNotificationFlagSerializer, SDKClientUsersInfoSerializer
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
-    conversationSerializer, get_members_profile, get_sdk_client_info_meta
+    conversationSerializer, get_members_profile, get_sdk_client_info_meta_or_none
 from ..static_files import REMOVED_USER_URL, ICONS
 from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_ITEMS, COMMUNITY_LEVEL_3_TEXT, \
     IMAGE_URLS_FOR_QUESTION_TITLES, CREATE_COMMUNITY_QUESTION_NAME_TITLE
@@ -715,7 +715,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
                 # Add sdk_client_info to member if sdk_client_info_flag is True
                 if sdk_client_info_flag:
-                    member['sdk_client_info'] = get_sdk_client_info_meta(member['id'])
+                    member['sdk_client_info'] = get_sdk_client_info_meta_or_none(member['id'])
                 
                 member_dict[data['member_id']] = member
 
@@ -2239,7 +2239,7 @@ class MemberCommunityHelper:
                 temp['custom_title'] = value.get('custom_title')
 
             if sdk_client_info_flag:
-                temp['sdk_client_info'] = get_sdk_client_info_meta(value['id'])
+                temp['sdk_client_info'] = get_sdk_client_info_meta_or_none(value['id'])
                 
             member_list.append(temp)
 

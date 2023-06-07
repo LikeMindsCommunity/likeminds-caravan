@@ -191,7 +191,7 @@ def get_logged_in_user(user_instance, sdk_client_info:bool = False):
 
     # Add sdk_client_info to context if sdk_client_info is True
     if sdk_client_info:
-        context['sdk_client_info'] = get_sdk_client_info_meta(user_id)
+        context['sdk_client_info'] = get_sdk_client_info_meta_or_none(user_id)
 
     email_list = get_user_email_list(user_id)
     mobile_list = get_user_mobile_no_list(user_id)
@@ -1613,7 +1613,7 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
     # Add sdk_client_info to profile if sdk_client_info_flag is True
     if sdk_client_info_flag:
 
-        community_profile['sdk_client_info'] = get_sdk_client_info_meta(member_id)
+        community_profile['sdk_client_info'] = get_sdk_client_info_meta_or_none(member_id)
 
     return community_profile
 
@@ -2537,7 +2537,7 @@ def get_chatroom_preview(card_instance, member_id, active=None):
 
     return chatroom_instance
 
-def get_sdk_client_info_meta(user_id) -> dict :
+def get_sdk_client_info_meta_or_none(user_id) -> dict :
     """ This functions returns sdk_client_info meta of a user """
 
     from .rest_api import SDKClientUsersInfoSerializer
