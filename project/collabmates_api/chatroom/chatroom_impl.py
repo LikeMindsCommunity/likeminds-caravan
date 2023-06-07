@@ -1083,6 +1083,10 @@ class ChatroomImpl(ChatroomManager):
         from collabmates_api.sync.sync_helper import SyncHelper
         chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, 'chatrooms')
 
+        # Add sdk_client_info to user_meta objects in chatrooms_data
+        if chatrooms_data.get('user_meta'):
+            SyncHelper.add_sdk_client_info_to_users_meta(chatrooms_data.get('user_meta'))
+
         filter_dict = {
             'is_deleted': False,
             'is_private': False,

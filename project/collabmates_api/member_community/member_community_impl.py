@@ -1455,7 +1455,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         user_member_data = MemberCommunityHelper.add_member_metadata(user_member_instance, community_instance,
                                                                      current_user_member_instance,
-                                                                     is_community_answer_data)
+                                                                     is_community_answer_data,
+                                                                     sdk_client_info_flag=True)
 
         user_menu = MemberCommunityHelper.get_member_profile_menu(user_member_instance, community_instance,
                                                                   current_user_member_instance)
@@ -2261,7 +2262,7 @@ class MemberCommunityHelper:
 
     @staticmethod
     def add_member_metadata(member_instance, community_instance, current_user_member_instance,
-                            is_community_answer_data=False):
+                            is_community_answer_data=False, sdk_client_info_flag:bool=False):
         user_instance = member_instance.member_id
 
         user_data = MemberCommunityHelper.add_member_profile(user_instance, community_instance)
@@ -2289,6 +2290,12 @@ class MemberCommunityHelper:
             if member_instance.state == member_states.ADMIN:
                 user_data['custom_intro_text'] = CREATE_INTRO_TEXT_ADMIN % \
                                                  TimeUtilities.convert_epoch_time_in_date(member_instance.created_at)
+                
+        if user_instance.userinfo:
+            user_data['user_unique_id'] =  user_instance.userinfo.user_unique_id
+
+        if sdk_client_info_flag:
+            user_data['sdk_client_info'] = get_sdk_client_info_meta_or_none(user_instance.id)
 
         return user_data
 

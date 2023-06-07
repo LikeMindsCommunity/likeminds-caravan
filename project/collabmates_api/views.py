@@ -2401,7 +2401,8 @@ def fetch_user_chatrooms(request):
         for chatroom in state_filter:
             chatroom_instance = chatroom.card
 
-            temp = get_chatroom_instance(chatroom_instance, user_id, current_user_id=current_user_id)
+            temp = get_chatroom_instance(chatroom_instance, user_id, current_user_id=current_user_id,
+                                         sdk_client_info_flag=True)
             temp['date'] = TimeUtilities.convert_epoch_time_in_date(chatroom.updated_at)
             engage_filter = conversationEngage.objects.filter(card=chatroom_instance, user=user_id)
             temp['conversation_users'] = []
