@@ -630,7 +630,8 @@ class ConversationImpl(ConversationManager):
     @staticmethod
     def _create_member_instances_from_user_list(user_list, community_instance):
 
-        member_dict = MemberCommunityImpl.fetch_members_based_on_user_list(user_list, community_instance)
+        member_dict = MemberCommunityImpl.fetch_members_based_on_user_list(user_list, community_instance, 
+                                                                           sdk_client_info_flag=True)
         member_introduction_dict = MemberCommunityImpl.fetch_community_introductions_based_on_user_list(user_list,
                                                                                                         community_instance)
         member_list = []
@@ -1437,7 +1438,7 @@ class ConversationImpl(ConversationManager):
                                                                         past_events=past_events)
 
         conversation_list = ModelUtilities.paginate_queryset(conversation_queryset, page, paginate_by=5)
-        conversations = self._create_conversation_list(conversation_list)
+        conversations = self._create_conversation_list(conversation_list, sdk_client_info_flag=True)
 
         return {'success': True, 'events': conversations}
 
@@ -1452,7 +1453,7 @@ class ConversationImpl(ConversationManager):
         conversations = self._fetch_unread_preview_queryset()
         conversations = ModelUtilities.paginate_queryset(conversations, self.get_page(),
                                                          paginate_by=self.get_paginate_by())
-        conversations = self._create_conversation_list(conversations)
+        conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
         return {'success': True, 'conversations': conversations}
 
     def fetch_preview_unread_message_count(self):

@@ -219,4 +219,8 @@ class SyncImpl(SyncManager):
                                                             is_user_cm)
         SyncHelper.add_additional_data_in_chatroom_meta(conversations_data)
 
+        # Add sdk_client_info to user_meta objects in conversation_data
+        if conversations_data.get(USERS_META_KEY_VALUE):
+            SyncHelper.add_sdk_client_info_to_users_meta(conversations_data.get(USERS_META_KEY_VALUE))
+
         return {**{'success': True}, **conversations_data}

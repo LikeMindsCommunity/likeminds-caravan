@@ -208,7 +208,8 @@ def get_logged_in_user(user_instance, sdk_client_info:bool = False):
     return context
 
 
-def CollabcardSerializer(card, user, community=None, current_user_id=None, preview=False, return_topic=False):
+def CollabcardSerializer(card, user, community=None, current_user_id=None, preview=False, return_topic=False, 
+                         sdk_client_info_flag:bool=False):
     # function to serialize a community object
     collabcard = {
         'id': card.id,
@@ -318,7 +319,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
                 user = None
 
             collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=card.community_id,
-                                                         current_user_id=user)
+                                                         current_user_id=user, 
+                                                         sdk_client_info_flag=sdk_client_info_flag)
 
         if card.webflow_item_id:
             collabcard['webflow_item_id'] = card.webflow_item_id
@@ -347,13 +349,15 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
     if card.updated_member:
         member_ids = [card.updated_member]
         temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
-                                   current_user_id=user, send_profile=False)
+                                   current_user_id=user, send_profile=False, 
+                                   sdk_client_info_flag=sdk_client_info_flag)
         collabcard['updated_member'] = temp[0]
 
     if card.is_deleted:
         member_ids = [card.deleted_by_user]
         temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
-                                   current_user_id=user, send_profile=False)
+                                   current_user_id=user, send_profile=False, 
+                                   sdk_client_info_flag=sdk_client_info_flag)
         member_obj = temp[0]
         member_obj['community_id'] = card.community_id
         member_obj['chatroom_id'] = card.id
@@ -364,21 +368,24 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         collabcard['updated_time'] = get_time_text(card.updated_time)
 
     if card.has_reactions:
-        reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=collabcard['id'])
+        reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=collabcard['id'], 
+                                                             sdk_client_info_flag=sdk_client_info_flag)
     else:
         reactions = []
 
     collabcard['reactions'] = reactions
 
     if return_topic and card.topic is not None:
-        conversation_serializer = conversationSerializer(card.topic, fetch_reply=False)
+        conversation_serializer = conversationSerializer(card.topic, fetch_reply=False,
+                                                         sdk_client_info_flag=sdk_client_info_flag)
         conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
             conversation_serializer['created_at'])
 
         collabcard['topic'] = conversation_serializer
 
     if card.chatroom_with_user:
-        collabcard['chatroom_with_user'] = UserinfoSerializer(card.chatroom_with_user.userinfo)
+        collabcard['chatroom_with_user'] = UserinfoSerializer(card.chatroom_with_user.userinfo,
+                                                              sdk_client_info_flag)
 
     if card.has_event_recording:
         from .chatroom.chatroom_impl import ChatroomHelper
@@ -880,7 +887,8 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
 
     collabcard_serializer = CollabcardSerializer(card_instance, member_id,
                                                  current_user_id=member_id, preview=preview,
-                                                 return_topic=return_topic)
+                                                 return_topic=return_topic,
+                                                 sdk_client_info_flag=sdk_client_info_flag)
 
     if card_instance.is_private and card_instance.chatroom_with_user:
         collabcard_user = get_members_profile([card_instance.chatroom_with_user_id], card_instance.community_id,
