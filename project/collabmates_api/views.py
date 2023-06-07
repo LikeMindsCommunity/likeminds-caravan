@@ -12022,7 +12022,7 @@ def fetch_pending_chatroom(request):
     chatrooms = []
 
     for chatroom in pending_chatrooms:
-        chatroom_instance = get_chatroom_instance(chatroom, current_user_id)
+        chatroom_instance = get_chatroom_instance(chatroom, current_user_id, sdk_client_info_flag=True)
         chatrooms.append(chatroom_instance)
 
     context = {
