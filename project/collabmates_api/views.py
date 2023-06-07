@@ -10999,7 +10999,8 @@ def fetch_community_manager_rights(request):
     else:
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
-    member_profile = get_members_profile([user_instance], community_instance)
+    member_profile = get_members_profile([user_instance], community_instance, 
+                                         sdk_client_info_flag=True)
 
     mobile_filter = userMobiles.objects.filter(user=current_user_instance)
     mobile_list = []
@@ -11592,7 +11593,8 @@ def fetch_community_member_rights(request):
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
 
-    member_profile = get_members_profile([user_instance], community_instance)
+    member_profile = get_members_profile([user_instance], community_instance, 
+                                         sdk_client_info_flag=True)
 
     return JsonResponse({"success": True, "member": member_profile[0], "rights": rights_context})
 
