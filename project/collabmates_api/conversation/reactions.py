@@ -56,7 +56,8 @@ def get_process_members_data_for_reactions(community, members_id_list):
     return members_data_list
 
 
-def get_members_profiles_for_reactions(community, members_id_list, reactions_map):
+def get_members_profiles_for_reactions(community, members_id_list, reactions_map, 
+                                       sdk_client_info_flag:bool = False):
 
     members_profile_list = []
 
@@ -78,6 +79,14 @@ def get_members_profiles_for_reactions(community, members_id_list, reactions_map
 
         if member_image is not None:
             temp['image_url'] = member_image
+
+        
+        # add sdk_client_info to members
+        if sdk_client_info_flag:
+
+            from ..serializers import (get_sdk_client_info_meta_or_none)
+
+            temp['sdk_client_info'] = get_sdk_client_info_meta_or_none(temp['id'])
 
         reaction_dict = {
             'member': temp,
@@ -104,7 +113,8 @@ def process_message_reactions(reactions):
     return reactions_map
 
 
-def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=None, update_cache=False):
+def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=None, update_cache=False,
+                                             sdk_client_info_flag:bool=False):
     """ function to update the preview of chatroom """
 
     if not conversation_id and not chatroom_id:
@@ -148,7 +158,8 @@ def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=N
 
             reactions_map = process_message_reactions(reactions)
 
-            reactions = get_members_profiles_for_reactions(community_instance, reaction_users, reactions_map)
+            reactions = get_members_profiles_for_reactions(community_instance, reaction_users, reactions_map,
+                                                           sdk_client_info_flag=sdk_client_info_flag)
 
         else:
             reactions = []

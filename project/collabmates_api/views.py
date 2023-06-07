@@ -4699,7 +4699,8 @@ def conversation_meta(request):
         if not is_draft_conversation(conversation, user_id, device_id=device_id):
             conversation_serializer = conversationSerializer(conversation,
                                                              fetch_reply=True,
-                                                             current_user_id=user_id)
+                                                             current_user_id=user_id,
+                                                             sdk_client_info_flag=True)
             preview = generate_internal_link_preview_for_conversation(conversation, user_id)
 
             if preview:

@@ -266,11 +266,12 @@ class ConversationImpl(ConversationManager):
                                                                      })
         return to_show_results
 
-    def _serialize_conversation(self, conversation_instance):
+    def _serialize_conversation(self, conversation_instance, sdk_client_info_flag:bool=False):
 
         conversation_serializer = conversationSerializer(conversation_instance,
                                                          fetch_reply=True,
-                                                         current_user_id=self.get_member_id())
+                                                         current_user_id=self.get_member_id(),
+                                                         sdk_client_info_flag=sdk_client_info_flag)
         conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
             conversation_instance.created_at)
 
@@ -341,7 +342,8 @@ class ConversationImpl(ConversationManager):
 
         return event_conversation
 
-    def _create_conversation_list(self, conversations, last_conversation_id=None):
+    def _create_conversation_list(self, conversations, last_conversation_id=None, 
+                                  sdk_client_info_flag:bool=False):
 
         conversation_list = []
 
@@ -354,7 +356,8 @@ class ConversationImpl(ConversationManager):
                     conversation.api_version <= 0 or conversation.device_id != self.device_id):
                 continue
 
-            conversation_dict = self._serialize_conversation(conversation)
+            conversation_dict = self._serialize_conversation(conversation, 
+                                                             sdk_client_info_flag=sdk_client_info_flag)
 
             if last_conversation_id and last_conversation_id == conversation_dict['id']:
                 conversation_dict['last_seen'] = True
@@ -736,14 +739,14 @@ class ConversationImpl(ConversationManager):
         if top_navigate:
             conversations = self._fetch_conversation_queryset(excluded_conversation_states)
             conversations = conversations[:self.get_paginate_by()]
-            conversations = self._create_conversation_list(conversations)
+            conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
             return {'success': True, 'conversations': conversations}
 
         # Client is not sending scroll direction and only sending conversation id
         if self.get_conversation_id() and not self.get_scroll_direction():
             conversation = ModelUtilities.get_model_instance_or_none(card_answers, self.get_conversation_id())
             conversations = [conversation]
-            conversations = self._create_conversation_list(conversations)
+            conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
             return {'success': True, 'conversations': conversations}
 
         # Client is sending scroll direction as False with conversation ID
@@ -752,7 +755,7 @@ class ConversationImpl(ConversationManager):
 
             if last_seen_conversation:
                 conversations = [last_seen_conversation]
-                conversations = self._create_conversation_list(conversations)
+                conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
 
                 return {'success': True, 'conversations': conversations}
 
@@ -763,7 +766,7 @@ class ConversationImpl(ConversationManager):
             if not last_seen:
                 conversations = self._fetch_conversation_queryset(excluded_conversation_states)
                 conversations = conversations[:self.get_paginate_by()]
-                conversations = self._create_conversation_list(conversations)
+                conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
 
             else:
 
@@ -776,7 +779,8 @@ class ConversationImpl(ConversationManager):
                 # merging both conversations
                 conversations = upward_conversation | downward_conversation
                 conversations = conversations.order_by('created_at')
-                conversations = self._create_conversation_list(conversations, last_conversation_id=last_seen.id)
+                conversations = self._create_conversation_list(conversations, last_conversation_id=last_seen.id, 
+                                                               sdk_client_info_flag=True)
 
         else:
 
@@ -811,7 +815,7 @@ class ConversationImpl(ConversationManager):
             else:
                 conversations = self._fetch_conversation_queryset(excluded_conversation_states)
 
-            conversations = self._create_conversation_list(conversations)
+            conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
 
         return {'success': True, 'conversations': conversations}
 
