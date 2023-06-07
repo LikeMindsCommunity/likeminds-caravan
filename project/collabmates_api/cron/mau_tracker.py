@@ -71,8 +71,8 @@ def getCoralogixData(filters):
             else:
                 fetch_again = False
 
-    else:
-        error_logger.error('error while making request on coralogix: {}'.format(response.json()))
+    # else:
+    #     error_logger.error('error while making request on coralogix: {}'.format(response.json()))
 
     return hits
 
