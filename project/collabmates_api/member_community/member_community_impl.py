@@ -929,7 +929,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
-        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
+        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance, 
+                                                                           sdk_client_info_flag=True)
         pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
             community_id=community_instance.id)
 
@@ -1007,7 +1008,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
-        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
+        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance,
+                                                                           sdk_client_info_flag=True)
         pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
             community_id=community_instance.id)
 

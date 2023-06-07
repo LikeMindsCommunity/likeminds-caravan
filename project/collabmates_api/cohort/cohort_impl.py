@@ -353,7 +353,8 @@ class CohortImpl(CohortManager):
 
         cohort_member_userinfo_dict = CohortHelper.pre_compute_userinfo_with_user_ids(member_ids)
 
-        members = [UserinfoSerializer(cohort_member_userinfo_dict[member_id]) for member_id in member_ids]
+        members = [UserinfoSerializer(cohort_member_userinfo_dict[member_id], 
+                                      sdk_client_info_flag=True) for member_id in member_ids]
 
         rights = list(ModelUtilities.get_model_filter(CohortRights, {'cohort_id': cohort_id})
                       .prefetch_related('member_rights'))

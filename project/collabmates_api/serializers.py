@@ -145,7 +145,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
     return new_dict
 
 
-def UserinfoSerializer(user):
+def UserinfoSerializer(user, sdk_client_info_flag:bool=False):
     userinfo = {
         'id': user.user_id_id,
         'name': user.name,
@@ -155,6 +155,9 @@ def UserinfoSerializer(user):
         'organisation_name': user.organisation_name,
         'image_url': user.image_link
     }
+
+    if sdk_client_info_flag:
+        userinfo['sdk_client_info'] = get_sdk_client_info_meta_or_none(userinfo['id'])
 
     return userinfo
 
