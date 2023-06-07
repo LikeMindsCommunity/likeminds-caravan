@@ -1157,7 +1157,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             member_id = user_instance.id
 
             if card_instance:
-                chatroom_home['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False)
+                chatroom_home['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False, 
+                                                                  sdk_client_info_flag=True)
 
                 context = {"current_user_id": member_id}
                 chatroom_home['community'] = CommunitySerializerV1(card_instance.community, context=context,
@@ -1179,7 +1180,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             if last_conversation and not is_draft_conversation(last_conversation, member_id):
 
-                last_conversation_dict = conversationSerializer(last_conversation, current_user_id=member_id)
+                last_conversation_dict = conversationSerializer(last_conversation, current_user_id=member_id,
+                                                                sdk_client_info_flag=True)
 
                 preview = generate_internal_link_preview_for_conversation(last_conversation, member_id)
 
@@ -1774,7 +1776,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom = MemberCommunityHelper.serialise_dm_chatrooms(user_instance, community_instance, card_id,
                                                                     card_ans_id, card_state_map,
                                                                     convsersation_states_to_consider, rights_list,
-                                                                    device_id=self.get_device_id())
+                                                                    device_id=self.get_device_id(), 
+                                                                    sdk_client_info_flag=True)
 
             chatroom['community'] = community_serializer_object
 
@@ -2668,7 +2671,8 @@ class MemberCommunityHelper:
 
     @staticmethod
     def serialise_dm_chatrooms(user_instance, community_instance, card_id, card_ans_id, card_state_map,
-                               convsersation_states_to_consider, rights_list, device_id):
+                               convsersation_states_to_consider, rights_list, device_id, 
+                               sdk_client_info_flag:bool=False):
         chatroom = {}
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
         card_state_instance = ModelUtilities.get_model_instance_or_none(collabcardState,
@@ -2676,13 +2680,15 @@ class MemberCommunityHelper:
         card_answer_instance = ModelUtilities.get_model_instance_or_none(card_answers, card_ans_id)
 
         if card_instance:
-            chatroom['chatroom'] = get_chatroom_instance(card_instance, user_instance.id, send_profile=False)
+            chatroom['chatroom'] = get_chatroom_instance(card_instance, user_instance.id, send_profile=False, 
+                                                         sdk_client_info_flag=sdk_client_info_flag)
             chatroom['is_draft'] = False
             chatroom['custom_tag'] = card_instance.custom_tag
 
         if card_answer_instance:
             last_conversation_dict = conversationSerializer(card_answer_instance,
-                                                            current_user_id=user_instance.id, device_id=device_id)
+                                                            current_user_id=user_instance.id, device_id=device_id,
+                                                            sdk_client_info_flag=sdk_client_info_flag)
             preview = generate_internal_link_preview_for_conversation(card_answer_instance, user_instance.id)
 
             if preview:
@@ -2717,7 +2723,8 @@ class MemberCommunityHelper:
 
             if card_state_instance.chat_requested_by:
                 chatroom['chat_requested_by'] = get_members_profile([card_state_instance.chat_requested_by],
-                                                                    community_instance.id, send_profile=False)
+                                                                    community_instance.id, send_profile=False,
+                                                                    sdk_client_info_flag=sdk_client_info_flag)
 
             chatroom['is_private_member'] = card_instance.is_private_member
             chatroom['member_right_states'] = rights_list
