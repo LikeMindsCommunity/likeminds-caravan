@@ -878,7 +878,7 @@ def get_chatroom_name(user_name, card):
 
 
 def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_instance=None, send_profile=True,
-                          preview=False, return_topic=False):
+                          preview=False, return_topic=False, sdk_client_info_flag:bool = False):
     if not current_user_id:
         current_user_id = member_id
 
@@ -888,7 +888,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
 
     if card_instance.is_private and card_instance.chatroom_with_user:
         collabcard_user = get_members_profile([card_instance.chatroom_with_user_id], card_instance.community_id,
-                                              send_profile=send_profile)
+                                              send_profile=send_profile, sdk_client_info_flag=sdk_client_info_flag)
 
         collabcard_serializer['chatroom_with_user'] = collabcard_user[0]
 
@@ -904,7 +904,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
         collabcard_serializer['secret_chatroom_left'] = status['secret_chatroom_left']
 
     collabcard_member = get_members_profile([card_instance.user_id], card_instance.community_id,
-                                            send_profile=send_profile)
+                                            send_profile=send_profile, sdk_client_info_flag=sdk_client_info_flag)
     collabcard_serializer['member'] = collabcard_member[0]
 
     remove_filter = removedMembers.objects.filter(community=card_instance.community,
@@ -1560,7 +1560,7 @@ def userMobilesSerializer(mobile_instance):
 # member comunity profiles
 def MembersSerializer(member_instance, community_id, current_user_id=None, send_profile=True,
                       is_promoter=False, is_owner=False, all_members_api=False, profile_detail_api=False,
-                      user_admin_rights=None):
+                      user_admin_rights=None, sdk_client_info_flag:bool=False):
     user_is_owner = member_instance.is_owner
     parents_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list else []
 
@@ -1616,6 +1616,16 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
         block_member = {"title": "Block member",
                         "route": f"route://block_member?community_id={community_id}&member_id={member_id}"}
         community_profile["menu"] = [report_member, block_member]
+
+    # Add sdk_client_info to profile if sdk_client_info_flag is True
+    if sdk_client_info_flag:
+
+        from .rest_api import SDKClientUsersInfoSerializer
+
+        client_user_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id' : member_id}).first()
+        
+        if client_user_info:
+            community_profile['sdk_client_info'] = SDKClientUsersInfoSerializer(client_user_info).data
 
     return community_profile
 
@@ -1734,7 +1744,7 @@ def get_user_profile(user_id, community_id=None, current_user_id=None, send_prof
 
 def get_members_profile(member_ids, community_id, current_user_id=None, send_profile=True, remove=False,
                         is_promoter=False, is_owner=False, all_members_api=False, profile_detail_api=False,
-                        user_admin_rights=None):
+                        user_admin_rights=None, sdk_client_info_flag:bool=False):
     '''function to get member profile from list of members ids'''
     member_profile_list = []
 
@@ -1754,7 +1764,8 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
                                                   send_profile=send_profile, all_members_api=all_members_api,
                                                   profile_detail_api=profile_detail_api,
                                                   user_admin_rights=user_admin_rights,
-                                                  is_owner=is_owner, is_promoter=is_promoter
+                                                  is_owner=is_owner, is_promoter=is_promoter, 
+                                                  sdk_client_info_flag=sdk_client_info_flag
                                                   )
 
             member_profile_list.append(community_profile)
@@ -1887,7 +1898,7 @@ def is_draft_conversation(conversation, current_user_id, device_id=''):
 
 
 def conversationSerializer(conversation, current_user_id=None, fetch_reply=True, device_id='',
-                           fetch_poll_conversation=False):
+                           fetch_poll_conversation=False, sdk_client_info_flag:bool=False):
     temp = {
         "id": conversation.id,
         "answer": conversation.answer,
@@ -1928,7 +1939,8 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
         remove = True
 
     member_profile = get_members_profile([conversation.user_id], conversation.community_id,
-                                         current_user_id=current_user_id, send_profile=False, remove=remove)
+                                         current_user_id=current_user_id, send_profile=False, remove=remove,
+                                         sdk_client_info_flag=sdk_client_info_flag)
 
     temp['member'] = member_profile[0]
 

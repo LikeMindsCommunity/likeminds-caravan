@@ -444,7 +444,7 @@ def my_chatrooms_version_1(request):
         draft_instance = instance.draft
 
         if card_instance:
-            chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False)
+            chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False, sdk_client_info_flag=True)
             context = {"current_user_id": member_id}
             chatroom['community'] = CommunitySerializerV1(card_instance.community, context=context,
                                                           many=False).data
@@ -466,7 +466,8 @@ def my_chatrooms_version_1(request):
 
         if last_conversation and not is_draft_conversation(last_conversation, member_id, device_id):
             last_conversation_dict = conversationSerializer(last_conversation,
-                                                            current_user_id=member_id, device_id=device_id)
+                                                            current_user_id=member_id, device_id=device_id,
+                                                            sdk_client_info_flag=True)
             preview = generate_internal_link_preview_for_conversation(last_conversation, member_id)
 
             if preview:
@@ -482,7 +483,8 @@ def my_chatrooms_version_1(request):
 
             if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id, device_id):
                 second_last_conversation_dict = conversationSerializer(second_last_conversation,
-                                                                       current_user_id=member_id, device_id=device_id)
+                                                                       current_user_id=member_id, device_id=device_id,
+                                                                       sdk_client_info_flag=True)
                 preview = generate_internal_link_preview_for_conversation(second_last_conversation, member_id)
 
                 if preview:
