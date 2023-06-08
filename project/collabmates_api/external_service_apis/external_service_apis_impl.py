@@ -188,4 +188,8 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
         if task_name and task_name == 'mau_tracker':
             track()
 
+        else:
+            return ResponseUtilities.get_impl_error_context("Invalid task_name",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
         return {'success': True}

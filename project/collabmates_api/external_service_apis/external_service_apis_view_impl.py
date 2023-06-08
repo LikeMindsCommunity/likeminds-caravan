@@ -4,6 +4,7 @@ from rest_framework import status as status_codes
 
 from utility.request_utilities import RequestUtilities
 from utility.exception_utilities import InvalidHeaderException
+from utility.response_utilities import ResponseUtilities
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
@@ -126,6 +127,8 @@ class RunCronJobView(APIView):
         external_service_context = external_service_manager.run_cron_jobs(task_name)
 
         if external_service_context.get('error_message'):
-            return JsonResponse(external_service_context, status=status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                external_service_context.get('error_message'),
+                external_service_context.get('status')))
 
         return JsonResponse(external_service_context)
