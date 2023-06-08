@@ -392,9 +392,11 @@ class SearchImpl(SearchManager):
 
         res = Search.from_dict(self._get_conversation_search_ngram_query_dict(chatroom_id_list)).execute()
 
+        conversations_data = SearchHelper.serialize_conversation_data_from_search_res(res)
+
         context = {
             'success': True,
-            'conversations': [hit.to_dict() for hit in res]
+            'conversations': conversations_data
         }
 
         return context
