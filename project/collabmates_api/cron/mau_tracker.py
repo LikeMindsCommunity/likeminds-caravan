@@ -9,6 +9,7 @@ from dateutil import relativedelta
 from celery import shared_task
 from project.celery import app
 import requests
+import json
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -303,7 +304,8 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
 
 def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
     # Fetch active user IDs for a specific billing record
-    activeUsers = ModelUtilities.get_model_filter(ActiveUser, {'billing': billingRecord}).values_list('uuid', flat=True)
+    activeUsers = list(ModelUtilities.get_model_filter(ActiveUser,
+                                                       {'billing': billingRecord}).values_list('uuid', flat=True))
 
     # Create monthly active user data for a billing record
     ModelUtilities.update_or_create_model(ActiveUserMonthlyData,
@@ -311,7 +313,7 @@ def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
                                            'start_date': (today-relativedelta.relativedelta(months=1)).strftime("%s"),
                                            'end_date': today.strftime("%s")},
                                           {'mau_count': len(activeUsers),
-                                           'users_list': str(activeUsers)})
+                                           'users_list': json.dumps(activeUsers)})
 @app.task
 @shared_task
 def track():
