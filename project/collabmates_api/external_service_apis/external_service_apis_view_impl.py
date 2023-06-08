@@ -8,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 from ..external_service_apis.external_service_apis_impl import ExternalServiceApisImpl
+from collabmates_api.cron.mau_tracker import track
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 error_logger = LoggingWrapper.get_instance()
@@ -107,6 +108,22 @@ class SendNotificationsView(APIView):
                                                            request_platform=request_platform, version_code=version_code,
                                                            api_key=api_key)
         external_service_context = external_service_manager.send_notifications(req_body)
+
+        if external_service_context.get('error_message'):
+            return JsonResponse(external_service_context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        return JsonResponse(external_service_context)
+
+
+class RunCronJobView(APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(RunCronJobView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, task_name, *args, **kwargs):
+        external_service_manager = ExternalServiceApisImpl(None)
+        external_service_context = external_service_manager.run_cron_jobs(task_name)
 
         if external_service_context.get('error_message'):
             return JsonResponse(external_service_context, status=status_codes.HTTP_400_BAD_REQUEST)
