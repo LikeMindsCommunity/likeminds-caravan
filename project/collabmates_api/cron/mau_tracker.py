@@ -29,7 +29,7 @@ def getCoralogixData(filters):
                                  'query': filters
                              },
                              headers={
-                                 'token': settings.CORALOGIX_LOGGER.get('PRIVATE_API_KEY'),
+                                 'token': settings.CORALOGIX_QUERY_API_KEY,
                                  'Content-type': 'application/json'
                              })
 
@@ -54,7 +54,7 @@ def getCoralogixData(filters):
                                           'query': filters
                                       },
                                       headers={
-                                          'token': 'f246d6f2-2fe3-4444-a963-689330ea689c',
+                                          'token': settings.CORALOGIX_QUERY_API_KEY,
                                           'Content-type': 'application/json'
                                       })
 
@@ -78,13 +78,17 @@ def getCoralogixData(filters):
 
 def getUUIDOfUsers(community_id, users_list):
     user_int_list = []
+    user_str_list = []
 
     # Segregate integer user ids from user list
     for user in users_list:
         if any([isinstance(user, int), isinstance(user, str) and user.isdigit()]):
             user_int_list.append(user)
 
-    return get_users_meta_info(community_id, users_list, user_int_list)
+        else:
+            user_str_list.append(user)
+
+    return get_users_meta_info(community_id, user_str_list, user_int_list)
 
 def getUserListFromCoralogixData(coralogixData):
     users_list = set()
@@ -299,13 +303,13 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
 
 def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
     # Fetch active user IDs for a specific billing record
-    activeUsers = ModelUtilities.get_model_filter(ActiveUser, {'billing': billingRecord}).value_list('uuid', flat=True)
+    activeUsers = ModelUtilities.get_model_filter(ActiveUser, {'billing': billingRecord}).values_list('uuid', flat=True)
 
     # Create monthly active user data for a billing record
     ModelUtilities.update_or_create_model(ActiveUserMonthlyData,
                                           {'billing': billingRecord,
-                                           'start_date': today-relativedelta.relativedelta(months=1),
-                                           'end_date': today},
+                                           'start_date': (today-relativedelta.relativedelta(months=1)).strftime("%s"),
+                                           'end_date': today.strftime("%s")},
                                           {'mau_count': len(activeUsers),
                                            'user_list': str(activeUsers)})
 @app.task
@@ -320,13 +324,14 @@ def track():
         updateUniqueUsersOfACommunityBillingEntry(billingRecord)
 
         # If New month started for a billing record
-        if today.strftime("%d") == str(billingRecord.start_date):
+        if int(today.strftime("%d")) == billingRecord.start_date:
             # Fetch all the unique users for a billing record in a month and Create a MonthlyActiveUsers Record
             updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today)
 
             # If record exists for the current date in MonthlyActiveUsers
-            monthlyDataRecord = ModelUtilities.get_model_filter(ActiveUserMonthlyData, {'billing': billingRecord,
-                                                                                        'end_date': today})
+            monthlyDataRecord = ModelUtilities.get_model_filter(ActiveUserMonthlyData,
+                                                                {'billing': billingRecord,
+                                                                 'end_date': today.strftime("%s")})
             if monthlyDataRecord:
                 # Delete all the ActiveUser records for that billing record
                 ModelUtilities.delete_record_in_model(ActiveUser, {'billing': billingRecord})
