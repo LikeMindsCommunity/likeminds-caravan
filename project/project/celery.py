@@ -47,10 +47,10 @@ app.conf.beat_schedule = {
         'task': 'cms.utils.find_uninstall_devices',
         'schedule': crontab(hour=3, minute=0),
     },
-    'new_test_task_for_intro_room': {
-        'task': 'collabmates_api.tasks.task_to_send_intro_notifications',
-        'schedule': crontab(hour=20, minute=53),
-    },
+    # 'new_test_task_for_intro_room': {
+    #     'task': 'collabmates_api.tasks.task_to_send_intro_notifications',
+    #     'schedule': crontab(hour=20, minute=53),
+    # },
     'send_daily_emails': {
         'task': 'collabmates_api.tasks.send_daily_emails',
         'schedule': crontab(hour=10, minute=0),
