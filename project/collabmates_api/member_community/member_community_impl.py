@@ -679,6 +679,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                     'route': MEMBER_COMMUNITY_PROFILE_ROUTE % (str(data['community_id']), str(data['member_id'])),
                     'created_at': data['created_at'],
                     'user_unique_id': data['user_unique_id'],
+                    'uuid': data['user_unique_id'],
                     'is_guest': data['is_guest']
                 }
 
@@ -2234,6 +2235,7 @@ class MemberCommunityHelper:
             temp['name'] = value['name']
             temp['image_url'] = value['image_url']
             temp['user_unique_id'] = value['user_unique_id']
+            temp['uuid'] = value['user_unique_id']
 
             if value.get('is_guest') is not None:
                 temp['is_guest'] = value.get('is_guest')
@@ -2293,6 +2295,7 @@ class MemberCommunityHelper:
                 
         if user_instance.userinfo:
             user_data['user_unique_id'] =  user_instance.userinfo.user_unique_id
+            user_data['uuid'] = user_data['user_unique_id']
 
         if sdk_client_info_flag:
             user_data['sdk_client_info'] = get_sdk_client_info_meta_or_none(user_instance.id)

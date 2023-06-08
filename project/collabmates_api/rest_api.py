@@ -1536,6 +1536,8 @@ class UserShortSerializer(serializers.ModelSerializer):
                 data['id'] = data['user_id_id']
                 del data['user_id_id']
 
+        data['uuid'] = data['user_unique_id']
+
         return data
 
 

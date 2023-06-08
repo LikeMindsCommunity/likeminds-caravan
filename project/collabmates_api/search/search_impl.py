@@ -530,6 +530,8 @@ class SearchImpl(SearchManager):
 
             member_introduction_dict['user_unique_id'] = hit['user_unique_id'] if 'user_unique_id' in hit else None
 
+            member_introduction_dict['uuid'] = member_introduction_dict['user_unique_id']
+
             member_introduction_dict['sdk_client_info'] = get_sdk_client_info_meta_or_none(member_introduction_dict['id']) 
 
             user_data = {

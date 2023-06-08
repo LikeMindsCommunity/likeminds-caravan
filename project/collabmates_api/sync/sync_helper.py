@@ -450,8 +450,9 @@ class SyncHelper:
             This method adds sdk_client_info for all users in user_meta of chatroom_data
         '''
 
-        # Iterate over all users in user_meta and add sdk_client_info
+        # Iterate over all users in user_meta and add sdk_client_info as well as uuid
         for user in users_meta.values():
             
             user['sdk_client_info'] = get_sdk_client_info_meta_or_none(user['id'])
+            user['uuid'] = user['user_unique_id']
 

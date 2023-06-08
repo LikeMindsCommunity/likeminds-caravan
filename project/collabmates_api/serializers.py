@@ -152,6 +152,7 @@ def UserinfoSerializer(user, sdk_client_info_flag:bool=False):
         'updated_at': user.updated_at,
         'is_guest': user.is_guest,
         'user_unique_id': user.user_unique_id,
+        'uuid': user.user_unique_id,
         'organisation_name': user.organisation_name,
         'image_url': user.image_link
     }
@@ -183,18 +184,15 @@ def get_user_email_list(user_id):
     return email_list
 
 
-def get_logged_in_user(user_instance, sdk_client_info:bool = False):
+def get_logged_in_user(user_instance, sdk_client_info_flag:bool = False):
     if isinstance(user_instance, Userinfo):
-        context = UserinfoSerializer(user_instance)
+        context = UserinfoSerializer(user_instance, sdk_client_info_flag=sdk_client_info_flag)
         user_id = user_instance.user_id_id
 
     else:
-        context = UserinfoSerializer(user_instance.userinfo)
+        context = UserinfoSerializer(user_instance.userinfo, 
+                                     sdk_client_info_flag=sdk_client_info_flag)
         user_id = user_instance.id
-
-    # Add sdk_client_info to context if sdk_client_info is True
-    if sdk_client_info:
-        context['sdk_client_info'] = get_sdk_client_info_meta_or_none(user_id)
 
     email_list = get_user_email_list(user_id)
     mobile_list = get_user_mobile_no_list(user_id)

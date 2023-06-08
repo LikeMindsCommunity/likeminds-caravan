@@ -4408,6 +4408,8 @@ class CommunityHelper:
         
         # Add sdk_client_info to all member objects
         for member in members_data:
+            
+            member['uuid'] = member['user_unique_id']
             member['sdk_client_info'] = get_sdk_client_info_meta_or_none(member['id'])
         
         return members_data

@@ -739,7 +739,7 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
             current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
                                              send_profile=True,
                                              all_members_api=True, is_promoter=is_promoter,
-                                             is_owner=is_owner)
+                                             is_owner=is_owner, sdk_client_info_flag=True)
 
     if is_owner or is_promoter:
         user_admin_rights = check_all_manager_rights(current_user_id, community_id)
@@ -749,14 +749,9 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
         userinfo_serialized_object = MembersSerializer(member, community_id, current_user_id=current_user_id,
                                                        send_profile=True,
                                                        all_members_api=True, is_promoter=is_promoter,
-                                                       is_owner=is_owner, user_admin_rights=user_admin_rights)
+                                                       is_owner=is_owner, user_admin_rights=user_admin_rights,
+                                                       sdk_client_info_flag=True)
         
-        # Add sdk_client_info data to userinfo_serialized_object
-        sdk_client = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id': member_id}).first()
-       
-        if sdk_client:
-            userinfo_serialized_object['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client).data
-
         if current_user_id and member_id == int(current_user_id):
             pass
         else:

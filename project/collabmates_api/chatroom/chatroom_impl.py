@@ -627,6 +627,8 @@ class ChatroomImpl(ChatroomManager):
 
         # add sdk_client_info to all members
         for member in tag_list:
+            
+            member['uuid'] = member['user_unique_id']
             member['sdk_client_info'] = get_sdk_client_info_meta_or_none(member['id'])
 
         return tag_list
@@ -659,6 +661,8 @@ class ChatroomImpl(ChatroomManager):
             
         # add sdk_client_info to all members
         for member in tag_list:
+
+            member['uuid'] = member['user_unique_id']
             member['sdk_client_info'] = get_sdk_client_info_meta_or_none(member['id'])
 
         return tag_list

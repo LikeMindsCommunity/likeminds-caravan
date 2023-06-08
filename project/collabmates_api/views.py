@@ -8380,7 +8380,7 @@ def verify_otp(request):
             context['profile_exists'] = mobile_filter.exists()
 
             if mobile_filter.exists():
-                context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, sdk_client_info = True)
+                context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, sdk_client_info_flag=True)
                 context['access'] = is_user_community_part(context['user']['id'])
 
                 return JsonResponse(context)
@@ -9086,7 +9086,7 @@ def create_mixpanel_statistics(user_instance, userinfo_instance):
         return
 
     context = {}
-    context['user'] = get_logged_in_user(userinfo_instance, sdk_client_info=True)
+    context['user'] = get_logged_in_user(userinfo_instance, sdk_client_info_flag=True)
 
     user_metrics = {}
     user_metrics['first_login'] = TimeUtilities.convert_epoch_time_to_ddmmyyyy(userinfo_instance.created_at)
