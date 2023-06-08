@@ -311,7 +311,7 @@ def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
                                            'start_date': (today-relativedelta.relativedelta(months=1)).strftime("%s"),
                                            'end_date': today.strftime("%s")},
                                           {'mau_count': len(activeUsers),
-                                           'user_list': str(activeUsers)})
+                                           'users_list': str(activeUsers)})
 @app.task
 @shared_task
 def track():
