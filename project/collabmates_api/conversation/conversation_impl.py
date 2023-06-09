@@ -1143,6 +1143,13 @@ class ConversationImpl(ConversationManager):
             'user_id': poll_instance.user_id
         }
 
+        # Add user meta to response 
+        if isinstance(user_instance, User):
+            poll_response['member'] = UserinfoSerializer(user_instance.userinfo, True)
+        
+        else:
+            poll_response['member'] = UserinfoSerializer(user_instance, True)
+        
         return {'success': True, 'poll': poll_response}
 
     def submit_poll(self, request_body):

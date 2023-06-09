@@ -18,7 +18,8 @@ from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
                           get_removed_member_custom_text, get_collabcard_files, get_user_profile,
-                          get_answer_text_for_poll, CollabcardSerializer, get_sdk_client_info_meta_or_none)
+                          get_answer_text_for_poll, CollabcardSerializer, UserinfoSerializer as OldUserInfoSerializer, 
+                          get_sdk_client_info_meta_or_none)
 from utility.states import (card_types, question_states, member_states, poll_types,
                             deleted_members, manager_rights, member_rights, conversation_states,
                             conversation_poll_types)
@@ -1085,6 +1086,13 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
             user_instance=user_instance,
             conversation_instance=conversation_instance
         )
+    
+    def get_serialised_userinfo(self, user_id):
+
+        user_instance = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
+
+        if user_instance:
+            return OldUserInfoSerializer(user_instance, sdk_client_info_flag=True)
 
     def to_representation(self, obj):
         data = super(CardAnswersDBSyncSerializer, self).to_representation(obj)
@@ -1103,6 +1111,12 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
             elif field.field_name == "user" and data['user'] is not None:
                 data['member_id'] = data['user']
+                
+                user_info_serialised = self.get_serialised_userinfo(data['user'])
+
+                if user_info_serialised:
+                    data['member'] = user_info_serialised
+
                 del data["user"]
 
             elif field.field_name == "created_at" and data['created_at'] is not None:
