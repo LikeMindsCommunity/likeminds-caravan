@@ -75,6 +75,7 @@ from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
 from ..views import get_home_screen_community_actions, generate_internal_link_preview_for_conversation, \
     get_latest_conversation_members, post_introduction_card_for_community, update_community_get_started
+from ..chatroom_member.chatroom_member_impl import ChatroomMemberHelper
 
 from collabmates_api.search.sync import ElasticSearchSync
 
@@ -2066,6 +2067,9 @@ class MemberCommunityImpl(MemberCommunityManager):
         user_chatroom_status_query = get_user_chatroom_status(member_instance.id, self.get_community_id(),
                                                               chatroom_types, page, page_size)
 
+        # Fetch user_meta from chatrooms_data and add it in response
+        users_meta = ChatroomMemberHelper.get_users_meta_from_chatrooms_data(user_chatroom_status_query)
+
         filter_dict = {
             'community': community_instance,
             'type__in': chatroom_types,
@@ -2077,7 +2081,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         return {
             'success': True,
             'chatrooms_data': user_chatroom_status_query,
-            'total_chatrooms_count': total_chatrooms_count
+            'total_chatrooms_count': total_chatrooms_count,
+            'user_meta': users_meta
         }
 
     def fetch_user_home_meta(self):

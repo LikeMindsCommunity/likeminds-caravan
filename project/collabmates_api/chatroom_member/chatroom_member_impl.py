@@ -17,7 +17,7 @@ from collabmates_api.member_community import member_community_impl
 from collabmates_api.raw_queries import get_chatroom_count_based_on_community_list, \
     get_count_of_community_members_based_on_community_list, fetch_chatroom_polls, fetch_member_poll_votes
 from collabmates_api.serializers import conversationSerializer, get_collabcard_files, get_preview_for_url, \
-    get_members_profile, get_sdk_client_info_meta_or_none
+    get_members_profile, get_sdk_client_info_meta_or_none, UserinfoSerializer
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -25,7 +25,7 @@ from utility.number_utilities import NumberUtilities
 from utility.states import card_types, poll_types, conversation_states
 from utility.time_utilities import TimeUtilities
 from togther.models import collabcardState, Members, ModelUtilities, MemberPollVotes, card_answers, EventInstructor, \
-    EventHighlights, EventMemberTestimonials, EventFAQ, Cohort, CohortMember, ChatroomCohort, Collabcard, SDKClientUsersInfo
+    EventHighlights, EventMemberTestimonials, EventFAQ, Cohort, CohortMember, ChatroomCohort, Collabcard, Userinfo
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -872,3 +872,35 @@ class ChatroomMemberHelper:
                 return True
 
         return False
+
+    @staticmethod
+    def get_users_meta_from_chatrooms_data(chatrooms_data) -> dict:
+        ''' This function returns a user_meta dict with user_id as key and 
+            serialised user object as value from all the chatrooms
+        '''
+
+        user_query_col_names = ['user_id', 'deleted_by_user_id', 'chatroom_with_user_id', 
+                                'chat_requested_by_id']
+        user_ids = set()
+        users_meta = {}
+
+        # Get all user_ids from chatrooms 
+        for chatroom in chatrooms_data:
+
+            for key, value in chatroom.items():
+                if key in user_query_col_names:
+                    user_ids.add(value)
+
+           
+        # Get user instances with user objects
+        user_instances_list = ModelUtilities.get_model_filter(Userinfo, 
+                                                              {'user_id__in': list(user_ids)})       
+
+        # Serialize user with UserInfoSeralizer with sdk_client_info
+        for user in user_instances_list:
+
+            user_info = UserinfoSerializer(user, True)
+
+            users_meta[user.user_id_id] = user_info
+
+        return users_meta
