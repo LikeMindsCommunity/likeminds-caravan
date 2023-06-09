@@ -2565,5 +2565,25 @@ def get_sdk_client_info_meta_or_none(user_id) -> dict :
     
     else:
         return None
+    
+def get_sdk_client_info_meta_dict_for_member_ids(member_ids) -> dict :
+    """ This functions returns sdk_client_info_meta dict for the list of member_ids"""
+
+    from .rest_api import SDKClientUsersInfoSerializer
+
+    # get sdk_client_info instances and serialize them
+    sdk_client_instances = ModelUtilities.get_model_filter(SDKClientUsersInfo, 
+                                                           {'user_id__in' : member_ids})
+    serialized_instances = SDKClientUsersInfoSerializer(sdk_client_instances, many=True).data
+
+    sdk_client_info_dict = {}
+
+    # For each serialized instance, make a key value pair of user_id and its sdk_client_info
+    for instance in serialized_instances:
+        
+        user_id = instance['user']
+        sdk_client_info_dict[user_id] = instance
+
+    return sdk_client_info_dict
 
 # =========================================================================#
