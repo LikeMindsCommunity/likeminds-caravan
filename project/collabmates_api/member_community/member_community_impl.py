@@ -714,12 +714,15 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                   (userinfo_instance.name,
                                                    TimeUtilities.convert_epoch_time_in_date(
                                                        membership_expired_instance.created_at))
-
-                # Add sdk_client_info to member if sdk_client_info_flag is True
-                if sdk_client_info_flag:
-                    member['sdk_client_info'] = get_sdk_client_info_meta_or_none(member['id'])
-                
                 member_dict[data['member_id']] = member
+
+        # if sdk_client_info_flag is true, add sdk_client_info to members
+        if sdk_client_info_flag:
+            member_ids = list(member_dict.keys())
+            sdk_client_info_dict = get_sdk_client_info_meta_dict_for_member_ids(member_ids)
+
+            for member in member_dict.values():
+                member['sdk_client_info'] = sdk_client_info_dict.get(member['id'], None)
 
         return member_dict
 
@@ -2233,10 +2236,6 @@ class MemberCommunityHelper:
 
         member_list = []
 
-        member_ids = [value['id'] for key, value in member_data.items()]
-
-        sdk_client_info_dict = get_sdk_client_info_meta_dict_for_member_ids(member_ids)
-
         for key, value in member_data.items():
 
             temp = dict()
@@ -2253,7 +2252,7 @@ class MemberCommunityHelper:
                 temp['custom_title'] = value.get('custom_title')
 
             if sdk_client_info_flag:
-                temp['sdk_client_info'] = sdk_client_info_dict.get(value['name'])
+                temp['sdk_client_info'] = value.get('sdk_client_info')
 
             member_list.append(temp)
 
