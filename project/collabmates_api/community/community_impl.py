@@ -98,7 +98,7 @@ from ..sms import send_community_confirmation_sms
 from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check, \
     m2cm_v2_version_check
 
-from ..serializers import (get_sdk_client_info_meta_or_none)
+from ..serializers import (get_sdk_client_info_meta_dict_for_member_ids)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -986,7 +986,10 @@ class CommunityImpl(CommunityManager):
         community_instance = validated_req.get('community_instance')
         member_ids = validated_req.get('member_ids')
 
-        members = ChatroomImpl.compute_tagging_list_of_community_members(community_instance, member_ids, search_name, page, page_size, order_by_name = order_by_name)
+        members = ChatroomImpl.compute_tagging_list_of_community_members(community_instance, member_ids, 
+                                                                         search_name, page, page_size, 
+                                                                         order_by_name=order_by_name,
+                                                                         sdk_client_info_flag=True)
         members = ChatroomImpl.remove_guest_user_from_participants_data_list(members)
 
         return {'success': True, 'members': members}
@@ -1001,13 +1004,15 @@ class CommunityImpl(CommunityManager):
                                                                                 api_key=self.get_api_key())
 
         if validated_req.get('error_message'):
-            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),status_code=status_codes.HTTP_400_BAD_REQUEST)
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_req.get('community_instance')
         member_ids = validated_req.get('member_ids')
 
         # Get members meta list
-        members_list = CommunityHelper.compute_members_meta_list(community_instance, member_ids, page, page_size, search_name)
+        members_list = CommunityHelper.compute_members_meta_list(community_instance, member_ids, page, 
+                                                                 page_size, search_name, sdk_client_info_flag=True)
 
         return {'success': True, 'members': members_list}
 
@@ -4388,7 +4393,8 @@ class CommunityHelper:
         return {'community_instance': community_instance, 'notification_settings': new_notification_settings}
     
     @staticmethod
-    def compute_members_meta_list(community_instance, member_ids, page, page_size, search_name):
+    def compute_members_meta_list(community_instance, member_ids, page, page_size, search_name, 
+                                  sdk_client_info_flag:bool=False):
         
         members_data = []
 
@@ -4407,10 +4413,13 @@ class CommunityHelper:
                                              search_string=search_name)
         
         # Add sdk_client_info to all member objects
-        for member in members_data:
-            
-            member['uuid'] = member['user_unique_id']
-            member['sdk_client_info'] = get_sdk_client_info_meta_or_none(member['id'])
+        if sdk_client_info_flag:
+            member_ids = [member['id'] for member in members_data]
+
+            sdk_client_info_dict = get_sdk_client_info_meta_dict_for_member_ids(member_ids)
+
+            for member in members_data:
+                member['sdk_client_info'] = sdk_client_info_dict.get(member['id'])
         
         return members_data
     

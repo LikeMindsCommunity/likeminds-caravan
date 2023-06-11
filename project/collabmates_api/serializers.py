@@ -162,6 +162,31 @@ def UserinfoSerializer(user, sdk_client_info_flag:bool=False):
 
     return userinfo
 
+def UsersinfoSerializer_dict(user_instances: Userinfo) -> dict:
+    """Returns a dictionary of user info objects for the given UserInfo instances 
+    with sdk_client_info."""
+    
+    user_dict = {}
+
+    user_ids = [user.user_id_id for user in user_instances]
+    sdk_client_info_instances = get_sdk_client_info_meta_dict_for_member_ids(user_ids)
+
+    for user in user_instances:
+        userinfo = {
+            'id': user.user_id_id,
+            'name': user.name,
+            'updated_at': user.updated_at,
+            'is_guest': user.is_guest,
+            'user_unique_id': user.user_unique_id,
+            'uuid': user.user_unique_id,
+            'organisation_name': user.organisation_name,
+            'image_url': user.image_link,
+            'sdk_client_info': sdk_client_info_instances.get(user.user_id_id)
+        }
+
+        user_dict[user.user_id_id] = userinfo
+
+    return user_dict
 
 def get_user_mobile_no_list(user_id):
     mobile_filter = userMobiles.objects.filter(user=user_id)
