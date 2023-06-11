@@ -15,7 +15,7 @@ from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING,CHATROOM
 from collabmates_api.sdk.models import SdkClient
 from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
                            get_chatrooms_of_user_with_follow_status)
-from ..serializers import (get_sdk_client_info_meta_or_none)
+from ..serializers import (get_sdk_client_info_meta_dict_for_member_ids)
 
 class SearchImpl(SearchManager):
 
@@ -484,6 +484,9 @@ class SearchImpl(SearchManager):
 
         answer_dict = {instance.member_id: instance for instance in introduction_filter}
 
+        # Get sdk_client_info user dict
+        sdk_client_info_dict = get_sdk_client_info_meta_dict_for_member_ids(user_list)
+
         for hit in res:
             member_introduction_dict = dict()
 
@@ -534,7 +537,7 @@ class SearchImpl(SearchManager):
 
             member_introduction_dict['uuid'] = member_introduction_dict['user_unique_id']
 
-            member_introduction_dict['sdk_client_info'] = get_sdk_client_info_meta_or_none(member_introduction_dict['id']) 
+            member_introduction_dict['sdk_client_info'] = sdk_client_info_dict.get(member_introduction_dict['id']) 
 
             user_data = {
                 'state': hit['state'],

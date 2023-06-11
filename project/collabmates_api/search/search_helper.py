@@ -4,7 +4,8 @@ from utility.states import (member_states)
 from collabmates_api.user_moderation_rights import (check_all_manager_rights)
 from utility.time_utilities import TimeUtilities
 from ..raw_queries import (get_chatroom_participants_count)
-from ..serializers import (UserinfoSerializer)
+from ..serializers import (UserinfoSerializer, UsersinfoSerializer_dict, 
+                           get_sdk_client_info_meta_dict_for_member_ids)
 
 class SearchHelper:
 
@@ -18,19 +19,23 @@ class SearchHelper:
     @staticmethod
     def serialize_chatroom_data_response(chatroom_data):
 
-        chatroom_ids_list = [state_data.get('chatroom').get('id') for state_data in chatroom_data
-                             if state_data.get('chatroom')]
+        chatroom_ids_list = [data.get('chatroom').get('id') for data in chatroom_data
+                             if data.get('chatroom')]
 
         # Get chatroom instances with user objects
         card_instances = ModelUtilities.get_model_filter(Collabcard, 
-                                                           {'id__in': chatroom_ids_list}
-                                                           ).select_related('user')
+                                                           {'id__in': chatroom_ids_list})
         
+        user_ids = [card.user_id for card in card_instances]
+
+        # Get sdk_client_info for user_ids
+        serialised_usersinfo_dict = UsersinfoSerializer_dict(user_ids)
+    
         chatroom_creators_meta = {}
 
         # Serialize chatrooms creator with UserInfoSeralizer with sdk_client_info 
         for card in card_instances:
-            chatroom_creators_meta[card.id]  = (UserinfoSerializer(card.user.userinfo, True))
+            chatroom_creators_meta[card.id]  = serialised_usersinfo_dict.get(card.user_id)
         
         for card_data in chatroom_data:
 
@@ -54,24 +59,18 @@ class SearchHelper:
 
         conversations_data = [hit.to_dict() for hit in res_dict]
 
-        memeber_ids_list = [conversation.get('member').get('id') for conversation in conversations_data
+        member_ids = [conversation.get('member').get('id') for conversation in conversations_data
                                 if conversation.get('member')]
         
         # Get user instances with user objects
-        user_instances_list = ModelUtilities.get_model_filter(Userinfo, {'user_id__in': memeber_ids_list})        
-
-        user_info_meta = {}
-
-        # Serialize user with UserInfoSeralizer with sdk_client_info
-        for user in user_instances_list:
-            user_info = UserinfoSerializer(user, True)
-            user_info_meta[user.user_id_id] = user_info
+        serialised_user_info_meta = UsersinfoSerializer_dict(member_ids)
 
         # Update user info in 'member' object of conversations_data
-        for conversations in conversations_data:
+        for conversation in conversations_data:
 
-            if conversations.get('member'):
-                conversations.get('member').update(user_info_meta.get(conversations.get('member').get('id')))
+            if conversation.get('member'):
+                member_id = conversation.get('member').get('id')
+                conversation.get('member').update(serialised_user_info_meta.get(member_id))
 
         return conversations_data
 
