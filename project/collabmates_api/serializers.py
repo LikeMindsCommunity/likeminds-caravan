@@ -162,29 +162,24 @@ def UserinfoSerializer(user, sdk_client_info_flag:bool=False):
 
     return userinfo
 
-def UsersinfoSerializer_dict(user_instances: Userinfo) -> dict:
-    """Returns a dictionary of user info objects for the given UserInfo instances 
+def UsersinfoSerializer_dict(user_ids) -> dict:
+    """Returns a dictionary of serialised user info objects for the given user_ids
     with sdk_client_info."""
-    
+
     user_dict = {}
 
-    user_ids = [user.user_id_id for user in user_instances]
-    sdk_client_info_instances = get_sdk_client_info_meta_dict_for_member_ids(user_ids)
+    # Get user instances with user objects
+    user_instances = ModelUtilities.get_model_filter(Userinfo,
+                                                          {'user_id__in': list(user_ids)})
+    
+    # Get sdk_client_info for user_ids
+    sdk_client_info_dict = get_sdk_client_info_meta_dict_for_member_ids(user_ids)
 
     for user in user_instances:
-        userinfo = {
-            'id': user.user_id_id,
-            'name': user.name,
-            'updated_at': user.updated_at,
-            'is_guest': user.is_guest,
-            'user_unique_id': user.user_unique_id,
-            'uuid': user.user_unique_id,
-            'organisation_name': user.organisation_name,
-            'image_url': user.image_link,
-            'sdk_client_info': sdk_client_info_instances.get(user.user_id_id)
-        }
+        serialized_userinfo = UserinfoSerializer(user)
+        serialized_userinfo['sdk_client_info'] = sdk_client_info_dict.get(user.user_id_id)
 
-        user_dict[user.user_id_id] = userinfo
+        user_dict[user.user_id_id] = serialized_userinfo
 
     return user_dict
 

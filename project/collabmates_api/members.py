@@ -615,7 +615,8 @@ def get_all_members_version_1(request, req_dict=None):
 
     else:
 
-        unfiltered_context = unfiltered_member_list(current_user_id, community_id, page, member_state=member_state)
+        unfiltered_context = unfiltered_member_list(current_user_id, community_id, page, member_state=member_state,
+                                                    sdk_client_info_flag=True)
         members = unfiltered_context['members']
         total_filtered_members = community['members_count']
 
@@ -686,11 +687,12 @@ def filtered_member_list(current_user_id, community_id, filter_list, page, membe
     return filter_context
 
 
-def unfiltered_member_list(current_user_id, community_id, page, member_state=None):
+def unfiltered_member_list(current_user_id, community_id, page, member_state=None, sdk_client_info_flag:bool=False):
     member_list = get_member_query_set(current_user_id, community_id, page=page, remove_guest_user=True,
                                        member_state=member_state)
 
-    members = get_member_instances_without_filter(member_list, current_user_id, community_id, page=page, member_state=member_state)
+    members = get_member_instances_without_filter(member_list, current_user_id, community_id, page=page, 
+                                                  member_state=member_state, sdk_client_info_flag=sdk_client_info_flag)
 
     unfilter_context = {
         'members': members
@@ -715,10 +717,12 @@ def get_community_managers(community_instance):
     return temp
 
 
-def get_member_instances_without_filter(member_list, current_user_id, community_id, page=1, member_state: int = None):
+def get_member_instances_without_filter(member_list, current_user_id, community_id, page=1, member_state: int = None, 
+                                        sdk_client_info_flag:bool=False):
     '''function to get members instances from members table'''
 
     members = []
+    member_ids = []
     current_user = {}
     is_owner = False
     user_admin_rights = None
@@ -739,23 +743,31 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
             current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
                                              send_profile=True,
                                              all_members_api=True, is_promoter=is_promoter,
-                                             is_owner=is_owner, sdk_client_info_flag=True)
+                                             is_owner=is_owner, sdk_client_info_flag=sdk_client_info_flag)
 
     if is_owner or is_promoter:
         user_admin_rights = check_all_manager_rights(current_user_id, community_id)
 
     for member in member_list:
         member_id = member.member_id_id
+
+        if current_user_id and member_id == int(current_user_id):
+            pass
+
         userinfo_serialized_object = MembersSerializer(member, community_id, current_user_id=current_user_id,
                                                        send_profile=True,
                                                        all_members_api=True, is_promoter=is_promoter,
-                                                       is_owner=is_owner, user_admin_rights=user_admin_rights,
-                                                       sdk_client_info_flag=True)
-        
-        if current_user_id and member_id == int(current_user_id):
-            pass
-        else:
-            members.append(userinfo_serialized_object)
+                                                       is_owner=is_owner, user_admin_rights=user_admin_rights)
+        members.append(userinfo_serialized_object)
+
+        member_ids.append(member_id)
+
+    # If sdk_client_info_flag is True, then add sdk_client_info to members object
+    if sdk_client_info_flag:
+        sdk_client_info_meta = get_sdk_client_info_meta_dict_for_member_ids(member_ids)
+
+        for member in members:
+            member['sdk_client_info'] = sdk_client_info_meta.get( member['id'])
 
     if current_user and member_state and current_user['state'] != member_state:
         return members
