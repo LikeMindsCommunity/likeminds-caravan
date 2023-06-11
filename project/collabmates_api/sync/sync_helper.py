@@ -15,7 +15,7 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         CHATROOM_DATE_EPOCH_KEY)
 from utility.states import (conversation_states, conversation_poll_types)
 from togther.models import (ModelUtilities, card_answers, SDKClientUsersInfo)
-from ..serializers import (get_sdk_client_info_meta_or_none)
+from ..serializers import (get_sdk_client_info_meta_dict_for_member_ids)
 
 
 
@@ -450,9 +450,15 @@ class SyncHelper:
             This method adds sdk_client_info for all users in user_meta of chatroom_data
         '''
 
-        # Iterate over all users in user_meta and add sdk_client_info as well as uuid
+        # Get all user_ids from users_meta
+        member_ids = [user['id'] for user in users_meta.values()]
+
+        # get sdk_client_info user dict for all member_ids
+        sdk_client_info_user_dict = get_sdk_client_info_meta_dict_for_member_ids(member_ids)
+
+        # Iterate over all users in user_meta and add sdk_client_info and uuid
         for user in users_meta.values():
             
-            user['sdk_client_info'] = get_sdk_client_info_meta_or_none(user['id'])
+            user['sdk_client_info'] = sdk_client_info_user_dict.get(user['id'])
             user['uuid'] = user['user_unique_id']
 
