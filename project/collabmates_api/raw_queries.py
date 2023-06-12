@@ -1431,30 +1431,93 @@ def get_dictionary_of_member_responses(res):
 
     return responses_dict
 
-def process_members_data_for_sdk_client_info(members_data: list) -> list:
+def process_users_data_for_sdk_client_info(users_data: list, get_users_dict:bool=False):
 
-    if not members_data:
+    if not users_data:
         return []
+    
+    users_dict = {}
      
-    for member in members_data:
-        member['uuid'] = member.get('user_unique_id')
+    for user in users_data:
+        user['uuid'] = user.get('user_unique_id')
 
-        # Add sdk_client_info key to the member context
-        if member.get('client_user_unique_id'):
-            member['sdk_client_info'] = {
-                'user_unique_id' : member.get('client_user_unique_id'),
-                'uuid' : member.get('client_user_unique_id'),
-                'community' : member.get('community_id'),
-                'user' : member.get('id')
+        # Add sdk_client_info key to the user context
+        if user.get('client_user_unique_id'):
+            user['sdk_client_info'] = {
+                'user_unique_id' : user.get('client_user_unique_id'),
+                'uuid' : user.get('client_user_unique_id'),
+                'community' : user.get('community_id'),
+                'user' : user.get('id')
                 }
         else:
-            member['sdk_client_info'] = None
+            user['sdk_client_info'] = None
         
         # Remove the client_user_unique_id and community_id from the dict
-        member.pop('client_user_unique_id', None)
-        member.pop('community_id', None)
+        user.pop('client_user_unique_id', None)
+        user.pop('community_id', None)
 
-    return members_data
+        # Add the user to the users_dict
+        if get_users_dict:
+            users_dict[user['id']] = user
+    
+    # if get_users_dict is True, return user_dict with user_id as key and user_data as value
+    if get_users_dict:
+        return users_dict
+    
+    else:
+        return users_data
+
+def get_users_meta_with_sdk_client_info(user_ids: list, get_users_dict:bool=False):
+
+    if not user_ids:
+        return []
+
+    try:
+        user_id_tuple = get_tuple_from_array(user_ids)
+
+        if not user_id_tuple:
+            return []
+
+        sql = f"""
+                SELECT 
+                togther_userinfo.user_id_id as "id",
+                togther_userinfo.image_link as "image_url",
+                togther_userinfo.is_guest as "is_guest",
+                togther_userinfo.name as "name",
+                togther_userinfo.updated_at as "updated_at",
+                togther_userinfo.user_unique_id as "user_unique_id",
+                togther_userinfo.user_id_id as "uuid",
+
+                togther_sdkclientusersinfo.user_unique_id as "client_user_unique_id",
+                togther_sdkclientusersinfo.community_id as "community_id"
+
+                from togther_userinfo
+                left join togther_sdkclientusersinfo
+                on togther_sdkclientusersinfo.user_id = togther_userinfo.user_id_id
+
+                where
+                togther_userinfo.user_id_id in {user_id_tuple}
+                ;
+            """
+        
+        conn = get_connection()
+        curr = conn.cursor()
+
+        curr.execute(sql)
+
+        query_result = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        # Process the users data for sdk_client_info
+        users_meta_with_sdk_client_info = process_users_data_for_sdk_client_info(query_result, 
+                                                                                 get_users_dict=get_users_dict)
+
+        return users_meta_with_sdk_client_info
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+        return []
 
 def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, follow_status, type_list):
     """function to update chatroom data"""
