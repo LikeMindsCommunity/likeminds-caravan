@@ -22,7 +22,6 @@ from .user_moderation_rights import check_admin_view_contact_right
 from .branch import create_community_branch_links
 from utility.constants import *
 from utility.number_utilities import NumberUtilities
-from .raw_queries import (get_users_meta_with_sdk_client_info)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -2579,7 +2578,9 @@ def get_serialized_userinfo_meta_dict(member_ids) -> dict:
     """Returns a dictionary of serialised user info objects for the given member_ids
     with sdk_client_info."""
 
-    return get_users_meta_with_sdk_client_info(member_ids, True)
+    from .raw_queries import (get_users_meta_with_sdk_client_info)
+
+    user_meta_dict = get_users_meta_with_sdk_client_info(member_ids, True)
 
     user_dict = {}
 

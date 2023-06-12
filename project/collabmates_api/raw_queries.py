@@ -1484,6 +1484,7 @@ def get_users_meta_with_sdk_client_info(user_ids: list, get_users_dict:bool=Fals
                 togther_userinfo.image_link as "image_url",
                 togther_userinfo.is_guest as "is_guest",
                 togther_userinfo.name as "name",
+                togther_userinfo.organisation_name as "organisation_name",
                 togther_userinfo.updated_at as "updated_at",
                 togther_userinfo.user_unique_id as "user_unique_id",
                 togther_userinfo.user_id_id as "uuid",
