@@ -38,14 +38,13 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_all_chatrooms_of_community, get_chatroom_participants_count,\
     get_sorted_user_data_on_basis_of_activity_in_chatroom, get_members_based_on_user_list_query, \
     get_community_members_data_on_basis_of_name_search, get_last_conversation_id_corresponding_to_chatrooms_list, \
-    get_chatroom_invites_for_user, get_all_chatrooms_of_community_old
+    get_chatroom_invites_for_user, get_all_chatrooms_of_community_old, process_members_data_for_sdk_client_info
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, \
     ScheduledChatroomFollowSerializer, ChatroomInviteSerializer, UserChannelSettingsSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
-                           UserinfoSerializer, get_chatroom_instance, CollabcardSerializer,
-                           get_sdk_client_info_meta_dict)
+                           UserinfoSerializer, get_chatroom_instance, CollabcardSerializer)
 from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
     delete_chatroom, accessible_without_subscription, settings_for_chatroom_with_revamp, make_it_secret, \
     auto_joined_by_all_members, manage_permissions, BLOCK_MEMBER_DM_CHATROOM_MESSAGE, UNBLOCK_MEMBER_DM_CHATROOM_MESSAGE
@@ -632,17 +631,8 @@ class ChatroomImpl(ChatroomManager):
                 chatroom_instance.community_id, chatroom_instance.id, user_id=user_id, page=page, limit=page_size,
                 member_name_search=search_name, tag_only_participants=chatroom_instance.tag_only_participants)
 
-        # add sdk_client_info to all members
-        member_ids = [member['id'] for member in tag_list]
-
-        sdk_client_info_meta = get_sdk_client_info_meta_dict(member_ids)
-
-        for member in tag_list:
-
-            member['sdk_client_info'] = sdk_client_info_meta.get(member['id'])
-            member['uuid'] = member['user_unique_id']
-
-
+        tag_list = process_members_data_for_sdk_client_info(tag_list)
+        
         return tag_list
 
     @staticmethod
@@ -671,15 +661,8 @@ class ChatroomImpl(ChatroomManager):
                 chatroom_instance.community_id, chatroom_instance.id, user_id=user_id, page=page, limit=page_size,
                 member_name_search=search_name, filter_user_ids=member_list)
             
-        # add sdk_client_info to all members
-        member_ids = [member['id'] for member in tag_list]
-
-        sdk_client_info_meta = get_sdk_client_info_meta_dict(member_ids)
-
-        for member in tag_list:
-
-            member['sdk_client_info'] = sdk_client_info_meta.get(member['id'])
-            member['uuid'] = member['user_unique_id']
+        # process tag_list for sdk_client_info
+        tag_list = process_members_data_for_sdk_client_info(tag_list)
 
         return tag_list
 

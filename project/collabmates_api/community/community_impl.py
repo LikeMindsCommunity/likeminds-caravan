@@ -89,7 +89,7 @@ from ..notifications.tasks import send_mail_for_first_time_edit_community_questi
 from ..notifications.tasks_impl import TasksHelper
 from ..user.user_impl import UserHelper, UserImpl
 
-from ..raw_queries import get_members_meta_list, get_users_meta_info
+from ..raw_queries import get_members_meta_list, get_users_meta_info, process_members_data_for_sdk_client_info
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
     directory_questions_v2_version_check, get_user_phone, fetch_alias_question_version_check
@@ -97,8 +97,6 @@ from ..tasks import send_community_confirmation_email, cm_onboarding_version_che
 from ..sms import send_community_confirmation_sms
 from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check, \
     m2cm_v2_version_check
-
-from ..serializers import (get_sdk_client_info_meta_dict)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -4411,16 +4409,10 @@ class CommunityHelper:
                                              page=page,
                                              page_size=page_size,
                                              search_string=search_name)
-        
-        # Add sdk_client_info to all member objects
-        if sdk_client_info_flag:
-            member_ids = [member['id'] for member in members_data]
 
-            sdk_client_info_dict = get_sdk_client_info_meta_dict(member_ids)
-
-            for member in members_data:
-                member['sdk_client_info'] = sdk_client_info_dict.get(member['id'])
-        
+        # Process members_data for sdk_client_info
+        members_data = process_members_data_for_sdk_client_info(members_data)
+    
         return members_data
     
     @staticmethod
