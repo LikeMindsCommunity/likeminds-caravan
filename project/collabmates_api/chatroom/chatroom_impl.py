@@ -44,8 +44,8 @@ from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstance
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, \
     ScheduledChatroomFollowSerializer, ChatroomInviteSerializer, UserChannelSettingsSerializer
 from ..serializers import (get_preview_for_url, CommunitySerializer,
-                           UserinfoSerializer, get_chatroom_instance, CollabcardSerializer, get_sdk_client_info_meta_or_none,
-                           get_sdk_client_info_meta_dict_for_member_ids)
+                           UserinfoSerializer, get_chatroom_instance, CollabcardSerializer,
+                           get_sdk_client_info_meta_dict)
 from ..static_text import settings_for_purpose_chatroom, member_can_message, pin_chatroom, settings_for_chatroom, \
     delete_chatroom, accessible_without_subscription, settings_for_chatroom_with_revamp, make_it_secret, \
     auto_joined_by_all_members, manage_permissions, BLOCK_MEMBER_DM_CHATROOM_MESSAGE, UNBLOCK_MEMBER_DM_CHATROOM_MESSAGE
@@ -635,7 +635,7 @@ class ChatroomImpl(ChatroomManager):
         # add sdk_client_info to all members
         member_ids = [member['id'] for member in tag_list]
 
-        sdk_client_info_meta = get_sdk_client_info_meta_dict_for_member_ids(member_ids)
+        sdk_client_info_meta = get_sdk_client_info_meta_dict(member_ids)
 
         for member in tag_list:
 
@@ -674,7 +674,7 @@ class ChatroomImpl(ChatroomManager):
         # add sdk_client_info to all members
         member_ids = [member['id'] for member in tag_list]
 
-        sdk_client_info_meta = get_sdk_client_info_meta_dict_for_member_ids(member_ids)
+        sdk_client_info_meta = get_sdk_client_info_meta_dict(member_ids)
 
         for member in tag_list:
 

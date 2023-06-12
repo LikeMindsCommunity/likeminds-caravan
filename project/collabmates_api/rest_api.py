@@ -18,8 +18,8 @@ from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
                           get_removed_member_custom_text, get_collabcard_files, get_user_profile,
-                          get_answer_text_for_poll, CollabcardSerializer, UserinfoSerializer as OldUserInfoSerializer, 
-                          get_sdk_client_info_meta_or_none)
+                          get_answer_text_for_poll, CollabcardSerializer, UserinfoSerializer, 
+                          get_sdk_client_info_meta_dict)
 from utility.states import (card_types, question_states, member_states, poll_types,
                             deleted_members, manager_rights, member_rights, conversation_states,
                             conversation_poll_types)
@@ -1092,7 +1092,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
         user_instance = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
 
         if user_instance:
-            return OldUserInfoSerializer(user_instance, sdk_client_info_flag=True)
+            return UserinfoSerializer(user_instance, sdk_client_info_flag=True)
 
     def to_representation(self, obj):
         data = super(CardAnswersDBSyncSerializer, self).to_representation(obj)
@@ -1191,7 +1191,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
         return data
 
 
-class UserinfoSerializer(serializers.ModelSerializer):
+class UserinfoShortSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -1202,7 +1202,7 @@ class UserinfoSerializer(serializers.ModelSerializer):
         return userinfo.image_link
 
     def to_representation(self, userinfo):
-        data = super(UserinfoSerializer, self).to_representation(userinfo)
+        data = super(UserinfoShortSerializer, self).to_representation(userinfo)
 
         fields = self._readable_fields
 
@@ -1550,6 +1550,10 @@ class UserShortSerializer(serializers.ModelSerializer):
                 data['id'] = data['user_id_id']
                 del data['user_id_id']
 
+        # Add sdk_client_info to user context
+        sdk_client_info_dict = get_sdk_client_info_meta_dict([data['id']])
+        data['sdk_client_info'] = sdk_client_info_dict.get(data['id'])
+
         data['uuid'] = data['user_unique_id']
 
         return data
@@ -1577,12 +1581,9 @@ class ChatroomInviteSerializer(serializers.ModelSerializer):
 
             if field.field_name == 'invite_sender':
                 data['invite_sender'] = UserShortSerializer(instance.invite_sender.userinfo, many=False).data
-                data['invite_sender']['sdk_client_info'] = get_sdk_client_info_meta_or_none(data['invite_sender']['id'])
-                
 
             if field.field_name == 'invite_receiver':
                 data['invite_receiver'] = UserShortSerializer(instance.invite_receiver.userinfo, many=False).data
-                data['invite_receiver']['sdk_client_info'] = get_sdk_client_info_meta_or_none(data['invite_receiver']['id'])
 
         return data
 
@@ -1609,7 +1610,6 @@ class UserChannelSettingsSerializer(serializers.ModelSerializer):
 
                 if user:
                     data['user'] = UserShortSerializer(user).data
-                    data['user']['sdk_client_info'] = get_sdk_client_info_meta_or_none(data['user_id'])
                 
                 del data['user_id']
             

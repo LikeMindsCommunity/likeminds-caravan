@@ -73,7 +73,7 @@ from .rest_api import (CardAnswersDBSyncSerializer, EventRecordingsURLSerializer
                        CommunitySerializerV1, YourCommunitySerializer, EventRecordingsAttachmentsSerializer,
                        EventMemberTestimonialsSerializer, EventHighlightsSerializer, EventInstructorSerializer,
                        EventFAQSerializer)
-from .serializers import (get_sdk_client_info_meta_or_none)
+from .serializers import (get_serialized_userinfo_meta_dict)
 
 from utility.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
 from .upload_attachments import (save_community_image, save_chatroom_attachments,
@@ -8906,7 +8906,8 @@ def members_state(request, req_dict=None):
         json_response['community_toast'] = toast_filter[0].toast_message
 
     # Add sdk_client_info to member response
-    json_response['member']['sdk_client_info'] = get_sdk_client_info_meta_or_none(json_response['member']['id']) 
+    sdk_client_info_dict = get_serialized_userinfo_meta_dict([member_id])
+    json_response['member']['sdk_client_info'] = sdk_client_info_dict.get(member_id)
 
     if req_dict:
         return json_response

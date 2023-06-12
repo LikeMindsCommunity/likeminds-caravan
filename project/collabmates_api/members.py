@@ -764,7 +764,7 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
 
     # If sdk_client_info_flag is True, then add sdk_client_info to members object
     if sdk_client_info_flag:
-        sdk_client_info_meta = get_sdk_client_info_meta_dict_for_member_ids(member_ids)
+        sdk_client_info_meta = get_sdk_client_info_meta_dict(member_ids)
 
         for member in members:
             member['sdk_client_info'] = sdk_client_info_meta.get( member['id'])

@@ -98,7 +98,7 @@ from ..sms import send_community_confirmation_sms
 from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check, \
     m2cm_v2_version_check
 
-from ..serializers import (get_sdk_client_info_meta_dict_for_member_ids)
+from ..serializers import (get_sdk_client_info_meta_dict)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -4416,7 +4416,7 @@ class CommunityHelper:
         if sdk_client_info_flag:
             member_ids = [member['id'] for member in members_data]
 
-            sdk_client_info_dict = get_sdk_client_info_meta_dict_for_member_ids(member_ids)
+            sdk_client_info_dict = get_sdk_client_info_meta_dict(member_ids)
 
             for member in members_data:
                 member['sdk_client_info'] = sdk_client_info_dict.get(member['id'])

@@ -91,10 +91,10 @@ def get_members_profiles_for_reactions(community, members_id_list, reactions_map
         if sdk_client_info_flag:
             member_ids = [member['member']['id'] for member in members_profile_list]
 
-            from ..serializers import (get_sdk_client_info_meta_dict_for_member_ids)
+            from ..serializers import (get_sdk_client_info_meta_dict)
 
             # get sdk_client_info for all members
-            sdk_client_info_list = get_sdk_client_info_meta_dict_for_member_ids(member_ids)
+            sdk_client_info_list = get_sdk_client_info_meta_dict(member_ids)
 
             for member in members_profile_list:
                 member['member']['sdk_client_info'] = sdk_client_info_list.get(member['member']['id'], None)

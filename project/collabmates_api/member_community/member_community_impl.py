@@ -60,7 +60,7 @@ from ..raw_queries import (get_members_based_on_user_list_query,
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context, CommunityDMSettingsSerializer, MemberNotificationFlagSerializer, SDKClientUsersInfoSerializer
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
-    conversationSerializer, get_members_profile, get_sdk_client_info_meta_or_none, get_sdk_client_info_meta_dict_for_member_ids
+    conversationSerializer, get_members_profile, get_sdk_client_info_meta_dict
 from ..static_files import REMOVED_USER_URL, ICONS
 from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_ITEMS, COMMUNITY_LEVEL_3_TEXT, \
     IMAGE_URLS_FOR_QUESTION_TITLES, CREATE_COMMUNITY_QUESTION_NAME_TITLE
@@ -719,7 +719,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         # if sdk_client_info_flag is true, add sdk_client_info to members
         if sdk_client_info_flag:
             member_ids = list(member_dict.keys())
-            sdk_client_info_dict = get_sdk_client_info_meta_dict_for_member_ids(member_ids)
+            sdk_client_info_dict = get_sdk_client_info_meta_dict(member_ids)
 
             for member in member_dict.values():
                 member['sdk_client_info'] = sdk_client_info_dict.get(member['id'], None)
@@ -2306,7 +2306,8 @@ class MemberCommunityHelper:
             user_data['uuid'] = user_data['user_unique_id']
 
         if sdk_client_info_flag:
-            user_data['sdk_client_info'] = get_sdk_client_info_meta_or_none(user_instance.id)
+            sdk_client_info_dict = get_sdk_client_info_meta_dict([user_instance.id])
+            user_data['sdk_client_info'] = sdk_client_info_dict.get(user_instance.id)
 
         return user_data
 

@@ -157,31 +157,12 @@ def UserinfoSerializer(user, sdk_client_info_flag:bool=False):
         'image_url': user.image_link
     }
 
+    # Add sdk_client_info to user context if sdk_client_info_flag is True
     if sdk_client_info_flag:
-        userinfo['sdk_client_info'] = get_sdk_client_info_meta_or_none(userinfo['id'])
+        sdk_client_info_dict = get_sdk_client_info_meta_dict([userinfo['id']])
+        userinfo['sdk_client_info'] = sdk_client_info_dict.get(userinfo['id'])
 
     return userinfo
-
-def UsersinfoSerializer_dict(user_ids) -> dict:
-    """Returns a dictionary of serialised user info objects for the given user_ids
-    with sdk_client_info."""
-
-    user_dict = {}
-
-    # Get user instances with user objects
-    user_instances = ModelUtilities.get_model_filter(Userinfo,
-                                                          {'user_id__in': list(user_ids)})
-    
-    # Get sdk_client_info for user_ids
-    sdk_client_info_dict = get_sdk_client_info_meta_dict_for_member_ids(user_ids)
-
-    for user in user_instances:
-        serialized_userinfo = UserinfoSerializer(user)
-        serialized_userinfo['sdk_client_info'] = sdk_client_info_dict.get(user.user_id_id)
-
-        user_dict[user.user_id_id] = serialized_userinfo
-
-    return user_dict
 
 def get_user_mobile_no_list(user_id):
     mobile_filter = userMobiles.objects.filter(user=user_id)
@@ -1641,8 +1622,8 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
 
     # Add sdk_client_info to profile if sdk_client_info_flag is True
     if sdk_client_info_flag:
-
-        community_profile['sdk_client_info'] = get_sdk_client_info_meta_or_none(member_id)
+        sdk_client_info_dict = get_sdk_client_info_meta_dict([member_id])
+        community_profile['sdk_client_info'] = sdk_client_info_dict.get(member_id)
 
     return community_profile
 
@@ -2572,21 +2553,8 @@ def get_chatroom_preview(card_instance, member_id, active=None):
     chatroom_instance['last_response_members'] = last_response_members['last_response_members']
 
     return chatroom_instance
-
-def get_sdk_client_info_meta_or_none(user_id) -> dict :
-    """ This functions returns sdk_client_info meta of a user """
-
-    from .rest_api import SDKClientUsersInfoSerializer
-
-    client_user_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id' : user_id}).first()
-
-    if client_user_info:
-        return SDKClientUsersInfoSerializer(client_user_info, many=False).data
     
-    else:
-        return None
-    
-def get_sdk_client_info_meta_dict_for_member_ids(member_ids) -> dict :
+def get_sdk_client_info_meta_dict(member_ids) -> dict :
     """ This functions returns sdk_client_info_meta dict for the list of member_ids"""
 
     from .rest_api import SDKClientUsersInfoSerializer
@@ -2605,5 +2573,26 @@ def get_sdk_client_info_meta_dict_for_member_ids(member_ids) -> dict :
         sdk_client_info_dict[user_id] = instance
 
     return sdk_client_info_dict
+
+def get_serialized_userinfo_meta_dict(member_ids) -> dict:
+    """Returns a dictionary of serialised user info objects for the given member_ids
+    with sdk_client_info."""
+
+    user_dict = {}
+
+    # Get user instances with user objects
+    user_instances = ModelUtilities.get_model_filter(Userinfo,
+                                                     {'user_id__in': list(member_ids)})
+    
+    # Get sdk_client_info for member_ids
+    sdk_client_info_dict = get_sdk_client_info_meta_dict(member_ids)
+
+    for user in user_instances:
+        serialized_userinfo = UserinfoSerializer(user)
+        serialized_userinfo['sdk_client_info'] = sdk_client_info_dict.get(user.user_id_id)
+
+        user_dict[user.user_id_id] = serialized_userinfo
+
+    return user_dict
 
 # =========================================================================#

@@ -1143,12 +1143,11 @@ class ConversationImpl(ConversationManager):
             'user_id': poll_instance.user_id
         }
 
-        # Add user meta to response 
+        # Get serialized member details from user_instance
         if isinstance(user_instance, User):
-            poll_response['member'] = UserinfoSerializer(user_instance.userinfo, True)
+            user_instance = user_instance.userinfo
         
-        else:
-            poll_response['member'] = UserinfoSerializer(user_instance, True)
+        poll_response['member'] = UserinfoSerializer(user_instance, True)
         
         return {'success': True, 'poll': poll_response}
 
