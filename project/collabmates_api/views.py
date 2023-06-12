@@ -445,7 +445,8 @@ def my_chatrooms_version_1(request):
         draft_instance = instance.draft
 
         if card_instance:
-            chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False, sdk_client_info_flag=True)
+            chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False, 
+                                                         sdk_client_info_flag=True)
             context = {"current_user_id": member_id}
             chatroom['community'] = CommunitySerializerV1(card_instance.community, context=context,
                                                           many=False).data
@@ -8363,7 +8364,8 @@ def verify_otp(request):
             context['profile_exists'] = mobile_filter.exists()
 
             if mobile_filter.exists():
-                context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, sdk_client_info = True)
+                context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, 
+                                                     sdk_client_info = True)
                 context['access'] = is_user_community_part(context['user']['id'])
 
             return JsonResponse(context)
@@ -8435,7 +8437,8 @@ def verify_otp(request):
         context['profile_exists'] = mobile_filter.exists()
 
         if mobile_filter.exists():
-            context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, sdk_client_info = True)
+            context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, 
+                                                 sdk_client_info = True)
             context['access'] = is_user_community_part(context['user']['id'])
 
             if context['success'] == True:
