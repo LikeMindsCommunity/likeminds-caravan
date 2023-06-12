@@ -918,7 +918,14 @@ class ChatroomImpl(ChatroomManager):
         if card_instance.online_link_password:
             chatroom_context['online_link_password'] = card_instance.online_link_password
 
-    def fetch_chatroom(self, is_internal=False) -> dict:
+    def fetch_chatroom(self, is_internal=False, excluded_conversation_states: list = None) -> dict:
+
+        if excluded_conversation_states:
+            excluded_conversation_states = StringUtilities.get_list_from_string(excluded_conversation_states,
+                                                                                default=None)
+
+        if not (excluded_conversation_states and isinstance(excluded_conversation_states, list)):
+            excluded_conversation_states = [conversation_states.CONVERSATION_HEADER]
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
 
@@ -1043,7 +1050,7 @@ class ChatroomImpl(ChatroomManager):
         last_conversation_id = None
 
         card_ans_map = get_last_conversation_id_corresponding_to_chatrooms_list(
-            [card_instance.id], excluded_conversation_state=[conversation_states.CONVERSATION_HEADER])
+            [card_instance.id], excluded_conversation_state=excluded_conversation_states)
 
         if card_ans_map:
             last_conversation_id = card_ans_map.get(card_instance.id)
