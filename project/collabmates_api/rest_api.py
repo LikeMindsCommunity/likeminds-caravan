@@ -18,8 +18,7 @@ from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .serializers import (get_answer_files, get_preview_for_url, get_category_of_chatroom,
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
                           get_removed_member_custom_text, get_collabcard_files, get_user_profile,
-                          get_answer_text_for_poll, CollabcardSerializer, UserinfoSerializer, 
-                          get_sdk_client_info_meta_dict)
+                          get_answer_text_for_poll, CollabcardSerializer)
 from utility.states import (card_types, question_states, member_states, poll_types,
                             deleted_members, manager_rights, member_rights, conversation_states,
                             conversation_poll_types)
@@ -32,6 +31,7 @@ from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, EVENT_INSTRUCTO
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from .static_files import *
 from django.db.models import F, When, Q, Count
+from .raw_queries import (get_users_meta_with_sdk_client_info)
 
 url = settings.URL
 
@@ -1089,11 +1089,11 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
     
     def get_serialised_userinfo(self, user_id):
 
-        user_instance = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
+        user_meta = get_users_meta_with_sdk_client_info([user_id])
 
-        if user_instance:
-            return UserinfoSerializer(user_instance, sdk_client_info_flag=True)
-
+        if user_meta:
+            return user_meta[0]
+        
     def to_representation(self, obj):
         data = super(CardAnswersDBSyncSerializer, self).to_representation(obj)
 
@@ -1551,8 +1551,8 @@ class UserShortSerializer(serializers.ModelSerializer):
                 del data['user_id_id']
 
         # Add sdk_client_info to user context
-        sdk_client_info_dict = get_sdk_client_info_meta_dict([data['id']])
-        data['sdk_client_info'] = sdk_client_info_dict.get(data['id'])
+        users_meta_dict = get_users_meta_with_sdk_client_info([data['id']], get_users_dict=True)
+        data['sdk_client_info'] = users_meta_dict.get(data['id']).get('sdk_client_info')
 
         data['uuid'] = data['user_unique_id']
 
