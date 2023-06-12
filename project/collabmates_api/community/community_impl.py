@@ -89,7 +89,7 @@ from ..notifications.tasks import send_mail_for_first_time_edit_community_questi
 from ..notifications.tasks_impl import TasksHelper
 from ..user.user_impl import UserHelper, UserImpl
 
-from ..raw_queries import get_members_meta_list, get_users_meta_info, process_members_data_for_sdk_client_info
+from ..raw_queries import get_members_meta_list, get_users_meta_info, process_users_data_for_sdk_client_info
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
     directory_questions_v2_version_check, get_user_phone, fetch_alias_question_version_check
@@ -4411,7 +4411,7 @@ class CommunityHelper:
                                              search_string=search_name)
 
         # Process members_data for sdk_client_info
-        members_data = process_members_data_for_sdk_client_info(members_data)
+        members_data = process_users_data_for_sdk_client_info(members_data)
     
         return members_data
     
