@@ -1432,7 +1432,7 @@ def get_dictionary_of_member_responses(res):
     return responses_dict
 
 def process_users_data_for_sdk_client_info(users_data: list, get_users_dict:bool=False):
-
+    """ This method processes users data for sdk_client_info adds client_user_unique id to it."""
     if not users_data:
         return []
     
@@ -1468,6 +1468,9 @@ def process_users_data_for_sdk_client_info(users_data: list, get_users_dict:bool
         return users_data
 
 def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info:bool=False) -> dict:
+    """ This method fetches the users data along with its client_user_unique_id using raw query.
+        It returns a dict with user_id as key and user_meta as value.
+    """
 
     if not user_ids:
         return []
@@ -1930,7 +1933,9 @@ def get_members_meta_list(community_id: int, member_ids:list = None, page=1, pag
         query_result = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
 
-        return query_result
+        users_data_with_sdk_client_info = process_users_data_for_sdk_client_info(query_result)
+
+        return users_data_with_sdk_client_info
     
     except (Exception, psycopg2.Error) as error:
         print(error)
@@ -3527,7 +3532,12 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=N
         columns = [col[0] for col in curr.description]
         curr.close()
 
-        return [dict(zip(columns, row)) for row in user_ids_list]
+        users_data = [dict(zip(columns, row)) for row in user_ids_list]
+
+        # Process users data to add sdk client info
+        users_data_with_sdk_client_info = process_users_data_for_sdk_client_info(users_data)
+
+        return users_data_with_sdk_client_info
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
@@ -3594,7 +3604,12 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
         columns = [col[0] for col in curr.description]
         curr.close()
 
-        return [dict(zip(columns, row)) for row in user_ids_list]
+        users_data = [dict(zip(columns, row)) for row in user_ids_list]
+
+        # process users data to add sdk client info
+        users_data_with_sdk_client_info = process_users_data_for_sdk_client_info(users_data)
+
+        return users_data_with_sdk_client_info
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
