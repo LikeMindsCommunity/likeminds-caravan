@@ -668,6 +668,9 @@ class MemberCommunityImpl(MemberCommunityManager):
         if send_expired_info:
             membership_expired_dict = MemberCommunityImpl.fetch_members_for_membership_expired(user_list,
                                                                                                community_instance)
+            
+        if sdk_client_info_flag:
+            sdk_client_info_dict = get_users_sdk_meta_dict(user_list, only_sdk_client_info=True)
 
         for data in member_list:
 
@@ -715,15 +718,11 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                   (userinfo_instance.name,
                                                    TimeUtilities.convert_epoch_time_in_date(
                                                        membership_expired_instance.created_at))
+                
+                if sdk_client_info_flag:
+                    member['sdk_client_info'] = sdk_client_info_dict.get(member['id'])
+
                 member_dict[data['member_id']] = member
-
-        # if sdk_client_info_flag is true, add sdk_client_info to members
-        if sdk_client_info_flag:
-            member_ids = list(member_dict.keys())
-            sdk_client_info_dict = get_users_sdk_meta_dict(member_ids, only_sdk_client_info=True)
-
-            for member in member_dict.values():
-                member['sdk_client_info'] = sdk_client_info_dict.get(member['id'])
 
         return member_dict
 
