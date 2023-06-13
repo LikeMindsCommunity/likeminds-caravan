@@ -31,6 +31,7 @@ from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, EVENT_INSTRUCTO
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from .static_files import *
 from django.db.models import F, When, Q, Count
+from .raw_queries import (get_users_sdk_meta_dict)
 
 url = settings.URL
 
@@ -1085,7 +1086,13 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
             user_instance=user_instance,
             conversation_instance=conversation_instance
         )
+    
+    def get_serialised_userinfo(self, user_id):
 
+        user_meta = get_users_sdk_meta_dict([user_id])
+
+        return user_meta.get(user_id)
+        
     def to_representation(self, obj):
         data = super(CardAnswersDBSyncSerializer, self).to_representation(obj)
 
@@ -1103,6 +1110,12 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
             elif field.field_name == "user" and data['user'] is not None:
                 data['member_id'] = data['user']
+                
+                user_info_serialised = self.get_serialised_userinfo(data['user'])
+
+                if user_info_serialised:
+                    data['member'] = user_info_serialised
+
                 del data["user"]
 
             elif field.field_name == "created_at" and data['created_at'] is not None:
@@ -1177,7 +1190,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
         return data
 
 
-class UserinfoSerializer(serializers.ModelSerializer):
+class UserinfoShortSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -1188,7 +1201,7 @@ class UserinfoSerializer(serializers.ModelSerializer):
         return userinfo.image_link
 
     def to_representation(self, userinfo):
-        data = super(UserinfoSerializer, self).to_representation(userinfo)
+        data = super(UserinfoShortSerializer, self).to_representation(userinfo)
 
         fields = self._readable_fields
 
@@ -1492,7 +1505,13 @@ class SDKClientUsersInfoSerializer(serializers.ModelSerializer):
         model = SDKClientUsersInfo
         fields = ('user', 'community', 'user_unique_id')
 
+    def to_representation(self, instance):
+        data = super(SDKClientUsersInfoSerializer, self).to_representation(instance)
 
+        data['uuid'] = data['user_unique_id']
+
+        return data
+    
 class CommunityNotificationSettingsSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -1530,6 +1549,12 @@ class UserShortSerializer(serializers.ModelSerializer):
                 data['id'] = data['user_id_id']
                 del data['user_id_id']
 
+        # Add sdk_client_info to user context
+        users_meta_dict = get_users_sdk_meta_dict([data['id']], only_sdk_client_info=True)
+        data['sdk_client_info'] = users_meta_dict.get(data['id'])
+
+        data['uuid'] = data['user_unique_id']
+
         return data
 
 
@@ -1550,7 +1575,8 @@ class ChatroomInviteSerializer(serializers.ModelSerializer):
 
         for field in fields:
             if field.field_name == 'chatroom':
-                data['chatroom'] = CollabcardSerializer(instance.chatroom, user=self.user_id)
+                data['chatroom'] = CollabcardSerializer(instance.chatroom, user=self.user_id, 
+                                                        sdk_client_info_flag=True)
 
             if field.field_name == 'invite_sender':
                 data['invite_sender'] = UserShortSerializer(instance.invite_sender.userinfo, many=False).data
@@ -1583,10 +1609,6 @@ class UserChannelSettingsSerializer(serializers.ModelSerializer):
 
                 if user:
                     data['user'] = UserShortSerializer(user).data
-
-                    client_user_info = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id' : user.user_id}).first()
-                    if client_user_info:
-                        data['user']['sdk_client_info'] = SDKClientUsersInfoSerializer(client_user_info).data
                 
                 del data['user_id']
             

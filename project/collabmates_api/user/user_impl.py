@@ -1053,7 +1053,13 @@ class UserImpl(UserManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         if user_instance.userinfo.is_bot:
-            return self.create_user_context_for_sdk(user_instance)
+        
+            # Get SDKClientUserInfo instance and return it in response
+            sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo, 
+                                                                            {'user_id': user_instance}).first()
+
+            return self.create_user_context_for_sdk(user_instance, 
+                                                    sdk_client_user_info_instance=sdk_client_user_info_instance)
 
         return ResponseUtilities.get_impl_error_context('Community bot not found',
                                                         status_code=status_codes.HTTP_400_BAD_REQUEST)

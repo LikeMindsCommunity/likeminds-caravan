@@ -11,7 +11,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
                             Collabcard, card_answers, conversationEngage, communityQuestions, CommunityUserDelete,
                             communityRightsSettings, CommunitySettings, communityAnswers, questionFilters,
-                            Card_Attachment, CommunityDirectMessageSettings, userMemberRights, Userinfo)
+                            Card_Attachment, CommunityDirectMessageSettings, userMemberRights, Userinfo, SDKClientUsersInfo)
 from collabmates_api.sdk.models import (SdkClient)
 from utility.celery_tasks import update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery, \
     update_multiple_previews_in_chatroom, set_level_click_state, create_member_dm_chatroom, \
@@ -56,7 +56,8 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_chatrooms_of_user_with_follow_status,
                            get_conversation_users_against_chatrooms_list,
                            get_latest_conversations_against_chatrooms_list,
-                           get_user_chatroom_status)
+                           get_user_chatroom_status,
+                           get_users_sdk_meta_dict)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context, CommunityDMSettingsSerializer, MemberNotificationFlagSerializer
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -75,6 +76,7 @@ from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
 from ..views import get_home_screen_community_actions, generate_internal_link_preview_for_conversation, \
     get_latest_conversation_members, post_introduction_card_for_community, update_community_get_started
+from ..chatroom_member.chatroom_member_impl import ChatroomMemberHelper
 
 from collabmates_api.search.sync import ElasticSearchSync
 
@@ -654,7 +656,7 @@ class MemberCommunityImpl(MemberCommunityManager):
     @staticmethod
     def fetch_members_based_on_user_list(user_list, community_instance, order_by_name=False,
                                          send_expired_info=True, page=0, page_size=0,
-                                         member_name_search_string="") -> {}:
+                                         member_name_search_string="", sdk_client_info_flag:bool=False) -> {}:
 
         member_dict = {}
         membership_expired_dict = {}
@@ -666,6 +668,9 @@ class MemberCommunityImpl(MemberCommunityManager):
         if send_expired_info:
             membership_expired_dict = MemberCommunityImpl.fetch_members_for_membership_expired(user_list,
                                                                                                community_instance)
+            
+        if sdk_client_info_flag:
+            sdk_client_info_dict = get_users_sdk_meta_dict(user_list, only_sdk_client_info=True)
 
         for data in member_list:
 
@@ -679,6 +684,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                     'route': MEMBER_COMMUNITY_PROFILE_ROUTE % (str(data['community_id']), str(data['member_id'])),
                     'created_at': data['created_at'],
                     'user_unique_id': data['user_unique_id'],
+                    'uuid': data['user_unique_id'],
                     'is_guest': data['is_guest']
                 }
 
@@ -712,6 +718,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                   (userinfo_instance.name,
                                                    TimeUtilities.convert_epoch_time_in_date(
                                                        membership_expired_instance.created_at))
+                
+                if sdk_client_info_flag:
+                    member['sdk_client_info'] = sdk_client_info_dict.get(member['id'])
 
                 member_dict[data['member_id']] = member
 
@@ -925,7 +934,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
-        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
+        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance, 
+                                                                           sdk_client_info_flag=True)
         pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
             community_id=community_instance.id)
 
@@ -1003,7 +1013,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
-        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
+        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance,
+                                                                           sdk_client_info_flag=True)
         pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
             community_id=community_instance.id)
 
@@ -1153,7 +1164,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             member_id = user_instance.id
 
             if card_instance:
-                chatroom_home['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False)
+                chatroom_home['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False, 
+                                                                  sdk_client_info_flag=True)
 
                 context = {"current_user_id": member_id}
                 chatroom_home['community'] = CommunitySerializerV1(card_instance.community, context=context,
@@ -1175,7 +1187,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             if last_conversation and not is_draft_conversation(last_conversation, member_id):
 
-                last_conversation_dict = conversationSerializer(last_conversation, current_user_id=member_id)
+                last_conversation_dict = conversationSerializer(last_conversation, current_user_id=member_id,
+                                                                sdk_client_info_flag=True)
 
                 preview = generate_internal_link_preview_for_conversation(last_conversation, member_id)
 
@@ -1447,7 +1460,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         user_member_data = MemberCommunityHelper.add_member_metadata(user_member_instance, community_instance,
                                                                      current_user_member_instance,
-                                                                     is_community_answer_data)
+                                                                     is_community_answer_data,
+                                                                     sdk_client_info_flag=True)
 
         user_menu = MemberCommunityHelper.get_member_profile_menu(user_member_instance, community_instance,
                                                                   current_user_member_instance)
@@ -1770,7 +1784,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom = MemberCommunityHelper.serialise_dm_chatrooms(user_instance, community_instance, card_id,
                                                                     card_ans_id, card_state_map,
                                                                     convsersation_states_to_consider, rights_list,
-                                                                    device_id=self.get_device_id())
+                                                                    device_id=self.get_device_id(), 
+                                                                    sdk_client_info_flag=True)
 
             chatroom['community'] = community_serializer_object
 
@@ -2055,6 +2070,9 @@ class MemberCommunityImpl(MemberCommunityManager):
         user_chatroom_status_query = get_user_chatroom_status(member_instance.id, self.get_community_id(),
                                                               chatroom_types, page, page_size)
 
+        # Fetch user_meta from chatrooms_data and add it in response
+        users_meta = ChatroomMemberHelper.get_users_meta_from_chatrooms_data(user_chatroom_status_query)
+
         filter_dict = {
             'community': community_instance,
             'type__in': chatroom_types,
@@ -2066,7 +2084,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         return {
             'success': True,
             'chatrooms_data': user_chatroom_status_query,
-            'total_chatrooms_count': total_chatrooms_count
+            'total_chatrooms_count': total_chatrooms_count,
+            'user_meta': users_meta
         }
 
     def fetch_user_home_meta(self):
@@ -2213,7 +2232,7 @@ class MemberCommunityHelper:
         return header
 
     @staticmethod
-    def extract_member_tagging_data(member_data) -> []:
+    def extract_member_tagging_data(member_data, sdk_client_info_flag:bool=False) -> []:
 
         member_list = []
 
@@ -2224,12 +2243,16 @@ class MemberCommunityHelper:
             temp['name'] = value['name']
             temp['image_url'] = value['image_url']
             temp['user_unique_id'] = value['user_unique_id']
+            temp['uuid'] = value['user_unique_id']
 
             if value.get('is_guest') is not None:
                 temp['is_guest'] = value.get('is_guest')
 
             if value.get('custom_title'):
                 temp['custom_title'] = value.get('custom_title')
+
+            if sdk_client_info_flag:
+                temp['sdk_client_info'] = value.get('sdk_client_info')
 
             member_list.append(temp)
 
@@ -2249,7 +2272,7 @@ class MemberCommunityHelper:
 
     @staticmethod
     def add_member_metadata(member_instance, community_instance, current_user_member_instance,
-                            is_community_answer_data=False):
+                            is_community_answer_data=False, sdk_client_info_flag:bool=False):
         user_instance = member_instance.member_id
 
         user_data = MemberCommunityHelper.add_member_profile(user_instance, community_instance)
@@ -2277,6 +2300,14 @@ class MemberCommunityHelper:
             if member_instance.state == member_states.ADMIN:
                 user_data['custom_intro_text'] = CREATE_INTRO_TEXT_ADMIN % \
                                                  TimeUtilities.convert_epoch_time_in_date(member_instance.created_at)
+                
+        if user_instance.userinfo:
+            user_data['user_unique_id'] =  user_instance.userinfo.user_unique_id
+            user_data['uuid'] = user_data['user_unique_id']
+
+        if sdk_client_info_flag:
+            sdk_client_info_dict = get_users_sdk_meta_dict([user_instance.id], only_sdk_client_info=True)
+            user_data['sdk_client_info'] = sdk_client_info_dict.get(user_instance.id)
 
         return user_data
 
@@ -2661,7 +2692,8 @@ class MemberCommunityHelper:
 
     @staticmethod
     def serialise_dm_chatrooms(user_instance, community_instance, card_id, card_ans_id, card_state_map,
-                               convsersation_states_to_consider, rights_list, device_id):
+                               convsersation_states_to_consider, rights_list, device_id, 
+                               sdk_client_info_flag:bool=False):
         chatroom = {}
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
         card_state_instance = ModelUtilities.get_model_instance_or_none(collabcardState,
@@ -2669,13 +2701,15 @@ class MemberCommunityHelper:
         card_answer_instance = ModelUtilities.get_model_instance_or_none(card_answers, card_ans_id)
 
         if card_instance:
-            chatroom['chatroom'] = get_chatroom_instance(card_instance, user_instance.id, send_profile=False)
+            chatroom['chatroom'] = get_chatroom_instance(card_instance, user_instance.id, send_profile=False, 
+                                                         sdk_client_info_flag=sdk_client_info_flag)
             chatroom['is_draft'] = False
             chatroom['custom_tag'] = card_instance.custom_tag
 
         if card_answer_instance:
             last_conversation_dict = conversationSerializer(card_answer_instance,
-                                                            current_user_id=user_instance.id, device_id=device_id)
+                                                            current_user_id=user_instance.id, device_id=device_id,
+                                                            sdk_client_info_flag=sdk_client_info_flag)
             preview = generate_internal_link_preview_for_conversation(card_answer_instance, user_instance.id)
 
             if preview:
@@ -2710,7 +2744,8 @@ class MemberCommunityHelper:
 
             if card_state_instance.chat_requested_by:
                 chatroom['chat_requested_by'] = get_members_profile([card_state_instance.chat_requested_by],
-                                                                    community_instance.id, send_profile=False)
+                                                                    community_instance.id, send_profile=False,
+                                                                    sdk_client_info_flag=sdk_client_info_flag)
 
             chatroom['is_private_member'] = card_instance.is_private_member
             chatroom['member_right_states'] = rights_list

@@ -145,19 +145,28 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
     return new_dict
 
 
-def UserinfoSerializer(user):
+def UserinfoSerializer(user, sdk_client_info_flag:bool=False):
     userinfo = {
         'id': user.user_id_id,
         'name': user.name,
         'updated_at': user.updated_at,
         'is_guest': user.is_guest,
         'user_unique_id': user.user_unique_id,
+        'uuid': user.user_unique_id,
         'organisation_name': user.organisation_name,
         'image_url': user.image_link
     }
 
-    return userinfo
+    # Add sdk_client_info to user context if sdk_client_info_flag is True
+    if sdk_client_info_flag:
 
+        from .raw_queries import (get_users_sdk_meta_dict)
+
+        user_meta = get_users_sdk_meta_dict([userinfo['id']], only_sdk_client_info=True)
+
+        userinfo['sdk_client_info'] = user_meta.get(userinfo['id'])
+
+    return userinfo
 
 def get_user_mobile_no_list(user_id):
     mobile_filter = userMobiles.objects.filter(user=user_id)
@@ -180,13 +189,14 @@ def get_user_email_list(user_id):
     return email_list
 
 
-def get_logged_in_user(user_instance):
+def get_logged_in_user(user_instance, sdk_client_info_flag:bool = False):
     if isinstance(user_instance, Userinfo):
-        context = UserinfoSerializer(user_instance)
+        context = UserinfoSerializer(user_instance, sdk_client_info_flag=sdk_client_info_flag)
         user_id = user_instance.user_id_id
 
     else:
-        context = UserinfoSerializer(user_instance.userinfo)
+        context = UserinfoSerializer(user_instance.userinfo, 
+                                     sdk_client_info_flag=sdk_client_info_flag)
         user_id = user_instance.id
 
     email_list = get_user_email_list(user_id)
@@ -201,7 +211,8 @@ def get_logged_in_user(user_instance):
     return context
 
 
-def CollabcardSerializer(card, user, community=None, current_user_id=None, preview=False, return_topic=False):
+def CollabcardSerializer(card, user, community=None, current_user_id=None, preview=False, return_topic=False, 
+                         sdk_client_info_flag:bool=False):
     # function to serialize a community object
     collabcard = {
         'id': card.id,
@@ -311,7 +322,8 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
                 user = None
 
             collabcard['co_hosts'] = get_members_profile(member_ids=co_host_list, community_id=card.community_id,
-                                                         current_user_id=user)
+                                                         current_user_id=user, 
+                                                         sdk_client_info_flag=sdk_client_info_flag)
 
         if card.webflow_item_id:
             collabcard['webflow_item_id'] = card.webflow_item_id
@@ -340,13 +352,15 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
     if card.updated_member:
         member_ids = [card.updated_member]
         temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
-                                   current_user_id=user, send_profile=False)
+                                   current_user_id=user, send_profile=False, 
+                                   sdk_client_info_flag=sdk_client_info_flag)
         collabcard['updated_member'] = temp[0]
 
     if card.is_deleted:
         member_ids = [card.deleted_by_user]
         temp = get_members_profile(member_ids=member_ids, community_id=card.community_id,
-                                   current_user_id=user, send_profile=False)
+                                   current_user_id=user, send_profile=False, 
+                                   sdk_client_info_flag=sdk_client_info_flag)
         member_obj = temp[0]
         member_obj['community_id'] = card.community_id
         member_obj['chatroom_id'] = card.id
@@ -357,21 +371,24 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         collabcard['updated_time'] = get_time_text(card.updated_time)
 
     if card.has_reactions:
-        reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=collabcard['id'])
+        reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=collabcard['id'], 
+                                                             sdk_client_info_flag=sdk_client_info_flag)
     else:
         reactions = []
 
     collabcard['reactions'] = reactions
 
     if return_topic and card.topic is not None:
-        conversation_serializer = conversationSerializer(card.topic, fetch_reply=False)
+        conversation_serializer = conversationSerializer(card.topic, fetch_reply=False,
+                                                         sdk_client_info_flag=sdk_client_info_flag)
         conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
             conversation_serializer['created_at'])
 
         collabcard['topic'] = conversation_serializer
 
     if card.chatroom_with_user:
-        collabcard['chatroom_with_user'] = UserinfoSerializer(card.chatroom_with_user.userinfo)
+        collabcard['chatroom_with_user'] = UserinfoSerializer(card.chatroom_with_user.userinfo,
+                                                              sdk_client_info_flag)
 
     if card.has_event_recording:
         from .chatroom.chatroom_impl import ChatroomHelper
@@ -867,17 +884,18 @@ def get_chatroom_name(user_name, card):
 
 
 def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_instance=None, send_profile=True,
-                          preview=False, return_topic=False):
+                          preview=False, return_topic=False, sdk_client_info_flag:bool = False):
     if not current_user_id:
         current_user_id = member_id
 
     collabcard_serializer = CollabcardSerializer(card_instance, member_id,
                                                  current_user_id=member_id, preview=preview,
-                                                 return_topic=return_topic)
+                                                 return_topic=return_topic,
+                                                 sdk_client_info_flag=sdk_client_info_flag)
 
     if card_instance.is_private and card_instance.chatroom_with_user:
         collabcard_user = get_members_profile([card_instance.chatroom_with_user_id], card_instance.community_id,
-                                              send_profile=send_profile)
+                                              send_profile=send_profile, sdk_client_info_flag=sdk_client_info_flag)
 
         collabcard_serializer['chatroom_with_user'] = collabcard_user[0]
 
@@ -893,7 +911,7 @@ def get_chatroom_instance(card_instance, member_id, current_user_id=None, state_
         collabcard_serializer['secret_chatroom_left'] = status['secret_chatroom_left']
 
     collabcard_member = get_members_profile([card_instance.user_id], card_instance.community_id,
-                                            send_profile=send_profile)
+                                            send_profile=send_profile, sdk_client_info_flag=sdk_client_info_flag)
     collabcard_serializer['member'] = collabcard_member[0]
 
     remove_filter = removedMembers.objects.filter(community=card_instance.community,
@@ -1549,7 +1567,7 @@ def userMobilesSerializer(mobile_instance):
 # member comunity profiles
 def MembersSerializer(member_instance, community_id, current_user_id=None, send_profile=True,
                       is_promoter=False, is_owner=False, all_members_api=False, profile_detail_api=False,
-                      user_admin_rights=None):
+                      user_admin_rights=None, sdk_client_info_flag:bool=False):
     user_is_owner = member_instance.is_owner
     parents_list = json.loads(member_instance.parent_cm_list) if member_instance.parent_cm_list else []
 
@@ -1605,6 +1623,14 @@ def MembersSerializer(member_instance, community_id, current_user_id=None, send_
         block_member = {"title": "Block member",
                         "route": f"route://block_member?community_id={community_id}&member_id={member_id}"}
         community_profile["menu"] = [report_member, block_member]
+
+    # Add sdk_client_info to profile if sdk_client_info_flag is True
+    if sdk_client_info_flag:
+
+        from .raw_queries import (get_users_sdk_meta_dict)
+
+        user_meta = get_users_sdk_meta_dict([member_id], only_sdk_client_info=True)
+        community_profile['sdk_client_info'] = user_meta.get(member_id)
 
     return community_profile
 
@@ -1723,7 +1749,7 @@ def get_user_profile(user_id, community_id=None, current_user_id=None, send_prof
 
 def get_members_profile(member_ids, community_id, current_user_id=None, send_profile=True, remove=False,
                         is_promoter=False, is_owner=False, all_members_api=False, profile_detail_api=False,
-                        user_admin_rights=None):
+                        user_admin_rights=None, sdk_client_info_flag:bool=False):
     '''function to get member profile from list of members ids'''
     member_profile_list = []
 
@@ -1743,7 +1769,8 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
                                                   send_profile=send_profile, all_members_api=all_members_api,
                                                   profile_detail_api=profile_detail_api,
                                                   user_admin_rights=user_admin_rights,
-                                                  is_owner=is_owner, is_promoter=is_promoter
+                                                  is_owner=is_owner, is_promoter=is_promoter, 
+                                                  sdk_client_info_flag=sdk_client_info_flag
                                                   )
 
             member_profile_list.append(community_profile)
@@ -1758,7 +1785,7 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
     return member_profile_list
 
 
-def report_serializer(report_instance, current_user_id):
+def report_serializer(report_instance, current_user_id, sdk_client_info_flag:bool=False):
     report = {"id": report_instance.id}
 
     community_instance = report_instance.community
@@ -1769,12 +1796,15 @@ def report_serializer(report_instance, current_user_id):
 
     if report_instance.conversation is not None:
         report["conversation"] = conversationSerializer(report_instance.conversation, current_user_id=current_user_id,
-                                                        fetch_poll_conversation=True)
-        report["chatroom"] = get_chatroom_instance(report_instance.conversation.card, current_user_id)
+                                                        fetch_poll_conversation=True, 
+                                                        sdk_client_info_flag=sdk_client_info_flag)
+        report["chatroom"] = get_chatroom_instance(report_instance.conversation.card, current_user_id, 
+                                                   sdk_client_info_flag=sdk_client_info_flag)
         report["conversation_users"] = get_last_two_conversation_user_images(report_instance.conversation.card)
 
     elif report_instance.collabcard is not None:
-        report["chatroom"] = get_chatroom_instance(report_instance.collabcard, current_user_id)
+        report["chatroom"] = get_chatroom_instance(report_instance.collabcard, current_user_id, 
+                                                   sdk_client_info_flag=sdk_client_info_flag)
         report["conversation_users"] = get_last_two_conversation_user_images(report_instance.collabcard)
 
     if report_instance.entity_id:
@@ -1787,11 +1817,13 @@ def report_serializer(report_instance, current_user_id):
         report["reason"] = report_instance.reason
 
     if report_instance.user_reported:
-        user_profile = get_members_profile(member_ids=[report_instance.user_reported.id], community_id=community_id)
+        user_profile = get_members_profile(member_ids=[report_instance.user_reported.id], community_id=community_id,
+                                           sdk_client_info_flag=sdk_client_info_flag)
         report["user_reported"] = user_profile[0]
 
     if report_instance.reported_by:
-        user_profile = get_members_profile(member_ids=[report_instance.reported_by.id], community_id=community_id)
+        user_profile = get_members_profile(member_ids=[report_instance.reported_by.id], community_id=community_id,
+                                           sdk_client_info_flag=sdk_client_info_flag)
         report["reported_by"] = user_profile[0]
 
     if report_instance.type is not None:
@@ -1804,7 +1836,8 @@ def report_serializer(report_instance, current_user_id):
         report["action_taken_reason"] = report_instance.action_taken_reason
 
     if report_instance.action_taken_by:
-        user_profile = get_members_profile(member_ids=[report_instance.action_taken_by.id], community_id=community_id)
+        user_profile = get_members_profile(member_ids=[report_instance.action_taken_by.id], community_id=community_id,
+                                           sdk_client_info_flag=sdk_client_info_flag)
         report["action_taken_by"] = user_profile[0]
 
     if report_instance.action_taken is not None:
@@ -1820,7 +1853,8 @@ def report_serializer(report_instance, current_user_id):
     report["is_closed"] = report_instance.is_closed if report_instance.is_closed is not None else False
 
     if report_instance.closed_by is not None:
-        user_profile = get_members_profile(member_ids=[report_instance.closed_by.id], community_id=community_id)
+        user_profile = get_members_profile(member_ids=[report_instance.closed_by.id], community_id=community_id,
+                                           sdk_client_info_flag=sdk_client_info_flag)
         report["closed_by"] = user_profile[0]
 
     if report_instance.closed_time:
@@ -1876,7 +1910,7 @@ def is_draft_conversation(conversation, current_user_id, device_id=''):
 
 
 def conversationSerializer(conversation, current_user_id=None, fetch_reply=True, device_id='',
-                           fetch_poll_conversation=False):
+                           fetch_poll_conversation=False, sdk_client_info_flag:bool=False):
     temp = {
         "id": conversation.id,
         "answer": conversation.answer,
@@ -1917,7 +1951,8 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
         remove = True
 
     member_profile = get_members_profile([conversation.user_id], conversation.community_id,
-                                         current_user_id=current_user_id, send_profile=False, remove=remove)
+                                         current_user_id=current_user_id, send_profile=False, remove=remove,
+                                         sdk_client_info_flag=sdk_client_info_flag)
 
     temp['member'] = member_profile[0]
 
@@ -1957,7 +1992,8 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
         temp['temporary_id'] = conversation.temporary_id
 
     if conversation.has_reactions:
-        reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation.id)
+        reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation.id, 
+                                                             sdk_client_info_flag=sdk_client_info_flag)
     else:
         reactions = []
 
