@@ -12,7 +12,7 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         CONVERSATIONS_CREATED_EPOCH_KEY, CONVERSATIONS_CREATED_AT_KEY, CONVERSATION_POLL_TYPE_TEXT_KEY,
                         INSTANT_POLL_NAME_VALUE, DEFERRED_POLL_NAME_VALUE, SECRET_VOTING_NAME_VALUE,
                         PUBLIC_VOTING_NAME_VALUE, CONVERSATION_SUBMIT_TYPE_TEXT_KEY, CHATROOM_DATE_KEY,
-                        CHATROOM_DATE_EPOCH_KEY)
+                        CHATROOM_DATE_EPOCH_KEY, SDK_CLIENT_META_KEY_VALUE)
 from utility.states import (conversation_states, conversation_poll_types)
 from togther.models import (ModelUtilities, card_answers)
 
@@ -104,7 +104,7 @@ class SyncHelper:
 
     @staticmethod
     def merge_meta_data(primary_data: dict, secondary_data: dict = None, primary_key: str = MAIN_PRIMARY_KEY_VALUE,
-                        secondary_key: str = None):
+                        secondary_key: str = None, third_key: str = None, third_data: dict = None,):
         merged_meta_data = {}
 
         if not primary_data:
@@ -140,12 +140,23 @@ class SyncHelper:
             if primary_data.get(secondary_key):
                 merged_meta_data[primary_data.get(secondary_key)].update(primary_data)
 
+        # Only for adding sdk_client_info to users_meta
+        if third_data and third_key:
+            
+            for key, data in third_data.items():
+                sdk_client_info = {
+                    'user_unique_id' : data.get('user_unique_id'),
+                    'user' : data.get('user_id'),
+                    'community' : data.get('community_id'),
+                }
+                merged_meta_data[data.get('user_id')]['sdk_client_info'] = sdk_client_info
+
         return merged_meta_data
 
     @staticmethod
     def combine_and_convert_dicts_to_sync_meta_data(data, resulting_dict, primary_key, secondary_key: str = None,
                                                     resulting_primary_key: str = MAIN_PRIMARY_KEY_VALUE,
-                                                    secondary_data_merging_key: str = None):
+                                                    secondary_data_merging_key: str = None, third_key: str = None):
         filter_dict = {
             'primary_data': data.get(primary_key, {}),
             'primary_key': resulting_primary_key,
@@ -154,6 +165,10 @@ class SyncHelper:
 
         if secondary_key:
             filter_dict['secondary_data'] = data.get(secondary_key, {})
+
+        if third_key:
+            filter_dict['third_key'] = third_key
+            filter_dict['third_data'] = data.get(third_key, {})
 
         if data.get(primary_key, {}):
             meta_data = SyncHelper.merge_meta_data(**filter_dict)
@@ -253,7 +268,8 @@ class SyncHelper:
             sync_response = SyncHelper.combine_and_convert_dicts_to_sync_meta_data(parsed_meta_data,
                                                                                    sync_response,
                                                                                    primary_key=USERS_META_KEY_VALUE,
-                                                                                   secondary_key=MEMBERS_META_KEY_VALUE)
+                                                                                   secondary_key=MEMBERS_META_KEY_VALUE,
+                                                                                   third_key=SDK_CLIENT_META_KEY_VALUE)
 
             sync_response = SyncHelper.combine_and_convert_dicts_to_sync_meta_data(
                 parsed_meta_data, sync_response, primary_key=CONVERSATIONS_META_KEY_VALUE)

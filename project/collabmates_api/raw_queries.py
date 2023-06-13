@@ -3834,10 +3834,15 @@ def get_members_query_meta_for_sync_revamp(key_name_prefix: str = None):
 
     return ",".join(meta_query)
 
-
 def get_users_query_meta_for_sync_revamp(key_name_prefix: str = None):
     query_fields = ['user_id_id', 'name', 'image_link', 'user_unique_id', 'is_guest']
     meta_query = create_query_with_prefix(query_fields, 'togther_userinfo', 'user', key_name_prefix)
+
+    return ",".join(meta_query)
+
+def get_sdk_client_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['user_unique_id', 'user_id', 'community_id']
+    meta_query = create_query_with_prefix(query_fields, 'togther_sdkclientusersinfo', 'sdk_client_info', key_name_prefix)
 
     return ",".join(meta_query)
 
@@ -3921,20 +3926,25 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                    get_chatroom_state_query_meta_for_sync_revamp()])
 
         creator_data_query = ",".join([get_users_query_meta_for_sync_revamp("creator"),
-                                       get_members_query_meta_for_sync_revamp("creator")])
+                                       get_members_query_meta_for_sync_revamp("creator"),
+                                       get_sdk_client_query_meta_for_sync_revamp("creator")])
 
         chatroom_with_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("dm_user"),
-                                                  get_members_query_meta_for_sync_revamp("dm_user")])
+                                                  get_members_query_meta_for_sync_revamp("dm_user"),
+                                                  get_sdk_client_query_meta_for_sync_revamp("dm_user")])
 
         chat_requested_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("chat_requested"),
-                                                   get_members_query_meta_for_sync_revamp("chat_requested")])
+                                                   get_members_query_meta_for_sync_revamp("chat_requested"),
+                                                   get_sdk_client_query_meta_for_sync_revamp("chat_requested")])
 
         topic_conversation_data_query = ",".join([get_users_query_meta_for_sync_revamp("last_conv"),
                                                   get_members_query_meta_for_sync_revamp("last_conv"),
+                                                  get_sdk_client_query_meta_for_sync_revamp("last_conv"),
                                                   get_conversation_query_meta_for_sync_revamp("topic")])
 
         topic_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("topic"),
-                                          get_members_query_meta_for_sync_revamp("topic")])
+                                          get_members_query_meta_for_sync_revamp("topic"),
+                                          get_sdk_client_query_meta_for_sync_revamp("topic")])
 
         dm_chatroom_conversation_query = ""
         dm_chatroom_message_query = ""
@@ -4030,6 +4040,9 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                       chatroom_community_data.user_id = togther_members.member_id_id 
                                       AND chatroom_community_data.community_id = togther_members.community_id_id
                                     )
+                                    LEFT JOIN togther_sdkclientusersinfo ON (
+                                        chatroom_community_data.user_id = togther_sdkclientusersinfo.user_id
+                                    )
                                 ) AS chat_creators_data 
                                 LEFT JOIN togther_userinfo ON (
                                   togther_userinfo.user_id_id = chat_creators_data.chatroom_with_user_id
@@ -4038,6 +4051,9 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                   chat_creators_data.chatroom_with_user_id = togther_members.member_id_id 
                                   AND chat_creators_data.community_id = togther_members.community_id_id
                                 )
+                                LEFT JOIN togther_sdkclientusersinfo ON (
+                                    chat_creators_data.chatroom_with_user_id = togther_sdkclientusersinfo.user_id
+                                )
                             ) AS chat_users_data 
                             LEFT JOIN togther_userinfo ON (
                               togther_userinfo.user_id_id = chat_users_data.chat_requested_by_id
@@ -4045,6 +4061,9 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                             LEFT JOIN togther_members ON (
                               chat_users_data.chat_requested_by_id = togther_members.member_id_id 
                               AND chat_users_data.community_id = togther_members.community_id_id
+                            )
+                            LEFT JOIN togther_sdkclientusersinfo ON (
+                                chat_users_data.chat_requested_by_id = togther_sdkclientusersinfo.user_id
                             )
                         ) AS chatroom_users_data 
                         INNER JOIN togther_card_answers ON togther_card_answers.card_id = chatroom_users_data.id 
@@ -4057,7 +4076,8 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                   LEFT JOIN togther_members ON (
                     chat_conversation_data.conversation___user_id___last = togther_members.member_id_id
                   AND chat_conversation_data.conversation___community_id___last = togther_members.community_id_id)
-
+                  LEFT JOIN togther_sdkclientusersinfo ON (
+                    chat_conversation_data.conversation___user_id___last = togther_sdkclientusersinfo.user_id)
                   LEFT JOIN togther_card_answers ON togther_card_answers.id = chat_conversation_data.topic_id 
                 WHERE 
                   chat_conversation_data.row_number = 1) AS chatrooms_data
@@ -4068,7 +4088,9 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                   LEFT JOIN togther_members ON (
                     chatrooms_data.conversation___user_id___topic = togther_members.member_id_id
                   AND chatrooms_data.conversation___community_id___topic = togther_members.community_id_id)
-                   
+                  LEFT JOIN togther_sdkclientusersinfo ON (
+                     chatrooms_data.conversation___user_id___topic = togther_sdkclientusersinfo.user_id)
+                
                   ORDER BY chatrooms_data.updated_at DESC;
         """.format(topic_user_data_query, topic_conversation_data_query,
                    get_conversation_query_meta_for_sync_revamp("last"),
