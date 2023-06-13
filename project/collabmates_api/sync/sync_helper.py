@@ -122,23 +122,21 @@ class SyncHelper:
             if primary_data.get(primary_key):
                 merged_meta_data[primary_data.get(primary_key)] = primary_data
 
-        if not secondary_data:
-            return merged_meta_data
+        if secondary_data:
+            primary_data = secondary_data
+            secondary_key = primary_key if not secondary_key else secondary_key
 
-        primary_data = secondary_data
-        secondary_key = primary_key if not secondary_key else secondary_key
+            if isinstance(list(primary_data.values())[0], dict):
 
-        if isinstance(list(primary_data.values())[0], dict):
+                for key, data in primary_data.items():
 
-            for key, data in primary_data.items():
+                    if data.get(secondary_key):
+                        merged_meta_data[data.get(secondary_key)].update(data)
 
-                if data.get(secondary_key):
-                    merged_meta_data[data.get(secondary_key)].update(data)
+            else:
 
-        else:
-
-            if primary_data.get(secondary_key):
-                merged_meta_data[primary_data.get(secondary_key)].update(primary_data)
+                if primary_data.get(secondary_key):
+                    merged_meta_data[primary_data.get(secondary_key)].update(primary_data)
 
         # Only for adding sdk_client_info to users_meta
         if third_data and third_key:

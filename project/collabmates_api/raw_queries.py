@@ -4143,13 +4143,16 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                         get_community_query_meta_for_sync_revamp("conv_community"),
                                         get_users_query_meta_for_sync_revamp("creator"),
                                         get_members_query_meta_for_sync_revamp("creator"),
+                                        get_sdk_client_query_meta_for_sync_revamp("creator"),
                                         get_conversation_query_meta_for_sync_revamp("reply")])
 
         room_creator = ",".join([get_users_query_meta_for_sync_revamp("room_creator"),
-                                 get_members_query_meta_for_sync_revamp("room_creator")])
+                                 get_members_query_meta_for_sync_revamp("room_creator"),
+                                 get_sdk_client_query_meta_for_sync_revamp("room_creator")])
 
         chatroom_meta_query = ",".join([get_users_query_meta_for_sync_revamp("conv_deleter"),
                                         get_members_query_meta_for_sync_revamp("conv_deleter"),
+                                        get_sdk_client_query_meta_for_sync_revamp("conv_deleter"),
                                         get_chatroom_query_meta_for_sync_revamp("preview"),
                                         get_community_query_meta_for_sync_revamp("preview")])
 
@@ -4188,6 +4191,8 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                                          ON         (
                                                                                conversation_data.user_id = togther_members.member_id_id
                                                                     AND        conversation_data.community_id = togther_members.community_id_id)
+                                                         LEFT JOIN togther_sdkclientusersinfo 
+                                                         ON         conversation_data.user_id = togther_sdkclientusersinfo.user_id
                                                          LEFT JOIN  togther_card_answers
                                                          ON         conversation_data.reply_id = togther_card_answers.id) AS chatroom_meta
                                     LEFT JOIN togther_userinfo
@@ -4196,6 +4201,8 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                     ON        (
                                                         chatroom_meta.deleted_by_user_id = togther_members.member_id_id
                                               AND       chatroom_meta.community_id = togther_members.community_id_id)
+                                    LEFT JOIN togther_sdkclientusersinfo 
+                                    ON         chatroom_meta.deleted_by_user_id = togther_sdkclientusersinfo.user_id
                                     LEFT JOIN togther_collabcard
                                     ON        chatroom_meta.preview_chatroom_id = togther_collabcard.id
                                     LEFT JOIN togther_community
@@ -4206,6 +4213,8 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                 ON   (
                             chatroom_preview_meta.chatroom___user_id___conv_room = togther_members.member_id_id
                        AND  chatroom_preview_meta.chatroom___community_id___conv_room = togther_members.community_id_id)
+                LEFT JOIN togther_sdkclientusersinfo 
+                ON         chatroom_preview_meta.chatroom___user_id___conv_room = togther_sdkclientusersinfo.user_id
                 LEFT JOIN togther_collabcard
                 ON        chatroom_preview_meta.reply_chatroom_id = togther_collabcard.id 
                 ORDER BY chatroom_preview_meta.{};
@@ -4304,7 +4313,8 @@ def get_reactions_for_chatroom_or_conversations(community_id, reaction_type: int
 
         response_query = ",".join([get_reactions_query_meta_for_sync_revamp(key_name_prefix),
                                    get_users_query_meta_for_sync_revamp("reactor"),
-                                   get_members_query_meta_for_sync_revamp("reactor")])
+                                   get_members_query_meta_for_sync_revamp("reactor"),
+                                   get_sdk_client_query_meta_for_sync_revamp("reactor")])
 
         sql = """
                 SELECT {} FROM togther_messagereactions
@@ -4314,7 +4324,10 @@ def get_reactions_for_chatroom_or_conversations(community_id, reaction_type: int
                 LEFT JOIN togther_members ON (
                   togther_messagereactions.user_id = togther_members.member_id_id 
                   AND togther_members.community_id_id = {}
-                ) {};
+                )
+                LEFT JOIN togther_sdkclientusersinfo ON (
+                    togther_messagereactions.user_id = togther_sdkclientusersinfo.user_id
+                )  {};
         """.format(response_query, community_id, query_string)
 
         curr.execute(sql)
@@ -4377,7 +4390,8 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                                     get_conversation_poll_members_query_meta_for_sync_revamp("voter")])
 
         poll_options_creator = ",".join([get_users_query_meta_for_sync_revamp("options_creator"),
-                                         get_members_query_meta_for_sync_revamp("options_creator")])
+                                         get_members_query_meta_for_sync_revamp("options_creator"),
+                                         get_sdk_client_query_meta_for_sync_revamp("options_creator")])
 
         sql = """
             SELECT final_polls_data.*, no_votes * 100 / final_polls_data.count AS percentage, {}
@@ -4427,7 +4441,9 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                           ON ( togther_userinfo.user_id_id = final_polls_data.user_id )
                    LEFT JOIN togther_members
                           ON ( final_polls_data.user_id = togther_members.member_id_id
-                               AND togther_members.community_id_id = {});
+                               AND togther_members.community_id_id = {})
+                   LEFT JOIN togther_sdkclientusersinfo
+                          ON ( final_polls_data.user_id = togther_sdkclientusersinfo.user_id );
         """.format(poll_options_creator, poll_data_query, user_id, conversation_ids_query, conversation_ids_query,
                    community_id)
 
