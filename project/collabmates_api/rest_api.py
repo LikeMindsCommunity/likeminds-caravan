@@ -31,7 +31,7 @@ from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, EVENT_INSTRUCTO
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
 from .static_files import *
 from django.db.models import F, When, Q, Count
-from .raw_queries import (get_users_meta_with_sdk_client_info)
+from .raw_queries import (get_users_sdk_meta_dict)
 
 url = settings.URL
 
@@ -1089,10 +1089,9 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
     
     def get_serialised_userinfo(self, user_id):
 
-        user_meta = get_users_meta_with_sdk_client_info([user_id])
+        user_meta = get_users_sdk_meta_dict([user_id])
 
-        if user_meta:
-            return user_meta[0]
+        return user_meta.get(user_id)
         
     def to_representation(self, obj):
         data = super(CardAnswersDBSyncSerializer, self).to_representation(obj)
@@ -1551,8 +1550,8 @@ class UserShortSerializer(serializers.ModelSerializer):
                 del data['user_id_id']
 
         # Add sdk_client_info to user context
-        users_meta_dict = get_users_meta_with_sdk_client_info([data['id']], get_users_dict=True)
-        data['sdk_client_info'] = users_meta_dict.get(data['id']).get('sdk_client_info')
+        users_meta_dict = get_users_sdk_meta_dict([data['id']], only_sdk_client_info=True)
+        data['sdk_client_info'] = users_meta_dict.get(data['id'])
 
         data['uuid'] = data['user_unique_id']
 

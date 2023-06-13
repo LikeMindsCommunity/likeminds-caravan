@@ -4,7 +4,8 @@ from utility.request_utilities import RequestUtilities
 from .serializers import *
 from .utility import *
 from .user_moderation_rights import check_admin_approve_right
-from .rest_api import CommunitySerializerV1, SDKClientUsersInfoSerializer
+from .rest_api import CommunitySerializerV1
+from .raw_queries import (get_users_sdk_meta_dict)
 from collabmates_api.sdk.models import (SdkClient)
 from utility.response_utilities import ResponseUtilities
 
@@ -743,7 +744,7 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
             current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
                                              send_profile=True,
                                              all_members_api=True, is_promoter=is_promoter,
-                                             is_owner=is_owner, sdk_client_info_flag=sdk_client_info_flag)
+                                             is_owner=is_owner)
 
     if is_owner or is_promoter:
         user_admin_rights = check_all_manager_rights(current_user_id, community_id)
@@ -762,18 +763,16 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
 
         member_ids.append(member_id)
 
+    # If first page and current user'state matches member_state filter, then add him to the top of the list 
+    if current_user and (not member_state or current_user['state'] == member_state):        
+        members.insert(0, current_user)
+    
     # If sdk_client_info_flag is True, then add sdk_client_info to members object
     if sdk_client_info_flag:
-        sdk_client_info_meta = get_sdk_client_info_meta_dict(member_ids)
+        sdk_client_info_meta = get_users_sdk_meta_dict(member_ids, only_sdk_client_info=True)
 
         for member in members:
-            member['sdk_client_info'] = sdk_client_info_meta.get( member['id'])
-
-    if current_user and member_state and current_user['state'] != member_state:
-        return members
-    
-    if current_user :        
-        members.insert(0, current_user)
+            member['sdk_client_info'] = sdk_client_info_meta.get(member['id'])
 
     return members
 

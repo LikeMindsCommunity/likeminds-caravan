@@ -8908,10 +8908,8 @@ def members_state(request, req_dict=None):
         json_response['community_toast'] = toast_filter[0].toast_message
 
     # Add sdk_client_info to member response
-    user_meta_info = get_users_meta_with_sdk_client_info([member_id], get_users_dict=True).get(member_id)
-
-    if user_meta_info:
-        json_response['member']['sdk_client_info'] = user_meta_info.get('sdk_client_info')
+    user_sdk_meta = get_users_sdk_meta_dict([member_id], only_sdk_client_info=True)
+    json_response['member']['sdk_client_info'] = user_sdk_meta.get(member_id)
 
     if req_dict:
         return json_response

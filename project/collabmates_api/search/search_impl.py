@@ -14,8 +14,7 @@ from .constants import CUSTOM_INTRO_TEXT_FOR_ADMIN, CUSTOM_INTRO_TEXT_FOR_MEMBER
 from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING,CHATROOM_FIELD_TITLE, MEMBER_DIRECTORY_ORDER_BY_NAME
 from collabmates_api.sdk.models import SdkClient
 from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
-                           get_chatrooms_of_user_with_follow_status)
-from ..serializers import (get_sdk_client_info_meta_dict)
+                           get_chatrooms_of_user_with_follow_status, get_users_sdk_meta_dict)
 
 class SearchImpl(SearchManager):
 
@@ -485,7 +484,7 @@ class SearchImpl(SearchManager):
         answer_dict = {instance.member_id: instance for instance in introduction_filter}
 
         # Get sdk_client_info user dict
-        sdk_client_info_dict = get_sdk_client_info_meta_dict(user_list)
+        sdk_client_info_dict = get_users_sdk_meta_dict(user_list, only_sdk_client_info=True)
 
         for hit in res:
             member_introduction_dict = dict()

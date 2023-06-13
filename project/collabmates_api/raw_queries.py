@@ -1467,7 +1467,7 @@ def process_users_data_for_sdk_client_info(users_data: list, get_users_dict:bool
     else:
         return users_data
 
-def get_users_meta_with_sdk_client_info(user_ids: list, get_users_dict:bool=False):
+def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info:bool=False) -> dict:
 
     if not user_ids:
         return []
@@ -1509,11 +1509,15 @@ def get_users_meta_with_sdk_client_info(user_ids: list, get_users_dict:bool=Fals
         query_result = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
 
-        # Process the users data for sdk_client_info
-        users_meta_with_sdk_client_info = process_users_data_for_sdk_client_info(query_result, 
-                                                                                 get_users_dict=get_users_dict)
+        # Process the users data for sdk_client_info in key(id): value(user) pair
+        users_meta = process_users_data_for_sdk_client_info(query_result, get_users_dict=True)
 
-        return users_meta_with_sdk_client_info
+        # If only_sdk_client_info is True, return only the sdk_client_info dict
+        if only_sdk_client_info:
+            for user_id, user_data in users_meta.items():
+                users_meta[user_id] = user_data.get('sdk_client_info')
+          
+        return users_meta
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)

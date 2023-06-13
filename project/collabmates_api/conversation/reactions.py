@@ -6,7 +6,6 @@ from togther.models import Members, MessageReactions, card_answers, Collabcard, 
 from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, CHATROOM_REACTIONS_CACHE_KEY
 from utility.states import SyncTypes
 
-
 @shared_task
 def update_chatroom_or_conversation_reactions_in_cache(chatroom_id=None, conversation_id=None,
                                                        member_profiles=None):
@@ -65,6 +64,14 @@ def get_members_profiles_for_reactions(community, members_id_list, reactions_map
 
     member_profiles = Userinfo.objects.filter(user_id__id__in=members_id_list)
 
+    # get sdk_client_info to member object
+    if sdk_client_info_flag:
+
+        from ..raw_queries import (get_users_sdk_meta_dict)
+
+        sdk_client_info_list = get_users_sdk_meta_dict(members_id_list, 
+                                                       only_sdk_client_info=True)
+
     for profile in member_profiles:
         user_id = profile.user_id_id
         user_image = profile.image_link
@@ -80,6 +87,9 @@ def get_members_profiles_for_reactions(community, members_id_list, reactions_map
         if member_image is not None:
             temp['image_url'] = member_image
 
+        if sdk_client_info_flag:
+            temp['sdk_client_info'] = sdk_client_info_list.get(user_id, None)
+
         reaction_dict = {
             'member': temp,
             'reaction': reactions_map[temp['id']]['reaction'],
@@ -87,17 +97,6 @@ def get_members_profiles_for_reactions(community, members_id_list, reactions_map
         }
 
         members_profile_list.append(reaction_dict)
-
-        if sdk_client_info_flag:
-            member_ids = [member['member']['id'] for member in members_profile_list]
-
-            from ..serializers import (get_sdk_client_info_meta_dict)
-
-            # get sdk_client_info for all members
-            sdk_client_info_list = get_sdk_client_info_meta_dict(member_ids)
-
-            for member in members_profile_list:
-                member['member']['sdk_client_info'] = sdk_client_info_list.get(member['member']['id'], None)
 
     return sorted(members_profile_list, key=lambda i: i['updated_at'])
 
