@@ -59,7 +59,7 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_user_chatroom_status,
                            get_users_sdk_meta_dict)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
-    get_error_context, CommunityDMSettingsSerializer, MemberNotificationFlagSerializer, SDKClientUsersInfoSerializer
+    get_error_context, CommunityDMSettingsSerializer, MemberNotificationFlagSerializer
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
     conversationSerializer, get_members_profile
 from ..static_files import REMOVED_USER_URL, ICONS
@@ -2233,7 +2233,7 @@ class MemberCommunityHelper:
         return header
 
     @staticmethod
-    def extract_member_tagging_data(member_data, sdk_client_info_flag:bool = False) -> []:
+    def extract_member_tagging_data(member_data, sdk_client_info_flag:bool=False) -> []:
 
         member_list = []
 

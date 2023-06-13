@@ -583,9 +583,9 @@ class ChatroomImpl(ChatroomManager):
         return conversation_users
 
     @staticmethod
-    def compute_tagging_list_of_community_members(community_instance, member_ids=[], search_name: str = None, 
-                                                  page: int = None, page_size: int = None, order_by_name: bool = None, 
-                                                  sdk_client_info_flag: bool = False): 
+    def compute_tagging_list_of_community_members(community_instance, member_ids=[], search_name: str=None, 
+                                                  page: int=None, page_size: int=None, order_by_name: bool=None, 
+                                                  sdk_client_info_flag: bool=False): 
         member_list = MemberCommunityImpl.fetch_list_of_community_members(community_instance, member_ids)
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance, 
                                                                            member_name_search_string=search_name, 
@@ -630,7 +630,7 @@ class ChatroomImpl(ChatroomManager):
             tag_list = get_community_members_data_on_basis_of_name_search(
                 chatroom_instance.community_id, chatroom_instance.id, user_id=user_id, page=page, limit=page_size,
                 member_name_search=search_name, tag_only_participants=chatroom_instance.tag_only_participants)
-        
+
         return tag_list
 
     @staticmethod
@@ -658,7 +658,7 @@ class ChatroomImpl(ChatroomManager):
             tag_list = get_community_members_data_on_basis_of_name_search(
                 chatroom_instance.community_id, chatroom_instance.id, user_id=user_id, page=page, limit=page_size,
                 member_name_search=search_name, filter_user_ids=member_list)
-            
+
         return tag_list
 
     @staticmethod
@@ -675,7 +675,7 @@ class ChatroomImpl(ChatroomManager):
     @staticmethod
     def compute_tagging_list_for_secret_participants(chatroom_instance, community_instance, page=0, page_size=0,
                                                      member_name_search_string="", order_by_name=False, 
-                                                     sdk_client_info_flag: bool = False):
+                                                     sdk_client_info_flag: bool=False):
 
         try:
             member_list = json.loads(chatroom_instance.secret_chatroom_participants)
@@ -1270,7 +1270,8 @@ class ChatroomImpl(ChatroomManager):
 
         context = {
             'success': True,
-            'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, community_instance, sdk_client_info_flag=True),
+            'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, community_instance, 
+                                                                 sdk_client_info_flag=True),
             'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
                                                                                            chatroom_instance)
         }

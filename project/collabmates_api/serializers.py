@@ -1796,7 +1796,8 @@ def report_serializer(report_instance, current_user_id, sdk_client_info_flag:boo
 
     if report_instance.conversation is not None:
         report["conversation"] = conversationSerializer(report_instance.conversation, current_user_id=current_user_id,
-                                                        fetch_poll_conversation=True, sdk_client_info_flag=sdk_client_info_flag)
+                                                        fetch_poll_conversation=True, 
+                                                        sdk_client_info_flag=sdk_client_info_flag)
         report["chatroom"] = get_chatroom_instance(report_instance.conversation.card, current_user_id, 
                                                    sdk_client_info_flag=sdk_client_info_flag)
         report["conversation_users"] = get_last_two_conversation_user_images(report_instance.conversation.card)

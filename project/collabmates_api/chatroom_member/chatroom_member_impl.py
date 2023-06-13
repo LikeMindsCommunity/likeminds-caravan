@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 from collabmates_api.chatroom_member.chatroom_member_manager import ChatroomMemberManager
 from collabmates_api.rest_api import EventFAQSerializer, EventMemberTestimonialsSerializer, EventHighlightsSerializer, \
-    EventInstructorSerializer, SDKClientUsersInfoSerializer
+    EventInstructorSerializer
 from utility.cache_keys import EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, \
     EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CHATROOM
 from utility.celery_tasks import update_chatroom_conversation_count_in_cache, \
@@ -26,7 +26,7 @@ from utility.number_utilities import NumberUtilities
 from utility.states import card_types, poll_types, conversation_states
 from utility.time_utilities import TimeUtilities
 from togther.models import collabcardState, Members, ModelUtilities, MemberPollVotes, card_answers, EventInstructor, \
-    EventHighlights, EventMemberTestimonials, EventFAQ, Cohort, CohortMember, ChatroomCohort, Collabcard, Userinfo
+    EventHighlights, EventMemberTestimonials, EventFAQ, Cohort, CohortMember, ChatroomCohort, Collabcard
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -300,7 +300,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
         return conversation_creator_list
 
-    def create_last_response_members_images(self, card_instance, community_instance, sdk_client_info_flag:bool = False):
+    def create_last_response_members_images(self, card_instance, community_instance, 
+                                            sdk_client_info_flag:bool=False):
 
         conversation_members = []
 
@@ -375,7 +376,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                          poll_votes, sdk_client_info_flag:bool = False) -> {}:
 
         chatroom_context = ChatroomMemberHelper.serialize_chatroom(card_instance, user=self.get_member_id(),
-                                                                   return_topic=True, sdk_client_info_flag=sdk_client_info_flag)
+                                                                   return_topic=True, 
+                                                                   sdk_client_info_flag=sdk_client_info_flag)
 
         if card_instance.has_reactions:
             reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
@@ -434,7 +436,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
         return chatroom_context
 
-    def process_chatroom_list(self, chatroom_list, community_instance, sdk_client_info_flag:bool = False) -> []:
+    def process_chatroom_list(self, chatroom_list, community_instance, sdk_client_info_flag:bool=False) -> []:
 
         chatroom_context_list = []
         user_list = self.compute_user_id_list_of_chatroom_creators(chatroom_list)
