@@ -3,8 +3,7 @@ from collabmates_api.serializers import (get_menu_for_members)
 from utility.states import (member_states)
 from collabmates_api.user_moderation_rights import (check_all_manager_rights)
 from utility.time_utilities import TimeUtilities
-from ..raw_queries import (get_chatroom_participants_count)
-from ..serializers import (get_serialized_userinfo_meta_dict)
+from ..raw_queries import (get_chatroom_participants_count, get_users_meta_with_sdk_client_info)
 
 class SearchHelper:
 
@@ -28,7 +27,7 @@ class SearchHelper:
         user_ids = [card.user_id for card in card_instances]
 
         # Get sdk_client_info for user_ids
-        serialised_usersinfo_dict = get_serialized_userinfo_meta_dict(user_ids)
+        serialised_usersinfo_dict = get_users_meta_with_sdk_client_info(user_ids, get_users_dict=True)
     
         chatroom_creators_meta = {}
 
@@ -62,7 +61,7 @@ class SearchHelper:
                                 if conversation.get('member')]
         
         # Get user instances with user objects
-        serialised_user_info_dict = get_serialized_userinfo_meta_dict(member_ids)
+        serialised_user_info_dict = get_users_meta_with_sdk_client_info(member_ids, get_users_dict=True)
 
         # Update user info in 'member' object of conversations_data
         for conversation in conversations_data:
