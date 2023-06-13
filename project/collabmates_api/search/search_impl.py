@@ -21,7 +21,8 @@ class SearchImpl(SearchManager):
 
     def __init__(self, member_id: str, search_term: str, search_field: str = None,
                  follow_status: bool = False, page: int = 1, page_size: int = 300,
-                 device_id: str = None, community_id: str = None, api_key: str = None):
+                 device_id: str = None, community_id: str = None, api_key: str = None,
+                 chatroom_id:str = None):
         self.member_id = member_id
         self.search_term = search_term
         self.search_field = search_field
@@ -31,6 +32,7 @@ class SearchImpl(SearchManager):
         self.device_id = device_id
         self.community_id = community_id
         self.api_key = api_key
+        self.chatroom_id = chatroom_id
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -61,6 +63,13 @@ class SearchImpl(SearchManager):
 
     def set_community_id(self, community_id):
         self.community_id = community_id
+
+    def get_chatroom_id(self) -> int:
+
+        if self.chatroom_id:
+            return NumberUtilities.get_integer_from_string(self.chatroom_id)
+        
+        return None
 
     def _get_chatroom_search_query_dict(self):
         """
@@ -388,7 +397,11 @@ class SearchImpl(SearchManager):
 
             self.set_community_id(community_instance.id)
 
-        chatroom_id_list = self._fetch_user_chatrooms_id_list(self.get_community_id())
+        if self.get_chatroom_id():
+            chatroom_id_list = [self.get_chatroom_id()]
+        
+        else:
+            chatroom_id_list = self._fetch_user_chatrooms_id_list(self.get_community_id())
 
         res = Search.from_dict(self._get_conversation_search_ngram_query_dict(chatroom_id_list)).execute()
 
