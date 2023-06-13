@@ -461,7 +461,7 @@ class ConversationImpl(ConversationManager):
 
         poll_instances = []
 
-        member = UserinfoSerializer(user_instance.userinfo)
+        member = UserinfoSerializer(user_instance.userinfo, sdk_client_info_flag=True)
 
         for poll in polls:
             poll_instance = conversationPolls.create_instance({'user_instance': user_instance,
@@ -2054,11 +2054,13 @@ class ConversationHelper:
                                                       'event_attendees_list': attending_list})
 
     @staticmethod
-    def process_members_data_for_conversation_event(user_list, community_instance):
+    def process_members_data_for_conversation_event(user_list, community_instance, 
+                                                    sdk_client_info_flag:bool=True):
 
         info_list = []
         member_dict = MemberCommunityImpl. \
-            fetch_members_based_on_user_list(user_list, community_instance)
+            fetch_members_based_on_user_list(user_list, community_instance, 
+                                             sdk_client_info_flag=sdk_client_info_flag)
 
         for data in user_list:
             user_id = NumberUtilities.get_integer_from_string(data)
