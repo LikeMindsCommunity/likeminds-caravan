@@ -15,9 +15,10 @@ from collabmates_api.chatroom_member.constants import ACTIVE_USER_LIMIT
 from collabmates_api.conversation.reactions import fetch_chatroom_or_conversation_reactions
 from collabmates_api.member_community import member_community_impl
 from collabmates_api.raw_queries import get_chatroom_count_based_on_community_list, \
-    get_count_of_community_members_based_on_community_list, fetch_chatroom_polls, fetch_member_poll_votes
+    get_count_of_community_members_based_on_community_list, fetch_chatroom_polls, fetch_member_poll_votes, \
+    get_users_meta_with_sdk_client_info
 from collabmates_api.serializers import conversationSerializer, get_collabcard_files, get_preview_for_url, \
-    get_members_profile, get_sdk_client_info_meta_dict, get_serialized_userinfo_meta_dict
+    get_members_profile, get_sdk_client_info_meta_dict
 from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTINCT_CREATORS_KEY
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -892,10 +893,10 @@ class ChatroomMemberHelper:
         for chatroom in chatrooms_data:
 
             for key, value in chatroom.items():
-                if key in user_query_col_names:
+                if key in user_query_col_names and value:
                     user_ids.add(value)
 
         # get user serialised dict from user_ids
-        users_meta = get_serialized_userinfo_meta_dict(user_ids)
+        users_meta = get_users_meta_with_sdk_client_info(list(user_ids), get_users_dict=True)
 
         return users_meta

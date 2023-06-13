@@ -13,7 +13,7 @@ from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
 from ..chatroom.chatroom_impl import ChatroomImpl, ChatroomHelper
 from ..search.sync import ElasticSearchSync
-from ..serializers import get_serialized_userinfo_meta_dict
+from ..raw_queries import (get_users_meta_with_sdk_client_info)
 from togther.models import ModelUtilities, Members, Community, Cohort, CohortMember, communityRightsSettings, \
     CohortRights, memberRights, userMemberRights, ChatroomCohort, CohortFilter, communityQuestions, communityAnswers, \
     Collabcard, questionFilters
@@ -360,9 +360,7 @@ class CohortImpl(CohortManager):
         cohort_rights = CohortHelper.get_all_the_cohort_rights(rights)
         rights_list = get_saved_member_rights_list(cohort_rights, admin_rights)
 
-        serialised_userinfo_dict = get_serialized_userinfo_meta_dict(member_ids)
-
-        members = list(serialised_userinfo_dict.values())
+        members = get_users_meta_with_sdk_client_info(member_ids)
 
         cohorts = {'name': cohort_instance.name,
                    'type': cohort_instance.type,
