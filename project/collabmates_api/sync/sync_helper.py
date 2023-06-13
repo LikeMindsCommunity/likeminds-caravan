@@ -138,16 +138,20 @@ class SyncHelper:
                 if primary_data.get(secondary_key):
                     merged_meta_data[primary_data.get(secondary_key)].update(primary_data)
 
-        # Only for adding sdk_client_info to users_meta
+        # Only for adding sdk_client_info and uuid to users_meta
         if third_data and third_key:
             
             for key, data in third_data.items():
                 sdk_client_info = {
                     'user_unique_id' : data.get('user_unique_id'),
+                    'uuid': data.get('user_unique_id'),
                     'user' : data.get('user_id'),
                     'community' : data.get('community_id'),
                 }
                 merged_meta_data[data.get('user_id')]['sdk_client_info'] = sdk_client_info
+
+                # Add uuid in parallel to user_unique_id in user object
+                merged_meta_data[data.get('user_id')]['uuid'] = merged_meta_data[data.get('user_id')]['user_unique_id']
 
         return merged_meta_data
 
