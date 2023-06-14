@@ -117,7 +117,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def fetch_member_profile(self, member_id: str) -> {}:
+    def fetch_member_profile(self, member_id: str, uuid: str = None) -> {}:
         """returns member profile"""
 
         raise NotImplementedError
@@ -127,7 +127,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def request_dm_limit(self, member_id: str) -> {}:
+    def request_dm_limit(self, member_id: str, uuid: str = None) -> {}:
         """Returns DM limit connection request meta for user"""
 
         raise NotImplementedError
@@ -174,7 +174,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     def fetch_user_chatroom_status(self, user_id: str = None, chatroom_types: list = None, page: int = None,
-                                   page_size: int = None) -> dict:
+                                   page_size: int = None, uuid: str = None) -> dict:
         """Fetches user chatroom joining status"""
 
         raise NotImplementedError

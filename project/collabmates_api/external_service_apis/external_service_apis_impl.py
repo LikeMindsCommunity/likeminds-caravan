@@ -4,6 +4,7 @@ from ..external_service_apis.external_service_apis_manager import ExternalServic
 from external_services.email.email_wrapper import MailWrapper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+from collabmates_api.cron.mau_tracker import track
 
 from ..notification import notification_meta, get_token_for_fcm
 from ..notifications.tasks_impl import TasksHelper
@@ -179,5 +180,16 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
 
         if notification_allowed:
             notification_meta(notification_details_list, message)
+
+        return {'success': True}
+
+    def run_cron_jobs(self, task_name) -> dict:
+
+        if task_name and task_name == 'mau_tracker':
+            track()
+
+        else:
+            return ResponseUtilities.get_impl_error_context("Invalid task_name",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         return {'success': True}

@@ -2302,6 +2302,27 @@ def add_new_participants_to_cohorts_secret_chatroom(cohort_id, member_id, member
 
 
 @shared_task
+def add_new_participants_to_secret_chatroom(current_user_id, chatroom_id, member_ids,
+                                            add_user_joined_message: bool = False):
+    chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+    if not (chatroom_instance and chatroom_instance.is_secret):
+        return
+
+    from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
+
+    chatroom_manager = ChatroomImpl(current_user_id, chatroom_id=chatroom_instance.id)
+
+    req_body = {
+        'chatroom_id': chatroom_instance.id,
+        'secret_chatroom_participants': member_ids,
+        'is_channel_invite': False
+    }
+
+    chatroom_manager.add_secret_chatroom_participant(req_body, add_user_joined_message=add_user_joined_message)
+
+
+@shared_task
 def create_intro_room_disabled_text_for_community_members(disabled_community_settings_context_list):
     for disabled_community_settings_context in disabled_community_settings_context_list:
         community_id = disabled_community_settings_context.get('community_id')
