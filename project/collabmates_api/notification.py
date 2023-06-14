@@ -160,7 +160,7 @@ def send_notification_for_android(token_list, message, firebase_key=None):
         The {} devices should have total {} notifications out of which {} success {} & {} failures {}. Payload is {}
     """.format("ANDROID", len(token_list), sum(notification_success), notification_success, sum(notification_failures),
                notification_failures, message.get('payload'))
-    info_logger.info(log_statement)
+    print(log_statement)
     return final_result
 
 
