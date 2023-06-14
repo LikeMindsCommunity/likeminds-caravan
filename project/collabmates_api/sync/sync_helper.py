@@ -138,8 +138,8 @@ class SyncHelper:
                 if primary_data.get(secondary_key):
                     merged_meta_data[primary_data.get(secondary_key)].update(primary_data)
 
-        # Only for adding sdk_client_info and uuid to users_meta
-        if extra_data and extra_key:
+        # Only for adding sdk_client_info to users_meta
+        if extra_data and extra_key == SDK_CLIENT_META_KEY_VALUE:
             
             for key, data in extra_data.items():
                 

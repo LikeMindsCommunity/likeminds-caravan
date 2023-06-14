@@ -3870,7 +3870,7 @@ def get_sdk_client_query_meta_for_sync_revamp(key_name_prefix: str = None):
     userinfo_uuid = f'togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___uuid___{key_name_prefix}'
     userinfo_id = f'togther_sdkclientusersinfo.user_id AS sdk_client_info___id___{key_name_prefix}'
 
-    return ",".join(meta_query + [userinfo_uuid,userinfo_id])
+    return ",".join(meta_query + [userinfo_uuid, userinfo_id])
 
 
 def get_reactions_query_meta_for_sync_revamp(key_name_prefix: str = None):
