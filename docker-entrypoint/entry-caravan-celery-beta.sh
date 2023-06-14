@@ -4,4 +4,4 @@ touch /var/log/celery/celery_beat.log
 source /opt/venv/bin/activate
 cd ./project
 DJANGO_SETTINGS_MODULE=project.settings.beta celery -A project worker --loglevel=info
-DJANGO_SETTINGS_MODULE=project.settings.beta celery -A project beat --loglevel=info -f /var/log/celery/celery_beat.log --scheduler django_celery_beat.schedulers:DatabaseScheduler
+DJANGO_SETTINGS_MODULE=project.settings.beta celery -A project beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
