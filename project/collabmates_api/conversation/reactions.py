@@ -55,8 +55,7 @@ def get_process_members_data_for_reactions(community, members_id_list):
     return members_data_list
 
 
-def get_members_profiles_for_reactions(community, members_id_list, reactions_map, 
-                                       sdk_client_info_flag:bool = False):
+def get_members_profiles_for_reactions(community, members_id_list, reactions_map):
 
     members_profile_list = []
 
@@ -64,31 +63,19 @@ def get_members_profiles_for_reactions(community, members_id_list, reactions_map
 
     member_profiles = Userinfo.objects.filter(user_id__id__in=members_id_list)
 
-    # get sdk_client_info to member object
-    if sdk_client_info_flag:
+    from ..raw_queries import (get_users_sdk_meta_dict)
 
-        from ..raw_queries import (get_users_sdk_meta_dict)
-
-        sdk_client_info_list = get_users_sdk_meta_dict(members_id_list, 
-                                                       only_sdk_client_info=True)
+    users_meta = get_users_sdk_meta_dict(members_id_list)
 
     for profile in member_profiles:
         user_id = profile.user_id_id
-        user_image = profile.image_link
 
-        temp = {
-            'id': profile.user_id_id,
-            'name': profile.name,
-            'image_url': user_image if user_image else ''
-        }
+        temp = users_meta.get(user_id)
 
         member_image = members_data_list.get(user_id, None)
 
         if member_image is not None:
             temp['image_url'] = member_image
-
-        if sdk_client_info_flag:
-            temp['sdk_client_info'] = sdk_client_info_list.get(user_id, None)
 
         reaction_dict = {
             'member': temp,
@@ -160,8 +147,7 @@ def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=N
 
             reactions_map = process_message_reactions(reactions)
 
-            reactions = get_members_profiles_for_reactions(community_instance, reaction_users, reactions_map,
-                                                           sdk_client_info_flag=sdk_client_info_flag)
+            reactions = get_members_profiles_for_reactions(community_instance, reaction_users, reactions_map)
 
         else:
             reactions = []
