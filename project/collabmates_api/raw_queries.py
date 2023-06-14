@@ -1431,8 +1431,8 @@ def get_dictionary_of_member_responses(res):
 
     return responses_dict
 
-def process_users_data_with_key_splitting(users_data: list) -> dict:
-    """ This method processes users data for sdk_client_info adds client_user_unique id to it."""
+def process_users_meta_data_from_query_response(users_data: list) -> dict:
+    """ This method processes users data by splitting data using a defined key."""
     
     users_dict = {}
 
@@ -1523,7 +1523,7 @@ def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info: bool = False) 
         curr.close()
 
         # Process the users data for key(id): value(data) pair
-        users_dict = process_users_data_with_key_splitting(query_result)
+        users_dict = process_users_meta_data_from_query_response(query_result)
 
         return users_dict
     
@@ -1941,7 +1941,7 @@ def get_members_meta_list(community_id: int, member_ids:list = None, page=1, pag
         query_result = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
 
-        users_meta = process_users_data_with_key_splitting(query_result)
+        users_meta = process_users_meta_data_from_query_response(query_result)
 
         return users_meta
     
@@ -3550,7 +3550,7 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=N
         users_data = [dict(zip(columns, row)) for row in user_ids_list]
 
         # Process users data to add sdk client info
-        users_meta = process_users_data_with_key_splitting(users_data)
+        users_meta = process_users_meta_data_from_query_response(users_data)
 
         return users_meta
 
@@ -3626,7 +3626,7 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
         users_data = [dict(zip(columns, row)) for row in user_ids_list]
 
         # process users data to add sdk client info
-        users_meta = process_users_data_with_key_splitting(users_data)
+        users_meta = process_users_meta_data_from_query_response(users_data)
 
         return users_meta
 
@@ -3857,16 +3857,20 @@ def get_users_query_meta_for_sync_revamp(key_name_prefix: str = None):
     query_fields = ['user_id_id', 'name', 'image_link', 'user_unique_id', 'is_guest']
     meta_query = create_query_with_prefix(query_fields, 'togther_userinfo', 'user', key_name_prefix)
 
-    return ",".join(meta_query)
-
-def get_sdk_client_query_meta_for_sync_revamp(key_name_prefix: str = None):
-    query_fields = ['user_unique_id', 'user_id', 'community_id']
-    meta_query = create_query_with_prefix(query_fields, 'togther_sdkclientusersinfo', 'sdk_client_info', key_name_prefix)
-
     # To add uuid in user object
     userinfo_uuid = f'togther_userinfo.user_unique_id AS user___uuid___{key_name_prefix}'
 
     return ",".join(meta_query + [userinfo_uuid])
+
+def get_sdk_client_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['user_unique_id', 'community_id']
+    meta_query = create_query_with_prefix(query_fields, 'togther_sdkclientusersinfo', 'sdk_client_info', key_name_prefix)
+
+    # To add uuid and id in sdk_client_info object
+    userinfo_uuid = f'togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___uuid___{key_name_prefix}'
+    userinfo_id = f'togther_sdkclientusersinfo.user_id AS sdk_client_info___id___{key_name_prefix}'
+
+    return ",".join(meta_query + [userinfo_uuid,userinfo_id])
 
 
 def get_reactions_query_meta_for_sync_revamp(key_name_prefix: str = None):

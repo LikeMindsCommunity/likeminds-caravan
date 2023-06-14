@@ -12,7 +12,7 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         CONVERSATIONS_CREATED_EPOCH_KEY, CONVERSATIONS_CREATED_AT_KEY, CONVERSATION_POLL_TYPE_TEXT_KEY,
                         INSTANT_POLL_NAME_VALUE, DEFERRED_POLL_NAME_VALUE, SECRET_VOTING_NAME_VALUE,
                         PUBLIC_VOTING_NAME_VALUE, CONVERSATION_SUBMIT_TYPE_TEXT_KEY, CHATROOM_DATE_KEY,
-                        CHATROOM_DATE_EPOCH_KEY, SDK_CLIENT_META_KEY_VALUE)
+                        CHATROOM_DATE_EPOCH_KEY, SDK_CLIENT_META_KEY_VALUE, SDK_CLIENT_INFO_KEY_VALUE)
 from utility.states import (conversation_states, conversation_poll_types)
 from togther.models import (ModelUtilities, card_answers)
 
@@ -142,14 +142,9 @@ class SyncHelper:
         if extra_data and extra_key:
             
             for key, data in extra_data.items():
-                sdk_client_info = {
-                    'user_unique_id' : data.get('user_unique_id'),
-                    'uuid': data.get('user_unique_id'),
-                    'user' : data.get('user_id'),
-                    'community' : data.get('community_id'),
-                }
-                if data.get('user_id'):
-                    merged_meta_data[data.get('user_id')]['sdk_client_info'] = sdk_client_info
+                
+                if data.get(primary_key):
+                    merged_meta_data[data.get(primary_key)][SDK_CLIENT_INFO_KEY_VALUE] = data
                     
         return merged_meta_data
 
