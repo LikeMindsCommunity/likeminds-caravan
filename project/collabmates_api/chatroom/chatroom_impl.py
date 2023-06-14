@@ -38,7 +38,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_all_chatrooms_of_community, get_chatroom_participants_count,\
     get_sorted_user_data_on_basis_of_activity_in_chatroom, get_members_based_on_user_list_query, \
     get_community_members_data_on_basis_of_name_search, get_last_conversation_id_corresponding_to_chatrooms_list, \
-    get_chatroom_invites_for_user, get_all_chatrooms_of_community_old
+    get_chatroom_invites_for_user, get_all_chatrooms_of_community_old, get_users_sdk_meta_dict
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, \

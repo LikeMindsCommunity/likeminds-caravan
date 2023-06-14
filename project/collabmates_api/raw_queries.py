@@ -3314,7 +3314,8 @@ def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_
         type_include_filter = """AND togther_collabcard.type IN (%s)""" % filter_type_list if filter_type_list else ""
 
         get_creator_data = ",".join([get_users_query_meta_for_sync_revamp("creator"),
-                                     get_members_query_meta_for_sync_revamp("creator")])
+                                     get_members_query_meta_for_sync_revamp("creator"),
+                                     get_sdk_client_query_meta_for_sync_revamp("creator")])
 
         conn = get_connection()
         curr = conn.cursor()
@@ -3344,6 +3345,9 @@ def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_
                 LEFT JOIN togther_members ON (
                   chatrooms_data.user_id = togther_members.member_id_id 
                   AND chatrooms_data.community_id = togther_members.community_id_id
+                )
+                LEFT JOIN togther_sdkclientusersinfo ON (
+                    chatrooms_data.user_id = togther_sdkclientusersinfo.user_id
                 );""" % \
               (get_creator_data, get_chatroom_query_meta_for_sync_revamp(), str(community_id), type_exclude_filter,
                type_include_filter, limit, offset)
@@ -3859,7 +3863,10 @@ def get_sdk_client_query_meta_for_sync_revamp(key_name_prefix: str = None):
     query_fields = ['user_unique_id', 'user_id', 'community_id']
     meta_query = create_query_with_prefix(query_fields, 'togther_sdkclientusersinfo', 'sdk_client_info', key_name_prefix)
 
-    return ",".join(meta_query)
+    # To add uuid in user object
+    userinfo_uuid = f'togther_userinfo.user_unique_id AS user___uuid___{key_name_prefix}'
+
+    return ",".join(meta_query + [userinfo_uuid])
 
 
 def get_reactions_query_meta_for_sync_revamp(key_name_prefix: str = None):
