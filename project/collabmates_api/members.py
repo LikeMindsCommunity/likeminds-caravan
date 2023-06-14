@@ -751,17 +751,16 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
 
     for member in member_list:
         member_id = member.member_id_id
+        member_ids.append(member_id)
 
         if current_user_id and member_id == int(current_user_id):
-            pass
+            continue
 
         userinfo_serialized_object = MembersSerializer(member, community_id, current_user_id=current_user_id,
                                                        send_profile=True,
                                                        all_members_api=True, is_promoter=is_promoter,
                                                        is_owner=is_owner, user_admin_rights=user_admin_rights)
         members.append(userinfo_serialized_object)
-
-        member_ids.append(member_id)
 
     # If first page and current user'state matches member_state filter, then add him to the top of the list 
     if current_user and (not member_state or current_user['state'] == member_state):        
