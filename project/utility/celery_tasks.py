@@ -810,6 +810,12 @@ def compute_conversation_polls(conversation_info):
     polls = []
     user_dict = {}
 
+    from collabmates_api.raw_queries import (get_users_sdk_meta_dict)
+
+    user_ids = conversation_poll_members.values_list('user_id', flat=True)
+
+    user_sdk_meta_dict = get_users_sdk_meta_dict(user_ids, only_sdk_client_info=True)
+
     for data in conversation_poll_options:
 
         poll_id = data.id
@@ -825,6 +831,7 @@ def compute_conversation_polls(conversation_info):
 
         else:
             temp['member'] = UserinfoSerializer(data.user.userinfo)
+            temp['member']['sdk_client_info'] = user_sdk_meta_dict.get(data.user_id)
             user_dict[data.user_id] = temp['member']
 
         chatroom_votes = poll_members_dict.get(poll_id)
@@ -887,6 +894,12 @@ def save_conversation_poll_options_in_cache(options_info):
 
         user_dict = {}
 
+        from collabmates_api.raw_queries import (get_users_sdk_meta_dict)
+
+        user_ids = poll_filter.values_list('user_id', flat=True)
+
+        user_sdk_meta_dict = get_users_sdk_meta_dict(user_ids, only_sdk_client_info=True)
+
         for poll in poll_filter:
 
             temp = {
@@ -901,6 +914,8 @@ def save_conversation_poll_options_in_cache(options_info):
             else:
                 member = UserinfoSerializer(poll.user.userinfo)
                 user_dict[poll.user_id] = member
+
+            member['sdk_client_info'] = user_sdk_meta_dict.get(poll.user_id)
 
             temp['member'] = member
             polls.append(temp)

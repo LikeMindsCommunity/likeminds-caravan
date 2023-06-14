@@ -204,7 +204,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         )
 
     @abc.abstractmethod
-    def fetch_chatroom(self, is_internal=False) -> dict:
+    def fetch_chatroom(self, is_internal=False, excluded_conversation_states: list = None) -> dict:
         """
         fetching the chatroom from chatroom id
         """

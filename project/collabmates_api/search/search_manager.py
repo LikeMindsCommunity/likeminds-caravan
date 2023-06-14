@@ -17,7 +17,7 @@ class SearchManager(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def search_conversation(self):
+    def search_conversation(self, chatroom_id):
         """
         Search conversation by answer text with elastic search
         """

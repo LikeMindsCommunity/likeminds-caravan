@@ -82,6 +82,7 @@ class ConversationSearchView(APIView):
                                                                                 status_codes.HTTP_400_BAD_REQUEST))
 
         search_term = request.GET.get('search')
+        chatroom_id = request.GET.get('chatroom_id')
         page = RequestUtilities.get_page_number(request)
         page_size = RequestUtilities.get_page_size(request, default=300)
 
@@ -93,7 +94,7 @@ class ConversationSearchView(APIView):
         search_manager = SearchImpl(member_id=member_id, search_term=search_term, follow_status=follow_status,
                                     page=page, page_size=page_size, api_key=api_key, community_id=community_id)
 
-        conversations_data = search_manager.search_conversation()
+        conversations_data = search_manager.search_conversation(chatroom_id)
 
         if 'error_message' in conversations_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(conversations_data.get('error_message'),

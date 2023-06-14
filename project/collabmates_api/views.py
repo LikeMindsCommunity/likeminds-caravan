@@ -444,7 +444,8 @@ def my_chatrooms_version_1(request):
         draft_instance = instance.draft
 
         if card_instance:
-            chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False)
+            chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False, 
+                                                         sdk_client_info_flag=True)
             context = {"current_user_id": member_id}
             chatroom['community'] = CommunitySerializerV1(card_instance.community, context=context,
                                                           many=False).data
@@ -466,7 +467,8 @@ def my_chatrooms_version_1(request):
 
         if last_conversation and not is_draft_conversation(last_conversation, member_id, device_id):
             last_conversation_dict = conversationSerializer(last_conversation,
-                                                            current_user_id=member_id, device_id=device_id)
+                                                            current_user_id=member_id, device_id=device_id,
+                                                            sdk_client_info_flag=True)
             preview = generate_internal_link_preview_for_conversation(last_conversation, member_id)
 
             if preview:
@@ -482,7 +484,8 @@ def my_chatrooms_version_1(request):
 
             if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id, device_id):
                 second_last_conversation_dict = conversationSerializer(second_last_conversation,
-                                                                       current_user_id=member_id, device_id=device_id)
+                                                                       current_user_id=member_id, device_id=device_id,
+                                                                       sdk_client_info_flag=True)
                 preview = generate_internal_link_preview_for_conversation(second_last_conversation, member_id)
 
                 if preview:
@@ -2398,7 +2401,8 @@ def fetch_user_chatrooms(request):
         for chatroom in state_filter:
             chatroom_instance = chatroom.card
 
-            temp = get_chatroom_instance(chatroom_instance, user_id, current_user_id=current_user_id)
+            temp = get_chatroom_instance(chatroom_instance, user_id, current_user_id=current_user_id,
+                                         sdk_client_info_flag=True)
             temp['date'] = TimeUtilities.convert_epoch_time_in_date(chatroom.updated_at)
             engage_filter = conversationEngage.objects.filter(card=chatroom_instance, user=user_id)
             temp['conversation_users'] = []
@@ -4696,7 +4700,8 @@ def conversation_meta(request):
         if not is_draft_conversation(conversation, user_id, device_id=device_id):
             conversation_serializer = conversationSerializer(conversation,
                                                              fetch_reply=True,
-                                                             current_user_id=user_id)
+                                                             current_user_id=user_id,
+                                                             sdk_client_info_flag=True)
             preview = generate_internal_link_preview_for_conversation(conversation, user_id)
 
             if preview:
@@ -8358,7 +8363,8 @@ def verify_otp(request):
             context['profile_exists'] = mobile_filter.exists()
 
             if mobile_filter.exists():
-                context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
+                context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, 
+                                                     sdk_client_info=True)
                 context['access'] = is_user_community_part(context['user']['id'])
 
             return JsonResponse(context)
@@ -8375,7 +8381,8 @@ def verify_otp(request):
             context['profile_exists'] = mobile_filter.exists()
 
             if mobile_filter.exists():
-                context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
+                context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, 
+                                                     sdk_client_info_flag=True)
                 context['access'] = is_user_community_part(context['user']['id'])
 
                 return JsonResponse(context)
@@ -8430,7 +8437,8 @@ def verify_otp(request):
         context['profile_exists'] = mobile_filter.exists()
 
         if mobile_filter.exists():
-            context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
+            context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, 
+                                                 sdk_client_info=True)
             context['access'] = is_user_community_part(context['user']['id'])
 
             if context['success'] == True:
@@ -8900,6 +8908,10 @@ def members_state(request, req_dict=None):
     if toast_filter:
         json_response['community_toast'] = toast_filter[0].toast_message
 
+    # Add sdk_client_info to member response
+    user_sdk_meta = get_users_sdk_meta_dict([member_id], only_sdk_client_info=True)
+    json_response['member']['sdk_client_info'] = user_sdk_meta.get(member_id)
+
     if req_dict:
         return json_response
     return JsonResponse(json_response)
@@ -9078,7 +9090,7 @@ def create_mixpanel_statistics(user_instance, userinfo_instance):
         return
 
     context = {}
-    context['user'] = get_logged_in_user(userinfo_instance)
+    context['user'] = get_logged_in_user(userinfo_instance, sdk_client_info_flag=True)
 
     user_metrics = {}
     user_metrics['first_login'] = TimeUtilities.convert_epoch_time_to_ddmmyyyy(userinfo_instance.created_at)
@@ -10992,7 +11004,8 @@ def fetch_community_manager_rights(request):
     else:
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
-    member_profile = get_members_profile([user_instance], community_instance)
+    member_profile = get_members_profile([user_instance], community_instance, 
+                                         sdk_client_info_flag=True)
 
     mobile_filter = userMobiles.objects.filter(user=current_user_instance)
     mobile_list = []
@@ -11585,7 +11598,8 @@ def fetch_community_member_rights(request):
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
 
-    member_profile = get_members_profile([user_instance], community_instance)
+    member_profile = get_members_profile([user_instance], community_instance, 
+                                         sdk_client_info_flag=True)
 
     return JsonResponse({"success": True, "member": member_profile[0], "rights": rights_context})
 
@@ -11941,7 +11955,7 @@ def fetch_reports(request):
     report_list = []
 
     for report in reports:
-        report_dict = report_serializer(report, current_user_id)
+        report_dict = report_serializer(report, current_user_id, sdk_client_info_flag=True)
         report_list.append(report_dict)
 
     return JsonResponse({"success": True, "reports": report_list})
@@ -12020,7 +12034,7 @@ def fetch_pending_chatroom(request):
     chatrooms = []
 
     for chatroom in pending_chatrooms:
-        chatroom_instance = get_chatroom_instance(chatroom, current_user_id)
+        chatroom_instance = get_chatroom_instance(chatroom, current_user_id, sdk_client_info_flag=True)
         chatrooms.append(chatroom_instance)
 
     context = {

@@ -381,6 +381,12 @@ def notification_meta(notification_list, message, calling_notification=""):
         if 'id' in data:
             user_id = data['id']
 
+            print('notification sent data, receiver: {}, category: {}, subcategory: {}'.format(
+                user_id,
+                message.get('category'),
+                message.get('subcategory')
+            ))
+
         else:
             continue
 

@@ -26,7 +26,8 @@ from ..member_community.member_community_impl import MemberCommunityImpl, Member
 from ..raw_queries import activate_chatroom_on_conversation_creation, \
     get_latest_conversation_creator_users_for_homescreen, update_conversation_engage_for_chatrooms, \
     get_count_of_new_event_conversation_created_for_user, get_last_seen_event_conversation_id_for_user, \
-    update_conversation_engage_data_for_chatroom, activate_chatroom_for_followed_users_on_conversation_creation
+    update_conversation_engage_data_for_chatroom, activate_chatroom_for_followed_users_on_conversation_creation, \
+    get_users_sdk_meta_dict
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, UserinfoSerializer
 from ..sync.model_update import update_models_for_syncing_apis
@@ -266,11 +267,12 @@ class ConversationImpl(ConversationManager):
                                                                      })
         return to_show_results
 
-    def _serialize_conversation(self, conversation_instance):
+    def _serialize_conversation(self, conversation_instance, sdk_client_info_flag:bool=False):
 
         conversation_serializer = conversationSerializer(conversation_instance,
                                                          fetch_reply=True,
-                                                         current_user_id=self.get_member_id())
+                                                         current_user_id=self.get_member_id(),
+                                                         sdk_client_info_flag=sdk_client_info_flag)
         conversation_serializer['created_at'] = TimeUtilities.convert_epoch_time_in_hh_mm(
             conversation_instance.created_at)
 
@@ -341,7 +343,8 @@ class ConversationImpl(ConversationManager):
 
         return event_conversation
 
-    def _create_conversation_list(self, conversations, last_conversation_id=None):
+    def _create_conversation_list(self, conversations, last_conversation_id=None, 
+                                  sdk_client_info_flag:bool=False):
 
         conversation_list = []
 
@@ -354,7 +357,8 @@ class ConversationImpl(ConversationManager):
                     conversation.api_version <= 0 or conversation.device_id != self.device_id):
                 continue
 
-            conversation_dict = self._serialize_conversation(conversation)
+            conversation_dict = self._serialize_conversation(conversation, 
+                                                             sdk_client_info_flag=sdk_client_info_flag)
 
             if last_conversation_id and last_conversation_id == conversation_dict['id']:
                 conversation_dict['last_seen'] = True
@@ -458,7 +462,7 @@ class ConversationImpl(ConversationManager):
 
         poll_instances = []
 
-        member = UserinfoSerializer(user_instance.userinfo)
+        member = UserinfoSerializer(user_instance.userinfo, sdk_client_info_flag=True)
 
         for poll in polls:
             poll_instance = conversationPolls.create_instance({'user_instance': user_instance,
@@ -627,7 +631,8 @@ class ConversationImpl(ConversationManager):
     @staticmethod
     def _create_member_instances_from_user_list(user_list, community_instance):
 
-        member_dict = MemberCommunityImpl.fetch_members_based_on_user_list(user_list, community_instance)
+        member_dict = MemberCommunityImpl.fetch_members_based_on_user_list(user_list, community_instance, 
+                                                                           sdk_client_info_flag=True)
         member_introduction_dict = MemberCommunityImpl.fetch_community_introductions_based_on_user_list(user_list,
                                                                                                         community_instance)
         member_list = []
@@ -736,14 +741,14 @@ class ConversationImpl(ConversationManager):
         if top_navigate:
             conversations = self._fetch_conversation_queryset(excluded_conversation_states)
             conversations = conversations[:self.get_paginate_by()]
-            conversations = self._create_conversation_list(conversations)
+            conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
             return {'success': True, 'conversations': conversations}
 
         # Client is not sending scroll direction and only sending conversation id
         if self.get_conversation_id() and not self.get_scroll_direction():
             conversation = ModelUtilities.get_model_instance_or_none(card_answers, self.get_conversation_id())
             conversations = [conversation]
-            conversations = self._create_conversation_list(conversations)
+            conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
             return {'success': True, 'conversations': conversations}
 
         # Client is sending scroll direction as False with conversation ID
@@ -752,7 +757,7 @@ class ConversationImpl(ConversationManager):
 
             if last_seen_conversation:
                 conversations = [last_seen_conversation]
-                conversations = self._create_conversation_list(conversations)
+                conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
 
                 return {'success': True, 'conversations': conversations}
 
@@ -763,7 +768,7 @@ class ConversationImpl(ConversationManager):
             if not last_seen:
                 conversations = self._fetch_conversation_queryset(excluded_conversation_states)
                 conversations = conversations[:self.get_paginate_by()]
-                conversations = self._create_conversation_list(conversations)
+                conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
 
             else:
 
@@ -776,7 +781,8 @@ class ConversationImpl(ConversationManager):
                 # merging both conversations
                 conversations = upward_conversation | downward_conversation
                 conversations = conversations.order_by('created_at')
-                conversations = self._create_conversation_list(conversations, last_conversation_id=last_seen.id)
+                conversations = self._create_conversation_list(conversations, last_conversation_id=last_seen.id, 
+                                                               sdk_client_info_flag=True)
 
         else:
 
@@ -811,7 +817,7 @@ class ConversationImpl(ConversationManager):
             else:
                 conversations = self._fetch_conversation_queryset(excluded_conversation_states)
 
-            conversations = self._create_conversation_list(conversations)
+            conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
 
         return {'success': True, 'conversations': conversations}
 
@@ -1049,7 +1055,8 @@ class ConversationImpl(ConversationManager):
 
         fetch_chatroom_or_conversation_reactions(self.get_chatroom_id(),
                                                  self.get_conversation_id(),
-                                                 update_cache=True)
+                                                 update_cache=True,
+                                                 sdk_client_info_flag=True)
 
         send_notification_to_message_creator_on_reaction.delay(self.get_member_id(),
                                                                self.get_chatroom_id(),
@@ -1138,6 +1145,12 @@ class ConversationImpl(ConversationManager):
             'user_id': poll_instance.user_id
         }
 
+        # Get serialized member details from 
+        user_sdk_meta = get_users_sdk_meta_dict([user_instance.id])
+        
+        if user_sdk_meta:
+            poll_response['member'] = user_sdk_meta.get(user_instance.id)
+        
         return {'success': True, 'poll': poll_response}
 
     def submit_poll(self, request_body):
@@ -1433,7 +1446,7 @@ class ConversationImpl(ConversationManager):
                                                                         past_events=past_events)
 
         conversation_list = ModelUtilities.paginate_queryset(conversation_queryset, page, paginate_by=5)
-        conversations = self._create_conversation_list(conversation_list)
+        conversations = self._create_conversation_list(conversation_list, sdk_client_info_flag=True)
 
         return {'success': True, 'events': conversations}
 
@@ -1448,7 +1461,7 @@ class ConversationImpl(ConversationManager):
         conversations = self._fetch_unread_preview_queryset()
         conversations = ModelUtilities.paginate_queryset(conversations, self.get_page(),
                                                          paginate_by=self.get_paginate_by())
-        conversations = self._create_conversation_list(conversations)
+        conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
         return {'success': True, 'conversations': conversations}
 
     def fetch_preview_unread_message_count(self):
@@ -2042,11 +2055,13 @@ class ConversationHelper:
                                                       'event_attendees_list': attending_list})
 
     @staticmethod
-    def process_members_data_for_conversation_event(user_list, community_instance):
+    def process_members_data_for_conversation_event(user_list, community_instance, 
+                                                    sdk_client_info_flag:bool=True):
 
         info_list = []
         member_dict = MemberCommunityImpl. \
-            fetch_members_based_on_user_list(user_list, community_instance)
+            fetch_members_based_on_user_list(user_list, community_instance, 
+                                             sdk_client_info_flag=sdk_client_info_flag)
 
         for data in user_list:
             user_id = NumberUtilities.get_integer_from_string(data)

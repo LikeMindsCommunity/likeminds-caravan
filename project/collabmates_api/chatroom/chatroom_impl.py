@@ -38,7 +38,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_all_chatrooms_of_community, get_chatroom_participants_count,\
     get_sorted_user_data_on_basis_of_activity_in_chatroom, get_members_based_on_user_list_query, \
     get_community_members_data_on_basis_of_name_search, get_last_conversation_id_corresponding_to_chatrooms_list, \
-    get_chatroom_invites_for_user, get_all_chatrooms_of_community_old
+    get_chatroom_invites_for_user, get_all_chatrooms_of_community_old, get_users_sdk_meta_dict
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, \
@@ -583,10 +583,16 @@ class ChatroomImpl(ChatroomManager):
         return conversation_users
 
     @staticmethod
-    def compute_tagging_list_of_community_members(community_instance, member_ids=[], search_name: str = None, page: int = None, page_size: int = None, order_by_name: bool = None): 
+    def compute_tagging_list_of_community_members(community_instance, member_ids=[], search_name: str=None, 
+                                                  page: int=None, page_size: int=None, order_by_name: bool=None, 
+                                                  sdk_client_info_flag: bool=False): 
         member_list = MemberCommunityImpl.fetch_list_of_community_members(community_instance, member_ids)
-        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance, member_name_search_string = search_name, page = page, page_size=page_size, order_by_name = order_by_name)
-        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
+        member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance, 
+                                                                           member_name_search_string=search_name, 
+                                                                           page=page, page_size=page_size, 
+                                                                           order_by_name=order_by_name,
+                                                                           sdk_client_info_flag=sdk_client_info_flag)
+        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data, sdk_client_info_flag=sdk_client_info_flag)
 
         return tagging_list
 
@@ -668,7 +674,8 @@ class ChatroomImpl(ChatroomManager):
 
     @staticmethod
     def compute_tagging_list_for_secret_participants(chatroom_instance, community_instance, page=0, page_size=0,
-                                                     member_name_search_string="", order_by_name=False):
+                                                     member_name_search_string="", order_by_name=False, 
+                                                     sdk_client_info_flag: bool=False):
 
         try:
             member_list = json.loads(chatroom_instance.secret_chatroom_participants)
@@ -679,8 +686,10 @@ class ChatroomImpl(ChatroomManager):
 
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(
             member_list, community_instance, page=page, page_size=page_size,
-            member_name_search_string=member_name_search_string, order_by_name=order_by_name)
-        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
+            member_name_search_string=member_name_search_string, order_by_name=order_by_name, 
+            sdk_client_info_flag=sdk_client_info_flag)
+        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data, 
+                                                                         sdk_client_info_flag=sdk_client_info_flag)
 
         return tagging_list
 
@@ -918,7 +927,14 @@ class ChatroomImpl(ChatroomManager):
         if card_instance.online_link_password:
             chatroom_context['online_link_password'] = card_instance.online_link_password
 
-    def fetch_chatroom(self, is_internal=False) -> dict:
+    def fetch_chatroom(self, is_internal=False, excluded_conversation_states: list = None) -> dict:
+
+        if excluded_conversation_states:
+            excluded_conversation_states = StringUtilities.get_list_from_string(excluded_conversation_states,
+                                                                                default=None)
+
+        if not (excluded_conversation_states and isinstance(excluded_conversation_states, list)):
+            excluded_conversation_states = [conversation_states.CONVERSATION_HEADER]
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, self.get_chatroom_id())
 
@@ -964,7 +980,8 @@ class ChatroomImpl(ChatroomManager):
                                                                     status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_data = ChatroomHelper.compute_chatroom_response(card_instance, user_instance,
-                                                                 community_instance=community_instance)
+                                                                 community_instance=community_instance,
+                                                                 sdk_client_info_flag=True)
 
         if not chatroom_data:
             return ResponseUtilities.get_impl_error_context("User is not associated with chatroom",
@@ -1043,7 +1060,7 @@ class ChatroomImpl(ChatroomManager):
         last_conversation_id = None
 
         card_ans_map = get_last_conversation_id_corresponding_to_chatrooms_list(
-            [card_instance.id], excluded_conversation_state=[conversation_states.CONVERSATION_HEADER])
+            [card_instance.id], excluded_conversation_state=excluded_conversation_states)
 
         if card_ans_map:
             last_conversation_id = card_ans_map.get(card_instance.id)
@@ -1256,7 +1273,8 @@ class ChatroomImpl(ChatroomManager):
 
         context = {
             'success': True,
-            'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, community_instance),
+            'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, community_instance, 
+                                                                 sdk_client_info_flag=True),
             'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
                                                                                            chatroom_instance)
         }
@@ -1595,7 +1613,8 @@ class ChatroomImpl(ChatroomManager):
         group_tags = self._add_group_tags(community_instance, chatroom_instance)
 
         if chatroom_instance.is_secret:
-            participant_list = self.compute_tagging_list_for_secret_participants(chatroom_instance, community_instance)
+            participant_list = self.compute_tagging_list_for_secret_participants(chatroom_instance, community_instance,
+                                                                                 sdk_client_info_flag=True)
             participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
             return {
@@ -1605,7 +1624,7 @@ class ChatroomImpl(ChatroomManager):
                 'group_tags': group_tags
             }
 
-        members = self.compute_tagging_list_of_community_members(community_instance)
+        members = self.compute_tagging_list_of_community_members(community_instance, sdk_client_info_flag=True)
         members = self.remove_guest_user_from_participants_data_list(members)
         participant_list = self.compute_tagging_list_of_guest_members(chatroom_instance)
         participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
@@ -1850,7 +1869,8 @@ class ChatroomImpl(ChatroomManager):
 
             participant_list = self.compute_tagging_list_for_secret_participants(
                 card_instance, community_instance, page=page, page_size=page_size,
-                member_name_search_string=participant_name, order_by_name=order_by_name)
+                member_name_search_string=participant_name, order_by_name=order_by_name, 
+                sdk_client_info_flag=True)
             participant_list = self.remove_guest_user_from_participants_data_list(participant_list)
 
             response_dict = {
@@ -2994,8 +3014,9 @@ class ChatroomImpl(ChatroomManager):
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list, community_instance,
                                                                            page=page, page_size=page_size,
                                                                            member_name_search_string=participant_name,
-                                                                           order_by_name=order_by_name)
-        participant_list = MemberCommunityHelper.extract_member_tagging_data(member_data)
+                                                                           order_by_name=order_by_name, 
+                                                                           sdk_client_info_flag=True)
+        participant_list = MemberCommunityHelper.extract_member_tagging_data(member_data, sdk_client_info_flag=True)
 
         response_dict = {
             'success': True,
@@ -3167,7 +3188,8 @@ class ChatroomImpl(ChatroomManager):
 
                 event_serializer_local = GetChatroomInstanceSerializer(event_obj, context=member_data, many=False)
 
-                event_serializer = CollabcardSerializer(card=event_obj, user=member_id)
+                event_serializer = CollabcardSerializer(card=event_obj, user=member_id, 
+                                                        sdk_client_info_flag=True)
 
                 res = {
                     'success': True,
@@ -3570,7 +3592,8 @@ class ChatroomImpl(ChatroomManager):
 
         context = {
             'success': True,
-            'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, community_instance),
+            'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, 
+                                                                 community_instance, sdk_client_info_flag=True),
             'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
                                                                                            chatroom_instance)
         }
@@ -4770,7 +4793,7 @@ class ChatroomHelper:
                                                       'right__state': member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM})
 
     @staticmethod
-    def compute_chatroom_response(card_instance, user_instance, community_instance=None):
+    def compute_chatroom_response(card_instance, user_instance, community_instance=None, sdk_client_info_flag=False):
 
         if community_instance is None:
             community_instance = card_instance.community
@@ -4780,12 +4803,14 @@ class ChatroomHelper:
             select_related('card')
 
         chatroom_member_instance = ChatroomMemberImpl(member_id=user_instance.id)
-        chatroom_list = chatroom_member_instance.process_chatroom_list(chatroom_list, community_instance)
+        chatroom_list = chatroom_member_instance.process_chatroom_list(chatroom_list, community_instance, 
+                                                                       sdk_client_info_flag=sdk_client_info_flag)
 
         if chatroom_list:
             return chatroom_list[0]
 
-        return get_chatroom_instance(card_instance, user_instance.id, send_profile=False)
+        return get_chatroom_instance(card_instance, user_instance.id, send_profile=False, 
+                                     sdk_client_info_flag=sdk_client_info_flag)
 
     @staticmethod
     def bulk_follow_chatroom_users(card_instance, user_list):

@@ -14,8 +14,7 @@ from .constants import CUSTOM_INTRO_TEXT_FOR_ADMIN, CUSTOM_INTRO_TEXT_FOR_MEMBER
 from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING,CHATROOM_FIELD_TITLE, MEMBER_DIRECTORY_ORDER_BY_NAME
 from collabmates_api.sdk.models import SdkClient
 from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
-                           get_chatrooms_of_user_with_follow_status)
-
+                           get_chatrooms_of_user_with_follow_status, get_users_sdk_meta_dict)
 
 class SearchImpl(SearchManager):
 
@@ -377,7 +376,7 @@ class SearchImpl(SearchManager):
         must_params_dict = search_query_dict['query']['bool']['must']
         must_params_dict.append(community_id_param_dict)
 
-    def search_conversation(self):
+    def search_conversation(self, chatroom_id):
 
         if self.get_api_key() and not self.get_community_id():
             community_instance = SdkClient.get_community_instance_or_none(self.get_community_id(), self.get_api_key())
@@ -388,13 +387,20 @@ class SearchImpl(SearchManager):
 
             self.set_community_id(community_instance.id)
 
-        chatroom_id_list = self._fetch_user_chatrooms_id_list(self.get_community_id())
+        # search in a particular chatroom if chatroom_id is sent 
+        if chatroom_id:
+            chatroom_id_list = [chatroom_id]
+        
+        else:
+            chatroom_id_list = self._fetch_user_chatrooms_id_list(self.get_community_id())
 
         res = Search.from_dict(self._get_conversation_search_ngram_query_dict(chatroom_id_list)).execute()
 
+        conversations_data = SearchHelper.serialize_conversation_data_from_search_res(res)
+
         context = {
             'success': True,
-            'conversations': [hit.to_dict() for hit in res]
+            'conversations': conversations_data
         }
 
         return context
@@ -482,6 +488,9 @@ class SearchImpl(SearchManager):
 
         answer_dict = {instance.member_id: instance for instance in introduction_filter}
 
+        # Get sdk_client_info user dict
+        sdk_client_info_dict = get_users_sdk_meta_dict(user_list, only_sdk_client_info=True)
+
         for hit in res:
             member_introduction_dict = dict()
 
@@ -529,6 +538,10 @@ class SearchImpl(SearchManager):
             member_introduction_dict['client_user_unique_id'] = hit['client_user_unique_id'] if 'client_user_unique_id' in hit else None
 
             member_introduction_dict['user_unique_id'] = hit['user_unique_id'] if 'user_unique_id' in hit else None
+
+            member_introduction_dict['uuid'] = member_introduction_dict['user_unique_id']
+
+            member_introduction_dict['sdk_client_info'] = sdk_client_info_dict.get(member_introduction_dict['id']) 
 
             user_data = {
                 'state': hit['state'],
