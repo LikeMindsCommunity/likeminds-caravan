@@ -421,8 +421,6 @@ def notification_meta(notification_list, message, calling_notification=""):
 
     track_notification_with_notification_payload_list(notification_payload_list)
 
-    print("notification sent to: {}".format(user_id_list))
-
 
 def get_connection():
     '''function to create a postgres connection'''
