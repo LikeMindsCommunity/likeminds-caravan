@@ -1431,7 +1431,7 @@ def get_dictionary_of_member_responses(res):
 
     return responses_dict
 
-def process_users_meta_data_from_query_response(users_data: list, list_only:bool=False):
+def process_users_meta_data_from_query_response(users_data: list, list_only: bool = False):
     """ This method processes users data by splitting data using a defined key."""
     
     users_dict = {}
