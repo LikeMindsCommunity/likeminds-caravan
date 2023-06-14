@@ -1468,7 +1468,7 @@ def process_users_data_with_key_splitting(users_data: list) -> dict:
     return users_dict
 
 
-def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info:bool=False) -> dict:
+def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info: bool = False) -> dict:
     """ This method fetches the users data along with its client_user_unique_id using raw query.
         It returns a dict with user_id as key and user_meta as value.
     """
