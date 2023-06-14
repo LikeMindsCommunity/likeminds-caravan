@@ -26,7 +26,8 @@ from ..member_community.member_community_impl import MemberCommunityImpl, Member
 from ..raw_queries import activate_chatroom_on_conversation_creation, \
     get_latest_conversation_creator_users_for_homescreen, update_conversation_engage_for_chatrooms, \
     get_count_of_new_event_conversation_created_for_user, get_last_seen_event_conversation_id_for_user, \
-    update_conversation_engage_data_for_chatroom, activate_chatroom_for_followed_users_on_conversation_creation
+    update_conversation_engage_data_for_chatroom, activate_chatroom_for_followed_users_on_conversation_creation, \
+    get_users_sdk_meta_dict
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, UserinfoSerializer
 from ..sync.model_update import update_models_for_syncing_apis
@@ -1144,11 +1145,11 @@ class ConversationImpl(ConversationManager):
             'user_id': poll_instance.user_id
         }
 
-        # Get serialized member details from user_instance
-        if isinstance(user_instance, User):
-            user_instance = user_instance.userinfo
+        # Get serialized member details from 
+        user_sdk_meta = get_users_sdk_meta_dict([user_instance.id])
         
-        poll_response['member'] = UserinfoSerializer(user_instance, True)
+        if user_sdk_meta:
+            poll_response['member'] = user_sdk_meta.get(user_instance.id)
         
         return {'success': True, 'poll': poll_response}
 
