@@ -1431,49 +1431,48 @@ def get_dictionary_of_member_responses(res):
 
     return responses_dict
 
-def process_users_data_for_sdk_client_info(users_data: list, get_users_dict:bool=False):
-    """ This method processes users data for sdk_client_info adds client_user_unique id to it."""
-    if not users_data:
-        return []
+def process_users_meta_data_from_query_response(users_data: list) -> dict:
+    """ This method processes users data by splitting data using a defined key."""
     
     users_dict = {}
-     
+
     for user in users_data:
-        user['uuid'] = user.get('user_unique_id')
+        parsed_user_data = {}
 
-        # Add sdk_client_info key to the user context
-        if user.get('client_user_unique_id'):
-            user['sdk_client_info'] = {
-                'user_unique_id' : user.get('client_user_unique_id'),
-                'uuid' : user.get('client_user_unique_id'),
-                'community' : user.get('community_id'),
-                'user' : user.get('id')
-                }
-        else:
-            user['sdk_client_info'] = None
+        sdk_client_info_null = False
+
+        for key in user:
+            split_keys = key.split('___') 
+
+            if len(split_keys) == 2:
+                if not parsed_user_data.get(split_keys[0]):
+                    parsed_user_data[split_keys[0]] = {}
+
+                parsed_user_data[split_keys[0]][split_keys[1]] = user[key]
+
+                if split_keys[0] == 'sdk_client_info' and not user[key]:
+                    sdk_client_info_null = True
+            else:
+                parsed_user_data[key] = user[key]
         
-        # Remove the client_user_unique_id and community_id from the dict
-        user.pop('client_user_unique_id', None)
-        user.pop('community_id', None)
+        if sdk_client_info_null:
+            parsed_user_data['sdk_client_info'] = None
 
-        # Add the user to the users_dict
-        if get_users_dict:
-            users_dict[user['id']] = user
-    
-    # if get_users_dict is True, return user_dict with user_id as key and user_data as value
-    if get_users_dict:
-        return users_dict
-    
-    else:
-        return users_data
+        if parsed_user_data.get('id'):
+            users_dict[parsed_user_data['id']] = parsed_user_data
 
-def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info:bool=False) -> dict:
+        # For sdk_client_info support, as it has user instead of id as key
+        elif parsed_user_data.get('user'):
+            users_dict[parsed_user_data['user']] = parsed_user_data
+
+    return users_dict
+
+
+def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info: bool = False) -> dict:
     """ This method fetches the users data along with its client_user_unique_id using raw query.
         It returns a dict with user_id as key and user_meta as value.
     """
-
-    if not user_ids:
-        return []
+    users_dict = {}
 
     try:
         user_id_tuple = get_tuple_from_array(user_ids)
@@ -1481,29 +1480,40 @@ def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info:bool=False) -> 
         if not user_id_tuple:
             return []
 
-        sql = f"""
-                SELECT 
-                togther_userinfo.user_id_id as "id",
-                togther_userinfo.image_link as "image_url",
-                togther_userinfo.is_guest as "is_guest",
-                togther_userinfo.name as "name",
-                togther_userinfo.organisation_name as "organisation_name",
-                togther_userinfo.updated_at as "updated_at",
-                togther_userinfo.user_unique_id as "user_unique_id",
-                togther_userinfo.user_id_id as "uuid",
+        if only_sdk_client_info:
+            sql = f"""
+                SELECT  togther_sdkclientusersinfo.user_id          AS "user",
+                        togther_sdkclientusersinfo.user_unique_id   AS "user_unique_id",
+                        togther_sdkclientusersinfo.user_unique_id   AS "uuid",
+                        togther_sdkclientusersinfo.community_id     AS "community"
+                FROM    togther_sdkclientusersinfo
 
-                togther_sdkclientusersinfo.user_unique_id as "client_user_unique_id",
-                togther_sdkclientusersinfo.community_id as "community_id"
-
-                from togther_userinfo
-                left join togther_sdkclientusersinfo
-                on togther_sdkclientusersinfo.user_id = togther_userinfo.user_id_id
-
-                where
-                togther_userinfo.user_id_id in {user_id_tuple}
-                ;
+                WHERE   togther_sdkclientusersinfo.user_id IN {user_id_tuple};
             """
-        
+
+        else:
+            sql = f"""
+                    SELECT
+                    togther_userinfo.user_id_id                 AS "id",
+                    togther_userinfo.image_link                 AS "image_url",
+                    togther_userinfo.is_guest                   AS "is_guest",
+                    togther_userinfo.name                       AS "name",
+                    togther_userinfo.organisation_name          AS "organisation_name",
+                    togther_userinfo.updated_at                 AS "updated_at",
+                    togther_userinfo.user_unique_id             AS "user_unique_id",
+                    togther_userinfo.user_unique_id             AS "uuid",
+                    togther_sdkclientusersinfo.user_id          AS "sdk_client_info___user",
+                    togther_sdkclientusersinfo.user_unique_id   AS "sdk_client_info___user_unique_id",
+                    togther_sdkclientusersinfo.user_unique_id   AS "sdk_client_info___uuid",
+                    togther_sdkclientusersinfo.community_id     AS "sdk_client_info___community"
+
+                    FROM togther_userinfo
+                    LEFT JOIN togther_sdkclientusersinfo
+                    ON togther_sdkclientusersinfo.user_id = togther_userinfo.user_id_id
+    
+                    WHERE togther_userinfo.user_id_id IN {user_id_tuple};
+            """
+            
         conn = get_connection()
         curr = conn.cursor()
 
@@ -1512,21 +1522,16 @@ def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info:bool=False) -> 
         query_result = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
 
-        # Process the users data for sdk_client_info in key(id): value(user) pair
-        users_meta = process_users_data_for_sdk_client_info(query_result, get_users_dict=True)
+        # Process the users data for key(id): value(data) pair
+        users_dict = process_users_meta_data_from_query_response(query_result)
 
-        # If only_sdk_client_info is True, return only the sdk_client_info dict
-        if only_sdk_client_info:
-            for user_id, user_data in users_meta.items():
-                users_meta[user_id] = user_data.get('sdk_client_info')
-          
-        return users_meta
-
+        return users_dict
+    
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
         return []
-
+    
 def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, follow_status, type_list):
     """function to update chatroom data"""
 
@@ -1899,12 +1904,15 @@ def get_members_meta_list(community_id: int, member_ids:list = None, page=1, pag
         sql = f""" 
                select 
                 {members_meta_data_query}, 
+                togther_userinfo.user_unique_id as "uuid",
                 togther_userinfo.user_id_id as "id", 
                 togther_userinfo.image_link as "image_url", 
                 CASE when (togther_members.custom_title = 'Member') then Null else togther_members.custom_title END as "custom_title", 
                 CASE when (togther_members.community_id_id = {community_id}) then false else true END as "is_deleted",
-                togther_sdkclientusersinfo.user_unique_id as "client_user_unique_id",
-                togther_sdkclientusersinfo.community_id as "community_id"
+                togther_sdkclientusersinfo.user_unique_id as "sdk_client_info___user_unique_id",
+                togther_sdkclientusersinfo.user_unique_id as "sdk_client_info___uuid",
+                togther_sdkclientusersinfo.community_id as "sdk_client_info___community",
+                togther_sdkclientusersinfo.user_id as "sdk_client_info___user"
 
                 from  togther_userinfo
                 left join togther_members 
@@ -1933,9 +1941,9 @@ def get_members_meta_list(community_id: int, member_ids:list = None, page=1, pag
         query_result = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
 
-        users_data_with_sdk_client_info = process_users_data_for_sdk_client_info(query_result)
+        users_meta = process_users_meta_data_from_query_response(query_result)
 
-        return users_data_with_sdk_client_info
+        return users_meta
     
     except (Exception, psycopg2.Error) as error:
         print(error)
@@ -3307,7 +3315,8 @@ def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_
         type_include_filter = """AND togther_collabcard.type IN (%s)""" % filter_type_list if filter_type_list else ""
 
         get_creator_data = ",".join([get_users_query_meta_for_sync_revamp("creator"),
-                                     get_members_query_meta_for_sync_revamp("creator")])
+                                     get_members_query_meta_for_sync_revamp("creator"),
+                                     get_sdk_client_query_meta_for_sync_revamp("creator")])
 
         conn = get_connection()
         curr = conn.cursor()
@@ -3337,6 +3346,9 @@ def get_all_chatrooms_of_community(community_id, chatroom_filter_type, chatroom_
                 LEFT JOIN togther_members ON (
                   chatrooms_data.user_id = togther_members.member_id_id 
                   AND chatrooms_data.community_id = togther_members.community_id_id
+                )
+                LEFT JOIN togther_sdkclientusersinfo ON (
+                    chatrooms_data.user_id = togther_sdkclientusersinfo.user_id
                 );""" % \
               (get_creator_data, get_chatroom_query_meta_for_sync_revamp(), str(community_id), type_exclude_filter,
                type_include_filter, limit, offset)
@@ -3493,8 +3505,11 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=N
                            image_link AS image_url,
                            is_guest,
                            togther_userinfo.user_unique_id,
-                           togther_sdkclientusersinfo.user_unique_id AS client_user_unique_id,
-                           togther_sdkclientusersinfo.community_id AS community_id
+                           togther_userinfo.user_unique_id           AS uuid,
+                           togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___user_unique_id,
+                           togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___uuid,
+                           togther_sdkclientusersinfo.community_id   AS sdk_client_info___community,
+                           togther_sdkclientusersinfo.user_id        AS sdk_client_info___user
                 FROM       togther_userinfo
                 INNER JOIN
                            (
@@ -3536,11 +3551,12 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=N
         users_data = [dict(zip(columns, row)) for row in user_ids_list]
 
         # Process users data to add sdk client info
-        users_data_with_sdk_client_info = process_users_data_for_sdk_client_info(users_data)
+        users_meta = process_users_meta_data_from_query_response(users_data)
 
-        return users_data_with_sdk_client_info
+        return users_meta
 
     except (Exception, psycopg2.Error) as error:
+        print(error)
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
@@ -3585,18 +3601,21 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
                             END) AS image_url,
                            togther_userinfo.is_guest,
                            togther_userinfo.user_unique_id,
-                           togther_sdkclientusersinfo.user_id AS client_user_unique_id,
-                           togther_sdkclientusersinfo.community_id AS community_id 
+                           togther_userinfo.user_unique_id as uuid,
+                           togther_sdkclientusersinfo.user_unique_id    AS sdk_client_info___user_unique_id,
+                           togther_sdkclientusersinfo.user_unique_id    AS sdk_client_info___uuid,
+                           togther_sdkclientusersinfo.community_id      AS sdk_client_info___community, 
+                           togther_sdkclientusersinfo.user_id           AS sdk_client_info___user 
                 FROM       togther_userinfo
                 INNER JOIN togther_members
                 ON         togther_members.member_id_id=togther_userinfo.user_id_id {} {}
                 AND        togther_members.community_id_id={}
                 AND        togther_userinfo.is_guest={}
                 AND        togther_userinfo.user_id_id!={}
-                LEFT JOIN togther_sdkclientusersinfo 
-                ON togther_sdkclientusersinfo.user_id = togther_userinfo.user_id_id
+                LEFT JOIN  togther_sdkclientusersinfo 
+                ON         togther_sdkclientusersinfo.user_id = togther_userinfo.user_id_id
                 WHERE      togther_userinfo.NAME ILIKE '{}%'
-                ORDER BY togther_userinfo.NAME ASC limit {} offset {};
+                ORDER BY   togther_userinfo.NAME ASC limit {} offset {};
         """.format(filter_user_query, tag_only_participants_user_query, community_id, is_guest, user_id,
                    member_name_search, limit, offset)
 
@@ -3608,9 +3627,9 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
         users_data = [dict(zip(columns, row)) for row in user_ids_list]
 
         # process users data to add sdk client info
-        users_data_with_sdk_client_info = process_users_data_for_sdk_client_info(users_data)
+        users_meta = process_users_meta_data_from_query_response(users_data)
 
-        return users_data_with_sdk_client_info
+        return users_meta
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
@@ -3835,12 +3854,24 @@ def get_members_query_meta_for_sync_revamp(key_name_prefix: str = None):
 
     return ",".join(meta_query)
 
-
 def get_users_query_meta_for_sync_revamp(key_name_prefix: str = None):
     query_fields = ['user_id_id', 'name', 'image_link', 'user_unique_id', 'is_guest']
     meta_query = create_query_with_prefix(query_fields, 'togther_userinfo', 'user', key_name_prefix)
 
-    return ",".join(meta_query)
+    # To add uuid in user object
+    userinfo_uuid = f'togther_userinfo.user_unique_id AS user___uuid___{key_name_prefix}'
+
+    return ",".join(meta_query + [userinfo_uuid])
+
+def get_sdk_client_query_meta_for_sync_revamp(key_name_prefix: str = None):
+    query_fields = ['user_unique_id', 'community_id']
+    meta_query = create_query_with_prefix(query_fields, 'togther_sdkclientusersinfo', 'sdk_client_info', key_name_prefix)
+
+    # To add uuid and id in sdk_client_info object
+    userinfo_uuid = f'togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___uuid___{key_name_prefix}'
+    userinfo_id = f'togther_sdkclientusersinfo.user_id AS sdk_client_info___id___{key_name_prefix}'
+
+    return ",".join(meta_query + [userinfo_uuid, userinfo_id])
 
 
 def get_reactions_query_meta_for_sync_revamp(key_name_prefix: str = None):
@@ -3922,20 +3953,25 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                    get_chatroom_state_query_meta_for_sync_revamp()])
 
         creator_data_query = ",".join([get_users_query_meta_for_sync_revamp("creator"),
-                                       get_members_query_meta_for_sync_revamp("creator")])
+                                       get_members_query_meta_for_sync_revamp("creator"),
+                                       get_sdk_client_query_meta_for_sync_revamp("creator")])
 
         chatroom_with_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("dm_user"),
-                                                  get_members_query_meta_for_sync_revamp("dm_user")])
+                                                  get_members_query_meta_for_sync_revamp("dm_user"),
+                                                  get_sdk_client_query_meta_for_sync_revamp("dm_user")])
 
         chat_requested_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("chat_requested"),
-                                                   get_members_query_meta_for_sync_revamp("chat_requested")])
+                                                   get_members_query_meta_for_sync_revamp("chat_requested"),
+                                                   get_sdk_client_query_meta_for_sync_revamp("chat_requested")])
 
         topic_conversation_data_query = ",".join([get_users_query_meta_for_sync_revamp("last_conv"),
                                                   get_members_query_meta_for_sync_revamp("last_conv"),
+                                                  get_sdk_client_query_meta_for_sync_revamp("last_conv"),
                                                   get_conversation_query_meta_for_sync_revamp("topic")])
 
         topic_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("topic"),
-                                          get_members_query_meta_for_sync_revamp("topic")])
+                                          get_members_query_meta_for_sync_revamp("topic"),
+                                          get_sdk_client_query_meta_for_sync_revamp("topic")])
 
         dm_chatroom_conversation_query = ""
         dm_chatroom_message_query = ""
@@ -4031,6 +4067,9 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                       chatroom_community_data.user_id = togther_members.member_id_id 
                                       AND chatroom_community_data.community_id = togther_members.community_id_id
                                     )
+                                    LEFT JOIN togther_sdkclientusersinfo ON (
+                                        chatroom_community_data.user_id = togther_sdkclientusersinfo.user_id
+                                    )
                                 ) AS chat_creators_data 
                                 LEFT JOIN togther_userinfo ON (
                                   togther_userinfo.user_id_id = chat_creators_data.chatroom_with_user_id
@@ -4039,6 +4078,9 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                   chat_creators_data.chatroom_with_user_id = togther_members.member_id_id 
                                   AND chat_creators_data.community_id = togther_members.community_id_id
                                 )
+                                LEFT JOIN togther_sdkclientusersinfo ON (
+                                    chat_creators_data.chatroom_with_user_id = togther_sdkclientusersinfo.user_id
+                                )
                             ) AS chat_users_data 
                             LEFT JOIN togther_userinfo ON (
                               togther_userinfo.user_id_id = chat_users_data.chat_requested_by_id
@@ -4046,6 +4088,9 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                             LEFT JOIN togther_members ON (
                               chat_users_data.chat_requested_by_id = togther_members.member_id_id 
                               AND chat_users_data.community_id = togther_members.community_id_id
+                            )
+                            LEFT JOIN togther_sdkclientusersinfo ON (
+                                chat_users_data.chat_requested_by_id = togther_sdkclientusersinfo.user_id
                             )
                         ) AS chatroom_users_data 
                         INNER JOIN togther_card_answers ON togther_card_answers.card_id = chatroom_users_data.id 
@@ -4058,7 +4103,8 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                   LEFT JOIN togther_members ON (
                     chat_conversation_data.conversation___user_id___last = togther_members.member_id_id
                   AND chat_conversation_data.conversation___community_id___last = togther_members.community_id_id)
-
+                  LEFT JOIN togther_sdkclientusersinfo ON (
+                    chat_conversation_data.conversation___user_id___last = togther_sdkclientusersinfo.user_id)
                   LEFT JOIN togther_card_answers ON togther_card_answers.id = chat_conversation_data.topic_id 
                 WHERE 
                   chat_conversation_data.row_number = 1) AS chatrooms_data
@@ -4069,7 +4115,9 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                   LEFT JOIN togther_members ON (
                     chatrooms_data.conversation___user_id___topic = togther_members.member_id_id
                   AND chatrooms_data.conversation___community_id___topic = togther_members.community_id_id)
-                   
+                  LEFT JOIN togther_sdkclientusersinfo ON (
+                     chatrooms_data.conversation___user_id___topic = togther_sdkclientusersinfo.user_id)
+                
                   ORDER BY chatrooms_data.updated_at DESC;
         """.format(topic_user_data_query, topic_conversation_data_query,
                    get_conversation_query_meta_for_sync_revamp("last"),
@@ -4122,13 +4170,16 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                         get_community_query_meta_for_sync_revamp("conv_community"),
                                         get_users_query_meta_for_sync_revamp("creator"),
                                         get_members_query_meta_for_sync_revamp("creator"),
+                                        get_sdk_client_query_meta_for_sync_revamp("creator"),
                                         get_conversation_query_meta_for_sync_revamp("reply")])
 
         room_creator = ",".join([get_users_query_meta_for_sync_revamp("room_creator"),
-                                 get_members_query_meta_for_sync_revamp("room_creator")])
+                                 get_members_query_meta_for_sync_revamp("room_creator"),
+                                 get_sdk_client_query_meta_for_sync_revamp("room_creator")])
 
         chatroom_meta_query = ",".join([get_users_query_meta_for_sync_revamp("conv_deleter"),
                                         get_members_query_meta_for_sync_revamp("conv_deleter"),
+                                        get_sdk_client_query_meta_for_sync_revamp("conv_deleter"),
                                         get_chatroom_query_meta_for_sync_revamp("preview"),
                                         get_community_query_meta_for_sync_revamp("preview")])
 
@@ -4167,6 +4218,8 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                                          ON         (
                                                                                conversation_data.user_id = togther_members.member_id_id
                                                                     AND        conversation_data.community_id = togther_members.community_id_id)
+                                                         LEFT JOIN togther_sdkclientusersinfo 
+                                                         ON         conversation_data.user_id = togther_sdkclientusersinfo.user_id
                                                          LEFT JOIN  togther_card_answers
                                                          ON         conversation_data.reply_id = togther_card_answers.id) AS chatroom_meta
                                     LEFT JOIN togther_userinfo
@@ -4175,6 +4228,8 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                     ON        (
                                                         chatroom_meta.deleted_by_user_id = togther_members.member_id_id
                                               AND       chatroom_meta.community_id = togther_members.community_id_id)
+                                    LEFT JOIN togther_sdkclientusersinfo 
+                                    ON         chatroom_meta.deleted_by_user_id = togther_sdkclientusersinfo.user_id
                                     LEFT JOIN togther_collabcard
                                     ON        chatroom_meta.preview_chatroom_id = togther_collabcard.id
                                     LEFT JOIN togther_community
@@ -4185,6 +4240,8 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                 ON   (
                             chatroom_preview_meta.chatroom___user_id___conv_room = togther_members.member_id_id
                        AND  chatroom_preview_meta.chatroom___community_id___conv_room = togther_members.community_id_id)
+                LEFT JOIN togther_sdkclientusersinfo 
+                ON         chatroom_preview_meta.chatroom___user_id___conv_room = togther_sdkclientusersinfo.user_id
                 LEFT JOIN togther_collabcard
                 ON        chatroom_preview_meta.reply_chatroom_id = togther_collabcard.id 
                 ORDER BY chatroom_preview_meta.{};
@@ -4283,7 +4340,8 @@ def get_reactions_for_chatroom_or_conversations(community_id, reaction_type: int
 
         response_query = ",".join([get_reactions_query_meta_for_sync_revamp(key_name_prefix),
                                    get_users_query_meta_for_sync_revamp("reactor"),
-                                   get_members_query_meta_for_sync_revamp("reactor")])
+                                   get_members_query_meta_for_sync_revamp("reactor"),
+                                   get_sdk_client_query_meta_for_sync_revamp("reactor")])
 
         sql = """
                 SELECT {} FROM togther_messagereactions
@@ -4293,7 +4351,10 @@ def get_reactions_for_chatroom_or_conversations(community_id, reaction_type: int
                 LEFT JOIN togther_members ON (
                   togther_messagereactions.user_id = togther_members.member_id_id 
                   AND togther_members.community_id_id = {}
-                ) {};
+                )
+                LEFT JOIN togther_sdkclientusersinfo ON (
+                    togther_messagereactions.user_id = togther_sdkclientusersinfo.user_id
+                )  {};
         """.format(response_query, community_id, query_string)
 
         curr.execute(sql)
@@ -4356,7 +4417,8 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                                     get_conversation_poll_members_query_meta_for_sync_revamp("voter")])
 
         poll_options_creator = ",".join([get_users_query_meta_for_sync_revamp("options_creator"),
-                                         get_members_query_meta_for_sync_revamp("options_creator")])
+                                         get_members_query_meta_for_sync_revamp("options_creator"),
+                                         get_sdk_client_query_meta_for_sync_revamp("options_creator")])
 
         sql = """
             SELECT final_polls_data.*, no_votes * 100 / final_polls_data.count AS percentage, {}
@@ -4406,7 +4468,9 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                           ON ( togther_userinfo.user_id_id = final_polls_data.user_id )
                    LEFT JOIN togther_members
                           ON ( final_polls_data.user_id = togther_members.member_id_id
-                               AND togther_members.community_id_id = {});
+                               AND togther_members.community_id_id = {})
+                   LEFT JOIN togther_sdkclientusersinfo
+                          ON ( final_polls_data.user_id = togther_sdkclientusersinfo.user_id );
         """.format(poll_options_creator, poll_data_query, user_id, conversation_ids_query, conversation_ids_query,
                    community_id)
 
