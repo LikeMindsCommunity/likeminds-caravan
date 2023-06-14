@@ -3215,6 +3215,7 @@ def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, exc
                          SELECT   ca.created_at,
                                   ca.id,
                                   ca.card_id,
+                                  ca.state,
                                   row_number() OVER( partition BY ca.card_id ORDER BY (
                                   CASE
                                            WHEN ca.state NOT IN %s THEN 1
@@ -3226,9 +3227,9 @@ def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, exc
                          id,
                          created_at
                 FROM     added_row_number
-                WHERE    row_number = 1
+                WHERE    row_number = 1 and state NOT IN %s
                 ORDER BY created_at DESC limit %s offset %s; 
-        """ % (excluded_conv_states, card_tuple, str(limit), str(offset))
+        """ % (excluded_conv_states, card_tuple, excluded_conv_states,  str(limit), str(offset))
         curr.execute(sql)
         card_list = curr.fetchall()
         curr.close()
@@ -3560,9 +3561,9 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=N
         users_meta = process_users_meta_data_from_query_response(users_data, list_only=True)
 
         return users_meta
+        return users_meta
 
     except (Exception, psycopg2.Error) as error:
-        print(error)
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 

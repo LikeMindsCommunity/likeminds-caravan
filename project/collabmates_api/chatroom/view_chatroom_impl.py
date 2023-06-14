@@ -36,10 +36,13 @@ class FetchChatroomView(APIView):
         chatroom_id = request.GET.get('chatroom_id')
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
+        excluded_conversation_states = request.GET.get('excluded_conversation_states')
+
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, device_id=device_id,
                                         request_platform=request_platform, version_code=version_code,
                                         api_key=api_key)
-        chatroom_data = chatroom_manager.fetch_chatroom(is_internal=is_internal)
+        chatroom_data = chatroom_manager.fetch_chatroom(is_internal=is_internal,
+                                                        excluded_conversation_states=excluded_conversation_states)
 
         if 'error_message' in chatroom_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),
