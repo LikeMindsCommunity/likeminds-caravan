@@ -1431,49 +1431,48 @@ def get_dictionary_of_member_responses(res):
 
     return responses_dict
 
-def process_users_data_for_sdk_client_info(users_data: list, get_users_dict:bool=False):
+def process_users_data_with_key_splitting(users_data: list) -> dict:
     """ This method processes users data for sdk_client_info adds client_user_unique id to it."""
-    if not users_data:
-        return []
     
     users_dict = {}
-     
+
     for user in users_data:
-        user['uuid'] = user.get('user_unique_id')
+        parsed_user_data = {}
 
-        # Add sdk_client_info key to the user context
-        if user.get('client_user_unique_id'):
-            user['sdk_client_info'] = {
-                'user_unique_id' : user.get('client_user_unique_id'),
-                'uuid' : user.get('client_user_unique_id'),
-                'community' : user.get('community_id'),
-                'user' : user.get('id')
-                }
-        else:
-            user['sdk_client_info'] = None
+        sdk_client_info_null = False
+
+        for key in user:
+            split_keys = key.split('___') 
+
+            if len(split_keys) == 2:
+                if not parsed_user_data.get(split_keys[0]):
+                    parsed_user_data[split_keys[0]] = {}
+
+                parsed_user_data[split_keys[0]][split_keys[1]] = user[key]
+
+                if split_keys[0] == 'sdk_client_info' and not user[key]:
+                    sdk_client_info_null = True
+            else:
+                parsed_user_data[key] = user[key]
         
-        # Remove the client_user_unique_id and community_id from the dict
-        user.pop('client_user_unique_id', None)
-        user.pop('community_id', None)
+        if sdk_client_info_null:
+            parsed_user_data['sdk_client_info'] = None
 
-        # Add the user to the users_dict
-        if get_users_dict:
-            users_dict[user['id']] = user
-    
-    # if get_users_dict is True, return user_dict with user_id as key and user_data as value
-    if get_users_dict:
-        return users_dict
-    
-    else:
-        return users_data
+        if parsed_user_data.get('id'):
+            users_dict[parsed_user_data['id']] = parsed_user_data
+
+        # For sdk_client_info support, as it has user instead of id as key
+        elif parsed_user_data.get('user'):
+            users_dict[parsed_user_data['user']] = parsed_user_data
+
+    return users_dict
+
 
 def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info:bool=False) -> dict:
     """ This method fetches the users data along with its client_user_unique_id using raw query.
         It returns a dict with user_id as key and user_meta as value.
     """
-
-    if not user_ids:
-        return []
+    users_dict = {}
 
     try:
         user_id_tuple = get_tuple_from_array(user_ids)
@@ -1481,29 +1480,40 @@ def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info:bool=False) -> 
         if not user_id_tuple:
             return []
 
-        sql = f"""
-                SELECT 
-                togther_userinfo.user_id_id as "id",
-                togther_userinfo.image_link as "image_url",
-                togther_userinfo.is_guest as "is_guest",
-                togther_userinfo.name as "name",
-                togther_userinfo.organisation_name as "organisation_name",
-                togther_userinfo.updated_at as "updated_at",
-                togther_userinfo.user_unique_id as "user_unique_id",
-                togther_userinfo.user_id_id as "uuid",
+        if only_sdk_client_info:
+            sql = f"""
+                SELECT  togther_sdkclientusersinfo.user_id          AS "user",
+                        togther_sdkclientusersinfo.user_unique_id   AS "user_unique_id",
+                        togther_sdkclientusersinfo.user_unique_id   AS "uuid",
+                        togther_sdkclientusersinfo.community_id     AS "community"
+                FROM    togther_sdkclientusersinfo
 
-                togther_sdkclientusersinfo.user_unique_id as "client_user_unique_id",
-                togther_sdkclientusersinfo.community_id as "community_id"
-
-                from togther_userinfo
-                left join togther_sdkclientusersinfo
-                on togther_sdkclientusersinfo.user_id = togther_userinfo.user_id_id
-
-                where
-                togther_userinfo.user_id_id in {user_id_tuple}
-                ;
+                WHERE   togther_sdkclientusersinfo.user_id IN {user_id_tuple};
             """
-        
+
+        else:
+            sql = f"""
+                    SELECT
+                    togther_userinfo.user_id_id                 AS "id",
+                    togther_userinfo.image_link                 AS "image_url",
+                    togther_userinfo.is_guest                   AS "is_guest",
+                    togther_userinfo.name                       AS "name",
+                    togther_userinfo.organisation_name          AS "organisation_name",
+                    togther_userinfo.updated_at                 AS "updated_at",
+                    togther_userinfo.user_unique_id             AS "user_unique_id",
+                    togther_userinfo.user_unique_id             AS "uuid",
+                    togther_sdkclientusersinfo.user_id          AS "sdk_client_info___user",
+                    togther_sdkclientusersinfo.user_unique_id   AS "sdk_client_info___user_unique_id",
+                    togther_sdkclientusersinfo.user_unique_id   AS "sdk_client_info___uuid",
+                    togther_sdkclientusersinfo.community_id     AS "sdk_client_info___community"
+
+                    FROM togther_userinfo
+                    LEFT JOIN togther_sdkclientusersinfo
+                    ON togther_sdkclientusersinfo.user_id = togther_userinfo.user_id_id
+    
+                    WHERE togther_userinfo.user_id_id IN {user_id_tuple};
+            """
+            
         conn = get_connection()
         curr = conn.cursor()
 
@@ -1512,21 +1522,16 @@ def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info:bool=False) -> 
         query_result = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
 
-        # Process the users data for sdk_client_info in key(id): value(user) pair
-        users_meta = process_users_data_for_sdk_client_info(query_result, get_users_dict=True)
+        # Process the users data for key(id): value(data) pair
+        users_dict = process_users_data_with_key_splitting(query_result)
 
-        # If only_sdk_client_info is True, return only the sdk_client_info dict
-        if only_sdk_client_info:
-            for user_id, user_data in users_meta.items():
-                users_meta[user_id] = user_data.get('sdk_client_info')
-          
-        return users_meta
-
+        return users_dict
+    
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
         return []
-
+    
 def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, follow_status, type_list):
     """function to update chatroom data"""
 
@@ -1899,12 +1904,15 @@ def get_members_meta_list(community_id: int, member_ids:list = None, page=1, pag
         sql = f""" 
                select 
                 {members_meta_data_query}, 
+                togther_userinfo.user_unique_id as "uuid",
                 togther_userinfo.user_id_id as "id", 
                 togther_userinfo.image_link as "image_url", 
                 CASE when (togther_members.custom_title = 'Member') then Null else togther_members.custom_title END as "custom_title", 
                 CASE when (togther_members.community_id_id = {community_id}) then false else true END as "is_deleted",
-                togther_sdkclientusersinfo.user_unique_id as "client_user_unique_id",
-                togther_sdkclientusersinfo.community_id as "community_id"
+                togther_sdkclientusersinfo.user_unique_id as "sdk_client_info___user_unique_id",
+                togther_sdkclientusersinfo.user_unique_id as "sdk_client_info___uuid",
+                togther_sdkclientusersinfo.community_id as "sdk_client_info___community",
+                togther_sdkclientusersinfo.user_id as "sdk_client_info___user"
 
                 from  togther_userinfo
                 left join togther_members 
@@ -1933,9 +1941,9 @@ def get_members_meta_list(community_id: int, member_ids:list = None, page=1, pag
         query_result = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
 
-        users_data_with_sdk_client_info = process_users_data_for_sdk_client_info(query_result)
+        users_meta = process_users_data_with_key_splitting(query_result)
 
-        return users_data_with_sdk_client_info
+        return users_meta
     
     except (Exception, psycopg2.Error) as error:
         print(error)
@@ -3492,8 +3500,11 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=N
                            image_link AS image_url,
                            is_guest,
                            togther_userinfo.user_unique_id,
-                           togther_sdkclientusersinfo.user_unique_id AS client_user_unique_id,
-                           togther_sdkclientusersinfo.community_id AS community_id
+                           togther_userinfo.user_unique_id           AS uuid,
+                           togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___user_unique_id,
+                           togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___uuid,
+                           togther_sdkclientusersinfo.community_id   AS sdk_client_info___community,
+                           togther_sdkclientusersinfo.user_id        AS sdk_client_info___user
                 FROM       togther_userinfo
                 INNER JOIN
                            (
@@ -3535,11 +3546,12 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=N
         users_data = [dict(zip(columns, row)) for row in user_ids_list]
 
         # Process users data to add sdk client info
-        users_data_with_sdk_client_info = process_users_data_for_sdk_client_info(users_data)
+        users_meta = process_users_data_with_key_splitting(users_data)
 
-        return users_data_with_sdk_client_info
+        return users_meta
 
     except (Exception, psycopg2.Error) as error:
+        print(error)
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
@@ -3584,18 +3596,21 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
                             END) AS image_url,
                            togther_userinfo.is_guest,
                            togther_userinfo.user_unique_id,
-                           togther_sdkclientusersinfo.user_id AS client_user_unique_id,
-                           togther_sdkclientusersinfo.community_id AS community_id 
+                           togther_userinfo.user_unique_id as uuid,
+                           togther_sdkclientusersinfo.user_unique_id    AS sdk_client_info___user_unique_id,
+                           togther_sdkclientusersinfo.user_unique_id    AS sdk_client_info___uuid,
+                           togther_sdkclientusersinfo.community_id      AS sdk_client_info___community, 
+                           togther_sdkclientusersinfo.user_id           AS sdk_client_info___user 
                 FROM       togther_userinfo
                 INNER JOIN togther_members
                 ON         togther_members.member_id_id=togther_userinfo.user_id_id {} {}
                 AND        togther_members.community_id_id={}
                 AND        togther_userinfo.is_guest={}
                 AND        togther_userinfo.user_id_id!={}
-                LEFT JOIN togther_sdkclientusersinfo 
-                ON togther_sdkclientusersinfo.user_id = togther_userinfo.user_id_id
+                LEFT JOIN  togther_sdkclientusersinfo 
+                ON         togther_sdkclientusersinfo.user_id = togther_userinfo.user_id_id
                 WHERE      togther_userinfo.NAME ILIKE '{}%'
-                ORDER BY togther_userinfo.NAME ASC limit {} offset {};
+                ORDER BY   togther_userinfo.NAME ASC limit {} offset {};
         """.format(filter_user_query, tag_only_participants_user_query, community_id, is_guest, user_id,
                    member_name_search, limit, offset)
 
@@ -3607,9 +3622,9 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
         users_data = [dict(zip(columns, row)) for row in user_ids_list]
 
         # process users data to add sdk client info
-        users_data_with_sdk_client_info = process_users_data_for_sdk_client_info(users_data)
+        users_meta = process_users_data_with_key_splitting(users_data)
 
-        return users_data_with_sdk_client_info
+        return users_meta
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
