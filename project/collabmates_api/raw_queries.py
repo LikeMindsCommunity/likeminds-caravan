@@ -1431,10 +1431,11 @@ def get_dictionary_of_member_responses(res):
 
     return responses_dict
 
-def process_users_meta_data_from_query_response(users_data: list) -> dict:
+def process_users_meta_data_from_query_response(users_data: list, list_only:bool=False):
     """ This method processes users data by splitting data using a defined key."""
     
     users_dict = {}
+    users_meta = []
 
     for user in users_data:
         parsed_user_data = {}
@@ -1464,7 +1465,13 @@ def process_users_meta_data_from_query_response(users_data: list) -> dict:
         # For sdk_client_info support, as it has user instead of id as key
         elif parsed_user_data.get('user'):
             users_dict[parsed_user_data['user']] = parsed_user_data
+        
+        if list_only:
+            users_meta.append(parsed_user_data)
 
+    if list_only:
+        return users_meta
+    
     return users_dict
 
 
@@ -1941,7 +1948,7 @@ def get_members_meta_list(community_id: int, member_ids:list = None, page=1, pag
         query_result = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
 
-        users_meta = process_users_meta_data_from_query_response(query_result)
+        users_meta = process_users_meta_data_from_query_response(query_result, list_only=True)
 
         return users_meta
     
@@ -3550,7 +3557,7 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=N
         users_data = [dict(zip(columns, row)) for row in user_ids_list]
 
         # Process users data to add sdk client info
-        users_meta = process_users_meta_data_from_query_response(users_data)
+        users_meta = process_users_meta_data_from_query_response(users_data, list_only=True)
 
         return users_meta
 
@@ -3626,7 +3633,7 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
         users_data = [dict(zip(columns, row)) for row in user_ids_list]
 
         # process users data to add sdk client info
-        users_meta = process_users_meta_data_from_query_response(users_data)
+        users_meta = process_users_meta_data_from_query_response(users_data, list_only=True)
 
         return users_meta
 
