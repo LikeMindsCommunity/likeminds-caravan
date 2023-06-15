@@ -812,7 +812,7 @@ def compute_conversation_polls(conversation_info):
 
     from collabmates_api.raw_queries import (get_users_sdk_meta_dict)
 
-    user_ids = conversation_poll_members.values_list('user_id', flat=True)
+    user_ids = conversation_poll_options.values_list('user_id', flat=True)
 
     user_sdk_meta_dict = get_users_sdk_meta_dict(user_ids, only_sdk_client_info=True)
 
