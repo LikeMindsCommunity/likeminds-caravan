@@ -1485,7 +1485,7 @@ def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info: bool = False) 
         user_id_tuple = get_tuple_from_array(user_ids)
 
         if not user_id_tuple:
-            return []
+            return users_dict
 
         if only_sdk_client_info:
             sql = f"""
@@ -1537,7 +1537,7 @@ def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info: bool = False) 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
-        return []
+        return users_dict
     
 def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, follow_status, type_list):
     """function to update chatroom data"""
