@@ -8438,7 +8438,7 @@ def verify_otp(request):
 
         if mobile_filter.exists():
             context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, 
-                                                 sdk_client_info=True)
+                                                 sdk_client_info_flag=True)
             context['access'] = is_user_community_part(context['user']['id'])
 
             if context['success'] == True:
