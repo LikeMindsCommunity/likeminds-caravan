@@ -2069,7 +2069,7 @@ def get_chatroom_count_based_on_community_list(community_id_list, member_id, exc
                 GROUP BY  togther_collabcardstate.community_id
                 HAVING "togther_collabcardstate".community_id IN %s""" \
               % (str(member_id), str(card_types.CARD_INTRO), str(card_types.CARD_EVENT),
-                 str(card_types.CARD_PUBLIC_EVENT),str(card_types.CARD_FEED_GROUP), excluded_card_ids_list, str(community_id_tupple))
+                 str(card_types.CARD_PUBLIC_EVENT), str(card_types.CARD_FEED_GROUP), excluded_card_ids_list, str(community_id_tupple))
 
         curr.execute(sql)
         count_data = curr.fetchall()
