@@ -444,7 +444,8 @@ def my_chatrooms_version_1(request):
         draft_instance = instance.draft
 
         if card_instance:
-            chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False)
+            chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False, 
+                                                         sdk_client_info_flag=True)
             context = {"current_user_id": member_id}
             chatroom['community'] = CommunitySerializerV1(card_instance.community, context=context,
                                                           many=False).data
@@ -466,7 +467,8 @@ def my_chatrooms_version_1(request):
 
         if last_conversation and not is_draft_conversation(last_conversation, member_id, device_id):
             last_conversation_dict = conversationSerializer(last_conversation,
-                                                            current_user_id=member_id, device_id=device_id)
+                                                            current_user_id=member_id, device_id=device_id,
+                                                            sdk_client_info_flag=True)
             preview = generate_internal_link_preview_for_conversation(last_conversation, member_id)
 
             if preview:
@@ -482,7 +484,8 @@ def my_chatrooms_version_1(request):
 
             if second_last_conversation and not is_draft_conversation(second_last_conversation, member_id, device_id):
                 second_last_conversation_dict = conversationSerializer(second_last_conversation,
-                                                                       current_user_id=member_id, device_id=device_id)
+                                                                       current_user_id=member_id, device_id=device_id,
+                                                                       sdk_client_info_flag=True)
                 preview = generate_internal_link_preview_for_conversation(second_last_conversation, member_id)
 
                 if preview:
@@ -2293,6 +2296,7 @@ def fetch_user_chatrooms(request):
     page = request.GET.get('page', 1)
     state = request.GET.get('state', 0)
     user_id = request.GET.get('user_id')
+    uuid = request.GET.get('uuid')
     community_id = request.GET.get('community_id')
     filter_type = request.GET.get('filter_type')
     api_key = RequestUtilities.get_api_key_from_headers(request)
@@ -2310,15 +2314,6 @@ def fetch_user_chatrooms(request):
     if not filter_type:
         filter_type = [card_types.CARD_NORMAL, card_types.CARD_INTRO, card_types.CARD_EVENT, card_types.CARD_POLL,
                        card_types.CARD_PUBLIC_EVENT, card_types.CARD_PURPOSE, card_types.CARD_MASTER_INTRO]
-
-    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
-
-    if not user_instance:
-        context = ResponseUtilities.get_view_impl_error_context("Invalid user ID",
-                                                                status_codes.HTTP_400_BAD_REQUEST)
-        return JsonResponse(context['data'], status=context['status'])
-
-    user_id = user_instance.id
 
     if not page.isdigit():
         context = ResponseUtilities.get_view_impl_error_context("Send valid page",
@@ -2338,6 +2333,27 @@ def fetch_user_chatrooms(request):
         return JsonResponse(context['data'], status=context['status'])
 
     community_id = community_instance.id
+    
+    # If uuid is passed, filter from client user unique id as well
+    if uuid:
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_id)
+
+        if not valid_id:
+            context = ResponseUtilities.get_view_impl_error_context("Invalid uuid",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(context['data'], status=context['status'])
+        
+        user_id = valid_id[0]
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+    if not user_instance:
+        context = ResponseUtilities.get_view_impl_error_context("Invalid user_id or uuid",
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+        return JsonResponse(context['data'], status=context['status'])
+
+    user_id = user_instance.id
+
 
     # chatrooms created by user
     if int(state) == 0:
@@ -2385,7 +2401,8 @@ def fetch_user_chatrooms(request):
         for chatroom in state_filter:
             chatroom_instance = chatroom.card
 
-            temp = get_chatroom_instance(chatroom_instance, user_id, current_user_id=current_user_id)
+            temp = get_chatroom_instance(chatroom_instance, user_id, current_user_id=current_user_id,
+                                         sdk_client_info_flag=True)
             temp['date'] = TimeUtilities.convert_epoch_time_in_date(chatroom.updated_at)
             engage_filter = conversationEngage.objects.filter(card=chatroom_instance, user=user_id)
             temp['conversation_users'] = []
@@ -4683,7 +4700,8 @@ def conversation_meta(request):
         if not is_draft_conversation(conversation, user_id, device_id=device_id):
             conversation_serializer = conversationSerializer(conversation,
                                                              fetch_reply=True,
-                                                             current_user_id=user_id)
+                                                             current_user_id=user_id,
+                                                             sdk_client_info_flag=True)
             preview = generate_internal_link_preview_for_conversation(conversation, user_id)
 
             if preview:
@@ -6257,12 +6275,14 @@ def collabcard_follow(request, function_dict=None):
 
     collabcard_id = request.GET.get('collabcard_id', '')
     member_id = request.GET.get('member_id', '')
+    uuid = request.GET.get('uuid', '')
     status = request.GET.get('value', 'true')
     status = (status == "true")
 
     context = follow_chatroom_async(collabcard_id,
                                     member_id,
-                                    status)
+                                    status,
+                                    uuid)
 
     if context.get('success'):
         return JsonResponse(context)
@@ -6273,22 +6293,32 @@ def collabcard_follow(request, function_dict=None):
 @shared_task
 def follow_chatroom_async(collabcard_id,
                           member_id,
-                          status=True):
+                          status=True,
+                          uuid=None):
     # local imports from conversations in order to resolve circular import
     from .conversation.conversation_impl import ConversationHelper
 
     card_instance = Collabcard.get_chatroom_or_None(collabcard_id)
 
     if not card_instance:
-        return {'success': False, "error_message": "Invalid chatroom id"}
-
+        return ResponseUtilities.get_error_context(success=False, error_message="Invalid chatroom id")
+    
     if not status and card_instance.is_secret:
-        return {'success': False, "error_message": "Cannot unfollow chatroom"}
+        return ResponseUtilities.get_error_context(success=False, error_message="Cannot unfollow chatroom")
+
+    # If uuid is present, get valid user id 
+    if uuid:
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], card_instance.community_id)
+
+        if not valid_id:
+            return ResponseUtilities.get_error_context(success=False, error_message="Invalid uuid")
+        
+        member_id = valid_id[0]
 
     user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
     if not user_instance:
-        return {'success': False, "error_message": "Invalid member id"}
+        return ResponseUtilities.get_error_context(success=False, error_message="Invalid member id")
 
     # user cant unfollow his own collabcard
     if not status and card_instance.user_id == user_instance.id:
@@ -6299,7 +6329,7 @@ def follow_chatroom_async(collabcard_id,
 
     if all(['are_participants_created' in are_chatroom_participants_created,
             not are_chatroom_participants_created.get('are_participants_created')]):
-        return {'success': False, "error_message": "Chatroom creation in progress. Try again after some time."}
+        return ResponseUtilities.get_error_context(success=False, error_message="Chatroom creation in progress. Try again after some time.")
 
     community_instance = card_instance.community
     member_state = Members.get_community_member_state(community_instance.id, user_instance.id)
@@ -6610,6 +6640,7 @@ def collabcards_seen(request):
     community_id = None
     card_id = None
     user_id = None
+    uuid = None
 
     if 'community_id' in params:
         community_id = params['community_id']
@@ -6620,6 +6651,9 @@ def collabcards_seen(request):
     if 'member_id' in params:
         user_id = params['member_id']
 
+    if 'uuid' in params:
+        uuid = params['uuid']
+
     api_key = RequestUtilities.get_api_key_from_headers(request)
 
     community = validate_community_id_or_api_key(community_id, api_key)
@@ -6629,6 +6663,15 @@ def collabcards_seen(request):
                                                                             status_codes.HTTP_400_BAD_REQUEST))
 
     community_instance = community.get('community_instance')
+
+    # If uuid is passed, get valid user id and update user_id
+    if uuid:
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+        
+        if not valid_id:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Invalid uuid",
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
+        user_id = valid_id[0]
 
     context = collabcards_seen_internal(card_id, user_id, community_instance)
 
@@ -8320,7 +8363,8 @@ def verify_otp(request):
             context['profile_exists'] = mobile_filter.exists()
 
             if mobile_filter.exists():
-                context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
+                context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, 
+                                                     sdk_client_info=True)
                 context['access'] = is_user_community_part(context['user']['id'])
 
             return JsonResponse(context)
@@ -8337,7 +8381,8 @@ def verify_otp(request):
             context['profile_exists'] = mobile_filter.exists()
 
             if mobile_filter.exists():
-                context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
+                context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, 
+                                                     sdk_client_info_flag=True)
                 context['access'] = is_user_community_part(context['user']['id'])
 
                 return JsonResponse(context)
@@ -8392,7 +8437,8 @@ def verify_otp(request):
         context['profile_exists'] = mobile_filter.exists()
 
         if mobile_filter.exists():
-            context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
+            context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, 
+                                                 sdk_client_info_flag=True)
             context['access'] = is_user_community_part(context['user']['id'])
 
             if context['success'] == True:
@@ -8862,6 +8908,10 @@ def members_state(request, req_dict=None):
     if toast_filter:
         json_response['community_toast'] = toast_filter[0].toast_message
 
+    # Add sdk_client_info to member response
+    user_sdk_meta = get_users_sdk_meta_dict([member_id], only_sdk_client_info=True)
+    json_response['member']['sdk_client_info'] = user_sdk_meta.get(member_id)
+
     if req_dict:
         return json_response
     return JsonResponse(json_response)
@@ -9040,7 +9090,7 @@ def create_mixpanel_statistics(user_instance, userinfo_instance):
         return
 
     context = {}
-    context['user'] = get_logged_in_user(userinfo_instance)
+    context['user'] = get_logged_in_user(userinfo_instance, sdk_client_info_flag=True)
 
     user_metrics = {}
     user_metrics['first_login'] = TimeUtilities.convert_epoch_time_to_ddmmyyyy(userinfo_instance.created_at)
@@ -10015,6 +10065,7 @@ def push_report_v1(request):
         entity_id = request_body['entity_id'] if 'entity_id' in request_body else None
         entity_type = request_body['entity_type'] if 'entity_type' in request_body else None
         entity_creator_id = request_body['entity_creator_id'] if 'entity_creator_id' in request_body else None
+        uuid = request_body['uuid'] if 'uuid' in request_body else None
 
         report_type = report_Types.REPORT_COMMUNITY  # assume as community reported
         reported_member_instance = None
@@ -10026,6 +10077,26 @@ def push_report_v1(request):
         has_right_1 = False  # right to approve or reject pending requests
 
         member_instance = Members.objects.filter(community_id=community_id, member_id=member_id)
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+        
+        if not community_instance:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                "Invalid API key/community ID", status_codes.HTTP_400_BAD_REQUEST))
+
+        if uuid: 
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+            if not valid_id:
+                return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                    "invalid uuid", status_codes.HTTP_400_BAD_REQUEST))
+                
+            if (entity_type or entity_id):
+                entity_creator_id = valid_id[0]
+
+            else:
+                reported_member_id = valid_id[0]
+        
         if member_instance.exists():
             member = member_instance[0]
             is_owner = member.is_owner
@@ -10044,8 +10115,7 @@ def push_report_v1(request):
                     "invalid collabcard_id", status_codes.HTTP_400_BAD_REQUEST))
 
             report_type = report_Types.REPORT_CHATROOM
-            if not reported_member_id:
-                reported_member_instance = collabcard_instance.user
+            reported_member_instance = collabcard_instance.user
 
             if not community_id:
                 community_id = collabcard_instance.community.id
@@ -10065,13 +10135,12 @@ def push_report_v1(request):
             if collabcard_instance is None:
                 collabcard_instance = conversation_instance.card
 
-            if not reported_member_id:
-                reported_member_instance = conversation_instance.user
+            reported_member_instance = conversation_instance.user
 
             if not community_id:
                 community_id = conversation_instance.community.id
 
-        elif reported_member_id and not reported_member_instance:
+        elif reported_member_id:
             if is_promoter and has_right_1:
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
                     "you have no right to report a member", status_codes.HTTP_400_BAD_REQUEST))
@@ -10085,13 +10154,13 @@ def push_report_v1(request):
             reported_member_instance = ModelUtilities.get_model_instance_or_none(User, reported_member_id)
             if not reported_member_instance:
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
-                    "invalid reported_member_id", status_codes.HTTP_400_BAD_REQUEST))
+                    "invalid reported_member_id or uuid", status_codes.HTTP_400_BAD_REQUEST))
 
-        elif entity_id and entity_creator_id and entity_type and not reported_member_instance:
+        elif entity_id and entity_creator_id and entity_type:
             reported_member_instance = ModelUtilities.get_user_instance_or_none(entity_creator_id)
             if not reported_member_instance:
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
-                    "invalid reported_member_id", status_codes.HTTP_400_BAD_REQUEST))
+                    "invalid reported_member_id or uuid", status_codes.HTTP_400_BAD_REQUEST))
 
             if entity_type not in [report_Types.REPORT_POST, report_Types.REPORT_COMMENT, report_Types.REPORT_REPLY]:
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
@@ -10100,11 +10169,6 @@ def push_report_v1(request):
             report_type = entity_type
 
         report_tag_instance = ModelUtilities.get_model_instance_or_none(Report_Tags, tag_id)
-
-        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
-        if not community_instance:
-            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
-                "Invalid API key/community ID", status_codes.HTTP_400_BAD_REQUEST))
 
         community_id = community_instance.id
 
@@ -10864,6 +10928,7 @@ def fetch_community_manager_rights(request):
     current_user_id = get_member_id_from_headers(request)
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
+    uuid = request.GET.get('uuid', None)
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
     api_key = RequestUtilities.get_api_key_from_headers(request)
@@ -10874,8 +10939,8 @@ def fetch_community_manager_rights(request):
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not user_id:
-        context = get_error_context(False, "send user_id in params")
+    if not (user_id or uuid):
+        context = get_error_context(False, "send user_id or uuid in params")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     if community_dict.get('error_message'):
@@ -10888,6 +10953,16 @@ def fetch_community_manager_rights(request):
     if not current_user_instance:
         context = get_error_context(False, "Invalid member_id in headers")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    # If uuid is passed, get valid user_id
+    if uuid:
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+        if not valid_id:
+            context = get_error_context(False, "Invalid uuid")
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        
+        user_id = valid_id[0]
 
     user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
@@ -10929,7 +11004,8 @@ def fetch_community_manager_rights(request):
     else:
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
-    member_profile = get_members_profile([user_instance], community_instance)
+    member_profile = get_members_profile([user_instance], community_instance, 
+                                         sdk_client_info_flag=True)
 
     mobile_filter = userMobiles.objects.filter(user=current_user_instance)
     mobile_list = []
@@ -10974,6 +11050,7 @@ def update_community_manager_rights(request):
     current_user_id = get_member_id_from_headers(request)
     req_body = json.loads(request.body)
     user_id = req_body['user_id'] if "user_id" in req_body else None
+    uuid = req_body['uuid'] if "uuid" in req_body else None
     community_id = req_body['community_id'] if "community_id" in req_body else None
     selected_rights = req_body['rights'] if "rights" in req_body else []
     custom_title = req_body['custom_title'] if "custom_title" in req_body else None
@@ -10987,7 +11064,7 @@ def update_community_manager_rights(request):
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not user_id:
+    if not (user_id or uuid):
         context = get_error_context(False, "send user_id in params")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
@@ -11003,6 +11080,16 @@ def update_community_manager_rights(request):
     if not current_user_instance:
         context = get_error_context(False, "Invalid x-member-id")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    # If uuid is passed, get valid user_id
+    if uuid:
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+        if not valid_id:
+            context = get_error_context(False, "Invalid uuid")
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        
+        user_id = valid_id[0]
 
     user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
@@ -11162,6 +11249,7 @@ def remove_community_manager(request):
     community_id = request.POST.get('community_id', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
     user_id = request.POST.get('user_id', None)
+    uuid = request.POST.get('uuid', None)
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
@@ -11169,10 +11257,12 @@ def remove_community_manager(request):
         context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
-    if not user_id:
-        context = ResponseUtilities.get_view_impl_error_context("send user_id in params",
+    
+    if not (user_id or uuid):
+        context = ResponseUtilities.get_view_impl_error_context("send user_id or uuid in body",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
+    
     if not community_id and not api_key:
         context = ResponseUtilities.get_view_impl_error_context("send community_id in params or api_key in headers",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
@@ -11188,7 +11278,19 @@ def remove_community_manager(request):
     community_id = community_instance.id
 
     current_user_instance = User.objects.get(pk=current_user_id)
-    user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
+
+    if uuid:
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+        if not valid_id:
+            context = ResponseUtilities.get_view_impl_error_context("Invalid uuid",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            
+            return JsonResponse(context['data'], status=context['status'])
+        
+        user_id = valid_id[0]
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
     if not user_instance:
         context = ResponseUtilities.get_view_impl_error_context("Invalid user ID!",
@@ -11434,6 +11536,7 @@ def fetch_community_member_rights(request):
     current_user_id = get_member_id_from_headers(request)
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
+    uuid = request.GET.get('uuid', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
@@ -11445,8 +11548,8 @@ def fetch_community_member_rights(request):
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not user_id:
-        context = get_error_context(False, "send user_id in params")
+    if not (user_id or uuid):
+        context = get_error_context(False, "send user_id or uuid in params")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     if community_dict.get('error_message'):
@@ -11460,6 +11563,16 @@ def fetch_community_member_rights(request):
     if not current_user_instance:
         context = get_error_context(False, "Invalid x-member-id")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    # If uuid is passed, get valid user_id 
+    if uuid:
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+        if not valid_id:
+            context = get_error_context(False, "Invalid uuid")
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+        
+        user_id = valid_id[0]
 
     user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
@@ -11485,7 +11598,8 @@ def fetch_community_member_rights(request):
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
 
-    member_profile = get_members_profile([user_instance], community_instance)
+    member_profile = get_members_profile([user_instance], community_instance, 
+                                         sdk_client_info_flag=True)
 
     return JsonResponse({"success": True, "member": member_profile[0], "rights": rights_context})
 
@@ -11501,6 +11615,7 @@ def update_community_member_rights(request):
     current_user_id = get_member_id_from_headers(request)
     req_body = json.loads(request.body)
     user_id = req_body['user_id'] if "user_id" in req_body else None
+    uuid = req_body['uuid'] if "uuid" in req_body else None
     community_id = req_body['community_id'] if "community_id" in req_body else None
     selected_rights = req_body['rights'] if "rights" in req_body else []
     custom_title = req_body['custom_title'] if "custom_title" in req_body else None
@@ -11512,8 +11627,8 @@ def update_community_member_rights(request):
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    if not user_id:
-        context = get_error_context(False, "send user_id in params")
+    if not (user_id or uuid):
+        context = get_error_context(False, "send user_id or uuid in params")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
 
     if community_dict.get('error_message'):
@@ -11528,6 +11643,16 @@ def update_community_member_rights(request):
     if not current_user_instance:
         context = get_error_context(False, "Invalid x-member-id")
         return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    # if uuid is passed, get valid user_id
+    if uuid:
+        valid_id = ModelUtilities.get_valid_user_ids_from_uuids([uuid], community_instance.id)
+
+        if not valid_id:
+            context = get_error_context(False, "Invalid uuid")
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_id = valid_id[0]
 
     user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
@@ -11830,7 +11955,7 @@ def fetch_reports(request):
     report_list = []
 
     for report in reports:
-        report_dict = report_serializer(report, current_user_id)
+        report_dict = report_serializer(report, current_user_id, sdk_client_info_flag=True)
         report_list.append(report_dict)
 
     return JsonResponse({"success": True, "reports": report_list})
@@ -11909,7 +12034,7 @@ def fetch_pending_chatroom(request):
     chatrooms = []
 
     for chatroom in pending_chatrooms:
-        chatroom_instance = get_chatroom_instance(chatroom, current_user_id)
+        chatroom_instance = get_chatroom_instance(chatroom, current_user_id, sdk_client_info_flag=True)
         chatrooms.append(chatroom_instance)
 
     context = {

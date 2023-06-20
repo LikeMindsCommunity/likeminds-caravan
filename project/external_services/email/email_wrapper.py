@@ -94,6 +94,7 @@ class MailWrapper(MailManager):
 
             if response.status_code == status_codes.HTTP_202_ACCEPTED:
                 info_logger.info(f'Mail Successfully Sent | Subject = {subject}')
+                info_logger.info(f'Send to = {to_mails_list}')
                 info_logger.info(f'headers = {response.headers}')
                 return True
 

@@ -6,7 +6,6 @@ from togther.models import Members, MessageReactions, card_answers, Collabcard, 
 from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, CHATROOM_REACTIONS_CACHE_KEY
 from utility.states import SyncTypes
 
-
 @shared_task
 def update_chatroom_or_conversation_reactions_in_cache(chatroom_id=None, conversation_id=None,
                                                        member_profiles=None):
@@ -64,15 +63,14 @@ def get_members_profiles_for_reactions(community, members_id_list, reactions_map
 
     member_profiles = Userinfo.objects.filter(user_id__id__in=members_id_list)
 
+    from ..raw_queries import (get_users_sdk_meta_dict)
+
+    users_meta = get_users_sdk_meta_dict(members_id_list)
+
     for profile in member_profiles:
         user_id = profile.user_id_id
-        user_image = profile.image_link
 
-        temp = {
-            'id': profile.user_id_id,
-            'name': profile.name,
-            'image_url': user_image if user_image else ''
-        }
+        temp = users_meta.get(user_id)
 
         member_image = members_data_list.get(user_id, None)
 
@@ -104,7 +102,8 @@ def process_message_reactions(reactions):
     return reactions_map
 
 
-def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=None, update_cache=False):
+def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=None, update_cache=False,
+                                             sdk_client_info_flag:bool=False):
     """ function to update the preview of chatroom """
 
     if not conversation_id and not chatroom_id:

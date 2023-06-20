@@ -38,7 +38,7 @@ app.conf.beat_schedule = {
         'schedule': crontab(hour=8, minute=0),
         minute="*/10" change to `crontab(minute=0, hour=0)` if you want it to run daily at midnight
     }
-    """    
+    """
     'send_pending_request_notification_at_8am': {
         'task': 'collabmates_api.notification.send_morning_pending_request_notification',
         'schedule': crontab(hour=8, minute=0),
@@ -62,7 +62,7 @@ app.conf.beat_schedule = {
     'international_otp_generate_requests_blocked_task': {
         'task': 'collabmates_api.tasks.international_otp_generate_requests_blocked_task',
         'schedule': crontab(hour=8, minute=0),
-    }
+    },
 }
 
 app.conf.timezone = 'Asia/Kolkata'

@@ -810,6 +810,12 @@ def compute_conversation_polls(conversation_info):
     polls = []
     user_dict = {}
 
+    from collabmates_api.raw_queries import (get_users_sdk_meta_dict)
+
+    user_ids = conversation_poll_options.values_list('user_id', flat=True)
+
+    user_sdk_meta_dict = get_users_sdk_meta_dict(user_ids, only_sdk_client_info=True)
+
     for data in conversation_poll_options:
 
         poll_id = data.id
@@ -825,6 +831,7 @@ def compute_conversation_polls(conversation_info):
 
         else:
             temp['member'] = UserinfoSerializer(data.user.userinfo)
+            temp['member']['sdk_client_info'] = user_sdk_meta_dict.get(data.user_id)
             user_dict[data.user_id] = temp['member']
 
         chatroom_votes = poll_members_dict.get(poll_id)
@@ -887,6 +894,12 @@ def save_conversation_poll_options_in_cache(options_info):
 
         user_dict = {}
 
+        from collabmates_api.raw_queries import (get_users_sdk_meta_dict)
+
+        user_ids = poll_filter.values_list('user_id', flat=True)
+
+        user_sdk_meta_dict = get_users_sdk_meta_dict(user_ids, only_sdk_client_info=True)
+
         for poll in poll_filter:
 
             temp = {
@@ -901,6 +914,8 @@ def save_conversation_poll_options_in_cache(options_info):
             else:
                 member = UserinfoSerializer(poll.user.userinfo)
                 user_dict[poll.user_id] = member
+
+            member['sdk_client_info'] = user_sdk_meta_dict.get(poll.user_id)
 
             temp['member'] = member
             polls.append(temp)
@@ -2299,6 +2314,27 @@ def add_new_participants_to_cohorts_secret_chatroom(cohort_id, member_id, member
         }
 
         chatroom_manager.add_secret_chatroom_participant(req_body)
+
+
+@shared_task
+def add_new_participants_to_secret_chatroom(current_user_id, chatroom_id, member_ids,
+                                            add_user_joined_message: bool = False):
+    chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+    if not (chatroom_instance and chatroom_instance.is_secret):
+        return
+
+    from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
+
+    chatroom_manager = ChatroomImpl(current_user_id, chatroom_id=chatroom_instance.id)
+
+    req_body = {
+        'chatroom_id': chatroom_instance.id,
+        'secret_chatroom_participants': member_ids,
+        'is_channel_invite': False
+    }
+
+    chatroom_manager.add_secret_chatroom_participant(req_body, add_user_joined_message=add_user_joined_message)
 
 
 @shared_task

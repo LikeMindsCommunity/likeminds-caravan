@@ -1,10 +1,9 @@
-from togther.models import (ModelUtilities, Collabcard, Members)
+from togther.models import (ModelUtilities, Collabcard, Members, Userinfo)
 from collabmates_api.serializers import (get_menu_for_members)
 from utility.states import (member_states)
 from collabmates_api.user_moderation_rights import (check_all_manager_rights)
 from utility.time_utilities import TimeUtilities
-from ..raw_queries import (get_chatroom_participants_count)
-
+from ..raw_queries import (get_chatroom_participants_count, get_users_sdk_meta_dict)
 
 class SearchHelper:
 
@@ -18,23 +17,32 @@ class SearchHelper:
     @staticmethod
     def serialize_chatroom_data_response(chatroom_data):
 
-        chatroom_ids_list = [state_data.get('chatroom').get('id') for state_data in chatroom_data
-                             if state_data.get('chatroom')]
+        chatroom_ids_list = [data.get('chatroom').get('id') for data in chatroom_data
+                             if data.get('chatroom')]
 
-        card_creators_data = list(ModelUtilities.get_model_filter(
-            Collabcard, {'id__in': chatroom_ids_list}).select_related('user').values('id', 'user__id',
-                                                                                     'user__userinfo__name'))
+        # Get chatroom instances with user objects
+        card_instances = ModelUtilities.get_model_filter(Collabcard, 
+                                                           {'id__in': chatroom_ids_list})
+        
+        user_ids = [card.user_id for card in card_instances]
 
-        card_creators_data = {creator_data.get('id'): creator_data for creator_data in card_creators_data}
+        # Get sdk_client_info for user_ids
+        serialised_usersinfo_dict = get_users_sdk_meta_dict(user_ids)
+    
+        chatroom_creators_meta = {}
 
+        # Serialize chatrooms creator with UserInfoSeralizer with sdk_client_info 
+        for card in card_instances:
+            chatroom_creators_meta[card.id]  = serialised_usersinfo_dict.get(card.user_id)
+        
         for card_data in chatroom_data:
-            creator_data = card_creators_data.get(card_data.get('chatroom').get('id'))
 
-            creator = {
-                'id': creator_data.get('user__id'),
-                'profile': {
-                    'name': creator_data.get('user__userinfo__name')
-                }
+            chatroom_id = card_data.get('chatroom').get('id')
+
+            creator = chatroom_creators_meta.get(chatroom_id)
+
+            creator['profile'] = {
+                    'name': creator['name'],
             }
 
             card_data['member'] = creator
@@ -43,6 +51,26 @@ class SearchHelper:
             card_data['chatroom']['participants_count'] = get_chatroom_participants_count(card_data['chatroom']['id'], card_data['community']['id'])
 
         return chatroom_data
+    
+    @staticmethod
+    def serialize_conversation_data_from_search_res(res_dict):
+
+        conversations_data = [hit.to_dict() for hit in res_dict]
+
+        member_ids = [conversation.get('member').get('id') for conversation in conversations_data
+                                if conversation.get('member')]
+        
+        # Get user instances with user objects
+        serialised_user_info_dict = get_users_sdk_meta_dict(member_ids)
+
+        # Update user info in 'member' object of conversations_data
+        for conversation in conversations_data:
+
+            if conversation.get('member'):
+                member_id = conversation.get('member').get('id')
+                conversation.get('member').update(serialised_user_info_dict.get(member_id))
+
+        return conversations_data
 
     @staticmethod
     def get_menu_items_for_member_in_search(current_user_id, user_id, community_id, user_data):

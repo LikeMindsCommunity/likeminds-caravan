@@ -16,6 +16,8 @@ from external_services.wa_notification.wa_notification_impl import NotificationI
 from collabmates_api.notification import notification_meta
 from external_services.calender.calendar_impl import CalendarImpl
 
+from ..chatroom.constants import EMAIL_UNSUBSCRIBE_URL
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 url = settings.URL
@@ -390,8 +392,8 @@ def send_email_notification_for_event_type(payload_for_email_comms, event_type):
         if task_begin_time != 0:
             args = [payload_for_email_comms, response_dict, event_type]
 
-            info_logger.info("Scheduling email notification for event_type = %s | response_dict = %s | \
-                            payload received = %s" % (event_type, response_dict, payload))
+            info_logger.info("Scheduling email notification for event_type = %s | Eta = %s | response_dict = %s | \
+                            payload received = %s" % (event_type, str(task_begin_time), response_dict, payload))
 
             task_id = schedule_email_notifications_for_event.apply_async(
                 args,
@@ -478,25 +480,31 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         if event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS and payload_for_email_comms.get('user') in final_user_instances:
                 final_user_instances.remove(payload_for_email_comms.get('user'))
 
-        context = TasksHelper.create_context_for_sending_emails(final_user_instances, event_type, event_instance,\
-                                                                data_dict=response_dict)
+        response_dict['community_name'] = event_instance.community.name
 
-        send_allowed = TasksHelper.should_send_notification(event_instance)
+        for user_id in final_user_instances:
 
-        is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
+            response_dict['unsub'] = EMAIL_UNSUBSCRIBE_URL % (settings.WEB_URL, str(community_id), str(user_id))
 
-        if send_allowed and not is_task_deleted:
-            MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
-                                                          from_email=context['from_email'],
-                                                          to_mails_list=context['to_mails_list'],
-                                                          reply_to=context['reply_to'],
-                                                          from_name=context['from_name'],
-                                                          categories=context['categories'])
+            context = TasksHelper.create_context_for_sending_emails([user_id], event_type, event_instance,
+                                                                    data_dict=response_dict)
 
-        else:
-            info_logger.info("No email notification scheuduled for event_type = %s | chatroom_deleted = %s | \
-                is_task_deleted = %s | payload received = %s" % (event_type, not send_allowed, is_task_deleted, \
-                payload_for_email_comms))
+            send_allowed = TasksHelper.should_send_notification(event_instance)
+
+            is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
+
+            if send_allowed and not is_task_deleted:
+                MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
+                                                              from_email=context['from_email'],
+                                                              to_mails_list=context['to_mails_list'],
+                                                              reply_to=context['reply_to'],
+                                                              from_name=context['from_name'],
+                                                              categories=context['categories'])
+
+            else:
+                info_logger.info("No email notification scheduled for event_type = %s | chatroom_deleted = %s | \
+                    is_task_deleted = %s | payload received = %s" % (event_type, not send_allowed, is_task_deleted,
+                                                                     payload_for_email_comms))
 
     except Exception as e:
         error_logger.exception("got error in send_email_notification_for_event_type | error - %s | payload received = %s |\
