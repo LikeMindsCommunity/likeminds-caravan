@@ -23,8 +23,7 @@ class OTPApiClient(OTPApiManager):
             if is_international:
                 phone_number = "00" + str(phone_number)
 
-            info_logger.info(
-                f'Calling GUPSHUP Generate OTP API, Phone Number: {phone_number}')
+            info_logger.info(f'Calling GUPSHUP Generate OTP API, Phone Number: {phone_number}')
 
             gupshup_user_id, gupshup_password = OTPHelper.get_gupshup_credentials(is_international)
 
@@ -33,8 +32,8 @@ class OTPApiClient(OTPApiManager):
 
             api_response = requests.request('GET', url)
 
-            info_logger.info(
-                f'GUPSHUP Generate OTP API Response Status Code: {api_response.status_code}, Response : {api_response.text}')
+            info_logger.info(f"""GUPSHUP Generate OTP API Response Status Code: {api_response.status_code}, 
+            Response : {api_response.text}""")
 
             return OTPHelper.generate_json_response_from_gupshup_api_response_text(api_response)
 
