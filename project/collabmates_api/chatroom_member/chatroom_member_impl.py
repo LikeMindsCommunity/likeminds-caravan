@@ -380,7 +380,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                                                                    sdk_client_info_flag=sdk_client_info_flag)
 
         if card_instance.has_reactions:
-            reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
+            reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'], 
+                                                                 update_cache=True)
         else:
             reactions = []
 
