@@ -132,3 +132,5 @@ LIKEMINDS_LOGO = "https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.
 HIDE_DM_TEXT = "DM feature has been disabled by the community manager. This tab will be removed soon."
 
 CREATE_USER_BOT_NAME = "{} bot"
+
+HOURLY_INTERNATIONAL_OTP_GENERATE_LIMIT: int = 10

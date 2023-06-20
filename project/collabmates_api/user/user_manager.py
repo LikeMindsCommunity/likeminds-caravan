@@ -19,7 +19,9 @@ class UserManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'update_user_bot') and callable(subclass.update_user_bot)) and
                 (hasattr(subclass, 'fetch_user_bot') and callable(subclass.fetch_user_bot)) and
                 (hasattr(subclass, 'fetch_user_info') and callable(subclass.fetch_user_info)) and
-                (hasattr(subclass, 'whatsapp_subscription') and callable(subclass.whatsapp_subscription)) or
+                (hasattr(subclass, 'whatsapp_subscription') and callable(subclass.whatsapp_subscription)) and
+                (hasattr(subclass, 'send_user_otp') and callable(subclass.send_user_otp)) and
+                (hasattr(subclass, 'verify_user_otp') and callable(subclass.verify_user_otp)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -135,5 +137,21 @@ class UserManager(metaclass=abc.ABCMeta):
     def whatsapp_subscription(self, req_body: dict) -> dict:
         """
         Manages whatsapp subscription of users
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def send_user_otp(self, otp_type: str, mobile_no: str = int, country_code: str = int, email_id: str = None,
+                      is_retry: bool = False) -> dict:
+        """
+        Sends OTP to user
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def verify_user_otp(self, otp_type: str, mobile_no: str = int, country_code: str = int, email_id: str = None,
+                        otp: str = None) -> dict:
+        """
+        Verify user OTPs
         """
         raise NotImplementedError

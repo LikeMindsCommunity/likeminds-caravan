@@ -18,7 +18,7 @@ from cms.models import userAcquition
 from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices, Community,
                             Members, userEmails, Userinfo, emailTokens, Collabcard, removedMembers,
                             DirectMessageTutorial, communityRightsSettings, card_answers, collabcardState,
-                            conversationEngage, CommunitySettings, SDKClientUsersInfo)
+                            conversationEngage, CommunitySettings, SDKClientUsersInfo, mobileBackup)
 from collabmates_api.user.user_manager import UserManager
 from collabmates_api.notifications.models import (WhatsappSubscription)
 from collabmates_api.sdk.models import (SdkClient)
@@ -33,14 +33,17 @@ from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import email_states, mobile_states, member_states, login_types, deleted_members, \
     conversation_states, member_rights, community_setting_types, chat_request_states, api_types, \
-    whatsapp_subscription_state_actions
+    whatsapp_subscription_state_actions, OTPTypes
 from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
-from utility.constants import ONE_DAY_HOURS
+from utility.constants import (ONE_DAY_HOURS, INTERNATIONAL_OTP_LIMIT_FILE_NAME)
 from utility.response_utilities import ResponseUtilities
 
 from utility.url_utilities import UrlUtilities
+from utility.cache_keys import (INTERNATIONAL_OTP_GENERATE_CACHE_KEY)
+from utility.file_utilities import FileUtilities
+from utility.validation_utilities import ValidationUtilities
 
 from .constants import *
 from .user_view_helper import UserViewHelper
@@ -56,6 +59,8 @@ from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSIO
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper, MailHelper
+from external_services.caching.cache_impl import CacheImpl
+from external_services.otp.otp_api_client import OTPApiClient
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 
 host_url = settings.URL
@@ -1107,6 +1112,143 @@ class UserImpl(UserManager):
 
         return {'success': True}
 
+    def send_user_otp(self, otp_type: str, mobile_no: str = int, country_code: str = int, email_id: str = None,
+                      is_retry: int = False) -> dict:
+
+        if otp_type == OTPTypes.MOBILE:
+            validated_req = UserHelper.validate_user_send_otp_on_mobile_request(self.get_api_key(),
+                                                                                country_code,
+                                                                                mobile_no)
+
+            if validated_req.get('error_message'):
+                return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            is_international = validated_req.get('is_international')
+            phone_no = str(country_code) + str(mobile_no)
+
+            if is_international and UserHelper.international_otp_limit_exceeded():
+                UserHelper.save_request_info_for_international_numbers(str(country_code), str(mobile_no),
+                                                                       TimeUtilities.get_current_date())
+
+                error_message: str = f"OTP generate failed for={phone_no}, " \
+                                     f"reason=international otp generate limit exceeded"
+                error_logger.error(error_message)
+
+                return ResponseUtilities.get_impl_error_context(error_message,
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            if is_retry:
+                otp_manager = OTPApiClient()
+                context = otp_manager.send_retry_otp_via_msg_91(phone_no)
+
+            else:
+                otp_manager = OTPApiClient()
+                context = otp_manager.send_otp_via_gupshup(phone_no, is_international)
+
+            backup_filter = ModelUtilities.get_model_filter(mobileBackup, {'mobile_no': mobile_no})
+
+            if not backup_filter:
+                backup_info = {'mobile_no': mobile_no, 'country_code': country_code}
+                mobileBackup.create_instance(backup_info)
+
+            UserHelper.update_international_otp_generate_count(is_international, context)
+
+        elif otp_type == OTPTypes.EMAIL:
+            pass
+
+        else:
+            return ResponseUtilities.get_impl_error_context('Invalid OTP type!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        return {'success': True}
+
+    def verify_user_otp(self, otp_type: str, mobile_no: str = int, country_code: str = int, email_id: str = None,
+                        otp: str = None) -> dict:
+
+        if otp_type == OTPTypes.MOBILE:
+            validated_req = UserHelper.validate_user_verify_otp_on_mobile_request(self.get_api_key(),
+                                                                                  country_code,
+                                                                                  mobile_no,
+                                                                                  otp)
+
+            if validated_req.get('error_message'):
+                return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            is_international = validated_req.get('is_international')
+            community_instance = validated_req.get('community_instance')
+            phone_no = str(country_code) + str(mobile_no)
+
+            filter_dict = {
+                'country_code': country_code,
+                'mobile_no': mobile_no
+            }
+
+            if settings.IS_BETA and (otp == '9999'):
+                mobile_instance = ModelUtilities.get_model_filter(userMobiles, filter_dict).first()
+
+                is_profile_exists = True if mobile_instance else False
+
+                if not is_profile_exists:
+                    return ResponseUtilities.get_impl_error_context('Wrong OTP!',
+                                                                    status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+                user_instance = mobile_instance.user
+
+                sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                                                {'community': community_instance,
+                                                                                 'user': user_instance}).first()
+
+                return {
+                    'success': True,
+                    'profile_exists': is_profile_exists,
+                    'user': get_logged_in_user(user_instance=user_instance, sdk_client_info_flag=True),
+                    'access': True if sdk_client_user_info_instance else False
+                }
+
+            else:
+                otp_manager = OTPApiClient()
+                gupshup_otp_response = otp_manager.verify_otp_via_gupshup(phone_no, otp, is_international)
+
+                if not gupshup_otp_response.get('success'):
+                    msg_otp_response = otp_manager.verify_retry_otp_via_msg_91(phone_no, otp)
+
+                    if not msg_otp_response.get('success'):
+                        return ResponseUtilities.get_impl_error_context('Incorrect OTP!',
+                                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+                mobile_instance = ModelUtilities.get_model_filter(userMobiles, filter_dict).first()
+
+                is_profile_exists = True if mobile_instance else False
+
+                sdk_client_user_info_instance = None
+                user_data = None
+
+                if is_profile_exists:
+                    user_instance = mobile_instance.user
+                    user_data = get_logged_in_user(user_instance=user_instance, sdk_client_info_flag=True)
+
+                    sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                                                    {'community': community_instance,
+                                                                                     'user': user_instance}).first()
+
+                return {
+                    'success': True,
+                    'profile_exists': is_profile_exists,
+                    'user': user_data,
+                    'access': True if sdk_client_user_info_instance else False
+                }
+
+        elif otp_type == OTPTypes.EMAIL:
+            pass
+
+        else:
+            return ResponseUtilities.get_impl_error_context('Invalid OTP type!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        return {'success': True}
+
 
 class UserHelper:
 
@@ -1797,3 +1939,104 @@ class UserHelper:
                                                                                                       flat=True))])
 
         return TimeUtilities.add_hours_to_epoch_time(dm_disabled_time, ONE_DAY_HOURS)
+
+    @staticmethod
+    def validate_user_send_otp_on_mobile_request(api_key: str, country_code: str, mobile_no: str):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        if not (mobile_no and str(mobile_no).isdigit()):
+            return ResponseUtilities.get_inner_error_context('Invalid mobile number!')
+
+        if not (country_code and str(country_code).isdigit()):
+            return ResponseUtilities.get_inner_error_context('Invalid country code!')
+
+        is_international = str(country_code) != '91'
+
+        return {'is_international': is_international}
+
+    @staticmethod
+    def international_otp_limit_exceeded() -> bool:
+        key: str = INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=1)
+
+        current_count: int = CacheImpl.get_cache(key)
+
+        if isinstance(current_count, int) and current_count >= HOURLY_INTERNATIONAL_OTP_GENERATE_LIMIT:
+            return True
+
+        return False
+
+    @staticmethod
+    def update_international_otp_generate_count(international: bool, context: dict) -> None:
+        if not (international and context['success']):
+            return
+
+        key: str = (INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=1))
+        value: int = 1
+
+        current_count: int = CacheImpl.get_cache(key)
+
+        if isinstance(current_count, int):
+            value = current_count + 1
+
+        CacheImpl.set_cache(key, value)
+
+    @staticmethod
+    def save_request_info_for_international_numbers(country_code: str, mobile_no: str, timestamp: str) -> None:
+        international_otp_req_obj: list = [country_code, mobile_no, timestamp]
+
+        file_name: str = INTERNATIONAL_OTP_LIMIT_FILE_NAME % TimeUtilities.get_current_date(date_format=0)
+        file_path: str = f'./../../international_otp_blocked_requests/{file_name}'
+
+        """
+            If, file does not exists
+            Create file and write header
+        """
+        if not FileUtilities.is_exists_file(file_path):
+            header: list = ['country code', 'mobile number', 'timestamp']
+            FileUtilities.write_file_csv(file_path, 'w', header)
+
+        """
+            write data row
+        """
+        FileUtilities.write_file_csv(file_path, 'a', international_otp_req_obj)
+
+    @staticmethod
+    def validate_user_verify_otp_on_mobile_request(api_key: str, country_code: str, mobile_no: str, otp: str):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        community_instance = validated_dict.get('community_id')
+
+        if not (mobile_no and str(mobile_no).isdigit()):
+            return ResponseUtilities.get_inner_error_context('Invalid mobile number!')
+
+        if not (country_code and str(country_code).isdigit()):
+            return ResponseUtilities.get_inner_error_context('Invalid country code!')
+
+        if not (otp and str(otp).isdigit()):
+            return ResponseUtilities.get_inner_error_context('Invalid OTP!')
+
+        is_international = str(country_code) != '91'
+
+        return {
+            'is_international': is_international,
+            'community_instance': community_instance
+        }
+
