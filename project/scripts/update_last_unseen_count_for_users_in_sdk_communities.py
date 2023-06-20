@@ -2,7 +2,7 @@ import time
 from utility.celery_tasks import (update_last_unseen_in_engage_on_card_creation)
 from collabmates_api.sdk.models import(SdkClient)
 
-def update_last_seen_for_members_in_all_communities():
+def update_unseen_chatroom_count_for_all_members_in_all_sdk_communities():
 
     community_ids = SdkClient.objects.filter(is_deleted=False).values_list('community_id', flat=True)
     count = len(community_ids)
@@ -19,6 +19,6 @@ def update_last_seen_for_members_in_all_communities():
  
 start = time.time()
 print('Starting script!')
-update_last_seen_for_members_in_all_communities()
+update_unseen_chatroom_count_for_all_members_in_all_sdk_communities()
 print('Script completed in', time.time() - start)
 
