@@ -2231,15 +2231,7 @@ class CommunityImpl(CommunityManager):
         community_instance = validated_request.get('community_instance')
         member_ids = validated_request.get('member_ids')
 
-        integer_member_ids = []
-
-        for member_id in member_ids:
-
-            if any([isinstance(member_id, int),
-                    isinstance(member_id, str) and member_id.isdigit()]):
-                integer_member_ids.append(member_id)
-
-        user_data = get_users_meta_info(community_instance.id, member_ids, int_member_ids=integer_member_ids)
+        user_data = get_users_meta_info(community_instance.id, member_ids)
 
         return {'success': True, 'users': user_data}
 
