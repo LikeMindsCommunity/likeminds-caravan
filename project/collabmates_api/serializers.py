@@ -372,8 +372,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
 
     if card.has_reactions:
         reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=collabcard['id'], 
-                                                             sdk_client_info_flag=sdk_client_info_flag,
-                                                             update_cache=True)
+                                                             sdk_client_info_flag=sdk_client_info_flag)
     else:
         reactions = []
 
@@ -1994,8 +1993,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
 
     if conversation.has_reactions:
         reactions = fetch_chatroom_or_conversation_reactions(conversation_id=conversation.id, 
-                                                             sdk_client_info_flag=sdk_client_info_flag,
-                                                             update_cache=True)
+                                                             sdk_client_info_flag=sdk_client_info_flag)
     else:
         reactions = []
 

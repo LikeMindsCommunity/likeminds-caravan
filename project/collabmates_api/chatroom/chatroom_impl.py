@@ -4657,10 +4657,7 @@ class ChatroomHelper:
         ChatroomHelper.set_state_for_all_chatroom_members_in_community(
             card_instance, community_instance, chatroom_participants_list=chatroom_participants_list)
 
-        # If chatroom type is not feedroom, then update unseen count 
-        if card_instance.type != card_types.CARD_FEED_GROUP:
-            ChatroomHelper.update_unseen_count_for_homescreen_communitites(card_instance, community_instance)
-        
+        ChatroomHelper.update_unseen_count_for_homescreen_communitites(card_instance, community_instance)
         update_last_answer_id(card_instance.id, "")
 
         if card_instance.co_hosts:
