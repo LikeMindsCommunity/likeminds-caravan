@@ -77,8 +77,10 @@ def getCoralogixData(filters):
 
     return hits
 
+
 def getUUIDOfUsers(community_id, users_list):
     return get_users_meta_info(community_id, users_list)
+
 
 def getUserListFromCoralogixData(coralogixData):
     users_list = set()
@@ -104,6 +106,7 @@ def getUserListFromCoralogixData(coralogixData):
                             users_list.add(participant)
 
     return users_list
+
 
 def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     # Fetch sdk client record to fetch api key
@@ -295,6 +298,7 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
         ModelUtilities.bulk_create_instances(ActiveUser,
                                              [ActiveUser(billing=billingRecord, uuid=user_id) for user_id in new_users])
 
+
 def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
     # Fetch active user IDs for a specific billing record
     activeUsers = list(ModelUtilities.get_model_filter(ActiveUser,
@@ -307,6 +311,8 @@ def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
                                            'end_date': today.strftime("%s")},
                                           {'mau_count': len(activeUsers),
                                            'users_list': json.dumps(activeUsers)})
+
+
 @app.task
 @shared_task
 def track():

@@ -4623,7 +4623,7 @@ def get_user_chatroom_status(user_id, community_id, chatroom_types: list, page: 
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_users_meta_info(community_id, member_ids: list):
+def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True):
     try:
         member_ids_query = get_tuple_from_array_v2(member_ids)
 
@@ -4647,32 +4647,34 @@ def get_users_meta_info(community_id, member_ids: list):
         user_meta_info = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
 
-        found_user_ids = []
-        for user_meta in user_meta_info:
-            found_user_ids.append(user_meta["user_unique_id"])
-            found_user_ids.append(user_meta["clients_user_unique_id"])
+        if check_for_user_id:
+            found_user_ids = []
+            for user_meta in user_meta_info:
+                found_user_ids.append(user_meta["user_unique_id"])
+                found_user_ids.append(user_meta["clients_user_unique_id"])
 
-        remaining_member_ids = list(set(member_ids) - set(found_user_ids))
-        remaining_member_ids_query = get_tuple_from_array_v2(remaining_member_ids)
+            remaining_member_ids = list(set(member_ids) - set(found_user_ids))
+            remaining_member_ids = [user_id for user_id in remaining_member_ids if str(user_id).isdigit()]
+            remaining_member_ids_query = get_tuple_from_array_v2(remaining_member_ids)
 
-        sql = """
-             SELECT togther_userinfo.user_id_id AS user_id,
-                       togther_userinfo.user_unique_id,
-                       togther_sdkclientusersinfo.user_unique_id AS clients_user_unique_id
-                FROM   togther_userinfo
-                       INNER JOIN togther_sdkclientusersinfo
-                               ON togther_sdkclientusersinfo.user_id =
-                                  togther_userinfo.user_id_id
-                WHERE  togther_sdkclientusersinfo.community_id = {}
-                       AND togther_userinfo.user_id_id IN {};
-        """.format(community_id, remaining_member_ids_query, remaining_member_ids_query)
+            sql = """
+                 SELECT togther_userinfo.user_id_id AS user_id,
+                           togther_userinfo.user_unique_id,
+                           togther_sdkclientusersinfo.user_unique_id AS clients_user_unique_id
+                    FROM   togther_userinfo
+                           INNER JOIN togther_sdkclientusersinfo
+                                   ON togther_sdkclientusersinfo.user_id =
+                                      togther_userinfo.user_id_id
+                    WHERE  togther_sdkclientusersinfo.community_id = {}
+                           AND togther_userinfo.user_id_id IN {};
+            """.format(community_id, remaining_member_ids_query, remaining_member_ids_query)
 
-        conn = get_connection()
-        curr = conn.cursor()
+            conn = get_connection()
+            curr = conn.cursor()
 
-        curr.execute(sql)
-        user_meta_info.extend(convert_sql_query_result_to_dict(curr, curr.fetchall()))
-        curr.close()
+            curr.execute(sql)
+            user_meta_info.extend(convert_sql_query_result_to_dict(curr, curr.fetchall()))
+            curr.close()
 
         return user_meta_info
     except (Exception, psycopg2.Error) as error:
