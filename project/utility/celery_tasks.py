@@ -874,6 +874,11 @@ def get_conversation_poll(conversation_info):
     else:
         polls = compute_conversation_polls(conversation_info)
 
+        # update in cache
+        save_conversation_poll_options_in_cache({'polls': polls,
+                                                 'user_id': member_id,
+                                                 'conversation_id': conversation_id})
+
     return polls
 
 
