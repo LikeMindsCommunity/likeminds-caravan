@@ -110,7 +110,8 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False):
                                                                                         | Q(
         card__attachments_uploaded=True)).exclude(card__type__in=[card_types.CARD_INTRO,
                                                                   card_types.CARD_EVENT,
-                                                                  card_types.CARD_PUBLIC_EVENT]).distinct('card_id').count()
+                                                                  card_types.CARD_PUBLIC_EVENT,
+                                                                  card_types.CARD_FEED_GROUP]).distinct('card_id').count()
 
     seen_chatrooms_filter = collabcardState.objects.filter(community=community,
                                                            user=user, external_seen=True, card__is_deleted=False,
@@ -119,7 +120,8 @@ def update_last_unseen_in_engage(user='', community='', is_seen=False):
         Q(card__attachment_count=0) | Q(
             card__attachments_uploaded=True)).exclude(card__type__in=[card_types.CARD_INTRO,
                                                                       card_types.CARD_EVENT,
-                                                                      card_types.CARD_PUBLIC_EVENT]).distinct('card')
+                                                                      card_types.CARD_PUBLIC_EVENT,
+                                                                      card_types.CARD_FEED_GROUP]).distinct('card')
 
     seen_chatrooms = seen_chatrooms_filter.count()
 
