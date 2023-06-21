@@ -102,8 +102,7 @@ def process_message_reactions(reactions):
     return reactions_map
 
 
-def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=None, update_cache=False,
-                                             sdk_client_info_flag:bool=False):
+def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=None, update_cache=False):
     """ function to update the preview of chatroom """
 
     if not conversation_id and not chatroom_id:
@@ -152,7 +151,7 @@ def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=N
         else:
             reactions = []
         
-        if update_cache:
+        if reactions or update_cache:
             update_chatroom_or_conversation_reactions_in_cache.delay(chatroom_id=chatroom_id,
                                                                      conversation_id=conversation_id,
                                                                      member_profiles=reactions)

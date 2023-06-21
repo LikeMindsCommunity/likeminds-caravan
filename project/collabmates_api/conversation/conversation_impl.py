@@ -1055,8 +1055,7 @@ class ConversationImpl(ConversationManager):
 
         fetch_chatroom_or_conversation_reactions(self.get_chatroom_id(),
                                                  self.get_conversation_id(),
-                                                 update_cache=True,
-                                                 sdk_client_info_flag=True)
+                                                 update_cache=True)
 
         send_notification_to_message_creator_on_reaction.delay(self.get_member_id(),
                                                                self.get_chatroom_id(),
