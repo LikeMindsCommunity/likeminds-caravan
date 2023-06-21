@@ -287,16 +287,9 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     if final_user_list:
         final_user_ids_list = [user.get('user_unique_id') for user in final_user_list]
 
-        # Fetch existing user's uuids list
-        existing_users_list = list(ModelUtilities.get_model_filter(
-            ActiveUser, {'billing': billingRecord, 'uuid__in': final_user_ids_list}).values_list('uuid', flat=True))
-
-        # Identify new Users
-        new_users = list(set(final_user_ids_list) - set(existing_users_list))
-
         # Create records for new user's UUID for each billing record
-        ModelUtilities.bulk_create_instances(ActiveUser,
-                                             [ActiveUser(billing=billingRecord, uuid=user_id) for user_id in new_users])
+        ModelUtilities.bulk_create_instances(ActiveUser, [ActiveUser(billing=billingRecord,
+                                                                     uuid=user_id) for user_id in final_user_ids_list])
 
 
 def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
