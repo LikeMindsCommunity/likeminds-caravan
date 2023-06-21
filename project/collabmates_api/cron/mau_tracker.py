@@ -78,18 +78,7 @@ def getCoralogixData(filters):
     return hits
 
 def getUUIDOfUsers(community_id, users_list):
-    user_int_list = []
-    user_str_list = []
-
-    # Segregate integer user ids from user list
-    for user in users_list:
-        if any([isinstance(user, int), isinstance(user, str) and user.isdigit()]):
-            user_int_list.append(user)
-
-        else:
-            user_str_list.append(user)
-
-    return get_users_meta_info(community_id, user_str_list, user_int_list)
+    return get_users_meta_info(community_id, users_list)
 
 def getUserListFromCoralogixData(coralogixData):
     users_list = set()
@@ -117,9 +106,6 @@ def getUserListFromCoralogixData(coralogixData):
     return users_list
 
 def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
-    # Fetch application Name based on environment
-    applicationName = 'LikeMinds_Beta' if settings.IS_BETA else 'LikeMinds_Prod'
-
     # Fetch sdk client record to fetch api key
     sdk_client = SdkClient.objects.get(community=billingRecord.community)
 
@@ -127,7 +113,6 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     if not sdk_client:
         return
 
-    api_key = sdk_client.api_key
     additional_filters = {}
 
     # Filter to fetch data based on applicationName, api_key and timestamp
@@ -141,11 +126,11 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
                 },
                 {
                     'match_phrase': {
-                        'request.headers.api_key': api_key
+                        'request.headers.api_key': sdk_client.api_key
                     }
                 },
                 {
-                    'range': {
+                    'match_phrase': {
                         'coralogix.timestamp': {
                             'gte': 'now-24h',
                             'lt': 'now'
