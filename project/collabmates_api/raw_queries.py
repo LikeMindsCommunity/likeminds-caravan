@@ -4655,6 +4655,10 @@ def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True):
 
             remaining_member_ids = list(set(member_ids) - set(found_user_ids))
             remaining_member_ids = [user_id for user_id in remaining_member_ids if str(user_id).isdigit()]
+
+            if not remaining_member_ids:
+                return user_meta_info
+
             remaining_member_ids_query = get_tuple_from_array_v2(remaining_member_ids)
 
             sql = """
