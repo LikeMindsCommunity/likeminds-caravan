@@ -1634,7 +1634,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             return {'success': True, 'question_answers': question_answers_data}
 
         return {'success': True}
-    
+
+    @timeit
     def _get_sorted_chatroom_queryset_based_on_order_type(self, intro_room_settings_enabled, pin_status,
                                                           excluded_card_ids, order_type, page=1,
                                                           api_version=api_version_headers.V1, limit=10):
