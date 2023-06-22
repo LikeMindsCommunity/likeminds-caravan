@@ -133,7 +133,7 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
                     }
                 },
                 {
-                    'match_phrase': {
+                    'range': {
                         'coralogix.timestamp': {
                             'gte': 'now-24h',
                             'lt': 'now'
@@ -281,8 +281,26 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     # Fetch unique user Ids from above fetched coralogix data
     users_list = getUserListFromCoralogixData(coralogixData)
 
+    if not users_list:
+        # Logging user list received from coralogix
+        info_logger.info("""MAU Tracker Coralogix Data: {}[{}] - No Data Found """.format(billingRecord.community.name,
+                                                                                          billingRecord.sdk))
+        return
+
+    # Logging user list received from coralogix
+    info_logger.info("""MAU Tracker Coralogix Data: {}[{}] ({}) - {} """.format(billingRecord.community.name,
+                                                                                billingRecord.sdk,
+                                                                                len(users_list),
+                                                                                users_list))
+
     # Fetch LM UUIDs for all the above fetched user IDs
     final_user_list = getUUIDOfUsers(billingRecord.community.id, users_list)
+
+    # Logging user list converted by our system
+    info_logger.info("""MAU Tracker System Generated Data: {}[{}] ({}) - {}""".format(billingRecord.community.name,
+                                                                                      billingRecord.sdk,
+                                                                                      len(final_user_list),
+                                                                                      final_user_list))
 
     # Create or Update the records for each active user UUID for each billing record
     if final_user_list:
