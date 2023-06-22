@@ -438,12 +438,25 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
     def process_chatroom_list(self, chatroom_list, community_instance, sdk_client_info_flag:bool=False) -> []:
 
+        error_logger.error(f"COMMUNITY/FEED Serializing chatroom started {self.get_member_id()}")
+
         chatroom_context_list = []
         user_list = self.compute_user_id_list_of_chatroom_creators(chatroom_list)
+
+        error_logger.error(f"COMMUNITY/FEED Computed user list {self.get_member_id()}")
+
         member_dict = self.get_member_community_impl_instance(community_instance).fetch_members_based_on_user_list(
             user_list, community_instance, sdk_client_info_flag=sdk_client_info_flag)
+
+        error_logger.error(f"COMMUNITY/FEED Got member dict {self.get_member_id()}")
+
         poll_list = self.fetch_poll_id_list(chatroom_list)
+
+        error_logger.error(f"COMMUNITY/FEED Processed poll list {self.get_member_id()}")
+
         poll_data, poll_votes = self.process_poll_list(poll_list)
+
+        error_logger.error(f"COMMUNITY/FEED Processed poll data {self.get_member_id()}")
 
         removed_member_dict = {}
 
@@ -457,8 +470,12 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             if ChatroomMemberHelper.has_attachments_uploaded(card_instance, current_user_id, device_id=self.device_id):
                 continue
 
+            error_logger.error(f"COMMUNITY/FEED Starting process chatroom {self.get_member_id()} {card_instance.id}")
+
             chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance
                                                      , poll_data, poll_votes, sdk_client_info_flag=sdk_client_info_flag)
+
+            error_logger.error(f"COMMUNITY/FEED Chatroom processed {self.get_member_id()} {card_instance.id}")
 
             if member_dict.get(card_creator_id):
                 chatroom_context['member'] = member_dict[card_creator_id]
@@ -477,11 +494,15 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             chatroom_context['chat_request_created_at'] = data.chat_request_created_at
             chatroom_context['chat_requested_by'] = None
 
+            error_logger.error(f"COMMUNITY/FEED Getting member profile {self.get_member_id()} {card_instance.id}")
+
             if data.chat_requested_by:
                 chatroom_context['chat_requested_by'] = get_members_profile([data.chat_requested_by.id],
                                                                             community_instance.id,
                                                                             send_profile=False, 
                                                                             sdk_client_info_flag=sdk_client_info_flag)
+
+            error_logger.error(f"COMMUNITY/FEED Got member profile {self.get_member_id()} {card_instance.id}")
 
             chatroom_context_list.append(chatroom_context)
 
