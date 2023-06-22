@@ -281,6 +281,12 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     # Fetch unique user Ids from above fetched coralogix data
     users_list = getUserListFromCoralogixData(coralogixData)
 
+    if not users_list:
+        # Logging user list received from coralogix
+        info_logger.info("""MAU Tracker Coralogix Data: {}[{}] - No Data Found """.format(billingRecord.community.name,
+                                                                                          billingRecord.sdk))
+        return
+
     # Logging user list received from coralogix
     info_logger.info("""MAU Tracker Coralogix Data: {}[{}] ({}) - {} """.format(billingRecord.community.name,
                                                                                 billingRecord.sdk,
