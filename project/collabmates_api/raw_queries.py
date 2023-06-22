@@ -4625,6 +4625,7 @@ def get_user_chatroom_status(user_id, community_id, chatroom_types: list, page: 
 
 def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True):
     try:
+        member_ids = [str(member_id) for member_id in member_ids]
         member_ids_query = get_tuple_from_array_v2(member_ids)
 
         sql = """
@@ -4654,7 +4655,7 @@ def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True):
                 found_user_ids.append(user_meta["clients_user_unique_id"])
 
             remaining_member_ids = list(set(member_ids) - set(found_user_ids))
-            remaining_member_ids = [user_id for user_id in remaining_member_ids if str(user_id).isdigit()]
+            remaining_member_ids = [user_id for user_id in remaining_member_ids if user_id.isdigit()]
 
             if not remaining_member_ids:
                 return user_meta_info
