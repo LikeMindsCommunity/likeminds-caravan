@@ -83,6 +83,22 @@ from collabmates_api.search.sync import ElasticSearchSync
 error_logger = LoggingWrapper.get_instance()
 
 
+def timeit(func):
+    from functools import wraps
+    import time
+
+    @wraps(func)
+    def timeit_wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+        error_logger.error(f'COMMUNITY/FEED Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
+        return result
+
+    return timeit_wrapper
+
+
 class MemberCommunityImpl(MemberCommunityManager):
     member_id = None
     community_id = None
@@ -855,6 +871,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                          ).order_by('created_at')
         return member_queryset
 
+    @timeit
     def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1) -> {}:
 
         validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
@@ -874,6 +891,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             'enabled': True
         }
 
+        error_logger.error("COMMUNITY/FEED Before version check 1")
+
         if is_version_code_supported_for_intro_room(self.get_version_code(), self.get_platform_code()):
             intro_room_setting_enabled = False
 
@@ -885,7 +904,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         else:
             intro_room_setting_enabled = True
 
+        error_logger.error("COMMUNITY/FEED After version check 1")
+
         excluded_card_ids = []
+
+        error_logger.error("COMMUNITY/FEED Start computing cohort access cards")
 
         if create_chatroom_revamp_version_check(self.get_platform_code(), self.get_version_code()):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
@@ -895,11 +918,15 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             excluded_card_ids = list(set(excluded_card_ids) - set(followed_card_ids))
 
+        error_logger.error("COMMUNITY/FEED Computed cohort access cards")
+
         if api_version in [api_version_headers.V1, api_version_headers.V2]:
+            error_logger.error("COMMUNITY/FEED Getting chatroom instances")
             chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(intro_room_setting_enabled,
                                                                                    pin_status, excluded_card_ids,
                                                                                    order_type, page=page,
                                                                                    api_version=api_version)
+            error_logger.error("COMMUNITY/FEED Computed chatroom instances")
 
         else:
 
@@ -934,10 +961,17 @@ class MemberCommunityImpl(MemberCommunityManager):
         from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
-        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance, 
+
+        error_logger.error("COMMUNITY/FEED Serializing chatrooms")
+
+        chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance,
                                                                            sdk_client_info_flag=True)
+        error_logger.error("COMMUNITY/FEED Serialized chatrooms")
+
         pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
             community_id=community_instance.id)
+
+        error_logger.error("COMMUNITY/FEED Computing pinned chatrooms list")
 
         return {
             'success': True,
