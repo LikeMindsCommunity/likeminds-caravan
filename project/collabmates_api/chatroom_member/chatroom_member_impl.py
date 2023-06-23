@@ -383,10 +383,10 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
         error_logger.error(f"COMMUNITY/FEED serialize chatroom completed {self.get_member_id()} {card_instance.id}")
 
-        # if card_instance.has_reactions:
-        #     reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
-        # else:
-        reactions = []
+        if card_instance.has_reactions:
+            reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
+        else:
+            reactions = []
 
         chatroom_context['reactions'] = reactions
 
