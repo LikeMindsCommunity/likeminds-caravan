@@ -132,3 +132,21 @@ class RunCronJobView(APIView):
                 external_service_context.get('status')))
 
         return JsonResponse(external_service_context)
+    
+
+class WarmUpCacheView(APIView):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(WarmUpCacheView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, key_name, *args, **kwargs):
+        external_service_manager = ExternalServiceApisImpl(None)
+        external_service_context = external_service_manager.warm_up_cache(key_name)
+
+        if external_service_context.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                external_service_context.get('error_message'),
+                external_service_context.get('status')))
+
+        return JsonResponse(external_service_context)

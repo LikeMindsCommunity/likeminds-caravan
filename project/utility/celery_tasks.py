@@ -2680,3 +2680,72 @@ def delete_user_channel_settings_for_a_user(user_id = None, community_id = None,
         }
     
     ModelUtilities.delete_record_in_model(UserChannelSettings, filter_dict)
+
+
+@shared_task
+def backfill_all_conversation_poll_options():
+
+    try:
+
+        info_logger.info("Starting backfilling of all conversation poll options")
+
+        conversation_poll_options = ModelUtilities.get_model_filter(conversationPolls,
+                                                                    {'conversation_id__isnull': False}
+                                                                    ).order_by('id'
+                                                                               ).values('id',
+                                                                                        'text',
+                                                                                        'conversation_id',
+                                                                                        'user_id',
+                                                                                        'updated_at')
+        poll_options_dict = {}
+        user_ids = []
+
+        # make poll options dict
+        for poll_options in conversation_poll_options:
+            
+            if poll_options.get('conversation_id') not in poll_options_dict:
+                poll_options_dict[poll_options.get('conversation_id')] = []
+
+            poll_options_dict[poll_options.get('conversation_id')].append(poll_options)
+
+            user_ids.append(poll_options.get('user_id'))
+
+        from collabmates_api.raw_queries import (get_users_sdk_meta_dict)
+
+        # get user meta dict
+        user_meta_dict = get_users_sdk_meta_dict(user_ids)
+
+        # iterate over poll options dict and make cache data
+        for conversation_id, poll_options in poll_options_dict.items():
+
+            cache_key = CONVERSATION_POLL_OPTIONS_CONVERSATION_ID % str(conversation_id)
+
+            cache_data = CacheImpl.get_cache(cache_key)
+
+            # if cache data already exists, then skip
+            if cache_data:
+                continue
+            
+            else:
+                cache_data = []
+
+            # make poll options list in ascending order of id
+            for poll_option in poll_options_dict[conversation_id]:
+                user_meta = user_meta_dict.get(poll_option.get('user_id'))
+
+                poll_option_dict = {
+                    'id': poll_option.get('id'),
+                    'text': poll_option.get('text'),
+                    'user_id': poll_option.get('user_id'),
+                    'member': user_meta
+                }
+
+                cache_data.append(poll_option_dict)
+
+            # set cache
+            CacheImpl.set_cache(cache_key, cache_data)
+
+            info_logger.info("Backfilled conversation poll options for conversation id: {}".format(conversation_id))
+
+    except Exception as e:
+        error_logger.error("Error while backfilling all conversation poll options: {}".format(e))
