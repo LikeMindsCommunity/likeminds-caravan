@@ -158,7 +158,7 @@ def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=N
         else:
             reactions = []
         
-        if reactions or update_cache:
+        if update_cache:
             update_chatroom_or_conversation_reactions_in_cache.delay(chatroom_id=chatroom_id,
                                                                      conversation_id=conversation_id,
                                                                      member_profiles=reactions)
