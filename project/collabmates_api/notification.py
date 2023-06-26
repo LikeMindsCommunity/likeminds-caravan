@@ -3194,6 +3194,8 @@ def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conve
 
     notification_list = [creator_dict]
 
+    message = TasksHelper.add_community_info_to_notification_payload(message, chatroom_instance.community_id)
+
     notification_meta(notification_list, message)
 
 
