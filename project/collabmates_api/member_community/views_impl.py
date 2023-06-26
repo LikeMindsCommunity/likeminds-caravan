@@ -72,6 +72,11 @@ class FetchCommunityFeed(APIView):
         if order_type:
             order_type = NumberUtilities.get_integer_from_string(order_type)
 
+        # version check for created_at epoch format change
+        created_at_epoch_check = VersionUtilities.check_version(platform_code=platform_code, 
+                                                          version_code=version_code, 
+                                                          feature_version_dict=VersionUtilities.community_feed_date_uniform)
+
         if RequestUtilities.is_request_any(request, [VersionUtilities.PlatformCode.ANDROID,
                                                      VersionUtilities.PlatformCode.IOS,
                                                      VersionUtilities.PlatformCode.FLUTTER,
@@ -79,13 +84,13 @@ class FetchCommunityFeed(APIView):
             chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
                                                             scroll_direction=scroll_direction,
                                                             api_version=api_version, order_type=order_type,
-                                                            page=page)
+                                                            page=page, created_at_epoch_check=created_at_epoch_check)
 
         elif RequestUtilities.is_request_any(request, [VersionUtilities.PlatformCode.WEB,
                                                      VersionUtilities.PlatformCode.REACT]):
             chatroom_context = community_manager.fetch_feed_web(pin_status, order_type,
                                                                 chatroom_id, scroll_direction, api_version=api_version,
-                                                                page=page)
+                                                                page=page, created_at_epoch_check=created_at_epoch_check)
 
         else:
             chatroom_context = ResponseUtilities.get_impl_error_context("Invalid platform",

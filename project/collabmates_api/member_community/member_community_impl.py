@@ -872,7 +872,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         return member_queryset
 
     @timeit
-    def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1) -> {}:
+    def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1, 
+                   created_at_epoch_check=False) -> {}:
 
         validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
                                                                               self.get_community_id(),
@@ -966,6 +967,12 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance,
                                                                            sdk_client_info_flag=True)
+
+        # Change created_at format from string to EPOCH date time
+        if created_at_epoch_check:
+            for chatroom in chatroom_context_list:
+                chatroom['created_at'] = chatroom['date_epoch']
+
         error_logger.error(f"COMMUNITY/FEED Serialized chatrooms {self.get_member_id()}")
 
         pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
@@ -980,7 +987,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         }
 
     def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="",
-                       page=1) -> {}:
+                       page=1, created_at_epoch_check=False) -> {}:
 
         validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
                                                                               self.get_community_id(),
@@ -1049,6 +1056,12 @@ class MemberCommunityImpl(MemberCommunityManager):
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
         chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance,
                                                                            sdk_client_info_flag=True)
+        
+        # Change created_at format from string to EPOCH date time
+        if created_at_epoch_check:
+            for chatroom in chatroom_context_list:
+                chatroom['created_at'] = chatroom['date_epoch']
+
         pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
             community_id=community_instance.id)
 
