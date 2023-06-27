@@ -216,6 +216,28 @@ def send_notification_for_web(token_list, message, firebase_key=None):
     return result
 
 
+def send_notification_for_react(token_list, message, firebase_key=None):
+    """function to send notification to web"""
+
+    if not token_list:
+        return
+
+    firebase_key = firebase_key if firebase_key else server_key
+
+    push_service = FCMNotification(api_key=firebase_key)
+
+    result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                  data_message=message['payload'],
+                                                  timeout=fcm_timeout_seconds)
+
+    log_statement = """
+                The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("REACT", len(token_list), result.get('success'), result.get('failure'), message.get('payload'))
+    print(log_statement)
+
+    return result
+
+
 def send_notification_for_flutter(token_list, message, firebase_key=None):
     """function to send notification to flutter"""
 
@@ -365,7 +387,8 @@ def notification_meta(notification_list, message, calling_notification=""):
         'iOS': [],
         'web': [],
         'Flutter': [],
-        'React Native': []
+        'React Native': [],
+        'React': [],
     }
 
     category_dict = message.get('category')
@@ -424,6 +447,8 @@ def notification_meta(notification_list, message, calling_notification=""):
     send_notification_for_flutter(tokens['Flutter'], message, firebase_key)
 
     send_notification_for_react_native(tokens['React Native'], message, firebase_key)
+
+    send_notification_for_react(tokens['React'], message, firebase_key)
 
     track_notification_with_notification_payload_list(notification_payload_list)
 
@@ -3193,6 +3218,8 @@ def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conve
     }
 
     notification_list = [creator_dict]
+
+    message = TasksHelper.add_community_info_to_notification_payload(message, chatroom_instance.community_id)
 
     notification_meta(notification_list, message)
 

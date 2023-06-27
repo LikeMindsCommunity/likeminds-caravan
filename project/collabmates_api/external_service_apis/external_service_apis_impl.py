@@ -11,6 +11,9 @@ from ..notifications.tasks_impl import TasksHelper
 from utility.response_utilities import ResponseUtilities
 from collabmates_api.sdk.models import (SdkClient)
 from togther.models import (ModelUtilities)
+from collabmates_api.conversation.reactions import (backfill_all_chatroom_reactions_in_cache,
+                                                    backfill_all_conversation_reactions)
+from utility.celery_tasks import (backfill_all_conversation_poll_options)
 
 
 class ExternalServiceApisImpl(ExternalServiceApisManager):
@@ -190,6 +193,29 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
 
         else:
             return ResponseUtilities.get_impl_error_context("Invalid task_name",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        return {'success': True}
+
+    def warm_up_cache(self, key_name: str) -> dict:
+
+        if key_name.lower() == "chatroom_reactions" :
+
+            # run celery task to back fill chatroom reactions
+            backfill_all_chatroom_reactions_in_cache.delay()
+
+        elif key_name.lower() == "conversation_reactions" :
+
+            # run celery task to back fill conversation reactions
+            backfill_all_conversation_reactions.delay()
+        
+        elif key_name.lower() == "conversation_poll_options" :
+
+            # run celery task to back fill conversation poll options
+            backfill_all_conversation_poll_options.delay()
+
+        else:
+            return ResponseUtilities.get_impl_error_context("Invalid key_name",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         return {'success': True}
