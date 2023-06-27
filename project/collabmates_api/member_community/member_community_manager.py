@@ -56,7 +56,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1, 
-                   created_at_epoch_check=False) -> {}:
+                   community_feed_date_uniform_check=False) -> {}:
         """
         fetches the chatrooms of community
         """
@@ -75,7 +75,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="",
-                       page=1, created_at_epoch_check=False) -> {}:
+                       page=1, community_feed_date_uniform_check=False) -> {}:
         """
         fetched the feed data for web
         """

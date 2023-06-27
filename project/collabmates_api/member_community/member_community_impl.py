@@ -873,7 +873,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     @timeit
     def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1, 
-                   created_at_epoch_check=False) -> {}:
+                   community_feed_date_uniform_check=False) -> {}:
 
         validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
                                                                               self.get_community_id(),
@@ -969,7 +969,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                            sdk_client_info_flag=True)
 
         # Change created_at format from string to EPOCH date time
-        if created_at_epoch_check:
+        if community_feed_date_uniform_check:
             for chatroom in chatroom_context_list:
                 chatroom['created_at'] = chatroom['date_epoch']
 
@@ -987,7 +987,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         }
 
     def fetch_feed_web(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="",
-                       page=1, created_at_epoch_check=False) -> {}:
+                       page=1, community_feed_date_uniform_check=False) -> {}:
 
         validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
                                                                               self.get_community_id(),
@@ -1058,7 +1058,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                            sdk_client_info_flag=True)
         
         # Change created_at format from string to EPOCH date time
-        if created_at_epoch_check:
+        if community_feed_date_uniform_check:
             for chatroom in chatroom_context_list:
                 chatroom['created_at'] = chatroom['date_epoch']
 
