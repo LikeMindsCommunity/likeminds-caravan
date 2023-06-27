@@ -382,6 +382,8 @@ def notification_meta(notification_list, message, calling_notification=""):
     user_id_list = [user_dict['id'] for user_dict in notification_list]
     user_device_dict = pre_compute_user_devices_by_user_list(user_id_list)
 
+    info_logger.info(f'api/add_reaction user_device_dict: {user_device_dict}')
+
     tokens = {
         'Android': [],
         'iOS': [],
@@ -437,6 +439,8 @@ def notification_meta(notification_list, message, calling_notification=""):
             notification_payload_list.append(notification_payload_dict)
 
     firebase_key = get_firebase_server_key_from_message_payload(message)
+
+    info_logger.info(f'api/add_reaction notification_payload_list: {notification_payload_list}, tokens: {tokens}')
 
     send_notification_for_android(tokens['Android'], message, firebase_key)
 
@@ -3151,6 +3155,10 @@ def send_notification_for_new_secret_room_participant(user_id, chatroom_id):
 
 @shared_task
 def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conversation_id, reaction):
+
+    info_logger.info(f"api/add_reaction send_notification_to_message_creator_on_reaction - user id {user_id}, chatroom id {chatroom_id}, "
+                        f"conversation id {conversation_id}, reaction {reaction}")
+    
     if chatroom_id is not None:
         chatroom_instance = Collabcard.get_chatroom_or_None(chatroom_id)
 
@@ -3221,6 +3229,7 @@ def send_notification_to_message_creator_on_reaction(user_id, chatroom_id, conve
 
     message = TasksHelper.add_community_info_to_notification_payload(message, chatroom_instance.community_id)
 
+    info_logger.info(f"api/add_reaction send_notification_to_message_creator_on_reaction - notification list {notification_list}, message {message}")
     notification_meta(notification_list, message)
 
 
