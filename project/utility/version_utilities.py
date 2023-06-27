@@ -370,6 +370,32 @@ class VersionUtilities:
         }
     }
 
+    community_feed_date_uniform: dict = {
+        SdkSource.CHAT: {
+            PlatformCode.ANDROID: unreleased_version_code,
+            PlatformCode.FLUTTER: unreleased_version_code,
+            PlatformCode.IOS: unreleased_version_code,
+            PlatformCode.REACT: unreleased_version_code,
+            PlatformCode.REACT_NATIVE: unreleased_version_code,
+            PlatformCode.WEB: unreleased_version_code,
+
+            PlatformCode.ANDROID_SDK: 300,
+            PlatformCode.FLUTTER_SDK: 3,
+            PlatformCode.IOS_SDK: unreleased_version_code,
+            PlatformCode.REACT_SDK: unreleased_version_code,
+            PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+            PlatformCode.WEB_SDK: unreleased_version_code,
+        },
+        SdkSource.FEED: {
+            PlatformCode.ANDROID_SDK: unreleased_version_code,
+            PlatformCode.FLUTTER_SDK: unreleased_version_code,
+            PlatformCode.IOS_SDK: unreleased_version_code,
+            PlatformCode.REACT_SDK: unreleased_version_code,
+            PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+            PlatformCode.WEB_SDK: unreleased_version_code,
+        }
+    }
+
     @staticmethod
     def check_version(platform_code: str, version_code: int, feature_version_dict: dict,
                       sdk_source: str = None) -> bool:
