@@ -43,6 +43,7 @@ class FetchCommunityFeed(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
         api_version = RequestUtilities.get_accept_version_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
@@ -75,7 +76,8 @@ class FetchCommunityFeed(APIView):
         # version check for created_at epoch format change
         community_feed_date_uniform_check = VersionUtilities.check_version(platform_code=platform_code, 
                                                                            version_code=version_code, 
-                                                                           feature_version_dict=VersionUtilities.community_feed_date_uniform)
+                                                                           feature_version_dict=VersionUtilities.community_feed_date_uniform,
+                                                                           sdk_source=sdk_source)
 
         if RequestUtilities.is_request_any(request, [VersionUtilities.PlatformCode.ANDROID,
                                                      VersionUtilities.PlatformCode.IOS,
