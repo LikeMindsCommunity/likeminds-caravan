@@ -495,8 +495,9 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
 
             if send_allowed and not is_task_deleted:
 
-                info_logger.info(f"Scheduling email notification with subject = {context['subject']} scheduled for event_type = {event_type} | \
-                                  to_mails_list = {context['to_mails_list']} ")
+                info_logger.info(f"Sending email with custom from email function with subject = {context['subject']} | \
+                                   scheduled for event_type = {event_type} | \
+                                   to_mails_list = {context['to_mails_list']} ")
                 
                 MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
                                                               from_email=context['from_email'],
