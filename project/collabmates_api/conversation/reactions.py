@@ -6,6 +6,13 @@ from togther.models import Members, MessageReactions, card_answers, Collabcard, 
 from utility.cache_keys import CONVERSATION_REACTIONS_CACHE_KEY, CHATROOM_REACTIONS_CACHE_KEY
 from utility.states import SyncTypes
 
+from togther.models import ModelUtilities
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
+
+
 @shared_task
 def update_chatroom_or_conversation_reactions_in_cache(chatroom_id=None, conversation_id=None,
                                                        member_profiles=None):
@@ -151,8 +158,151 @@ def fetch_chatroom_or_conversation_reactions(chatroom_id=None, conversation_id=N
         else:
             reactions = []
         
-        if reactions or update_cache:
+        if update_cache:
             update_chatroom_or_conversation_reactions_in_cache.delay(chatroom_id=chatroom_id,
                                                                      conversation_id=conversation_id,
                                                                      member_profiles=reactions)
     return reactions
+
+
+@shared_task
+def backfill_all_chatroom_reactions_in_cache():
+    """
+        function to backfill all chatroom reactions in cache 
+    """
+
+    try:    
+
+        info_logger.info("Starting backflling of all chatroom reactions in cache")
+
+        # fetch all chatroom reactions from MessageReactions table
+        chatroom_reactions = ModelUtilities.get_model_filter(MessageReactions, {'conversation': None}
+                                                             ).order_by('-updated_at'
+                                                                        ).values('chatroom_id',
+                                                                                 'user_id',
+                                                                                 'reaction',
+                                                                                 'updated_at')
+
+        chatroom_reactions_dict = {}
+        user_ids = []
+
+        # create a dictionary of chatroom reactions with chatroom_id as key
+        for reaction in chatroom_reactions:
+
+            if reaction.get('chatroom_id') not in chatroom_reactions_dict:
+                chatroom_reactions_dict[reaction.get('chatroom_id')] = []
+
+            chatroom_reactions_dict[reaction.get('chatroom_id')].append(reaction)
+
+            user_ids.append(reaction.get('user_id'))
+
+        from collabmates_api.raw_queries import get_users_sdk_meta_dict
+
+        # fetch user meta for all users
+        users_meta = get_users_sdk_meta_dict(user_ids)
+
+        # iterate over all chatroom_ids and check cache
+        for chatroom_id, reactions in chatroom_reactions_dict.items():
+
+            cache_key = CHATROOM_REACTIONS_CACHE_KEY % str(chatroom_id)
+
+            cache_data = CacheImpl.get_cache(cache_key)
+
+            # if cache data already exists, then do not update
+            if cache_data:
+                continue
+            else:
+                cache_data = []
+
+            # Make reactions list in ascending order of updated_at
+            for reaction in chatroom_reactions_dict[chatroom_id]:
+                user_meta = users_meta.get(reaction.get('user_id'))
+
+                reaction_dict = {
+                    'member': user_meta,
+                    'reaction': reaction.get('reaction'),
+                    'updated_at': reaction.get('updated_at')
+                }
+
+                cache_data.append(reaction_dict)
+    
+            cache_data = sorted(cache_data, key=lambda i: i['updated_at'])
+
+            # set cache data
+            CacheImpl.set_cache(cache_key, cache_data)
+
+            info_logger.info("Cache set for chatroom_id: %s" % str(chatroom_id))
+    
+    except Exception as e:
+        error_logger.error("Error in backfill_chatroom_reactions_for_all_communities: %s" % str(e))
+
+
+@shared_task
+def backfill_all_conversation_reactions():
+
+    try:
+        
+        info_logger.info("Starting backflling of all conversation reactions in cache")
+
+        # fetch all chatroom reactions from MessageReactions table
+        conversation_reactions = ModelUtilities.get_model_filter(MessageReactions, {'conversation__isnull': False}
+                                                                 ).order_by('-updated_at'
+                                                                            ).values('conversation_id',
+                                                                                     'chatroom_id',
+                                                                                     'user_id',
+                                                                                     'reaction',
+                                                                                     'updated_at')
+        
+        conversation_reactions_dict = {}
+        user_ids = []
+
+        # create a dictionary of conversation reactions with conversation_id as key
+        for reaction in conversation_reactions:
+                
+            if reaction.get('conversation_id') not in conversation_reactions_dict:
+                conversation_reactions_dict[reaction.get('conversation_id')] = []
+
+            conversation_reactions_dict[reaction.get('conversation_id')].append(reaction)
+
+            user_ids.append(reaction.get('user_id'))
+
+        from collabmates_api.raw_queries import get_users_sdk_meta_dict
+
+        # fetch user meta for all users
+        users_meta = get_users_sdk_meta_dict(user_ids)
+
+        # iterate over all conversation_ids and check cache
+        for conversation_id, reactions in conversation_reactions_dict.items():
+                
+            cache_key = CONVERSATION_REACTIONS_CACHE_KEY % str(conversation_id)
+
+            cache_data = CacheImpl.get_cache(cache_key)
+
+            # if cache data already exists, then do not update
+            if cache_data:
+                continue
+            else:
+                cache_data = []
+
+            # Make reactions list in ascending order of updated_at
+            for reaction in conversation_reactions_dict[conversation_id]:
+                user_meta = users_meta.get(reaction.get('user_id'))
+
+                reaction_dict = {
+                    'member': user_meta,
+                    'reaction': reaction.get('reaction'),
+                    'updated_at': reaction.get('updated_at')
+                }
+
+                cache_data.append(reaction_dict)
+    
+            cache_data = sorted(cache_data, key=lambda i: i['updated_at'])
+
+            # set cache data
+            CacheImpl.set_cache(cache_key, cache_data)
+
+            info_logger.info("Cache set for conversation_id: %s" % str(conversation_id))
+
+    except Exception as e:
+        error_logger.error("Error in backfill_all_conversation_reactions: %s" % str(e))
+

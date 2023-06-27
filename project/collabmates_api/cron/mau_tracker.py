@@ -77,19 +77,10 @@ def getCoralogixData(filters):
 
     return hits
 
+
 def getUUIDOfUsers(community_id, users_list):
-    user_int_list = []
-    user_str_list = []
+    return get_users_meta_info(community_id, users_list)
 
-    # Segregate integer user ids from user list
-    for user in users_list:
-        if any([isinstance(user, int), isinstance(user, str) and user.isdigit()]):
-            user_int_list.append(user)
-
-        else:
-            user_str_list.append(user)
-
-    return get_users_meta_info(community_id, user_str_list, user_int_list)
 
 def getUserListFromCoralogixData(coralogixData):
     users_list = set()
@@ -116,10 +107,8 @@ def getUserListFromCoralogixData(coralogixData):
 
     return users_list
 
-def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
-    # Fetch application Name based on environment
-    applicationName = 'LikeMinds_Beta' if settings.IS_BETA else 'LikeMinds_Prod'
 
+def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     # Fetch sdk client record to fetch api key
     sdk_client = SdkClient.objects.get(community=billingRecord.community)
 
@@ -127,7 +116,6 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     if not sdk_client:
         return
 
-    api_key = sdk_client.api_key
     additional_filters = {}
 
     # Filter to fetch data based on applicationName, api_key and timestamp
@@ -141,7 +129,7 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
                 },
                 {
                     'match_phrase': {
-                        'request.headers.api_key': api_key
+                        'request.headers.api_key': sdk_client.api_key
                     }
                 },
                 {
@@ -171,7 +159,7 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
                     }
                 },
                 {
-                    'term': {
+                    'match_phrase': {
                         'request.headers.sdk_source': billingRecord.sdk
                     }
                 }
@@ -293,14 +281,33 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     # Fetch unique user Ids from above fetched coralogix data
     users_list = getUserListFromCoralogixData(coralogixData)
 
+    if not users_list:
+        # Logging user list received from coralogix
+        info_logger.info("""MAU Tracker Coralogix Data: {}[{}] - No Data Found """.format(billingRecord.community.name,
+                                                                                          billingRecord.sdk))
+        return
+
+    # Logging user list received from coralogix
+    info_logger.info("""MAU Tracker Coralogix Data: {}[{}] ({}) - {} """.format(billingRecord.community.name,
+                                                                                billingRecord.sdk,
+                                                                                len(users_list),
+                                                                                users_list))
+
     # Fetch LM UUIDs for all the above fetched user IDs
     final_user_list = getUUIDOfUsers(billingRecord.community.id, users_list)
+
+    # Logging user list converted by our system
+    info_logger.info("""MAU Tracker System Generated Data: {}[{}] ({}) - {}""".format(billingRecord.community.name,
+                                                                                      billingRecord.sdk,
+                                                                                      len(final_user_list),
+                                                                                      final_user_list))
 
     # Create or Update the records for each active user UUID for each billing record
     if final_user_list:
         for user in final_user_list:
             ModelUtilities.update_or_create_model(ActiveUser, {'billing': billingRecord,
                                                                'uuid': user.get('user_unique_id')}, {})
+
 
 def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
     # Fetch active user IDs for a specific billing record
@@ -314,6 +321,8 @@ def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
                                            'end_date': today.strftime("%s")},
                                           {'mau_count': len(activeUsers),
                                            'users_list': json.dumps(activeUsers)})
+
+
 @app.task
 @shared_task
 def track():

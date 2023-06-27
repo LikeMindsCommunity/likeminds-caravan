@@ -3649,9 +3649,12 @@ class ActiveUserMonthlyData(models.Model):
 
 class ActiveUser(models.Model):
     billing = models.ForeignKey(CommunityBillingDates, on_delete=models.CASCADE)
-    uuid = models.CharField(max_length=255, unique=True, null=True)
+    uuid = models.CharField(max_length=255, null=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        unique_together = (('uuid', 'billing'),)
 
     def save(self, *args, **kwargs):
         current_time = TimeUtilities.current_time_in_milliseconds()
