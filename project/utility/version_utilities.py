@@ -372,15 +372,15 @@ class VersionUtilities:
 
     community_feed_date_uniform: dict = {
         SdkSource.CHAT: {
-            PlatformCode.ANDROID: 300,
-            PlatformCode.FLUTTER: 3,
+            PlatformCode.ANDROID: unreleased_version_code,
+            PlatformCode.FLUTTER: unreleased_version_code,
             PlatformCode.IOS: unreleased_version_code,
             PlatformCode.REACT: unreleased_version_code,
             PlatformCode.REACT_NATIVE: unreleased_version_code,
             PlatformCode.WEB: unreleased_version_code,
 
-            PlatformCode.ANDROID_SDK: unreleased_version_code,
-            PlatformCode.FLUTTER_SDK: unreleased_version_code,
+            PlatformCode.ANDROID_SDK: 300,
+            PlatformCode.FLUTTER_SDK: 3,
             PlatformCode.IOS_SDK: unreleased_version_code,
             PlatformCode.REACT_SDK: unreleased_version_code,
             PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,

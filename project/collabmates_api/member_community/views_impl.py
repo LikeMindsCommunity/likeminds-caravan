@@ -74,8 +74,8 @@ class FetchCommunityFeed(APIView):
 
         # version check for created_at epoch format change
         community_feed_date_uniform_check = VersionUtilities.check_version(platform_code=platform_code, 
-                                                          version_code=version_code, 
-                                                          feature_version_dict=VersionUtilities.community_feed_date_uniform)
+                                                                           version_code=version_code, 
+                                                                           feature_version_dict=VersionUtilities.community_feed_date_uniform)
 
         if RequestUtilities.is_request_any(request, [VersionUtilities.PlatformCode.ANDROID,
                                                      VersionUtilities.PlatformCode.IOS,
