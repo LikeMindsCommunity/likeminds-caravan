@@ -312,6 +312,9 @@ class UserImpl(UserManager):
     def _get_or_create_sdk_user_and_userinfo(user_context, api_key=None):
 
         user_unique_id = user_context.get('user_unique_id')
+        user_email = user_context.get('email')
+        user_mobile_no = user_context.get('mobile_no')
+        user_country_code = user_context.get('country_code')
         user_instance = None
         unique_id = str(uuid.uuid4())
         sdk_client_user_info_instance = None
@@ -332,27 +335,46 @@ class UserImpl(UserManager):
             community_instance = sdk_client_instance.community
 
         should_create_user = True
+        sdk_client_users_info_filter = None
 
         if user_unique_id:
             sdk_client_users_info_filter = ModelUtilities.get_model_filter(
                 SDKClientUsersInfo, {'community': community_instance}).filter(
                 Q(user_unique_id=user_unique_id) | Q(user__userinfo__user_unique_id=user_unique_id))
 
-            if sdk_client_users_info_filter:
-                existing_user = True
-                sdk_client_user_info_instance = sdk_client_users_info_filter[0]
+        elif user_email:
+            existing_user_ids_with_email = list(ModelUtilities.get_model_filter(userEmails,
+                                                                                {'email': user_email}).values_list(
+                'user_id', flat=True))
 
-                removed_member = ModelUtilities.get_model_filter(removedMembers,
-                                                                 {'community': community_instance,
-                                                                  'member': sdk_client_user_info_instance.user})
+            if existing_user_ids_with_email:
+                sdk_client_users_info_filter = ModelUtilities.get_model_filter(
+                    SDKClientUsersInfo, {'community': community_instance, 'user__in': existing_user_ids_with_email})
 
-                if len(removed_member):
-                    app_access = False
+        elif user_mobile_no and user_country_code:
+            existing_user_ids_with_mobile = list(ModelUtilities.get_model_filter(
+                userMobiles, {'country_code': user_country_code, 'mobile_no': user_mobile_no}).values_list(
+                'user_id', flat=True))
 
-                return {'user_instance': sdk_client_user_info_instance.user,
-                        'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                        'existing_user': existing_user,
-                        'app_access': app_access}
+            if existing_user_ids_with_mobile:
+                sdk_client_users_info_filter = ModelUtilities.get_model_filter(
+                    SDKClientUsersInfo, {'community': community_instance, 'user__in': existing_user_ids_with_mobile})
+
+        if sdk_client_users_info_filter:
+            existing_user = True
+            sdk_client_user_info_instance = sdk_client_users_info_filter[0]
+
+            removed_member = ModelUtilities.get_model_filter(removedMembers,
+                                                             {'community': community_instance,
+                                                              'member': sdk_client_user_info_instance.user})
+
+            if len(removed_member):
+                app_access = False
+
+            return {'user_instance': sdk_client_user_info_instance.user,
+                    'sdk_client_user_info_instance': sdk_client_user_info_instance,
+                    'existing_user': existing_user,
+                    'app_access': app_access}
 
         if should_create_user:
             if not user_context.get('name'):
@@ -379,6 +401,12 @@ class UserImpl(UserManager):
                 UserImpl.create_user_mobile_number(user_instance,
                                                    mobile_context.get('country_code'),
                                                    mobile_context.get('mobile_no'))
+
+            elif user_mobile_no and user_country_code:
+                UserImpl.create_user_mobile_number(user_instance,
+                                                   user_country_code,
+                                                   user_mobile_no,
+                                                   force_create_instance=True)
 
             if user_context.get('email'):
                 UserImpl.create_user_primary_email(user_instance, user_context)
@@ -421,15 +449,19 @@ class UserImpl(UserManager):
             user_email_instance.save()
 
     @staticmethod
-    def create_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY):
+    def create_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY,
+                                  force_create_instance: bool = False):
 
         if not mobile_no:
             return
 
-        mobile_exists = ModelUtilities.is_model_filter_exists(userMobiles, {'country_code': country_code,
-                                                                            'mobile_no': mobile_no})
+        mobile_exists = True
 
-        if not mobile_exists:
+        if not force_create_instance:
+            mobile_exists = ModelUtilities.is_model_filter_exists(userMobiles, {'country_code': country_code,
+                                                                                'mobile_no': mobile_no})
+
+        if force_create_instance or not mobile_exists:
             instance = userMobiles()
             instance.country_code = country_code
             instance.mobile_no = mobile_no
@@ -1163,7 +1195,7 @@ class UserImpl(UserManager):
 
         return {'success': True}
 
-    def verify_user_otp(self, otp_type: str, mobile_no: str = int, country_code: str = int, email_id: str = None,
+    def verify_user_otp(self, otp_type: str, mobile_no: str = None, country_code: str = None, email_id: str = None,
                         otp: str = None) -> dict:
 
         if otp_type == OTPTypes.MOBILE:
@@ -1248,6 +1280,28 @@ class UserImpl(UserManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         return {'success': True}
+
+    def user_social_login(self, login_type: str, token: str) -> dict:
+
+        if login_type == login_types.GOOGLE:
+            validated_req = UserHelper.validate_user_google_login_request(self.get_api_key(),
+                                                                          token)
+
+            if validated_req.get('error_message'):
+                return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            google_json = UserHelper.fetch_auth_data_for_google_login(token)
+            user_context = UserHelper.create_user_context_based_on_google_response(google_json)
+
+            return {
+                'success': True,
+                'user': user_context
+            }
+
+        else:
+            return ResponseUtilities.get_impl_error_context("Invalid login type!",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
 
 class UserHelper:
@@ -1424,7 +1478,9 @@ class UserHelper:
             'name': custom_meta.get('name'),
             'is_guest': custom_meta.get('is_guest', False),
             'email': custom_meta.get('email', ''),
-            'organisation_name': custom_meta.get('organisation_name')
+            'organisation_name': custom_meta.get('organisation_name'),
+            'mobile_no': custom_meta.get('mobile_no'),
+            'country_code': custom_meta.get('country_code'),
         }
 
         if custom_meta.get('image_url'):
@@ -2010,7 +2066,7 @@ class UserHelper:
         FileUtilities.write_file_csv(file_path, 'a', international_otp_req_obj)
 
     @staticmethod
-    def validate_user_verify_otp_on_mobile_request(api_key: str, country_code: str, mobile_no: str, otp: str):
+    def validate_user_verify_otp_on_mobile_request(api_key: str, country_code: int, mobile_no: int, otp: str):
         validation_params = {
             'community_id': {
                 'api_key': api_key
@@ -2039,4 +2095,45 @@ class UserHelper:
             'is_international': is_international,
             'community_instance': community_instance
         }
+
+    @staticmethod
+    def validate_user_google_login_request(api_key: str, token: str):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        if not token:
+            return ResponseUtilities.get_inner_error_context('Empty token!')
+
+        return {}
+
+    @staticmethod
+    def create_user_context_based_on_google_response(google_json: dict):
+
+        if not google_json:
+            return {}
+
+        image_url = google_json.get('picture', '')
+
+        user_context = {
+            'name': google_json.get('name'),
+            'email': google_json.get('email', ''),
+            'image_url': image_url
+        }
+
+        if image_url:
+
+            index = image_url.find(GOOGLE_REGEX)
+
+            if index == -1:
+                user_context['image_url'] = image_url
+
+        return user_context
 

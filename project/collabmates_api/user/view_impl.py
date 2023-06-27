@@ -344,7 +344,7 @@ class WhatsappSubscriptionView(APIView):
 
 class UserOTPView(APIView):
     """
-    Manage Whatsapp Subscription of a user
+    Generate/verify user OTP
     """
 
     def post(self, request):
@@ -382,3 +382,25 @@ class UserOTPView(APIView):
             return JsonResponse(context['data'], status=context['status'])
 
         return JsonResponse(response_data)
+
+
+class UserSocialLoginView(APIView):
+    """
+    Verify user social login
+    """
+
+    def get(self, request):
+        req_params = RequestUtilities.fetch_request_query_params(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        user_manager = UserImpl(user_id="", api_key=api_key)
+        response_data = user_manager.user_social_login(login_type=req_params.get('login_type'),
+                                                       token=req_params.get('token'))
+
+        if 'error_message' in response_data:
+            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
+                                                                    response_data['status'])
+            return JsonResponse(context['data'], status=context['status'])
+
+        return JsonResponse(response_data)
+

@@ -2,7 +2,7 @@ from django.urls import path
 from collabmates_api.user.view_impl import (DeleteUserView, UserSeenSurvey, UserLogout,
                                             UserRemoveProfile, UserLoginView, FetchUserAccess, FetchDmHome,
                                             UpdateDmTutorial, FetchDmFeed, FetchAllUsers, BotView,
-                                            FetchUser, WhatsappSubscriptionView, UserOTPView)
+                                            FetchUser, WhatsappSubscriptionView, UserOTPView, UserSocialLoginView)
 
 
 urlpatterns = [
@@ -19,5 +19,6 @@ urlpatterns = [
     path('bot', BotView.as_view(), name="create_update_bot"),
     path('fetch', FetchUser.as_view(), name="fetch"),
     path('subscription/whatsapp', WhatsappSubscriptionView.as_view(), name="whatsapp_subscription"),
-    path('otp', UserOTPView.as_view(), name="user_otp")
+    path('otp', UserOTPView.as_view(), name="user_otp"),
+    path('social/login', UserSocialLoginView.as_view(), name="user_social_login")
 ]

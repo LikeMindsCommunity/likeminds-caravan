@@ -149,8 +149,15 @@ class UserManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def verify_user_otp(self, otp_type: str, mobile_no: str = int, country_code: str = int, email_id: str = None,
+    def verify_user_otp(self, otp_type: str, mobile_no: int = None, country_code: int = None, email_id: str = None,
                         otp: str = None) -> dict:
+        """
+        Verify user OTPs
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def user_social_login(self, login_type: str, token: str) -> dict:
         """
         Verify user OTPs
         """
