@@ -43,6 +43,7 @@ class FetchCommunityFeed(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
         api_version = RequestUtilities.get_accept_version_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
@@ -72,6 +73,12 @@ class FetchCommunityFeed(APIView):
         if order_type:
             order_type = NumberUtilities.get_integer_from_string(order_type)
 
+        # version check for created_at epoch format change
+        community_feed_date_uniform_check = VersionUtilities.check_version(platform_code=platform_code, 
+                                                                           version_code=version_code, 
+                                                                           feature_version_dict=VersionUtilities.community_feed_date_uniform,
+                                                                           sdk_source=sdk_source)
+
         if RequestUtilities.is_request_any(request, [VersionUtilities.PlatformCode.ANDROID,
                                                      VersionUtilities.PlatformCode.IOS,
                                                      VersionUtilities.PlatformCode.FLUTTER,
@@ -79,13 +86,15 @@ class FetchCommunityFeed(APIView):
             chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
                                                             scroll_direction=scroll_direction,
                                                             api_version=api_version, order_type=order_type,
-                                                            page=page)
+                                                            page=page, 
+                                                            community_feed_date_uniform_check=community_feed_date_uniform_check)
 
         elif RequestUtilities.is_request_any(request, [VersionUtilities.PlatformCode.WEB,
                                                      VersionUtilities.PlatformCode.REACT]):
             chatroom_context = community_manager.fetch_feed_web(pin_status, order_type,
                                                                 chatroom_id, scroll_direction, api_version=api_version,
-                                                                page=page)
+                                                                page=page, 
+                                                                community_feed_date_uniform_check=community_feed_date_uniform_check)
 
         else:
             chatroom_context = ResponseUtilities.get_impl_error_context("Invalid platform",
