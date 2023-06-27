@@ -79,7 +79,8 @@ COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
     "chatrooms": "Chatrooms",
     "secret_chatrooms_invite": "Send invite for secret chatrooms",
     "post_groups": "Post Groups",
-    "secret_groups_invite": "Send invite for secret groups"
+    "secret_groups_invite": "Send invite for secret groups",
+    "create_intro_rooms": "Create intro rooms"
 }
 
 COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
@@ -96,7 +97,8 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
                                "will only become part of it once they accept it.",
     "post_groups": "",
     "secret_groups_invite": "If enabled, the invited user will receive a request to join the secret groups and "
-                            "will only become part of it once they accept it."
+                            "will only become part of it once they accept it.",
+    "create_intro_rooms": ""
 }
 
 DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED = "Community managers will be able to message all members and vice-versa."

@@ -1148,6 +1148,9 @@ class CommunityImpl(CommunityManager):
         is_m2cm_v2 = m2cm_v2_version_check(self.get_request_platform(), self.get_version_code())
         is_chatroom_invite = VersionUtilities.check_version(self.get_request_platform(), self.get_version_code(),
                                                             VersionUtilities.chatroom_invite)
+        is_create_intro_room_check = VersionUtilities.check_version(self.get_request_platform(),
+                                                                    self.get_version_code(),
+                                                                    VersionUtilities.create_intro_room)
 
         for community_setting in community_settings:
 
@@ -1167,6 +1170,10 @@ class CommunityImpl(CommunityManager):
 
             if all([not check_admin_moderate_dm_settings_right(user_instance, community_instance),
                     community_setting.get('setting_type') == community_setting_types.DIRECT_MESSAGE_SETTING]):
+                continue
+
+            if all([community_setting.get('setting_type') in [community_setting_types.CREATE_INTRO_ROOMS],
+                    not is_create_intro_room_check]):
                 continue
 
             filtered_community_settings_list.append(community_setting)

@@ -480,6 +480,7 @@ class CommunitySettingTypes:
     SECRET_CHATROOMS_INVITE = "secret_chatrooms_invite"
     POST_GROUPS = "post_groups"
     SECRET_GROUP_INVITE = "secret_groups_invite"
+    CREATE_INTRO_ROOMS = "create_intro_rooms"
 
 
 community_setting_types = CommunitySettingTypes()
