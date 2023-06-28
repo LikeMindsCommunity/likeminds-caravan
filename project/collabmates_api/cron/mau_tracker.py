@@ -97,14 +97,6 @@ def getUserListFromCoralogixData(coralogixData):
                     if request_entry['body'].get('user_unique_id'):
                         users_list.add(request_entry['body']['user_unique_id'])
 
-                    if request_entry['body'].get('chatroom_participants'):
-                        for participant in request_entry['body']['chatroom_participants']:
-                            users_list.add(participant)
-
-                    if request_entry['body'].get('secret_chatroom_participants'):
-                        for participant in request_entry['body']['secret_chatroom_participants']:
-                            users_list.add(participant)
-
     return users_list
 
 
@@ -194,12 +186,12 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
                                     'must': [
                                         {
                                             'match_phrase': {
-                                                'request.absolute_uri': 'api/community/member',
+                                                'request.absolute_uri': 'api/v2/fetch_chatroom',
                                             }
                                         },
                                         {
                                             'match_phrase': {
-                                                'request.method': 'POST'
+                                                'request.method': 'GET'
                                             }
                                         }
                                     ]
@@ -210,28 +202,12 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
                                     'must': [
                                         {
                                             'match_phrase': {
-                                                'request.absolute_uri': 'api/chatroom/add',
+                                                'request.absolute_uri': 'api/chatroom/fetch',
                                             }
                                         },
                                         {
                                             'match_phrase': {
-                                                'request.method': 'POST'
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                'bool': {
-                                    'must': [
-                                        {
-                                            'match_phrase': {
-                                                'request.absolute_uri': 'api/chatroom/secret/add',
-                                            }
-                                        },
-                                        {
-                                            'match_phrase': {
-                                                'request.method': 'POST'
+                                                'request.method': 'GET'
                                             }
                                         }
                                     ]
