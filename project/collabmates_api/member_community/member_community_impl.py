@@ -3087,7 +3087,33 @@ class MemberCommunityHelper:
         community_impl = CommunityImpl(member_id=user_instance.id, community_id=community_instance.id)
         community_impl.set_members_count_in_community(community_instance.id, members_count)
 
-        ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance)
+        create_intro_room_setting_dict = {
+            'community': community_instance,
+            'setting_type': community_setting_types.CREATE_INTRO_ROOMS
+        }
+
+        community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                     create_intro_room_setting_dict).first()
+
+        if community_setting_instance and community_setting_instance.enabled:
+
+            from collabmates_api.views import (post_master_introductions_for_community)
+
+            # Get owner of community
+            owner_user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
+
+            # Create MASTER intro room if not available in SDK
+            post_master_introductions_for_community(community_instance.id, owner_user_instance.id)
+
+            introduction_answer = CommunityHelper.create_introduction_text_for_intro_chatroom(
+                community_instance, user_instance, req_body.get(DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY), True)
+
+            CommunityHelper.add_introductions_room_in_master_intro(community_instance, user_instance,
+                                                                   member_states.MEMBER,
+                                                                   introduction_answer=introduction_answer)
+
+        else:
+            ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance)
 
         action_required_by_promoter = ModelUtilities.is_model_filter_exists(Members,
                                                                             {'community_id': community_instance,
