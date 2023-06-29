@@ -93,6 +93,7 @@ class ModerationHistoryTypes:
     REJOINED_COMMUNITY_PRIVATE_LINK = 12
     APPLIED_PUBLIC_LINK_WEBSITE = 13
     SDK_JOIN = 14
+    SDK_PENDING_MEMBER = 15
     APPLIED_PUBLIC_LINK_TEXT = "Applied via invite link from "
     APPLIED_PRIVATE_LINK_TEXT = "Joined via invite link from "
     APPROVED_FROM_TEXT = "Approved from "
@@ -108,6 +109,7 @@ class ModerationHistoryTypes:
     REJOINED_COMMUNITY_PRIVATE_LINK_TEXT = "Rejoined via invite link from "
     APPLIED_PUBLIC_LINK_WEBSITE_TEXT = "Applied via community website"
     SDK_JOIN_MEMBER_TEXT = "{} joined the community"
+    SDK_PENDING_MEMBER_TEXT = "Becomes pending member of community"
 
 
 moderation_history_types = ModerationHistoryTypes()

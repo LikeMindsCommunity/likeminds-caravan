@@ -31,6 +31,7 @@ class EmailCategories:
     APP_LEVEL = "AppLevel"
 
     OTP = "OTP"
+    REGISTRATION = "Registration"
 
 
 class EmailSubCategories:
@@ -66,3 +67,5 @@ class EmailSubCategories:
     NEW_COMMUNITY = "New Community"
 
     INTERNATIONAL_LIMIT_EXCEEDED = "International Limit Exceeded"
+
+    WAITLIST = "Waitlist"

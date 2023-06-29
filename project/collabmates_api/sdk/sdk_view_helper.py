@@ -129,7 +129,8 @@ class SdkViewHelper:
             'type': login_types.SDK,
             'user': {
                 'name': user_name,
-                'is_guest': request_body.get('is_guest', False)
+                'is_guest': request_body.get('is_guest', False),
+                'email': 'ankit.garg@likeminds.community'
             }
         }
 
