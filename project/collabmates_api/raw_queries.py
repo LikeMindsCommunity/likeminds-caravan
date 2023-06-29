@@ -3874,11 +3874,12 @@ def get_sdk_client_query_meta_for_sync_revamp(key_name_prefix: str = None):
     query_fields = ['user_unique_id', 'community_id']
     meta_query = create_query_with_prefix(query_fields, 'togther_sdkclientusersinfo', 'sdk_client_info', key_name_prefix)
 
-    # To add uuid and id in sdk_client_info object
+    # To add uuid and user in sdk_client_info object
     userinfo_uuid = f'togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___uuid___{key_name_prefix}'
     userinfo_id = f'togther_sdkclientusersinfo.user_id AS sdk_client_info___id___{key_name_prefix}'
+    userinfo_user = f'togther_sdkclientusersinfo.user_id AS sdk_client_info___user___{key_name_prefix}'
 
-    return ",".join(meta_query + [userinfo_uuid, userinfo_id])
+    return ",".join(meta_query + [userinfo_uuid, userinfo_id, userinfo_user])
 
 
 def get_reactions_query_meta_for_sync_revamp(key_name_prefix: str = None):
