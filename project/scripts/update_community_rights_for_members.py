@@ -72,4 +72,3 @@ def backfill_rights_for_all_members_of_a_community(community_id:int, rights:list
 
 # Call backfill function to backfill rights for members of a community
 backfill_rights_for_all_members_of_a_community(community_id, rights)
-  
