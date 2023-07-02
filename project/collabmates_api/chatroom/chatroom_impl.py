@@ -1895,8 +1895,8 @@ class ChatroomImpl(ChatroomManager):
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user id"}
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community,
-                                                                       req_body.get('community_id'))
+        community_instance = SdkClient.get_community_instance_or_none(req_body.get('community_id'), self.get_api_key())
+
         member_state = Members.get_community_member_state(community_instance, user_instance)
 
         if not community_instance:
@@ -1904,6 +1904,18 @@ class ChatroomImpl(ChatroomManager):
 
         if member_state == member_states.GUEST:
             return {'success': False, 'error_message': "Only members can create events"}
+
+        # If co_hosts_uuids are passed, get valid user ids and update co_hosts
+        co_hosts_uuids = req_body.get('co_hosts_uuids')
+
+        if co_hosts_uuids:
+            valid_ids = ModelUtilities.get_valid_user_ids_from_uuids(co_hosts_uuids, community_instance.id)
+
+            if not valid_ids:
+                return ResponseUtilities.get_impl_error_context("Invalid co_hosts_uuids sent",
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+            
+            req_body['co_hosts'] = valid_ids
 
         if req_body.get('type') == card_types.CARD_EVENT \
                 or req_body.get('type') == card_types.CARD_PUBLIC_EVENT:
@@ -1954,10 +1966,11 @@ class ChatroomImpl(ChatroomManager):
 
             return {'success': False, 'error_message': "send correct event type"}
 
-    def update_event(self, req_body: dict) -> dict:
+    def update_event(self, req_body: dict, api_key=None) -> dict:
 
         validated_req = ChatroomViewHelper.validate_update_event_request(self.get_member_id(),
-                                                                         self.get_chatroom_id())
+                                                                         self.get_chatroom_id(),
+                                                                         api_key=api_key)
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -1966,6 +1979,18 @@ class ChatroomImpl(ChatroomManager):
         user_instance = validated_req.get('user_instance')
         card_instance = validated_req.get('chatroom_instance')
         community_instance = card_instance.community
+
+        # If co_hosts_uuids are passed, get valid user ids and update co_hosts
+        co_hosts_uuids = req_body.get('co_hosts_uuids')
+
+        if co_hosts_uuids:
+            valid_ids = ModelUtilities.get_valid_user_ids_from_uuids(co_hosts_uuids, community_instance.id)
+
+            if not valid_ids:
+                return ResponseUtilities.get_impl_error_context("Invalid co_hosts_uuids sent",
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+            
+            req_body['co_hosts'] = valid_ids
 
         if card_instance.type == card_types.CARD_EVENT \
                 or card_instance.type == card_types.CARD_PUBLIC_EVENT:
@@ -2020,12 +2045,21 @@ class ChatroomImpl(ChatroomManager):
             return ResponseUtilities.get_impl_error_context('Send correct event type',
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
-    def add_or_update_instructor(self, req_body: dict) -> dict:
+    def add_or_update_instructor(self, req_body: dict, api_key=None) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
+
+        if api_key:
+            community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+            if not community_instance:
+                return {'success': False, 'error_message': "Invalid api key"}
+            
+            if community_instance != card_instance.community:
+                return {'success': False, 'error_message': "Invalid chatroom id or api key"}
 
         instructors = req_body.get('instructors', [])
 
@@ -2060,12 +2094,21 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def add_or_update_highlights(self, req_body: dict) -> dict:
+    def add_or_update_highlights(self, req_body: dict, api_key=None) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
+        
+        if api_key:
+            community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+            if not community_instance:
+                return {'success': False, 'error_message': "Invalid api key"}
+            
+            if community_instance != card_instance.community:
+                return {'success': False, 'error_message': "Invalid chatroom id or api key"}
 
         highlights = req_body.get('highlights', [])
 
@@ -2098,12 +2141,21 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def add_or_update_member_testimonials(self, req_body: dict) -> dict:
+    def add_or_update_member_testimonials(self, req_body: dict, api_key=None) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
+
+        if api_key:
+            community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+            if not community_instance:
+                return {'success': False, 'error_message': "Invalid api key"}
+            
+            if community_instance != card_instance.community:
+                return {'success': False, 'error_message': "Invalid chatroom id or api key"}
 
         testimonials = req_body.get('testimonials', [])
 
@@ -2138,12 +2190,22 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def add_or_update_event_faq(self, req_body: dict) -> dict:
+    def add_or_update_event_faq(self, req_body: dict, api_key=None) -> dict:
 
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
+        
+        # Api key support
+        if api_key:
+            community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+            if not community_instance:
+                return {'success': False, 'error_message': "Invalid api key"}
+
+            if card_instance.community != community_instance:
+                return {'success': False, 'error_message': "Invalid chatroom id or api key"}
 
         faq = req_body.get('faq', [])
 
@@ -2176,15 +2238,15 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def update_last_seen_event(self, community_id: str) -> dict:
+    def update_last_seen_event(self, community_id: str, api_key=None) -> dict:
 
         user_instance: User = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
             return {'success': False, 'error_message': "Invalid user-id"}
 
-        if community_id:
-            return self._update_last_seen_event_in_community(user_instance, community_id)
+        if community_id or api_key:
+            return self._update_last_seen_event_in_community(user_instance, community_id, api_key=api_key)
 
         last_seen_event_chatroom_id = get_last_seen_event_chatroom_id_for_user(user_id=user_instance.id)
         last_seen_event_chatroom_id_for_cohort_member = get_last_seen_non_member_access_event_for_user(
@@ -2227,10 +2289,13 @@ class ChatroomImpl(ChatroomManager):
         return {'success': True}
 
     @staticmethod
-    def _update_last_seen_event_in_community(user_instance: User, community_id: str) -> dict:
-        community: Community = ModelUtilities.get_model_instance_or_none(Community, community_id)
+    def _update_last_seen_event_in_community(user_instance: User, community_id: str, api_key=None) -> dict:
+        community: Community = SdkClient.get_community_instance_or_none(community_id, api_key)
+        
         if not community:
             return {'success': False, 'error_message': "Invalid community-id"}
+        
+        community_id = community.id
 
         last_seen_event_chatroom_id: int = get_last_seen_event_chatroom_id_for_user(
             user_id=user_instance.id,
@@ -2283,15 +2348,15 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def fetch_unseen_count_in_event(self, community_id: str) -> dict:
+    def fetch_unseen_count_in_event(self, community_id: str, api_key=None) -> dict:
 
         user_instance: User = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
-            return {'error_message': "Invalid user-id"}
+            return {'error_message': "Invalid user-id", "success": False}
 
-        if community_id:
-            return self._fetch_unseen_event_count_in_community(user_instance, community_id)
+        if community_id or api_key:
+            return self._fetch_unseen_event_count_in_community(user_instance, community_id, api_key)
 
         unseen_count = 0
 
@@ -2310,14 +2375,16 @@ class ChatroomImpl(ChatroomManager):
                 card_id=card_instance.id,
                 user_id=user_instance.id)
 
-        return {'count': unseen_count}
+        return {'count': unseen_count, 'success': True}
 
     @staticmethod
-    def _fetch_unseen_event_count_in_community(user_instance: User, community_id: str):
+    def _fetch_unseen_event_count_in_community(user_instance: User, community_id: str, api_key=None):
 
-        community: Community = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        community: Community = SdkClient.get_community_instance_or_none(community_id, api_key)
         if not community:
-            return {'error_message': "Invalid community-id"}
+            return {'error_message': "Invalid community-id or api key", "success": False}
+        
+        community_id = community.id
 
         unseen_count: int = 0
         nudge_filter: list = ModelUtilities.get_model_filter(EventNudge, {
@@ -2341,9 +2408,15 @@ class ChatroomImpl(ChatroomManager):
                 user_id=user_instance.id,
                 community_id=community_id)
 
-        return {'count': unseen_count}
+        return {'count': unseen_count, 'success': True}
 
-    def fetch_link_for_event(self, is_edit_mode) -> dict:
+    def fetch_link_for_event(self, is_edit_mode, api_key=None) -> dict:
+
+        if api_key:
+            community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+            if not community_instance:
+                return {'error_message': "Invalid Community ID or api key"}
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
@@ -2393,18 +2466,19 @@ class ChatroomImpl(ChatroomManager):
 
         return {'error_message': "Link doesn’t exists"}
 
-    def fetch_user_all_events(self, page, attending_status, has_content, past_events=False, community_id=None) -> dict:
+    def fetch_user_all_events(self, page, attending_status, has_content, past_events=False, community_id=None, 
+                              api_key=None) -> dict:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
             return {'error_message': "Invalid user-id"}
 
-        if community_id:
-            community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        if community_id or api_key:
+            community_instance = SdkClient.get_community_instance_or_none(community_id, api_key)
 
             if not community_instance:
-                return {'error_message': "Invalid Community ID"}
+                return {'error_message': "Invalid Community ID or api key"}
 
         event_filter_dict = self.get_filter_dict_for_fetch_all_events(user_instance=user_instance,
                                                                       attending_status=attending_status,
@@ -2438,22 +2512,22 @@ class ChatroomImpl(ChatroomManager):
         chatroom_member_instance = ChatroomMemberImpl(member_id=user_instance.id)
         chatroom_list = chatroom_member_instance.process_event_chatroom_list(chatroom_list)
 
-        return {'events': chatroom_list}
+        return {'events': chatroom_list, 'success': True}
 
-    def fetch_user_all_events_meta(self, past_events=False, community_id=None):
+    def fetch_user_all_events_meta(self, past_events=False, community_id=None, api_key=None):
 
         if not self.get_member_id():
             return get_error_context(False, "member_id cannot be empty")
 
-        if not community_id:
-            return get_error_context(False, "community_id cannot be empty")
+        if not (community_id or api_key):
+            return get_error_context(False, "community_id or api key cannot be empty")
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
         if not user_instance:
             return get_error_context(False, "Invalid user-id")
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        community_instance = SdkClient.get_community_instance_or_none(community_id, api_key)
 
         if not community_instance:
             return get_error_context(False, "Invalid community-id")
@@ -2547,7 +2621,7 @@ class ChatroomImpl(ChatroomManager):
 
         return response_dict
 
-    def attend_event(self, req_body) -> dict:
+    def attend_event(self, req_body, api_key=None) -> dict:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
@@ -2558,6 +2632,15 @@ class ChatroomImpl(ChatroomManager):
 
         if not card_instance:
             return {'success': False, 'error_message': "Invalid chatroom id"}
+        
+        if api_key:
+            community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+            if not community_instance:
+                return {'success': False, 'error_message': "Invalid api key"}
+            
+            if community_instance != card_instance.community:
+                return {'success': False, 'error_message': "Invalid chatroom id or api key"}
 
         status = req_body.get('attending_status', False)
 
@@ -2601,7 +2684,7 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def set_event_attended(self) -> dict:
+    def set_event_attended(self, api_key=None) -> dict:
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
 
@@ -2612,6 +2695,15 @@ class ChatroomImpl(ChatroomManager):
 
         if not card_instance:
             return {'success': False, 'error_message': "In-valid chatroom id"}
+        
+        if api_key:
+            community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+            if not community_instance:
+                return {'success': False, 'error_message': "Invalid api key"}
+            
+            if community_instance != card_instance.community:
+                return {'success': False, 'error_message': "Invalid chatroom id or api key"}
 
         ModelUtilities.model_update(collabcardState,
                                     {'card': card_instance, 'user': user_instance},
@@ -3031,8 +3123,14 @@ class ChatroomImpl(ChatroomManager):
         return response_dict
 
     @staticmethod
-    def update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body, member_id):
+    def update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body, member_id, api_key=None):
 
+        if api_key:
+            community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+            if not community_instance:
+                return get_error_context(False, "Invalid api_key")
+            
         if req_body.get('chatroom_id'):
             chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, req_body.get('chatroom_id'))
 
@@ -3151,7 +3249,14 @@ class ChatroomImpl(ChatroomManager):
         return res
 
     @staticmethod
-    def add_event_attachments(req_body, member_id):
+    def add_event_attachments(req_body, member_id, api_key=None):
+
+        if api_key:
+            community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+            if not community_instance:
+                return get_error_context(False, "Invalid api_key")
+
         serializer = EventRecordingsAttachmentsSerializer(data=req_body)
 
         if serializer.is_valid():
@@ -3227,12 +3332,25 @@ class ChatroomImpl(ChatroomManager):
                 }
 
             return res, True
+        
+        error_logger.error(serializer.errors.__str__())
 
-        return serializer.errors, False
+        res = {
+            "success": False,
+            "error_message": "Invalid request body"
+        }
+
+        return res, False
 
     @staticmethod
-    def delete_event_attachment_metadata_from_chatroom_or_conversation_instance(req_body, member_id):
+    def delete_event_attachment_metadata_from_chatroom_or_conversation_instance(req_body, member_id, api_key=None):
+        
+        if api_key:
+            community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
 
+            if not community_instance:
+                return get_error_context(False, "Invalid api_key")
+            
         event_url_obj = ModelUtilities.get_model_instance_or_none(
             EventRecordingsURL,
             req_body.get('id')
@@ -3331,13 +3449,25 @@ class ChatroomImpl(ChatroomManager):
         return res
 
     @staticmethod
-    def delete_event_attachments(event_attachment_id, member_id):
+    def delete_event_attachments(event_attachment_id, member_id, api_key=None): 
         event_attachment_obj = ModelUtilities.get_model_instance_or_none(EventRecordingsAttachments,
                                                                          event_attachment_id)
 
         if not event_attachment_obj:
             res = get_error_context(False, "Invalid id")
             return res
+        
+        # Api key support
+        if api_key:
+            community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+            
+            if not community_instance:
+                return get_error_context(False, "Invalid api_key")
+                
+            # If community id of event_attachment_obj is not same as community id of api_key
+            if community_instance.id != event_attachment_obj.chatroom_id.community_id:
+                return get_error_context(False, "Invalid api_key")
+           
 
         if event_attachment_obj.chatroom_id:
             event_obj = event_attachment_obj.chatroom_id
@@ -3429,8 +3559,14 @@ class ChatroomImpl(ChatroomManager):
         return {'success': True, 'data': webflow_response}
 
     @staticmethod
-    def fetch_link_for_events_list(is_edit_mode, member_id, chatroom_ids):
+    def fetch_link_for_events_list(is_edit_mode, member_id, chatroom_ids, api_key=None):
 
+        if api_key:
+            community_instance  = SdkClient.get_community_instance_or_none(api_key=api_key)
+
+            if not community_instance:
+                return get_error_context(False, "Invalid api_key")
+            
         final_response = {}
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)

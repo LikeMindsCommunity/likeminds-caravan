@@ -417,7 +417,7 @@ class ChatroomViewHelper:
         }
 
     @staticmethod
-    def validate_update_event_request(user_id, chatroom_id):
+    def validate_update_event_request(user_id, chatroom_id, api_key=None):
 
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
@@ -431,5 +431,12 @@ class ChatroomViewHelper:
 
         if card_instance.user_id != user_instance.id:
             return ResponseUtilities.get_inner_error_context("Only card creator can update the chatroom")
+        
+        if api_key:
+            community_instance = SdkClient.get_community_instance_or_none(community_id=card_instance.community.id,
+                                                                          api_key=api_key)
+
+            if not community_instance:
+                return ResponseUtilities.get_inner_error_context("Invalid API key")
 
         return {'user_instance': user_instance, 'chatroom_instance': card_instance}
