@@ -117,10 +117,6 @@ class SdkViewHelper:
 
         user_name = request_body.get('user_name')
 
-        # If uuid is sent in request body, then we will use it as user_unique_id
-        if request_body.get('uuid'):
-            request_body['user_unique_id'] = request_body['uuid']
-
         if request_body.get('is_guest'):
 
             if not user_name:
