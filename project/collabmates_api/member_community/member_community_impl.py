@@ -1919,6 +1919,37 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True, 'access': user_has_access}
 
+    def approve_decline_join_community_request(self, uuid: str, is_accepted: bool) -> {}:
+        validated_request = MemberCommunityHelper.validate_approve_decline_join_community_request(
+            self.get_member_id(), self.get_api_key(), uuid, is_accepted)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        member_instance = validated_request.get('member_instance')
+
+        if is_accepted:
+            MemberCommunityHelper.approve_user_community_joining_request(member_instance,
+                                                                         community_instance,
+                                                                         user_instance,
+                                                                         self.get_platform_code(),
+                                                                         self.get_version_code())
+
+        else:
+            MemberCommunityHelper.reject_user_community_joining_request(member_instance,
+                                                                        community_instance,
+                                                                        user_instance)
+
+        from collabmates_api.community.community_impl import CommunityImpl
+
+        community_impl = CommunityImpl(member_id=user_instance.id)
+        community_impl.send_approve_reject_data_on_airtable(user_instance, community_instance, is_accepted)
+
+        return {'success': True}
+
     def unsubscribe_email_notifications(self, code_flags: dict) -> {}:
         validated_request = MemberCommunityViewHelper.validate_unsubscribe_email_notifications_request(
             self.get_member_id(), self.get_community_id(), code_flags=code_flags)
@@ -3379,3 +3410,120 @@ class MemberCommunityHelper:
             'user_instance': user_instance,
             'community_instance': community_instance
         }
+
+    @staticmethod
+    def validate_approve_decline_join_community_request(user_id, api_key: str, uuid: str, is_accepted: bool):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id,
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+
+        user_member_instance = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                         'member_id': user_instance,
+                                                                         'state': member_states.ADMIN}).first()
+
+        if not user_member_instance:
+            return ResponseUtilities.get_inner_error_context('You cannot approve or decline the request!')
+
+        member_instance = ModelUtilities.get_user_instance_or_none_from_uuid(uuid, community_instance.id)
+
+        if not member_instance:
+            return ResponseUtilities.get_inner_error_context('No user record exists!')
+
+        if not Members.get_community_member_state(community_instance, member_instance) == member_states.PENDING_MEMBER:
+            return ResponseUtilities.get_inner_error_context('User is not a pending member!')
+
+        if not isinstance(is_accepted, bool):
+            return ResponseUtilities.get_inner_error_context('Invalid is_accepted value type!')
+
+        if is_accepted and Members.is_community_member(community_instance, member_instance):
+            return ResponseUtilities.get_inner_error_context('You are already a community member!')
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'member_instance': member_instance,
+            'action_required_by_promoter': user_member_instance.actions_required
+        }
+
+    @staticmethod
+    def approve_user_community_joining_request(user_instance, community_instance, promoter_instance,
+                                               platform_code, version_code):
+        from collabmates_api.community.community_impl import CommunityImpl, CommunityHelper
+        from collabmates_api.cohort.cohort_impl import CohortHelper
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+
+        community_impl = CommunityImpl(member_id=user_instance.id)
+
+        community_impl.approve_community_join_request(community_instance, user_instance, promoter_instance)
+
+        members_count = Members.get_members_count_in_community(community_instance)
+        community_impl.set_members_count_in_community(community_instance.id, members_count)
+
+        CommunityHelper.set_follow_status_for_announcement_chatroom_for_community(community_instance,
+                                                                                  user_instance)
+
+        create_intro_room_setting_dict = {
+            'community': community_instance,
+            'setting_type': community_setting_types.CREATE_INTRO_ROOMS
+        }
+
+        community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                     create_intro_room_setting_dict).first()
+
+        if community_setting_instance and community_setting_instance.enabled:
+            from collabmates_api.views import (post_master_introductions_for_community)
+
+            # Get owner of community
+            owner_user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
+
+            # Create MASTER intro room if not available in SDK
+            post_master_introductions_for_community(community_instance.id, owner_user_instance.id)
+
+            introduction_answer = CommunityHelper.create_introduction_text_for_intro_chatroom(
+                community_instance, user_instance, is_directory_questions_v2=True)
+
+            CommunityHelper.add_introductions_room_in_master_intro(community_instance, user_instance,
+                                                                   member_states.MEMBER,
+                                                                   introduction_answer=introduction_answer)
+
+        else:
+            ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance)
+
+        is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code, is_sdk=True)
+
+        CommunityHelper.run_async_for_community_approve(community_instance, user_instance,
+                                                        promoter_instance.userinfo, is_m2cm_v2=is_m2cm_v2,
+                                                        is_sdk=True)
+
+        CohortHelper.add_all_member_to_cohort(community_instance.id, [user_instance.id])
+
+        community_impl._send_join_email_to_member(user_instance.id, community_instance.id)
+
+        CohortHelper.add_member_to_respective_question_based_cohorts(member_id=user_instance.id,
+                                                                     community_id=community_instance.id)
+
+    @staticmethod
+    def reject_user_community_joining_request(user_instance, community_instance, promoter_instance):
+        from collabmates_api.community.community_impl import CommunityImpl, CommunityHelper
+
+        community_impl = CommunityImpl(member_id=user_instance.id)
+
+        community_impl._decline_community_join_request(community_instance, user_instance)
+        members_count = Members.get_members_count_in_community(community_instance)
+        community_impl.set_members_count_in_community(community_instance.id, members_count)
+
+        CommunityHelper.run_async_task_for_community_declined(community_instance, user_instance,
+                                                              promoter_instance.userinfo)
+
+        ElasticSearchSync.delete_member_from_community.delay(user_instance.id, community_instance.id)

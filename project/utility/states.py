@@ -94,6 +94,7 @@ class ModerationHistoryTypes:
     APPLIED_PUBLIC_LINK_WEBSITE = 13
     SDK_JOIN = 14
     SDK_PENDING_MEMBER = 15
+    SDK_REJOINED_MEMBER = 16
     APPLIED_PUBLIC_LINK_TEXT = "Applied via invite link from "
     APPLIED_PRIVATE_LINK_TEXT = "Joined via invite link from "
     APPROVED_FROM_TEXT = "Approved from "

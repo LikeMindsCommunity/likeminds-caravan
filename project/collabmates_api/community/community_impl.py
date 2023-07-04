@@ -2378,10 +2378,10 @@ class CommunityHelper:
 
     @staticmethod
     def run_async_for_community_approve(community_instance, user_instance, promoter_userinfo_instance,
-                                        is_m2cm_v2=False):
-        CommunityHelper.set_moderation_rights_and_delete_user_previous_metadata.delay(user_instance.id,
-                                                                                      community_instance.id,
-                                                                                      promoter_userinfo_instance.user_id_id)
+                                        is_m2cm_v2=False, is_sdk=False):
+        CommunityHelper.set_moderation_rights_and_delete_user_previous_metadata.delay(
+            user_instance.id, community_instance.id, promoter_userinfo_instance.user_id_id, is_sdk)
+
         CommunityHelper.send_sms_to_the_approved_member_of_community.delay(user_instance.id, community_instance.id)
         send_notification_for_join_requests.delay(community_instance.id, True, user_instance.id,
                                                   promoter_userinfo_instance.name)
@@ -2403,7 +2403,7 @@ class CommunityHelper:
 
     @staticmethod
     @shared_task
-    def set_moderation_rights_and_delete_user_previous_metadata(user_id, community_id, promoter_id):
+    def set_moderation_rights_and_delete_user_previous_metadata(user_id, community_id, promoter_id, is_sdk=False):
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
@@ -2429,11 +2429,17 @@ class CommunityHelper:
 
         ModelUtilities.delete_record_in_model(communityToast, {'community': community_instance,
                                                                'user': user_instance})
+
         ModelUtilities.delete_record_in_model(removedMembers, {'community': community_instance,
                                                                'member': user_instance})
 
-        if is_rejoined:
+        if is_rejoined and not is_sdk:
             history_type = moderation_history_types.REJOINED_COMMUNITY_PUBLIC_LINK
+
+        elif is_rejoined and is_sdk:
+            history_type = moderation_history_types.SDK_REJOINED_MEMBER
+
+        if is_rejoined:
             CommunityHelper.update_followed_chatrooms_for_rejoined_member(user_instance, community_instance)
 
         moderationHistory.create_instance({'user_instance': user_instance, 'community_instance': community_instance,
