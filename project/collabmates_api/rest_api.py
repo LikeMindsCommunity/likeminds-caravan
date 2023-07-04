@@ -1187,6 +1187,9 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
             elif data[field.field_name] is None:
                 del data[field.field_name]
 
+            elif field.field_name == 'deleted_by' and data['deleted_by']:
+                data['deleted_by_user'] = self.get_serialised_userinfo(data['deleted_by'])
+
         return data
 
 

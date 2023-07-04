@@ -1943,6 +1943,10 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
 
     if conversation.is_deleted:
         temp['deleted_by'] = conversation.deleted_by_user.id
+        temp['deleted_by_member'] = get_members_profile([conversation.deleted_by_user.id], conversation.community_id, 
+                                                        current_user_id=current_user_id, send_profile=False,
+                                                        sdk_client_info_flag=sdk_client_info_flag)[0]
+
 
     # if member is removed from community
     remove = False
