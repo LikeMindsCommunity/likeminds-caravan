@@ -4900,7 +4900,7 @@ class ChatroomHelper:
 
             collabcard_state = chatroom_state_dict.get(community_member)
 
-            if collabcard_state is not None and not collabcard_state.follow_status:
+            if all([collabcard_state is not None, not collabcard_state.follow_status]):
                 chatroom_member_list.append(community_member)
                 collabcard_state.follow_status = True
                 collabcard_state.updated_at = TimeUtilities.current_time_in_sec()
