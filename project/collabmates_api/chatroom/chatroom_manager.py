@@ -300,7 +300,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_or_update_instructor(self, req_body: dict, api_key=None) -> dict:
+    def add_or_update_instructor(self, req_body: dict) -> dict:
         """
         adding instructor in event
         """
@@ -314,14 +314,14 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_or_update_member_testimonials(self, req_body: dict, api_key=None) -> dict:
+    def add_or_update_member_testimonials(self, req_body: dict) -> dict:
         """
         adding member testimonials in event
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_or_update_event_faq(self, req_body: dict, api_key=None) -> dict:
+    def add_or_update_event_faq(self, req_body: dict) -> dict:
         """
         adding FAQ in event
         """
@@ -335,7 +335,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_unseen_count_in_event(self, community_id: str, api_key=None) -> dict:
+    def fetch_unseen_count_in_event(self, community_id: str) -> dict:
         """
         fetch unseen count in event
         """
@@ -349,16 +349,14 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_user_all_events(self, page, attending_status, has_content, past_events=False, community_id=None, 
-                              api_key=None) -> dict:
+    def fetch_user_all_events(self, page, attending_status, has_content, past_events=False, community_id=None) -> dict:
         """
         fetch attending events of user
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_user_all_events_meta(self, past_events=False, community_id=None, 
-                                   api_key=None) -> dict:
+    def fetch_user_all_events_meta(self, past_events=False, community_id=None) -> dict:
         """
         fetch meta data for attending events of user
         """
@@ -373,7 +371,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update_event(self, req_body, api_key=None) -> dict:
+    def update_event(self, req_body) -> dict:
         """
         function to update event
         """
@@ -381,7 +379,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def set_event_attended(self, api_key=None) -> dict:
+    def set_event_attended(self) -> dict:
         """
         function to set user attended event
         """
