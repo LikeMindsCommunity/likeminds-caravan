@@ -189,7 +189,7 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
     def run_cron_jobs(self, task_name) -> dict:
 
         if task_name and task_name == 'mau_tracker':
-            track()
+            track.delay()
 
         else:
             return ResponseUtilities.get_impl_error_context("Invalid task_name",
