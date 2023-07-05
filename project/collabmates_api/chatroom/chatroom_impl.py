@@ -1890,20 +1890,17 @@ class ChatroomImpl(ChatroomManager):
 
     def create_event(self, req_body: dict) -> dict:
 
-        user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_member_id())
+        validated_req = ChatroomViewHelper.validate_create_event_request(self.get_member_id(),
+                                                                         req_body.get('community_id'),
+                                                                         self.get_api_key())
 
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user id"}
-
-        community_instance = SdkClient.get_community_instance_or_none(req_body.get('community_id'), self.get_api_key())
-
-        member_state = Members.get_community_member_state(community_instance, user_instance)
-
-        if not community_instance:
-            return {'success': False, 'error_message': "Invalid community id"}
-
-        if member_state == member_states.GUEST:
-            return {'success': False, 'error_message': "Only members can create events"}
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        user_instance = validated_req.get('user_instance')
+        community_instance = validated_req.get('community_instance')
+        member_state = validated_req.get('member_state')
 
         # If co_hosts_uuids are passed, get valid user ids and update co_hosts
         co_hosts_uuids = req_body.get('co_hosts_uuids')

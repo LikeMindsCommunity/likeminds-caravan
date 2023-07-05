@@ -1,5 +1,5 @@
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, Members, Collabcard, collabcardState, userMemberRights)
+from togther.models import (ModelUtilities, Members, Collabcard, collabcardState, userMemberRights, User)
 from rest_framework import status as status_codes
 from utility.states import (member_states, card_types)
 from collabmates_api.sdk.models import (SdkClient)
@@ -440,3 +440,26 @@ class ChatroomViewHelper:
                 return ResponseUtilities.get_inner_error_context("Invalid API key")
 
         return {'user_instance': user_instance, 'chatroom_instance': card_instance}
+    
+    @staticmethod
+    def validate_create_event_request(user_id, community_id, api_key=None):
+        
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return {'success': False, 'error_message': "Invalid user id"}
+
+        community_instance = SdkClient.get_community_instance_or_none(community_id, api_key)
+
+        member_state = Members.get_community_member_state(community_instance, user_instance)
+
+        if not community_instance:
+            return {'success': False, 'error_message': "Invalid community id"}
+
+        if member_state == member_states.GUEST:
+            return {'success': False, 'error_message': "Only members can create events"}
+        
+        return {'user_instance': user_instance, 
+                'community_instance': community_instance,
+                'member_state': member_state}
+
