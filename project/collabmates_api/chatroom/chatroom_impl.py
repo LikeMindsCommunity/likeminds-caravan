@@ -3089,7 +3089,7 @@ class ChatroomImpl(ChatroomManager):
                 return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
             
-            chatroom_instance = validated_request.get('card_instance')
+            chatroom_instance = validated_request.get('chatroom_instance')
 
             recording_url_og_tags = UriTagsImpl(req_body.get('recording_url')).get_tags_from_uri() \
                 if req_body.get('recording_url') \
@@ -3303,7 +3303,7 @@ class ChatroomImpl(ChatroomManager):
        
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         event_url_obj = validated_request.get('event_url_obj')
 
