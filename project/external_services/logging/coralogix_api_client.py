@@ -20,7 +20,8 @@ class CoralogixApiClient(CoralogixApiManager):
     SUBSYSTEM_NAME = None
 
     logger = LoggingWrapper.get_instance()
-    error_logger = logging.getLogger('stream_error_logger')
+    stream_info_logger = logging.getLogger('stream_info_logger')
+    stream_error_logger = logging.getLogger('stream_error_logger')
 
     def __init__(self):
         self.URL = CORALOGIX_CONSTS.get('LOGGING_API_URL')
@@ -104,6 +105,6 @@ class CoralogixApiClient(CoralogixApiManager):
         severity_level = payload_data.get('logEntries')[0].get('severity')
 
         if severity_level <= CORALOGIX_CONSTS['LOG_LEVEL']['Info']:
-            self.logger.info(json.dumps(payload_data.get('logEntries')[0]))
+            self.stream_info_logger.info(json.dumps(payload_data.get('logEntries')[0]))
         else:
-            self.error_logger.error((json.dumps(payload_data.get('logEntries')[0])))
+            self.stream_error_logger.error((json.dumps(payload_data.get('logEntries')[0])))
