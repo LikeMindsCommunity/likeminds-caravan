@@ -299,7 +299,6 @@ def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
                                            'users_list': json.dumps(activeUsers)})
 
 
-@app.task
 @shared_task
 def track():
     # Logging process stage
