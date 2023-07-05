@@ -19,6 +19,9 @@ class ApiLogger(MiddlewareMixin):
 
     def process_response(self, request: {}, response: {}) -> {}:
         try:
+            if request.path == '/status':
+                return
+
             request_dict = self._process_request_object(request)
             response_dict = self._process_response_object(response)
             response_dict = self._process_response_dict(response_dict)
