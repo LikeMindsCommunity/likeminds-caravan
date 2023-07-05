@@ -5728,9 +5728,11 @@ class ChatroomHelper:
             ElasticSearchSync.delete_chatroom_for_user(chatroom_id, user_id)
 
     @staticmethod
-    def validate_remove_chatroom_participant_request(user_id, chatroom_id, removed_members_list: list, uuids: list = None):
+    def validate_remove_chatroom_participant_request(user_id, chatroom_id, removed_members_list: list,
+                                                     uuids: list = None):
 
-        if (removed_members_list and not isinstance(removed_members_list, list)) or (uuids and not isinstance(uuids, list)) or (not removed_members_list and not uuids):
+        if (removed_members_list and not isinstance(removed_members_list, list)) or \
+                (uuids and not isinstance(uuids, list)) or (not removed_members_list and not uuids):
             return ResponseUtilities.get_inner_error_context("Invalid removed members or uuids list!")
 
         validation_params = {
@@ -6004,7 +6006,8 @@ class ChatroomHelper:
         }
     
     @staticmethod
-    def compute_user_chatroom_settings(participant_instance, chatroom_instance, is_admin: bool = False, setting_types: list = None) -> list:
+    def compute_user_chatroom_settings(participant_instance, chatroom_instance, is_admin: bool = False,
+                                       setting_types: list = None) -> list:
         
         if not all([participant_instance, chatroom_instance]):
             return []
@@ -6017,13 +6020,14 @@ class ChatroomHelper:
             # For member_can_message setting
             if setting == CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE:
                 response_user_channel_settings.append(UserChannelSettings(user=participant_instance,
-                                                                   chatroom=chatroom_instance,
-                                                                   setting_type=setting,
-                                                                   enabled=chatroom_instance.member_can_message))
+                                                                          chatroom=chatroom_instance,
+                                                                          setting_type=setting,
+                                                                          enabled=chatroom_instance.member_can_message))
         
         # Filter user chatroom settings based on setting_types
         if setting_types:
-            response_user_channel_settings = [setting for setting in response_user_channel_settings if setting.setting_type in setting_types]
+            response_user_channel_settings = [setting for setting in response_user_channel_settings
+                                              if setting.setting_type in setting_types]
 
         # If ADMIN, return settings with enabled as TRUE
         if is_admin:
@@ -6043,7 +6047,9 @@ class ChatroomHelper:
 
         return response_user_channel_settings
 
-    def update_user_chatroom_settings_helper(participant_instance, member_instance, chatroom_instance, chatroom_settings: list):
+    @staticmethod
+    def update_user_chatroom_settings_helper(participant_instance, member_instance, chatroom_instance,
+                                             chatroom_settings: list):
         
         if not all([participant_instance, member_instance, chatroom_instance, chatroom_settings]):
             return []
@@ -6066,23 +6072,25 @@ class ChatroomHelper:
                     'changed_by': member_instance,
                 }
             
-                updated_settings.append(ModelUtilities.update_or_create_model(UserChannelSettings, filter_dict, update_dict)[0])
+                updated_settings.append(ModelUtilities.update_or_create_model(UserChannelSettings, filter_dict,
+                                                                              update_dict)[0])
 
         return updated_settings
 
     @staticmethod
-    def validate_chatroom_user_settings_request(member_id, api_key, participant_uuid, chatroom_id, update_settings: bool = False):
+    def validate_chatroom_user_settings_request(member_id, api_key, participant_uuid, chatroom_id,
+                                                update_settings: bool = False):
         """
             This method validates chatroom user settings requests and returns instances
         """    
 
         # Get user and community instances
         validation_params = {
-        'community_id': {
-            'api_key': api_key
+            'community_id': {
+                'api_key': api_key
             },
-        'user_id': member_id,
-        'chatroom_id': chatroom_id
+            'user_id': member_id,
+            'chatroom_id': chatroom_id
         }
 
         validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
