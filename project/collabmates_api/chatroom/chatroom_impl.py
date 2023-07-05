@@ -6191,19 +6191,25 @@ class ChatroomHelper:
     
     @staticmethod
     def validate_create_event_request(user_id, community_id, api_key=None):
-    
-        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
-        if not user_instance:
-            return {'success': False, 'error_message': "Invalid user id"}
+        validation_params = {
+            'user_id': user_id,
+            'community_id': {
+                'api_key': api_key,
+                'community_id': community_id
+            }
+        }
 
-        community_instance = SdkClient.get_community_instance_or_none(community_id, api_key)
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
 
         member_state = Members.get_community_member_state(community_instance, user_instance)
-
-        if not community_instance:
-            return {'success': False, 'error_message': "Invalid community id"}
-
+        
         if member_state == member_states.GUEST:
             return {'success': False, 'error_message': "Only members can create events"}
         
