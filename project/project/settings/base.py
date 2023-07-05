@@ -8,6 +8,8 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
 import os
+import sys
+
 from corsheaders.defaults import default_headers
 from dotenv import load_dotenv
 
@@ -303,6 +305,18 @@ LOGGING = {
             'backupCount': 5,
             'formatter': 'tiny',
         },
+        'stream_info_handler': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'stream': sys.stdout,
+            'formatter': 'tiny'
+        },
+        'stream_error_handler': {
+            'level': 'ERROR',
+            'class': 'logging.StreamHandler',
+            'stream': sys.stderr,
+            'formatter': 'tiny'
+        },
         'mail_admins': {
             'level': 'ERROR',
             'class': 'django.utils.log.AdminEmailHandler',
@@ -315,8 +329,18 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'stream_info_logger': {
+            'handlers': ['stream_info_handler'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'stream_error_logger': {
+            'handlers': ['stream_error_handler'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
         'django': {
-            'handlers': ['console', 'mail_admins'],
+            'handlers': ['console', 'stream_info_handler', 'stream_error_handler', 'mail_admins'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
         },
     },
@@ -377,4 +401,4 @@ ELASTICSEARCH_DSL_QUERYSET_PAGINATION = 10000
 
 CORALOGIX_QUERY_API_KEY = os.getenv('CORALOGIX_QUERY_API_KEY')
 
-APP_VERSION = '1.33.2'
+APP_VERSION = '1.34.0'
