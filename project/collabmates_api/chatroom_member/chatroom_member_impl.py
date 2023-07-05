@@ -198,7 +198,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         attendees_list = []
         member_dict = self.get_member_community_impl_instance(community_instance).fetch_members_based_on_user_list(
             event_attendees_list,
-            community_instance, send_expired_info=False)
+            community_instance, send_expired_info=False,
+            sdk_client_info_flag=True)
 
         for data in event_attendees_list:
             user_id = NumberUtilities.get_integer_from_string(data)
