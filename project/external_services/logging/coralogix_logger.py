@@ -40,7 +40,7 @@ class CoralogixLoggerImpl(LoggerManager):
 
     @staticmethod
     def _add_stream_handler(logger: logging.Logger) -> logging.Logger:
-        stream_info_handler = logging.getLogger('stream_info_logger')
-        logger.addHandler(stream_info_handler)
+        stream_handler = logging.getLogger('stream_logger')
+        logger.addHandler(stream_handler)
 
         return logger

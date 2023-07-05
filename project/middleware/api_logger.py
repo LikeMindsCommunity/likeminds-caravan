@@ -3,7 +3,6 @@ import traceback
 from multiprocessing.context import Process
 
 from django.conf import settings
-from rest_framework import status
 from django.utils.deprecation import MiddlewareMixin
 
 from external_services.logging.coralogix_api_client import CoralogixApiClient
@@ -125,7 +124,7 @@ class ApiLogger(MiddlewareMixin):
             logger_process.start()
 
     def _send_to_internal_logger(self, log_object_dict: dict):
-        if status.is_success(log_object_dict['response']['http_response_code']):
+        if log_object_dict['response']['http_response_code'] == 200:
             self.logger.info(str(log_object_dict))
         else:
             self.logger.error(str(log_object_dict))

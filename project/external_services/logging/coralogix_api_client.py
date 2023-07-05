@@ -1,15 +1,16 @@
 import json
-import logging
 import traceback
 
 import requests
-from rest_framework import status
 from django.conf import settings
 
 from external_services.logging.constants import CORALOGIX_CONSTS
 from external_services.logging.coralogix_api_manager import CoralogixApiManager
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.time_utilities import TimeUtilities
+
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 
 
 class CoralogixApiClient(CoralogixApiManager):
@@ -20,7 +21,6 @@ class CoralogixApiClient(CoralogixApiManager):
     SUBSYSTEM_NAME = None
 
     logger = LoggingWrapper.get_instance()
-    error_logger = logging.getLogger('stream_error_logger')
 
     def __init__(self):
         self.URL = CORALOGIX_CONSTS.get('LOGGING_API_URL')
@@ -53,7 +53,7 @@ class CoralogixApiClient(CoralogixApiManager):
                                             headers=api_payload.get('headers'),
                                             data=json.dumps(payload_data))
 
-            self._send_to_stream_logger(payload_data)
+            self._send_to_console_logger(payload_data)
 
             if hasattr(api_response, 'status_code') and \
                     int(api_response.status_code) != 200:
@@ -62,7 +62,7 @@ class CoralogixApiClient(CoralogixApiManager):
 
         except Exception:
             message = "Coralogix api call failed:\n%s" % traceback.format_exc()
-            self.error_logger.error(message)
+            self.logger.error(message)
 
     def _create_logging_api_payload(self, payload: dict) -> dict:
         log_entry_object = CORALOGIX_CONSTS.get('LOG_ENTRY_SCHEMA')
@@ -80,7 +80,7 @@ class CoralogixApiClient(CoralogixApiManager):
 
     @staticmethod
     def _get_log_severity_level(http_response_code: int) -> int:
-        if status.is_success(http_response_code):
+        if http_response_code == 200:
             return CORALOGIX_CONSTS['LOG_LEVEL']['Info']
 
         return CORALOGIX_CONSTS['LOG_LEVEL']['Error']
@@ -100,10 +100,11 @@ class CoralogixApiClient(CoralogixApiManager):
 
         return api_log_object
 
-    def _send_to_stream_logger(self, payload_data: dict) -> None:
+    @staticmethod
+    def _send_to_console_logger(payload_data: dict) -> None:
         severity_level = payload_data.get('logEntries')[0].get('severity')
 
         if severity_level <= CORALOGIX_CONSTS['LOG_LEVEL']['Info']:
-            self.logger.info(json.dumps(payload_data.get('logEntries')[0]))
+            info_logger.info(json.dumps(payload_data.get('logEntries')[0]))
         else:
-            self.error_logger.error((json.dumps(payload_data.get('logEntries')[0])))
+            error_logger.error((json.dumps(payload_data.get('logEntries')[0])))
