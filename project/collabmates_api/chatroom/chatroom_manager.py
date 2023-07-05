@@ -342,7 +342,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_link_for_event(self, is_edit_mode, api_key=None) -> dict:
+    def fetch_link_for_event(self, is_edit_mode) -> dict:
         """
         fetch online link for event
         """

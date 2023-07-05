@@ -515,9 +515,8 @@ class FetchLinkForEvent(APIView):
             is_edit_mode = None
 
         if chatroom_id:
-            chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
-            response_context = chatroom_manager.fetch_link_for_event(is_edit_mode, 
-                                                                     api_key=api_key)
+            chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id, api_key=api_key)
+            response_context = chatroom_manager.fetch_link_for_event(is_edit_mode)
 
         else:
             response_context = ChatroomImpl.fetch_link_for_events_list(is_edit_mode, member_id=member_id,
