@@ -1966,8 +1966,8 @@ class ChatroomImpl(ChatroomManager):
     def update_event(self, req_body: dict) -> dict:
 
         validated_req = ChatroomHelper.validate_update_event_request(self.get_member_id(),
-                                                                         self.get_chatroom_id(),
-                                                                         self.get_api_key())
+                                                                     self.get_chatroom_id(),
+                                                                     self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -2045,8 +2045,8 @@ class ChatroomImpl(ChatroomManager):
     def add_or_update_instructor(self, req_body: dict) -> dict:
 
         validated_request = ChatroomHelper.validate_add_or_update_instructor_request(req_body.get('chatroom_id'),
-                                                                                         self.get_api_key())
-        
+                                                                                     self.get_api_key())
+
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
@@ -2089,7 +2089,7 @@ class ChatroomImpl(ChatroomManager):
     def add_or_update_highlights(self, req_body: dict, api_key=None) -> dict:
 
         validated_request = ChatroomHelper.validate_add_or_update_highlights_request(req_body.get('chatroom_id'),
-                                                                                        api_key)
+                                                                                     api_key)
         
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2131,7 +2131,7 @@ class ChatroomImpl(ChatroomManager):
     def add_or_update_member_testimonials(self, req_body: dict) -> dict:
 
         validated_request = ChatroomHelper.validate_add_or_update_highlights_request(req_body.get('chatroom_id'),
-                                                                                         self.get_api_key())
+                                                                                     self.get_api_key())
         
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2175,7 +2175,7 @@ class ChatroomImpl(ChatroomManager):
     def add_or_update_event_faq(self, req_body: dict) -> dict:
 
         validated_request = ChatroomHelper.validate_add_or_update_highlights_request(req_body.get('chatroom_id'),
-                                                                                         self.get_api_key())
+                                                                                     self.get_api_key())
         
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2395,8 +2395,8 @@ class ChatroomImpl(ChatroomManager):
     def fetch_link_for_event(self, is_edit_mode) -> dict:
 
         validated_request = ChatroomHelper.validate_fetch_link_for_event_request(self.get_member_id(),
-                                                                                     self.get_chatroom_id(),
-                                                                                     self.get_api_key())
+                                                                                 self.get_chatroom_id(),
+                                                                                 self.get_api_key())
         
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2446,7 +2446,7 @@ class ChatroomImpl(ChatroomManager):
     def fetch_user_all_events(self, page, attending_status, has_content, past_events=False, community_id=None) -> dict:
 
         validated_request = ChatroomHelper.validate_fetch_user_all_events_request(self.get_member_id(),
-                                                                                      self.get_api_key())
+                                                                                  self.get_api_key())
         
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2491,8 +2491,8 @@ class ChatroomImpl(ChatroomManager):
     def fetch_user_all_events_meta(self, past_events=False, community_id=None):
 
         validated_request = ChatroomHelper.validate_fetch_user_all_events_meta_request(self.get_member_id(),
-                                                                                           community_id,
-                                                                                           self.get_api_key())
+                                                                                       community_id,
+                                                                                       self.get_api_key())
         
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2593,8 +2593,8 @@ class ChatroomImpl(ChatroomManager):
     def attend_event(self, req_body, api_key=None) -> dict:
             
         validated_request = ChatroomHelper.validate_attend_event_request(self.get_member_id(),
-                                                                             req_body.get('chatroom_id'),
-                                                                             api_key)
+                                                                         req_body.get('chatroom_id'),
+                                                                         api_key)
         
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2648,8 +2648,8 @@ class ChatroomImpl(ChatroomManager):
     def set_event_attended(self) -> dict:
 
         validated_request = ChatroomHelper.validate_set_event_attended_request(self.get_member_id(),
-                                                                                   self.get_chatroom_id(),
-                                                                                   self.get_api_key())
+                                                                               self.get_chatroom_id(),
+                                                                               self.get_api_key())
         
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -3081,7 +3081,7 @@ class ChatroomImpl(ChatroomManager):
         if req_body.get('chatroom_id'):
             
             validated_request = ChatroomHelper.validate_upload_recordings_meta_request(req_body.get('chatroom_id'),
-                                                                                           api_key)
+                                                                                       api_key)
             
             if validated_request.get('error_message'):
                 return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -3296,8 +3296,8 @@ class ChatroomImpl(ChatroomManager):
     @staticmethod
     def delete_event_attachment_metadata_from_chatroom_or_conversation_instance(req_body, member_id, api_key=None):
         
-        validated_request = ChatroomHelper.validate_delete_event_attachments_meta_request(event_recordings_url_id=req_body.get('id'),
-                                                                                              api_key=api_key)
+        validated_request = ChatroomHelper.validate_delete_event_attachments_meta_request(req_body.get('id'),
+                                                                                          api_key)
        
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
