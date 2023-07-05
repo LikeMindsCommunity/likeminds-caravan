@@ -6303,7 +6303,7 @@ class ChatroomHelper:
         return {'card_instance': card_instance}
     
     @staticmethod
-    def validate_update_last_seen_event(user_id):
+    def validate_update_last_seen_event_request(user_id):
 
         validation_params = {
             'user_id': user_id
