@@ -1952,7 +1952,8 @@ class ChatroomImpl(ChatroomManager):
 
             chatroom_context = {
                 'success': True,
-                'chatroom': ChatroomHelper.compute_chatroom_response(card_instance, user_instance, community_instance),
+                'chatroom': ChatroomHelper.compute_chatroom_response(card_instance, user_instance, community_instance, 
+                                                                     sdk_client_info_flag=True),
                 'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
                                                                                                card_instance)
             }
@@ -2007,7 +2008,8 @@ class ChatroomImpl(ChatroomManager):
 
             chatroom_context = {
                 'success': True,
-                'chatroom': ChatroomHelper.compute_chatroom_response(card_instance, user_instance, community_instance),
+                'chatroom': ChatroomHelper.compute_chatroom_response(card_instance, user_instance, community_instance, 
+                                                                     sdk_client_info_flag=True),
                 'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
                                                                                                card_instance)
             }

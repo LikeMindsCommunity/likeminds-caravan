@@ -198,7 +198,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         attendees_list = []
         member_dict = self.get_member_community_impl_instance(community_instance).fetch_members_based_on_user_list(
             event_attendees_list,
-            community_instance, send_expired_info=False)
+            community_instance, send_expired_info=False,
+            sdk_client_info_flag=True)
 
         for data in event_attendees_list:
             user_id = NumberUtilities.get_integer_from_string(data)
@@ -548,8 +549,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             if ChatroomMemberHelper.has_attachments_uploaded(card_instance, current_user_id, device_id=self.device_id):
                 continue
 
-            chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance
-                                                     , {}, {})
+            chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance, {}, {},
+                                                     sdk_client_info_flag=True)
             member_dict = self.get_member_community_impl_instance(community_instance).fetch_members_based_on_user_list(
                 [card_creator_id], community_instance)
 

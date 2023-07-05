@@ -9,6 +9,9 @@ from external_services.logging.coralogix_api_manager import CoralogixApiManager
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.time_utilities import TimeUtilities
 
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
+
 
 class CoralogixApiClient(CoralogixApiManager):
     URL = None
@@ -44,10 +47,13 @@ class CoralogixApiClient(CoralogixApiManager):
     def call_logging_api(self, payload: dict) -> None:
         try:
             api_payload = self._create_logging_api_payload(payload)
+            payload_data = api_payload.get('data')
             api_response = requests.request(self.get_method(),
                                             self.get_url(),
                                             headers=api_payload.get('headers'),
-                                            data=json.dumps(api_payload.get('data')))
+                                            data=json.dumps(payload_data))
+
+            self._send_to_console_logger(payload_data)
 
             if hasattr(api_response, 'status_code') and \
                     int(api_response.status_code) != 200:
@@ -93,3 +99,12 @@ class CoralogixApiClient(CoralogixApiManager):
         api_log_object['logEntries'] = [log_entry_object]
 
         return api_log_object
+
+    @staticmethod
+    def _send_to_console_logger(payload_data: dict) -> None:
+        severity_level = payload_data.get('logEntries')[0].get('severity')
+
+        if severity_level <= CORALOGIX_CONSTS['LOG_LEVEL']['Info']:
+            info_logger.info(json.dumps(payload_data.get('logEntries')[0]))
+        else:
+            error_logger.error((json.dumps(payload_data.get('logEntries')[0])))

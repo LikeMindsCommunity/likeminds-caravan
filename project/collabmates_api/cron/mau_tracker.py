@@ -299,26 +299,61 @@ def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
                                            'users_list': json.dumps(activeUsers)})
 
 
-@app.task
 @shared_task
 def track():
+    # Logging process stage
+    info_logger.info("""MAU Tracker Log: - {}""".format("MAU Tracking Started"))
+
     # Fetch all the billing records for which MAU needs to be computed
     billingRecords = ModelUtilities.get_model_filter(CommunityBillingDates, {})
     today = date.today()
 
     for billingRecord in billingRecords:
+        # Logging process stage
+        info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                   billingRecord.sdk,
+                                                                   "Tracking Process Started"))
+
         # Update Unique Active Users of a Billing record for the day
         updateUniqueUsersOfACommunityBillingEntry(billingRecord)
 
+        # Logging process stage
+        info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                   billingRecord.sdk,
+                                                                   "Users Updated in Active Users"))
+
         # If New month started for a billing record
         if int(today.strftime("%d")) == billingRecord.start_date:
+            # Logging process stage
+            info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                       billingRecord.sdk,
+                                                                       "Data Aggregation Started"))
+
             # Fetch all the unique users for a billing record in a month and Create a MonthlyActiveUsers Record
             updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today)
+
+            # Logging process stage
+            info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                       billingRecord.sdk,
+                                                                       "Data Updated in Monthly Data Users"))
 
             # If record exists for the current date in MonthlyActiveUsers
             monthlyDataRecord = ModelUtilities.get_model_filter(ActiveUserMonthlyData,
                                                                 {'billing': billingRecord,
                                                                  'end_date': today.strftime("%s")})
             if monthlyDataRecord:
+                # Logging process stage
+                info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                           billingRecord.sdk,
+                                                                           "Active Users Data Deletion Started"))
+
                 # Delete all the ActiveUser records for that billing record
                 ModelUtilities.delete_record_in_model(ActiveUser, {'billing': billingRecord})
+
+        # Logging process stage
+        info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                   billingRecord.sdk,
+                                                                   "Tracking Process Completed"))
+
+    # Logging process stage
+    info_logger.info("""MAU Tracker Log: - {}""".format("MAU Tracking Completed"))
