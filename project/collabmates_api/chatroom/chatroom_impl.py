@@ -3089,7 +3089,7 @@ class ChatroomImpl(ChatroomManager):
                 return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
             
-            chatroom_instance = validated_request.get('chatroom_instance')
+            chatroom_instance = validated_request.get('card_instance')
 
             recording_url_og_tags = UriTagsImpl(req_body.get('recording_url')).get_tags_from_uri() \
                 if req_body.get('recording_url') \
@@ -3303,7 +3303,7 @@ class ChatroomImpl(ChatroomManager):
        
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
-                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         event_url_obj = validated_request.get('event_url_obj')
 
@@ -4900,7 +4900,7 @@ class ChatroomHelper:
 
             collabcard_state = chatroom_state_dict.get(community_member)
 
-            if all([collabcard_state is not None, not collabcard_state.follow_status]):
+            if collabcard_state is not None and not collabcard_state.follow_status:
                 chatroom_member_list.append(community_member)
                 collabcard_state.follow_status = True
                 collabcard_state.updated_at = TimeUtilities.current_time_in_sec()
