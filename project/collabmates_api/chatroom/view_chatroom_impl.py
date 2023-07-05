@@ -346,14 +346,13 @@ class CreateEventView(APIView):
         req_body = RequestUtilities.load_request_body(request)
         request_platform = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
-        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not req_body:
             return JsonResponse({'success': False, 'error_message': "Invalid-request body"},
                                 status=status_codes.HTTP_400_BAD_REQUEST)
 
         chatroom_manager = ChatroomImpl(member_id=member_id, request_platform=request_platform,
-                                        version_code=version_code, api_key=api_key)
+                                        version_code=version_code)
         context = chatroom_manager.create_event(req_body)
 
         if context.get('error_message'):
@@ -370,14 +369,14 @@ class UpdateEventView(APIView):
 
     def post(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        api_key = RequestUtilities.get_api_key_from_headers(request)
+
         req_body = RequestUtilities.load_request_body(request)
 
         if not req_body:
             return JsonResponse({'success': False, 'error_message': "Invalid-request body"},
                                 status=status_codes.HTTP_400_BAD_REQUEST)
 
-        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'), api_key=api_key)
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
 
         context = chatroom_manager.update_event(req_body)
 
@@ -393,13 +392,13 @@ class EventAddOrUpdateInstructor(APIView):
     def post(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        api_key = RequestUtilities.get_api_key_from_headers(request)
+
         req_body = RequestUtilities.load_request_body(request)
 
         if not req_body:
             return JsonResponse({'error_message': "Invalid request body"})
 
-        chatroom_manager = ChatroomImpl(member_id=member_id, api_key=api_key)
+        chatroom_manager = ChatroomImpl(member_id=member_id)
         response_context = chatroom_manager.add_or_update_instructor(req_body)
 
         if response_context.get('error_message'):
@@ -413,14 +412,14 @@ class EventAddOrUpdateHighlight(APIView):
     def post(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        api_key = RequestUtilities.get_api_key_from_headers(request)
+
         req_body = RequestUtilities.load_request_body(request)
 
         if not req_body:
             return JsonResponse({'error_message': "Invalid request body"})
 
         chatroom_manager = ChatroomImpl(member_id=member_id)
-        response_context = chatroom_manager.add_or_update_highlights(req_body, api_key=api_key)
+        response_context = chatroom_manager.add_or_update_highlights(req_body)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -433,13 +432,13 @@ class EventAddOrUpdateMemberTestimonial(APIView):
     def post(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        api_key = RequestUtilities.get_api_key_from_headers(request)
+
         req_body = RequestUtilities.load_request_body(request)
 
         if not req_body:
             return JsonResponse({'error_message': "Invalid request body"})
 
-        chatroom_manager = ChatroomImpl(member_id=member_id, api_key=api_key)
+        chatroom_manager = ChatroomImpl(member_id=member_id)
         response_context = chatroom_manager.add_or_update_member_testimonials(req_body)
 
         if response_context.get('error_message'):
@@ -453,13 +452,13 @@ class EventAddOrUpdateFAQ(APIView):
     def post(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        api_key = RequestUtilities.get_api_key_from_headers(request)
+
         req_body = RequestUtilities.load_request_body(request)
 
         if not req_body:
             return JsonResponse({'error_message': "Invalid request body"})
 
-        chatroom_manager = ChatroomImpl(member_id=member_id, api_key=api_key)
+        chatroom_manager = ChatroomImpl(member_id=member_id)
         response_context = chatroom_manager.add_or_update_event_faq(req_body)
 
         if response_context.get('error_message'):
@@ -472,11 +471,9 @@ class UpdateLastSeenEventChatroom(APIView):
 
     def post(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        req_body = RequestUtilities.load_request_body(request)
-        community_id: str = req_body.get('community_id')
-        api_key = RequestUtilities.get_api_key_from_headers(request)
+        community_id: str = request.POST.get('community_id')
 
-        chatroom_manager = ChatroomImpl(member_id=member_id, api_key=api_key)
+        chatroom_manager = ChatroomImpl(member_id=member_id)
         response_context = chatroom_manager.update_last_seen_event(community_id)
 
         if response_context.get('error_message'):
@@ -490,9 +487,8 @@ class FetchUnseenCountInEvent(APIView):
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         community_id: str = request.GET.get('community_id')
-        api_key = RequestUtilities.get_api_key_from_headers(request)
 
-        chatroom_manager = ChatroomImpl(member_id=member_id, api_key=api_key)
+        chatroom_manager = ChatroomImpl(member_id=member_id)
         response_context = chatroom_manager.fetch_unseen_count_in_event(community_id)
 
         if response_context.get('error_message'):
@@ -507,21 +503,18 @@ class FetchLinkForEvent(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         chatroom_ids = self.get_chatroom_ids_from_query_params(request)
         chatroom_id = request.GET.get('chatroom_id')
-        api_key = RequestUtilities.get_api_key_from_headers(request)
-
         if request.GET.get('is_edit_mode'):
             is_edit_mode = StringUtilities.get_boolean_from_string(request.GET.get('is_edit_mode'))
         else:
             is_edit_mode = None
 
         if chatroom_id:
-            chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id, api_key=api_key)
+            chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id)
             response_context = chatroom_manager.fetch_link_for_event(is_edit_mode)
 
         else:
             response_context = ChatroomImpl.fetch_link_for_events_list(is_edit_mode, member_id=member_id,
-                                                                       chatroom_ids=chatroom_ids, 
-                                                                       api_key=api_key)
+                                                                    chatroom_ids=chatroom_ids)
 
         if response_context.get('error_message'):
             response_context['success'] = False
@@ -549,7 +542,6 @@ class FetchUserAllEvents(APIView):
         page = RequestUtilities.get_page_number(request)
         past_events = StringUtilities.get_boolean_from_string(request.GET.get('past_events', False))
         community_id = request.GET.get('community_id')
-        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if request.GET.get('attending_status'):
             attending_status = StringUtilities.get_boolean_from_string(request.GET.get('attending_status'))
@@ -561,7 +553,7 @@ class FetchUserAllEvents(APIView):
         else:
             has_content = None
 
-        chatroom_manager = ChatroomImpl(member_id=member_id, api_key=api_key)
+        chatroom_manager = ChatroomImpl(member_id=member_id)
         response_context = chatroom_manager.fetch_user_all_events(page, attending_status, has_content,
                                                                   past_events=past_events, community_id=community_id)
 
@@ -577,11 +569,9 @@ class FetchUserAllEventsMeta(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         past_events = StringUtilities.get_boolean_from_string(request.GET.get('past_events', False))
         community_id = request.GET.get('community_id')
-        api_key = RequestUtilities.get_api_key_from_headers(request)
 
-        chatroom_manager = ChatroomImpl(member_id=member_id, api_key=api_key)
-        response_context = chatroom_manager.fetch_user_all_events_meta(past_events=past_events, 
-                                                                       community_id=community_id)
+        chatroom_manager = ChatroomImpl(member_id=member_id)
+        response_context = chatroom_manager.fetch_user_all_events_meta(past_events=past_events, community_id=community_id)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -594,14 +584,14 @@ class AttendEventView(APIView):
     def post(self, request, *args, **kwargs):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        api_key = RequestUtilities.get_api_key_from_headers(request)
+
         req_body = RequestUtilities.load_request_body(request)
 
         if not req_body:
             return JsonResponse({'status': False, 'error_message': "Invalid request body"})
 
         chatroom_manager = ChatroomImpl(member_id=member_id)
-        response_context = chatroom_manager.attend_event(req_body, api_key=api_key)
+        response_context = chatroom_manager.attend_event(req_body)
 
         if response_context.get('error_message'):
             return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -614,13 +604,12 @@ class SetEventAttendedView(APIView):
     def post(self, request, *args, **kwargs):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         req_body = RequestUtilities.load_request_body(request)
-        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not req_body:
             return JsonResponse({'success': False,
                                  'error_message': "In-valid request body"})
 
-        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'), api_key=api_key)
+        chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=req_body.get('chatroom_id'))
         response_context = chatroom_manager.set_event_attended()
 
         if response_context.get('error_message'):
@@ -834,16 +823,13 @@ class AddEventRecordingAttachmentMeta(APIView):
         try:
             member_id = RequestUtilities.get_member_id_from_headers(request)
             req_body = RequestUtilities.load_request_body(request)
-            api_key = RequestUtilities.get_api_key_from_headers(request)
 
             request_validation_errors = self._validate_request(member_id, req_body)
 
             if request_validation_errors:
                 return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
 
-            res = ChatroomImpl.update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body, 
-                                                                                                        member_id, 
-                                                                                                        api_key=api_key)
+            res = ChatroomImpl.update_chatroom_or_conversation_instance_with_event_attachments_metadata(req_body, member_id)
 
             if res.get('success'):
                 return JsonResponse(res, status=status_codes.HTTP_200_OK)
@@ -880,14 +866,13 @@ class AddEventRecordingAttachment(APIView):
         try:
             member_id = RequestUtilities.get_member_id_from_headers(request)
             req_body = RequestUtilities.load_request_body(request)
-            api_key = RequestUtilities.get_api_key_from_headers(request)
 
             request_validation_errors = self._validate_request(member_id, req_body)
 
             if request_validation_errors:
                 return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
 
-            res, is_attachment_instance_created = ChatroomImpl.add_event_attachments(req_body, member_id, api_key=api_key)
+            res, is_attachment_instance_created = ChatroomImpl.add_event_attachments(req_body, member_id)
 
             if is_attachment_instance_created:
                 return JsonResponse(res, status=status_codes.HTTP_201_CREATED)
@@ -926,15 +911,13 @@ class DeleteEventRecordingAttachmentMeta(APIView):
         try:
             member_id = RequestUtilities.get_member_id_from_headers(request)
             req_body = RequestUtilities.load_request_body(request)
-            api_key = RequestUtilities.get_api_key_from_headers(request)
 
             request_validation_errors = self._validate_request(member_id, req_body)
 
             if request_validation_errors:
                 return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
 
-            res = ChatroomImpl.delete_event_attachment_metadata_from_chatroom_or_conversation_instance(req_body, member_id, 
-                                                                                                       api_key=api_key)
+            res = ChatroomImpl.delete_event_attachment_metadata_from_chatroom_or_conversation_instance(req_body, member_id)
 
             if res.get('success'):
                 return JsonResponse(res, status=status_codes.HTTP_200_OK)
@@ -972,14 +955,13 @@ class DeleteEventRecordingAttachment(APIView):
         try:
             member_id = RequestUtilities.get_member_id_from_headers(request)
             req_body = RequestUtilities.load_request_body(request)
-            api_key = RequestUtilities.get_api_key_from_headers(request)
 
             request_validation_errors = self._validate_request(member_id, req_body)
 
             if request_validation_errors:
                 return JsonResponse(request_validation_errors, status=status_codes.HTTP_400_BAD_REQUEST)
 
-            res = ChatroomImpl.delete_event_attachments(req_body.get('id'), member_id, api_key=api_key)
+            res = ChatroomImpl.delete_event_attachments(req_body.get('id'), member_id)
 
             if res.get('success'):
                 return JsonResponse(res, status=status_codes.HTTP_200_OK)

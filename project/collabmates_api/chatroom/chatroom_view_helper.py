@@ -415,3 +415,21 @@ class ChatroomViewHelper:
             'member_instance': member_instance,
             'custom_tag': req_body.get('tag', ''),
         }
+
+    @staticmethod
+    def validate_update_event_request(user_id, chatroom_id):
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user id")
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not card_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid chatroom ID")
+
+        if card_instance.user_id != user_instance.id:
+            return ResponseUtilities.get_inner_error_context("Only card creator can update the chatroom")
+
+        return {'user_instance': user_instance, 'chatroom_instance': card_instance}

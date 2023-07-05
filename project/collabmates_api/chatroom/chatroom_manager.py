@@ -307,7 +307,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_or_update_highlights(self, req_body: dict, api_key=None) -> dict:
+    def add_or_update_highlights(self, req_body: dict) -> dict:
         """
         adding highlights in event
         """
@@ -335,14 +335,14 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_unseen_count_in_event(self, community_id: str) -> dict:
+    def fetch_unseen_count_in_event(self) -> dict:
         """
         fetch unseen count in event
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_link_for_event(self, is_edit_mode) -> dict:
+    def fetch_link_for_event(self) -> dict:
         """
         fetch online link for event
         """
@@ -363,7 +363,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def attend_event(self, status, api_key=None) -> dict:
+    def attend_event(self, status) -> dict:
         """
         function to attend event
         """
