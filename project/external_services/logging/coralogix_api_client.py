@@ -20,7 +20,7 @@ class CoralogixApiClient(CoralogixApiManager):
     SUBSYSTEM_NAME = None
 
     logger = LoggingWrapper.get_instance()
-    error_logger = logging.getLogger('stream_error_logger')
+    # error_logger = logging.getLogger('stream_error_logger')
 
     def __init__(self):
         self.URL = CORALOGIX_CONSTS.get('LOGGING_API_URL')

@@ -340,7 +340,7 @@ LOGGING = {
             'propagate': False,
         },
         'django': {
-            'handlers': ['console', 'stream_info_handler', 'stream_error_handler', 'mail_admins'],
+            'handlers': ['console', 'mail_admins'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
         },
     },
