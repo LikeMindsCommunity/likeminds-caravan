@@ -12,7 +12,6 @@ class CoralogixLoggerImpl(LoggerManager):
 
     def __init__(self) -> None:
         logger = self._get_coralogix_logger_instance()
-        logger = self._add_stream_handler(logger)
         CoralogixLoggerImpl.__instance__ = logger
 
     def _get_coralogix_logger_instance(self) -> logging.Logger:
@@ -37,10 +36,3 @@ class CoralogixLoggerImpl(LoggerManager):
             CoralogixLoggerImpl()
 
         return CoralogixLoggerImpl.__instance__
-
-    @staticmethod
-    def _add_stream_handler(logger: logging.Logger) -> logging.Logger:
-        stream_info_handler = logging.getLogger('stream_info_logger')
-        logger.addHandler(stream_info_handler)
-
-        return logger
