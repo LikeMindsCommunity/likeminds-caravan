@@ -305,18 +305,18 @@ LOGGING = {
             'backupCount': 5,
             'formatter': 'tiny',
         },
-        'stream_info_handler': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'stream': sys.stdout,
-            'formatter': 'tiny'
-        },
-        'stream_error_handler': {
-            'level': 'ERROR',
-            'class': 'logging.StreamHandler',
-            'stream': sys.stderr,
-            'formatter': 'tiny'
-        },
+        # 'stream_info_handler': {
+        #     'level': 'INFO',
+        #     'class': 'logging.StreamHandler',
+        #     'stream': sys.stdout,
+        #     'formatter': 'tiny'
+        # },
+        # 'stream_error_handler': {
+        #     'level': 'ERROR',
+        #     'class': 'logging.StreamHandler',
+        #     'stream': sys.stderr,
+        #     'formatter': 'tiny'
+        # },
         'mail_admins': {
             'level': 'ERROR',
             'class': 'django.utils.log.AdminEmailHandler',
@@ -329,16 +329,16 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'stream_info_logger': {
-            'handlers': ['stream_info_handler'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'stream_error_logger': {
-            'handlers': ['stream_error_handler'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
+        # 'stream_info_logger': {
+        #     'handlers': ['stream_info_handler'],
+        #     'level': 'INFO',
+        #     'propagate': False,
+        # },
+        # 'stream_error_logger': {
+        #     'handlers': ['stream_error_handler'],
+        #     'level': 'ERROR',
+        #     'propagate': False,
+        # },
         'django': {
             'handlers': ['console', 'mail_admins'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),

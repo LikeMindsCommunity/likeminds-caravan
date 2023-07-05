@@ -106,4 +106,4 @@ class CoralogixApiClient(CoralogixApiManager):
         if severity_level <= CORALOGIX_CONSTS['LOG_LEVEL']['Info']:
             self.logger.info(json.dumps(payload_data.get('logEntries')[0]))
         else:
-            self.error_logger.error((json.dumps(payload_data.get('logEntries')[0])))
+            self.logger.error((json.dumps(payload_data.get('logEntries')[0])))

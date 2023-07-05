@@ -12,7 +12,7 @@ class CoralogixLoggerImpl(LoggerManager):
 
     def __init__(self) -> None:
         logger = self._get_coralogix_logger_instance()
-        logger = self._add_stream_handler(logger)
+        # logger = self._add_stream_handler(logger)
         CoralogixLoggerImpl.__instance__ = logger
 
     def _get_coralogix_logger_instance(self) -> logging.Logger:
