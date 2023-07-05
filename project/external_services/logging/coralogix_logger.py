@@ -19,6 +19,7 @@ class CoralogixLoggerImpl(LoggerManager):
         handler = self._coralogix_handler()
         handler.setLevel(logging.INFO)
         logger.addHandler(handler)
+        logger.addHandler(logging.getLogger('stream_info_logger'))
 
         return logger
 
