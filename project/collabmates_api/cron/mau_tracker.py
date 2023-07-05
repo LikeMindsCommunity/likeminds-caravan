@@ -10,7 +10,6 @@ from celery import shared_task
 from project.celery import app
 import requests
 import json
-import time
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -308,10 +307,6 @@ def track():
     # Fetch all the billing records for which MAU needs to be computed
     billingRecords = ModelUtilities.get_model_filter(CommunityBillingDates, {})
     today = date.today()
-
-    info_logger.info("MAU TRACKER TEST PRINT")
-    time.sleep(60)
-    info_logger.info("MAU TRACKER TEST PRINT 2")
 
     for billingRecord in billingRecords:
         # Logging process stage
