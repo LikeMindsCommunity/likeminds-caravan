@@ -6167,25 +6167,26 @@ class ChatroomHelper:
     @staticmethod
     def validate_update_event_request(user_id, chatroom_id, api_key=None):
 
-        user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+        validation_params = {
+            'chatroom_id': chatroom_id,
+            'user_id': user_id
+        }
 
-        if not user_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid user id")
+        if api_key:
+            validation_params['community_id'] = {
+                'api_key': api_key
+            }
 
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
 
-        if not card_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid chatroom ID")
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        card_instance = validated_dict.get('chatroom_id')
+        user_instance = validated_dict.get('user_id')
 
         if card_instance.user_id != user_instance.id:
             return ResponseUtilities.get_inner_error_context("Only card creator can update the chatroom")
-        
-        if api_key:
-            community_instance = SdkClient.get_community_instance_or_none(community_id=card_instance.community.id,
-                                                                          api_key=api_key)
-
-            if not community_instance:
-                return ResponseUtilities.get_inner_error_context("Invalid API key")
 
         return {'user_instance': user_instance, 'chatroom_instance': card_instance}
     
@@ -6209,7 +6210,7 @@ class ChatroomHelper:
         community_instance = validated_dict.get('community_id')
 
         member_state = Members.get_community_member_state(community_instance, user_instance)
-        
+
         if member_state == member_states.GUEST:
             return {'success': False, 'error_message': "Only members can create events"}
         
