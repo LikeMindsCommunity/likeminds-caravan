@@ -377,7 +377,8 @@ def trigger_email_communication_for_event(payload_for_email_comms):
 def send_email_notification_for_event_type(payload_for_email_comms, event_type):
     try:
 
-        info_logger.info(f"""api/event/create: send_email_notification_for_event_type: Event_type = {event_type} | 
+        info_logger.info(f"""api/event/create: send_email_notification_for_event_type: 
+                         Event_type = {event_type} | 
                          payload for email comms = {payload_for_email_comms}""")
         
         payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_email_comms)
@@ -406,8 +407,11 @@ def send_email_notification_for_event_type(payload_for_email_comms, event_type):
         if task_begin_time != 0:
             args = [payload_for_email_comms, response_dict, event_type]
 
-            info_logger.info("api/event/create: Scheduling email notification for event_type = %s | Eta = %s | response_dict = %s | \
-                            payload received = %s" % (event_type, str(task_begin_time), response_dict, payload))
+            info_logger.info(f"""api/event/create: Scheduling email notification for event_type = {event_type} | 
+                             Eta = {str(task_begin_time)} | response_dict = {response_dict} | 
+                             payload received = {payload}
+                             chatroom Event name = {event_instance.title}
+                            """)
 
             task_id = schedule_email_notifications_for_event.apply_async(
                 args,
