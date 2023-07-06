@@ -1948,6 +1948,7 @@ class ChatroomImpl(ChatroomManager):
                 'chatroom': card_instance.id
             }
 
+            info_logger.info(f"api/event/create: User - {user_instance.id} Community - {community_instance.id} Event - {card_instance.id}")
             trigger_event_comms.delay(payload_for_whatsapp_comms, payload_for_app_and_email_notifications)
 
             chatroom_context = {
