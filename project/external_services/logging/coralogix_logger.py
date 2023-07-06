@@ -1,3 +1,4 @@
+import sys
 import logging
 
 from coralogix.handlers import CoralogixLogger
@@ -20,6 +21,10 @@ class CoralogixLoggerImpl(LoggerManager):
         handler.setLevel(logging.INFO)
         logger.addHandler(handler)
 
+        stream_logger = self.stream_info_logger()
+        handler = stream_logger.handlers[0]
+        logger.addHandler(handler)
+
         return logger
 
     @staticmethod
@@ -36,3 +41,14 @@ class CoralogixLoggerImpl(LoggerManager):
             CoralogixLoggerImpl()
 
         return CoralogixLoggerImpl.__instance__
+
+    @staticmethod
+    def stream_info_logger() -> logging.Logger:
+        stream_handler = logging.StreamHandler(sys.stdout)
+        stream_handler.setLevel(logging.INFO)
+        stream_handler.setFormatter(logging.Formatter('%(asctime)s  %(levelname)s %(message)s'))
+        stream_logger = logging.getLogger('stream_logger')
+        stream_logger.addHandler(stream_handler)
+
+        return stream_logger
+
