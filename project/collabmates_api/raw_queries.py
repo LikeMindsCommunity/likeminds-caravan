@@ -1841,7 +1841,7 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
             sql += """ AND ("togther_userinfo"."name" ILIKE '%s')""" % str(member_name_search_string + "%")
 
         if order_by_name:
-            sql += " order by lower(togther_userinfo.name) ASC"
+            sql += " order by lower(togther_userinfo.name) ASC, togther_userinfo.id"
 
         if page_size:
             sql += """ limit %s""" % str(page_size)
