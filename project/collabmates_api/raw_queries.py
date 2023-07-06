@@ -1935,7 +1935,7 @@ def get_members_meta_list(community_id: int, member_ids:list = None, page=1, pag
                     {get_removed_members}
                     AND ("togther_userinfo"."name" ILIKE '{search_string}%')
 
-                order by lower(togther_userinfo.name) ASC
+                order by lower(togther_userinfo.name) ASC, togther_userinfo.id
                 OFFSET {offset} LIMIT {page_size};
               """
 
