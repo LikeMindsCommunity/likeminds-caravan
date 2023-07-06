@@ -153,7 +153,7 @@ def send_notification_for_android(token_list, message, firebase_key=None):
         notification_success.append(result.get('success'))
         notification_failures.append(result.get('failure'))
         final_result.append(result)
-        print("RESULTS:", result)
+        print(f"RESULTS: {result}")
         time.sleep(2)
 
     log_statement = """
