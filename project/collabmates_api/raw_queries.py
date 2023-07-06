@@ -4206,6 +4206,10 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                                                              WHERE    ({}
                                                                                                togther_card_answers.card_id = {}
                                                                                       AND      togther_card_answers.community_id = {}
+                                                                                      AND NOT   ( 
+                                                                                                    togther_card_answers.attachment_count > 0
+                                                                                                    AND togther_card_answers.attachments_uploaded = False
+                                                                                                )
                                                                                       AND      togther_card_answers.last_updated >= {}
                                                                                       AND      togther_card_answers.last_updated <= {} )
                                                                              ORDER BY 
