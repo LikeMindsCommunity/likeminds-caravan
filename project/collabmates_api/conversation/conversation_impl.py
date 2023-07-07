@@ -2293,9 +2293,12 @@ class ConversationHelper:
     @staticmethod
     def _auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance, user_instance,
                               member_state):
+        
+        empty_conversation = (conversation_instance.attachment_count > 0 and not conversation_instance.attachments_uploaded)
 
         if chatroom_state_instance:
-            chatroom_state_instance.last_seen_conversation = conversation_instance
+            if not empty_conversation:
+                chatroom_state_instance.last_seen_conversation = conversation_instance
             chatroom_state_instance.follow_status = True
             chatroom_state_instance.updated_at = TimeUtilities.current_time_in_sec()
 
