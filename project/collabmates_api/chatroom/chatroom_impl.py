@@ -1642,7 +1642,7 @@ class ChatroomImpl(ChatroomManager):
         member_state = Members.get_community_member_state(community_instance, self.get_member_id())
 
         if member_state == member_states.ADMIN and not chatroom_instance.is_secret:
-            group_tags.append(ChatroomHelper.get_everyone_group_tag())
+            # group_tags.append(ChatroomHelper.get_everyone_group_tag())
             group_tags.append(ChatroomHelper.get_participants_group_tag())
 
         elif member_state == member_states.ADMIN and chatroom_instance.is_secret:
