@@ -544,6 +544,8 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
                          f"response_dict = {response_dict} | "
                          f"final_user_instances = {final_user_instances} ")
         
+        count = 1
+        
         for user_id in final_user_instances:
 
             response_dict['unsub'] = EMAIL_UNSUBSCRIBE_URL % (settings.WEB_URL, str(community_id), str(user_id))
@@ -554,6 +556,12 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
             send_allowed = TasksHelper.should_send_notification(event_instance)
 
             is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
+
+            info_logger.info(f"api/event/create: {event_type}"
+                            f"user_email = {context['user_email']} | user_id = {user_id} | user_name = {context['user_name']} | "
+                            f"{count}st User out of {len(final_user_instances)} ")
+            
+            count += 1
 
             if send_allowed and not is_task_deleted:
 
