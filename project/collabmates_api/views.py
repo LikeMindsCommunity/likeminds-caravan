@@ -7496,11 +7496,15 @@ def upload_conversation_attachments(body, member_id):
 
         chatroom_instance = conversation_instance.card
         community_instance = conversation_instance.community
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
         ConversationHelper.update_latest_conversation_id_to_firebase.delay(chatroom_instance.id,
                                                                            conversation_instance.id)
         ConversationHelper.update_homescreen_meta_on_conversation_creation(
             community_instance, chatroom_instance, conversation_instance)
+
+        # If conversation has all files uploaded (attachments_uploaded = True && attachment_count > 0) then update last seen conversation
+        ConversationHelper.update_last_seen_conversation_in_collabcard_state(conversation_instance, user_instance, chatroom_instance) 
 
         update_conversation_engage_for_chatrooms(card_id=chatroom_instance.id, user_id=member_id,
                                                  last_conversation_id=conversation_instance.id,
