@@ -153,7 +153,7 @@ def send_notification_for_android(token_list, message, firebase_key=None):
         notification_success.append(result.get('success'))
         notification_failures.append(result.get('failure'))
         final_result.append(result)
-        print("RESULTS:", result)
+        print(f"RESULTS: {result}")
         time.sleep(2)
 
     log_statement = """
@@ -615,8 +615,9 @@ def process_group_tags(community_id: str, chatroom_id: str, answer_text: str):
         and return
     '''
     if everyone_tag:
-        tagged_users = process_everyone_tag(community_id, chatroom_id)
-        should_unmute_members = True
+        # tagged_users = process_everyone_tag(community_id, chatroom_id)
+        tagged_users = []
+        should_unmute_members = False
         is_group_tag = True
         return tagged_users, conversation_text, should_unmute_members, is_group_tag
 
