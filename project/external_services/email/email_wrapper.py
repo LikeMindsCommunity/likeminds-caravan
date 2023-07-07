@@ -93,11 +93,10 @@ class MailWrapper(MailManager):
             response = sendgrid_api_client.client.mail.send.post(request_body=mail.get())
 
             if response.status_code == status_codes.HTTP_202_ACCEPTED:
-                info_logger.info(f"api/event/create: Mail Successfully Sent | \
-                                 Subject = {subject}, \
-                                 send to = {to_mails_list} \
-                                 categories = {categories} \
-                                 ")
+                info_logger.info(f"api/event/create: Mail Successfully Sent | "
+                                 f"Subject = {subject}, "
+                                 f"send to = {to_mails_list}, "
+                                 f"categories = {categories}")
                 return True
 
         except Exception as e:
