@@ -1955,6 +1955,7 @@ class ChatroomImpl(ChatroomManager):
                              f"Community_name = {community_instance.name}, "
                              f"Event = {card_instance.id}, "
                              f"Event_name = {card_instance.title}")
+            
             trigger_event_comms.delay(payload_for_whatsapp_comms, payload_for_app_and_email_notifications)
 
             chatroom_context = {

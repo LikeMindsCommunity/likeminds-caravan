@@ -193,11 +193,17 @@ def send_app_notification_for_event_type(payload_for_app_notification, event_typ
 
         task_expiry_time = TasksHelper.get_end_time_for_event(event_instance)
 
+        info_logger.info(f"api/event/create: send_app_notification_for_event : "
+                         f"Event_type = {event_type} | "
+                         f"Payload = {payload_for_app_notification}"
+                         f"app_noti_dict = {app_noti_dict} | "
+                         f"task_begin_time = {task_begin_time} | "
+                         f"task_expiry_time = {task_expiry_time} | ")
+        
         if task_begin_time != 0:
             args = [payload_for_app_notification, app_noti_dict, event_type]
 
-            info_logger.info("Scheduling app notification for event_type = %s | payload generated = %s | \
-                            payload received = %s" % (event_type, app_noti_dict, payload))
+            info_logger.info("api/event/create: Scheduling app notification for event_type = %s | payload generated = %s | payload received = %s" % (event_type, app_noti_dict, payload))
 
             task_id = schedule_app_notification_event_comms.apply_async(
                 args,
@@ -208,7 +214,7 @@ def send_app_notification_for_event_type(payload_for_app_notification, event_typ
 
         else:
             task_id = ""
-            info_logger.info("No app notification sent for event_type = %s | payload received = %s" % (event_type, payload))
+            info_logger.info("api/event/create: No app notification sent for event_type = %s | payload received = %s" % (event_type, payload))
 
         TasksImpl.log_task_detail_in_db_on_new_task_creation_or_updation(task_id=str(task_id),
                                                                         event_instance=event_instance,
@@ -280,6 +286,14 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
 
         is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
 
+        info_logger.info(f"api/event/create: Scheduliing app notifications: "
+                         f"Event_type = {event_type} | "
+                         f"Final user instances = {final_user_instances} | "
+                         f"User Details list = {user_details_list} |"
+                         f"send_allowed = {send_allowed} | "
+                         f"is_task_deleted = {is_task_deleted} | "
+                         f"app_noti_dict = {app_noti_dict} ")
+        
         if send_allowed and not is_task_deleted:
             app_noti_dict = TasksHelper.add_community_info_to_notification_payload(app_noti_dict, community_id)
             notification_meta(user_details_list, app_noti_dict)
