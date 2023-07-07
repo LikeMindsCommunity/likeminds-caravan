@@ -556,17 +556,10 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
 
             is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
 
-            info_logger.info(f"api/event/create: {event_type}"
-                            f"user_email = {context['user_email']} | user_id = {user_id} | user_name = {context['user_name']} | "
-                            f"Sending for User {count} out of {final_users_count} ")
-            
-            count += 1
-
             if send_allowed and not is_task_deleted:
 
-                info_logger.info(f"api/event/create: Sending email with custom from email function with subject = {context['subject']} | "
-                                 f"scheduled for event_type = {event_type} | "
-                                 f"to_mails_list = {context['to_mails_list']} ")
+                info_logger.info(f"api/event/create: {event_type} | User {count} ({context['to_mails_list']}) out of {final_users_count} | "
+                                 f"Sending email with subject = {context['subject']} ")
                 
                 MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
                                                               from_email=context['from_email'],
@@ -578,8 +571,11 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
             else:
                 info_logger.info("api/event/create: No email notification scheduled for event_type = %s | chatroom_deleted = %s | is_task_deleted = %s | payload received = %s" % (event_type, not send_allowed, is_task_deleted,payload_for_email_comms))
 
+            count += 1
+
     except Exception as e:
-        error_logger.exception("api/event/create: got error in send_email_notification_for_event_type | error - %s | payload received = %s | event_type = %s" % (str(e), payload_for_email_comms, event_type))
+        info_logger.info("api/event/create: got error in send_email_notification_for_event_type | error - %s | payload received = %s | event_type = %s" % (str(e), payload_for_email_comms, event_type))
+        error_logger.exception("got error in send_email_notification_for_event_type | error - %s | payload received = %s | event_type = %s" % (str(e), payload_for_email_comms, event_type))
 
 
 @shared_task
