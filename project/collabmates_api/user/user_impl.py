@@ -1413,6 +1413,11 @@ class UserImpl(UserManager):
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
 
             google_json = UserHelper.fetch_auth_data_for_google_login(token)
+
+            if not google_json.get('email'):
+                return ResponseUtilities.get_impl_error_context('Invalid token!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
             user_context = UserHelper.create_user_context_based_on_google_response(google_json)
 
             return {
