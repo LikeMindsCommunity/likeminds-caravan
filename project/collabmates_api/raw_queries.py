@@ -3222,7 +3222,12 @@ def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, exc
                                            ELSE 2
                                   END), ca.created_at DESC) AS row_number
                          FROM     togther_card_answers      AS ca
-                         WHERE    ca.card_id IN %s)
+                         WHERE    ca.card_id IN %s
+                         AND NOT  (
+                                    ca.attachment_count > 0 
+                                    AND ca.attachments_uploaded = false
+                                  )   
+                )
                 SELECT   card_id,
                          id,
                          created_at
@@ -3743,6 +3748,10 @@ def get_latest_conversations_against_chatrooms_list(chatroom_ids_list, number_of
                          FROM   togther_card_answers
                          WHERE  togther_card_answers.card_id IN %s
                                 AND togther_card_answers.state = 0
+                                AND NOT ( 
+                                            togther_card_answers.attachment_count > 0
+                                            AND togther_card_answers.attachments_uploaded = False
+                                        )
                          ORDER  BY togther_card_answers.created_at DESC)
                 SELECT card_id,
                        ans_id,
@@ -4103,6 +4112,10 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                         ) AS chatroom_users_data 
                         INNER JOIN togther_card_answers ON togther_card_answers.card_id = chatroom_users_data.id 
                         AND togther_card_answers.state IN (0, 1, 10)
+                        AND NOT (
+                            togther_card_answers.attachment_count > 0
+                            AND togther_card_answers.attachments_uploaded = False
+                        )
                       )
                   ) AS chat_conversation_data 
                   LEFT JOIN togther_userinfo ON (
@@ -4206,6 +4219,10 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                                                              WHERE    ({}
                                                                                                togther_card_answers.card_id = {}
                                                                                       AND      togther_card_answers.community_id = {}
+                                                                                      AND NOT   ( 
+                                                                                                    togther_card_answers.attachment_count > 0
+                                                                                                    AND togther_card_answers.attachments_uploaded = False
+                                                                                                )
                                                                                       AND      togther_card_answers.last_updated >= {}
                                                                                       AND      togther_card_answers.last_updated <= {} )
                                                                              ORDER BY 
