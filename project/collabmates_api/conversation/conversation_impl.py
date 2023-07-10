@@ -351,10 +351,7 @@ class ConversationImpl(ConversationManager):
         for conversation in conversations:
 
             if (conversation.attachment_count > 0 and
-                conversation.attachments_uploaded is False) and (
-                    (self.get_member_id() and
-                     conversation.user.id != NumberUtilities.get_integer_from_string(self.get_member_id())) or
-                    conversation.api_version <= 0 or conversation.device_id != self.device_id):
+                conversation.attachments_uploaded is False):
                 continue
 
             conversation_dict = self._serialize_conversation(conversation, 

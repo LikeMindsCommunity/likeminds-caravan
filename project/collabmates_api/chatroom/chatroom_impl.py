@@ -1642,7 +1642,7 @@ class ChatroomImpl(ChatroomManager):
         member_state = Members.get_community_member_state(community_instance, self.get_member_id())
 
         if member_state == member_states.ADMIN and not chatroom_instance.is_secret:
-            group_tags.append(ChatroomHelper.get_everyone_group_tag())
+            # group_tags.append(ChatroomHelper.get_everyone_group_tag())
             group_tags.append(ChatroomHelper.get_participants_group_tag())
 
         elif member_state == member_states.ADMIN and chatroom_instance.is_secret:
@@ -1948,6 +1948,14 @@ class ChatroomImpl(ChatroomManager):
                 'chatroom': card_instance.id
             }
 
+            info_logger.info(f"api/event/create: create_event: "
+                             f"user_id = {user_instance.id}, "
+                             f"user_name = {user_instance.userinfo.name}, " 
+                             f"Community_id = {community_instance.id}, "
+                             f"Community_name = {community_instance.name}, "
+                             f"Event = {card_instance.id}, "
+                             f"Event_name = {card_instance.title}")
+            
             trigger_event_comms.delay(payload_for_whatsapp_comms, payload_for_app_and_email_notifications)
 
             chatroom_context = {
