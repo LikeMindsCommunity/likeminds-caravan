@@ -4319,6 +4319,10 @@ def get_unseen_count_for_chatroom_ids(chatroom_ids_list: list, user_id: int):
                                LEFT JOIN togther_card_answers
                                       ON togther_card_answers.card_id =
                                          togther_collabcardstate.card_id
+                                      AND NOT (
+                                            togther_card_answers.attachment_count > 0
+                                            AND togther_card_answers.attachments_uploaded = false
+                                      )
                         WHERE  togther_collabcardstate.user_id = {}
                                AND togther_collabcardstate.card_id IN {}
                                AND togther_card_answers.state IN {}) AS state_data
