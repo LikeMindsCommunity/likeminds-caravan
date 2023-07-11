@@ -3197,9 +3197,6 @@ class MemberCommunityHelper:
                                  'state': member_states.PENDING_MEMBER,
                                  'image_url': req_body.get('image_url')})
 
-        # if req_body.get('image_url'):
-        #     MemberCommunityHelper.update_user_image_in_sdk(user_instance, req_body.get('image_url'))
-
         ModelUtilities.update_or_create_model(Member_Engage,
                                               {'member_id': user_instance,
                                                'community_id': community_instance},
