@@ -8,9 +8,9 @@ from togther.models import (ModelUtilities, SDKClientUsersInfo, Community, Membe
 from collabmates_api.user.user_impl import UserImpl
 from collabmates_api.member_community.member_community_impl import MemberCommunityHelper
 
-community_id = 49831
-project_creator_id = 1278
-transfer_ownership_otp = 5426
+community_id = None
+project_creator_id = None
+transfer_ownership_otp = None
 transfer_ownership_url = 'http://localhost:8000/api/transfer_ownership'
 enable_join_form = True
 firebase_server_key = None
