@@ -5802,7 +5802,10 @@ def save_the_latest_conversation(card_instance, user_id):
                Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT) |
                Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT) |
                Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT) |
-               Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT)).last()
+               Q(state=conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT)). \
+        exclude(Q(attachment_count__gt = 0) & Q(attachments_uploaded=False)). \
+        last()
+    
 
     if last_conversation:
         user_instance = User.get_user_or_raise_exception(user_id)
@@ -7493,11 +7496,15 @@ def upload_conversation_attachments(body, member_id):
 
         chatroom_instance = conversation_instance.card
         community_instance = conversation_instance.community
+        user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
         ConversationHelper.update_latest_conversation_id_to_firebase.delay(chatroom_instance.id,
                                                                            conversation_instance.id)
         ConversationHelper.update_homescreen_meta_on_conversation_creation(
             community_instance, chatroom_instance, conversation_instance)
+
+        # If conversation has all files uploaded (attachments_uploaded = True && attachment_count > 0) then update last seen conversation
+        ConversationHelper.update_last_seen_conversation_in_collabcard_state(conversation_instance, user_instance, chatroom_instance) 
 
         update_conversation_engage_for_chatrooms(card_id=chatroom_instance.id, user_id=member_id,
                                                  last_conversation_id=conversation_instance.id,
