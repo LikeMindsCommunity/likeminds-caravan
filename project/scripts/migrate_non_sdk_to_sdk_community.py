@@ -3,6 +3,7 @@ import uuid
 
 import requests
 
+from django.conf import settings
 from collabmates_api.sdk.models import (SdkClient)
 from togther.models import (ModelUtilities, SDKClientUsersInfo, Community, Members)
 from collabmates_api.user.user_impl import UserImpl
@@ -11,13 +12,47 @@ from collabmates_api.member_community.member_community_impl import MemberCommuni
 community_id = None
 project_creator_id = None
 transfer_ownership_otp = None
-transfer_ownership_url = 'http://localhost:8000/api/transfer_ownership'
-enable_join_form = True
+transfer_ownership_url = f'{settings.URL}/api/transfer_ownership'
+enable_join_form = False
 firebase_server_key = None
 
 
 def generate_api_key_for_community():
     return str(uuid.uuid4())
+
+
+def create_bot_user_instance(api_key, community_instance):
+    print(f"Bot not exists in {community_id} community, so creating it!")
+    user_impl = UserImpl(user_id=None, api_key=api_key)
+
+    bot_response = user_impl.create_user_bot({'name': community_instance.name})
+
+    if bot_response.get('error_message'):
+        print(bot_response.get('error_message'))
+        return
+
+    else:
+        user_object = bot_response.get('user')
+
+        if not user_object:
+            print("Some error occurred in fetching user object")
+            return
+
+        bot_user_instance = ModelUtilities.get_user_instance_or_none(user_object.get('user_unique_id'),
+                                                                     community_id)
+
+        if not bot_user_instance:
+            print(f"Error fetching bot user instance from {user_object}")
+            return
+
+        if community_instance and bot_user_instance:
+            sdk_client_user_info_instance = SDKClientUsersInfo()
+            sdk_client_user_info_instance.community = community_instance
+            sdk_client_user_info_instance.user = bot_user_instance
+            sdk_client_user_info_instance.user_unique_id = user_object.get('user_unique_id')
+            sdk_client_user_info_instance.save()
+
+        return bot_user_instance
 
 
 def migrate_non_sdk_to_sdk_community():
@@ -53,35 +88,10 @@ def migrate_non_sdk_to_sdk_community():
                                                          'user__userinfo__is_bot': True}).first()
 
     if not bot_user_instance:
-        print(f"Bot not exists in {community_id} community, so creating it!")
-        user_impl = UserImpl(user_id=None, api_key=api_key)
+        bot_user_instance = create_bot_user_instance(api_key, community_instance)
 
-        bot_response = user_impl.create_user_bot({'name': community_instance.name})
-
-        if bot_response.get('error_message'):
-            print(bot_response.get('error_message'))
+        if not bot_user_instance:
             return
-
-        else:
-            user_object = bot_response.get('user')
-
-            if not user_object:
-                print("Some error occurred in fetching user object")
-                return
-
-            bot_user_instance = ModelUtilities.get_user_instance_or_none(user_object.get('user_unique_id'),
-                                                                         community_id)
-
-            if not bot_user_instance:
-                print(f"Error fetching bot user instance from {user_object}")
-                return
-
-            if community_instance and bot_user_instance:
-                sdk_client_user_info_instance = SDKClientUsersInfo()
-                sdk_client_user_info_instance.community = community_instance
-                sdk_client_user_info_instance.user = bot_user_instance
-                sdk_client_user_info_instance.user_unique_id = user_object.get('user_unique_id')
-                sdk_client_user_info_instance.save()
 
     else:
         bot_user_instance = bot_user_instance.user
