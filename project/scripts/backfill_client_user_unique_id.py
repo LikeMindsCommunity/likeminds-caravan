@@ -2,10 +2,20 @@ import time
 
 from togther.models import (SDKClientUsersInfo, ModelUtilities, Members, Community)
 from collabmates_api.sdk.models import (SdkClient)
+from utility.time_utilities import TimeUtilities
+
+COMMUNITY_ID = None
 
 
-def backfill_client_user_unique_id():
-    sdk_communities = ModelUtilities.get_model_filter(SdkClient, {'is_deleted': False})
+def backfill_client_user_unique_id(community_id: int = None):
+    filter_dict = {
+        'is_deleted': False
+    }
+
+    if community_id:
+        filter_dict['community_id'] = community_id
+
+    sdk_communities = ModelUtilities.get_model_filter(SdkClient, filter_dict)
     community_ids_list = list(sdk_communities.values_list('community_id', flat=True))
 
     members_filter = ModelUtilities.get_model_filter(Members, {'community_id__in': community_ids_list,
@@ -43,7 +53,9 @@ def backfill_client_user_unique_id():
             sdk_client_records.append(SDKClientUsersInfo(
                 community=community_instance,
                 user=user_instance,
-                user_unique_id=user_instance.userinfo.user_unique_id
+                user_unique_id=user_instance.userinfo.user_unique_id,
+                created_at=TimeUtilities.current_time_in_milliseconds(),
+                updated_at=TimeUtilities.current_time_in_milliseconds()
             ))
 
         count -= 1
@@ -54,5 +66,5 @@ def backfill_client_user_unique_id():
 
 start = time.time()
 print("Starting script!")
-backfill_client_user_unique_id()
+backfill_client_user_unique_id(COMMUNITY_ID)
 print("Script completed in", time.time() - start)
