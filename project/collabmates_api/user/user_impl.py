@@ -18,7 +18,7 @@ from cms.models import userAcquition
 from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices, Community,
                             Members, userEmails, Userinfo, emailTokens, Collabcard, removedMembers,
                             DirectMessageTutorial, communityRightsSettings, card_answers, collabcardState,
-                            conversationEngage, CommunitySettings, SDKClientUsersInfo)
+                            conversationEngage, CommunitySettings, SDKClientUsersInfo, mobileBackup)
 from collabmates_api.user.user_manager import UserManager
 from collabmates_api.notifications.models import (WhatsappSubscription)
 from collabmates_api.sdk.models import (SdkClient)
@@ -33,20 +33,24 @@ from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import email_states, mobile_states, member_states, login_types, deleted_members, \
     conversation_states, member_rights, community_setting_types, chat_request_states, api_types, \
-    whatsapp_subscription_state_actions
+    whatsapp_subscription_state_actions, OTPTypes
 from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
-from utility.constants import ONE_DAY_HOURS
+from utility.constants import (ONE_DAY_HOURS, INTERNATIONAL_OTP_LIMIT_FILE_NAME)
 from utility.response_utilities import ResponseUtilities
 
 from utility.url_utilities import UrlUtilities
+from utility.cache_keys import (INTERNATIONAL_OTP_GENERATE_CACHE_KEY)
+from utility.file_utilities import FileUtilities
+from utility.validation_utilities import ValidationUtilities
 
 from .constants import *
 from .user_view_helper import UserViewHelper
 from ..raw_queries import get_community_id_list, get_conversations_after_last_seen_messages_in_chatrooms, \
     get_dm_chatrooms_of_user
-from ..views import remove_members, remove_all_member_rights, remove_all_manager_rights
+from ..views import (remove_members, remove_all_member_rights, remove_all_manager_rights, send_otp_on_email,
+                     verify_otp_on_email)
 from ..tasks import send_verification_mail_for_email_sync, cm_onboarding_version_check
 from ..utility import m2cm_v1_version_check, m2cm_v2_version_check
 from ..rest_api import CommunitySerializerV1, SDKClientUsersInfoSerializer
@@ -56,6 +60,8 @@ from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSIO
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper, MailHelper
+from external_services.caching.cache_impl import CacheImpl
+from external_services.otp.otp_api_client import OTPApiClient
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 
 host_url = settings.URL
@@ -307,6 +313,9 @@ class UserImpl(UserManager):
     def _get_or_create_sdk_user_and_userinfo(user_context, api_key=None):
 
         user_unique_id = user_context.get('user_unique_id')
+        user_email = user_context.get('email')
+        user_mobile_no = user_context.get('mobile_no')
+        user_country_code = user_context.get('country_code')
         user_instance = None
         unique_id = str(uuid.uuid4())
         sdk_client_user_info_instance = None
@@ -327,27 +336,46 @@ class UserImpl(UserManager):
             community_instance = sdk_client_instance.community
 
         should_create_user = True
+        sdk_client_users_info_filter = None
 
         if user_unique_id:
             sdk_client_users_info_filter = ModelUtilities.get_model_filter(
                 SDKClientUsersInfo, {'community': community_instance}).filter(
                 Q(user_unique_id=user_unique_id) | Q(user__userinfo__user_unique_id=user_unique_id))
 
-            if sdk_client_users_info_filter:
-                existing_user = True
-                sdk_client_user_info_instance = sdk_client_users_info_filter[0]
+        elif user_email:
+            existing_user_ids_with_email = list(ModelUtilities.get_model_filter(userEmails,
+                                                                                {'email': user_email}).values_list(
+                'user_id', flat=True))
 
-                removed_member = ModelUtilities.get_model_filter(removedMembers,
-                                                                 {'community': community_instance,
-                                                                  'member': sdk_client_user_info_instance.user})
+            if existing_user_ids_with_email:
+                sdk_client_users_info_filter = ModelUtilities.get_model_filter(
+                    SDKClientUsersInfo, {'community': community_instance, 'user__in': existing_user_ids_with_email})
 
-                if len(removed_member):
-                    app_access = False
+        elif user_mobile_no and user_country_code:
+            existing_user_ids_with_mobile = list(ModelUtilities.get_model_filter(
+                userMobiles, {'country_code': user_country_code, 'mobile_no': user_mobile_no}).values_list(
+                'user_id', flat=True))
 
-                return {'user_instance': sdk_client_user_info_instance.user,
-                        'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                        'existing_user': existing_user,
-                        'app_access': app_access}
+            if existing_user_ids_with_mobile:
+                sdk_client_users_info_filter = ModelUtilities.get_model_filter(
+                    SDKClientUsersInfo, {'community': community_instance, 'user__in': existing_user_ids_with_mobile})
+
+        if sdk_client_users_info_filter:
+            existing_user = True
+            sdk_client_user_info_instance = sdk_client_users_info_filter[0]
+
+            removed_member = ModelUtilities.get_model_filter(removedMembers,
+                                                             {'community': community_instance,
+                                                              'member': sdk_client_user_info_instance.user})
+
+            if len(removed_member):
+                app_access = False
+
+            return {'user_instance': sdk_client_user_info_instance.user,
+                    'sdk_client_user_info_instance': sdk_client_user_info_instance,
+                    'existing_user': existing_user,
+                    'app_access': app_access}
 
         if should_create_user:
             if not user_context.get('name'):
@@ -374,6 +402,12 @@ class UserImpl(UserManager):
                 UserImpl.create_user_mobile_number(user_instance,
                                                    mobile_context.get('country_code'),
                                                    mobile_context.get('mobile_no'))
+
+            elif user_mobile_no and user_country_code:
+                UserImpl.create_user_mobile_number(user_instance,
+                                                   user_country_code,
+                                                   user_mobile_no,
+                                                   force_create_instance=True)
 
             if user_context.get('email'):
                 UserImpl.create_user_primary_email(user_instance, user_context)
@@ -416,15 +450,19 @@ class UserImpl(UserManager):
             user_email_instance.save()
 
     @staticmethod
-    def create_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY):
+    def create_user_mobile_number(user_instance, country_code, mobile_no, state=mobile_states.PRIMARY,
+                                  force_create_instance: bool = False):
 
         if not mobile_no:
             return
 
-        mobile_exists = ModelUtilities.is_model_filter_exists(userMobiles, {'country_code': country_code,
-                                                                            'mobile_no': mobile_no})
+        mobile_exists = True
 
-        if not mobile_exists:
+        if not force_create_instance:
+            mobile_exists = ModelUtilities.is_model_filter_exists(userMobiles, {'country_code': country_code,
+                                                                                'mobile_no': mobile_no})
+
+        if force_create_instance or not mobile_exists:
             instance = userMobiles()
             instance.country_code = country_code
             instance.mobile_no = mobile_no
@@ -1107,6 +1145,160 @@ class UserImpl(UserManager):
 
         return {'success': True}
 
+    def send_user_otp(self, otp_type: str, mobile_no: str = int, country_code: str = int, email_id: str = None,
+                      is_retry: int = False) -> dict:
+
+        if otp_type == OTPTypes.MOBILE:
+            validated_req = UserHelper.validate_user_send_otp_on_mobile_request(self.get_api_key(),
+                                                                                country_code,
+                                                                                mobile_no)
+
+            if validated_req.get('error_message'):
+                return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            user_otp = UserHelper.handle_mobile_otp(mobile_no, country_code,
+                                                    is_international=validated_req.get('is_international'),
+                                                    is_retry=is_retry)
+
+            if user_otp.get('error_message'):
+                return ResponseUtilities.get_impl_error_context(user_otp.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        elif otp_type == OTPTypes.EMAIL:
+            validated_req = UserHelper.validate_user_send_otp_on_email_request(self.get_api_key(),
+                                                                               email_id)
+
+            if validated_req.get('error_message'):
+                return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            context = send_otp_on_email(email_id)
+            info_logger.info(f'OTP Context: {context}, E-Mail: {email_id}')
+
+            if not context.get('success'):
+                return ResponseUtilities.get_impl_error_context(context.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        else:
+            return ResponseUtilities.get_impl_error_context('Invalid OTP type!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        return {'success': True}
+
+    def verify_user_otp(self, otp_type: str, mobile_no: str = None, country_code: str = None, email_id: str = None,
+                        otp: str = None) -> dict:
+
+        if otp_type == OTPTypes.MOBILE:
+            validated_req = UserHelper.validate_user_verify_otp_on_mobile_request(self.get_api_key(),
+                                                                                  country_code,
+                                                                                  mobile_no,
+                                                                                  otp)
+
+            if validated_req.get('error_message'):
+                return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            is_international = validated_req.get('is_international')
+            community_instance = validated_req.get('community_instance')
+            phone_no = str(country_code) + str(mobile_no)
+
+            if settings.IS_BETA and (otp == '9999'):
+                verify_user_mobile_otp_beta = UserHelper.verify_user_mobile_otp_on_beta(community_instance, mobile_no,
+                                                                                        country_code)
+
+                if verify_user_mobile_otp_beta.get('error_message'):
+                    return ResponseUtilities.get_impl_error_context(verify_user_mobile_otp_beta.get('error_message'),
+                                                                    status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+                return verify_user_mobile_otp_beta
+
+            else:
+                otp_manager = OTPApiClient()
+                gupshup_otp_response = otp_manager.verify_otp_via_gupshup(phone_no, otp, is_international)
+
+                if not gupshup_otp_response.get('success'):
+                    msg_otp_response = otp_manager.verify_retry_otp_via_msg_91(phone_no, otp)
+
+                    if not msg_otp_response.get('success'):
+                        return ResponseUtilities.get_impl_error_context('Incorrect OTP!',
+                                                                        status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+                verify_user_mobile_otp = UserHelper.handle_verify_user_mobile_otp(community_instance, mobile_no,
+                                                                                  country_code)
+
+                if verify_user_mobile_otp.get('error_message'):
+                    return ResponseUtilities.get_impl_error_context(verify_user_mobile_otp.get('error_message'),
+                                                                    status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+                return verify_user_mobile_otp
+
+        elif otp_type == OTPTypes.EMAIL:
+            validated_req = UserHelper.validate_user_verify_otp_on_email_request(self.get_api_key(),
+                                                                                 email_id,
+                                                                                 otp)
+
+            if validated_req.get('error_message'):
+                return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            community_instance = validated_req.get('community_instance')
+
+            if settings.IS_BETA and (otp == '9999'):
+                verify_user_email_otp_beta = UserHelper.verify_user_email_otp_on_beta(community_instance, email_id)
+
+                if verify_user_email_otp_beta.get('error_message'):
+                    return ResponseUtilities.get_impl_error_context(verify_user_email_otp_beta.get('error_message'),
+                                                                    status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+                return verify_user_email_otp_beta
+
+            else:
+                gupshup_otp_response = verify_otp_on_email(email_id, otp)
+
+                if not gupshup_otp_response.get('success'):
+                    return ResponseUtilities.get_impl_error_context('Incorrect OTP!',
+                                                                    status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+                verify_user_email_otp = UserHelper.handle_verify_user_email_otp(community_instance, email_id)
+
+                if verify_user_email_otp.get('error_message'):
+                    return ResponseUtilities.get_impl_error_context(verify_user_email_otp.get('error_message'),
+                                                                    status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+                return verify_user_email_otp
+
+        else:
+            return ResponseUtilities.get_impl_error_context('Invalid OTP type!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    def user_social_login(self, login_type: str, token: str) -> dict:
+
+        if login_type == login_types.GOOGLE:
+            validated_req = UserHelper.validate_user_google_login_request(self.get_api_key(),
+                                                                          token)
+
+            if validated_req.get('error_message'):
+                return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            google_json = UserHelper.fetch_auth_data_for_google_login(token)
+
+            if not google_json.get('email'):
+                return ResponseUtilities.get_impl_error_context('Invalid token!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            user_context = UserHelper.create_user_context_based_on_google_response(google_json)
+
+            return {
+                'success': True,
+                'user': user_context
+            }
+
+        else:
+            return ResponseUtilities.get_impl_error_context("Invalid login type!",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
 
 class UserHelper:
 
@@ -1282,7 +1474,9 @@ class UserHelper:
             'name': custom_meta.get('name'),
             'is_guest': custom_meta.get('is_guest', False),
             'email': custom_meta.get('email', ''),
-            'organisation_name': custom_meta.get('organisation_name')
+            'organisation_name': custom_meta.get('organisation_name'),
+            'mobile_no': custom_meta.get('mobile_no'),
+            'country_code': custom_meta.get('country_code'),
         }
 
         if custom_meta.get('image_url'):
@@ -1797,3 +1991,378 @@ class UserHelper:
                                                                                                       flat=True))])
 
         return TimeUtilities.add_hours_to_epoch_time(dm_disabled_time, ONE_DAY_HOURS)
+
+    @staticmethod
+    def validate_user_send_otp_on_mobile_request(api_key: str, country_code: str, mobile_no: str):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        if not (mobile_no and str(mobile_no).isdigit()):
+            return ResponseUtilities.get_inner_error_context('Invalid mobile number!')
+
+        if not (country_code and str(country_code).isdigit()):
+            return ResponseUtilities.get_inner_error_context('Invalid country code!')
+
+        is_international = str(country_code) != '91'
+
+        return {'is_international': is_international}
+
+    @staticmethod
+    def international_otp_limit_exceeded() -> bool:
+        key: str = INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=1)
+
+        current_count: int = CacheImpl.get_cache(key)
+
+        if isinstance(current_count, int) and current_count >= HOURLY_INTERNATIONAL_OTP_GENERATE_LIMIT:
+            return True
+
+        return False
+
+    @staticmethod
+    def update_international_otp_generate_count(international: bool, context: dict) -> None:
+        if not (international and context['success']):
+            return
+
+        key: str = (INTERNATIONAL_OTP_GENERATE_CACHE_KEY % TimeUtilities.get_current_date(date_format=1))
+        value: int = 1
+
+        current_count: int = CacheImpl.get_cache(key)
+
+        if isinstance(current_count, int):
+            value = current_count + 1
+
+        CacheImpl.set_cache(key, value)
+
+    @staticmethod
+    def save_request_info_for_international_numbers(country_code: str, mobile_no: str, timestamp: str) -> None:
+        international_otp_req_obj: list = [country_code, mobile_no, timestamp]
+
+        file_name: str = INTERNATIONAL_OTP_LIMIT_FILE_NAME % TimeUtilities.get_current_date(date_format=0)
+        file_path: str = f'./../../international_otp_blocked_requests/{file_name}'
+
+        """
+            If, file does not exists
+            Create file and write header
+        """
+        if not FileUtilities.is_exists_file(file_path):
+            header: list = ['country code', 'mobile number', 'timestamp']
+            FileUtilities.write_file_csv(file_path, 'w', header)
+
+        """
+            write data row
+        """
+        FileUtilities.write_file_csv(file_path, 'a', international_otp_req_obj)
+
+        error_message: str = f"OTP generate failed for={country_code}{mobile_no}, " \
+                             f"reason=international otp generate limit exceeded"
+        error_logger.error(error_message)
+
+    @staticmethod
+    def handle_mobile_otp(mobile_no, country_code, is_international, is_retry):
+        phone_no = str(country_code) + str(mobile_no)
+
+        if is_international and UserHelper.international_otp_limit_exceeded():
+            UserHelper.save_request_info_for_international_numbers(str(country_code), str(mobile_no),
+                                                                   TimeUtilities.get_current_date())
+
+            return ResponseUtilities.get_inner_error_context(f'OTP generate failed for={phone_no}, '
+                                                             f'reason=international otp generate limit exceeded')
+
+        otp_manager = OTPApiClient()
+
+        if is_retry:
+            context = otp_manager.send_retry_otp_via_msg_91(phone_no)
+
+        else:
+            context = otp_manager.send_otp_via_gupshup(phone_no, is_international)
+
+        backup_filter = ModelUtilities.get_model_filter(mobileBackup, {'mobile_no': mobile_no})
+
+        if not backup_filter:
+            backup_info = {'mobile_no': mobile_no, 'country_code': country_code}
+            mobileBackup.create_instance(backup_info)
+
+        UserHelper.update_international_otp_generate_count(is_international, context)
+
+        return {'success': True}
+
+    @staticmethod
+    def validate_user_verify_otp_on_mobile_request(api_key: str, country_code: int, mobile_no: int, otp: str):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        community_instance = validated_dict.get('community_id')
+
+        if not (mobile_no and str(mobile_no).isdigit()):
+            return ResponseUtilities.get_inner_error_context('Invalid mobile number!')
+
+        if not (country_code and str(country_code).isdigit()):
+            return ResponseUtilities.get_inner_error_context('Invalid country code!')
+
+        if not (otp and str(otp).isdigit()):
+            return ResponseUtilities.get_inner_error_context('Invalid OTP!')
+
+        is_international = str(country_code) != '91'
+
+        return {
+            'is_international': is_international,
+            'community_instance': community_instance
+        }
+
+    @staticmethod
+    def validate_user_verify_otp_on_email_request(api_key: str, email_id: str, otp: str):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        community_instance = validated_dict.get('community_id')
+
+        if not email_id:
+            return ResponseUtilities.get_inner_error_context('Invalid email ID!')
+
+        if not otp:
+            return ResponseUtilities.get_inner_error_context("Invalid OTP!")
+
+        return {
+            'community_instance': community_instance
+        }
+
+    @staticmethod
+    def validate_user_google_login_request(api_key: str, token: str):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        if not token:
+            return ResponseUtilities.get_inner_error_context('Empty token!')
+
+        return {}
+
+    @staticmethod
+    def create_user_context_based_on_google_response(google_json: dict):
+
+        if not google_json:
+            return {}
+
+        image_url = google_json.get('picture', '')
+
+        user_context = {
+            'name': google_json.get('name'),
+            'email': google_json.get('email', ''),
+            'image_url': image_url
+        }
+
+        if image_url:
+
+            index = image_url.find(GOOGLE_REGEX)
+
+            if index == -1:
+                user_context['image_url'] = image_url
+
+        return user_context
+
+    @staticmethod
+    def validate_user_send_otp_on_email_request(api_key: str, email_id: str):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        if not email_id:
+            return ResponseUtilities.get_inner_error_context('Invalid email ID!')
+
+        return {}
+
+    @staticmethod
+    def verify_user_mobile_otp_on_beta(community_instance, mobile_no, country_code):
+        app_access = True
+
+        filter_dict = {
+            'country_code': country_code,
+            'mobile_no': mobile_no
+        }
+
+        mobile_filter = ModelUtilities.get_model_filter(userMobiles, filter_dict)
+
+        if not mobile_filter:
+            return ResponseUtilities.get_inner_error_context('Wrong OTP!')
+
+        user_ids_list = list(mobile_filter.values_list('user_id', flat=True))
+
+        sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                                        {'community': community_instance,
+                                                                         'user__in': user_ids_list}).first()
+
+        if not sdk_client_user_info_instance:
+            return ResponseUtilities.get_inner_error_context('Wrong OTP!')
+
+        removed_member = ModelUtilities.get_model_filter(removedMembers,
+                                                         {'community': community_instance,
+                                                          'member': sdk_client_user_info_instance.user})
+
+        if len(removed_member):
+            app_access = False
+
+        return {
+            'success': True,
+            'existing_user': True,
+            'user': get_logged_in_user(user_instance=sdk_client_user_info_instance.user,
+                                       sdk_client_info_flag=True),
+            'app_access': app_access
+        }
+
+    @staticmethod
+    def handle_verify_user_mobile_otp(community_instance, mobile_no, country_code):
+        app_access = True
+        existing_user = False
+        user_object = None
+        sdk_client_user_info_instance = None
+
+        filter_dict = {
+            'country_code': country_code,
+            'mobile_no': mobile_no
+        }
+
+        mobile_filter = ModelUtilities.get_model_filter(userMobiles, filter_dict)
+
+        if mobile_filter:
+            user_ids_list = list(mobile_filter.values_list('user_id', flat=True))
+
+            sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                                            {'community': community_instance,
+                                                                             'user__in': user_ids_list}).first()
+
+        if sdk_client_user_info_instance:
+            existing_user = True
+
+            removed_member = ModelUtilities.get_model_filter(removedMembers,
+                                                             {'community': community_instance,
+                                                              'member': sdk_client_user_info_instance.user})
+
+            if len(removed_member):
+                app_access = False
+
+            user_object = get_logged_in_user(user_instance=sdk_client_user_info_instance.user,
+                                             sdk_client_info_flag=True)
+
+        return {
+            'success': True,
+            'existing_user': existing_user,
+            'user': user_object,
+            'app_access': app_access
+        }
+
+    @staticmethod
+    def verify_user_email_otp_on_beta(community_instance, email_id):
+        app_access = True
+
+        filter_dict = {
+            'email': email_id
+        }
+
+        email_filter = ModelUtilities.get_model_filter(userEmails, filter_dict)
+
+        if not email_filter:
+            return ResponseUtilities.get_impl_error_context('Wrong OTP!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_ids_list = list(email_filter.values_list('user_id', flat=True))
+
+        sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                                        {'community': community_instance,
+                                                                         'user__in': user_ids_list}).first()
+
+        if not sdk_client_user_info_instance:
+            return ResponseUtilities.get_impl_error_context('Wrong OTP!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        removed_member = ModelUtilities.get_model_filter(removedMembers,
+                                                         {'community': community_instance,
+                                                          'member': sdk_client_user_info_instance.user})
+
+        if len(removed_member):
+            app_access = False
+
+        return {
+            'success': True,
+            'existing_user': True,
+            'user': get_logged_in_user(user_instance=sdk_client_user_info_instance.user,
+                                       sdk_client_info_flag=True),
+            'app_access': app_access
+        }
+
+    @staticmethod
+    def handle_verify_user_email_otp(community_instance, email_id):
+        app_access = True
+        existing_user = False
+        user_object = None
+        sdk_client_user_info_instance = None
+
+        filter_dict = {
+            'email': email_id
+        }
+
+        email_filter = ModelUtilities.get_model_filter(userEmails, filter_dict)
+
+        if email_filter:
+            user_ids_list = list(email_filter.values_list('user_id', flat=True))
+
+            sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                                            {'community': community_instance,
+                                                                             'user__in': user_ids_list}).first()
+
+        if sdk_client_user_info_instance:
+            existing_user = True
+
+            removed_member = ModelUtilities.get_model_filter(removedMembers,
+                                                             {'community': community_instance,
+                                                              'member': sdk_client_user_info_instance.user})
+
+            if len(removed_member):
+                app_access = False
+
+            user_object = get_logged_in_user(user_instance=sdk_client_user_info_instance.user,
+                                             sdk_client_info_flag=True)
+
+        return {
+            'success': True,
+            'existing_user': existing_user,
+            'user': user_object,
+            'app_access': app_access
+        }

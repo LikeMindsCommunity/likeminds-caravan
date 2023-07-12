@@ -754,3 +754,8 @@ chatroom_setting_states = ChatroomSettings()
 class DMFabShowList:
     ALL_MEMBERS = 1
     ONLY_CM = 2
+
+
+class OTPTypes:
+    MOBILE = "mobile"
+    EMAIL = "email"

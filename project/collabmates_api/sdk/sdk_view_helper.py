@@ -116,6 +116,10 @@ class SdkViewHelper:
             return ResponseUtilities.get_inner_error_context('invalid request body')
 
         user_name = request_body.get('user_name')
+        user_object = request_body.get('user')
+
+        if (not user_name) and user_object:
+            user_name = user_object.get('name')
 
         if request_body.get('is_guest'):
 
@@ -133,14 +137,20 @@ class SdkViewHelper:
             }
         }
 
+        if user_object:
+            login_req_body['user'] = user_object
+
         join_req_body = {}
 
-        if 'user_unique_id' in request_body:
+        if ('user_unique_id' in request_body) and request_body.get('user_unique_id'):
             login_req_body['user']['user_unique_id'] = request_body.get('user_unique_id')
 
-        if 'image_url' in request_body:
+        if ('image_url' in request_body) and request_body.get('image_url'):
             login_req_body['user']['image_url'] = request_body.get('image_url')
             join_req_body['image_url'] = request_body.get('image_url')
+
+        elif user_object and 'image_url' in user_object:
+            join_req_body['image_url'] = user_object.get('image_url')
 
         if request_body.get('question_answers'):
             questions_filter = ModelUtilities.get_model_filter(communityQuestions, {'community': community_id})

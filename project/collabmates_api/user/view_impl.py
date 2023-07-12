@@ -340,3 +340,67 @@ class WhatsappSubscriptionView(APIView):
             {'success': True},
             status=status_codes.HTTP_200_OK
         )
+
+
+class UserOTPView(APIView):
+    """
+    Generate/verify user OTP
+    """
+
+    def post(self, request):
+        req_body = RequestUtilities.load_request_body(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        user_manager = UserImpl(user_id="", api_key=api_key)
+        response_data = user_manager.send_user_otp(otp_type=req_body.get('otp_type'),
+                                                   mobile_no=req_body.get('mobile_no'),
+                                                   country_code=req_body.get('country_code'),
+                                                   email_id=req_body.get('email_id'),
+                                                   is_retry=req_body.get('is_retry'))
+
+        if 'error_message' in response_data:
+            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
+                                                                    response_data['status'])
+            return JsonResponse(context['data'], status=context['status'])
+
+        return JsonResponse(response_data)
+
+    def get(self, request):
+        req_params = RequestUtilities.fetch_request_query_params(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        user_manager = UserImpl(user_id="", api_key=api_key)
+        response_data = user_manager.verify_user_otp(otp_type=req_params.get('otp_type'),
+                                                     mobile_no=req_params.get('mobile_no'),
+                                                     country_code=req_params.get('country_code'),
+                                                     email_id=req_params.get('email_id'),
+                                                     otp=req_params.get('otp'))
+
+        if 'error_message' in response_data:
+            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
+                                                                    response_data['status'])
+            return JsonResponse(context['data'], status=context['status'])
+
+        return JsonResponse(response_data)
+
+
+class UserSocialLoginView(APIView):
+    """
+    Verify user social login
+    """
+
+    def get(self, request):
+        req_params = RequestUtilities.fetch_request_query_params(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        user_manager = UserImpl(user_id="", api_key=api_key)
+        response_data = user_manager.user_social_login(login_type=req_params.get('login_type'),
+                                                       token=req_params.get('token'))
+
+        if 'error_message' in response_data:
+            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
+                                                                    response_data['status'])
+            return JsonResponse(context['data'], status=context['status'])
+
+        return JsonResponse(response_data)
+
