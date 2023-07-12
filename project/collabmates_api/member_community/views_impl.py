@@ -43,6 +43,7 @@ class FetchCommunityFeed(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
         api_version = RequestUtilities.get_accept_version_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
@@ -72,6 +73,12 @@ class FetchCommunityFeed(APIView):
         if order_type:
             order_type = NumberUtilities.get_integer_from_string(order_type)
 
+        # version check for created_at epoch format change
+        community_feed_date_uniform_check = VersionUtilities.check_version(platform_code=platform_code, 
+                                                                           version_code=version_code, 
+                                                                           feature_version_dict=VersionUtilities.community_feed_date_uniform,
+                                                                           sdk_source=sdk_source)
+
         if RequestUtilities.is_request_any(request, [VersionUtilities.PlatformCode.ANDROID,
                                                      VersionUtilities.PlatformCode.IOS,
                                                      VersionUtilities.PlatformCode.FLUTTER,
@@ -79,13 +86,15 @@ class FetchCommunityFeed(APIView):
             chatroom_context = community_manager.fetch_feed(pin_status, chatroom_id=chatroom_id,
                                                             scroll_direction=scroll_direction,
                                                             api_version=api_version, order_type=order_type,
-                                                            page=page)
+                                                            page=page, 
+                                                            community_feed_date_uniform_check=community_feed_date_uniform_check)
 
         elif RequestUtilities.is_request_any(request, [VersionUtilities.PlatformCode.WEB,
                                                      VersionUtilities.PlatformCode.REACT]):
             chatroom_context = community_manager.fetch_feed_web(pin_status, order_type,
                                                                 chatroom_id, scroll_direction, api_version=api_version,
-                                                                page=page)
+                                                                page=page, 
+                                                                community_feed_date_uniform_check=community_feed_date_uniform_check)
 
         else:
             chatroom_context = ResponseUtilities.get_impl_error_context("Invalid platform",
@@ -497,6 +506,32 @@ class JoinCommunitySDKView(APIView):
                                                        device_id=device_id, platform_code=platform_code,
                                                        api_key=api_key, version_code=version_code)
         community_context = member_community_manager.join_community_sdk(req_body=req_body)
+
+        if 'error_message' not in community_context:
+            return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                            community_context.get('status_code')))
+
+    def put(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+        validated_req_body = MemberCommunityViewHelper.validate_join_community_request(member_id)
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        if validated_req_body.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_req_body.get('error_message'),
+                                                                                validated_req_body.get('status')))
+
+        member_community_manager = MemberCommunityImpl(member_id, community_id=req_body.get('community_id'),
+                                                       device_id=device_id, platform_code=platform_code,
+                                                       api_key=api_key, version_code=version_code)
+        community_context = member_community_manager.approve_decline_join_community_request(
+            req_body.get('uuid'), req_body.get('is_accepted', False))
 
         if 'error_message' not in community_context:
             return JsonResponse(community_context, status=status_codes.HTTP_200_OK)

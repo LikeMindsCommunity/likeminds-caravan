@@ -28,6 +28,9 @@ def trigger_event_comms(payload_for_whatsapp_comms, payload_for_app_and_email_no
     trigger_whatsapp_communication_for_event.delay(payload_for_whatsapp_comms)
     trigger_app_notification_for_event.delay(payload_for_app_and_email_notifications)
 
+    info_logger.info(f"api/event/create: trigger_event_comms: "
+                     f"payload for email comms = {payload_for_app_and_email_notifications}")
+    
     args = [payload_for_app_and_email_notifications]
     trigger_email_communication_for_event.apply_async(
         args,
@@ -190,11 +193,17 @@ def send_app_notification_for_event_type(payload_for_app_notification, event_typ
 
         task_expiry_time = TasksHelper.get_end_time_for_event(event_instance)
 
+        info_logger.info(f"api/event/create: send_app_notification_for_event : "
+                         f"Event_type = {event_type} | "
+                         f"Payload = {payload_for_app_notification}"
+                         f"app_noti_dict = {app_noti_dict} | "
+                         f"task_begin_time = {task_begin_time} | "
+                         f"task_expiry_time = {task_expiry_time} | ")
+        
         if task_begin_time != 0:
             args = [payload_for_app_notification, app_noti_dict, event_type]
 
-            info_logger.info("Scheduling app notification for event_type = %s | payload generated = %s | \
-                            payload received = %s" % (event_type, app_noti_dict, payload))
+            info_logger.info("api/event/create: Scheduling app notification for event_type = %s | payload generated = %s | payload received = %s" % (event_type, app_noti_dict, payload))
 
             task_id = schedule_app_notification_event_comms.apply_async(
                 args,
@@ -205,7 +214,7 @@ def send_app_notification_for_event_type(payload_for_app_notification, event_typ
 
         else:
             task_id = ""
-            info_logger.info("No app notification sent for event_type = %s | payload received = %s" % (event_type, payload))
+            info_logger.info("api/event/create: No app notification sent for event_type = %s | payload received = %s" % (event_type, payload))
 
         TasksImpl.log_task_detail_in_db_on_new_task_creation_or_updation(task_id=str(task_id),
                                                                         event_instance=event_instance,
@@ -277,6 +286,14 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
 
         is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
 
+        info_logger.info(f"api/event/create: Scheduliing app notifications: "
+                         f"Event_type = {event_type} | "
+                         f"Final user instances = {final_user_instances} | "
+                         f"User Details list = {user_details_list} |"
+                         f"send_allowed = {send_allowed} | "
+                         f"is_task_deleted = {is_task_deleted} | "
+                         f"app_noti_dict = {app_noti_dict} ")
+        
         if send_allowed and not is_task_deleted:
             app_noti_dict = TasksHelper.add_community_info_to_notification_payload(app_noti_dict, community_id)
             notification_meta(user_details_list, app_noti_dict)
@@ -372,6 +389,11 @@ def trigger_email_communication_for_event(payload_for_email_comms):
 @shared_task
 def send_email_notification_for_event_type(payload_for_email_comms, event_type):
     try:
+
+        info_logger.info(f"api/event/create: send_email_notification_for_event_type: "
+                         f"Event_type = {event_type} | "
+                         f"payload for email comms = {payload_for_email_comms}")
+        
         payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_email_comms)
 
         event_instance = payload.get('chatroom')
@@ -380,7 +402,11 @@ def send_email_notification_for_event_type(payload_for_email_comms, event_type):
         tasks_instance = TasksImpl(event_type=event_type, comm_type=COMM_TYPE.EMAIL)
         response_dict = tasks_instance.get_response_dict_for_email_comms(payload, event_cost_in_event_creation_mail)
 
+        info_logger.info(f"api/event/create: get_response_dict_for_email_comms: response_dict = {response_dict}")
+
         task_begin_time = tasks_instance.calculate_time_for_sending_notification(event_instance=event_instance)
+
+        info_logger.info(f"api/event/create: calculate_time_for_sending_notification: task_begin_time = {task_begin_time}")
 
         if 'post' in event_type:
             task_expiry_time = TasksHelper.get_end_time_for_event(event_instance) + \
@@ -389,11 +415,16 @@ def send_email_notification_for_event_type(payload_for_email_comms, event_type):
         else:
             task_expiry_time = TasksHelper.get_end_time_for_event(event_instance)
 
+        info_logger.info(f"api/event/create: get_end_time_for_event: task_expiry_time = {task_expiry_time}")
+
         if task_begin_time != 0:
             args = [payload_for_email_comms, response_dict, event_type]
 
-            info_logger.info("Scheduling email notification for event_type = %s | Eta = %s | response_dict = %s | \
-                            payload received = %s" % (event_type, str(task_begin_time), response_dict, payload))
+            info_logger.info(f"api/event/create: Scheduling email notification for event_type = {event_type} | "
+                             f"Eta = {str(task_begin_time)} | "
+                             f"response_dict = {response_dict} | "
+                             f"payload received = {payload} | "
+                             f" chatroom Event name = {event_instance.title} ")
 
             task_id = schedule_email_notifications_for_event.apply_async(
                 args,
@@ -404,7 +435,7 @@ def send_email_notification_for_event_type(payload_for_email_comms, event_type):
 
         else:
             task_id = ""
-            info_logger.info("No email notification sent for event_type = %s | payload received = %s" % (event_type, payload))
+            info_logger.info("api/event/create: No email notification sent for event_type = %s | payload received = %s" % (event_type, payload))
 
         TasksImpl.log_task_detail_in_db_on_new_task_creation_or_updation(task_id=str(task_id),
                                                                         event_instance=event_instance,
@@ -412,13 +443,18 @@ def send_email_notification_for_event_type(payload_for_email_comms, event_type):
                                                                         event_type=event_type)
 
     except Exception as e:
-        error_logger.exception("got error in send_email_notification_for_event_type | error - %s | payload received = %s |\
-                            event_type = %s" % (str(e), payload_for_email_comms, event_type))
+        error_logger.exception("api/event/create: got error in send_email_notification_for_event_type | error - %s | payload received = %s | event_type = %s" % (str(e), payload_for_email_comms, event_type))
 
 @app.task
 @shared_task(bind=True)
 def schedule_email_notifications_for_event(self, payload_for_email_comms, response_dict, event_type):
     try:
+
+        info_logger.info(f"api/event/create: schedule_email_notifications_for_event: "
+                         f"payload_for_email_comms = {payload_for_email_comms} | "
+                         f"response_dict = {response_dict} | "
+                         f"event_type = {event_type} ")
+        
         payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_email_comms)
 
         event_instance = payload.get('chatroom')
@@ -428,13 +464,25 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         user_instances = []
 
         if event_type == EVENT_TYPE.CREATION:
+
+            
             active_user_ids = TasksHelper.get_active_members_excluding_non_members_in_community(community_id,
                                                                                                 active_user_ids)
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
                                                                                             event_instance,
                                                                                             add_event_creator=False)
             user_instances = active_user_ids + community_managers
+
+            info_logger.info(f"api/event/create: Event Creation users calculation | "
+                                f"active_user_ids = {active_user_ids} | "
+                                f"community_managers = {community_managers} | "
+                                f"user_instances = {user_instances} ")
+            
             user_instances = filter_user_instances_based_on_notification_flag(user_instances, community_id)
+
+            info_logger.info(f"api/event/create: Event Creation users calculation | "
+                             f"user_instances after notifiication flag = {user_instances} ")
+            
 
         elif event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
@@ -443,6 +491,10 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
 
             user_instances = active_user_ids + community_managers
 
+            info_logger.info(f"api/event/create: Post Event attachments users calculation | "
+                             f"community_managers = {community_managers} | "
+                             f"user_instances = {user_instances} ")
+
         elif event_type == EVENT_TYPE.LAST_CALL:
             users_not_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
                                                                                                             active_user_ids,
@@ -450,11 +502,22 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
 
             user_instances = TasksHelper.get_members_excluding_non_members_in_community(community_id,
                                                                                         users_not_attending_event)
+            
+            info_logger.info(f"api/event/create: Event Last Call users calculation | "
+                             f"users_not_attending_event = {users_not_attending_event} | "
+                             f"user_instances = {user_instances} ")
+            
             user_instances = filter_user_instances_based_on_notification_flag(user_instances, community_id)
+
+            info_logger.info(f"api/event/create: Event Last Call users calculation | "
+                             f"user_instances after notification flag = {user_instances} ")
 
         elif event_type == EVENT_TYPE.REGISTRATION:
 
             user_instances = [payload.get('user')]
+
+            info_logger.info(f"api/event/create: Event Registration user calculation | "
+                             f"user_instances = {user_instances} ")
 
         elif event_type == EVENT_TYPE.ATTENDANCE_9_AM:
             users_attending_event = TasksHelper.get_list_of_members_attending_or_not_attending_event(event_instance.id,
@@ -466,6 +529,11 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
 
             user_instances = users_attending_event + community_managers
 
+            info_logger.info(f"api/event/create: Event Attendance 9AM users calculation | "
+                             f"users_attending_event = {users_attending_event} | "
+                             f"community_managers = {community_managers} | "
+                             f"user_instances = {user_instances} ")
+
         elif event_type == EVENT_TYPE.POST_EVENT_ATTENDEES:
             user_instances = TasksHelper.get_community_owner_and_event_creator(community_id, event_instance)
 
@@ -476,12 +544,21 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
                                                                                              list(user_instances))
         else:
             final_user_instances = user_instances
-        
+
         if event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS and payload_for_email_comms.get('user') in final_user_instances:
                 final_user_instances.remove(payload_for_email_comms.get('user'))
 
         response_dict['community_name'] = event_instance.community.name
 
+        final_users_count = len(final_user_instances)
+        info_logger.info(f"api/event/create: schedule_email_notifications_for_event: | "
+                         f"is_non_member_access_event = {is_non_member_access_event} | "
+                         f"response_dict = {response_dict} | "
+                         f"final_user_instances = {final_user_instances} Count = {final_users_count} | "
+                         f"")
+        
+        count = 1
+        
         for user_id in final_user_instances:
 
             response_dict['unsub'] = EMAIL_UNSUBSCRIBE_URL % (settings.WEB_URL, str(community_id), str(user_id))
@@ -494,6 +571,10 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
             is_task_deleted = TasksHelper.is_event_comms_task_deleted(self.request.id)
 
             if send_allowed and not is_task_deleted:
+
+                info_logger.info(f"api/event/create: {event_type} | User {count} ({context['to_mails_list']}) out of {final_users_count} | "
+                                 f"Sending email with subject = {context['subject']} ")
+                
                 MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
                                                               from_email=context['from_email'],
                                                               to_mails_list=context['to_mails_list'],
@@ -502,13 +583,13 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
                                                               categories=context['categories'])
 
             else:
-                info_logger.info("No email notification scheduled for event_type = %s | chatroom_deleted = %s | \
-                    is_task_deleted = %s | payload received = %s" % (event_type, not send_allowed, is_task_deleted,
-                                                                     payload_for_email_comms))
+                info_logger.info("api/event/create: No email notification scheduled for event_type = %s | chatroom_deleted = %s | is_task_deleted = %s | payload received = %s" % (event_type, not send_allowed, is_task_deleted,payload_for_email_comms))
+
+            count += 1
 
     except Exception as e:
-        error_logger.exception("got error in send_email_notification_for_event_type | error - %s | payload received = %s |\
-                            event_type = %s" % (str(e), payload_for_email_comms, event_type))
+        info_logger.info("api/event/create: got error in send_email_notification_for_event_type | error - %s | payload received = %s | event_type = %s" % (str(e), payload_for_email_comms, event_type))
+        error_logger.exception("got error in send_email_notification_for_event_type | error - %s | payload received = %s | event_type = %s" % (str(e), payload_for_email_comms, event_type))
 
 
 @shared_task

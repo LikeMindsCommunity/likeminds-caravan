@@ -1841,7 +1841,7 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
             sql += """ AND ("togther_userinfo"."name" ILIKE '%s')""" % str(member_name_search_string + "%")
 
         if order_by_name:
-            sql += " order by lower(togther_userinfo.name) ASC"
+            sql += " order by lower(togther_userinfo.name) ASC, togther_userinfo.id"
 
         if page_size:
             sql += """ limit %s""" % str(page_size)
@@ -1935,7 +1935,7 @@ def get_members_meta_list(community_id: int, member_ids:list = None, page=1, pag
                     {get_removed_members}
                     AND ("togther_userinfo"."name" ILIKE '{search_string}%')
 
-                order by lower(togther_userinfo.name) ASC
+                order by lower(togther_userinfo.name) ASC, togther_userinfo.id
                 OFFSET {offset} LIMIT {page_size};
               """
 
@@ -3222,7 +3222,12 @@ def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, exc
                                            ELSE 2
                                   END), ca.created_at DESC) AS row_number
                          FROM     togther_card_answers      AS ca
-                         WHERE    ca.card_id IN %s)
+                         WHERE    ca.card_id IN %s
+                         AND NOT  (
+                                    ca.attachment_count > 0 
+                                    AND ca.attachments_uploaded = false
+                                  )   
+                )
                 SELECT   card_id,
                          id,
                          created_at
@@ -3743,6 +3748,10 @@ def get_latest_conversations_against_chatrooms_list(chatroom_ids_list, number_of
                          FROM   togther_card_answers
                          WHERE  togther_card_answers.card_id IN %s
                                 AND togther_card_answers.state = 0
+                                AND NOT ( 
+                                            togther_card_answers.attachment_count > 0
+                                            AND togther_card_answers.attachments_uploaded = False
+                                        )
                          ORDER  BY togther_card_answers.created_at DESC)
                 SELECT card_id,
                        ans_id,
@@ -3874,11 +3883,12 @@ def get_sdk_client_query_meta_for_sync_revamp(key_name_prefix: str = None):
     query_fields = ['user_unique_id', 'community_id']
     meta_query = create_query_with_prefix(query_fields, 'togther_sdkclientusersinfo', 'sdk_client_info', key_name_prefix)
 
-    # To add uuid and id in sdk_client_info object
+    # To add uuid and user in sdk_client_info object
     userinfo_uuid = f'togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___uuid___{key_name_prefix}'
     userinfo_id = f'togther_sdkclientusersinfo.user_id AS sdk_client_info___id___{key_name_prefix}'
+    userinfo_user = f'togther_sdkclientusersinfo.user_id AS sdk_client_info___user___{key_name_prefix}'
 
-    return ",".join(meta_query + [userinfo_uuid, userinfo_id])
+    return ",".join(meta_query + [userinfo_uuid, userinfo_id, userinfo_user])
 
 
 def get_reactions_query_meta_for_sync_revamp(key_name_prefix: str = None):
@@ -4102,6 +4112,10 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                         ) AS chatroom_users_data 
                         INNER JOIN togther_card_answers ON togther_card_answers.card_id = chatroom_users_data.id 
                         AND togther_card_answers.state IN (0, 1, 10)
+                        AND NOT (
+                            togther_card_answers.attachment_count > 0
+                            AND togther_card_answers.attachments_uploaded = False
+                        )
                       )
                   ) AS chat_conversation_data 
                   LEFT JOIN togther_userinfo ON (
@@ -4205,6 +4219,10 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                                                              WHERE    ({}
                                                                                                togther_card_answers.card_id = {}
                                                                                       AND      togther_card_answers.community_id = {}
+                                                                                      AND NOT   ( 
+                                                                                                    togther_card_answers.attachment_count > 0
+                                                                                                    AND togther_card_answers.attachments_uploaded = False
+                                                                                                )
                                                                                       AND      togther_card_answers.last_updated >= {}
                                                                                       AND      togther_card_answers.last_updated <= {} )
                                                                              ORDER BY 
@@ -4301,6 +4319,10 @@ def get_unseen_count_for_chatroom_ids(chatroom_ids_list: list, user_id: int):
                                LEFT JOIN togther_card_answers
                                       ON togther_card_answers.card_id =
                                          togther_collabcardstate.card_id
+                                      AND NOT (
+                                            togther_card_answers.attachment_count > 0
+                                            AND togther_card_answers.attachments_uploaded = false
+                                      )
                         WHERE  togther_collabcardstate.user_id = {}
                                AND togther_collabcardstate.card_id IN {}
                                AND togther_card_answers.state IN {}) AS state_data

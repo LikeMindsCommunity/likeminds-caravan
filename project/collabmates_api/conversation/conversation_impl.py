@@ -1820,6 +1820,19 @@ class ConversationHelper:
             )
 
     @staticmethod
+    def update_last_seen_conversation_in_collabcard_state(conversation_instance, user_instance, chatroom_instance):
+
+        collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState,
+                                                                  {'card': chatroom_instance,
+                                                                   'user': user_instance}).first()
+
+        if collabcard_state_filter:
+            collabcard_state_filter.last_seen_conversation = conversation_instance
+            collabcard_state_filter.updated_at = TimeUtilities.current_time_in_sec()
+            collabcard_state_filter.save()
+
+
+    @staticmethod
     def compute_conversation_poll_answer_text(conversation_instance) -> str:
 
         total_users = ModelUtilities.get_model_filter(conversationPollMembers,
@@ -2293,9 +2306,12 @@ class ConversationHelper:
     @staticmethod
     def _auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance, user_instance,
                               member_state):
+        
+        empty_conversation = (conversation_instance.attachment_count > 0 and not conversation_instance.attachments_uploaded)
 
         if chatroom_state_instance:
-            chatroom_state_instance.last_seen_conversation = conversation_instance
+            if not empty_conversation:
+                chatroom_state_instance.last_seen_conversation = conversation_instance
             chatroom_state_instance.follow_status = True
             chatroom_state_instance.updated_at = TimeUtilities.current_time_in_sec()
 

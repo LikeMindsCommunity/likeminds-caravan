@@ -1187,6 +1187,9 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
             elif data[field.field_name] is None:
                 del data[field.field_name]
 
+            elif field.field_name == 'deleted_by' and data['deleted_by']:
+                data['deleted_by_member'] = self.get_serialised_userinfo(data['deleted_by'])
+
         return data
 
 
@@ -1388,7 +1391,7 @@ class CommunityQuestionsSerializerV2(serializers.ModelSerializer):
         model = communityQuestions
         fields = ('id', 'community', 'question_title', 'question_state', 'value', 'optional', 'help_text',
                   'is_hidden', 'is_compulsory', 'rank', 'can_add_options', 'field', 'remove_state',
-                  'is_answer_editable')
+                  'is_answer_editable', 'tag')
 
 
 class CommunityAnswersSerializer(serializers.ModelSerializer):

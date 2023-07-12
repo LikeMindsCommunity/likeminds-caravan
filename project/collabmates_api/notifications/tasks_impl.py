@@ -19,6 +19,8 @@ from utility.url_utilities import UrlUtilities
 from utility.celery_tasks import get_event_pricing
 from collabmates_api.static_text import CUSTOMISE_JOIN_FORM_MAIL_SUBJECT
 from collabmates_api.branch import create_single_event_branch_url
+from ..chatroom.constants import (EMAIL_UNSUBSCRIBE_URL)
+
 
 from .constants import *
 from .tasks_manager import TaskManager
@@ -1009,6 +1011,7 @@ class TasksHelper:
 
         template = None
         categories = []
+        data_dict['unsub'] = EMAIL_UNSUBSCRIBE_URL % (settings.WEB_URL, str(community_id), str(receiver_id))
 
         if chatroom_not_opened_type == chatroom_not_opened_types.TAGGED_CHATROOM:
             template = get_template("mails/engagement_mails/tagged_chatroom_not_opened.html").render(data_dict)

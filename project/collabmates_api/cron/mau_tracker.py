@@ -97,14 +97,6 @@ def getUserListFromCoralogixData(coralogixData):
                     if request_entry['body'].get('user_unique_id'):
                         users_list.add(request_entry['body']['user_unique_id'])
 
-                    if request_entry['body'].get('chatroom_participants'):
-                        for participant in request_entry['body']['chatroom_participants']:
-                            users_list.add(participant)
-
-                    if request_entry['body'].get('secret_chatroom_participants'):
-                        for participant in request_entry['body']['secret_chatroom_participants']:
-                            users_list.add(participant)
-
     return users_list
 
 
@@ -194,12 +186,12 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
                                     'must': [
                                         {
                                             'match_phrase': {
-                                                'request.absolute_uri': 'api/community/member',
+                                                'request.absolute_uri': 'api/v2/fetch_chatroom',
                                             }
                                         },
                                         {
                                             'match_phrase': {
-                                                'request.method': 'POST'
+                                                'request.method': 'GET'
                                             }
                                         }
                                     ]
@@ -210,28 +202,12 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
                                     'must': [
                                         {
                                             'match_phrase': {
-                                                'request.absolute_uri': 'api/chatroom/add',
+                                                'request.absolute_uri': 'api/chatroom/fetch',
                                             }
                                         },
                                         {
                                             'match_phrase': {
-                                                'request.method': 'POST'
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                'bool': {
-                                    'must': [
-                                        {
-                                            'match_phrase': {
-                                                'request.absolute_uri': 'api/chatroom/secret/add',
-                                            }
-                                        },
-                                        {
-                                            'match_phrase': {
-                                                'request.method': 'POST'
+                                                'request.method': 'GET'
                                             }
                                         }
                                     ]
@@ -323,26 +299,61 @@ def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
                                            'users_list': json.dumps(activeUsers)})
 
 
-@app.task
 @shared_task
 def track():
+    # Logging process stage
+    info_logger.info("""MAU Tracker Log: - {}""".format("MAU Tracking Started"))
+
     # Fetch all the billing records for which MAU needs to be computed
     billingRecords = ModelUtilities.get_model_filter(CommunityBillingDates, {})
     today = date.today()
 
     for billingRecord in billingRecords:
+        # Logging process stage
+        info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                   billingRecord.sdk,
+                                                                   "Tracking Process Started"))
+
         # Update Unique Active Users of a Billing record for the day
         updateUniqueUsersOfACommunityBillingEntry(billingRecord)
 
+        # Logging process stage
+        info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                   billingRecord.sdk,
+                                                                   "Users Updated in Active Users"))
+
         # If New month started for a billing record
         if int(today.strftime("%d")) == billingRecord.start_date:
+            # Logging process stage
+            info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                       billingRecord.sdk,
+                                                                       "Data Aggregation Started"))
+
             # Fetch all the unique users for a billing record in a month and Create a MonthlyActiveUsers Record
             updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today)
+
+            # Logging process stage
+            info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                       billingRecord.sdk,
+                                                                       "Data Updated in Monthly Data Users"))
 
             # If record exists for the current date in MonthlyActiveUsers
             monthlyDataRecord = ModelUtilities.get_model_filter(ActiveUserMonthlyData,
                                                                 {'billing': billingRecord,
                                                                  'end_date': today.strftime("%s")})
             if monthlyDataRecord:
+                # Logging process stage
+                info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                           billingRecord.sdk,
+                                                                           "Active Users Data Deletion Started"))
+
                 # Delete all the ActiveUser records for that billing record
                 ModelUtilities.delete_record_in_model(ActiveUser, {'billing': billingRecord})
+
+        # Logging process stage
+        info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                   billingRecord.sdk,
+                                                                   "Tracking Process Completed"))
+
+    # Logging process stage
+    info_logger.info("""MAU Tracker Log: - {}""".format("MAU Tracking Completed"))

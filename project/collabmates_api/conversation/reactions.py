@@ -173,7 +173,7 @@ def backfill_all_chatroom_reactions_in_cache():
 
     try:    
 
-        info_logger.info("Starting backflling of all chatroom reactions in cache")
+        info_logger.info("Starting backfilling of all chatroom reactions in cache")
 
         # fetch all chatroom reactions from MessageReactions table
         chatroom_reactions = ModelUtilities.get_model_filter(MessageReactions, {'conversation': None}
@@ -242,7 +242,7 @@ def backfill_all_conversation_reactions():
 
     try:
         
-        info_logger.info("Starting backflling of all conversation reactions in cache")
+        info_logger.info("Starting backfilling of all conversation reactions in cache")
 
         # fetch all chatroom reactions from MessageReactions table
         conversation_reactions = ModelUtilities.get_model_filter(MessageReactions, {'conversation__isnull': False}
