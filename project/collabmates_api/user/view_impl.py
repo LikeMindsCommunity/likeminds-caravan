@@ -352,7 +352,7 @@ class UserOTPView(APIView):
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
         user_manager = UserImpl(user_id="", api_key=api_key)
-        response_data = user_manager.send_user_otp(otp_type=req_body.get('otp_type'),
+        response_data = user_manager.send_user_otp(otp_type=req_body.get('otp_mode'),
                                                    mobile_no=req_body.get('mobile_no'),
                                                    country_code=req_body.get('country_code'),
                                                    email_id=req_body.get('email_id'),
@@ -370,7 +370,7 @@ class UserOTPView(APIView):
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
         user_manager = UserImpl(user_id="", api_key=api_key)
-        response_data = user_manager.verify_user_otp(otp_type=req_params.get('otp_type'),
+        response_data = user_manager.verify_user_otp(otp_type=req_params.get('otp_mode'),
                                                      mobile_no=req_params.get('mobile_no'),
                                                      country_code=req_params.get('country_code'),
                                                      email_id=req_params.get('email_id'),
