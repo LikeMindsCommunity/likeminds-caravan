@@ -324,7 +324,7 @@ class UserImpl(UserManager):
         app_access = True
         is_bot = user_context.get('is_bot', False)
 
-        if not (is_bot or api_key):
+        if not (is_bot or api_key or not user_unique_id):
             return ResponseUtilities.get_inner_error_context("Invalid API key!")
 
         if api_key:
