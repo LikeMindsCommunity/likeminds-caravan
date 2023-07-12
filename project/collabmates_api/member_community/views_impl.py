@@ -513,6 +513,32 @@ class JoinCommunitySDKView(APIView):
         return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
                                                                             community_context.get('status_code')))
 
+    def put(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+        validated_req_body = MemberCommunityViewHelper.validate_join_community_request(member_id)
+        device_id = RequestUtilities.get_device_id_from_headers(request)
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        if validated_req_body.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_req_body.get('error_message'),
+                                                                                validated_req_body.get('status')))
+
+        member_community_manager = MemberCommunityImpl(member_id, community_id=req_body.get('community_id'),
+                                                       device_id=device_id, platform_code=platform_code,
+                                                       api_key=api_key, version_code=version_code)
+        community_context = member_community_manager.approve_decline_join_community_request(
+            req_body.get('uuid'), req_body.get('is_accepted', False))
+
+        if 'error_message' not in community_context:
+            return JsonResponse(community_context, status=status_codes.HTTP_200_OK)
+
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                            community_context.get('status_code')))
+
 
 class UnsubscribeEmailNotificationsView(APIView):
 

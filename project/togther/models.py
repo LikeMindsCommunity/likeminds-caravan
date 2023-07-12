@@ -2359,6 +2359,21 @@ class ModelUtilities:
         return instance
 
     @staticmethod
+    def get_user_instance_or_none_from_uuid(pk, community_id: int):
+        instance = None
+
+        if not pk:
+            return instance
+
+        instance = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'community': community_id}).filter(
+            Q(user_unique_id=pk) | Q(user__userinfo__user_unique_id=pk)).first()
+
+        if instance:
+            instance = instance.user
+
+        return instance
+
+    @staticmethod
     def paginate_queryset(queryset, page, paginate_by):
 
         offset = (page - 1) * paginate_by
@@ -2444,12 +2459,10 @@ class ModelUtilities:
         if not isinstance(uuids, list):
             return []
         
-        client_user_ids = []
-
         # Filter client user unique ids from SDkClientUsersInfo
         sdk_client_user_filters = ModelUtilities.get_model_filter(SDKClientUsersInfo,
-                                                                    {'user_unique_id__in': uuids,
-                                                                    'community': community_id})
+                                                                  {'user_unique_id__in': uuids,
+                                                                   'community': community_id})
 
         client_user_ids = list(sdk_client_user_filters.values_list('user_id', flat=True))
         client_user_unique_ids = list(sdk_client_user_filters.values_list('user_unique_id', flat=True))

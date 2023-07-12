@@ -5,7 +5,7 @@ from django.shortcuts import render
 # from django.core.mail import EmailMultiAlternatives
 import time
 # from django.template import Context
-from external_services.email.email_wrapper import MailHelper
+from external_services.email.email_wrapper import MailHelper, MailWrapper
 from togther.models import *
 
 from project.celery import app
@@ -18,6 +18,9 @@ from utility.utils import (android_app_download_link, ios_app_download_link, get
 from utility.encryption import encrypt, decrypt
 
 from .static_files import GOOGLE_PLAYSTORE, APPLE_APPSTORE, APP_LOGO
+from utility.constants import (COMMUNITY_HOOD_ID, COMMUNITY_HOOD_PENDING_MEMBER_MAIL_SUBJECT,
+                               COMMUNITY_HOOD_PENDING_MEMBER_MAIL_BODY)
+from collabmates_api.notifications.tasks_impl import TasksHelper
 from celery import shared_task
 import json
 from utility.mail_category_constants import *
@@ -118,3 +121,24 @@ def send_report_mail_to_team(subject, report_instance_id):
 
     send_email(subject, template, to)
     # print(template)
+
+
+@shared_task
+def send_community_hood_waitlist_email_to_pending_member(user_id, community_id):
+
+    if community_id != COMMUNITY_HOOD_ID:
+        return
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
+
+    if not user_instance:
+        return
+
+    mail_to_list = TasksHelper.get_emails_list_for_user_instances([user_instance])
+
+    mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.REGISTRATION,
+                                                                                    EmailSubCategories.WAITLIST)
+
+    MailWrapper.send_email(COMMUNITY_HOOD_PENDING_MEMBER_MAIL_SUBJECT,
+                           COMMUNITY_HOOD_PENDING_MEMBER_MAIL_BODY.format(user_instance.userinfo.name),
+                           mail_to_list, categories=mail_categories)
