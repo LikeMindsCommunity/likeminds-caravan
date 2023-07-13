@@ -73,7 +73,7 @@ S3_BUCKETS = {
 
 GHUPSHUP_KEY = "03f92dd7cbf3b983d8c9a4dc7ac485c7"
 
-OTP_TEMPLATE_ID = '5fd9f7f1e96b780fae01acff'
+OTP_TEMPLATE_ID = os.getenv('MSG_91_OTP_TEMPLATE_ID')
 
 ADMINS = [('Mahir', 'mahir.gupta@likeminds.community'),
           ('Ankit', 'ankit.garg@likeminds.community'),
