@@ -189,7 +189,7 @@ def get_user_email_list(user_id):
     return email_list
 
 
-def get_logged_in_user(user_instance, sdk_client_info_flag:bool = False):
+def get_logged_in_user(user_instance, sdk_client_info_flag: bool = False):
     if isinstance(user_instance, Userinfo):
         context = UserinfoSerializer(user_instance, sdk_client_info_flag=sdk_client_info_flag)
         user_id = user_instance.user_id_id

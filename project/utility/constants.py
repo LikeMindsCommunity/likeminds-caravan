@@ -101,3 +101,16 @@ INTERNATIONAL_OTP_LIMIT_MAIL_TEMPLATE = 'mails/international_otp_limit.html'
 INTERNATIONAL_OTP_LIMIT_MAIL_RECEIVERS = ['product@likeminds.community', 'backend@likeminds.community']
 INTERNATIONAL_OTP_LIMIT_FILE_NAME = 'international_otp_blocked_requests_%s.csv'
 INTERNATIONAL_OTP_LIMIT_API_PATH = 'otp_limit_mail'
+
+COMMUNITY_HOOD_PENDING_MEMBER_MAIL_SUBJECT = "Thank you for your interest in joining CommunityHood!"
+COMMUNITY_HOOD_PENDING_MEMBER_MAIL_BODY = """
+Dear {},
+
+Thank you for your interest in being a part of CommunityHood. Your account is under approval process.
+
+We will update you shortly with your account status.
+
+Best regards,
+
+Team CommunityHood
+"""

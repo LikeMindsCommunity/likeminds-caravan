@@ -11,7 +11,8 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
                             Collabcard, card_answers, conversationEngage, communityQuestions, CommunityUserDelete,
                             communityRightsSettings, CommunitySettings, communityAnswers, questionFilters,
-                            Card_Attachment, CommunityDirectMessageSettings, userMemberRights, Userinfo, SDKClientUsersInfo)
+                            Card_Attachment, CommunityDirectMessageSettings, userMemberRights, Userinfo,
+                            SDKClientUsersInfo, moderationHistory)
 from collabmates_api.sdk.models import (SdkClient)
 from utility.celery_tasks import update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery, \
     update_multiple_previews_in_chatroom, set_level_click_state, create_member_dm_chatroom, \
@@ -22,7 +23,7 @@ from utility.exception_utilities import CustomException
 from utility.states import member_states, card_types, deleted_members, question_states, \
     conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers, \
     community_dm_settings_state_types, community_dm_settings_duration_types, dm_icon_from_states, get_started_types, \
-    api_types, access_types, feed_order_types, DMFabShowList
+    api_types, access_types, feed_order_types, DMFabShowList, click_states, moderation_history_types
 
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
@@ -72,6 +73,8 @@ from ..user_moderation_rights import check_admin_approve_right, check_admin_dele
     check_member_create_post_right, check_member_comment_and_reply_right
 from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check, \
     m2cm_v2_version_check
+from collabmates_api.notification import (send_notification_to_admins)
+from collabmates_api.mails import (send_community_hood_waitlist_email_to_pending_member)
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
 from ..views import get_home_screen_community_actions, generate_internal_link_preview_for_conversation, \
@@ -1888,20 +1891,64 @@ class MemberCommunityImpl(MemberCommunityManager):
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
 
+        members_auto_join_filter_dict = {
+            'community': community_instance,
+            'setting_type': community_setting_types.MEMBERS_AUTO_JOIN
+        }
+
+        community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                     members_auto_join_filter_dict).first()
+
         members_filter = ModelUtilities.get_model_filter(Members, {'member_id': user_instance,
                                                                    'community_id': community_instance})
 
         req_body = req_body if req_body else {}
 
-        if not members_filter:
+        if (not members_filter) and (community_setting_instance and community_setting_instance.enabled):
             MemberCommunityHelper.make_requesting_user_as_member_of_community(user_instance, community_instance,
                                                                               req_body, device_id=self.get_device_id(),
                                                                               platform=self.get_platform_code(),
                                                                               version_code=self.get_version_code())
 
+        elif (not members_filter) and (community_setting_instance and not community_setting_instance.enabled):
+            MemberCommunityHelper.make_requesting_user_as_pending_member_of_community(user_instance,
+                                                                                      community_instance,
+                                                                                      req_body)
+
         user_has_access = Members.user_has_app_access(user_instance.id)
 
         return {'success': True, 'access': user_has_access}
+
+    def approve_decline_join_community_request(self, uuid: str, is_accepted: bool) -> {}:
+        validated_request = MemberCommunityHelper.validate_approve_decline_join_community_request(
+            self.get_member_id(), self.get_api_key(), uuid, is_accepted)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        member_instance = validated_request.get('member_instance')
+
+        if is_accepted:
+            MemberCommunityHelper.approve_user_community_joining_request(member_instance,
+                                                                         community_instance,
+                                                                         user_instance,
+                                                                         self.get_platform_code(),
+                                                                         self.get_version_code())
+
+        else:
+            MemberCommunityHelper.reject_user_community_joining_request(member_instance,
+                                                                        community_instance,
+                                                                        user_instance)
+
+        from collabmates_api.community.community_impl import CommunityImpl
+
+        community_impl = CommunityImpl(member_id=user_instance.id)
+        community_impl.send_approve_reject_data_on_airtable(user_instance, community_instance, is_accepted)
+
+        return {'success': True}
 
     def unsubscribe_email_notifications(self, code_flags: dict) -> {}:
         validated_request = MemberCommunityViewHelper.validate_unsubscribe_email_notifications_request(
@@ -3071,7 +3118,33 @@ class MemberCommunityHelper:
         community_impl = CommunityImpl(member_id=user_instance.id, community_id=community_instance.id)
         community_impl.set_members_count_in_community(community_instance.id, members_count)
 
-        ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance)
+        create_intro_room_setting_dict = {
+            'community': community_instance,
+            'setting_type': community_setting_types.CREATE_INTRO_ROOMS
+        }
+
+        community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                     create_intro_room_setting_dict).first()
+
+        if community_setting_instance and community_setting_instance.enabled:
+
+            from collabmates_api.views import (post_master_introductions_for_community)
+
+            # Get owner of community
+            owner_user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
+
+            # Create MASTER intro room if not available in SDK
+            post_master_introductions_for_community(community_instance.id, owner_user_instance.id)
+
+            introduction_answer = CommunityHelper.create_introduction_text_for_intro_chatroom(
+                community_instance, user_instance, req_body.get(DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY), True)
+
+            CommunityHelper.add_introductions_room_in_master_intro(community_instance, user_instance,
+                                                                   member_states.MEMBER,
+                                                                   introduction_answer=introduction_answer)
+
+        else:
+            ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance)
 
         action_required_by_promoter = ModelUtilities.is_model_filter_exists(Members,
                                                                             {'community_id': community_instance,
@@ -3104,6 +3177,43 @@ class MemberCommunityHelper:
         update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
 
         CommunityHelper.send_community_moderation_mail_to_cm.delay(community_instance.id)
+
+    @staticmethod
+    def make_requesting_user_as_pending_member_of_community(user_instance, community_instance, req_body):
+
+        from collabmates_api.community.community_impl import CommunityHelper, CommunityImpl
+        from collabmates_api.community.constants import (DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY)
+
+        question_answers_list = req_body.get(DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY)
+
+        if question_answers_list:
+            CommunityHelper.save_responses_of_member_in_community.delay(user_instance.id,
+                                                                        community_instance.id,
+                                                                        question_answers_list,
+                                                                        True)
+
+        Members.create_instance({'user_instance': user_instance,
+                                 'community_instance': community_instance,
+                                 'state': member_states.PENDING_MEMBER,
+                                 'image_url': req_body.get('image_url')})
+
+        ModelUtilities.update_or_create_model(Member_Engage,
+                                              {'member_id': user_instance,
+                                               'community_id': community_instance},
+                                              {'member_state': member_states.PENDING_MEMBER,
+                                               'click_state': click_states.PENDING_APPROVAL,
+                                               'order_time': TimeUtilities.current_time_in_milliseconds()})
+
+        CommunityImpl.update_pending_members_after_request_accept_or_reject(community_instance)
+
+        history_type = moderation_history_types.SDK_PENDING_MEMBER
+
+        moderationHistory.create_instance({'user_instance': user_instance,
+                                           'community_instance': community_instance,
+                                           'type': history_type})
+
+        send_notification_to_admins.delay(community_instance.id, user_instance.userinfo.name)
+        send_community_hood_waitlist_email_to_pending_member.delay(user_instance.id, community_instance.id)
 
     @staticmethod
     def get_ordered_home_communities_list_based_on_engage_ids(member_engage_ids):
@@ -3297,3 +3407,120 @@ class MemberCommunityHelper:
             'user_instance': user_instance,
             'community_instance': community_instance
         }
+
+    @staticmethod
+    def validate_approve_decline_join_community_request(user_id, api_key: str, uuid: str, is_accepted: bool):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id,
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+
+        user_member_instance = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                         'member_id': user_instance,
+                                                                         'state': member_states.ADMIN}).first()
+
+        if not user_member_instance:
+            return ResponseUtilities.get_inner_error_context('You cannot approve or decline the request!')
+
+        member_instance = ModelUtilities.get_user_instance_or_none_from_uuid(uuid, community_instance.id)
+
+        if not member_instance:
+            return ResponseUtilities.get_inner_error_context('No user record exists!')
+
+        if not Members.get_community_member_state(community_instance, member_instance) == member_states.PENDING_MEMBER:
+            return ResponseUtilities.get_inner_error_context('User is not a pending member!')
+
+        if not isinstance(is_accepted, bool):
+            return ResponseUtilities.get_inner_error_context('Invalid is_accepted value type!')
+
+        if is_accepted and Members.is_community_member(community_instance, member_instance):
+            return ResponseUtilities.get_inner_error_context('You are already a community member!')
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'member_instance': member_instance,
+            'action_required_by_promoter': user_member_instance.actions_required
+        }
+
+    @staticmethod
+    def approve_user_community_joining_request(user_instance, community_instance, promoter_instance,
+                                               platform_code, version_code):
+        from collabmates_api.community.community_impl import CommunityImpl, CommunityHelper
+        from collabmates_api.cohort.cohort_impl import CohortHelper
+        from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+
+        community_impl = CommunityImpl(member_id=user_instance.id)
+
+        community_impl.approve_community_join_request(community_instance, user_instance, promoter_instance)
+
+        members_count = Members.get_members_count_in_community(community_instance)
+        community_impl.set_members_count_in_community(community_instance.id, members_count)
+
+        CommunityHelper.set_follow_status_for_announcement_chatroom_for_community(community_instance,
+                                                                                  user_instance)
+
+        create_intro_room_setting_dict = {
+            'community': community_instance,
+            'setting_type': community_setting_types.CREATE_INTRO_ROOMS
+        }
+
+        community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                     create_intro_room_setting_dict).first()
+
+        if community_setting_instance and community_setting_instance.enabled:
+            from collabmates_api.views import (post_master_introductions_for_community)
+
+            # Get owner of community
+            owner_user_instance = Members.get_community_owner_user_instance_or_none(community_instance)
+
+            # Create MASTER intro room if not available in SDK
+            post_master_introductions_for_community(community_instance.id, owner_user_instance.id)
+
+            introduction_answer = CommunityHelper.create_introduction_text_for_intro_chatroom(
+                community_instance, user_instance, is_directory_questions_v2=True)
+
+            CommunityHelper.add_introductions_room_in_master_intro(community_instance, user_instance,
+                                                                   member_states.MEMBER,
+                                                                   introduction_answer=introduction_answer)
+
+        else:
+            ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance)
+
+        is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code, is_sdk=True)
+
+        CommunityHelper.run_async_for_community_approve(community_instance, user_instance,
+                                                        promoter_instance.userinfo, is_m2cm_v2=is_m2cm_v2,
+                                                        is_sdk=True)
+
+        CohortHelper.add_all_member_to_cohort(community_instance.id, [user_instance.id])
+
+        community_impl._send_join_email_to_member(user_instance.id, community_instance.id)
+
+        CohortHelper.add_member_to_respective_question_based_cohorts(member_id=user_instance.id,
+                                                                     community_id=community_instance.id)
+
+    @staticmethod
+    def reject_user_community_joining_request(user_instance, community_instance, promoter_instance):
+        from collabmates_api.community.community_impl import CommunityImpl, CommunityHelper
+
+        community_impl = CommunityImpl(member_id=user_instance.id)
+
+        community_impl._decline_community_join_request(community_instance, user_instance)
+        members_count = Members.get_members_count_in_community(community_instance)
+        community_impl.set_members_count_in_community(community_instance.id, members_count)
+
+        CommunityHelper.run_async_task_for_community_declined(community_instance, user_instance,
+                                                              promoter_instance.userinfo)
+
+        ElasticSearchSync.delete_member_from_community.delay(user_instance.id, community_instance.id)

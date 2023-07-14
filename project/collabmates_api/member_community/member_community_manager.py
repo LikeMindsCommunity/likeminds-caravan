@@ -25,6 +25,8 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'request_dm_limit') and callable(subclass.request_dm_limit)) and
                 (hasattr(subclass, 'fetch_dm_chatrooms') and callable(subclass.fetch_dm_chatrooms)) and
                 (hasattr(subclass, 'join_community_sdk') and callable(subclass.join_community_sdk)) and
+                (hasattr(subclass, 'approve_decline_join_community_request') and callable(
+                    subclass.approve_decline_join_community_request)) and
                 (hasattr(subclass, 'member_can_dm') and callable(subclass.member_can_dm)) and
                 (hasattr(subclass, 'fetch_unsubscribe_email_notifications') and
                  callable(subclass.fetch_unsubscribe_email_notifications)) and
@@ -145,6 +147,11 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
     def join_community_sdk(self, req_body: dict) -> {}:
         """Member joins a community in SDK"""
+
+        raise NotImplementedError
+
+    def approve_decline_join_community_request(self, uuid: str, is_accepted: bool) -> {}:
+        """Approve or decline user request of joining the community"""
 
         raise NotImplementedError
 
