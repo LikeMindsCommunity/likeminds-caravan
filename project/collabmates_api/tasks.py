@@ -50,6 +50,7 @@ from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24, CM_ONBOARD
 from utility.mail_category_constants import *
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper, MailHelper
+from chatroom.constants import EMAIL_UNSUBSCRIBE_URL
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -462,8 +463,7 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
             'applestore_image': APPLE_APPSTORE,
             'app_image': APP_LOGO,
             'cta_url': url + '/community/' + str(community_id),
-            'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
-                user_id) + '&code=mail_has_installed_app',
+            'unsub': EMAIL_UNSUBSCRIBE_URL % (settings.WEB_URL, str(community_id), str(user_id)),
         }
         template = get_template("mails/community_confirmation_email_2.html").render(email_context)
 
