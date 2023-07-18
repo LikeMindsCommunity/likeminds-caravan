@@ -6,24 +6,6 @@ from collabmates_api.sdk.models import (SdkClient)
 from utility.states import (dm_icon_from_states, unsubscribe_types, member_states)
 
 
-def timeit(func):
-    from functools import wraps
-    import time
-    from external_services.logging.logging_wrapper import LoggingWrapper
-
-    error_logger = LoggingWrapper.get_instance()
-
-    @wraps(func)
-    def timeit_wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        total_time = end_time - start_time
-        error_logger.error(f'COMMUNITY/FEED Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
-        return result
-
-    return timeit_wrapper
-
 
 class MemberCommunityViewHelper:
 
@@ -50,7 +32,6 @@ class MemberCommunityViewHelper:
         return {'user_instance': user_instance, 'community_instance': community_instance}
 
     @staticmethod
-    @timeit
     def validate_fetch_feed_request(user_id, community_id, api_key: str = None):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 

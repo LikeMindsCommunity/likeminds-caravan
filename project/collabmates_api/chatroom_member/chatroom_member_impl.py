@@ -376,13 +376,9 @@ class ChatroomMemberImpl(ChatroomMemberManager):
     def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
                          poll_votes, sdk_client_info_flag:bool = False) -> {}:
 
-        error_logger.error(f"COMMUNITY/FEED starting serialize chatroom {self.get_member_id()} {card_instance.id}")
-
         chatroom_context = ChatroomMemberHelper.serialize_chatroom(card_instance, user=self.get_member_id(),
                                                                    return_topic=True, 
                                                                    sdk_client_info_flag=sdk_client_info_flag)
-
-        error_logger.error(f"COMMUNITY/FEED serialize chatroom completed {self.get_member_id()} {card_instance.id}")
 
         if card_instance.has_reactions:
             reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
@@ -397,11 +393,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             chatroom_context['has_been_named'] = card_instance.has_been_named
             chatroom_context['member_id'] = card_instance.user_id
 
-        error_logger.error(f"COMMUNITY/FEED serialize chatroom user actions {self.get_member_id()} {card_instance.id}")
-
         state_context = ChatroomMemberHelper.serialize_chatroom_user_actions(state_instance)
-
-        error_logger.error(f"COMMUNITY/FEED serialize chatroom user actions completed {self.get_member_id()} {card_instance.id}")
 
         if card_instance.attachment_count > 0:
             chatroom_files = ChatroomMemberHelper.fetch_chatroom_files(card_instance)
@@ -426,22 +418,14 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
         chatroom_context.update(state_context)
 
-        error_logger.error(f"COMMUNITY/FEED fill_cohort_meta_for_response starting {self.get_member_id()} {card_instance.id}")
-
         self.fill_cohort_meta_for_response(card_instance, chatroom_context)
-
-        error_logger.error(f"COMMUNITY/FEED fill_cohort_meta_for_response completed {self.get_member_id()} {card_instance.id}")
 
         preview = self.create_chatroom_preview(card_instance)
 
         if preview:
             chatroom_context['preview'] = preview
 
-        error_logger.error(f"COMMUNITY/FEED compute_total_response_count (cache) starting {self.get_member_id()} {card_instance.id}")
-
         chatroom_context['total_response_count'] = self.compute_total_response_count(card_instance)
-
-        error_logger.error(f"COMMUNITY/FEED compute_total_response_count (cache) completed {self.get_member_id()} {card_instance.id}")
 
         if chatroom_context['total_response_count']:
             chatroom_context['last_response_members'] = self.create_last_response_members_images(card_instance,
@@ -450,35 +434,21 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
-        error_logger.error(f"COMMUNITY/FEED chatroom_participants_count starting {self.get_member_id()} {card_instance.id}")
-
         chatroom_context['participants_count'] = ChatroomHelper.chatroom_participants_count(card_instance)
-
-        error_logger.error(f"COMMUNITY/FEED chatroom_participants_count completed {self.get_member_id()} {card_instance.id}")
 
         return chatroom_context
 
     def process_chatroom_list(self, chatroom_list, community_instance, sdk_client_info_flag:bool=False) -> []:
 
-        error_logger.error(f"COMMUNITY/FEED Serializing chatroom started {self.get_member_id()}")
-
         chatroom_context_list = []
         user_list = self.compute_user_id_list_of_chatroom_creators(chatroom_list)
-
-        error_logger.error(f"COMMUNITY/FEED Computed user list {self.get_member_id()}")
 
         member_dict = self.get_member_community_impl_instance(community_instance).fetch_members_based_on_user_list(
             user_list, community_instance, sdk_client_info_flag=sdk_client_info_flag)
 
-        error_logger.error(f"COMMUNITY/FEED Got member dict {self.get_member_id()}")
-
         poll_list = self.fetch_poll_id_list(chatroom_list)
 
-        error_logger.error(f"COMMUNITY/FEED Processed poll list {self.get_member_id()}")
-
         poll_data, poll_votes = self.process_poll_list(poll_list)
-
-        error_logger.error(f"COMMUNITY/FEED Processed poll data {self.get_member_id()}")
 
         removed_member_dict = {}
 
@@ -492,12 +462,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             if ChatroomMemberHelper.has_attachments_uploaded(card_instance, current_user_id, device_id=self.device_id):
                 continue
 
-            error_logger.error(f"COMMUNITY/FEED Starting process chatroom {self.get_member_id()} {card_instance.id}")
-
             chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance
                                                      , poll_data, poll_votes, sdk_client_info_flag=sdk_client_info_flag)
-
-            error_logger.error(f"COMMUNITY/FEED Chatroom processed {self.get_member_id()} {card_instance.id}")
 
             if member_dict.get(card_creator_id):
                 chatroom_context['member'] = member_dict[card_creator_id]
@@ -516,15 +482,11 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             chatroom_context['chat_request_created_at'] = data.chat_request_created_at
             chatroom_context['chat_requested_by'] = None
 
-            error_logger.error(f"COMMUNITY/FEED Getting member profile {self.get_member_id()} {card_instance.id}")
-
             if data.chat_requested_by:
                 chatroom_context['chat_requested_by'] = get_members_profile([data.chat_requested_by.id],
                                                                             community_instance.id,
                                                                             send_profile=False, 
                                                                             sdk_client_info_flag=sdk_client_info_flag)
-
-            error_logger.error(f"COMMUNITY/FEED Got member profile {self.get_member_id()} {card_instance.id}")
 
             chatroom_context_list.append(chatroom_context)
 
