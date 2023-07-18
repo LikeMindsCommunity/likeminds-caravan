@@ -6848,6 +6848,22 @@ def decode_url(request):
         url = request.GET.get('url')
         og_tags = UriTagsImpl(url).get_tags_from_uri()
 
+    except requests.exceptions.ConnectionError as e:
+        error_logger.error(f"Error while fetching og tags for url {url}, reason: {e}")
+
+        return JsonResponse({
+            'success': False,
+            'error_message': f'Error in fetching og tags for url {url}'
+        }, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    except requests.exceptions.InvalidURL as e:
+        error_logger.error(f"Error while fetching og tags for url {url}, reason: {e}")
+
+        return JsonResponse({
+            'success': False,
+            'error_message': f'Invalid url {url}'
+        }, status=status_codes.HTTP_400_BAD_REQUEST)
+    
     except Exception as e:
         error_logger.error(f"Error while fetching og tags for url {url}, reason: {e}")
         return JsonResponse({
