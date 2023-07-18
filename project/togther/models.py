@@ -3431,7 +3431,7 @@ class MessageTemplate(models.Model):
 class ChatroomSecretTypeConversion(models.Model):
     chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     is_secret = models.BooleanField(default=False)
-    converted_at = models.BigIntegerField(default=TimeUtilities.current_time_in_milliseconds())
+    converted_at = models.BigIntegerField(default=0)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
