@@ -6852,8 +6852,8 @@ def decode_url(request):
         error_logger.error(e)
         return JsonResponse({
             'success': False,
-            'error_message': f'API failed api=decode_url, reason={e}'
-        }, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+            'error_message': f'Error in fetching og tags for url {url}'
+        }, status=status_codes.HTTP_400_BAD_REQUEST)
 
     return JsonResponse({
         'success': True,
