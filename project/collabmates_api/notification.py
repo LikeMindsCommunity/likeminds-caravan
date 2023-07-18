@@ -1288,7 +1288,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     for obj in chatroom_follower_list:
 
-        if all([obj[1] == noti_states.ONLY_MENTIONS_AND_REPLIES,
+        if all([obj[1] in [noti_states.ONLY_MENTIONS_AND_REPLIES, noti_states.DM_MENTION_REPLIES_POLL],
                 conversation_instance.card.type != card_types.CARD_DIRECT_MESSAGE,
                 str(obj[0]) not in tagged_users_list]):
 
