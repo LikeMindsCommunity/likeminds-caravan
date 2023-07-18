@@ -6849,7 +6849,7 @@ def decode_url(request):
         og_tags = UriTagsImpl(url).get_tags_from_uri()
 
     except Exception as e:
-        error_logger.error(e)
+        error_logger.error(f"Error while fetching og tags for url {url}, reason: {e}")
         return JsonResponse({
             'success': False,
             'error_message': f'Error in fetching og tags for url {url}'
