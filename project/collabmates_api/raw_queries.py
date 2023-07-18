@@ -3736,6 +3736,12 @@ def get_latest_conversations_against_chatrooms_list(chatroom_ids_list, number_of
         conn = get_connection()
         curr = conn.cursor()
 
+
+        included_conv_states = [conversation_states.ANSWER, conversation_states.CONVERSATION_HEADER,
+                                conversation_states.CONVERSATION_POLL]
+
+        included_conv_states_query = get_tuple_from_array(included_conv_states)
+
         sql = """
                 WITH added_row_number
                      AS (SELECT togther_card_answers.card_id,
@@ -3747,7 +3753,7 @@ def get_latest_conversations_against_chatrooms_list(chatroom_ids_list, number_of
                                     ORDER BY togther_card_answers.created_at DESC) AS row_number
                          FROM   togther_card_answers
                          WHERE  togther_card_answers.card_id IN %s
-                                AND togther_card_answers.state = 0
+                                AND togther_card_answers.state IN %s
                                 AND NOT ( 
                                             togther_card_answers.attachment_count > 0
                                             AND togther_card_answers.attachments_uploaded = False
@@ -3759,7 +3765,8 @@ def get_latest_conversations_against_chatrooms_list(chatroom_ids_list, number_of
                        row_number
                 FROM   added_row_number
                 WHERE  row_number < %s;
-        """ % (get_tuple_from_array(chatroom_ids_list), number_of_conversations_per_chatroom + 1)
+        """ % (get_tuple_from_array(chatroom_ids_list), included_conv_states_query, 
+               number_of_conversations_per_chatroom + 1)
 
         curr.execute(sql)
         chatroom_conversations_data = curr.fetchall()
