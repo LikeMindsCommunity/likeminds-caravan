@@ -260,9 +260,9 @@ block_member_chatroom = {'id': 27, 'title': "Block"}
 
 unblock_member = {'id': 28, 'title': "Unblock"}
 
-settings_for_purpose_chatroom = [rename_chatroom, member_can_message, accessible_without_subscription]
+settings_for_purpose_chatroom = [rename_chatroom, member_can_message]
 
-settings_for_chatroom = [rename_chatroom, member_can_message, pin_chatroom, accessible_without_subscription]
+settings_for_chatroom = [rename_chatroom, member_can_message, pin_chatroom]
 
 settings_for_chatroom_with_revamp = [edit_chatroom_pic, edit_info, member_can_message, make_it_secret]
 
