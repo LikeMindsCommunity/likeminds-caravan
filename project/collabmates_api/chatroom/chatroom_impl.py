@@ -1115,6 +1115,12 @@ class ChatroomImpl(ChatroomManager):
         chatroom_filter_type = validated_req.get('chatroom_filter_type')
         chatroom_excluded_type = validated_req.get('chatroom_excluded_type')
 
+        if not chatroom_excluded_type:
+            chatroom_excluded_type = [card_types.CARD_INTRO]
+
+        else:
+            chatroom_excluded_type.append(card_types.CARD_INTRO)
+
         card_ids = get_all_chatrooms_of_community_old(community_instance.id, chatroom_filter_type,
                                                       chatroom_excluded_type)
         chatroom_list = ModelUtilities.get_model_filter(collabcardState,
