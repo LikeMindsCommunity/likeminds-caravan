@@ -2732,7 +2732,8 @@ class ChatroomImpl(ChatroomManager):
         card_instance = validated_req.get('card_instance')
         community_instance = card_instance.community
 
-        if create_chatroom_revamp_version_check(self.get_request_platform(), self.get_version_code()):
+        if VersionUtilities.check_version(self.get_request_platform(), self.get_version_code(),
+                                          VersionUtilities.new_chatroom_settings, self.get_sdk_source()):
             chatroom_settings = settings_for_chatroom_with_revamp.copy()
             admin_has_delete_right = check_admin_delete_right(user=user_instance,
                                                               community=community_instance)
