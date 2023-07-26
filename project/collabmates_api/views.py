@@ -9829,12 +9829,23 @@ class GetTaggingList(APIView):
 def fetch_filters(request):
     '''api to get all the filtered data'''
 
-    community_id = request.GET.get('community_id')
-
     member_id = get_member_id_from_headers(request)
 
     if not member_id:
-        return JsonResponse({'success': False, 'error_message': "Member id is not coming in header"})
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                "Member id is not coming in header", status_codes.HTTP_400_BAD_REQUEST))
+
+    community_id = request.GET.get('community_id')
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
+    if not community_id:
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+        if not community_instance:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                "Invalid API key/community ID", status_codes.HTTP_400_BAD_REQUEST))
+
+        community_id = community_instance.id
 
     send_empty_list = False
 
@@ -9850,7 +9861,7 @@ def fetch_filters(request):
         send_empty_list = True
 
     if send_empty_list:
-        return JsonResponse({'questions': []})
+        return JsonResponse({'success': True, 'questions': []})
 
     community_options = communityAnswers.objects.filter(community_id=community_id
                                                         ).filter(
@@ -9876,7 +9887,7 @@ def fetch_filters(request):
                 question_set.add(serialized_instance['id'])
                 option_list.append(serialized_instance)
 
-    return JsonResponse({'questions': option_list})
+    return JsonResponse({'success': True, 'questions': option_list})
 
 
 def get_user_selected_option_list(question_id):
