@@ -4974,6 +4974,11 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     """ function to get chatroom actions """
 
     is_sdk = api_type == api_types.SDK
+    is_community_hood_version_code = VersionUtilities.check_version(platform_code,
+                                                                    version_code,
+                                                                    VersionUtilities.community_hood)
+
+    show_sdk_actions_only = is_sdk and not is_community_hood_version_code
 
     if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE]):
 
@@ -5085,16 +5090,15 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
     for action in final:
 
-        if (api_type == api_types.SDK) and any([action['id'] == chatroom_actions.ACTION_RENAME,
-                                                action['id'] == chatroom_actions.ACTION_VIEW_COMMUNITY,
-                                                action['id'] == chatroom_actions.ACTION_ADD_ALL_MEMBERS,
-                                                action['id'] == chatroom_actions.ACTION_SETTINGS,
-                                                action['id'] == chatroom_actions.ACTION_DELETE,
-                                                action['id'] == chatroom_actions.ACTION_REPORT]):
+        if show_sdk_actions_only and any([action['id'] == chatroom_actions.ACTION_RENAME,
+                                          action['id'] == chatroom_actions.ACTION_VIEW_COMMUNITY,
+                                          action['id'] == chatroom_actions.ACTION_ADD_ALL_MEMBERS,
+                                          action['id'] == chatroom_actions.ACTION_SETTINGS,
+                                          action['id'] == chatroom_actions.ACTION_DELETE,
+                                          action['id'] == chatroom_actions.ACTION_REPORT]):
             continue
 
-        if all([api_type == api_types.SDK,
-                action['id'] == chatroom_actions.ACTION_INVITE]):
+        if all([show_sdk_actions_only, action['id'] == chatroom_actions.ACTION_INVITE]):
 
             if not VersionUtilities.check_version(platform_code, version_code, VersionUtilities.invite_settings):
                 continue
@@ -5106,8 +5110,8 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         if purpose_card or master_intro_card:
 
-            if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM or action[
-                'id'] == chatroom_actions.ACTION_UNFOLLOW:
+            if any([action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM,
+                    action['id'] == chatroom_actions.ACTION_UNFOLLOW]):
                 continue
 
             if not promoter:
@@ -5158,7 +5162,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         actions.append(action)
 
-    if (api_type != api_types.SDK) and promoter and len(actions) and not card_instance.is_secret:
+    if (not show_sdk_actions_only) and promoter and len(actions) and not card_instance.is_secret:
 
         if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
                 or (
@@ -5200,7 +5204,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                      or (platform_code == VersionUtilities.PlatformCode.ANDROID and
                          version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)
                      or platform_code == VersionUtilities.PlatformCode.WEB) \
-            and not master_intro_card and (api_type != api_types.SDK):
+            and not master_intro_card and (not show_sdk_actions_only):
         actions.append(chatroom_settings)
 
     if (platform_code == VersionUtilities.PlatformCode.IOS and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
