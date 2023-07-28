@@ -36,7 +36,8 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings, FeedNotificationSettings
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
-    PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST
+    PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST, IMAGE_URLS_FOR_QUESTION_TITLES
+from collabmates_api.static_files import (ICONS)
 from collabmates_api.branch import create_community_feed_url, create_community_otl_url, create_payment_page_url, \
     create_community_feed_url_for_cm_onboarding
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right, give_all_manager_rights, \
@@ -990,6 +991,15 @@ class CommunityImpl(CommunityManager):
                                                                          sdk_client_info_flag=True)
         members = ChatroomImpl.remove_guest_user_from_participants_data_list(members)
 
+        # Add question answers data in users info
+        members_question_answer_data = CommunityHelper.get_members_filled_community_answers_data(community_instance,
+                                                                                                 members)
+
+        for member in members:
+
+            if member.get('id') in members_question_answer_data:
+                member['question_answers'] = members_question_answer_data.get(member.get('id'))
+
         return {'success': True, 'members': members}
 
     # Fetch members meta v2, with pagination & search and returns is_deleted key in member object
@@ -1011,6 +1021,15 @@ class CommunityImpl(CommunityManager):
         # Get members meta list
         members_list = CommunityHelper.compute_members_meta_list(community_instance, member_ids, page, 
                                                                  page_size, search_name, sdk_client_info_flag=True)
+
+        # Add question answers data in users info
+        members_question_answer_data = CommunityHelper.get_members_filled_community_answers_data(community_instance,
+                                                                                                 members_list)
+
+        for member in members_list:
+
+            if member.get('id') in members_question_answer_data:
+                member['question_answers'] = members_question_answer_data.get(member.get('id'))
 
         return {'success': True, 'members': members_list}
 
@@ -4397,7 +4416,7 @@ class CommunityHelper:
     
     @staticmethod
     def compute_members_meta_list(community_instance, member_ids, page, page_size, search_name, 
-                                  sdk_client_info_flag:bool=False):
+                                  sdk_client_info_flag: bool = False):
         
         members_data = []
 
@@ -4519,3 +4538,72 @@ class CommunityHelper:
         return {
             'community_instance': validated_dict.get('community_id')
         }
+
+    @staticmethod
+    def get_members_filled_community_answers_data(community_instance, members_object_list):
+        users_question_answer_dict = {}
+
+        from collabmates_api.member_community.member_community_impl import MemberCommunityHelper
+        member_ids_list = [member_object.get('id') for member_object in members_object_list]
+
+        community_questions_filter = ModelUtilities.get_model_filter(communityQuestions,
+                                                                     {'community': community_instance})
+
+        if not community_questions_filter:
+            return users_question_answer_dict
+
+        else:
+            questions_data = CommunityQuestionsSerializerV2(community_questions_filter, many=True).data
+            questions_data_dict = {question_data.get('id'): dict(question_data) for question_data in questions_data}
+
+            community_answers_filter = ModelUtilities.get_model_filter(communityAnswers,
+                                                                       {'member__in': member_ids_list,
+                                                                        'community': community_instance})
+
+            if community_answers_filter:
+                user_answers = CommunityAnswersSerializer(community_answers_filter, many=True).data
+
+                for user_answer in user_answers:
+                    user_answer = dict(user_answer)
+                    question_data = questions_data_dict.get(user_answer.get('question'))
+
+                    if any([all([question_data.get('question_title') == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                                 question_data.get('is_hidden'),
+                                 question_data.get('field'),
+                                 question_data.get('question_state') == question_states.PARAGRAPH]),
+                            question_data.get('question_state') == question_states.NAME]):
+                        continue
+
+                    discard_question = True
+
+                    if not MemberCommunityHelper.is_user_answer_private(question_data):
+                        discard_question = False
+
+                    if not discard_question:
+                        user_answer_dict = {
+                            'answer': user_answer.get('question_answer'),
+                            'member_id': user_answer.get('member'),
+                            'question_id': user_answer.get('question'),
+                            'community_id': user_answer.get('community')
+                        }
+
+                        question_data['state'] = question_data['question_state']
+                        del question_data['question_state']
+
+                        if all([question_data.get('question_title'),
+                                (question_data.get('question_title') in IMAGE_URLS_FOR_QUESTION_TITLES),
+                                (question_data.get('question_title') in ICONS)]):
+                            user_answer_dict['image_url'] = ICONS[question_data.get('question_title')]
+
+                        question_answer_data = {
+                            'question_answer': user_answer_dict,
+                            'question': question_data
+                        }
+
+                        if users_question_answer_dict.get(user_answer.get('member')):
+                            users_question_answer_dict[user_answer.get('member')].append(question_answer_data)
+
+                        else:
+                            users_question_answer_dict[user_answer.get('member')] = [question_answer_data]
+
+            return users_question_answer_dict
