@@ -723,6 +723,7 @@ class AccessTypes:
     EDIT_POST = "edit_post"
     CREATE_TOPIC = "create_topic"
     EDIT_TOPIC = "edit_topic"
+    IS_MEMBER = "is_member"
 
 
 access_types = AccessTypes()
