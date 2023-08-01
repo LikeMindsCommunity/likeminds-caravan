@@ -295,6 +295,45 @@ INTRODUCTION_EXAMPLES = [
 
 ]
 
+COMMUNITY_HOOD_INTRODUCTION_EXAMPLES = [
+
+    {
+        "header": "Sample member introductions",
+        "sub_header": "Here are a few example of how members customize their profile depending on their roles and "
+                      "opportunities they are looking out for.",
+        "title": "Pakhi Sharma",
+        "sub_title": "As a community manager for ProductHood, my role is to nurture and grow our community of users "
+                     "and customers. Whether it's through social media, online forums, or in-person events, "
+                     "I am  committed to building strong relationships with our community members and helping to "
+                     "create a sense of belonging and shared purpose."
+    },
+
+    {
+        "header": "Sample member introductions",
+        "sub_header": "Here are a few example of how members customize their profile depending on their roles and "
+                      "opportunities they are looking out for.",
+        "title": "Ritesh Singh",
+        "sub_title": "Ritesh is a community growth lead at Bloomsberry with 3 years of community management "
+                     "experience. Shee has expertise in social media management, content creation, and data analysis. "
+                     "Additionally, her strong communication skills, empathy, and strategic thinking allow her to "
+                     "create welcoming and inclusive environments where members feel heard, valued, and supported."
+
+    },
+
+    {
+        "header": "Sample member introductions",
+        "sub_header": "Here are a few example of how members customize their profile depending on their roles and "
+                      "opportunities they are looking out for.",
+        "title": "John Mayer",
+        "sub_title": "I am currently Senior Community Manager at MakeMyTrip. Jay is responsible for research, "
+                     "development, and manages MMT events in collaboration with key internal and external "
+                     "stakeholders. He is proficient in community tools like Slack, Discord, Circle and has been "
+                     "instrumental in scaling communities at a global level."
+
+    }
+
+]
+
 ONBOARDING_EXAMPLES = [
 
     {
