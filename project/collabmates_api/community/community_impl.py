@@ -4540,6 +4540,28 @@ class CommunityHelper:
         }
 
     @staticmethod
+    def create_answer_data_dict(user_answer, question_data):
+        user_answer_dict = {
+            'answer': user_answer.get('question_answer'),
+            'member_id': user_answer.get('member'),
+            'question_id': user_answer.get('question'),
+            'community_id': user_answer.get('community')
+        }
+
+        question_data['state'] = question_data['question_state']
+        del question_data['question_state']
+
+        if all([question_data.get('question_title'),
+                (question_data.get('question_title') in IMAGE_URLS_FOR_QUESTION_TITLES),
+                (question_data.get('question_title') in ICONS)]):
+            user_answer_dict['image_url'] = ICONS[question_data.get('question_title')]
+
+        return {
+            'question_answer': user_answer_dict,
+            'question': question_data
+        }
+
+    @staticmethod
     def get_members_filled_community_answers_data(community_instance, members_object_list):
         users_question_answer_dict = {}
 
@@ -4580,25 +4602,7 @@ class CommunityHelper:
                         discard_question = False
 
                     if not discard_question:
-                        user_answer_dict = {
-                            'answer': user_answer.get('question_answer'),
-                            'member_id': user_answer.get('member'),
-                            'question_id': user_answer.get('question'),
-                            'community_id': user_answer.get('community')
-                        }
-
-                        question_data['state'] = question_data['question_state']
-                        del question_data['question_state']
-
-                        if all([question_data.get('question_title'),
-                                (question_data.get('question_title') in IMAGE_URLS_FOR_QUESTION_TITLES),
-                                (question_data.get('question_title') in ICONS)]):
-                            user_answer_dict['image_url'] = ICONS[question_data.get('question_title')]
-
-                        question_answer_data = {
-                            'question_answer': user_answer_dict,
-                            'question': question_data
-                        }
+                        question_answer_data = CommunityHelper.create_answer_data_dict(user_answer, question_data)
 
                         if users_question_answer_dict.get(user_answer.get('member')):
                             users_question_answer_dict[user_answer.get('member')].append(question_answer_data)
