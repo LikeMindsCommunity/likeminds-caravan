@@ -8373,6 +8373,10 @@ def send_otp_on_user_mobiles(user_id, retry):
 
 
 def verify_otp(request):
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+    sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+
     mobile_no = request.GET.get('mobile_no')
     country_code = request.GET.get('country_code')
     user_id = request.GET.get('user_id')
@@ -8392,7 +8396,10 @@ def verify_otp(request):
             if mobile_filter.exists():
                 context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, 
                                                      sdk_client_info_flag=True)
-                context['access'] = is_user_community_part(context['user']['id'])
+                context['access'] = is_user_sdk_or_communityhood_part(context['user']['id'],
+                                                                      platform_code,
+                                                                      version_code,
+                                                                      sdk_source)
 
             return JsonResponse(context)
 
@@ -8410,7 +8417,10 @@ def verify_otp(request):
             if mobile_filter.exists():
                 context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, 
                                                      sdk_client_info_flag=True)
-                context['access'] = is_user_community_part(context['user']['id'])
+                context['access'] = is_user_sdk_or_communityhood_part(context['user']['id'],
+                                                                      platform_code,
+                                                                      version_code,
+                                                                      sdk_source)
 
                 return JsonResponse(context)
 
@@ -8466,7 +8476,10 @@ def verify_otp(request):
         if mobile_filter.exists():
             context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user, 
                                                  sdk_client_info_flag=True)
-            context['access'] = is_user_community_part(context['user']['id'])
+            context['access'] = is_user_sdk_or_communityhood_part(context['user']['id'],
+                                                                  platform_code,
+                                                                  version_code,
+                                                                  sdk_source)
 
             if context['success'] == True:
                 login(request, user=mobile_filter[0].user, backend="django.contrib.auth.backends.ModelBackend")
@@ -8497,7 +8510,10 @@ def verify_otp(request):
 
         if mobile_filter.exists():
             context['user'] = get_logged_in_user(user_instance=mobile_filter[0].user)
-            context['access'] = is_user_community_part(context['user']['id'])
+            context['access'] = is_user_sdk_or_communityhood_part(context['user']['id'],
+                                                                  platform_code,
+                                                                  version_code,
+                                                                  sdk_source)
 
         if not context['success']:
             # verifying otp from email
@@ -8512,7 +8528,10 @@ def verify_otp(request):
 
             if email_filter.exists():
                 context['user'] = get_logged_in_user(user_instance=email_filter[0].user)
-                context['access'] = is_user_community_part(context['user']['id'])
+                context['access'] = is_user_sdk_or_communityhood_part(context['user']['id'],
+                                                                      platform_code,
+                                                                      version_code,
+                                                                      sdk_source)
 
         return JsonResponse(context)
 
@@ -8632,6 +8651,37 @@ def is_user_community_part(user_id):
         Q(state=member_states.PROFILE_UNAVAILABLE))
 
     return members_filter.exists()
+
+
+def is_user_sdk_or_communityhood_part(user_id, platform_code, version_code, sdk_source):
+    '''function to tell whether the user is a part of any sdk, community hood community or not'''
+
+    is_community_hood_check = VersionUtilities.check_version(platform_code,
+                                                             version_code,
+                                                             VersionUtilities.community_hood,
+                                                             sdk_source)
+
+    if is_community_hood_check:
+        member_filter = ModelUtilities.get_model_filter(Members, {'community_id': COMMUNITY_HOOD_ID,
+                                                                  'member_id': user_id})
+        
+        if member_filter:
+            return True
+
+        sdk_user_filter = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id': user_id})
+
+        if sdk_user_filter:
+            return True
+
+        return False
+
+    else:
+        members_filter = ModelUtilities.get_model_filter(Members, {'member_id': user_id}).filter(
+            Q(state=member_states.ADMIN) |
+            Q(state=member_states.MEMBER) |
+            Q(state=member_states.PROFILE_UNAVAILABLE))
+
+        return members_filter.exists()
 
 
 def limit_access(request):
@@ -9172,6 +9222,8 @@ def config(request):
 
     # update version code
 
+    sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = get_version_code_from_headers(request)
     userinfo_instance = user_instance.userinfo
 
@@ -9186,7 +9238,7 @@ def config(request):
     context['success'] = True
     context['mobile_no_exists'] = ModelUtilities.is_model_filter_exists(userMobiles, {'user': user_instance})
 
-    access = is_user_community_part(user_instance.id)
+    access = is_user_sdk_or_communityhood_part(user_instance.id, platform_code, version_code, sdk_source)
     context['access'] = access
 
     context['survey_seen'] = False
