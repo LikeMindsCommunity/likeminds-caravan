@@ -1299,6 +1299,34 @@ class UserImpl(UserManager):
             return ResponseUtilities.get_impl_error_context("Invalid login type!",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
+    def user_meta(self) -> dict:
+        validated_req = UserHelper.validate_user_meta_request(self.get_user_id(), self.get_api_key())
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = validated_req.get('user_instance')
+        community_instance = validated_req.get('community_instance')
+
+        sdk_user_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                            {'community_id': community_instance.id,
+                                                             'user_id': user_instance.id}).first()
+
+        if not sdk_user_instance:
+            return ResponseUtilities.get_impl_error_context('User is not member of community!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        else:
+            return {
+                'success': True,
+                'user_meta': {
+                    'id': sdk_user_instance.user_id,
+                    'uuid': sdk_user_instance.user.userinfo.user_unique_id,
+                    'client_uuid': sdk_user_instance.user_unique_id
+                }
+            }
+
 
 class UserHelper:
 
@@ -2365,4 +2393,23 @@ class UserHelper:
             'existing_user': existing_user,
             'user': user_object,
             'app_access': app_access
+        }
+
+    @staticmethod
+    def validate_user_meta_request(user_id, api_key):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        return {
+            'user_instance': validated_dict.get('user_id'),
+            'community_instance': validated_dict.get('community_id')
         }
