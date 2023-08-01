@@ -721,7 +721,9 @@ class AccessTypes:
     VIEW_REPORT_ENTITY = "view_report_entity"
     EDIT_COMMENT = "edit_comment"
     EDIT_POST = "edit_post"
-    
+    CREATE_TOPIC = "create_topic"
+    EDIT_TOPIC = "edit_topic"
+    IS_MEMBER = "is_member"
 
 
 access_types = AccessTypes()
