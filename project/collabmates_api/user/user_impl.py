@@ -2379,8 +2379,8 @@ class UserHelper:
 
     @staticmethod
     @shared_task
-    def save_onboarded_verified_user_data(api_key: str, email: str = None, mobile_no: str = None,
-                                          country_code: str = None):
+    def save_onboarded_verified_user_data(api_key: str, email: str = None, mobile_no: int = None,
+                                          country_code: int = None):
         if not (email or (mobile_no and country_code)):
             return
 

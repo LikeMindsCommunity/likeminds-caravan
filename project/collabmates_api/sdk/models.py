@@ -120,8 +120,8 @@ class SdkOnboardingScreen(models.Model):
 
 class OnboardedVerifiedIUsers(models.Model):
     sdk_client = models.ForeignKey(SdkClient, on_delete=models.CASCADE)
-    mobile_no = models.TextField(null=True)
-    country_code = models.TextField(null=True)
+    mobile_no = models.BigIntegerField(null=True)
+    country_code = models.IntegerField(null=True)
     email = models.TextField(null=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
