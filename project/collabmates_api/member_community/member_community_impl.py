@@ -65,18 +65,24 @@ from ..serializers import is_draft_conversation, get_chatroom_instance, get_draf
     conversationSerializer, get_members_profile
 from ..static_files import REMOVED_USER_URL, ICONS
 from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_ITEMS, COMMUNITY_LEVEL_3_TEXT, \
-    IMAGE_URLS_FOR_QUESTION_TITLES, CREATE_COMMUNITY_QUESTION_NAME_TITLE
+    IMAGE_URLS_FOR_QUESTION_TITLES, CREATE_COMMUNITY_QUESTION_NAME_TITLE, INVITE_MEMBERS_COMMUNITY_ACTION_TITLE, \
+    INVITE_MEMBERS_COMMUNITY_ACTION_ROUTE, MEMBER_REQUEST_TOOL_ROUTE, REPORTS_TOOL_ROUTE, \
+    MEMBER_REQUESTS_COMMUNITY_ACTION_TITLE, MEMBER_REQUESTS_COMMUNITY_ACTION_IMAGE_URL, \
+    REVIEW_REPORTS_COMMUNITY_ACTION_TITLE, REVIEW_REPORTS_COMMUNITY_ACTION_IMAGE_URL, \
+    COMMUNITY_SETTINGS_COMMUNITY_ACTION_TITLE, COMMUNITY_SETTINGS_COMMUNITY_ACTION_IMAGE_URL, \
+    INVITE_MEMBERS_COMMUNITY_ACTION_IMAGE_URL
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
     check_admin_add_community_managers_right, check_admin_moderate_feed_and_comments_right, \
-    check_member_create_post_right, check_member_comment_and_reply_right
+    check_member_create_post_right, check_member_comment_and_reply_right, get_related_reports_for_user
 from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check, \
     m2cm_v2_version_check
 from collabmates_api.notification import (send_notification_to_admins)
 from collabmates_api.mails import (send_community_hood_waitlist_email_to_pending_member)
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
+from utility.json_utilities import JsonUtilities
 from ..views import get_home_screen_community_actions, generate_internal_link_preview_for_conversation, \
     get_latest_conversation_members, post_introduction_card_for_community, update_community_get_started
 
@@ -2177,10 +2183,18 @@ class MemberCommunityImpl(MemberCommunityManager):
         if user_engage_filter:
             unseen_channel_count = user_engage_filter[0].last_unseen_count
 
+        # Add community actions
+        community_actions = {
+            'account': MemberCommunityHelper.add_account_community_actions(community_instance.id),
+            'management_tools': MemberCommunityHelper.add_management_tools_community_actions(user_instance,
+                                                                                             community_instance)
+        }
+
         return {
             'success': True,
             'total_channel_count': community_chatroom_count_dict.get(self.get_community_id()),
-            'unseen_channel_count': unseen_channel_count
+            'unseen_channel_count': unseen_channel_count,
+            'actions': community_actions
         }
 
 
@@ -3496,3 +3510,72 @@ class MemberCommunityHelper:
                                                               promoter_instance.userinfo)
 
         ElasticSearchSync.delete_member_from_community.delay(user_instance.id, community_instance.id)
+
+    @staticmethod
+    def add_account_community_actions(community_id):
+        invite_members_action = {
+            'title': INVITE_MEMBERS_COMMUNITY_ACTION_TITLE,
+            'route': INVITE_MEMBERS_COMMUNITY_ACTION_ROUTE.format(community_id),
+            'image_url': INVITE_MEMBERS_COMMUNITY_ACTION_IMAGE_URL
+        }
+
+        return [invite_members_action]
+
+    @staticmethod
+    def add_management_tools_community_actions(user_instance, community_instance):
+        management_tools = []
+
+        member_instance = ModelUtilities.get_model_filter(Members, {'member_id': user_instance,
+                                                                    'community_id': community_instance}).first()
+
+        if not member_instance.state == member_states.ADMIN:
+            return management_tools
+
+        user_id = user_instance.id
+        community_id = community_instance.id
+        community_name = community_instance.name
+        parent_cm_list = []
+
+        if member_instance.parent_cm_list:
+            parent_cm_list = JsonUtilities.load_json_data(member_instance.parent_cm_list, default=parent_cm_list)
+
+        has_delete_right = check_admin_delete_right(user=user_id, community=community_id)
+        has_member_approve_right = check_admin_approve_right(user=user_id, community=community_id)
+        has_community_edit_right = check_admin_edit_community_right(user=user_id, community=community_id)
+
+        if has_member_approve_right:
+            # Add new member requests action
+            member_request_action = {
+                "title": MEMBER_REQUESTS_COMMUNITY_ACTION_TITLE,
+                "image_url": MEMBER_REQUESTS_COMMUNITY_ACTION_IMAGE_URL,
+                "route": MEMBER_REQUEST_TOOL_ROUTE.format(community_id, community_name),
+                "count": Members.get_pending_members(community_instance).count()
+            }
+
+            management_tools.append(member_request_action)
+
+        if has_delete_right or has_member_approve_right:
+            # Add review reports action
+            review_reports_action = {
+                "title": REVIEW_REPORTS_COMMUNITY_ACTION_TITLE,
+                "image_url": REVIEW_REPORTS_COMMUNITY_ACTION_IMAGE_URL,
+                "route": REPORTS_TOOL_ROUTE.format(community_id, community_name),
+                "count": get_related_reports_for_user(user_id=user_id, community_id=community_id,
+                                                      has_right_0=has_delete_right, is_owner=member_instance.is_owner,
+                                                      has_right_1=has_member_approve_right,
+                                                      has_right_2=has_community_edit_right,
+                                                      parent_cm_list=parent_cm_list, return_reports_count=True)
+            }
+
+            management_tools.append(review_reports_action)
+
+            # Add community settings action
+            community_settings_action = {
+                "title": COMMUNITY_SETTINGS_COMMUNITY_ACTION_TITLE,
+                "image_url": COMMUNITY_SETTINGS_COMMUNITY_ACTION_IMAGE_URL,
+                "route": REPORTS_TOOL_ROUTE.format(community_id, community_name)
+            }
+
+            management_tools.append(community_settings_action)
+
+        return management_tools

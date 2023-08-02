@@ -710,3 +710,25 @@ PARTICIPANTS_TAG_REGEX = '@participants\|route://participants>>'
 PARTICIPANTS_TAG_TEXT = '@participants'
 MEMBER_TAG_REGEX = 'route:\/\/[member member_profile]+\/([0-9]+)'
 SPECIFIC_MEMBER_TAG_REGEX = 'route:\/\/[member member_profile]+\/{}'
+
+INVITE_MEMBERS_COMMUNITY_ACTION_TITLE = "Invite members"
+INVITE_MEMBERS_COMMUNITY_ACTION_ROUTE = "route://community?community_id={}&share=true"
+INVITE_MEMBERS_COMMUNITY_ACTION_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/" \
+                                            "collabmates-3d601.appspot.com/o/files%2Ficons%2Freview_reports.png?" \
+                                            "alt=media&token=f9a75d81-9c6a-41dd-8a7d-133b47f29512"
+
+MEMBER_REQUESTS_COMMUNITY_ACTION_TITLE = "New Member Requests"
+MEMBER_REQUESTS_COMMUNITY_ACTION_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/" \
+                                             "collabmates-3d601.appspot.com/o/files%2Ficons%2Fmember_requests.png?" \
+                                             "alt=media&token=eed6056e-8553-4c6a-ac99-e049fef4c75e"
+
+REVIEW_REPORTS_COMMUNITY_ACTION_TITLE = "Review Reports"
+REVIEW_REPORTS_COMMUNITY_ACTION_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/" \
+                                            "collabmates-3d601.appspot.com/o/files%2Ficons%2Freview_reports.png?" \
+                                            "alt=media&token=f9a75d81-9c6a-41dd-8a7d-133b47f29512"
+
+COMMUNITY_SETTINGS_COMMUNITY_ACTION_TITLE = "Community Settings"
+COMMUNITY_SETTINGS_COMMUNITY_ACTION_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/" \
+                                                "collabmates-3d601.appspot.com/o/files%2Ficons" \
+                                                "%2Fcommunity_settings.png?alt=media&" \
+                                                "token=0e105674-9bde-4336-850b-118671fcdec8"
