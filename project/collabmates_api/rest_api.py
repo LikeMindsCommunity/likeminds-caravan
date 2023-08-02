@@ -1623,3 +1623,26 @@ class MemberNotificationFlagSerializer(serializers.ModelSerializer):
     class Meta:
         model = memberNotificationFlag
         fields = ('member', 'community', 'card', 'code', 'flag')
+
+
+class ReportTagsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Report_Tags
+        fields = ('tag_id', 'tag_name')
+
+    def to_representation(self, instance):
+        data = super(ReportTagsSerializer, self).to_representation(instance)
+
+        fields = self._readable_fields
+
+        for field in fields:
+            if field.field_name == 'tag_id':
+                data['id'] = data['tag_id']
+                del data['tag_id']
+
+            if field.field_name == 'tag_name':
+                data['name'] = data['tag_name']
+                del data['tag_name']
+
+        return data

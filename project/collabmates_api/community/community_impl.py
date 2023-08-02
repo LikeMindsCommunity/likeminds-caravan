@@ -10,7 +10,8 @@ from cms.models import NewAnswer
 from collabmates_api.community.constants import *
 from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSerializer, CommunityToastV1Serializer, \
     CommunityGetStartedSerializer, CommunityQuestionsSerializerV2, CommunityAnswersSerializer, get_error_context, \
-    CommunityDMSettingsSerializer, CommunityNotificationSettingsSerializer, FeedNotificationSettingsSerializer
+    CommunityDMSettingsSerializer, CommunityNotificationSettingsSerializer, FeedNotificationSettingsSerializer, \
+    ReportTagsSerializer
 
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
     give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage, \
@@ -33,7 +34,8 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityLevels, conversationEngage, userMemberRights, moderationHistory, communityQuestions, questionFilters, \
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, userEmails,\
     ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
-    communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings, FeedNotificationSettings
+    communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings, FeedNotificationSettings, \
+    Report_Tags
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST
@@ -2241,8 +2243,31 @@ class CommunityImpl(CommunityManager):
         user_data = get_users_meta_info(community_instance.id, member_ids)
 
         return {'success': True, 'users': user_data}
+    
+    def fetch_report_Tags(self, entity_type: str) -> dict:
 
+        validated_request = CommunityHelper.validate_fetch_report_tags_request(self.get_member_id(),
+                                                                               self.get_api_key(),
+                                                                               entity_type)
+        
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        report_type = validated_request.get('report_type')
 
+        # Fetch report tags with type 1 for member and type 0 for rest
+        if report_type == REPORT_TYPE_MEMBER_INT:
+            report_tags_instances = ModelUtilities.get_model_filter(Report_Tags, {'type': 1})
+        else:
+            report_tags_instances = ModelUtilities.get_model_filter(Report_Tags, {'type': 0})
+
+        # Serialize report tags
+        report_tags = ReportTagsSerializer(report_tags_instances, many=True).data
+
+        return {'success': True, 'report_tags': report_tags}
+
+        
 class CommunityHelper:
 
     @staticmethod
@@ -4519,3 +4544,42 @@ class CommunityHelper:
         return {
             'community_instance': validated_dict.get('community_id')
         }
+    
+    @staticmethod
+    def validate_fetch_report_tags_request(user_id, api_key, entity_type: str):
+
+        if not entity_type:
+            return ResponseUtilities.get_inner_error_context("Please provide entity_type in query params")
+        
+        if entity_type not in REPORT_TYPES:
+            return ResponseUtilities.get_inner_error_context("Invalid entity_type in query params")
+
+        # Get report_type from constants
+        report_type = REPORT_TYPES[entity_type]
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        community_instance = validated_dict.get('community_id')
+        user_instance = validated_dict.get('user_id')
+
+        # Check if user is community member
+        is_community_member = Members.is_community_member(community_instance, user_instance)
+        if not is_community_member:
+            return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
+        
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'report_type': report_type
+        }
+    
