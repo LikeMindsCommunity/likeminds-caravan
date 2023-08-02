@@ -22,7 +22,7 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
     add_community_upload_image_analytics, create_introduction_question_in_community, edit_community_data, \
     get_community_creator, change_community_level_context_for_paid_community
 
-from collabmates_api.notification import send_sync_notification
+from collabmates_api.notification import send_sync_notification, send_notification_for_reports
 
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
@@ -35,7 +35,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, userEmails,\
     ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
     communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings, FeedNotificationSettings, \
-    Report_Tags
+    Report_Tags, Report
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST
@@ -45,7 +45,7 @@ from collabmates_api.user_moderation_rights import check_admin_edit_community_ri
     give_all_member_rights, save_moderation_history, give_all_community_setting_rights, \
     update_member_rights_in_member_engage, check_admin_moderate_dm_settings_right, \
     update_direct_message_right_in_member_rights_schema, check_admin_moderate_feed_and_comments_right, \
-    update_feed_rights_in_user_member_rights_table
+    update_feed_rights_in_user_member_rights_table, check_admin_delete_right, check_admin_approve_right
 from django.db.models import Q, F
 
 from external_services.mixpanel.events import MixpanelEvents
@@ -59,7 +59,7 @@ from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 from collabmates_api.sdk.models import (SdkClient)
 
-from collabmates_api.mails import send_created_community_email_to_team
+from collabmates_api.mails import send_created_community_email_to_team, send_report_mail_to_team
 
 from collabmates_api.cohort.cohort_impl import CohortHelper, CohortImpl
 
@@ -94,7 +94,7 @@ from ..user.user_impl import UserHelper, UserImpl
 from ..raw_queries import get_members_meta_list, get_users_meta_info
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
-    directory_questions_v2_version_check, get_user_phone, fetch_alias_question_version_check
+    directory_questions_v2_version_check, get_user_phone, fetch_alias_question_version_check, update_report_count_for_all_promoters
 
 from ..sms import send_community_confirmation_sms
 from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check, \
@@ -2266,6 +2266,141 @@ class CommunityImpl(CommunityManager):
         report_tags = ReportTagsSerializer(report_tags_instances, many=True).data
 
         return {'success': True, 'report_tags': report_tags}
+
+    def push_community_report(self, req_body) -> dict:
+        
+        entity_id = req_body.get('entity_id')
+        entity_type = req_body.get('entity_type')
+        reason = req_body.get('reason')
+        accused_uuid = req_body.get('accused_uuid')
+        link = req_body.get('link')
+
+        validated_request = CommunityHelper.validate_push_community_report_request(self.get_member_id(),
+                                                                                   self.get_api_key(), 
+                                                                                   req_body)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        report_type = validated_request.get('report_type')
+        user_instance = validated_request.get('user_instance')
+        community_instance = validated_request.get('community_instance')
+        member_instance = validated_request.get('member_instance')
+        has_admin_delete_right = validated_request.get('has_admin_delete_right')
+        has_admin_approve_right = validated_request.get('has_admin_approve_right')
+        tag_instance = validated_request.get('report_tag_instance')
+
+        is_owner = member_instance.is_owner
+        is_admin = member_instance.state == member_states.ADMIN
+
+        reported_member_instance = None
+        chatroom_instance = None
+        conversation_instance = None
+        feed_entity_id = None
+        subject = ""
+        tag_id = tag_instance.tag_id if tag_instance else None
+
+        # If a member is reported
+        if report_type == REPORT_TYPE_MEMBER_INT:
+            if is_admin and has_admin_approve_right:
+                return ResponseUtilities.get_impl_error_context('You have no right to report a member!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+            reported_member_instance = ModelUtilities.get_user_instance_or_none(entity_id)
+            if not reported_member_instance:
+                return ResponseUtilities.get_impl_error_context('Invalid entity_id for member reporting!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+            subject = '[Member reported] Likeminds App'
+            
+        # If a chatroom is reported
+        elif report_type == REPORT_TYPE_CHATROOM_INT:
+            if is_admin and has_admin_delete_right:
+                return ResponseUtilities.get_impl_error_context('You have no right to report a chatroom!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+            chatroom_instance = ModelUtilities.get_model_filter(Collabcard, {'id': entity_id})
+            if not chatroom_instance:
+                return ResponseUtilities.get_impl_error_context('Invalid entity_id for chatroom reporting!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+            subject = '[Chatroom reported] Likeminds App'
+
+        # If a conversation is reported
+        elif report_type == REPORT_TYPE_CONVERSATION_INT:
+            if is_admin and has_admin_delete_right:
+                return ResponseUtilities.get_impl_error_context('You have no right to report a conversation!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+            
+            conversation_instance = ModelUtilities.get_model_filter(card_answers, {'id': entity_id})
+            if not conversation_instance:
+                return ResponseUtilities.get_impl_error_context('Invalid entity_id for conversation reporting!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+            subject = '[Text reported] Likeminds App'
+
+        # If a feed entity (post,comment,reply) is reported
+        elif report_type in [REPORT_TYPE_POST_INT, REPORT_TYPE_COMMENT_INT, REPORT_TYPE_REPLY_INT]:
+            feed_entity_id = entity_id
+
+            # Get valid user id from uuid
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([accused_uuid], community_instance.id)
+
+            if not valid_id:
+                return ResponseUtilities.get_impl_error_context(f'Invalid accused_uuid!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            reported_member_instance = ModelUtilities.get_user_instance_or_none(valid_id[0])
+            if not reported_member_instance:
+                return ResponseUtilities.get_impl_error_context(f'Invalid accused_uuid for {entity_type} reporting!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            subject = f'[{entity_type} reported] Likeminds App'
+
+        # Create report instance
+        report_instance = Report(
+            type=report_type,
+            tag=tag_instance,
+            reason=reason,
+            collabcard=chatroom_instance,
+            conversation=conversation_instance,
+            community=community_instance,
+            reported_by=user_instance,
+            user_reported=reported_member_instance,
+            entity_id=feed_entity_id,
+            date_epoch=TimeUtilities.current_time_in_sec()
+        )
+
+        if link:
+            report_instance.type = REPORT_TYPE_LINK_INT
+            report_instance.link = link
+
+        report_instance.save()
+
+        #  Send notification if report is for member or chatroom
+        if report_type in [REPORT_TYPE_MEMBER_INT, REPORT_TYPE_CHATROOM_INT] and not is_owner:
+            send_notification_for_reports.delay(report_id=report_instance.id, community_id=community_instance.id,
+                                                reported_by_user_id=user_instance.id, card_id=chatroom_instance.id,
+                                                conversation_id=conversation_instance.id,
+                                                reported_on_user_id=reported_member_instance.id,
+                                                report_type=report_type, reason=reason, tag_id=tag_id)
+
+        # Send report mail to team if owner is reporting
+        if is_owner:
+            send_report_mail_to_team.delay(subject, report_instance.id)
+
+        # Update report count for all admins in community 
+        update_report_count_for_all_promoters.delay(community_id=community_instance.id)
+
+        return {'success': True}
+    
+    def delete_community_reports(self, report_ids) -> dict:
+            
+            validated_request = CommunityHelper.validate_delete_community_reports_request(self.get_member_id(),
+                                                                                          self.get_api_key(),
+                                                                                          report_ids)
+    
+            if validated_request.get('error_message'):
+                return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+            
+            return {'success': True}
 
         
 class CommunityHelper:
@@ -4581,5 +4716,85 @@ class CommunityHelper:
             'user_instance': user_instance,
             'community_instance': community_instance,
             'report_type': report_type
+        }
+    
+    @staticmethod
+    def validate_push_community_report_request(user_id, api_key, req_body):
+
+        entity_type = req_body.get('entity_type')
+        entity_id = req_body.get('entity_id')
+
+        if not entity_id:
+            return ResponseUtilities.get_inner_error_context("Please provide entity_id in request body")
+        
+        if not entity_type:
+            return ResponseUtilities.get_inner_error_context("Please provide entity_type in request body")
+
+        if entity_type not in REPORT_TYPES:
+            return ResponseUtilities.get_inner_error_context("Invalid entity_type")
+        
+        report_type = REPORT_TYPES[entity_type]
+        
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        community_instance = validated_dict.get('community_id')
+        user_instance = validated_dict.get('user_id')
+
+        member_instance = Members.get_member_instance_or_none(community_instance, user_instance)
+        if not member_instance:
+            return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
+
+        has_admin_delete_right = check_admin_delete_right(user_instance, community_instance)
+        has_admin_approve_right = check_admin_approve_right(user_instance, community_instance)
+
+        report_tag_instance = ModelUtilities.get_model_filter(Report_Tags, 
+                                                              {'tag_id': req_body.get('tag_id')}).first()
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'report_tag_instance': report_tag_instance,
+            'member_instance': member_instance,
+            'has_admin_delete_right': has_admin_delete_right,
+            'has_admin_approve_right': has_admin_approve_right,
+            'report_type': report_type
+        }
+    
+    @staticmethod
+    def validate_delete_community_reports_request(user_id, api_key, report_ids):
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        community_instance = validated_dict.get('community_id')
+        user_instance = validated_dict.get('user_id')
+
+        report_instance = ModelUtilities.get_model_instance_or_none(CommunityReport, report_id)
+        if not report_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid report_id")
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'report_instance': report_instance
         }
     
