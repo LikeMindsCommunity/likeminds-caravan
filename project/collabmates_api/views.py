@@ -75,6 +75,7 @@ from .rest_api import (CardAnswersDBSyncSerializer, EventRecordingsURLSerializer
                        EventFAQSerializer)
 
 from utility.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
+from .community.constants import REPORT_TYPES
 from .upload_attachments import (save_community_image, save_chatroom_attachments,
                                  save_conversation_attachments, save_poll_attachments,
                                  save_draft_attachments, save_draft_poll_attachments,
@@ -11896,6 +11897,9 @@ def fetch_reports(request):
     # For version Check
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    accept_version = RequestUtilities.get_accept_version_from_headers(request)
+
+    api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
 
     if not current_user_id:
         context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
@@ -11965,16 +11969,28 @@ def fetch_reports(request):
     
             # Check if correct filter_type is provided
             filter_types = StringUtilities.get_list_from_string(filter_type)
-            if filter_type and not isinstance(filter_types, list) :
-                return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
+            if filter_type:
+                if not isinstance(filter_types, list) :
+                    return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
+
+                # Parse filter_types from string to int
+                parsed_filter_types = []
+                for type in filter_types:
+                    if type in REPORT_TYPES:
+                        parsed_filter_types.append(REPORT_TYPES[type])
+                
+                if parsed_filter_types:
+                    filter_types = parsed_filter_types
+
             
             reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
-                                            is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
-                                            parent_cm_list=parent_cm_list, page = page, page_size = page_size, is_closed=is_closed, filter_type=filter_types)
+                                                   is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                                   parent_cm_list=parent_cm_list, page = page, page_size = page_size, 
+                                                   is_closed=is_closed, filter_type=filter_types)
         else:
             reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
-                                                is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
-                                                parent_cm_list=parent_cm_list)
+                                                   is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                                   parent_cm_list=parent_cm_list)
     except Exception as e:
         error_logger.error(e.args)
         return JsonResponse({'error_message': str(e)}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -11982,7 +11998,8 @@ def fetch_reports(request):
     report_list = []
 
     for report in reports:
-        report_dict = report_serializer(report, current_user_id, sdk_client_info_flag=True)
+        report_dict = report_serializer(report, current_user_id, sdk_client_info_flag=True, 
+                                        api_revamp_v1_check=api_revamp_v1_check)
         report_list.append(report_dict)
 
     return JsonResponse({"success": True, "reports": report_list})

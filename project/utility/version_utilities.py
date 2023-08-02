@@ -505,3 +505,12 @@ class VersionUtilities:
             return False
 
         return version_code >= feature_version_dict[sdk_source][platform_code]
+    
+    @staticmethod
+    def api_revamp_v1_check(accept_version:str = "") -> bool:
+        """
+        returns True if,
+          accept_version == v1
+        """
+
+        return accept_version == 'v1'

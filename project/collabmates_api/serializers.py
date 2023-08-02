@@ -21,6 +21,7 @@ from .static_text import months_semi, CREATE_COMMUNITY_QUESTION_NAME_TITLE
 from .user_moderation_rights import check_admin_view_contact_right
 from .branch import create_community_branch_links
 from utility.constants import *
+from .community.constants import REPORT_TYPES_INT
 from utility.number_utilities import NumberUtilities
 
 error_logger = LoggingWrapper.get_instance()
@@ -1784,14 +1785,18 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
     return member_profile_list
 
 
-def report_serializer(report_instance, current_user_id, sdk_client_info_flag:bool=False):
+def report_serializer(report_instance, current_user_id, sdk_client_info_flag:bool=False, 
+                      api_revamp_v1_check:bool=False):
+    
     report = {"id": report_instance.id}
 
     community_instance = report_instance.community
     community_id = community_instance.id
     # serialized_community = CommunitySerializer(community_instance)
-    report["community_id"] = community_instance.id
-    report["community_name"] = community_instance.name
+
+    if not api_revamp_v1_check:
+        report["community_id"] = community_instance.id
+        report["community_name"] = community_instance.name
 
     if report_instance.conversation is not None:
         report["conversation"] = conversationSerializer(report_instance.conversation, current_user_id=current_user_id,
@@ -1818,15 +1823,24 @@ def report_serializer(report_instance, current_user_id, sdk_client_info_flag:boo
     if report_instance.user_reported:
         user_profile = get_members_profile(member_ids=[report_instance.user_reported.id], community_id=community_id,
                                            sdk_client_info_flag=sdk_client_info_flag)
-        report["user_reported"] = user_profile[0]
+        if api_revamp_v1_check:
+            report["accused_user"] = user_profile[0]
+        else:
+            report["user_reported"] = user_profile[0]
 
     if report_instance.reported_by:
         user_profile = get_members_profile(member_ids=[report_instance.reported_by.id], community_id=community_id,
                                            sdk_client_info_flag=sdk_client_info_flag)
-        report["reported_by"] = user_profile[0]
+        if api_revamp_v1_check:
+            report["reported_by_user"] = user_profile[0]
+        else:
+            report["reported_by"] = user_profile[0]
 
     if report_instance.type is not None:
-        report["type"] = report_instance.type
+        if api_revamp_v1_check:
+            report["type"] = REPORT_TYPES_INT[report_instance.type]
+        else:
+            report["type"] = report_instance.type
 
     if report_instance.action_taken_tag:
         report["action_taken_tag"] = report_tag_serializer(report_instance.action_taken_tag)
