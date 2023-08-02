@@ -2400,6 +2400,26 @@ class CommunityImpl(CommunityManager):
                 return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
             
+            user_instance = validated_request.get('user_instance')
+            community_instance = validated_request.get('community_instance')
+
+            filter_dict = {
+                'id__in': report_ids,
+                'community': community_instance
+            }
+
+            update_dict = {
+                'is_closed': True,
+                'closed_by': user_instance,
+                'closed_time': TimeUtilities.current_time_in_sec()
+            }
+
+            # Fetch and update report instances
+            ModelUtilities.model_update(Report, filter_dict, update_dict)
+
+            # Update report count for all admins in community
+            update_report_count_for_all_promoters.delay(community_id=community_instance.id)
+            
             return {'success': True}
 
         
@@ -4773,6 +4793,9 @@ class CommunityHelper:
     @staticmethod
     def validate_delete_community_reports_request(user_id, api_key, report_ids):
 
+        if not report_ids or not isinstance(report_ids, list):
+            return ResponseUtilities.get_inner_error_context("Invalid report_ids")
+
         validation_params = {
             'community_id': {
                 'api_key': api_key
@@ -4788,13 +4811,14 @@ class CommunityHelper:
         community_instance = validated_dict.get('community_id')
         user_instance = validated_dict.get('user_id')
 
-        report_instance = ModelUtilities.get_model_instance_or_none(CommunityReport, report_id)
-        if not report_instance:
-            return ResponseUtilities.get_inner_error_context("Invalid report_id")
+        member_instance = Members.get_member_instance_or_none(community_instance, user_instance)
 
+        # Validate if user is admin or not
+        if not member_instance or (member_instance.state != member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
+        
         return {
             'user_instance': user_instance,
             'community_instance': community_instance,
-            'report_instance': report_instance
+            'member_instance': member_instance
         }
-    
