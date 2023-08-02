@@ -412,7 +412,6 @@ class UserMetaView(APIView):
 
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        req_params = RequestUtilities.fetch_request_query_params(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
         user_manager = UserImpl(user_id=member_id, api_key=api_key)
