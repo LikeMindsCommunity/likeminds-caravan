@@ -10940,10 +10940,16 @@ def fetch_community_types(request):
 
 def fetch_intro_examples(request):
     '''api to send introduction questions examples'''
-
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+    sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+    
     intro_examples = INTRODUCTION_EXAMPLES
 
-    return JsonResponse({'intro_examples': intro_examples})
+    if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.community_hood, sdk_source):
+        intro_examples = COMMUNITY_HOOD_INTRODUCTION_EXAMPLES
+
+    return JsonResponse({'success': True, 'intro_examples': intro_examples})
 
 
 ################################# moderation rights ###############################################
