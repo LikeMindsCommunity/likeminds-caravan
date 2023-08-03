@@ -3603,6 +3603,7 @@ class ChatroomInvite(models.Model):
 
         super(ChatroomInvite, self).save(*args, **kwargs)
 
+
 class UserChannelSettings(models.Model):
     chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)

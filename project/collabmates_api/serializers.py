@@ -1330,6 +1330,8 @@ def FormResponseSerilaizer(community_id, user_id, current_user_id=None, bl=False
 
             temp['directory_fields'] = questions['field']
 
+            temp['tag'] = questions['tag']
+
             if response.question_title in ICONS:
                 temp['image_url'] = ICONS[response.question_title]
             elif questions['field']:
@@ -1397,7 +1399,8 @@ def CommunityQuestionsSerializer(community_question_instance):
         'state': community_question_instance.question_state,
         'help_text': community_question_instance.help_text if community_question_instance.help_text else '',
         'is_hidden': community_question_instance.is_hidden,
-        'field': community_question_instance.field
+        'field': community_question_instance.field,
+        'tag': community_question_instance.tag
     }
 
     if context['value'] and \

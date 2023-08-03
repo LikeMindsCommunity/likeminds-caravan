@@ -335,7 +335,6 @@ class FetchMembersMeta(APIView):
         page = RequestUtilities.get_page_number(request, default=1)
         page_size = RequestUtilities.get_page_size(request, default=50)
 
-
         community_manager = CommunityImpl(member_id=member_id, community_id=community_id, api_key=api_key)
 
         try:

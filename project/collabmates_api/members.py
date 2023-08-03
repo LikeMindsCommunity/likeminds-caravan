@@ -859,17 +859,11 @@ def get_filtered_users(filter_list, member_list):
     distinct_members = {}
 
     for key, value in filter_map.items():
+        question_set = set(questionFilters.objects
+                           .filter(filter__in=value, question=key)
+                           .values_list('member_id', flat=True))
 
-        question_id = key
-        question_set = set()
-
-        for option in value:
-            question_set = set(questionFilters.objects
-                               .filter(filter=option, question=question_id)
-                               .only('member_id')
-                               .values_list('member_id', flat=True))
-
-        distinct_members[question_id] = question_set
+        distinct_members[key] = question_set
 
     for key, value in distinct_members.items():
         member_set = intersect_sets(member_set, value)
