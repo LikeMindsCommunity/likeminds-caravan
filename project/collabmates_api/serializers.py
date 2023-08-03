@@ -1788,8 +1788,8 @@ def get_members_profile(member_ids, community_id, current_user_id=None, send_pro
     return member_profile_list
 
 
-def report_serializer(report_instance, current_user_id, sdk_client_info_flag:bool=False, 
-                      api_revamp_v1_check:bool=False):
+def report_serializer(report_instance, current_user_id, sdk_client_info_flag: bool = False, 
+                      api_revamp_v1_check: bool = False):
     
     report = {"id": report_instance.id}
 
