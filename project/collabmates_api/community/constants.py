@@ -204,6 +204,8 @@ COMMUNITY_NOTIFICATION_SETTING_UPDATED_EVENT = "Default Chatroom Notification se
 
 DEFAULT_JOIN_EMAIL_BODY = ""
 
+REPORT_MAIL_TO_TEAM_SUBJECT = "[{} reported] Likeminds App"
+
 # Report Types string consants
 REPORT_TYPE_MEMBER = "member"
 REPORT_TYPE_CHATROOM = "chatroom"

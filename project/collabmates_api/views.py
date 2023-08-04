@@ -11980,12 +11980,15 @@ def fetch_reports(request):
     
             # Check if correct filter_type is provided
             filter_types = StringUtilities.get_list_from_string(filter_type)
+            
             if filter_type:
+
                 if not isinstance(filter_types, list) :
                     return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
 
                 # Parse filter_types from string to int
                 parsed_filter_types = []
+                
                 for type in filter_types:
                     if type in REPORT_TYPES:
                         parsed_filter_types.append(REPORT_TYPES[type])

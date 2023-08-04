@@ -1828,6 +1828,7 @@ def report_serializer(report_instance, current_user_id, sdk_client_info_flag: bo
                                            sdk_client_info_flag=sdk_client_info_flag)
         if api_revamp_v1_check:
             report["accused_user"] = user_profile[0]
+
         else:
             report["user_reported"] = user_profile[0]
 
@@ -1836,12 +1837,14 @@ def report_serializer(report_instance, current_user_id, sdk_client_info_flag: bo
                                            sdk_client_info_flag=sdk_client_info_flag)
         if api_revamp_v1_check:
             report["reported_by_user"] = user_profile[0]
+
         else:
             report["reported_by"] = user_profile[0]
 
     if report_instance.type is not None:
         if api_revamp_v1_check:
             report["type"] = REPORT_TYPES_INT[report_instance.type]
+            
         else:
             report["type"] = report_instance.type
 

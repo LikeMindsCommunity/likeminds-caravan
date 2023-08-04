@@ -1637,6 +1637,7 @@ class ReportTagsSerializer(serializers.ModelSerializer):
         fields = self._readable_fields
 
         for field in fields:
+            
             if field.field_name == 'tag_id':
                 data['id'] = data['tag_id']
                 del data['tag_id']

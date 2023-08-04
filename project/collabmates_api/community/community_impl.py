@@ -2278,6 +2278,7 @@ class CommunityImpl(CommunityManager):
         # Fetch report tags with type 1 for member and type 0 for rest
         if report_type == REPORT_TYPE_MEMBER_INT:
             report_tags_instances = ModelUtilities.get_model_filter(Report_Tags, {'type': 1})
+
         else:
             report_tags_instances = ModelUtilities.get_model_filter(Report_Tags, {'type': 0})
 
@@ -2322,17 +2323,21 @@ class CommunityImpl(CommunityManager):
 
         # If a member is reported
         if report_type == REPORT_TYPE_MEMBER_INT:
+
             if is_admin and has_admin_approve_right:
                 return ResponseUtilities.get_impl_error_context('You have no right to report a member!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
+            
             reported_member_instance = ModelUtilities.get_user_instance_or_none(entity_id)
             if not reported_member_instance:
                 return ResponseUtilities.get_impl_error_context('Invalid entity_id for member reporting!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
-            subject = '[Member reported] Likeminds App'
+                                                                
+            subject = REPORT_MAIL_TO_TEAM_SUBJECT.format("Member")
             
         # If a chatroom is reported
         elif report_type == REPORT_TYPE_CHATROOM_INT:
+
             if is_admin and has_admin_delete_right:
                 return ResponseUtilities.get_impl_error_context('You have no right to report a chatroom!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
@@ -2340,10 +2345,11 @@ class CommunityImpl(CommunityManager):
             if not chatroom_instance:
                 return ResponseUtilities.get_impl_error_context('Invalid entity_id for chatroom reporting!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
-            subject = '[Chatroom reported] Likeminds App'
+            subject = REPORT_MAIL_TO_TEAM_SUBJECT.format("Chatroom")
 
         # If a conversation is reported
         elif report_type == REPORT_TYPE_CONVERSATION_INT:
+
             if is_admin and has_admin_delete_right:
                 return ResponseUtilities.get_impl_error_context('You have no right to report a conversation!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
@@ -2352,10 +2358,11 @@ class CommunityImpl(CommunityManager):
             if not conversation_instance:
                 return ResponseUtilities.get_impl_error_context('Invalid entity_id for conversation reporting!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
-            subject = '[Text reported] Likeminds App'
+            subject = REPORT_MAIL_TO_TEAM_SUBJECT.format("Text")
 
         # If a feed entity (post,comment,reply) is reported
         elif report_type in [REPORT_TYPE_POST_INT, REPORT_TYPE_COMMENT_INT, REPORT_TYPE_REPLY_INT]:
+
             feed_entity_id = entity_id
 
             # Get valid user id from uuid
@@ -2370,7 +2377,7 @@ class CommunityImpl(CommunityManager):
                 return ResponseUtilities.get_impl_error_context(f'Invalid accused_uuid for {entity_type} reporting!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-            subject = f'[{entity_type} reported] Likeminds App'
+            subject = REPORT_MAIL_TO_TEAM_SUBJECT.format(entity_type)
 
         # Create report instance
         report_instance = Report(
@@ -4748,6 +4755,7 @@ class CommunityHelper:
 
         # Check if user is community member
         is_community_member = Members.is_community_member(community_instance, user_instance)
+
         if not is_community_member:
             return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
         
