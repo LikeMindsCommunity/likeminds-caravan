@@ -2329,6 +2329,7 @@ class CommunityImpl(CommunityManager):
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
             
             reported_member_instance = ModelUtilities.get_user_instance_or_none(entity_id)
+            
             if not reported_member_instance:
                 return ResponseUtilities.get_impl_error_context('Invalid entity_id for member reporting!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
@@ -2341,10 +2342,13 @@ class CommunityImpl(CommunityManager):
             if is_admin and has_admin_delete_right:
                 return ResponseUtilities.get_impl_error_context('You have no right to report a chatroom!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
+            
             chatroom_instance = ModelUtilities.get_model_filter(Collabcard, {'id': entity_id})
+
             if not chatroom_instance:
                 return ResponseUtilities.get_impl_error_context('Invalid entity_id for chatroom reporting!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
+            
             subject = REPORT_MAIL_TO_TEAM_SUBJECT.format("Chatroom")
 
         # If a conversation is reported
@@ -2355,9 +2359,11 @@ class CommunityImpl(CommunityManager):
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
             
             conversation_instance = ModelUtilities.get_model_filter(card_answers, {'id': entity_id})
+
             if not conversation_instance:
                 return ResponseUtilities.get_impl_error_context('Invalid entity_id for conversation reporting!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
+            
             subject = REPORT_MAIL_TO_TEAM_SUBJECT.format("Text")
 
         # If a feed entity (post,comment,reply) is reported

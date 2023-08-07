@@ -1805,13 +1805,16 @@ def report_serializer(report_instance, current_user_id, sdk_client_info_flag: bo
         report["conversation"] = conversationSerializer(report_instance.conversation, current_user_id=current_user_id,
                                                         fetch_poll_conversation=True, 
                                                         sdk_client_info_flag=sdk_client_info_flag)
+        
         report["chatroom"] = get_chatroom_instance(report_instance.conversation.card, current_user_id, 
                                                    sdk_client_info_flag=sdk_client_info_flag)
+        
         report["conversation_users"] = get_last_two_conversation_user_images(report_instance.conversation.card)
 
     elif report_instance.collabcard is not None:
         report["chatroom"] = get_chatroom_instance(report_instance.collabcard, current_user_id, 
                                                    sdk_client_info_flag=sdk_client_info_flag)
+        
         report["conversation_users"] = get_last_two_conversation_user_images(report_instance.collabcard)
 
     if report_instance.entity_id:
@@ -1826,6 +1829,7 @@ def report_serializer(report_instance, current_user_id, sdk_client_info_flag: bo
     if report_instance.user_reported:
         user_profile = get_members_profile(member_ids=[report_instance.user_reported.id], community_id=community_id,
                                            sdk_client_info_flag=sdk_client_info_flag)
+        
         if api_revamp_v1_check:
             report["accused_user"] = user_profile[0]
 
@@ -1835,6 +1839,7 @@ def report_serializer(report_instance, current_user_id, sdk_client_info_flag: bo
     if report_instance.reported_by:
         user_profile = get_members_profile(member_ids=[report_instance.reported_by.id], community_id=community_id,
                                            sdk_client_info_flag=sdk_client_info_flag)
+        
         if api_revamp_v1_check:
             report["reported_by_user"] = user_profile[0]
 
@@ -1842,6 +1847,7 @@ def report_serializer(report_instance, current_user_id, sdk_client_info_flag: bo
             report["reported_by"] = user_profile[0]
 
     if report_instance.type is not None:
+        
         if api_revamp_v1_check:
             report["type"] = REPORT_TYPES_INT[report_instance.type]
             
@@ -1857,6 +1863,7 @@ def report_serializer(report_instance, current_user_id, sdk_client_info_flag: bo
     if report_instance.action_taken_by:
         user_profile = get_members_profile(member_ids=[report_instance.action_taken_by.id], community_id=community_id,
                                            sdk_client_info_flag=sdk_client_info_flag)
+        
         report["action_taken_by"] = user_profile[0]
 
     if report_instance.action_taken is not None:
@@ -1874,6 +1881,7 @@ def report_serializer(report_instance, current_user_id, sdk_client_info_flag: bo
     if report_instance.closed_by is not None:
         user_profile = get_members_profile(member_ids=[report_instance.closed_by.id], community_id=community_id,
                                            sdk_client_info_flag=sdk_client_info_flag)
+        
         report["closed_by"] = user_profile[0]
 
     if report_instance.closed_time:
