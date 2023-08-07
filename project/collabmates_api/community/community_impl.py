@@ -2379,6 +2379,7 @@ class CommunityImpl(CommunityManager):
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
 
             reported_member_instance = ModelUtilities.get_user_instance_or_none(valid_id[0])
+            
             if not reported_member_instance:
                 return ResponseUtilities.get_impl_error_context(f'Invalid accused_uuid for {entity_type} reporting!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
