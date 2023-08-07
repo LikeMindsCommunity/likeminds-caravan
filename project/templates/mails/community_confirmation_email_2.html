@@ -32,13 +32,5 @@ strong{
 </div>
 {% endblock %}
 <div>
-<div style="
-             width: 200px;
-             height: 1px;
-             background: #979797;
-             margin: 16px auto;"
-             ></div>
-         <p style="font-family: 'Roboto';font-style: normal;font-weight: 400;font-size: 14px;line-height: 16px;text-align: center;color: #718297">
-             <a style="color:#00897B;text-decoration:none" href="https://likeminds.community/?utm_source=CommunityHood&utm_medium=email&utm_campaign=downloaddrip&utm_content=customcommunity">Build your own custom community platform</a>
-         </p>
+    {% include 'mails/email_footer.html' with unsub=unsub likeminds="https://likeminds.community/?utm_source=CommunityHood&utm_medium=email&utm_campaign=downloaddrip&utm_content=LikeMinds" custom_community="https://likeminds.community/?utm_source=CommunityHood&utm_medium=email&utm_campaign=downloaddrip&utm_content=customcommunity" %}
 </div>

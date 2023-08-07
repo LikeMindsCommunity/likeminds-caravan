@@ -37,32 +37,9 @@
                     <img alt="App Store" src="https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fapple_store.png?alt=media&token=b1b62dfb-cde0-42c1-b801-5ed7fd0ca90b" style="height:48px;display:inline-block;vertical-align:middle;" />
                 </a>
             </div>
-            <div style="background:#d8d8d8;height:1px;width:280px;margin:auto;"></div>
-            <div style="margin:24px 0;font-size:14px;color:#718297">
-                <div style="margin-bottom:8px;">
-                    <a href="https://likeminds.community/privacy" class="privacyLink" style="text-decoration:none;color:#718297;">
-                        Privacy Policy
-                    </a>  | 
-                    <a href="https://likeminds.community/terms" class="termsLink" style="text-decoration:none;color:#718297;">
-                        Terms & Condition
-                    </a>
-                </div>
-                <div style="margin-bottom:8px;">
-                    <div>© 2020 Collabmates Pvt. Ltd.</div>
-                    <div>All Rights Reserved.</div>
-                </div>
-                <div>Gurugram - India</div>
-            </div>
-            <div style="background:#d8d8d8;height:1px;width:280px;margin:auto;"></div>
-            <div style="margin:24px 0;">
-                <a href="{{angellist_link}}" style="padding-right:20px;text-decoration:none;">
-                    <img alt="Angellist" src="https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Fangellist.png?alt=media&token=8953ca15-9523-4a47-b665-48fd4a5cd2b6" style="width:14px;height:20px;display:inline-block;vertical-align:middle;"/>
-                </a>
-                <a href="{{linkedIn_link}}">
-                    <img alt="LinkedIn" src="https://firebasestorage.googleapis.com/v0/b/collabmates-3d601.appspot.com/o/files%2Fmain_website%2Flinkedin.png?alt=media&token=e236c6b8-b8fa-4e15-8e76-99bde965749f" style="width:20px;height:20px;display:inline-block;vertical-align:middle;"/>
-                </a>
-
-            </div>
         </div>
+            <div>
+                {% include 'mails/email_footer.html' with unsub="" likeminds="https://likeminds.community/?utm_source=CommunityHood&utm_medium=email&utm_campaign=emailverify&utm_content=LikeMinds" custom_community="https://likeminds.community/?utm_source=CommunityHood&utm_medium=email&utm_campaign=emailverify&utm_content=customcommunity" %}
+            </div>
     </body>
 </html>
