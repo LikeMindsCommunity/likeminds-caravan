@@ -19,7 +19,7 @@ from utility.url_utilities import UrlUtilities
 from utility.celery_tasks import get_event_pricing
 from collabmates_api.static_text import CUSTOMISE_JOIN_FORM_MAIL_SUBJECT
 from collabmates_api.branch import create_single_event_branch_url
-from ..chatroom.constants import (EMAIL_UNSUBSCRIBE_URL)
+from ..chatroom.constants import (EMAIL_UNSUBSCRIBE_URL,LIKEMINDS_WEB_URL)
 
 
 from .constants import *
@@ -778,6 +778,10 @@ class TasksHelper:
                     EmailCategories.EVENT_REGISTER, EmailSubCategories.PAID_EVENT_CREATED)
 
             else:
+                data_dict['likeminds'] = LIKEMINDS_WEB_URL % (event_instance.community.name, 'eventcreated',
+                                                              'LikeMinds')
+                data_dict['custom_community'] = LIKEMINDS_WEB_URL % (event_instance.community.name, 'eventcreated',
+                                                                     'customcommunnity')
                 context['template'] = get_template("mails/event_comms/free-event-created.html").render(data_dict)
                 context['categories'] = MailHelper.get_email_category_list_using_category_subcategory(
                     EmailCategories.EVENT_REGISTER, EmailSubCategories.FREE_EVENT_CREATED)
@@ -796,6 +800,10 @@ class TasksHelper:
                     EmailCategories.EVENT_REGISTER, EmailSubCategories.PAID_EVENT_REGISTRATION_LAST_CALL)
 
             else:
+                data_dict['likeminds'] = LIKEMINDS_WEB_URL % (event_instance.community.name,
+                                                              'eventregistrationlastcall', 'LikeMinds')
+                data_dict['custom_community'] = LIKEMINDS_WEB_URL % (event_instance.community.name,
+                                                                     'eventregistrationlastcall', 'customcommunnity')
                 context['template'] = get_template("mails/event_comms/free-event-last-call.html").render(data_dict)
                 context['categories'] = MailHelper.get_email_category_list_using_category_subcategory(
                     EmailCategories.EVENT_REGISTER, EmailSubCategories.FREE_EVENT_REGISTRATION_LAST_CALL)
@@ -809,11 +817,19 @@ class TasksHelper:
                     EmailCategories.EVENT_REGISTER, EmailSubCategories.PAID_EVENT_REGISTRATION_SUCCESSFUL)
 
             else:
+                data_dict['likeminds'] = LIKEMINDS_WEB_URL % (event_instance.community.name,
+                                                              'registrationsuccessful', 'LikeMinds')
+                data_dict['custom_community'] = LIKEMINDS_WEB_URL % (event_instance.community.name,
+                                                                     'registrationsuccessful', 'customcommunnity')
                 context['template'] = get_template("mails/event_comms/free-event-reg-success.html").render(data_dict)
                 context['categories'] = MailHelper.get_email_category_list_using_category_subcategory(
                     EmailCategories.EVENT_REGISTER, EmailSubCategories.FREE_EVENT_REGISTRATION_SUCCESSFUL)
 
         elif event_type == EVENT_TYPE.ATTENDANCE_9_AM:
+            data_dict['likeminds'] = LIKEMINDS_WEB_URL % (event_instance.community.name,
+                                                          'eventday', 'LikeMinds')
+            data_dict['custom_community'] = LIKEMINDS_WEB_URL % (event_instance.community.name,
+                                                                 'eventday', 'customcommunnity')
             context['subject'] = SUBJECT_EVENT_ATTENDANCE_MAIL
             context['template'] = get_template("mails/event_comms/event-attendance.html").render(data_dict)
             context['categories'] = MailHelper.get_email_category_list_using_category_subcategory(
@@ -1014,11 +1030,15 @@ class TasksHelper:
         data_dict['unsub'] = EMAIL_UNSUBSCRIBE_URL % (settings.WEB_URL, str(community_id), str(receiver_id))
 
         if chatroom_not_opened_type == chatroom_not_opened_types.TAGGED_CHATROOM:
+            data_dict['likeminds'] = LIKEMINDS_WEB_URL % (community_instance.name, 'chatroomtagging', 'LikeMinds')
+            data_dict['custom_community'] = LIKEMINDS_WEB_URL % (community_instance.name, 'chatroomtagging', 'customcommunity')
             template = get_template("mails/engagement_mails/tagged_chatroom_not_opened.html").render(data_dict)
             categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.ENGAGEMENT,
                                                                                        EmailSubCategories.CHATROOM_TAG)
 
         if chatroom_not_opened_type == chatroom_not_opened_types.DM_CHATROOM:
+            data_dict['likeminds'] = LIKEMINDS_WEB_URL % (community_instance.name, 'dmtagging', 'LikeMinds')
+            data_dict['custom_community'] = LIKEMINDS_WEB_URL % (community_instance.name, 'dmtagging', 'customcommunity')
             template = get_template("mails/engagement_mails/dm_chatroom_not_opened.html").render(data_dict)
             categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.ENGAGEMENT,
                                                                                        EmailSubCategories.DM)
