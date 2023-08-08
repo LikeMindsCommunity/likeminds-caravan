@@ -2328,11 +2328,13 @@ class CommunityImpl(CommunityManager):
                 return ResponseUtilities.get_impl_error_context('You have no right to report a member!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
             
-            reported_member_instance = ModelUtilities.get_user_instance_or_none(entity_id)
-            
-            if not reported_member_instance:
+            valid_id = ModelUtilities.get_valid_user_ids_from_uuids([entity_id], community_instance.id)
+
+            if not valid_id:
                 return ResponseUtilities.get_impl_error_context('Invalid entity_id for member reporting!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
+            
+            reported_member_instance = ModelUtilities.get_user_instance_or_none(valid_id[0])
                                                                 
             subject = REPORT_MAIL_TO_TEAM_SUBJECT.format("Member")
             
@@ -2343,7 +2345,7 @@ class CommunityImpl(CommunityManager):
                 return ResponseUtilities.get_impl_error_context('You have no right to report a chatroom!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
             
-            chatroom_instance = ModelUtilities.get_model_filter(Collabcard, {'id': entity_id})
+            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, entity_id)
 
             if not chatroom_instance:
                 return ResponseUtilities.get_impl_error_context('Invalid entity_id for chatroom reporting!',
@@ -2358,7 +2360,7 @@ class CommunityImpl(CommunityManager):
                 return ResponseUtilities.get_impl_error_context('You have no right to report a conversation!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
             
-            conversation_instance = ModelUtilities.get_model_filter(card_answers, {'id': entity_id})
+            conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, entity_id)
 
             if not conversation_instance:
                 return ResponseUtilities.get_impl_error_context('Invalid entity_id for conversation reporting!',
@@ -2375,14 +2377,10 @@ class CommunityImpl(CommunityManager):
             valid_id = ModelUtilities.get_valid_user_ids_from_uuids([accused_uuid], community_instance.id)
 
             if not valid_id:
-                return ResponseUtilities.get_impl_error_context(f'Invalid accused_uuid!',
+                return ResponseUtilities.get_impl_error_context(f'Invalid accused_uuid for {entity_type} reporting!!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
 
             reported_member_instance = ModelUtilities.get_user_instance_or_none(valid_id[0])
-            
-            if not reported_member_instance:
-                return ResponseUtilities.get_impl_error_context(f'Invalid accused_uuid for {entity_type} reporting!',
-                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
 
             subject = REPORT_MAIL_TO_TEAM_SUBJECT.format(entity_type)
 
@@ -2408,10 +2406,13 @@ class CommunityImpl(CommunityManager):
 
         #  Send notification if report is for member or chatroom
         if report_type in [REPORT_TYPE_MEMBER_INT, REPORT_TYPE_CHATROOM_INT] and not is_owner:
+            chatroom_id = chatroom_instance.id if chatroom_instance else None
+            conversation_id = conversation_instance.id if conversation_instance else None
+            reported_member_id = reported_member_instance.id if reported_member_instance else None
+
             send_notification_for_reports.delay(report_id=report_instance.id, community_id=community_instance.id,
-                                                reported_by_user_id=user_instance.id, card_id=chatroom_instance.id,
-                                                conversation_id=conversation_instance.id,
-                                                reported_on_user_id=reported_member_instance.id,
+                                                reported_by_user_id=user_instance.id, card_id=chatroom_id,
+                                                conversation_id=conversation_id,reported_on_user_id=reported_member_id,
                                                 report_type=report_type, reason=reason, tag_id=tag_id)
 
         # Send report mail to team if owner is reporting
