@@ -12016,7 +12016,6 @@ def fetch_reports(request):
                                                                             status_codes.HTTP_400_BAD_REQUEST)
                     return JsonResponse(context['data'], status=context['status'])
 
-
             reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
                                                    is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
                                                    parent_cm_list=parent_cm_list, page = page, page_size = page_size, 
