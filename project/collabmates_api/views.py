@@ -11894,7 +11894,10 @@ def fetch_reports(request):
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
     accept_version = RequestUtilities.get_accept_version_from_headers(request)
+    sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
 
+    pagination_filter_check = VersionUtilities.check_version(platform_code, version_code, 
+                                                             VersionUtilities.fetch_reports_pagination_and_filter, sdk_source)
     api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
 
     if not current_user_id:
@@ -11947,39 +11950,40 @@ def fetch_reports(request):
 
     try:    
         # Version check for pagination & filter
-        if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.fetch_reports_pagination_and_filter):
+        if pagination_filter_check or api_revamp_v1_check:
             
-            # For Newer Versions
+            # get query params
             page = NumberUtilities.get_integer_from_string(request.GET.get('page'), 1)
-            
+            page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size'), 20)
+            is_closed = request.GET.get('is_closed', None)
+            filter_type =  request.GET.get('filter_type', None)
+
             if page <= 0:
                 page = 1
-
-            page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size'), 20)
 
             if page_size <= 0:
                 page_size = 20
 
-            is_closed = request.GET.get('is_closed', None)
-            filter_type =  request.GET.get('filter_type', None)
-    
             # Check if correct filter_type is provided
             filter_types = StringUtilities.get_list_from_string(filter_type)
-            
-            if filter_type:
 
-                if not isinstance(filter_types, list) :
+            if filter_type:
+            
+                if not isinstance(filter_types, list) or any(not isinstance(item, int) for item in filter_types):
                     return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
 
                 # Parse filter_types from string to int
-                parsed_filter_types = []
-                
-                for type in filter_types:
+                if api_revamp_v1_check:
+                    parsed_filter_types = []
+                    
+                    for type in filter_types:
 
-                    if type in REPORT_TYPES:
-                        parsed_filter_types.append(REPORT_TYPES[type])
-                
-                if parsed_filter_types:
+                        if type in REPORT_TYPES:
+                            parsed_filter_types.append(REPORT_TYPES[type])
+                        
+                        else:
+                            return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
+                    
                     filter_types = parsed_filter_types
 
             
