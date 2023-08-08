@@ -1023,3 +1023,53 @@ class UsersView(APIView):
                                                                                 res.get('status')))
 
         return JsonResponse(res)
+    
+
+class ReportTagsView(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        req_params = RequestUtilities.fetch_request_query_params(request)
+
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+
+        res = community_manager.fetch_report_Tags(req_params.get('entity_type'))
+
+        if 'error_message' in res:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        
+        return JsonResponse(res)
+    
+
+class CommunityReportView(APIView):
+
+    def post(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        res = community_manager.push_community_report(req_body)
+
+        if 'error_message' in res:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        
+        return JsonResponse(res)
+    
+    def delete(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        res = community_manager.delete_community_reports(report_ids=req_body.get('report_ids'))
+
+        if 'error_message' in res:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        
+        return JsonResponse(res)
+    
