@@ -27,7 +27,7 @@ from utility.states import (collabcard_states, member_states, community_states,
                             card_types, chatroom_actions, member_rights, manager_rights,
                             moderation_history_types, report_Action_Types, report_Types, multi_select_poll_states,
                             user_email_send_status_types, get_started_types, email_states, mobile_states,
-                            unsubscribe_types)
+                            unsubscribe_types, UTMContent, UTMCampaing)
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
@@ -416,8 +416,10 @@ def send_community_confirmation_email(user_id, community_id):
             'app_image': APP_LOGO,
             'cta_url': url + '/community/' + str(community_id),
             'unsub': EMAIL_UNSUBSCRIBE_URL % (settings.WEB_URL, str(community_id), str(user_id)),
-            'likeminds': LIKEMINDS_WEB_URL % (community_instance.name, 'requestaccepted', 'LikeMinds'),
-            'custom_community': LIKEMINDS_WEB_URL % (community_instance.name, 'requestaccepted', 'customcommunity'),
+            'likeminds': LIKEMINDS_WEB_URL % (community_instance.name, UTMCampaing.REQUESTACCEPTED,
+                                              UTMContent.LIKEMINDS),
+            'custom_community': LIKEMINDS_WEB_URL % (community_instance.name, UTMCampaing.REQUESTACCEPTED,
+                                                     UTMContent.CUSTOMCOMMUNITY),
         }
         template = get_template("mails/community_confirmation_email.html").render(email_context)
 
@@ -465,8 +467,9 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
             'app_image': APP_LOGO,
             'cta_url': url + '/community/' + str(community_id),
             'unsub': EMAIL_UNSUBSCRIBE_URL % (settings.WEB_URL, str(community_id), str(user_id)),
-            'likeminds': LIKEMINDS_WEB_URL % (community_instance.name, 'downloaddrip', 'LikeMinds'),
-            'custom_community': LIKEMINDS_WEB_URL % (community_instance.name, 'downloaddrip', 'customcommunity')
+            'likeminds': LIKEMINDS_WEB_URL % (community_instance.name, UTMCampaing.DOWNLOADDRIP, UTMContent.LIKEMINDS),
+            'custom_community': LIKEMINDS_WEB_URL % (community_instance.name, UTMCampaing.DOWNLOADDRIP,
+                                                     UTMContent.CUSTOMCOMMUNITY)
         }
         template = get_template("mails/community_confirmation_email_2.html").render(email_context)
 

@@ -763,3 +763,17 @@ class DMFabShowList:
 class OTPTypes:
     MOBILE = "mobile"
     EMAIL = "email"
+
+class UTMCampaing:
+    REQUESTACCEPTED = "requestaccepted"
+    DOWNLOADDRIP = "downloaddrip"
+    CHATROOMTAGGING = "chatroomtagging"
+    DMTAGGING = "dmtagging"
+    EVENTDAY = "eventday"
+    EVENTCREATED = "eventcreated"
+    EVENTREGISTRATIONLASTCALL = "eventregistrationlastcall"
+    REGISTRATIONSUCCESSFUL = "registrationsuccessful"
+
+class UTMContent:
+    LIKEMINDS = "LikeMinds"
+    CUSTOMCOMMUNITY = "customcommunity"
