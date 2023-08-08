@@ -404,3 +404,23 @@ class UserSocialLoginView(APIView):
 
         return JsonResponse(response_data)
 
+
+class UserMetaView(APIView):
+    """
+    Verify user social login
+    """
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        user_manager = UserImpl(user_id=member_id, api_key=api_key)
+        response_data = user_manager.user_meta()
+
+        if 'error_message' in response_data:
+            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
+                                                                    response_data['status'])
+            return JsonResponse(context['data'], status=context['status'])
+
+        return JsonResponse(response_data)
+

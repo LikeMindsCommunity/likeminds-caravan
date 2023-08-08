@@ -21,7 +21,9 @@ class UserManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_user_info') and callable(subclass.fetch_user_info)) and
                 (hasattr(subclass, 'whatsapp_subscription') and callable(subclass.whatsapp_subscription)) and
                 (hasattr(subclass, 'send_user_otp') and callable(subclass.send_user_otp)) and
-                (hasattr(subclass, 'verify_user_otp') and callable(subclass.verify_user_otp)) or
+                (hasattr(subclass, 'verify_user_otp') and callable(subclass.verify_user_otp)) and
+                (hasattr(subclass, 'user_social_login') and callable(subclass.user_social_login)) and
+                (hasattr(subclass, 'user_meta') and callable(subclass.user_meta)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -160,5 +162,12 @@ class UserManager(metaclass=abc.ABCMeta):
     def user_social_login(self, login_type: str, token: str) -> dict:
         """
         Verify user OTPs
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def user_meta(self) -> dict:
+        """
+        Fetch user meta corresponding to member id
         """
         raise NotImplementedError
