@@ -11915,8 +11915,10 @@ def fetch_reports(request):
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
     accept_version = RequestUtilities.get_accept_version_from_headers(request)
+    sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
 
-    pagination_filter_check = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.fetch_reports_pagination_and_filter)
+    pagination_filter_check = VersionUtilities.check_version(platform_code, version_code, 
+                                                             VersionUtilities.fetch_reports_pagination_and_filter, sdk_source)
     api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
 
     if not current_user_id:
