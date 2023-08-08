@@ -987,7 +987,7 @@ class ConversationImpl(ConversationManager):
                     chatroom_instance.is_private_member,
                     chatroom_state_instance.chat_request_state == chat_request_states.REJECTED]):
                 return ResponseUtilities.get_impl_error_context("Chatroom messaging is blocked!",
-                                                                status_codes.HTTP_400_BAD_REQUEST)
+                                                                status_codes.HTTP_403_FORBIDDEN)
 
         if chatroom_instance.access_without_subscription:
             status = is_member_verified(community_instance.id, self.get_member_id())
