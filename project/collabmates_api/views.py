@@ -11990,7 +11990,7 @@ def fetch_reports(request):
 
             if filter_type:
             
-                if not isinstance(filter_types, list) or any(not isinstance(item, int) for item in filter_types):
+                if not isinstance(filter_types, list):
                     return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
 
                 # Parse filter_types from string to int
@@ -12007,7 +12007,9 @@ def fetch_reports(request):
                     
                     filter_types = parsed_filter_types
 
-            
+                if any(not isinstance(item, int) for item in filter_types):
+                    return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
+
             reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
                                                    is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
                                                    parent_cm_list=parent_cm_list, page = page, page_size = page_size, 
