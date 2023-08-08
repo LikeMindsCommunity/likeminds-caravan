@@ -3066,12 +3066,16 @@ class MemberCommunityHelper:
                                                                   question_answers_list,
                                                                   True)
 
+        shared_user_instance = ModelUtilities.get_user_instance_or_none(req_body.get('shared_by'),
+                                                                        community_instance.id)
+
         Members.create_instance({'user_instance': user_instance,
                                  'community_instance': community_instance,
                                  'state': member_states.MEMBER,
                                  'image_url': req_body.get('image_url'),
                                  'custom_title': "Member",
-                                 'became_member_at': TimeUtilities.current_time_in_sec()
+                                 'became_member_at': TimeUtilities.current_time_in_sec(),
+                                 'joined_by': shared_user_instance
                                  })
 
         if req_body.get('image_url'):
@@ -3090,6 +3094,10 @@ class MemberCommunityHelper:
 
         shared_user_id = None
         auto_join_code = None
+
+        if shared_user_instance:
+            shared_user_id = shared_user_instance.id
+
         CommunityHelper.set_moderation_rights_and_delete_user_previous_metadata_for_auto_join.delay(
             user_instance.id,
             community_instance.id,
@@ -3176,10 +3184,14 @@ class MemberCommunityHelper:
                                                                         question_answers_list,
                                                                         True)
 
+        shared_user_instance = ModelUtilities.get_user_instance_or_none(req_body.get('shared_by'),
+                                                                        community_instance.id)
+
         Members.create_instance({'user_instance': user_instance,
                                  'community_instance': community_instance,
                                  'state': member_states.PENDING_MEMBER,
-                                 'image_url': req_body.get('image_url')})
+                                 'image_url': req_body.get('image_url'),
+                                 'joined_by': shared_user_instance})
 
         ModelUtilities.update_or_create_model(Member_Engage,
                                               {'member_id': user_instance,
@@ -3194,7 +3206,8 @@ class MemberCommunityHelper:
 
         moderationHistory.create_instance({'user_instance': user_instance,
                                            'community_instance': community_instance,
-                                           'type': history_type})
+                                           'type': history_type,
+                                           'moderation_by': shared_user_instance})
 
         send_notification_to_admins.delay(community_instance.id, user_instance.userinfo.name)
         send_community_hood_waitlist_email_to_pending_member.delay(user_instance.id, community_instance.id)

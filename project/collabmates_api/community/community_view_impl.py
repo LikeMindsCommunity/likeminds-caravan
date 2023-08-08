@@ -605,20 +605,21 @@ class SendInviteView(APIView):
         req_body = RequestUtilities.load_request_body(request)
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not member_id:
             return JsonResponse({'success': False, 'error_message': 'Send member_id'},
                                 status=status_codes.HTTP_400_BAD_REQUEST)
 
         community_manager = CommunityImpl(member_id=member_id, request_platform=platform_code,
-                                          version_code=version_code)
+                                          version_code=version_code, api_key=api_key)
 
         res = community_manager.send_invite(req_body)
 
-        if not res.get('success'):
-            return JsonResponse(res, status=status_codes.HTTP_400_BAD_REQUEST)
-
-        return JsonResponse(res, status=status_codes.HTTP_200_OK)
+        if 'error_message' in res:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        return JsonResponse(res)
 
 
 class EditCommunityQuestionsView(APIView):

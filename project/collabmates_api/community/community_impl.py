@@ -1700,17 +1700,21 @@ class CommunityImpl(CommunityManager):
 
     def send_invite(self, req_body) -> {}:
 
-        validated_req_body = CommunityHelper.validate_send_invite(req_body)
+        validated_req_body = CommunityHelper.validate_send_invite(req_body, self.get_api_key())
 
-        if not validated_req_body.get('success'):
-            return validated_req_body
+        if validated_req_body.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         validated_req_body = validated_req_body.get('req_body')
 
-        validated_logic = CommunityHelper.validate_send_invite_logic(self.get_member_id(), validated_req_body)
+        validated_logic = CommunityHelper.validate_send_invite_logic(self.get_member_id(),
+                                                                     validated_req_body,
+                                                                     self.get_api_key())
 
-        if not validated_logic.get('success'):
-            return validated_logic
+        if validated_logic.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_logic.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = validated_logic.get('user_instance')
 
@@ -1731,7 +1735,8 @@ class CommunityImpl(CommunityManager):
                 else:
                     error_text = "Invalid email ID's!"
 
-                return {'success': False, 'error_message': error_text}
+                return ResponseUtilities.get_impl_error_context(error_text,
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
 
             mail_text = validated_req_body.get('text')
 
@@ -1768,7 +1773,8 @@ class CommunityImpl(CommunityManager):
             return {'success': True}
 
         else:
-            return {'success': False, 'error_message': 'Invalid type!'}
+            return ResponseUtilities.get_impl_error_context('Invalid type!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def edit_questions(self, req_body) -> {}:
         validated_req_body = CommunityHelper.validate_edit_question_request(self.get_member_id(),
@@ -2693,7 +2699,9 @@ class CommunityHelper:
         if auto_join_code is None and shared_by_user is None:
             history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
 
-        if api_type == api_types.SDK:
+        is_sdk = api_type == api_types.SDK
+
+        if is_sdk:
             history_type = moderation_history_types.SDK_JOIN
 
         is_rejoined = ModelUtilities.is_model_filter_exists(removedMembers, {'member': user_instance,
@@ -2706,6 +2714,10 @@ class CommunityHelper:
 
         if is_rejoined:
             history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
+
+            if is_sdk:
+                history_type = moderation_history_types.SDK_REJOINED_MEMBER
+
             CommunityHelper.update_followed_chatrooms_for_rejoined_member(user_instance, community_instance)
 
         moderationHistory.create_instance({'user_instance': user_instance, 'community_instance': community_instance,
@@ -3240,13 +3252,13 @@ class CommunityHelper:
         return req_body
 
     @staticmethod
-    def validate_send_invite(req_body):
+    def validate_send_invite(req_body, api_key: str = None):
 
         if 'type' not in req_body:
             return {'success': False, 'error_message': 'Send type'}
 
-        if 'community_id' not in req_body:
-            return {'success': False, 'error_message': 'Send community_id'}
+        if not (api_key or 'community_id' in req_body):
+            return {'success': False, 'error_message': 'Send API key/community ID!'}
 
         if req_body.get('type') not in [send_invite_types.EMAIL_INVITE, send_invite_types.WHATSAPP_INVITE]:
             return {'success': False, 'error_message': 'invalid type'}
@@ -3524,31 +3536,39 @@ class CommunityHelper:
         return {'success': True, 'community_instance': community_instance, 'user_instance': user_instance}
 
     @staticmethod
-    def validate_send_invite_logic(member_id, validated_req_body):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+    def validate_send_invite_logic(member_id, validated_req_body, api_key: str = None):
+        validation_params = {
+            'community_id': {
+                'community_id': validated_req_body.get('community_id'),
+                'api_key': api_key
+            },
+            'user_id': member_id,
+        }
 
-        if not user_instance:
-            return {'success': False, 'error_message': 'Invalid member_id'}
+        validated_dict = ValidationUtilities.is_valid(validation_params)
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community,
-                                                                       validated_req_body.get('community_id'))
+        if validated_dict.get('error_message'):
+            return validated_dict
 
-        if not community_instance:
-            return {'success': False, 'error_message': 'Invalid community_id'}
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
 
         members_filter = ModelUtilities.get_model_filter(Members,
                                                          {'member_id': user_instance,
                                                           'community_id': community_instance})
 
         if not members_filter:
-            return {'success': False, 'error_message': 'You are not part of the community.'}
+            return ResponseUtilities.get_inner_error_context('You are not part of the community.')
 
         is_admin = members_filter[0].state == member_states.ADMIN
 
         if not is_admin:
-            return {'success': False, 'error_message': 'You are not the CM of this community!'}
+            return ResponseUtilities.get_inner_error_context('You are not the CM of this community!')
 
-        return {'success': True, 'community_instance': community_instance, 'user_instance': user_instance}
+        return {
+            'community_instance': community_instance,
+            'user_instance': user_instance
+        }
 
     @staticmethod
     def send_invite_email_to_given_emails_list(user_instance, community_instance, valid_email_ids_list,
