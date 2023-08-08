@@ -11991,7 +11991,9 @@ def fetch_reports(request):
             if filter_type:
             
                 if not isinstance(filter_types, list):
-                    return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
+                    context = ResponseUtilities.get_view_impl_error_context("Invalid filter_type",
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(context['data'], status=context['status'])
 
                 # Parse filter_types from string to int
                 if api_revamp_v1_check:
@@ -12003,12 +12005,17 @@ def fetch_reports(request):
                             parsed_filter_types.append(REPORT_TYPES[type])
                         
                         else:
-                            return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
-                    
+                            context = ResponseUtilities.get_view_impl_error_context("Invalid filter_type",
+                                                                                    status_codes.HTTP_400_BAD_REQUEST)
+                            return JsonResponse(context['data'], status=context['status'])
+
                     filter_types = parsed_filter_types
 
                 if any(not isinstance(item, int) for item in filter_types):
-                    return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
+                    context = ResponseUtilities.get_view_impl_error_context("Invalid filter_type",
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(context['data'], status=context['status'])
+
 
             reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
                                                    is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
@@ -12022,7 +12029,9 @@ def fetch_reports(request):
             
     except Exception as e:
         error_logger.error(e.args)
-        return JsonResponse({'error_message': str(e)}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        context = ResponseUtilities.get_view_impl_error_context(str(e), status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse(context['data'], status=context['status'])
     
     report_list = []
 
