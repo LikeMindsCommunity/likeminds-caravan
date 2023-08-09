@@ -877,14 +877,20 @@ def update_manager_rights(rights_added, rights_removed, community_instance, user
 
 
 def save_manager_right(right_id, user_instance, community_instance):
-    right = adminRights.objects.get(pk=right_id)
-    userAdminRights(user=user_instance, community=community_instance, right=right).save()
+
+    right = ModelUtilities.get_model_instance_or_none(adminRights, right_id)
+
+    if right:
+        userAdminRights(user=user_instance, community=community_instance, right=right).save()
 
 
 def delete_manager_right(right_id, user_instance, community_instance):
-    right = adminRights.objects.get(pk=right_id)
-    userAdminRights.objects.filter(user=user_instance,
-                                   community=community_instance, right=right).delete()
+
+    right = ModelUtilities.get_model_instance_or_none(adminRights, right_id)
+
+    if right:
+        userAdminRights.objects.filter(user=user_instance, community=community_instance, 
+                                       right=right).delete()
 
 
 def save_added_removed_rights_for_member(community_instance, user_instance, selected_rights):
@@ -967,21 +973,31 @@ def save_owner_title(custom_title, admin, community_instance, user_instance):
     return
 
 
-def save_added_removed_rights_for_manager(community_instance, user_instance, selected_rights):
+def save_added_removed_rights_for_manager(community_instance, user_instance, selected_rights, only_update: bool=False):
     # had to get added and removed rights for many other purposes ex: notifications
     existing_rights = set(userAdminRights.objects.filter(community=community_instance,
                                                          user=user_instance).values_list("right__id", flat=True))
     # getting list of rights added and rights removed when compared to existing rights
     rights_added, removed_rights = get_added_and_removed_rights(selected_rights=selected_rights,
-                                                                existing_rights=existing_rights)
+                                                                existing_rights=existing_rights,
+                                                                only_update=only_update)
 
     update_manager_rights(rights_added, removed_rights, community_instance, user_instance)
 
     return rights_added, removed_rights
 
 
-def get_added_and_removed_rights(selected_rights, existing_rights):
+def get_added_and_removed_rights(selected_rights, existing_rights, only_update: bool=False):
+
+    if only_update:
+        rights_added = set([right["id"] for right in selected_rights if right["is_selected"]])
+        rights_added = rights_added - existing_rights
+        removed_rights = set([right["id"] for right in selected_rights if not right["is_selected"]])
+
+        return list(rights_added), list(removed_rights)
+
     selected_rights_list = set([right["id"] for right in selected_rights if right["is_selected"]])
+
     rights_added = selected_rights_list - existing_rights
     removed_rights = existing_rights - selected_rights_list
 

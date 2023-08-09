@@ -11092,6 +11092,11 @@ def update_community_manager_rights(request):
         return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'},
                             status=status_codes.HTTP_405_METHOD_NOT_ALLOWED)
 
+    patch_request = False
+
+    if request.method == 'PATCH':
+        patch_request = True
+
     current_user_id = get_member_id_from_headers(request)
     req_body = json.loads(request.body)
     user_id = req_body['user_id'] if "user_id" in req_body else None
@@ -11167,6 +11172,14 @@ def update_community_manager_rights(request):
 
             return JsonResponse({'success': True})
 
+        # rights validation 
+        for right in selected_rights:
+            
+            # check if right id is valid (id - 1 = state)
+            if (right.get("id") - 1)  not in manager_rights.ALL_MANAGER_RIGHTS:
+                context = get_error_context(False, "Invalid right")
+                return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
         moderate_dm_right_filter = ModelUtilities.get_model_filter(adminRights,
                                                                    {'state': manager_rights.MODERATE_DM_SETTINGS})
 
@@ -11184,7 +11197,8 @@ def update_community_manager_rights(request):
 
         rights_added, removed_rights = save_added_removed_rights_for_manager(community_instance,
                                                                              user_instance,
-                                                                             selected_rights)
+                                                                             selected_rights,
+                                                                             only_update=patch_request)
 
         if int(user_id) != int(current_user_id):
             member = Members.objects.filter(member_id=user_instance,
