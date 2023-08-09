@@ -11717,6 +11717,14 @@ def update_community_member_rights(request):
 
         return JsonResponse({'success': True})
 
+    # checking if selected rights are valid
+    for right in selected_rights:
+
+        # check if right is valid (id - 1 = states)
+        if (right['id'] - 1) not in (member_rights.ALL_MEMBER_RIGHTS + member_rights.FEED_MEMBER_RIGHTS):
+            context = get_error_context(False, "Invalid right!")
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     if admin.exists():
         # create or delete member rights
         rights_added, rights_removed = save_added_removed_rights_for_member(community_instance,
