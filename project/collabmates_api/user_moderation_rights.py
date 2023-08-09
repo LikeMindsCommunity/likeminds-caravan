@@ -931,13 +931,13 @@ def delete_member_right(user, community, right):
 def get_manager_custom_title(member_instance, custom_title, is_member_already_promoter):
     """ function get community managers custom title """
     custom_title_changed = False
-    if not custom_title:
+    if custom_title is None:
         if not is_member_already_promoter:
             custom_title = "Community Manager"
         else:
             custom_title = member_instance.custom_title
 
-    elif not is_member_already_promoter and custom_title:
+    elif not is_member_already_promoter and custom_title is not None:
         custom_title = custom_title.strip()
 
         if len(custom_title) <= 0:
@@ -945,13 +945,14 @@ def get_manager_custom_title(member_instance, custom_title, is_member_already_pr
         elif custom_title == 'Member':
             custom_title = "Community Manager"
 
-    elif is_member_already_promoter and custom_title:
+    elif is_member_already_promoter and custom_title is not None:
         custom_title = custom_title.strip()
         prev_custom_title = member_instance.custom_title
 
         if len(custom_title) <= 0:
             custom_title = None
-        elif prev_custom_title != custom_title:
+        
+        if prev_custom_title != custom_title:
             custom_title_changed = True
 
     return custom_title, custom_title_changed
@@ -972,12 +973,22 @@ def get_manager_parents_list(admin_parents, member_parent_list, current_user_id)
 def save_owner_title(custom_title, admin, community_instance, user_instance):
     """ function to update only custom title of owner"""
 
-    if custom_title and len(custom_title.strip()) <= 0:
-        custom_title = None
+    if custom_title is not None:
+        prev_custom_title = admin[0].custom_title
 
-    admin.update(custom_title=custom_title, updated_at=time.time())
-    # updating time for all members of community
-    Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
+        if len(custom_title.strip()) == 0:
+            custom_title = None
+        
+        else:
+            custom_title = custom_title.strip()
+
+        if prev_custom_title != custom_title:
+
+            admin.update(custom_title=custom_title, updated_at=time.time())
+
+            # updating time for all members of community
+            Members.objects.filter(community_id=community_instance).update(updated_at=time.time())
+
     return
 
 
@@ -1017,18 +1028,21 @@ def save_member_custom_title(custom_title, community_instance, user_instance):
     member_instance = Members.objects.filter(member_id=user_instance, community_id=community_instance)
     custom_title_changed = False
 
-    if custom_title and len(custom_title.strip()) > 0:
+    if custom_title is not None:
 
         if member_instance.exists():
+            
             prev_custom_title = member_instance[0].custom_title
-            custom_title = custom_title.strip()
+
+            if len(custom_title.strip()) == 0:
+                custom_title = None
+            
+            else: 
+                custom_title = custom_title.strip()
 
             if prev_custom_title != custom_title:
                 custom_title_changed = True
-    else:
-        custom_title = None
-
-    member_instance.update(custom_title=custom_title, updated_at=time.time())
+                member_instance.update(custom_title=custom_title, updated_at=time.time())
 
     return custom_title_changed
 
