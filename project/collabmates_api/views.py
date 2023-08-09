@@ -75,6 +75,7 @@ from .rest_api import (CardAnswersDBSyncSerializer, EventRecordingsURLSerializer
                        EventFAQSerializer)
 
 from utility.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
+from .community.constants import REPORT_TYPES
 from .upload_attachments import (save_community_image, save_chatroom_attachments,
                                  save_conversation_attachments, save_poll_attachments,
                                  save_draft_attachments, save_draft_poll_attachments,
@@ -4974,6 +4975,11 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     """ function to get chatroom actions """
 
     is_sdk = api_type == api_types.SDK
+    is_community_hood_version_code = VersionUtilities.check_version(platform_code,
+                                                                    version_code,
+                                                                    VersionUtilities.community_hood)
+
+    show_sdk_actions_only = is_sdk and not is_community_hood_version_code
 
     if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE]):
 
@@ -5085,16 +5091,15 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
     for action in final:
 
-        if (api_type == api_types.SDK) and any([action['id'] == chatroom_actions.ACTION_RENAME,
-                                                action['id'] == chatroom_actions.ACTION_VIEW_COMMUNITY,
-                                                action['id'] == chatroom_actions.ACTION_ADD_ALL_MEMBERS,
-                                                action['id'] == chatroom_actions.ACTION_SETTINGS,
-                                                action['id'] == chatroom_actions.ACTION_DELETE,
-                                                action['id'] == chatroom_actions.ACTION_REPORT]):
+        if show_sdk_actions_only and any([action['id'] == chatroom_actions.ACTION_RENAME,
+                                          action['id'] == chatroom_actions.ACTION_VIEW_COMMUNITY,
+                                          action['id'] == chatroom_actions.ACTION_ADD_ALL_MEMBERS,
+                                          action['id'] == chatroom_actions.ACTION_SETTINGS,
+                                          action['id'] == chatroom_actions.ACTION_DELETE,
+                                          action['id'] == chatroom_actions.ACTION_REPORT]):
             continue
 
-        if all([api_type == api_types.SDK,
-                action['id'] == chatroom_actions.ACTION_INVITE]):
+        if all([show_sdk_actions_only, action['id'] == chatroom_actions.ACTION_INVITE]):
 
             if not VersionUtilities.check_version(platform_code, version_code, VersionUtilities.invite_settings):
                 continue
@@ -5106,8 +5111,8 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         if purpose_card or master_intro_card:
 
-            if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM or action[
-                'id'] == chatroom_actions.ACTION_UNFOLLOW:
+            if any([action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM,
+                    action['id'] == chatroom_actions.ACTION_UNFOLLOW]):
                 continue
 
             if not promoter:
@@ -5158,7 +5163,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         actions.append(action)
 
-    if (api_type != api_types.SDK) and promoter and len(actions) and not card_instance.is_secret:
+    if (not show_sdk_actions_only) and promoter and len(actions) and not card_instance.is_secret:
 
         if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
                 or (
@@ -5200,7 +5205,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                      or (platform_code == VersionUtilities.PlatformCode.ANDROID and
                          version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)
                      or platform_code == VersionUtilities.PlatformCode.WEB) \
-            and not master_intro_card and (api_type != api_types.SDK):
+            and not master_intro_card and (not show_sdk_actions_only):
         actions.append(chatroom_settings)
 
     if (platform_code == VersionUtilities.PlatformCode.IOS and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
@@ -6848,12 +6853,28 @@ def decode_url(request):
         url = request.GET.get('url')
         og_tags = UriTagsImpl(url).get_tags_from_uri()
 
-    except Exception as e:
-        error_logger.error(e)
+    except requests.exceptions.ConnectionError as e:
+        error_logger.error(f"Error while fetching og tags for url {url}, reason: {e}")
+
         return JsonResponse({
             'success': False,
-            'error_message': f'API failed api=decode_url, reason={e}'
-        }, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+            'error_message': f'Error in fetching og tags for url {url}'
+        }, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    except requests.exceptions.InvalidURL as e:
+        error_logger.error(f"Error while fetching og tags for url {url}, reason: {e}")
+
+        return JsonResponse({
+            'success': False,
+            'error_message': f'Invalid url {url}'
+        }, status=status_codes.HTTP_400_BAD_REQUEST)
+    
+    except Exception as e:
+        error_logger.error(f"Error while fetching og tags for url {url}, reason: {e}")
+        return JsonResponse({
+            'success': False,
+            'error_message': f'Error in fetching og tags for url {url}'
+        }, status=status_codes.HTTP_400_BAD_REQUEST)
 
     return JsonResponse({
         'success': True,
@@ -9813,12 +9834,23 @@ class GetTaggingList(APIView):
 def fetch_filters(request):
     '''api to get all the filtered data'''
 
-    community_id = request.GET.get('community_id')
-
     member_id = get_member_id_from_headers(request)
 
     if not member_id:
-        return JsonResponse({'success': False, 'error_message': "Member id is not coming in header"})
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                "Member id is not coming in header", status_codes.HTTP_400_BAD_REQUEST))
+
+    community_id = request.GET.get('community_id')
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
+    if not community_id:
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+        if not community_instance:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                "Invalid API key/community ID", status_codes.HTTP_400_BAD_REQUEST))
+
+        community_id = community_instance.id
 
     send_empty_list = False
 
@@ -9834,7 +9866,7 @@ def fetch_filters(request):
         send_empty_list = True
 
     if send_empty_list:
-        return JsonResponse({'questions': []})
+        return JsonResponse({'success': True, 'questions': []})
 
     community_options = communityAnswers.objects.filter(community_id=community_id
                                                         ).filter(
@@ -9860,7 +9892,7 @@ def fetch_filters(request):
                 question_set.add(serialized_instance['id'])
                 option_list.append(serialized_instance)
 
-    return JsonResponse({'questions': option_list})
+    return JsonResponse({'success': True, 'questions': option_list})
 
 
 def get_user_selected_option_list(question_id):
@@ -10909,10 +10941,16 @@ def fetch_community_types(request):
 
 def fetch_intro_examples(request):
     '''api to send introduction questions examples'''
-
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+    sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+    
     intro_examples = INTRODUCTION_EXAMPLES
 
-    return JsonResponse({'intro_examples': intro_examples})
+    if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.community_hood, sdk_source):
+        intro_examples = COMMUNITY_HOOD_INTRODUCTION_EXAMPLES
+
+    return JsonResponse({'success': True, 'intro_examples': intro_examples})
 
 
 ################################# moderation rights ###############################################
@@ -11876,6 +11914,12 @@ def fetch_reports(request):
     # For version Check
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    accept_version = RequestUtilities.get_accept_version_from_headers(request)
+    sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+
+    pagination_filter_check = VersionUtilities.check_version(platform_code, version_code, 
+                                                             VersionUtilities.fetch_reports_pagination_and_filter, sdk_source)
+    api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
 
     if not current_user_id:
         context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
@@ -11927,42 +11971,72 @@ def fetch_reports(request):
 
     try:    
         # Version check for pagination & filter
-        if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.fetch_reports_pagination_and_filter):
+        if pagination_filter_check or api_revamp_v1_check:
             
-            # For Newer Versions
+            # get query params
             page = NumberUtilities.get_integer_from_string(request.GET.get('page'), 1)
-            
+            page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size'), 20)
+            is_closed = request.GET.get('is_closed', None)
+            filter_type =  request.GET.get('filter_type', None)
+
             if page <= 0:
                 page = 1
-
-            page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size'), 20)
 
             if page_size <= 0:
                 page_size = 20
 
-            is_closed = request.GET.get('is_closed', None)
-            filter_type =  request.GET.get('filter_type', None)
-    
             # Check if correct filter_type is provided
             filter_types = StringUtilities.get_list_from_string(filter_type)
-            if filter_type and not isinstance(filter_types, list) :
-                return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
+
+            if filter_type:
             
+                if not isinstance(filter_types, list):
+                    context = ResponseUtilities.get_view_impl_error_context("Invalid filter_type",
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(context['data'], status=context['status'])
+
+                # Parse filter_types from string to int
+                if api_revamp_v1_check:
+                    parsed_filter_types = []
+                    
+                    for type in filter_types:
+
+                        if type in REPORT_TYPES:
+                            parsed_filter_types.append(REPORT_TYPES[type])
+                        
+                        else:
+                            context = ResponseUtilities.get_view_impl_error_context("Invalid filter_type",
+                                                                                    status_codes.HTTP_400_BAD_REQUEST)
+                            return JsonResponse(context['data'], status=context['status'])
+
+                    filter_types = parsed_filter_types
+
+                if any(not isinstance(item, int) for item in filter_types):
+                    context = ResponseUtilities.get_view_impl_error_context("Invalid filter_type",
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(context['data'], status=context['status'])
+
             reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
-                                            is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
-                                            parent_cm_list=parent_cm_list, page = page, page_size = page_size, is_closed=is_closed, filter_type=filter_types)
+                                                   is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                                   parent_cm_list=parent_cm_list, page = page, page_size = page_size, 
+                                                   is_closed=is_closed, filter_type=filter_types)
+            
         else:
             reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
-                                                is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
-                                                parent_cm_list=parent_cm_list)
+                                                   is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                                   parent_cm_list=parent_cm_list)
+            
     except Exception as e:
         error_logger.error(e.args)
-        return JsonResponse({'error_message': str(e)}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        context = ResponseUtilities.get_view_impl_error_context(str(e), status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse(context['data'], status=context['status'])
     
     report_list = []
 
     for report in reports:
-        report_dict = report_serializer(report, current_user_id, sdk_client_info_flag=True)
+        report_dict = report_serializer(report, current_user_id, sdk_client_info_flag=True, 
+                                        api_revamp_v1_check=api_revamp_v1_check)
         report_list.append(report_dict)
 
     return JsonResponse({"success": True, "reports": report_list})

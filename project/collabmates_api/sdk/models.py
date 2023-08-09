@@ -116,3 +116,23 @@ class SdkOnboardingScreen(models.Model):
         self.updated_at = current_time
 
         super(SdkOnboardingScreen, self).save(*args, **kwargs)
+
+
+class OnboardedVerifiedIUsers(models.Model):
+    sdk_client = models.ForeignKey(SdkClient, on_delete=models.CASCADE)
+    mobile_no = models.BigIntegerField(null=True)
+    country_code = models.IntegerField(null=True)
+    email = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_sec()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(OnboardedVerifiedIUsers, self).save(*args, **kwargs)
+

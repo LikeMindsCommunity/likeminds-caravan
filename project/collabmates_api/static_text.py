@@ -260,9 +260,9 @@ block_member_chatroom = {'id': 27, 'title': "Block"}
 
 unblock_member = {'id': 28, 'title': "Unblock"}
 
-settings_for_purpose_chatroom = [rename_chatroom, member_can_message, accessible_without_subscription]
+settings_for_purpose_chatroom = [rename_chatroom, member_can_message]
 
-settings_for_chatroom = [rename_chatroom, member_can_message, pin_chatroom, accessible_without_subscription]
+settings_for_chatroom = [rename_chatroom, member_can_message, pin_chatroom]
 
 settings_for_chatroom_with_revamp = [edit_chatroom_pic, edit_info, member_can_message, make_it_secret]
 
@@ -293,6 +293,42 @@ INTRODUCTION_EXAMPLES = [
 
     }
 
+]
+
+COMMUNITY_HOOD_INTRODUCTION_EXAMPLES = [
+
+    {
+        "header": "Sample member introductions",
+        "sub_header": "Here are a few example of how members customize their profile depending on their roles and "
+                      "opportunities they are looking out for.",
+        "title": "Pakhi Sharma",
+        "sub_title": "As a community manager for ProductHood, my role is to nurture and grow our community of users "
+                     "and customers. Whether it's through social media, online forums, or in-person events, "
+                     "I am  committed to building strong relationships with our community members and helping to "
+                     "create a sense of belonging and shared purpose."
+    },
+    {
+        "header": "Sample member introductions",
+        "sub_header": "Here are a few example of how members customize their profile depending on their roles and "
+                      "opportunities they are looking out for.",
+        "title": "Ritesh Singh",
+        "sub_title": "Ritesh is a community growth lead at Bloomsberry with 3 years of community management "
+                     "experience. He has expertise in social media management, content creation, and data analysis. "
+                     "Additionally, his strong communication skills, empathy, and strategic thinking allow him to "
+                     "create welcoming and inclusive environments where members feel heard, valued, and supported."
+
+    },
+    {
+        "header": "Sample member introductions",
+        "sub_header": "Here are a few example of how members customize their profile depending on their roles and "
+                      "opportunities they are looking out for.",
+        "title": "John Mayer",
+        "sub_title": "I am currently Senior Community Manager at MakeMyTrip. John is responsible for research, "
+                     "development, and manages MMT events in collaboration with key internal and external "
+                     "stakeholders. He is proficient in community tools like Slack, Discord, Circle and has been "
+                     "instrumental in scaling communities at a global level."
+
+    }
 ]
 
 ONBOARDING_EXAMPLES = [
@@ -710,3 +746,25 @@ PARTICIPANTS_TAG_REGEX = '@participants\|route://participants>>'
 PARTICIPANTS_TAG_TEXT = '@participants'
 MEMBER_TAG_REGEX = 'route:\/\/[member member_profile]+\/([0-9]+)'
 SPECIFIC_MEMBER_TAG_REGEX = 'route:\/\/[member member_profile]+\/{}'
+
+INVITE_MEMBERS_COMMUNITY_ACTION_TITLE = "Invite members"
+INVITE_MEMBERS_COMMUNITY_ACTION_ROUTE = "route://community?community_id={}&share=true"
+INVITE_MEMBERS_COMMUNITY_ACTION_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/" \
+                                            "collabmates-3d601.appspot.com/o/files%2Ficons%2Freview_reports.png?" \
+                                            "alt=media&token=f9a75d81-9c6a-41dd-8a7d-133b47f29512"
+
+MEMBER_REQUESTS_COMMUNITY_ACTION_TITLE = "New Member Requests"
+MEMBER_REQUESTS_COMMUNITY_ACTION_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/" \
+                                             "collabmates-3d601.appspot.com/o/files%2Ficons%2Fmember_requests.png?" \
+                                             "alt=media&token=eed6056e-8553-4c6a-ac99-e049fef4c75e"
+
+REVIEW_REPORTS_COMMUNITY_ACTION_TITLE = "Review Reports"
+REVIEW_REPORTS_COMMUNITY_ACTION_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/" \
+                                            "collabmates-3d601.appspot.com/o/files%2Ficons%2Freview_reports.png?" \
+                                            "alt=media&token=f9a75d81-9c6a-41dd-8a7d-133b47f29512"
+
+COMMUNITY_SETTINGS_COMMUNITY_ACTION_TITLE = "Community Settings"
+COMMUNITY_SETTINGS_COMMUNITY_ACTION_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/" \
+                                                "collabmates-3d601.appspot.com/o/files%2Ficons" \
+                                                "%2Fcommunity_settings.png?alt=media&" \
+                                                "token=0e105674-9bde-4336-850b-118671fcdec8"

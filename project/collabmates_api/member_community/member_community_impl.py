@@ -65,41 +65,30 @@ from ..serializers import is_draft_conversation, get_chatroom_instance, get_draf
     conversationSerializer, get_members_profile
 from ..static_files import REMOVED_USER_URL, ICONS
 from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_ITEMS, COMMUNITY_LEVEL_3_TEXT, \
-    IMAGE_URLS_FOR_QUESTION_TITLES, CREATE_COMMUNITY_QUESTION_NAME_TITLE
+    IMAGE_URLS_FOR_QUESTION_TITLES, CREATE_COMMUNITY_QUESTION_NAME_TITLE, INVITE_MEMBERS_COMMUNITY_ACTION_TITLE, \
+    INVITE_MEMBERS_COMMUNITY_ACTION_ROUTE, MEMBER_REQUEST_TOOL_ROUTE, REPORTS_TOOL_ROUTE, \
+    MEMBER_REQUESTS_COMMUNITY_ACTION_TITLE, MEMBER_REQUESTS_COMMUNITY_ACTION_IMAGE_URL, \
+    REVIEW_REPORTS_COMMUNITY_ACTION_TITLE, REVIEW_REPORTS_COMMUNITY_ACTION_IMAGE_URL, \
+    COMMUNITY_SETTINGS_COMMUNITY_ACTION_TITLE, COMMUNITY_SETTINGS_COMMUNITY_ACTION_IMAGE_URL, \
+    INVITE_MEMBERS_COMMUNITY_ACTION_IMAGE_URL
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
     check_admin_add_community_managers_right, check_admin_moderate_feed_and_comments_right, \
-    check_member_create_post_right, check_member_comment_and_reply_right
+    check_member_create_post_right, check_member_comment_and_reply_right, get_related_reports_for_user
 from ..utility import pagination, single_community_view_version_check, create_chatroom_revamp_version_check, \
     m2cm_v2_version_check
 from collabmates_api.notification import (send_notification_to_admins)
 from collabmates_api.mails import (send_community_hood_waitlist_email_to_pending_member)
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
+from utility.json_utilities import JsonUtilities
 from ..views import get_home_screen_community_actions, generate_internal_link_preview_for_conversation, \
     get_latest_conversation_members, post_introduction_card_for_community, update_community_get_started
-from ..chatroom_member.chatroom_member_impl import ChatroomMemberHelper
 
 from collabmates_api.search.sync import ElasticSearchSync
 
 error_logger = LoggingWrapper.get_instance()
-
-
-def timeit(func):
-    from functools import wraps
-    import time
-
-    @wraps(func)
-    def timeit_wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        total_time = end_time - start_time
-        error_logger.error(f'COMMUNITY/FEED Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
-        return result
-
-    return timeit_wrapper
 
 
 class MemberCommunityImpl(MemberCommunityManager):
@@ -874,7 +863,6 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                          ).order_by('created_at')
         return member_queryset
 
-    @timeit
     def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1, 
                    community_feed_date_uniform_check=False) -> {}:
 
@@ -895,8 +883,6 @@ class MemberCommunityImpl(MemberCommunityManager):
             'enabled': True
         }
 
-        error_logger.error(f"COMMUNITY/FEED Before version check 1 {self.get_member_id()}")
-
         if is_version_code_supported_for_intro_room(self.get_version_code(), self.get_platform_code()):
             intro_room_setting_enabled = False
 
@@ -908,11 +894,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         else:
             intro_room_setting_enabled = True
 
-        error_logger.error(f"COMMUNITY/FEED After version check 1 {self.get_member_id()}")
-
         excluded_card_ids = []
-
-        error_logger.error(f"COMMUNITY/FEED Start computing cohort access cards {self.get_member_id()}")
 
         if create_chatroom_revamp_version_check(self.get_platform_code(), self.get_version_code()):
             excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
@@ -922,16 +904,12 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             excluded_card_ids = list(set(excluded_card_ids) - set(followed_card_ids))
 
-        error_logger.error(f"COMMUNITY/FEED Computed cohort access cards {self.get_member_id()}")
-
         if api_version in [api_version_headers.V1, api_version_headers.V2]:
-            error_logger.error(f"COMMUNITY/FEED Getting chatroom instances {self.get_member_id()}")
             chatroom_list = self._get_sorted_chatroom_queryset_based_on_order_type(intro_room_setting_enabled,
                                                                                    pin_status, excluded_card_ids,
                                                                                    order_type, page=page,
                                                                                    api_version=api_version)
-            error_logger.error(f"COMMUNITY/FEED Computed chatroom instances {self.get_member_id()}")
-
+            
         else:
 
             if not chatroom_id and not scroll_direction:
@@ -966,8 +944,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
 
-        error_logger.error(f"COMMUNITY/FEED Serializing chatrooms {self.get_member_id()}")
-
         chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance,
                                                                            sdk_client_info_flag=True)
 
@@ -976,12 +952,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             for chatroom in chatroom_context_list:
                 chatroom['created_at'] = chatroom['date_epoch']
 
-        error_logger.error(f"COMMUNITY/FEED Serialized chatrooms {self.get_member_id()}")
-
         pinned_chatrooms_list = MemberCommunityHelper.get_pinned_chatrooms_in_community_from_cache(
             community_id=community_instance.id)
-
-        error_logger.error(f"COMMUNITY/FEED Computing pinned chatrooms list {self.get_member_id()}")
 
         return {
             'success': True,
@@ -1651,7 +1623,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True}
 
-    @timeit
     def _get_sorted_chatroom_queryset_based_on_order_type(self, intro_room_settings_enabled, pin_status,
                                                           excluded_card_ids, order_type, page=1,
                                                           api_version=api_version_headers.V1, limit=10):
@@ -2014,13 +1985,15 @@ class MemberCommunityImpl(MemberCommunityManager):
             output_context['is_cm'] = True
 
             if all([access_type in [access_types.DELETE_POST, access_types.PIN_POST, access_types.DELETE_COMMENT,
-                                    access_types.CREATE_ACTIVITY, access_types.EDIT_COMMENT, access_types.EDIT_POST],
+                                    access_types.CREATE_ACTIVITY, access_types.EDIT_COMMENT, access_types.EDIT_POST,
+                                    access_types.CREATE_TOPIC, access_types.EDIT_TOPIC],
                     check_admin_moderate_feed_and_comments_right(user_instance, community_instance)]):
                 output_context['access'] = True
 
             if access_type in [access_types.CREATE_POST, access_types.VIEW_POST, access_types.LIKE_POST,
                                access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.LIKE_COMMENT,
-                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY, access_types.VIEW_REPORT_ENTITY]:
+                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY, access_types.VIEW_REPORT_ENTITY,
+                               access_types.IS_MEMBER]:
                 output_context['access'] = True
 
         if member_state == member_states.MEMBER:
@@ -2034,10 +2007,12 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             if access_type in [access_types.VIEW_POST, access_types.DELETE_POST, access_types.LIKE_POST,
                                access_types.VIEW_COMMENT, access_types.DELETE_COMMENT, access_types.LIKE_COMMENT,
-                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY, access_types.EDIT_COMMENT, access_types.EDIT_POST]:
+                               access_types.SAVE_POST, access_types.VIEW_ACTIVITY, access_types.EDIT_COMMENT,
+                               access_types.EDIT_POST, access_types.IS_MEMBER]:
                 output_context['access'] = True
 
-            if access_type in [access_types.PIN_POST, access_types.CREATE_ACTIVITY, access_types.VIEW_REPORT_ENTITY]:
+            if access_type in [access_types.PIN_POST, access_types.CREATE_ACTIVITY, access_types.VIEW_REPORT_ENTITY,
+                               access_types.CREATE_TOPIC, access_types.EDIT_TOPIC]:
                 output_context['access'] = False
 
         return output_context
@@ -2166,6 +2141,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                               chatroom_types, page, page_size)
 
         # Fetch user_meta from chatrooms_data and add it in response
+        from collabmates_api.chatroom_member.chatroom_member_impl import ChatroomMemberHelper
         users_meta = ChatroomMemberHelper.get_users_meta_from_chatrooms_data(user_chatroom_status_query)
 
         filter_dict = {
@@ -2207,10 +2183,18 @@ class MemberCommunityImpl(MemberCommunityManager):
         if user_engage_filter:
             unseen_channel_count = user_engage_filter[0].last_unseen_count
 
+        # Add community actions
+        community_actions = {
+            'account': MemberCommunityHelper.add_account_community_actions(community_instance.id),
+            'management_tools': MemberCommunityHelper.add_management_tools_community_actions(user_instance,
+                                                                                             community_instance)
+        }
+
         return {
             'success': True,
             'total_channel_count': community_chatroom_count_dict.get(self.get_community_id()),
-            'unseen_channel_count': unseen_channel_count
+            'unseen_channel_count': unseen_channel_count,
+            'actions': community_actions
         }
 
 
@@ -3264,10 +3248,12 @@ class MemberCommunityHelper:
 
         member_state = Members.get_community_member_state(community_instance, user_instance)
 
-        valid_access_types = [access_types.CREATE_POST, access_types.VIEW_POST, access_types.DELETE_POST, access_types.EDIT_POST, access_types.EDIT_COMMENT,
-                              access_types.PIN_POST, access_types.LIKE_POST, access_types.SAVE_POST,
-                              access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.DELETE_COMMENT,
-                              access_types.LIKE_COMMENT, access_types.CREATE_ACTIVITY, access_types.VIEW_ACTIVITY]
+        valid_access_types = [access_types.CREATE_POST, access_types.VIEW_POST, access_types.DELETE_POST,
+                              access_types.EDIT_POST, access_types.PIN_POST, access_types.LIKE_POST,
+                              access_types.SAVE_POST, access_types.CREATE_COMMENT, access_types.VIEW_COMMENT,
+                              access_types.DELETE_COMMENT, access_types.EDIT_COMMENT, access_types.LIKE_COMMENT,
+                              access_types.CREATE_ACTIVITY, access_types.VIEW_ACTIVITY, access_types.CREATE_TOPIC,
+                              access_types.EDIT_TOPIC, access_types.IS_MEMBER]
 
         access_type = access_type_value
         if access_type not in valid_access_types:
@@ -3524,3 +3510,72 @@ class MemberCommunityHelper:
                                                               promoter_instance.userinfo)
 
         ElasticSearchSync.delete_member_from_community.delay(user_instance.id, community_instance.id)
+
+    @staticmethod
+    def add_account_community_actions(community_id):
+        invite_members_action = {
+            'title': INVITE_MEMBERS_COMMUNITY_ACTION_TITLE,
+            'route': INVITE_MEMBERS_COMMUNITY_ACTION_ROUTE.format(community_id),
+            'image_url': INVITE_MEMBERS_COMMUNITY_ACTION_IMAGE_URL
+        }
+
+        return [invite_members_action]
+
+    @staticmethod
+    def add_management_tools_community_actions(user_instance, community_instance):
+        management_tools = []
+
+        member_instance = ModelUtilities.get_model_filter(Members, {'member_id': user_instance,
+                                                                    'community_id': community_instance}).first()
+
+        if not member_instance.state == member_states.ADMIN:
+            return management_tools
+
+        user_id = user_instance.id
+        community_id = community_instance.id
+        community_name = community_instance.name
+        parent_cm_list = []
+
+        if member_instance.parent_cm_list:
+            parent_cm_list = JsonUtilities.load_json_data(member_instance.parent_cm_list, default=parent_cm_list)
+
+        has_delete_right = check_admin_delete_right(user=user_id, community=community_id)
+        has_member_approve_right = check_admin_approve_right(user=user_id, community=community_id)
+        has_community_edit_right = check_admin_edit_community_right(user=user_id, community=community_id)
+
+        if has_member_approve_right:
+            # Add new member requests action
+            member_request_action = {
+                "title": MEMBER_REQUESTS_COMMUNITY_ACTION_TITLE,
+                "image_url": MEMBER_REQUESTS_COMMUNITY_ACTION_IMAGE_URL,
+                "route": MEMBER_REQUEST_TOOL_ROUTE.format(community_id, community_name),
+                "count": Members.get_pending_members(community_instance).count()
+            }
+
+            management_tools.append(member_request_action)
+
+        if has_delete_right or has_member_approve_right:
+            # Add review reports action
+            review_reports_action = {
+                "title": REVIEW_REPORTS_COMMUNITY_ACTION_TITLE,
+                "image_url": REVIEW_REPORTS_COMMUNITY_ACTION_IMAGE_URL,
+                "route": REPORTS_TOOL_ROUTE.format(community_id, community_name),
+                "count": get_related_reports_for_user(user_id=user_id, community_id=community_id,
+                                                      has_right_0=has_delete_right, is_owner=member_instance.is_owner,
+                                                      has_right_1=has_member_approve_right,
+                                                      has_right_2=has_community_edit_right,
+                                                      parent_cm_list=parent_cm_list, return_reports_count=True)
+            }
+
+            management_tools.append(review_reports_action)
+
+            # Add community settings action
+            community_settings_action = {
+                "title": COMMUNITY_SETTINGS_COMMUNITY_ACTION_TITLE,
+                "image_url": COMMUNITY_SETTINGS_COMMUNITY_ACTION_IMAGE_URL,
+                "route": REPORTS_TOOL_ROUTE.format(community_id, community_name)
+            }
+
+            management_tools.append(community_settings_action)
+
+        return management_tools
