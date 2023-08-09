@@ -436,7 +436,7 @@ def send_community_confirmation_email(user_id, community_id):
         args = [user_id, community_id, task_name]
         task_path = "collabmates_api.tasks.send_community_confirmation_email_2"
 
-        date_time = time.time() + (3 * 24 * 60 * 60)
+        date_time = time.time() #+ (3 * 24 * 60 * 60)
 
         kwargs = {}
         celery_beat_task.create_dynamic_clery_task(args, kwargs, task_name, task_path,
