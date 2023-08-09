@@ -14,16 +14,16 @@ strong{
 <div class="row">
     <div class="text">
         <p>
-            It’s been 3 days since you were approved to join {{community_name}}.
-            Don’t miss the real action. Download the LikeMinds app and experience the following:
+            It's been 3 days of missed opportunities. Three days without:
         </p>
         <ul style="color:#718297;line-height: 1.5;font-size:16px;">
-            <li>  Get real-time notifications on chats</li>
-            <li>  Join ongoing discussion on a need-basis</li>
-            <li>  Start your chatrooms and invite relevant members</li>
-            <li>  Attend community events and join polls</li>
-            <li>  Browse through member profiles and collaborate better</li>
+            <li>  A Network of over 1,000 founders, industry leaders and community builders</li>
+            <li>  Utilising the chance of introducing yourself and being part of interesting conversations</li>
+            <li>  Exclusive resources available only to CommunityHood members</li>
         </ul>
+        <p>
+            There is a lot more happening and instead of creating a list, we simply encourage you to witness the action yourself.
+        </p>
         <p class="cta-wrapper" style="text-align: center;">
             <a href="https://likeminds.community/download_the_app" class="cta">Download The App</a>
         </p>
@@ -31,3 +31,6 @@ strong{
     </div>
 </div>
 {% endblock %}
+<div>
+  {% include 'mails/email_footer.html' with unsub=unsub likeminds=likeminds custom_community=custom_community %}
+</div>
