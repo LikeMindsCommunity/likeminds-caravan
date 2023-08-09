@@ -508,19 +508,23 @@ class TasksImpl(TaskManager):
 
         elif self.get_event_type() == EVENT_TYPE.LAST_CALL:
 
-            event_last_call_time = event_date_time_in_IST - EVENT_COMM_FREQUENCY.LAST_CALL_EMAIL
-
-            final_time = TasksHelper.calculate_notification_time(event_last_call_time, TIME_10_AM)
+            #event_last_call_time = event_date_time_in_IST - EVENT_COMM_FREQUENCY.LAST_CALL_EMAIL
+            event_creation_time = TimeUtilities.get_current_datetime_in_IST()
+            #final_time = TasksHelper.calculate_notification_time(event_last_call_time, TIME_10_AM)
+            final_time = event_creation_time
 
         elif self.get_event_type() == EVENT_TYPE.ATTENDANCE_9_AM:
-
-            final_time = TasksHelper.calculate_9_am_attendance_time_for_email_comms(event_date_time_in_IST)
+            event_creation_time = TimeUtilities.get_current_datetime_in_IST() + datetime.strptime("0:05", "%H:%M")
+            final_time = event_creation_time
+            #final_time = TasksHelper.calculate_9_am_attendance_time_for_email_comms(event_date_time_in_IST)
 
         elif self.get_event_type() == EVENT_TYPE.POST_EVENT_ATTENDEES:
-
-            post_event_attendees_time = event_end_date_time_in_IST + EVENT_COMM_FREQUENCY.POST_EVENT_ATTENDEES_MAIL
-
-            final_time = post_event_attendees_time
+            #
+            # post_event_attendees_time = event_end_date_time_in_IST + EVENT_COMM_FREQUENCY.POST_EVENT_ATTENDEES_MAIL
+            #
+            # final_time = post_event_attendees_time
+            event_creation_time = TimeUtilities.get_current_datetime_in_IST() + datetime.strptime("0:10", "%H:%M")
+            final_time = event_creation_time
 
         return final_time
 
