@@ -661,16 +661,13 @@ class FetchCommunityQuestionsView(APIView):
 
     def _validate_request(self, member_id, req_body):
 
-        validated_req = {}
-
-        if not member_id:
-            return {'success': False, 'error_message': 'Send member_id'}
-
-        validated_req['success'] = True
-        validated_req['member_id'] = member_id
-        validated_req['community_id'] = req_body.get('community_id')
-        validated_req['aj'] = req_body.get('aj', None)
-        validated_req['shared_by'] = req_body.get('shared_by', None)
+        validated_req = {
+            'success': True,
+            'member_id': member_id,
+            'community_id': req_body.get('community_id'),
+            'aj': req_body.get('aj', None),
+            'shared_by': req_body.get('shared_by', None)
+        }
 
         return validated_req
 

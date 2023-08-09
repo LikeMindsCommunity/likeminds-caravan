@@ -1860,7 +1860,8 @@ class CommunityImpl(CommunityManager):
                                                                                                     community_instance,
                                                                                                     aj, shared_by)
 
-        CommunityHelper.send_drop_off_notification_in_join(user_instance, community_instance, aj)
+        if user_instance and community_instance:
+            CommunityHelper.send_drop_off_notification_in_join(user_instance, community_instance, aj)
 
         community_meta_data['questions'] = CommunityHelper.get_community_questions_data(user_instance,
                                                                                         community_instance,
@@ -4092,8 +4093,7 @@ class CommunityHelper:
             'community_id': {
                 'community_id': community_id,
                 'api_key': api_key
-            },
-            'user_id': user_id,
+            }
         }
 
         validated_dict = ValidationUtilities.is_valid(validation_params)
@@ -4101,9 +4101,18 @@ class CommunityHelper:
         if validated_dict.get('error_message'):
             return validated_dict
 
+        community_instance = validated_dict.get('community_id')
+        user_instance = None
+
+        if user_id:
+            user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_instance.id)
+
+            if not user_instance:
+                return ResponseUtilities.get_inner_error_context('Invalid user ID!')
+
         return {
-            'user_instance': validated_dict.get('user_id'),
-            'community_instance': validated_dict.get('community_id'),
+            'user_instance': user_instance,
+            'community_instance': community_instance,
             'aj': req_body.get('aj', None),
             'shared_by': req_body.get('shared_by', None)
         }
@@ -4224,13 +4233,15 @@ class CommunityHelper:
 
             if serialized_question['state'] == question_states.INTRODUCTION:
                 serialized_question['rank'] = 0
-                answers_filter = ModelUtilities.get_model_filter(communityAnswers,
-                                                                 {'question': serialized_question['id'],
-                                                                  'member': user_instance.id})
-                if answers_filter.exists():
-                    answer_instance = answers_filter[0]
-                    introduction_answer = answer_instance.question_answer
-                    serialized_question['previous_answer'] = introduction_answer
+
+                if user_instance:
+                    answers_filter = ModelUtilities.get_model_filter(communityAnswers,
+                                                                     {'question': serialized_question['id'],
+                                                                      'member': user_instance.id})
+                    if answers_filter.exists():
+                        answer_instance = answers_filter[0]
+                        introduction_answer = answer_instance.question_answer
+                        serialized_question['previous_answer'] = introduction_answer
 
             else:
                 serialized_question['rank'] = 1
