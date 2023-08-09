@@ -893,12 +893,14 @@ def delete_manager_right(right_id, user_instance, community_instance):
                                        right=right).delete()
 
 
-def save_added_removed_rights_for_member(community_instance, user_instance, selected_rights):
+def save_added_removed_rights_for_member(community_instance, user_instance, selected_rights,
+                                         only_update: bool=False):
     # had to get added and removed rights for many other purposes ex: notifications
     existing_rights = set(userMemberRights.objects.filter(community=community_instance,
                                                           user=user_instance).exclude(right__state=4).values_list("right__id", flat=True))
     rights_added, rights_removed = get_added_and_removed_rights(selected_rights=selected_rights,
-                                                                existing_rights=existing_rights)
+                                                                existing_rights=existing_rights,
+                                                                only_update=only_update)
     update_member_rights(rights_added, rights_removed, community_instance, user_instance)
 
     return rights_added, rights_removed
@@ -907,12 +909,18 @@ def save_added_removed_rights_for_member(community_instance, user_instance, sele
 def update_member_rights(rights_added, rights_removed, community_instance, user_instance):
     """ update member rights from list """
     for right_id in rights_added:
-        right = memberRights.objects.get(pk=right_id)
-        save_member_right(user=user_instance, community=community_instance, right=right)
+
+        right = ModelUtilities.get_model_instance_or_none(memberRights, right_id)
+
+        if right:
+            save_member_right(user=user_instance, community=community_instance, right=right)
 
     for right_id in rights_removed:
-        right = memberRights.objects.get(pk=right_id)
-        delete_member_right(user=user_instance, community=community_instance, right=right)
+            
+        right = ModelUtilities.get_model_instance_or_none(memberRights, right_id)
+
+        if right:
+            delete_member_right(user=user_instance, community=community_instance, right=right)
 
 
 def delete_member_right(user, community, right):
