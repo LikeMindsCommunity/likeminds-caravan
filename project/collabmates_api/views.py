@@ -11649,6 +11649,11 @@ def update_community_member_rights(request):
     if request.method == 'GET':
         return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'},
                             status=status_codes.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    patch_request = False
+
+    if request.method == 'PATCH':
+        patch_request = True
 
     current_user_id = get_member_id_from_headers(request)
     req_body = json.loads(request.body)
@@ -11716,7 +11721,8 @@ def update_community_member_rights(request):
         # create or delete member rights
         rights_added, rights_removed = save_added_removed_rights_for_member(community_instance,
                                                                             user_instance,
-                                                                            selected_rights)
+                                                                            selected_rights,
+                                                                            only_update=patch_request)
         # saving custom title for member
         custom_title_changed = save_member_custom_title(custom_title, community_instance, user_instance)
         # saving members rights list in engage table
