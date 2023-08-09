@@ -508,19 +508,13 @@ class TasksImpl(TaskManager):
 
         elif self.get_event_type() == EVENT_TYPE.LAST_CALL:
 
-            # event_last_call_time = event_date_time_in_IST - EVENT_COMM_FREQUENCY.LAST_CALL_EMAIL
-            #
-            # final_time = TasksHelper.calculate_notification_time(event_last_call_time, TIME_10_AM)
-            event_creation_time = TimeUtilities.get_current_datetime_in_IST()
+            event_last_call_time = event_date_time_in_IST - EVENT_COMM_FREQUENCY.LAST_CALL_EMAIL
 
-            final_time = event_creation_time
+            final_time = TasksHelper.calculate_notification_time(event_last_call_time, TIME_10_AM)
 
         elif self.get_event_type() == EVENT_TYPE.ATTENDANCE_9_AM:
-            event_creation_time = TimeUtilities.get_current_datetime_in_IST()
 
-            final_time = event_creation_time
-
-            # final_time = TasksHelper.calculate_9_am_attendance_time_for_email_comms(event_date_time_in_IST)
+            final_time = TasksHelper.calculate_9_am_attendance_time_for_email_comms(event_date_time_in_IST)
 
         elif self.get_event_type() == EVENT_TYPE.POST_EVENT_ATTENDEES:
 
@@ -1041,7 +1035,7 @@ class TasksHelper:
 
         if chatroom_not_opened_type == chatroom_not_opened_types.TAGGED_CHATROOM:
             data_dict['likeminds'] = LIKEMINDS_WEB_URL % (community_instance.name, UTMCampaing.CHATROOMTAGGING,
-                                                          UTMContent.CUSTOMCOMMUNITY)
+                                                          UTMContent.LIKEMINDS)
             data_dict['custom_community'] = LIKEMINDS_WEB_URL % (community_instance.name, UTMCampaing.CHATROOMTAGGING,
                                                                  UTMContent.CUSTOMCOMMUNITY)
             template = get_template("mails/engagement_mails/tagged_chatroom_not_opened.html").render(data_dict)
