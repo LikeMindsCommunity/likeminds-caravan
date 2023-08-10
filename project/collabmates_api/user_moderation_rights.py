@@ -878,19 +878,19 @@ def update_manager_rights(rights_added, rights_removed, community_instance, user
 
 def save_manager_right(right_id, user_instance, community_instance):
 
-    right = ModelUtilities.get_model_instance_or_none(adminRights, right_id)
+    right_instance = ModelUtilities.get_model_instance_or_none(adminRights, right_id)
 
-    if right:
-        userAdminRights(user=user_instance, community=community_instance, right=right).save()
+    if right_instance:
+        userAdminRights(user=user_instance, community=community_instance, right=right_instance).save()
 
 
 def delete_manager_right(right_id, user_instance, community_instance):
 
-    right = ModelUtilities.get_model_instance_or_none(adminRights, right_id)
+    right_instance = ModelUtilities.get_model_instance_or_none(adminRights, right_id)
 
-    if right:
+    if right_instance:
         userAdminRights.objects.filter(user=user_instance, community=community_instance, 
-                                       right=right).delete()
+                                       right=right_instance).delete()
 
 
 def save_added_removed_rights_for_member(community_instance, user_instance, selected_rights,
@@ -910,17 +910,17 @@ def update_member_rights(rights_added, rights_removed, community_instance, user_
     """ update member rights from list """
     for right_id in rights_added:
 
-        right = ModelUtilities.get_model_instance_or_none(memberRights, right_id)
+        right_instance = ModelUtilities.get_model_instance_or_none(memberRights, right_id)
 
-        if right:
-            save_member_right(user=user_instance, community=community_instance, right=right)
+        if right_instance:
+            save_member_right(user=user_instance, community=community_instance, right=right_instance)
 
     for right_id in rights_removed:
             
-        right = ModelUtilities.get_model_instance_or_none(memberRights, right_id)
+        right_instance = ModelUtilities.get_model_instance_or_none(memberRights, right_id)
 
-        if right:
-            delete_member_right(user=user_instance, community=community_instance, right=right)
+        if right_instance:
+            delete_member_right(user=user_instance, community=community_instance, right=right_instance)
 
 
 def delete_member_right(user, community, right):
@@ -1008,17 +1008,16 @@ def save_added_removed_rights_for_manager(community_instance, user_instance, sel
 
 def get_added_and_removed_rights(selected_rights, existing_rights, only_update: bool=False):
 
-    if only_update:
-        rights_added = set([right["id"] for right in selected_rights if right["is_selected"]])
-        rights_added = rights_added - existing_rights
-        removed_rights = set([right["id"] for right in selected_rights if not right["is_selected"]])
-
-        return list(rights_added), list(removed_rights)
-
     selected_rights_list = set([right["id"] for right in selected_rights if right["is_selected"]])
 
     rights_added = selected_rights_list - existing_rights
-    removed_rights = existing_rights - selected_rights_list
+
+    # if only_update is true then we have to remove only those rights which have `is_selected` as false
+    if only_update:
+        removed_rights = set([right["id"] for right in selected_rights if not right["is_selected"]])
+    
+    else:
+        removed_rights = existing_rights - selected_rights_list
 
     return list(rights_added), list(removed_rights)
 
