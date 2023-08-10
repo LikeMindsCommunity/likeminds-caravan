@@ -993,9 +993,11 @@ def save_owner_title(custom_title, admin, community_instance, user_instance):
 
 
 def save_added_removed_rights_for_manager(community_instance, user_instance, selected_rights, only_update: bool=False):
+    
     # had to get added and removed rights for many other purposes ex: notifications
     existing_rights = set(userAdminRights.objects.filter(community=community_instance,
                                                          user=user_instance).values_list("right__id", flat=True))
+    
     # getting list of rights added and rights removed when compared to existing rights
     rights_added, removed_rights = get_added_and_removed_rights(selected_rights=selected_rights,
                                                                 existing_rights=existing_rights,
