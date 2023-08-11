@@ -15,6 +15,7 @@ from .tasks_impl import TasksImpl, TasksHelper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 from collabmates_api.notification import notification_meta
 from external_services.calender.calendar_impl import CalendarImpl
+from collabmates_api.sdk.models import CommunityEmailConfiguration
 
 from ..chatroom.constants import EMAIL_UNSUBSCRIBE_URL
 
@@ -559,7 +560,6 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         
         count = 1
 
-        from collabmates_api.sdk.models import CommunityEmailConfiguration
         email_sender_data = CommunityEmailConfiguration.get_email_sender_data_for_community(community_id)
         
         for user_id in final_user_instances:
@@ -706,12 +706,25 @@ def send_communication_when_chatroom_not_opened(receiver_id, sender_id, chatroom
                                                                      collabcard_state_instance.community.id,
                                                                      chatroom_not_opened_type)
 
+        email_sender_data = CommunityEmailConfiguration.get_email_sender_data_for_community(
+            collabcard_state_instance.community_id)
+
+        sender_name = email_sender_data.get('name') if email_sender_data.get('name') \
+            else SENDER_NAME_FOR_EMAIL_COMMS
+
+        sender_email = email_sender_data.get('from_email') if email_sender_data.get('from_email') \
+            else context['from_email']
+
+        reply_to_email = email_sender_data.get('reply_email') if email_sender_data.get('reply_email') \
+            else context['reply_to']
+
         if context:
             MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
-                                                          from_email=context['from_email'],
+                                                          from_email=sender_email,
                                                           to_mails_list=context['to_mails_list'],
                                                           categories=context['categories'],
-                                                          reply_to=context['reply_to'])
+                                                          reply_to=reply_to_email,
+                                                          from_name=sender_name)
 
             TasksHelper.update_user_email_send_status(receiver_id, chatroom_id, chatroom_not_opened_type)
 
