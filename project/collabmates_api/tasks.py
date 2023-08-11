@@ -442,7 +442,6 @@ def send_community_confirmation_email(user_id, community_id):
         celery_beat_task.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                                    date_time=date_time, interval=False, crontab=True)
 
-        send_community_confirmation_email_2(user_id, community_id, task_name)
 
 
 @app.task
