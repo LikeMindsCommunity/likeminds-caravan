@@ -162,6 +162,9 @@ class SdkViewHelper:
 
             join_req_body['question_answers'] = request_body.get('question_answers')
 
+        if request_body.get('shared_by'):
+            join_req_body['shared_by'] = request_body.get('shared_by')
+
         return {'login_req_body': login_req_body, 'join_req_body': join_req_body}
 
     @staticmethod
