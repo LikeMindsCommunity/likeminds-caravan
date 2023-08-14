@@ -2469,7 +2469,7 @@ class CommunityImpl(CommunityManager):
         community_instance = validated_request.get('community_instance')
         community_configuration_types = validated_request.get('community_configuration_types')
 
-        response_community_configurations = []
+        default_community_configurations = []
 
         # make default community configurations
         for community_configuration in VALID_COMMUNITY_CONFIGURATIONS:
@@ -2481,7 +2481,7 @@ class CommunityImpl(CommunityManager):
             # for media_limits
             if community_configuration == MEDIA_LIMITS_TITLE:
 
-                response_community_configurations.append(CommunityConfigurations(
+                default_community_configurations.append(CommunityConfigurations(
                     community = community_instance,
                     type = MEDIA_LIMITS_TITLE,
                     description = MEDIA_LIMITS_DESCRIPTION,
@@ -2491,15 +2491,20 @@ class CommunityImpl(CommunityManager):
         # fetch all community configurations from db
         community_configurations_instances = ModelUtilities.get_model_filter(CommunityConfigurations,
                                                                    {'community': community_instance})
+
+        # filter configurations instances if configuration_types is passed
+        if community_configuration_types:
+            community_configurations_instances = community_configurations_instances.filter(
+                type__in=community_configuration_types)
         
         # update response community configurations with db community configurations
         for community_configuration in community_configurations_instances:
-            for response_community_configuration in response_community_configurations:
-                if community_configuration.type == response_community_configuration.type:
-                    response_community_configuration.value = community_configuration.value
+            for default_community_configuration in default_community_configurations:
+                if community_configuration.type == default_community_configuration.type:
+                    default_community_configuration.value = community_configuration.value
 
         # serialize community configurations
-        serialised_community_configurations = CommunityConfigurationsSerializer(response_community_configurations, many=True).data
+        serialised_community_configurations = CommunityConfigurationsSerializer(default_community_configurations, many=True).data
 
         response = {
             'success': True,
