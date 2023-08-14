@@ -1699,17 +1699,8 @@ class CommunityImpl(CommunityManager):
                 'get_started_list': get_started_list}
 
     def send_invite(self, req_body) -> {}:
-
-        validated_req_body = CommunityHelper.validate_send_invite(req_body, self.get_api_key())
-
-        if validated_req_body.get('error_message'):
-            return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
-
-        validated_req_body = validated_req_body.get('req_body')
-
         validated_logic = CommunityHelper.validate_send_invite_logic(self.get_member_id(),
-                                                                     validated_req_body,
+                                                                     req_body,
                                                                      self.get_api_key())
 
         if validated_logic.get('error_message'):
@@ -1722,8 +1713,8 @@ class CommunityImpl(CommunityManager):
 
         self.set_community_id(community_instance.id)
 
-        if validated_req_body.get('type') == send_invite_types.EMAIL_INVITE:
-            email_ids_list = CommunityHelper.get_list_from_comma_string(validated_req_body.get('email_id'))
+        if req_body.get('type') == send_invite_types.EMAIL_INVITE:
+            email_ids_list = CommunityHelper.get_list_from_comma_string(req_body.get('email_id'))
 
             valid_email_ids_list = [email_id for email_id in email_ids_list if CommunityHelper.is_valid_email(email_id)]
 
@@ -1738,26 +1729,26 @@ class CommunityImpl(CommunityManager):
                 return ResponseUtilities.get_impl_error_context(error_text,
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-            mail_text = validated_req_body.get('text')
+            mail_text = req_body.get('text')
 
             CommunityHelper.send_invite_email_to_given_emails_list(user_instance, community_instance,
-                                                                   valid_email_ids_list, validated_req_body,
+                                                                   valid_email_ids_list, req_body,
                                                                    self.get_request_platform(),
                                                                    self.get_version_code(), mail_text)
 
             update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
             return {'success': True}
 
-        elif validated_req_body.get('type') == send_invite_types.WHATSAPP_INVITE:
-            mobile_nos_list = CommunityHelper.get_list_from_comma_string(validated_req_body.get('mobile_no'))
+        elif req_body.get('type') == send_invite_types.WHATSAPP_INVITE:
+            mobile_nos_list = CommunityHelper.get_list_from_comma_string(req_body.get('mobile_no'))
             mobile_nos_list = [NumberUtilities.get_integer_from_string(i) if str(i).isdigit() else i for i in
                                mobile_nos_list]
 
-            template_name = WHATSAPP_INVITE_TEMPLATE_WITH_CODE_NAME if validated_req_body.get('link_type') == FREE_PLAN \
+            template_name = WHATSAPP_INVITE_TEMPLATE_WITH_CODE_NAME if req_body.get('link_type') == FREE_PLAN \
                 else WHATSAPP_INVITE_TEMPLATE_WITHOUT_CODE_NAME
 
             receivers_list = CommunityHelper.send_invite_whatsapp_context_dict(user_instance, community_instance,
-                                                                               mobile_nos_list, validated_req_body,
+                                                                               mobile_nos_list, req_body,
                                                                                self.get_request_platform(),
                                                                                self.get_version_code())
 
@@ -3252,32 +3243,6 @@ class CommunityHelper:
         return req_body
 
     @staticmethod
-    def validate_send_invite(req_body, api_key: str = None):
-
-        if 'type' not in req_body:
-            return {'success': False, 'error_message': 'Send type'}
-
-        if not (api_key or 'community_id' in req_body):
-            return {'success': False, 'error_message': 'Send API key/community ID!'}
-
-        if req_body.get('type') not in [send_invite_types.EMAIL_INVITE, send_invite_types.WHATSAPP_INVITE]:
-            return {'success': False, 'error_message': 'invalid type'}
-
-        if (req_body.get('type') == send_invite_types.EMAIL_INVITE) and ('email_id' not in req_body):
-            return {'success': False, 'error_message': 'Send email_id'}
-
-        if (req_body.get('type') == send_invite_types.WHATSAPP_INVITE) and ('mobile_no' not in req_body):
-            return {'success': False, 'error_message': 'send mobile_no'}
-
-        if 'text' not in req_body:
-            return {'success': False, 'error_message': 'Send text'}
-
-        if 'link_type' not in req_body:
-            return {'success': False, 'error_message': 'Send link_type'}
-
-        return {'success': True, 'req_body': req_body}
-
-    @staticmethod
     def get_list_from_comma_string(comma_seperated_string):
 
         comma_seperated_string = comma_seperated_string.split(',')
@@ -3536,10 +3501,31 @@ class CommunityHelper:
         return {'success': True, 'community_instance': community_instance, 'user_instance': user_instance}
 
     @staticmethod
-    def validate_send_invite_logic(member_id, validated_req_body, api_key: str = None):
+    def validate_send_invite_logic(member_id, req_body, api_key: str = None):
+        if 'type' not in req_body:
+            return ResponseUtilities.get_inner_error_context('Send type!')
+
+        if not (api_key or 'community_id' in req_body):
+            return ResponseUtilities.get_inner_error_context('Send API key/community ID!')
+
+        if req_body.get('type') not in [send_invite_types.EMAIL_INVITE, send_invite_types.WHATSAPP_INVITE]:
+            return ResponseUtilities.get_inner_error_context('Invalid type!')
+
+        if (req_body.get('type') == send_invite_types.EMAIL_INVITE) and ('email_id' not in req_body):
+            return ResponseUtilities.get_inner_error_context('Send email ID!')
+
+        if (req_body.get('type') == send_invite_types.WHATSAPP_INVITE) and ('mobile_no' not in req_body):
+            return ResponseUtilities.get_inner_error_context('Send mobile no!')
+
+        if 'text' not in req_body:
+            return ResponseUtilities.get_inner_error_context('Send text!')
+
+        if 'link_type' not in req_body:
+            return ResponseUtilities.get_inner_error_context('Send link type!')
+
         validation_params = {
             'community_id': {
-                'community_id': validated_req_body.get('community_id'),
+                'community_id': req_body.get('community_id'),
                 'api_key': api_key
             },
             'user_id': member_id,
