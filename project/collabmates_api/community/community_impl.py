@@ -1699,17 +1699,16 @@ class CommunityImpl(CommunityManager):
                 'get_started_list': get_started_list}
 
     def send_invite(self, req_body) -> {}:
-        validated_logic = CommunityHelper.validate_send_invite_logic(self.get_member_id(),
+        validated_req = CommunityHelper.validate_send_invite_request(self.get_member_id(),
                                                                      req_body,
                                                                      self.get_api_key())
 
-        if validated_logic.get('error_message'):
-            return ResponseUtilities.get_impl_error_context(validated_logic.get('error_message'),
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        user_instance = validated_logic.get('user_instance')
-
-        community_instance = validated_logic.get('community_instance')
+        user_instance = validated_req.get('user_instance')
+        community_instance = validated_req.get('community_instance')
 
         self.set_community_id(community_instance.id)
 
@@ -3501,7 +3500,7 @@ class CommunityHelper:
         return {'success': True, 'community_instance': community_instance, 'user_instance': user_instance}
 
     @staticmethod
-    def validate_send_invite_logic(member_id, req_body, api_key: str = None):
+    def validate_send_invite_request(member_id, req_body, api_key: str = None):
         if 'type' not in req_body:
             return ResponseUtilities.get_inner_error_context('Send type!')
 
