@@ -104,13 +104,15 @@ INTERNATIONAL_OTP_LIMIT_API_PATH = 'otp_limit_mail'
 
 COMMUNITY_HOOD_PENDING_MEMBER_MAIL_SUBJECT = "Thank you for your interest in joining CommunityHood!"
 COMMUNITY_HOOD_PENDING_MEMBER_MAIL_BODY = """
+<p>
 Dear {},
-
+</p><p>
 Thank you for your interest in being a part of CommunityHood. Your account is under approval process.
-
+</p><p>
 We will update you shortly with your account status.
-
+</p><p>
 Best regards,
-
+</p><p>
 Team CommunityHood
+</p>
 """

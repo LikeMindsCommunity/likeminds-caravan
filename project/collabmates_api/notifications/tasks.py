@@ -15,6 +15,7 @@ from .tasks_impl import TasksImpl, TasksHelper
 from external_services.wa_notification.wa_notification_impl import NotificationImpl
 from collabmates_api.notification import notification_meta
 from external_services.calender.calendar_impl import CalendarImpl
+from collabmates_api.sdk.models import CommunityEmailConfiguration
 
 from ..chatroom.constants import EMAIL_UNSUBSCRIBE_URL
 
@@ -376,6 +377,7 @@ def schedule_calendar_invite_for_event_comms(payload_for_calendar_invite, event_
         error_logger.exception("got error in schedule_calendar_invite | error - %s | payload received = %s | \
                                 event_type = %s" % (str(e), payload_for_calendar_invite, event_type))
 
+
 @shared_task
 def trigger_email_communication_for_event(payload_for_email_comms):
     payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_email_comms)
@@ -385,6 +387,7 @@ def trigger_email_communication_for_event(payload_for_email_comms):
 
     send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.LAST_CALL)
     send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.ATTENDANCE_9_AM)
+
 
 @shared_task
 def send_email_notification_for_event_type(payload_for_email_comms, event_type):
@@ -464,8 +467,6 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         user_instances = []
 
         if event_type == EVENT_TYPE.CREATION:
-
-            
             active_user_ids = TasksHelper.get_active_members_excluding_non_members_in_community(community_id,
                                                                                                 active_user_ids)
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
@@ -482,7 +483,6 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
 
             info_logger.info(f"api/event/create: Event Creation users calculation | "
                              f"user_instances after notifiication flag = {user_instances} ")
-            
 
         elif event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS:
             community_managers = TasksHelper.get_community_managers_and_owners_of_community(community_id,
@@ -545,8 +545,9 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
         else:
             final_user_instances = user_instances
 
-        if event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS and payload_for_email_comms.get('user') in final_user_instances:
-                final_user_instances.remove(payload_for_email_comms.get('user'))
+        if event_type == EVENT_TYPE.POST_EVENT_ATTACHMENTS and \
+                payload_for_email_comms.get('user') in final_user_instances:
+            final_user_instances.remove(payload_for_email_comms.get('user'))
 
         response_dict['community_name'] = event_instance.community.name
 
@@ -558,6 +559,8 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
                          f"")
         
         count = 1
+
+        email_sender_data = CommunityEmailConfiguration.get_email_sender_data_for_community(community_id)
         
         for user_id in final_user_instances:
 
@@ -565,6 +568,15 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
 
             context = TasksHelper.create_context_for_sending_emails([user_id], event_type, event_instance,
                                                                     data_dict=response_dict)
+
+            sender_name = email_sender_data.get('name') if email_sender_data.get('name') \
+                else context['from_name']
+
+            sender_email = email_sender_data.get('from_email') if email_sender_data.get('from_email') \
+                else context['from_email']
+
+            reply_to_email = email_sender_data.get('reply_email') if email_sender_data.get('reply_email') \
+                else context['reply_to']
 
             send_allowed = TasksHelper.should_send_notification(event_instance)
 
@@ -576,10 +588,10 @@ def schedule_email_notifications_for_event(self, payload_for_email_comms, respon
                                  f"Sending email with subject = {context['subject']} ")
                 
                 MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
-                                                              from_email=context['from_email'],
+                                                              from_email=sender_email,
                                                               to_mails_list=context['to_mails_list'],
-                                                              reply_to=context['reply_to'],
-                                                              from_name=context['from_name'],
+                                                              reply_to=reply_to_email,
+                                                              from_name=sender_name,
                                                               categories=context['categories'])
 
             else:
@@ -694,12 +706,25 @@ def send_communication_when_chatroom_not_opened(receiver_id, sender_id, chatroom
                                                                      collabcard_state_instance.community.id,
                                                                      chatroom_not_opened_type)
 
+        email_sender_data = CommunityEmailConfiguration.get_email_sender_data_for_community(
+            collabcard_state_instance.community_id)
+
+        sender_name = email_sender_data.get('name') if email_sender_data.get('name') \
+            else SENDER_NAME_FOR_EMAIL_COMMS
+
+        sender_email = email_sender_data.get('from_email') if email_sender_data.get('from_email') \
+            else context['from_email']
+
+        reply_to_email = email_sender_data.get('reply_email') if email_sender_data.get('reply_email') \
+            else context['reply_to']
+
         if context:
             MailWrapper.send_email_with_custom_from_email(subject=context['subject'], template=context['template'],
-                                                          from_email=context['from_email'],
+                                                          from_email=sender_email,
                                                           to_mails_list=context['to_mails_list'],
                                                           categories=context['categories'],
-                                                          reply_to=context['reply_to'])
+                                                          reply_to=reply_to_email,
+                                                          from_name=sender_name)
 
             TasksHelper.update_user_email_send_status(receiver_id, chatroom_id, chatroom_not_opened_type)
 

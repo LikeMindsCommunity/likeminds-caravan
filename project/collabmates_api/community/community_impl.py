@@ -38,7 +38,8 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     Report_Tags, Report
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
-    PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST, IMAGE_URLS_FOR_QUESTION_TITLES
+    PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST, IMAGE_URLS_FOR_QUESTION_TITLES, SENDER_NAME_FOR_EMAIL_COMMS, \
+    SENDER_EMAIL_FOR_EMAIL_COMMS
 from collabmates_api.static_files import (ICONS)
 from collabmates_api.branch import create_community_feed_url, create_community_otl_url, create_payment_page_url, \
     create_community_feed_url_for_cm_onboarding
@@ -58,7 +59,7 @@ from external_services.caching.cache_impl import CacheImpl
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
-from collabmates_api.sdk.models import (SdkClient)
+from collabmates_api.sdk.models import (SdkClient, CommunityEmailConfiguration)
 
 from collabmates_api.mails import send_created_community_email_to_team, send_report_mail_to_team
 
@@ -3569,6 +3570,17 @@ class CommunityHelper:
                                                                              platform_code, version_code,
                                                                              validated_req_body.get('link_type'))
 
+        email_sender_data = CommunityEmailConfiguration.get_email_sender_data_for_community(community_instance.id)
+
+        sender_name = email_sender_data.get('name') if email_sender_data.get('name') \
+            else SENDER_NAME_FOR_EMAIL_COMMS
+
+        sender_email = email_sender_data.get('from_email') if email_sender_data.get('from_email') \
+            else SENDER_EMAIL_FOR_EMAIL_COMMS
+
+        reply_to_email = email_sender_data.get('reply_email') if email_sender_data.get('reply_email') \
+            else INVITE_MEMBER_REPLY_EMAIL
+
         for valid_email_id in valid_email_ids_list:
 
             if community_instance.is_paid and is_free_plan:
@@ -3598,11 +3610,10 @@ class CommunityHelper:
             mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
                 EmailCategories.INVITE_MEMBER, EmailSubCategories.WITH_JOIN_CODE)
 
-            send_email_response = MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
-                                                                                      template=mail_template,
-                                                                                      to_mails_list=[valid_email_id],
-                                                                                      categories=mail_categories,
-                                                                                      reply_to=INVITE_MEMBER_REPLY_EMAIL)
+            MailWrapper.send_email_with_custom_from_email.delay(
+                subject=mail_subject, template=mail_template, to_mails_list=[valid_email_id],
+                from_email=sender_email, categories=mail_categories, reply_to=reply_to_email,
+                from_name=sender_name)
 
     @staticmethod
     def send_invite_whatsapp_context_dict(user_instance, community_instance, mobile_nos_list, validated_req_body,
