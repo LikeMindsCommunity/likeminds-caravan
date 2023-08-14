@@ -1652,4 +1652,4 @@ class CommunityConfigurationsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CommunityConfigurations
-        fields = ('community_id', 'type', 'description', 'value')
+        fields = ('type', 'description', 'value')
