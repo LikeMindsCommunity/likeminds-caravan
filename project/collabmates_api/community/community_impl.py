@@ -2482,10 +2482,10 @@ class CommunityImpl(CommunityManager):
             if community_configuration == MEDIA_LIMITS_TITLE:
 
                 default_community_configurations.append(CommunityConfigurations(
-                    community = community_instance,
-                    type = MEDIA_LIMITS_TITLE,
-                    description = MEDIA_LIMITS_DESCRIPTION,
-                    value = MEDIA_LIMITS_VALUE,
+                    community=community_instance,
+                    type=MEDIA_LIMITS_TITLE,
+                    description=MEDIA_LIMITS_DESCRIPTION,
+                    value=MEDIA_LIMITS_VALUE,
                     ))
 
         # fetch all community configurations from db
@@ -2494,12 +2494,15 @@ class CommunityImpl(CommunityManager):
 
         # filter configurations instances if configuration_types is passed
         if community_configuration_types:
+
             community_configurations_instances = community_configurations_instances.filter(
                 type__in=community_configuration_types)
         
         # update response community configurations with db community configurations
         for community_configuration in community_configurations_instances:
+            
             for default_community_configuration in default_community_configurations:
+
                 if community_configuration.type == default_community_configuration.type:
                     default_community_configuration.value = community_configuration.value
 
@@ -5024,10 +5027,12 @@ class CommunityHelper:
 
         # Validate configuration_types if present
         if community_configuration_types:
+
             if not isinstance(community_configuration_types, list):
                 return ResponseUtilities.get_inner_error_context("Invalid configuration_types")
 
             for community_configuration in community_configuration_types:
+
                 if community_configuration not in VALID_COMMUNITY_CONFIGURATIONS:
                     return ResponseUtilities.get_inner_error_context("Invalid configuration_types sent in query params")
 
