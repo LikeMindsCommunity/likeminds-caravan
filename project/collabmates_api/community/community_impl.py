@@ -2500,14 +2500,15 @@ class CommunityImpl(CommunityManager):
         
         # update response community configurations with db community configurations
         for community_configuration in community_configurations_instances:
-            
+
             for default_community_configuration in default_community_configurations:
 
                 if community_configuration.type == default_community_configuration.type:
                     default_community_configuration.value = community_configuration.value
 
         # serialize community configurations
-        serialised_community_configurations = CommunityConfigurationsSerializer(default_community_configurations, many=True).data
+        serialised_community_configurations = CommunityConfigurationsSerializer(default_community_configurations, 
+                                                                                many=True).data
 
         response = {
             'success': True,
