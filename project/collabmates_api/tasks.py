@@ -445,7 +445,6 @@ def send_community_confirmation_email(user_id, community_id):
         send_community_confirmation_email_2(user_id, community_id, task_name)
 
 
-
 @app.task
 def send_community_confirmation_email_2(user_id, community_id, task_name, *args, **kwargs):
     user_instance = User.objects.get(pk=user_id)
