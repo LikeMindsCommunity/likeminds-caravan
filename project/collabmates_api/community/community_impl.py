@@ -11,7 +11,7 @@ from collabmates_api.community.constants import *
 from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSerializer, CommunityToastV1Serializer, \
     CommunityGetStartedSerializer, CommunityQuestionsSerializerV2, CommunityAnswersSerializer, get_error_context, \
     CommunityDMSettingsSerializer, CommunityNotificationSettingsSerializer, FeedNotificationSettingsSerializer, \
-    ReportTagsSerializer
+    ReportTagsSerializer, CommunityConfigurationsSerializer
 
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
     give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage, \
@@ -35,7 +35,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, userEmails,\
     ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
     communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings, FeedNotificationSettings, \
-    Report_Tags, Report
+    Report_Tags, Report, CommunityConfigurations
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST
@@ -2436,6 +2436,50 @@ class CommunityImpl(CommunityManager):
             update_report_count_for_all_promoters.delay(community_id=community_instance.id)
             
             return {'success': True}
+    
+    def fetch_community_configurations(self, configuration_types=None) -> dict:
+        validated_request = CommunityHelper.validate_fetch_community_configurations_request(self.get_member_id(),
+                                                                                            self.get_api_key(),
+                                                                                            configuration_types)
+    
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        community_instance = validated_request.get('community_instance')
+        community_configuration_types = validated_request.get('community_configuration_types')
+
+        # fetch community configurations from db
+        community_configurations_instances = ModelUtilities.get_model_filter(CommunityConfigurations,
+                                                                   {'community': community_instance, 
+                                                                    'type__in': community_configuration_types})
+            
+        # key value pair of configuration_type -> configuration instance
+        configuration_instances_response = {instance.type : instance for instance in community_configurations_instances}
+
+        # Add default configurations if not present
+        for configuration_type in community_configuration_types:
+            
+            if configuration_type not in configuration_instances_response:
+                
+                instance = CommunityConfigurations(
+                    type=COMMUNITY_CONFIGURATIONS[configuration_type]['type'],
+                    description=COMMUNITY_CONFIGURATIONS[configuration_type]['description'],
+                    value=COMMUNITY_CONFIGURATIONS[configuration_type]['value'],
+                )
+
+                configuration_instances_response[configuration_type] = instance
+
+        # serialize community configurations
+        serialised_community_configurations = CommunityConfigurationsSerializer(configuration_instances_response.values(), 
+                                                                                many=True).data
+
+        response = {
+            'success': True,
+            'community_configurations': serialised_community_configurations
+        }
+
+        return response
 
         
 class CommunityHelper:
@@ -4837,4 +4881,51 @@ class CommunityHelper:
             'user_instance': user_instance,
             'community_instance': community_instance,
             'member_instance': member_instance
+        }
+
+   
+    @staticmethod
+    def validate_fetch_community_configurations_request(user_id, api_key, configuration_types=None):
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        community_instance = validated_dict.get('community_id')
+        user_instance = validated_dict.get('user_id')
+
+        # Check if user is community member
+        if not Members.is_community_member(community_instance, user_instance):
+            return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
+        
+        community_configuration_types = StringUtilities.get_list_from_string(configuration_types)
+
+        valid_configuration_types = COMMUNITY_CONFIGURATIONS.keys()
+
+        # Validate configuration_types if present
+        if community_configuration_types:
+
+            if not isinstance(community_configuration_types, list):
+                return ResponseUtilities.get_inner_error_context("Invalid configuration_types")
+
+            for community_configuration in community_configuration_types:
+
+                if community_configuration not in valid_configuration_types:
+                    return ResponseUtilities.get_inner_error_context("Invalid configuration_types sent in query params")
+                
+        else:
+            community_configuration_types = valid_configuration_types
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'community_configuration_types': community_configuration_types
         }

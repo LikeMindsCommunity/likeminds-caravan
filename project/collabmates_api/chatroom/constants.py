@@ -38,6 +38,8 @@ CHATROOM_USER_SETTINGS = [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE]
 
 EMAIL_UNSUBSCRIBE_URL = "%s/email_unsubscribe?communityId=%s&memberId=%s"
 
+LIKEMINDS_WEB_URL = "https://likeminds.community/?utm_source=%s&utm_medium=email&utm_campaign=%s&utm_content=%s"
+
 class PauseChatroomNotificationTime:
     EIGHT_HR = 8
     TWENTY_FOUR_HR = 24

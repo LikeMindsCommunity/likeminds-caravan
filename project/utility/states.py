@@ -68,10 +68,13 @@ class MemberRights:
     DEFAULT_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_ROOMS, MEMBER_RIGHT_CREATE_POLL,
                              MEMBER_RIGHT_CREATE_EVENT, MEMBER_RIGHT_RESPOND_IN_ROOM,
                              MEMBER_RIGHT_AUTO_APPROVE]
+    
     ALL_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_ROOMS, MEMBER_RIGHT_CREATE_POLL,
                          MEMBER_RIGHT_CREATE_EVENT, MEMBER_RIGHT_RESPOND_IN_ROOM,
                          MEMBER_RIGHT_INVITE_PRIVATE_LINK, MEMBER_RIGHT_AUTO_APPROVE,
                          MEMBER_RIGHT_CREATE_SECRET_ROOM]
+    
+    FEED_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_POSTS, MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS]
 
 
 member_rights = MemberRights()
@@ -765,3 +768,17 @@ class DMFabShowList:
 class OTPTypes:
     MOBILE = "mobile"
     EMAIL = "email"
+
+class UTMCampaing:
+    REQUESTACCEPTED = "requestaccepted"
+    DOWNLOADDRIP = "downloaddrip"
+    CHATROOMTAGGING = "chatroomtagging"
+    DMTAGGING = "dmtagging"
+    EVENTDAY = "eventday"
+    EVENTCREATED = "eventcreated"
+    EVENTREGISTRATIONLASTCALL = "eventregistrationlastcall"
+    REGISTRATIONSUCCESSFUL = "registrationsuccessful"
+
+class UTMContent:
+    LIKEMINDS = "LikeMinds"
+    CUSTOMCOMMUNITY = "customcommunity"
