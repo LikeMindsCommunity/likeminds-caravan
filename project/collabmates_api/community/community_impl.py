@@ -2947,11 +2947,15 @@ class CommunityHelper:
             question_instance = question_filter[0]
             mobile_filter = get_user_phone(user_instance.id)
 
+            answer_instance = ModelUtilities.get_model_filter(communityAnswers, {'member': user_instance,
+                                                                                 'question': question_instance}).first()
+
             if mobile_filter:
                 mobile_no = "+{} {}".format(str(mobile_filter.get('country_code')), str(mobile_filter.get('mobile_no')))
                 CommunityHelper.create_or_update_answer_instance(user_instance, community_instance,
                                                                  question_instance, mobile_no,
-                                                                 question_title=question_instance.question_title)
+                                                                 question_title=question_instance.question_title,
+                                                                 answer_instance=answer_instance)
 
         question_filter = ModelUtilities.get_model_filter(communityQuestions, {
             'community': community_instance,
@@ -2961,9 +2965,14 @@ class CommunityHelper:
 
         if question_filter:
             question_instance = question_filter[0]
+
+            answer_instance = ModelUtilities.get_model_filter(communityAnswers, {'member': user_instance,
+                                                                                 'question': question_instance}).first()
+
             CommunityHelper.create_or_update_answer_instance(user_instance, community_instance,
                                                              question_instance, user_instance.userinfo.name,
-                                                             question_title=question_instance.question_title)
+                                                             question_title=question_instance.question_title,
+                                                             answer_instance=answer_instance)
 
     @staticmethod
     def send_questions_data_on_airtable(user_instance, community_instance, question_data):
