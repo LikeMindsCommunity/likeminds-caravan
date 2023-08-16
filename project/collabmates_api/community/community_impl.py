@@ -2469,24 +2469,7 @@ class CommunityImpl(CommunityManager):
         community_instance = validated_request.get('community_instance')
         community_configuration_types = validated_request.get('community_configuration_types')
 
-        default_community_configurations = []
-
-        # make default community configurations
-        for community_configuration in VALID_COMMUNITY_CONFIGURATIONS:
-
-            # If configuration_type is passed, then only populate that configurations
-            if community_configuration_types and community_configuration not in community_configuration_types:
-                continue
-
-            # for media_limits
-            if community_configuration == MEDIA_LIMITS_TITLE:
-
-                default_community_configurations.append(CommunityConfigurations(
-                    community=community_instance,
-                    type=MEDIA_LIMITS_TITLE,
-                    description=MEDIA_LIMITS_DESCRIPTION,
-                    value=MEDIA_LIMITS_VALUE,
-                    ))
+        response_community_configurations = []
 
         # fetch all community configurations from db
         community_configurations_instances = ModelUtilities.get_model_filter(CommunityConfigurations,
@@ -2497,17 +2480,35 @@ class CommunityImpl(CommunityManager):
 
             community_configurations_instances = community_configurations_instances.filter(
                 type__in=community_configuration_types)
-        
-        # update response community configurations with db community configurations
-        for community_configuration in community_configurations_instances:
+            
+        # key value pair of configuration_type -> configuration instance
+        configuration_instances_dict = {instance.type: instance for instance in community_configurations_instances}
 
-            for default_community_configuration in default_community_configurations:
+        # make response community configurations
+        for community_configuration in VALID_COMMUNITY_CONFIGURATIONS:
 
-                if community_configuration.type == default_community_configuration.type:
-                    default_community_configuration.value = community_configuration.value
+            # If configuration_type is passed, then only populate that configurations
+            if community_configuration_types and community_configuration not in community_configuration_types:
+                continue
+
+            # for media_limits configuration
+            if community_configuration == MEDIA_LIMITS_TITLE:
+                
+                media_limit_configuration = CommunityConfigurations(
+                    community=community_instance,
+                    type=MEDIA_LIMITS_TITLE,
+                    description=MEDIA_LIMITS_DESCRIPTION,
+                    value=MEDIA_LIMITS_VALUE,
+                    )
+
+                # update media_limits value if present in db
+                if configuration_instances_dict[MEDIA_LIMITS_TITLE]:
+                    media_limit_configuration.value = configuration_instances_dict[MEDIA_LIMITS_TITLE].value
+
+                response_community_configurations.append(media_limit_configuration)
 
         # serialize community configurations
-        serialised_community_configurations = CommunityConfigurationsSerializer(default_community_configurations, 
+        serialised_community_configurations = CommunityConfigurationsSerializer(response_community_configurations, 
                                                                                 many=True).data
 
         response = {
