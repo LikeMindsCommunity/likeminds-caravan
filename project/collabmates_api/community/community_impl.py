@@ -2469,46 +2469,29 @@ class CommunityImpl(CommunityManager):
         community_instance = validated_request.get('community_instance')
         community_configuration_types = validated_request.get('community_configuration_types')
 
-        response_community_configurations = []
-
-        # fetch all community configurations from db
+        # fetch community configurations from db
         community_configurations_instances = ModelUtilities.get_model_filter(CommunityConfigurations,
-                                                                   {'community': community_instance})
-
-        # filter configurations instances if configuration_types is passed
-        if community_configuration_types:
-
-            community_configurations_instances = community_configurations_instances.filter(
-                type__in=community_configuration_types)
+                                                                   {'community': community_instance, 
+                                                                    'type__in': community_configuration_types})
             
         # key value pair of configuration_type -> configuration instance
-        configuration_instances_dict = {instance.type: instance for instance in community_configurations_instances}
+        configuration_instances_response = {instance.type : instance for instance in community_configurations_instances}
 
-        # make response community configurations
-        for community_configuration in VALID_COMMUNITY_CONFIGURATIONS:
-
-            # If configuration_type is passed, then only populate that configurations
-            if community_configuration_types and community_configuration not in community_configuration_types:
-                continue
-
-            # for media_limits configuration
-            if community_configuration == MEDIA_LIMITS_TITLE:
+        # Add default configurations if not present
+        for configuration_type in community_configuration_types:
+            
+            if configuration_type not in configuration_instances_response:
                 
-                media_limit_configuration = CommunityConfigurations(
-                    community=community_instance,
-                    type=MEDIA_LIMITS_TITLE,
-                    description=MEDIA_LIMITS_DESCRIPTION,
-                    value=MEDIA_LIMITS_VALUE,
-                    )
+                instance = CommunityConfigurations(
+                    type=COMMUNITY_CONFIGURATIONS[configuration_type]['type'],
+                    description=COMMUNITY_CONFIGURATIONS[configuration_type]['description'],
+                    value=COMMUNITY_CONFIGURATIONS[configuration_type]['value'],
+                )
 
-                # update media_limits value if present in db
-                if configuration_instances_dict[MEDIA_LIMITS_TITLE]:
-                    media_limit_configuration.value = configuration_instances_dict[MEDIA_LIMITS_TITLE].value
-
-                response_community_configurations.append(media_limit_configuration)
+                configuration_instances_response[configuration_type] = instance
 
         # serialize community configurations
-        serialised_community_configurations = CommunityConfigurationsSerializer(response_community_configurations, 
+        serialised_community_configurations = CommunityConfigurationsSerializer(configuration_instances_response.values(), 
                                                                                 many=True).data
 
         response = {
@@ -5027,6 +5010,8 @@ class CommunityHelper:
         
         community_configuration_types = StringUtilities.get_list_from_string(configuration_types)
 
+        valid_configuration_types = COMMUNITY_CONFIGURATIONS.keys()
+
         # Validate configuration_types if present
         if community_configuration_types:
 
@@ -5035,8 +5020,11 @@ class CommunityHelper:
 
             for community_configuration in community_configuration_types:
 
-                if community_configuration not in VALID_COMMUNITY_CONFIGURATIONS:
+                if community_configuration not in valid_configuration_types:
                     return ResponseUtilities.get_inner_error_context("Invalid configuration_types sent in query params")
+                
+        else:
+            community_configuration_types = valid_configuration_types
 
         return {
             'user_instance': user_instance,

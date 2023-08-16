@@ -250,14 +250,17 @@ REPORT_TYPES_INT = {
     REPORT_TYPE_REPLY_INT: REPORT_TYPE_REPLY
 }
 
-# Community Configurations - Media Limits
-MEDIA_LIMITS_TITLE = "media_limits"
-MEDIA_LIMITS_DESCRIPTION = "Media size upload limit (in Kilobytes) for different file formats"
-MEDIA_LIMITS_VALUE = {
-    "max_image_size": 5124, # 5 MB 
-    "max_video_size": 102400, # 100 MB
+# Community Configurations
+COMMUNITY_CONFIGURATIONS = {
+    "media_limits" : 
+    {
+        "type": "media_limits",
+        "description": "Media size upload limit (in Kilobytes) for different file formats",
+        "value": 
+        {
+            "max_image_size": 5124, # 5 MB
+            "max_video_size": 102400, # 100 MB        
+        }
+    }
 }
-
-# Valid Community Configurations
-VALID_COMMUNITY_CONFIGURATIONS = [MEDIA_LIMITS_TITLE]
 
