@@ -3687,6 +3687,8 @@ class CommunityConfigurations(models.Model):
     type = models.CharField(max_length=255)
     description = models.TextField()
     value = JSONField()
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
 
     class Meta:
         unique_together = (('community', 'type'),)
