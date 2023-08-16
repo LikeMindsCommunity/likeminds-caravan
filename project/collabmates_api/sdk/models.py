@@ -136,3 +136,44 @@ class OnboardedVerifiedIUsers(models.Model):
 
         super(OnboardedVerifiedIUsers, self).save(*args, **kwargs)
 
+
+class CommunityEmailConfiguration(models.Model):
+    sdk_client = models.ForeignKey(SdkClient, on_delete=models.CASCADE)
+    name = models.TextField(null=True)
+    from_email = models.TextField(null=True)
+    reply_email = models.TextField(null=True)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_sec()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(CommunityEmailConfiguration, self).save(*args, **kwargs)
+
+    @staticmethod
+    def get_email_sender_data_for_community(community_id):
+        email_sender_data = {}
+
+        if not community_id:
+            return email_sender_data
+
+        filter_dict = {
+            'sdk_client__community': community_id
+        }
+
+        community_email_config_instance = ModelUtilities.get_model_filter(CommunityEmailConfiguration,
+                                                                          filter_dict).first()
+
+        if community_email_config_instance:
+            email_sender_data = {
+                'name': community_email_config_instance.name,
+                'from_email': community_email_config_instance.from_email,
+                'reply_email': community_email_config_instance.reply_email
+            }
+
+        return email_sender_data
