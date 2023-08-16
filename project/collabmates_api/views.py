@@ -75,6 +75,7 @@ from .rest_api import (CardAnswersDBSyncSerializer, EventRecordingsURLSerializer
                        EventFAQSerializer)
 
 from utility.constants import INSTAGRAM_LINK, TWITTER_LINK, BRANCH_DECODE_URI
+from .community.constants import REPORT_TYPES
 from .upload_attachments import (save_community_image, save_chatroom_attachments,
                                  save_conversation_attachments, save_poll_attachments,
                                  save_draft_attachments, save_draft_poll_attachments,
@@ -11091,6 +11092,11 @@ def update_community_manager_rights(request):
         return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'},
                             status=status_codes.HTTP_405_METHOD_NOT_ALLOWED)
 
+    patch_request = False
+
+    if request.method == 'PATCH':
+        patch_request = True
+
     current_user_id = get_member_id_from_headers(request)
     req_body = json.loads(request.body)
     user_id = req_body['user_id'] if "user_id" in req_body else None
@@ -11166,6 +11172,14 @@ def update_community_manager_rights(request):
 
             return JsonResponse({'success': True})
 
+        # rights validation 
+        for right in selected_rights:
+            
+            # check if right id is valid (id - 1 = state)
+            if (right.get("id") - 1)  not in manager_rights.ALL_MANAGER_RIGHTS:
+                context = get_error_context(False, "Invalid right")
+                return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
         moderate_dm_right_filter = ModelUtilities.get_model_filter(adminRights,
                                                                    {'state': manager_rights.MODERATE_DM_SETTINGS})
 
@@ -11183,7 +11197,8 @@ def update_community_manager_rights(request):
 
         rights_added, removed_rights = save_added_removed_rights_for_manager(community_instance,
                                                                              user_instance,
-                                                                             selected_rights)
+                                                                             selected_rights,
+                                                                             only_update=patch_request)
 
         if int(user_id) != int(current_user_id):
             member = Members.objects.filter(member_id=user_instance,
@@ -11655,6 +11670,11 @@ def update_community_member_rights(request):
     if request.method == 'GET':
         return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'},
                             status=status_codes.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    patch_request = False
+
+    if request.method == 'PATCH':
+        patch_request = True
 
     current_user_id = get_member_id_from_headers(request)
     req_body = json.loads(request.body)
@@ -11718,11 +11738,20 @@ def update_community_member_rights(request):
 
         return JsonResponse({'success': True})
 
+    # checking if selected rights are valid
+    for right in selected_rights:
+
+        # check if right is valid (id - 1 = states)
+        if (right['id'] - 1) not in (member_rights.ALL_MEMBER_RIGHTS + member_rights.FEED_MEMBER_RIGHTS):
+            context = get_error_context(False, "Invalid right!")
+            return JsonResponse(context, status=status_codes.HTTP_400_BAD_REQUEST)
+
     if admin.exists():
         # create or delete member rights
         rights_added, rights_removed = save_added_removed_rights_for_member(community_instance,
                                                                             user_instance,
-                                                                            selected_rights)
+                                                                            selected_rights,
+                                                                            only_update=patch_request)
         # saving custom title for member
         custom_title_changed = save_member_custom_title(custom_title, community_instance, user_instance)
         # saving members rights list in engage table
@@ -11913,6 +11942,12 @@ def fetch_reports(request):
     # For version Check
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    accept_version = RequestUtilities.get_accept_version_from_headers(request)
+    sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+
+    pagination_filter_check = VersionUtilities.check_version(platform_code, version_code, 
+                                                             VersionUtilities.fetch_reports_pagination_and_filter, sdk_source)
+    api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
 
     if not current_user_id:
         context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
@@ -11964,42 +11999,72 @@ def fetch_reports(request):
 
     try:    
         # Version check for pagination & filter
-        if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.fetch_reports_pagination_and_filter):
+        if pagination_filter_check or api_revamp_v1_check:
             
-            # For Newer Versions
+            # get query params
             page = NumberUtilities.get_integer_from_string(request.GET.get('page'), 1)
-            
+            page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size'), 20)
+            is_closed = request.GET.get('is_closed', None)
+            filter_type =  request.GET.get('filter_type', None)
+
             if page <= 0:
                 page = 1
-
-            page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size'), 20)
 
             if page_size <= 0:
                 page_size = 20
 
-            is_closed = request.GET.get('is_closed', None)
-            filter_type =  request.GET.get('filter_type', None)
-    
             # Check if correct filter_type is provided
             filter_types = StringUtilities.get_list_from_string(filter_type)
-            if filter_type and not isinstance(filter_types, list) :
-                return JsonResponse({'error_message': "Invalid filter_type"}, status=status_codes.HTTP_400_BAD_REQUEST)
+
+            if filter_type:
             
+                if not isinstance(filter_types, list):
+                    context = ResponseUtilities.get_view_impl_error_context("Invalid filter_type",
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(context['data'], status=context['status'])
+
+                # Parse filter_types from string to int
+                if api_revamp_v1_check:
+                    parsed_filter_types = []
+                    
+                    for type in filter_types:
+
+                        if type in REPORT_TYPES:
+                            parsed_filter_types.append(REPORT_TYPES[type])
+                        
+                        else:
+                            context = ResponseUtilities.get_view_impl_error_context("Invalid filter_type",
+                                                                                    status_codes.HTTP_400_BAD_REQUEST)
+                            return JsonResponse(context['data'], status=context['status'])
+
+                    filter_types = parsed_filter_types
+
+                if any(not isinstance(item, int) for item in filter_types):
+                    context = ResponseUtilities.get_view_impl_error_context("Invalid filter_type",
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(context['data'], status=context['status'])
+
             reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
-                                            is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
-                                            parent_cm_list=parent_cm_list, page = page, page_size = page_size, is_closed=is_closed, filter_type=filter_types)
+                                                   is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                                   parent_cm_list=parent_cm_list, page = page, page_size = page_size, 
+                                                   is_closed=is_closed, filter_type=filter_types)
+            
         else:
             reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
-                                                is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
-                                                parent_cm_list=parent_cm_list)
+                                                   is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
+                                                   parent_cm_list=parent_cm_list)
+            
     except Exception as e:
         error_logger.error(e.args)
-        return JsonResponse({'error_message': str(e)}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        context = ResponseUtilities.get_view_impl_error_context(str(e), status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse(context['data'], status=context['status'])
     
     report_list = []
 
     for report in reports:
-        report_dict = report_serializer(report, current_user_id, sdk_client_info_flag=True)
+        report_dict = report_serializer(report, current_user_id, sdk_client_info_flag=True, 
+                                        api_revamp_v1_check=api_revamp_v1_check)
         report_list.append(report_dict)
 
     return JsonResponse({"success": True, "reports": report_list})

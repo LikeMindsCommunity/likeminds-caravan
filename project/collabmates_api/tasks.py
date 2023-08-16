@@ -27,7 +27,7 @@ from utility.states import (collabcard_states, member_states, community_states,
                             card_types, chatroom_actions, member_rights, manager_rights,
                             moderation_history_types, report_Action_Types, report_Types, multi_select_poll_states,
                             user_email_send_status_types, get_started_types, email_states, mobile_states,
-                            unsubscribe_types)
+                            unsubscribe_types, UTMContent, UTMCampaing)
 from utility.celery_beat_tasks import CeleryBeatTask
 from django.http import JsonResponse
 from django.contrib.auth.models import User
@@ -50,6 +50,7 @@ from .static_text import CREATE_CONVERSATION_API_END_POINT, HOURS_24, CM_ONBOARD
 from utility.mail_category_constants import *
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper, MailHelper
+from .chatroom.constants import (EMAIL_UNSUBSCRIBE_URL, LIKEMINDS_WEB_URL)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -414,8 +415,11 @@ def send_community_confirmation_email(user_id, community_id):
             'applestore_image': APPLE_APPSTORE,
             'app_image': APP_LOGO,
             'cta_url': url + '/community/' + str(community_id),
-            'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
-                user_id) + '&code=mail_has_installed_app',
+            'unsub': EMAIL_UNSUBSCRIBE_URL % (settings.WEB_URL, str(community_id), str(user_id)),
+            'likeminds': LIKEMINDS_WEB_URL % (community_instance.name, UTMCampaing.REQUESTACCEPTED,
+                                              UTMContent.LIKEMINDS),
+            'custom_community': LIKEMINDS_WEB_URL % (community_instance.name, UTMCampaing.REQUESTACCEPTED,
+                                                     UTMContent.CUSTOMCOMMUNITY),
         }
         template = get_template("mails/community_confirmation_email.html").render(email_context)
 
@@ -437,6 +441,8 @@ def send_community_confirmation_email(user_id, community_id):
         kwargs = {}
         celery_beat_task.create_dynamic_clery_task(args, kwargs, task_name, task_path,
                                                    date_time=date_time, interval=False, crontab=True)
+
+        send_community_confirmation_email_2(user_id, community_id, task_name)
 
 
 @app.task
@@ -462,8 +468,10 @@ def send_community_confirmation_email_2(user_id, community_id, task_name, *args,
             'applestore_image': APPLE_APPSTORE,
             'app_image': APP_LOGO,
             'cta_url': url + '/community/' + str(community_id),
-            'unsubscribe_url': url + '/unsubscribe_from_email?m=' + encrypt(
-                user_id) + '&code=mail_has_installed_app',
+            'unsub': EMAIL_UNSUBSCRIBE_URL % (settings.WEB_URL, str(community_id), str(user_id)),
+            'likeminds': LIKEMINDS_WEB_URL % (community_instance.name, UTMCampaing.DOWNLOADDRIP, UTMContent.LIKEMINDS),
+            'custom_community': LIKEMINDS_WEB_URL % (community_instance.name, UTMCampaing.DOWNLOADDRIP,
+                                                     UTMContent.CUSTOMCOMMUNITY)
         }
         template = get_template("mails/community_confirmation_email_2.html").render(email_context)
 
