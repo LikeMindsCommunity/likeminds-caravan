@@ -2381,6 +2381,9 @@ class ConversationHelper:
         chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
         conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
 
+        # Updating the updated_at of Collabcard schema
+        chatroom_instance.save()
+
         chatroom_state_instance = None
         state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_instance,
                                                                          'user': user_instance})
@@ -2399,7 +2402,7 @@ class ConversationHelper:
         ConversationHelper._create_or_update_conversation_engage(chatroom_instance, user_instance,
                                                                  conversation_instance, tagged_members_list)
 
-        ConversationHelper.update_activity_in_chatroom_for_followed_users.delay(chatroom_instance.id, user_instance.id)
+        # ConversationHelper.update_activity_in_chatroom_for_followed_users.delay(chatroom_instance.id, user_instance.id)
 
         if not has_files:
             ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(chatroom_instance.id,
