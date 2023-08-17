@@ -6355,6 +6355,8 @@ def follow_chatroom_async(collabcard_id,
             create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,
                                        member_state=member_state)
 
+            card_instance.save()
+
     else:
 
         card_state_instance = collabcard_state_filter[0]
@@ -6378,6 +6380,8 @@ def follow_chatroom_async(collabcard_id,
                                                          member_state=member_state)
             create_chatroom_engagement(card_instance=card_instance, user_instance=user_instance,
                                        member_state=member_state)
+
+            card_instance.save()
 
         else:
 

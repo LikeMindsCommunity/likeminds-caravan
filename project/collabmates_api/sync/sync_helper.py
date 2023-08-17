@@ -199,6 +199,9 @@ class SyncHelper:
                 if key in list(SYNC_DATA_KEYS.keys()):
                     parsed_sync_data[SYNC_DATA_KEYS[key]] = sync_data.get(key)
 
+                if key in ['updated_at']:
+                    sync_data[key] = TimeUtilities.convert_milliseconds_to_sec(sync_data[key])
+
                 if key in list(PARSE_JSON_KEYS_WITH_DEFAULT_VALUE.keys()):
 
                     if sync_data[key]:
