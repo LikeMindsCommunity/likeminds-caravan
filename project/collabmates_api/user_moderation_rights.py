@@ -337,6 +337,11 @@ def check_all_member_rights(user=None, community=None, is_m2cm_v2=False, is_feed
     elif user is not None and community is not None:
         member_rights = userMemberRights.objects.exclude(right__state__in=[4, 7]).select_related(
             'right').filter(user=user, community=community).order_by("right__state")
+        
+        # if no member_rights are found for the user, then get user default community rights
+        if not member_rights:
+            member_rights = communityRightsSettings.objects.select_related('right').exclude(right__state=4).filter(
+                            community=community).order_by("right__state")
 
     else:
         member_rights = []
