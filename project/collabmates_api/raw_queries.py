@@ -3966,8 +3966,6 @@ def convert_sql_query_result_to_dict(cursor, result):
 def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: int = None, max_timestamp: int = None,
                                          page: int = 1, limit: int = 10, included_chatroom_types: list = None,
                                          only_query: bool = False):
-    import sys
-    sys.set_int_max_str_digits(0)
 
     try:
         page_number = int(page)
@@ -4179,8 +4177,6 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
         curr.close()
 
         chatroom_ids_list = [data.get('id') for data in chatroom_data]
-
-        sys.set_int_max_str_digits(4300)
 
         return chatroom_data, chatroom_ids_list
 
