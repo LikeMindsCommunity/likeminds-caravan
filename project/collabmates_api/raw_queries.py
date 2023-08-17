@@ -3971,8 +3971,8 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
         page_number = int(page)
         offset = (page_number - 1) * limit
 
-        min_timestamp = TimeUtilities.convert_sec_to_milliseconds(min_timestamp)
-        max_timestamp = TimeUtilities.convert_sec_to_milliseconds(max_timestamp)
+        min_timestamp = TimeUtilities.convert_sec_to_milliseconds(int(min_timestamp))
+        max_timestamp = TimeUtilities.convert_sec_to_milliseconds(int(max_timestamp))
 
         is_dm_chatroom = card_types.CARD_DIRECT_MESSAGE in included_chatroom_types
 
