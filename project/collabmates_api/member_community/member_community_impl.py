@@ -58,7 +58,8 @@ from ..raw_queries import (get_members_based_on_user_list_query,
                            get_conversation_users_against_chatrooms_list,
                            get_latest_conversations_against_chatrooms_list,
                            get_user_chatroom_status,
-                           get_users_sdk_meta_dict)
+                           get_users_sdk_meta_dict,
+                           get_unseen_count_for_chatroom_ids)
 from ..rest_api import CommunitySerializerV1, CommunityAnswersSerializer, CommunityQuestionsSerializerV2, \
     get_error_context, CommunityDMSettingsSerializer, MemberNotificationFlagSerializer
 from ..serializers import is_draft_conversation, get_chatroom_instance, get_draft_chatroom_instance, \
@@ -1167,15 +1168,30 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = validated_req.get('user_instance')
-        engage_instance = validated_req.get('engage_instance')
+        state_instance = validated_req.get('state_instance')
 
         chatroom_home = {
             'success': True
         }
 
-        if engage_instance:
-            card_instance = engage_instance.card
-            draft_instance = engage_instance.draft
+        conversation_states_excluded = [
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_REMOVED_OR_LEFT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT,
+            conversation_states.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT
+        ]
+
+        unseen_count_map = get_unseen_count_for_chatroom_ids([state_instance.card_id], user_instance.id)
+        card_ans_map = get_last_conversation_id_corresponding_to_chatrooms_list(
+            [state_instance.card_id], excluded_conversation_state=conversation_states_excluded)
+
+        if state_instance:
+            card_instance = state_instance.card
+            draft_instance = None
+            unseen_count = unseen_count_map.get(card_instance.id)
+            conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers,
+                                                                              card_ans_map.get(card_instance.id))
 
             member_id = user_instance.id
 
@@ -1213,17 +1229,18 @@ class MemberCommunityImpl(MemberCommunityManager):
 
                 chatroom_home['last_conversation'] = last_conversation_dict
 
-            chatroom_home['unseen_conversation_count'] = engage_instance.unseen_count
-            chatroom_home['last_conversation_time'] = get_time_text_for_my_chatrooms(engage_instance.updated_at)
+            chatroom_home['unseen_conversation_count'] = unseen_count.get('unseen_count', 0)
+            chatroom_home['last_conversation_time'] = get_time_text_for_my_chatrooms(
+                TimeUtilities.convert_milliseconds_to_sec(conversation_instance.created_at))
 
             conversation_users = get_conversation_users_against_chatrooms_list([card_instance.id])
 
             chatroom_home['conversation_users'] = conversation_users.get(card_instance.id, [])
-            chatroom_home['member_right_states'] = json.loads(
-                engage_instance.rights_list) if engage_instance.rights_list else []
+            chatroom_home['member_right_states'] = userMemberRights.fetch_user_member_rights(user_instance,
+                                                                                             card_instance.community)
 
             member_filter = Members.objects.filter(member_id=member_id,
-                                                   community_id=engage_instance.community)
+                                                   community_id=card_instance.community)
             if member_filter:
                 chatroom_home['member_state'] = member_filter[0].state
             else:
@@ -3308,14 +3325,19 @@ class MemberCommunityHelper:
 
         engage_filter = ModelUtilities.get_model_filter(conversationEngage, {'card': chatroom_instance,
                                                                              'user': user_instance})
+        state_instance = ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_instance,
+                                                                           'user': user_instance,
+                                                                           'remove': None,
+                                                                           'follow_status': True,
+                                                                           'secret_chatroom_left': False}).first()
 
-        if not engage_filter:
+        if not state_instance:
             return ResponseUtilities.get_inner_error_context('User is not following the chatroom!')
 
         return {
             'user_instance': user_instance,
             'chatroom_instance': chatroom_instance,
-            'engage_instance': engage_filter[0]
+            'state_instance': state_instance
         }
 
     @staticmethod
