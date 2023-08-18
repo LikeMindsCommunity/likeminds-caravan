@@ -2399,10 +2399,11 @@ class ConversationHelper:
         tagged_members_list = ConversationHelper._auto_follow_for_tagged_members(chatroom_instance, user_instance,
                                                                                  conversation_instance)
 
-        ConversationHelper._create_or_update_conversation_engage(chatroom_instance, user_instance,
-                                                                 conversation_instance, tagged_members_list)
+        # ConversationHelper._create_or_update_conversation_engage(chatroom_instance, user_instance,
+        #                                                          conversation_instance, tagged_members_list)
 
-        # ConversationHelper.update_activity_in_chatroom_for_followed_users.delay(chatroom_instance.id, user_instance.id)
+        # ConversationHelper.update_activity_in_chatroom_for_followed_users.delay(chatroom_instance.id,
+        #                                                                         user_instance.id)
 
         if not has_files:
             ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(chatroom_instance.id,
