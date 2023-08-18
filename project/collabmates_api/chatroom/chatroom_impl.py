@@ -1085,11 +1085,19 @@ class ChatroomImpl(ChatroomManager):
         chatroom_filter_type = validated_req.get('chatroom_filter_type')
         chatroom_excluded_type = validated_req.get('chatroom_excluded_type')
 
+        error_logger.error(f"[process_chatroom] chatroom/fetch_all_new fetching chatrooms data from db")
+
         chatrooms_data = get_all_chatrooms_of_community(community_instance.id, chatroom_filter_type,
                                                         chatroom_excluded_type, page)
+        
+        error_logger.error(f"[process_chatroom] chatroom/fetch_all_new done fetching chatrooms data from db")
+
+        error_logger.error(f"[process_chatroom] chatroom/fetch_all_new parsing chatrooms data")
 
         from collabmates_api.sync.sync_helper import SyncHelper
         chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, 'chatrooms')
+
+        error_logger.error(f"[process_chatroom] chatroom/fetch_all_new done parsing chatrooms data")
 
         filter_dict = {
             'is_deleted': False,
@@ -1136,6 +1144,8 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_list:
 
             from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
+
+            error_logger.error(f"[process_chatroom] chatroom/fetch_all_old")
 
             chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
             chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)

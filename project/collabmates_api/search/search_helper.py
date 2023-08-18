@@ -5,6 +5,11 @@ from collabmates_api.user_moderation_rights import (check_all_manager_rights)
 from utility.time_utilities import TimeUtilities
 from ..raw_queries import (get_chatroom_participants_count, get_users_sdk_meta_dict)
 
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+error_logger = LoggingWrapper.get_instance()
+
+
 class SearchHelper:
 
     @staticmethod
@@ -26,8 +31,12 @@ class SearchHelper:
         
         user_ids = [card.user_id for card in card_instances]
 
+        error_logger.error(f"search/chatroom fetching fetching users_sdk_meta_dict ")
+
         # Get sdk_client_info for user_ids
         serialised_usersinfo_dict = get_users_sdk_meta_dict(user_ids)
+
+        error_logger.error(f"search/chatroom done fetching fetching users_sdk_meta_dict ")
     
         chatroom_creators_meta = {}
 
@@ -39,6 +48,8 @@ class SearchHelper:
 
             chatroom_id = card_data.get('chatroom').get('id')
 
+            error_logger.error(f"search/chatroom serialising chatroom_data for {chatroom_id}")
+
             creator = chatroom_creators_meta.get(chatroom_id)
 
             creator['profile'] = {
@@ -48,7 +59,12 @@ class SearchHelper:
             card_data['member'] = creator
             card_data['chatroom']['member'] = creator
             card_data['chatroom']['date'] = TimeUtilities.convert_epoch_time_in_date(card_data['chatroom']['created_at'])
+
+            error_logger.error(f"search/chatroom fetching chatroom participants count for chatroom_id: {chatroom_id} ")
+
             card_data['chatroom']['participants_count'] = get_chatroom_participants_count(card_data['chatroom']['id'], card_data['community']['id'])
+
+            error_logger.error(f"search/chatroom done fetching chatroom participants count for chatroom_id: {chatroom_id} ")
 
         return chatroom_data
     

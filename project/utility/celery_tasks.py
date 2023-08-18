@@ -229,6 +229,12 @@ def compute_last_seen_conversations_of_user(chatroom_id, user_list):
 
 @shared_task
 def update_my_chatrooms_for_users(chatroom_id, user_id=None):
+
+    error_logger.error(f"[celery] starting update_my_chatrooms_for_users for chatroom_id: {chatroom_id}")
+
+    current_time = TimeUtilities.current_time_in_sec()
+
+    error_logger.error(f"[celery] [raw_query] fetching from conversationEngage for user_id - {user_id}")
     conversation_engage_filter = conversationEngage.objects.filter(card_id=chatroom_id)
 
     if not user_id:
@@ -236,6 +242,10 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
 
     else:
         user_list = [user_id]
+
+    end_time = TimeUtilities.current_time_in_sec()
+
+    error_logger.error(f"[celery] [raw_query] ({current_time - end_time} ms) done fetching from conversationEngage ")
 
     conversations = card_answers.objects \
         .filter(card_id=chatroom_id, state=0) \
@@ -322,6 +332,7 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
         conversation_id = str(last_conversation.id) if last_conversation else ""
         update_my_chatrooms_on_homefeed_in_firebase(chatroom_id, user, conversation_id)
 
+    error_logger.error(f"[celery] done update_my_chatrooms_for_users for chatroom_id: {chatroom_id}")
 
 def get_latest_conversation_members(chatroom_id):
     """function to get last conversation members"""
