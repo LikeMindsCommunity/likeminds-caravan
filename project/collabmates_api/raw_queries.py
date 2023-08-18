@@ -35,6 +35,9 @@ def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation
     '''function to update chatroom data'''
 
     try:
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        error_logger.error(f"[raw_query] starting update_conversation_engage_for_chatrooms - {card_id} {user_id} {last_conversation_id} {unseen_count}")
         conn = get_connection()
         curr = conn.cursor()
 
@@ -45,6 +48,10 @@ def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation
         info_logger.info("conversation engage updated successfully")
         curr.close()
 
+        end_time = TimeUtilities.current_time_in_milliseconds()
+
+        error_logger.error(f"[raw_query] ({current_time - end_time} secs)done update_conversation_engage_for_chatrooms - {card_id} {user_id} {last_conversation_id} {unseen_count}")
+
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
@@ -54,6 +61,11 @@ def update_conversation_engage_data_for_chatroom(card_id, user_id, updated_at):
     '''function to update chatroom data'''
 
     try:
+        
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        error_logger.error(f"[raw_query] starting update_conversation_engage_data_for_chatroom - {card_id} {user_id} {updated_at}")
+
         conn = get_connection()
         curr = conn.cursor()
 
@@ -71,6 +83,9 @@ def update_conversation_engage_data_for_chatroom(card_id, user_id, updated_at):
         conn.commit()
         info_logger.info("conversation engage updated successfully")
         curr.close()
+
+        end_time = TimeUtilities.current_time_in_milliseconds()
+        error_logger.error(f"[raw_query] ({current_time - end_time} secs) done update_conversation_engage_data_for_chatroom - {card_id} {user_id} {updated_at}")
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
@@ -3469,6 +3484,11 @@ def get_chatroom_participants_count(chatroom_id, community_id):
     """Returns the participants count of chatroom in community"""
 
     try:
+        
+        current_time = TimeUtilities.get_current_time_in_millis()
+
+        error_logger.error(f"[raw_query] Starting get_chatroom_participants_count for chatroom_id {chatroom_id} and community_id {community_id} ")
+
         conn = get_connection()
         curr = conn.cursor()
 
@@ -3489,6 +3509,10 @@ def get_chatroom_participants_count(chatroom_id, community_id):
         curr.execute(sql)
         participants_count = curr.fetchone()
         curr.close()
+
+        end_time = TimeUtilities.get_current_time_in_millis()
+
+        error_logger.error(f"[raw_query] ({current_time - end_time} secs)Done get_chatroom_participants_count for chatroom_id {chatroom_id} and community_id {community_id} ")
 
         if participants_count:
             return participants_count[0]
