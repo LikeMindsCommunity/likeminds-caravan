@@ -120,7 +120,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def fetch_member_profile(self, member_id: str, uuid: str = None) -> {}:
+    def fetch_member_profile(self, member_id: str, uuid: str = None, community_hood_check: bool = False) -> {}:
         """returns member profile"""
 
         raise NotImplementedError

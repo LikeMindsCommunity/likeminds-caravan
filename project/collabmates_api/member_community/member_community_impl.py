@@ -1437,7 +1437,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         else:
             return get_error_context(False, "Invalid value of key 'from'.")
 
-    def fetch_member_profile(self, user_id, uuid: str = None):
+    def fetch_member_profile(self, user_id, uuid: str = None, community_hood_check: bool = False):
         validated_req = MemberCommunityViewHelper.validate_fetch_member_profile_request(self.get_member_id(), user_id,
                                                                                         self.get_community_id(),
                                                                                         self.get_api_key(),
@@ -1489,7 +1489,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                   current_user_member_instance)
 
         user_menu = MemberCommunityHelper.update_member_profile_menu_for_sdk(user_member_instance, community_instance,
-                                                                             current_user_member_instance, user_menu)
+                                                                             current_user_member_instance, user_menu, 
+                                                                             community_hood_check=community_hood_check)
 
         member_profile_response = {
             'success': True,
@@ -2590,7 +2591,8 @@ class MemberCommunityHelper:
         return menu
 
     @staticmethod
-    def update_member_profile_menu_for_sdk(user_member_instance, community_instance, current_user_member_instance, menu):
+    def update_member_profile_menu_for_sdk(user_member_instance, community_instance, current_user_member_instance, menu,
+                                           community_hood_check: bool=False):
 
         community = ModelUtilities.get_model_filter(SdkClient, {"community": community_instance, "is_deleted": False})
 
@@ -2613,6 +2615,12 @@ class MemberCommunityHelper:
                     all_menu_items.get("EDIT_PERMISSIONS"),
                     all_menu_items.get("REMOVE_FROM_COMMUNITY"),
                     all_menu_items.get("REPORT_MEMBER")
+                ]
+            
+            # community hood check to send edit title option to logged in ADMINS
+            if community_hood_check and (current_user_member_instance == user_member_instance):
+                allowed_menu_items = [
+                    all_menu_items.get("EDIT_TITLE")
                 ]
 
         elif current_user_member_instance.state == member_states.MEMBER:
