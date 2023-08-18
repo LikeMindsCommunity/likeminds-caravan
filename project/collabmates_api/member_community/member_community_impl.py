@@ -3360,14 +3360,19 @@ class MemberCommunityHelper:
 
         engage_filter = ModelUtilities.get_model_filter(conversationEngage, {'card': chatroom_instance,
                                                                              'user': user_instance})
+        state_instance = ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_instance,
+                                                                           'user': user_instance,
+                                                                           'remove': None,
+                                                                           'follow_status': True,
+                                                                           'secret_chatroom_left': False}).first()
 
-        if not engage_filter:
+        if not state_instance:
             return ResponseUtilities.get_inner_error_context('User is not following the chatroom!')
 
         return {
             'user_instance': user_instance,
             'chatroom_instance': chatroom_instance,
-            'engage_instance': engage_filter[0]
+            'state_instance': state_instance
         }
 
     @staticmethod
