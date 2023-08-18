@@ -93,7 +93,7 @@ def get_my_chatrooms_count(user_id,
         dm_chatrooms_communities_filter = ""
 
         if community_id:
-            dm_chatrooms_communities_filter = f"AND community_id IN ({str(community_id)})"
+            dm_chatrooms_communities_filter = f"AND togther_collabcard.community_id IN ({str(community_id)})"
 
         if consider_dm_chatrooms and len(dm_instance_community_ids_list) == 0:
             return 0
@@ -101,7 +101,7 @@ def get_my_chatrooms_count(user_id,
         if consider_dm_chatrooms and len(dm_instance_community_ids_list) != 0:
             is_private = "TRUE"
             chatroom_with_user_id_val = "NOT NULL"
-            dm_chatrooms_communities_filter = "AND community_id IN (%s)" % ",".join([
+            dm_chatrooms_communities_filter = "AND togther_collabcard.community_id IN (%s)" % ",".join([
                 str(i) for i in dm_instance_community_ids_list])
 
         if is_version_code_supported_for_intro_room(version_code, platform_code):
@@ -109,53 +109,49 @@ def get_my_chatrooms_count(user_id,
             if intro_room_community_list:
                 intro_filter_list_str = ",".join([str(i) for i in intro_room_community_list])
                 filter_intro_rooms_query = """
-                CASE WHEN community_id IN ( %s ) THEN user_id != %s
-                                                AND type = 1
-                ELSE type IN ( 1, 9 ) END
+                CASE WHEN togther_collabcard.community_id IN ( %s ) THEN togther_collabcard.user_id != %s
+                                                AND togther_collabcard.type = 1
+                ELSE togther_collabcard.type IN ( 1, 9 ) END
                 """ % (intro_filter_list_str, user_id)
 
             else:
-                filter_intro_rooms_query = """type IN ( 1, 9 )"""
+                filter_intro_rooms_query = """togther_collabcard.type IN ( 1, 9 )"""
 
         else:
-            filter_intro_rooms_query = """type = -1"""
+            filter_intro_rooms_query = """togther_collabcard.type = -1"""
 
         excluded_card_ids_filter = """"""
 
-        dm_chatrooms_filter = """is_private = {} 
-                                 AND is_private_member = FALSE 
-                                 AND chatroom_with_user_id IS {} AND""".format(is_private, chatroom_with_user_id_val)
+        dm_chatrooms_filter = """togther_collabcard.is_private = {} 
+                                 AND togther_collabcard.is_private_member = FALSE 
+                                 AND togther_collabcard.chatroom_with_user_id IS {} AND""".format(
+            is_private, chatroom_with_user_id_val)
 
         if should_add_dm_chatrooms:
             dm_chatrooms_filter = ""
 
         chatroom_type_filter = """"""
         if chatroom_type != -1:
-            chatroom_type_filter = """ AND type in (%s)""" % str(chatroom_type)
+            chatroom_type_filter = """ AND togther_collabcard.type in (%s)""" % str(chatroom_type)
 
         custom_tag_filter = ""
         if custom_tag:
-            custom_tag_filter = f""" AND custom_tag ILIKE '%{custom_tag.replace("'", "''")}%'"""
+            custom_tag_filter = f""" AND togther_collabcard.custom_tag ILIKE '%{custom_tag.replace("'", "''")}%'"""
 
         conn = get_connection()
         curr = conn.cursor()
 
-        sql = """SELECT Count(id)
-                FROM   togther_conversationengage
-                WHERE  user_id = %s
-                       AND card_id IN (SELECT card_id
-                                       FROM   togther_collabcardstate
-                                       WHERE  user_id = %s
-                                              AND follow_status = TRUE
-                                              AND ( remove_id IS NULL )
-                                              AND secret_chatroom_left = FALSE
-                                              AND card_id IN (SELECT id
-                                                              FROM   togther_collabcard
-                                                              WHERE  (%s is_deleted = FALSE
-                                                                     AND not (%s) %s) %s %s %s)
-
-                  ) """ % (
-            str(user_id),
+        sql = """
+                SELECT COUNT(card_id)
+                FROM   togther_collabcardstate
+                INNER JOIN togther_collabcard
+                ON togther_collabcardstate.card_id = togther_collabcard.id
+                WHERE  togther_collabcardstate.user_id = %s
+                    AND togther_collabcardstate.follow_status = TRUE
+                    AND ( togther_collabcardstate.remove_id IS NULL )
+                    AND togther_collabcardstate.secret_chatroom_left = FALSE
+                    AND (%s togther_collabcard.is_deleted = FALSE
+                    AND not (%s) %s) %s %s %s""" % (
             str(user_id),
             dm_chatrooms_filter,
             str(filter_intro_rooms_query),
@@ -270,7 +266,7 @@ def get_followed_chatrooms(user_id,
         dm_chatrooms_communities_filter = ""
 
         if community_id:
-            dm_chatrooms_communities_filter = f"AND community_id IN ({str(community_id)})"
+            dm_chatrooms_communities_filter = f"AND togther_collabcard.community_id IN ({str(community_id)})"
 
         if consider_dm_chatrooms and len(dm_instance_community_ids_list) == 0:
             return []
@@ -278,7 +274,7 @@ def get_followed_chatrooms(user_id,
         if consider_dm_chatrooms and len(dm_instance_community_ids_list) != 0:
             is_private_val = "TRUE"
             chatroom_with_user_val = "NOT NULL"
-            dm_chatrooms_communities_filter = "AND community_id IN (%s)" % ",".join([
+            dm_chatrooms_communities_filter = "AND togther_collabcard.community_id IN (%s)" % ",".join([
                 str(i) for i in dm_instance_community_ids_list])
 
         if is_version_code_supported_for_intro_room(version_code, platform_code):
@@ -286,22 +282,23 @@ def get_followed_chatrooms(user_id,
             if intro_room_community_list:
                 intro_filter_list_str = ",".join([str(i) for i in intro_room_community_list])
                 filter_intro_rooms_query = """
-                CASE WHEN community_id IN ( %s ) THEN user_id != %s
-                                                AND type = 1
-                ELSE type IN ( 1, 9 ) END
+                CASE WHEN togther_collabcard.community_id IN ( %s ) THEN togther_collabcard.user_id != %s
+                                                AND togther_collabcard.type = 1
+                ELSE togther_collabcard.type IN ( 1, 9 ) END
                 """ % (intro_filter_list_str, user_id)
 
             else:
-                filter_intro_rooms_query = """type IN ( 1, 9 )"""
+                filter_intro_rooms_query = """togther_collabcard.type IN ( 1, 9 )"""
 
         else:
-            filter_intro_rooms_query = """type = -1"""
+            filter_intro_rooms_query = """togther_collabcard.type = -1"""
 
         excluded_card_ids_filter = ""
 
-        dm_chatrooms_filter = """is_private = {}
-                                 AND is_private_member = FALSE
-                                 AND chatroom_with_user_id IS {} AND""".format(is_private_val, chatroom_with_user_val)
+        dm_chatrooms_filter = """togther_collabcard.is_private = {}
+                                 AND togther_collabcard.is_private_member = FALSE
+                                 AND togther_collabcard.chatroom_with_user_id IS {} AND""".format(
+            is_private_val, chatroom_with_user_val)
 
         if should_add_dm_chatrooms:
             dm_chatrooms_filter = ""
@@ -315,53 +312,53 @@ def get_followed_chatrooms(user_id,
 
         follow_conversation_state = get_tuple_from_array([conversation_states.CONVERSATION_FOLLOW])
 
-        chatroom_type_filter = """ AND type not in (%s)""" % str(card_types.CARD_FEED_GROUP)
+        chatroom_type_filter = """ AND togther_collabcard.type not in (%s)""" % str(card_types.CARD_FEED_GROUP)
         if chatroom_type != -1:
-            chatroom_type_filter = """ AND type in (%s)""" % str(chatroom_type)
+            chatroom_type_filter = """ AND togther_collabcard.type in (%s)""" % str(chatroom_type)
 
         custom_tag_filter = ""
         if custom_tag:
-            custom_tag_filter = f""" AND custom_tag ILIKE '%{custom_tag.replace("'", "''")}%'"""
+            custom_tag_filter = f""" AND togther_collabcard.custom_tag ILIKE '%{custom_tag.replace("'", "''")}%'"""
 
         conn = get_connection()
         curr = conn.cursor()
 
-        fetch_card_ids_sql = """SELECT card_id
-                                FROM   togther_collabcardstate
-                                WHERE  user_id = %s
-                                AND    follow_status = true
-                                AND    (
-                                              remove_id IS NULL)
-                                AND    secret_chatroom_left=false
-                                AND    card_id IN
-                                       (
-                                              SELECT id
-                                              FROM   togther_collabcard
-                                              WHERE  (%s    is_deleted = FALSE
-                                                     AND    NOT (%s)
-                                                    %s) %s %s %s)""" % (
-            str(user_id),
-            str(dm_chatrooms_filter),
-            str(filter_intro_rooms_query),
-            str(dm_chatrooms_communities_filter),
-            str(excluded_card_ids_filter),
-            str(chatroom_type_filter),
-            custom_tag_filter)
-
-        curr.execute(fetch_card_ids_sql)
-        card_ids_res = curr.fetchall()
+        # fetch_card_ids_sql = """SELECT card_id
+        #                         FROM   togther_collabcardstate
+        #                         WHERE  user_id = %s
+        #                         AND    follow_status = true
+        #                         AND    (
+        #                                       remove_id IS NULL)
+        #                         AND    secret_chatroom_left=false
+        #                         AND    card_id IN
+        #                                (
+        #                                       SELECT id
+        #                                       FROM   togther_collabcard
+        #                                       WHERE  (%s    is_deleted = FALSE
+        #                                              AND    NOT (%s)
+        #                                             %s) %s %s %s)""" % (
+        #     str(user_id),
+        #     str(dm_chatrooms_filter),
+        #     str(filter_intro_rooms_query),
+        #     str(dm_chatrooms_communities_filter),
+        #     str(excluded_card_ids_filter),
+        #     str(chatroom_type_filter),
+        #     custom_tag_filter)
+        #
+        # curr.execute(fetch_card_ids_sql)
+        # card_ids_res = curr.fetchall()
 
         card_ids_list = []
 
-        for id in card_ids_res:
-            card_ids_list.append(id[0])
+        # for id in card_ids_res:
+        #     card_ids_list.append(id[0])
 
         card_ids = get_tuple_from_array(card_ids_list)
 
         sql = """
-                SELECT     togther_conversationengage.id,
+                SELECT     togther_collabcardstate.card_id,
                            lca.created_at
-                FROM       togther_conversationengage
+                FROM       togther_collabcardstate
                 INNER JOIN (WITH added_row_number AS
                            (
                                     SELECT   ca.created_at,
@@ -383,21 +380,30 @@ def get_followed_chatrooms(user_id,
                                                       ELSE 2
                                              END                  AS cond_row
                                     FROM     togther_card_answers AS ca
-                                    WHERE    ca.card_id IN %s)SELECT   card_id,
+                                    ) SELECT   card_id,
                            id,
                            created_at,
                            cond_row
                   FROM     added_row_number
                   WHERE    row_number = 1) AS lca
-                  ON       togther_conversationengage.card_id = lca.card_id
-                  WHERE    togther_conversationengage.user_id=%s
-                  AND      togther_conversationengage.card_id IN %s
+                  ON       togther_collabcardstate.card_id = lca.card_id
+                  INNER JOIN togther_collabcard
+                  ON togther_collabcard.id = togther_collabcardstate.card_id
+                  WHERE  togther_collabcardstate.user_id = %s
+                                AND    togther_collabcardstate.follow_status = true
+                                AND    (
+                                              togther_collabcardstate.remove_id IS NULL)
+                                AND    togther_collabcardstate.secret_chatroom_left=false
+                                AND    (%s    togther_collabcard.is_deleted = FALSE
+                                                     AND    NOT (%s)
+                                                    %s) %s %s %s
                   ORDER BY lca.cond_row,
                            lca.created_at DESC,
-                           id DESC limit %s offset %s""" % (included_conversation_states, follow_conversation_state,
-                                                            user_id, included_conversation_states,
-                                                            follow_conversation_state, user_id, card_ids,
-                                                            str(user_id), card_ids, str(limit), str(offset))
+                           lca.id DESC limit %s offset %s""" % (
+            included_conversation_states, follow_conversation_state, user_id, included_conversation_states,
+            follow_conversation_state, user_id, str(user_id),
+            str(dm_chatrooms_filter), str(filter_intro_rooms_query), str(dm_chatrooms_communities_filter),
+            str(excluded_card_ids_filter), str(chatroom_type_filter), custom_tag_filter, str(limit), str(offset))
 
         curr.execute(sql)
         res = curr.fetchall()

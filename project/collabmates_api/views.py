@@ -379,51 +379,52 @@ def my_chatrooms_version_1(request):
 
     total_pages = page_count
 
-    engage_list = get_followed_chatrooms(member_id,
-                                         page,
-                                         version_code,
-                                         platform_code,
-                                         chatroom_type=chatroom_type,
-                                         limit=10,
-                                         consider_dm_chatrooms=consider_dm_chatrooms,
-                                         dm_instance_community_ids_list=dm_instance_community_ids_list,
-                                         community_id=community_id,
-                                         intro_room_community_list=intro_room_community_list,
-                                         should_add_dm_chatrooms=should_add_dm_chatrooms,
-                                         custom_tag=custom_tag)
+    chatroom_list = get_followed_chatrooms(member_id,
+                                           page,
+                                           version_code,
+                                           platform_code,
+                                           chatroom_type=chatroom_type,
+                                           limit=10,
+                                           consider_dm_chatrooms=consider_dm_chatrooms,
+                                           dm_instance_community_ids_list=dm_instance_community_ids_list,
+                                           community_id=community_id,
+                                           intro_room_community_list=intro_room_community_list,
+                                           should_add_dm_chatrooms=should_add_dm_chatrooms,
+                                           custom_tag=custom_tag)
 
     chatroom_ids_list = []
 
-    if engage_list:
+    if chatroom_list:
 
-        for id, _ in engage_list.items():
-            instance = conversationEngage.objects.get(pk=id)
+        for id, _ in chatroom_list.items():
+            # instance = conversationEngage.objects.get(pk=id)
+            instance = ModelUtilities.get_model_instance_or_none(Collabcard, id)
             instance_list.append(instance)
 
-            if instance.card_id not in chatroom_ids_list:
-                chatroom_ids_list.append(instance.card_id)
+            if id not in chatroom_ids_list:
+                chatroom_ids_list.append(id)
 
-    draft_list = get_draft_chatrooms_on_home_screen(member_id, page, community_id)
-
-    for id in draft_list:
-        instance = conversationEngage.objects.get(pk=id)
-        instance_list.append(instance)
-
-        if instance.card_id not in chatroom_ids_list:
-            chatroom_ids_list.append(instance.card_id)
+    # draft_list = get_draft_chatrooms_on_home_screen(member_id, page, community_id)
+    #
+    # for id in draft_list:
+    #     instance = conversationEngage.objects.get(pk=id)
+    #     instance_list.append(instance)
+    #
+    #     if instance.card_id not in chatroom_ids_list:
+    #         chatroom_ids_list.append(instance.card_id)
 
     # Segregate DM and Non-DM chatrooms
     for instance in instance_list:
-        is_dm_private_instance = instance.card.is_private
+        is_dm_private_instance = instance.is_private
 
         if all([not should_add_dm_chatrooms,
                 is_dm_message,
                 is_dm_private_instance,
-                instance.card.chatroom_with_user,
-                instance.card.community_id in dm_instance_community_ids_list]):
+                instance.chatroom_with_user,
+                instance.community_id in dm_instance_community_ids_list]):
             dm_instance_list.append(instance)
 
-        elif (not instance.card.chatroom_with_user) and (not is_dm_private_instance):
+        elif (not instance.chatroom_with_user) and (not is_dm_private_instance):
             non_dm_instance_list.append(instance)
 
         elif should_add_dm_chatrooms:
@@ -437,12 +438,14 @@ def my_chatrooms_version_1(request):
 
     conversation_users = get_conversation_users_against_chatrooms_list(chatroom_ids_list)
     chatroom_conversations = get_latest_conversations_against_chatrooms_list(chatroom_ids_list)
+    unseen_count_map = get_unseen_count_for_chatroom_ids(chatroom_ids_list, user_instance.id)
 
     for instance in instance_list:
 
         chatroom = {}
-        card_instance = instance.card
-        draft_instance = instance.draft
+        card_instance = instance
+        draft_instance = None
+        unseen_count = unseen_count_map.get(instance.id)
 
         if card_instance:
             chatroom['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False, 
@@ -451,6 +454,7 @@ def my_chatrooms_version_1(request):
             chatroom['community'] = CommunitySerializerV1(card_instance.community, context=context,
                                                           many=False).data
             chatroom['is_draft'] = False
+
         elif draft_instance:
             chatroom['chatroom'] = get_draft_chatroom_instance(draft_instance, member_id)
             context = {"current_user_id": member_id}
@@ -494,16 +498,17 @@ def my_chatrooms_version_1(request):
 
                 chatroom['second_last_conversation'] = second_last_conversation_dict
 
-        chatroom['unseen_conversation_count'] = instance.unseen_count
-        chatroom['last_conversation_time'] = instance.updated_at
+        chatroom['unseen_conversation_count'] = unseen_count.get('unseen_count', 0)
+        # chatroom['last_conversation_time'] = instance.updated_at
 
-        if engage_list.get(instance.id):
+        if chatroom_list.get(instance.id):
             chatroom['last_conversation_time'] = get_time_text_for_my_chatrooms(
-                TimeUtilities.convert_milliseconds_to_sec(engage_list.get(instance.id)))
+                TimeUtilities.convert_milliseconds_to_sec(chatroom_list.get(instance.id)))
 
         chatroom['conversation_users'] = conversation_users.get(card_instance.id, [])
 
-        rights_list = json.loads(instance.rights_list) if instance.rights_list else []
+        # rights_list = json.loads(instance.rights_list) if instance.rights_list else []
+        rights_list = userMemberRights.fetch_user_member_rights(user_instance, instance.community)
 
         if is_ios and \
                 member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM in rights_list and \
