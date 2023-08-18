@@ -245,7 +245,7 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
 
     end_time = TimeUtilities.current_time_in_sec()
 
-    error_logger.error(f"[celery] [raw_query] ({current_time - end_time}) done fetching from conversationEngage ")
+    error_logger.error(f"[celery] [raw_query] ({current_time - end_time} ms) done fetching from conversationEngage ")
 
     conversations = card_answers.objects \
         .filter(card_id=chatroom_id, state=0) \

@@ -50,7 +50,7 @@ def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation
 
         end_time = TimeUtilities.current_time_in_milliseconds()
 
-        error_logger.error(f"[raw_query] ({current_time - end_time} secs)done update_conversation_engage_for_chatrooms - {card_id} {user_id} {last_conversation_id} {unseen_count}")
+        error_logger.error(f"[raw_query] ({current_time - end_time} ms) done update_conversation_engage_for_chatrooms - {card_id} {user_id} {last_conversation_id} {unseen_count}")
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
@@ -85,7 +85,7 @@ def update_conversation_engage_data_for_chatroom(card_id, user_id, updated_at):
         curr.close()
 
         end_time = TimeUtilities.current_time_in_milliseconds()
-        error_logger.error(f"[raw_query] ({current_time - end_time} secs) done update_conversation_engage_data_for_chatroom - {card_id} {user_id} {updated_at}")
+        error_logger.error(f"[raw_query] ({current_time - end_time} ms) done update_conversation_engage_data_for_chatroom - {card_id} {user_id} {updated_at}")
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
@@ -3512,7 +3512,7 @@ def get_chatroom_participants_count(chatroom_id, community_id):
 
         end_time = TimeUtilities.get_current_time_in_millis()
 
-        error_logger.error(f"[raw_query] ({current_time - end_time} secs)Done get_chatroom_participants_count for chatroom_id {chatroom_id} and community_id {community_id} ")
+        error_logger.error(f"[raw_query] ({current_time - end_time} ms) Done get_chatroom_participants_count for chatroom_id {chatroom_id} and community_id {community_id} ")
 
         if participants_count:
             return participants_count[0]
