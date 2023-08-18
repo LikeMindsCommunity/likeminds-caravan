@@ -1647,3 +1647,9 @@ class ReportTagsSerializer(serializers.ModelSerializer):
                 del data['tag_name']
 
         return data
+    
+class CommunityConfigurationsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CommunityConfigurations
+        fields = ('type', 'description', 'value')

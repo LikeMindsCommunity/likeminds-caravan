@@ -11,8 +11,8 @@
     font-family: 'Roboto';
 }
 .main-wrapper{
-    background:#f9f9f9;
-    padding: 48px;
+    background:#fffff;
+    padding: 48px 48px 0px 48px;
 }
 .main{
     max-width: 600px;
@@ -171,6 +171,9 @@ table.logo{
                 </div>
             </div>
         </div>
+    </div>
+    <div>
+        {% include 'mails/email_footer.html' with unsub=unsub likeminds=likeminds custom_community=custom_community %}
     </div>
     </body>
 </html>

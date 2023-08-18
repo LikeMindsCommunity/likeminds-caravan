@@ -768,3 +768,6 @@ COMMUNITY_SETTINGS_COMMUNITY_ACTION_IMAGE_URL = "https://firebasestorage.googlea
                                                 "collabmates-3d601.appspot.com/o/files%2Ficons" \
                                                 "%2Fcommunity_settings.png?alt=media&" \
                                                 "token=0e105674-9bde-4336-850b-118671fcdec8"
+
+SENDER_NAME_FOR_EMAIL_COMMS = "Team LikeMinds"
+SENDER_EMAIL_FOR_EMAIL_COMMS = "hello@likeminds.community"
