@@ -1688,6 +1688,7 @@ class communityQuestions(models.Model):
     can_add_options = models.BooleanField(default=False)
     is_answer_editable = models.BooleanField(default=True)
     tag = models.TextField(null=True)
+    image_url = models.TextField(null=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 

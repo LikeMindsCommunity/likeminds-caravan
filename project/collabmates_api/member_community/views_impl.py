@@ -332,6 +332,14 @@ class FetchMemberProfileView(APIView):
         req_body = RequestUtilities.fetch_request_query_params(request)
         validated_req_body = self._validate_request(member_id, req_body, api_key)
 
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+
+        community_hood_check = VersionUtilities.check_version(platform_code=platform_code, version_code=version_code, 
+                                                              feature_version_dict=VersionUtilities.community_hood,
+                                                              sdk_source=sdk_source)
+
         if not validated_req_body.get('success', False):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_req_body.get('error_message'),
                                                                                 status_codes.HTTP_400_BAD_REQUEST))
@@ -339,7 +347,8 @@ class FetchMemberProfileView(APIView):
         member_community_manager = MemberCommunityImpl(member_id, validated_req_body.get('community_id'),
                                                        api_key=api_key)
         community_context = member_community_manager.fetch_member_profile(validated_req_body.get('user_id'), 
-                                                                          uuid=validated_req_body.get('uuid'))
+                                                                          uuid=validated_req_body.get('uuid'),
+                                                                          community_hood_check=community_hood_check)
 
         if 'error_message' in community_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
