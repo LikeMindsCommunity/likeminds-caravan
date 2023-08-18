@@ -232,7 +232,7 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
 
     error_logger.error(f"[celery] starting update_my_chatrooms_for_users for chatroom_id: {chatroom_id}")
 
-    current_time = TimeUtilities.current_time_in_sec()
+    current_time = TimeUtilities.current_time_in_milliseconds()
 
     error_logger.error(f"[celery] [raw_query] fetching from conversationEngage for user_id - {user_id}")
     conversation_engage_filter = conversationEngage.objects.filter(card_id=chatroom_id)
@@ -243,7 +243,7 @@ def update_my_chatrooms_for_users(chatroom_id, user_id=None):
     else:
         user_list = [user_id]
 
-    end_time = TimeUtilities.current_time_in_sec()
+    end_time = TimeUtilities.current_time_in_milliseconds()
 
     error_logger.error(f"[celery] [raw_query] ({current_time - end_time} ms) done fetching from conversationEngage ")
 

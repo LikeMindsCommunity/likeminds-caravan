@@ -3485,7 +3485,7 @@ def get_chatroom_participants_count(chatroom_id, community_id):
 
     try:
         
-        current_time = TimeUtilities.get_current_time_in_millis()
+        current_time = TimeUtilities.current_time_in_milliseconds()
 
         error_logger.error(f"[raw_query] Starting get_chatroom_participants_count for chatroom_id {chatroom_id} and community_id {community_id} ")
 
@@ -3510,7 +3510,7 @@ def get_chatroom_participants_count(chatroom_id, community_id):
         participants_count = curr.fetchone()
         curr.close()
 
-        end_time = TimeUtilities.get_current_time_in_millis()
+        end_time = TimeUtilities.current_time_in_milliseconds()
 
         error_logger.error(f"[raw_query] ({current_time - end_time} ms) Done get_chatroom_participants_count for chatroom_id {chatroom_id} and community_id {community_id} ")
 
