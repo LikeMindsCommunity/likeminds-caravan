@@ -375,13 +375,20 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
     def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
                          poll_votes, sdk_client_info_flag:bool = False) -> {}:
+        
+        error_logger.error(f"[process_chatroom] serializing chatroom - {card_instance.id}")
 
         chatroom_context = ChatroomMemberHelper.serialize_chatroom(card_instance, user=self.get_member_id(),
                                                                    return_topic=True, 
                                                                    sdk_client_info_flag=sdk_client_info_flag)
+        
+        error_logger.error(f"[process_chatroom] serializing chatroom done - {card_instance.id}")
 
         if card_instance.has_reactions:
+
+            error_logger.error(f"[process_chatroom] fetching reactions - {card_instance.id}")
             reactions = fetch_chatroom_or_conversation_reactions(chatroom_id=chatroom_context['id'])
+            error_logger.error(f"[process_chatroom] fetching reactions done - {card_instance.id}")
         else:
             reactions = []
 
@@ -400,6 +407,9 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             chatroom_context.update(chatroom_files)
 
         if card_instance.type == card_types.CARD_POLL:
+            
+            error_logger.error(f"[process_chatroom] serializing poll - {card_instance.id}")
+            
             poll_serializer = ChatroomMemberHelper.serialize_poll_chatroom(card_instance, self.get_member_id())
             polls = self.process_poll(poll_data, card_instance.id, poll_votes,
                                       poll_serializer.get('multiple_select_no'),
@@ -413,6 +423,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
             chatroom_context.update(poll_serializer)
 
+            error_logger.error(f"[process_chatroom] serializing poll done - {card_instance.id}")
+
         if card_instance.type == card_types.CARD_EVENT or card_instance.type == card_types.CARD_PUBLIC_EVENT:
             self.fill_event_context_for_response(chatroom_context, card_instance, community_instance)
 
@@ -425,20 +437,35 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         if preview:
             chatroom_context['preview'] = preview
 
+        error_logger.error(f"[process_chatroom] computing total response count - {card_instance.id}")
+
         chatroom_context['total_response_count'] = self.compute_total_response_count(card_instance)
 
+        error_logger.error(f"[process_chatroom] computing total response count done - {card_instance.id}")
+
         if chatroom_context['total_response_count']:
+
+            error_logger.error(f"[process_chatroom] computing last response - {card_instance.id}")
+
             chatroom_context['last_response_members'] = self.create_last_response_members_images(card_instance,
                                                                                                  community_instance,
                                                                                                  sdk_client_info_flag=sdk_client_info_flag)
+            
+            error_logger.error(f"[process_chatroom] computing last response done - {card_instance.id}")
 
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 
+        error_logger.error(f"[process_chatroom] computing participants count - {card_instance.id}")
+
         chatroom_context['participants_count'] = ChatroomHelper.chatroom_participants_count(card_instance)
+
+        error_logger.error(f"[process_chatroom] done computing participants count - {card_instance.id}")
 
         return chatroom_context
 
     def process_chatroom_list(self, chatroom_list, community_instance, sdk_client_info_flag:bool=False) -> []:
+
+        error_logger.error("[process_chatroom] starting proceess chatroom lost")
 
         chatroom_context_list = []
         user_list = self.compute_user_id_list_of_chatroom_creators(chatroom_list)
@@ -461,9 +488,13 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
             if ChatroomMemberHelper.has_attachments_uploaded(card_instance, current_user_id, device_id=self.device_id):
                 continue
+            
+            error_logger.error(f"[process_chatroom] processing chatroom - {card_instance.id}")
 
             chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance
                                                      , poll_data, poll_votes, sdk_client_info_flag=sdk_client_info_flag)
+            
+            error_logger.error(f"[process_chatroom] processing chatroom done - {card_instance.id}")
 
             if member_dict.get(card_creator_id):
                 chatroom_context['member'] = member_dict[card_creator_id]
@@ -482,11 +513,15 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             chatroom_context['chat_request_created_at'] = data.chat_request_created_at
             chatroom_context['chat_requested_by'] = None
 
+            error_logger.error("[process_chatroom] fetching members_profile ")
+
             if data.chat_requested_by:
                 chatroom_context['chat_requested_by'] = get_members_profile([data.chat_requested_by.id],
                                                                             community_instance.id,
                                                                             send_profile=False, 
                                                                             sdk_client_info_flag=sdk_client_info_flag)
+                
+            error_logger.error("[process_chatroom] fetching members_profile done")
 
             chatroom_context_list.append(chatroom_context)
 

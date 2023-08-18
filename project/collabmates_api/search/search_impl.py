@@ -16,6 +16,10 @@ from collabmates_api.sdk.models import SdkClient
 from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
                            get_chatrooms_of_user_with_follow_status, get_users_sdk_meta_dict)
 
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+error_logger = LoggingWrapper.get_instance()
+
 class SearchImpl(SearchManager):
 
     def __init__(self, member_id: str, search_term: str, search_field: str = None,
@@ -352,11 +356,19 @@ class SearchImpl(SearchManager):
         if self.get_community_id():
             self._append_community_id(search_query_dict, self.get_community_id())
 
+        error_logger.error(f"search/chatroom staring search query")
+
         res = Search.from_dict(search_query_dict).execute()
+
+        error_logger.error(f"search/chatroom done search query")
 
         chatroom_data = [hit.to_dict() for hit in res]
 
+        error_logger.error(f"search/chatroom starting serialize_chatroom_data_response")
+
         SearchHelper.serialize_chatroom_data_response(chatroom_data)
+
+        error_logger.error(f"search/chatroom done serialize_chatroom_data_response")
 
         context = {
             'success': True,
