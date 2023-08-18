@@ -4312,8 +4312,9 @@ class CommunityHelper:
                         introduction_answer = answer_instance.question_answer
                         serialized_question['previous_answer'] = introduction_answer
 
-            else:
-                serialized_question['rank'] = 1
+            # removing this so that, whatever rank is coming from db, it will be used
+            # else: 
+            #     serialized_question['rank'] = 1
 
             # Don't append question if remove_state is True
             if not serialized_question['remove_state']:
