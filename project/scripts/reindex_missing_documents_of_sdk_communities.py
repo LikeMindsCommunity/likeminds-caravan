@@ -1,6 +1,7 @@
+import time
+
 from togther.models import ModelUtilities, card_answers
 from collabmates_api.sdk.models import (SdkClient)
-
 from collabmates_api.search.conversation_index import ConversationDocument
 
 def get_conversation_instances_of_a_community(community_id):
@@ -40,7 +41,6 @@ def bulk_update_in_elastic_search_in_chunks(instances, chunk_size=1000):
     # iterate over chunks
     for chunk in range(total_chunks):
 
-
         # get start and end index of chunk
         start_index = chunk * chunk_size
         end_index = start_index + chunk_size
@@ -48,15 +48,20 @@ def bulk_update_in_elastic_search_in_chunks(instances, chunk_size=1000):
         # get instances of chunk
         chunk_instances = instances[start_index:end_index]
 
-        print(f'[Updating Document in ES] chunk: {chunk} of size: {chunk_instances.count()}')
+        print(f'Starting bulk update in ES for chunk: {chunk} for community: {chunk_instances[0].community.id}')
 
         # bulk update chunk instances
         ConversationDocument().update(chunk_instances)
 
-        print(f'[Updating document in es completed] left instances: {total_instances - end_index}')
+        if end_index > total_instances:
+            end_index = total_instances
+
+        print(f'Bulk update in ES Done: {end_index} done out of {total_instances}')
 
 
 def reindex_missing_conversations_of_a_community(community_id):
+
+    start_time = time.time()
 
     print(f'Reindexing missing conversations of community: {community_id}')
 
@@ -79,7 +84,9 @@ def reindex_missing_conversations_of_a_community(community_id):
     # update missing conversations in Elastic Search
     bulk_update_in_elastic_search_in_chunks(missing_card_answers_instances, chunk_size=1000)
 
-    print(f'Reindexing missing conversations of community: {community_id} completed')
+    end_time = time.time()
+
+    print(f'({end_time - start_time} ms) Reindexing missing conversations of community: {community_id} completed')
 
 # reindex all missing conversations of all SDK communities
 def reindex_all_missing_conversations_of_all_sdk_communities():
