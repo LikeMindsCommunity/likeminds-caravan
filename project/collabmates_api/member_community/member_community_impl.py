@@ -3571,7 +3571,7 @@ class MemberCommunityHelper:
         member_instance = ModelUtilities.get_model_filter(Members, {'member_id': user_instance,
                                                                     'community_id': community_instance}).first()
 
-        if not member_instance.state == member_states.ADMIN:
+        if not (member_instance and member_instance.state == member_states.ADMIN):
             return management_tools
 
         user_id = user_instance.id
