@@ -4945,7 +4945,7 @@ class CommunityHelper:
         }
 
         # If question_state is present in question_data, then replace it with state
-        if question_data.get('question_state'):
+        if question_data.get('question_state') is not None:
             question_data['state'] = question_data.get('question_state')
             del question_data['question_state']
 
