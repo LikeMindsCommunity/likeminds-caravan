@@ -4944,8 +4944,10 @@ class CommunityHelper:
             'community_id': user_answer.get('community')
         }
 
-        question_data['state'] = question_data['question_state']
-        del question_data['question_state']
+        # If question_state is present in question_data, then replace it with state
+        if question_data.get('question_state'):
+            question_data['state'] = question_data.get('question_state')
+            del question_data['question_state']
 
         if all([question_data.get('question_title'),
                 (question_data.get('question_title') in IMAGE_URLS_FOR_QUESTION_TITLES),
