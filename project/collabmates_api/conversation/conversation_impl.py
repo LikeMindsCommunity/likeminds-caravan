@@ -1697,6 +1697,8 @@ class ConversationHelper:
             args = [receiver_id, sender_id, chatroom_id, chatroom_not_opened_type, last_seen_conversation]
             countdown = ENGAGEMENT_COMMUNICATION_DURATION_IN_HOURS * MINUTES_60
 
+            countdown = 60 # only for beta testing, receive email after 2 seconds
+
             # runs after 6 hours, expires after 6 hours and 30 minutes
             send_communication_when_chatroom_not_opened.apply_async(args=args, kwargs={}, countdown=countdown,
                                                                     expires=countdown + MINUTES_30)
