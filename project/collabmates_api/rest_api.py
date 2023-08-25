@@ -1391,7 +1391,7 @@ class CommunityQuestionsSerializerV2(serializers.ModelSerializer):
         model = communityQuestions
         fields = ('id', 'community', 'question_title', 'question_state', 'value', 'optional', 'help_text',
                   'is_hidden', 'is_compulsory', 'rank', 'can_add_options', 'field', 'remove_state',
-                  'is_answer_editable', 'tag')
+                  'is_answer_editable', 'tag', 'image_url')
 
 
 class CommunityAnswersSerializer(serializers.ModelSerializer):
@@ -1647,3 +1647,9 @@ class ReportTagsSerializer(serializers.ModelSerializer):
                 del data['tag_name']
 
         return data
+    
+class CommunityConfigurationsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CommunityConfigurations
+        fields = ('type', 'description', 'value')

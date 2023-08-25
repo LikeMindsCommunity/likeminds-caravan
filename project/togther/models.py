@@ -3,6 +3,7 @@ import uuid
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.postgres.fields import JSONField
 import time
 from django.db.models import Q
 from utility.states import member_states, member_rights
@@ -1687,6 +1688,7 @@ class communityQuestions(models.Model):
     can_add_options = models.BooleanField(default=False)
     is_answer_editable = models.BooleanField(default=True)
     tag = models.TextField(null=True)
+    image_url = models.TextField(null=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
@@ -1706,7 +1708,7 @@ class communityAnswers(models.Model):
 
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     question_title = models.TextField(null=True)
-    question_answer = models.TextField()
+    question_answer = models.TextField(blank=True)
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     question = models.ForeignKey(communityQuestions, on_delete=models.CASCADE)
 
@@ -3680,3 +3682,24 @@ class ActiveUser(models.Model):
         self.updated_at = current_time
 
         super(ActiveUser, self).save(*args, **kwargs)
+
+class CommunityConfigurations(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    type = models.CharField(max_length=255)
+    description = models.TextField()
+    value = JSONField()
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    class Meta:
+        unique_together = (('community', 'type'),)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(CommunityConfigurations, self).save(*args, **kwargs)
