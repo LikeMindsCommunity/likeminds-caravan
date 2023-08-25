@@ -3149,7 +3149,7 @@ class CommunityHelper:
 
         for question in question_list:
 
-            if question.get(answer_key) is None:
+            if not question.get(answer_key):
                 continue
 
             question_id = NumberUtilities.get_integer_from_string(question.get(question_id_key))
