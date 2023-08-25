@@ -1513,11 +1513,30 @@ class CommunityImpl(CommunityManager):
         mail_data, should_send_email = CommunityImpl._fetch_join_email_data(community_id, community_instance)
 
         if should_send_email:
+            from collabmates_api.sdk.models import (CommunityEmailConfiguration)
+
+            email_sender_data = CommunityEmailConfiguration.get_email_sender_data_for_community(community_id)
+
+            sender_name = email_sender_data.get('name') if email_sender_data.get('name') \
+                else SENDER_NAME_FOR_EMAIL_COMMS
+
+            sender_email = email_sender_data.get('from_email') if email_sender_data.get('from_email') \
+                else SENDER_EMAIL_FOR_EMAIL_COMMS
+
+            reply_to_email = mail_data.get('reply_email') if email_sender_data.get('reply_email') \
+                else SENDER_EMAIL_FOR_EMAIL_COMMS
+
             mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.WELCOME,
                                                                                             EmailSubCategories.WELCOME)
 
-            MailWrapper.send_email.delay(mail_data["subject"], mail_data["body"], mail_to, categories=mail_categories,
-                                         reply_to=mail_data["reply_to"])
+            MailWrapper.send_email_with_custom_from_email(
+                mail_data["subject"],
+                mail_data["body"],
+                to_mails_list=mail_to,
+                from_email=sender_email,
+                reply_to=reply_to_email,
+                categories=mail_categories,
+                from_name=sender_name)
 
     @staticmethod
     def _fetch_join_email_data(community_id, community_instance) -> {}:
