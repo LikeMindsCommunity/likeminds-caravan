@@ -290,11 +290,21 @@ def get_pending_members_of_community(community_id, requested_member_id):
 
     member_filter = Members.objects.filter(community_id=community_id, state=member_states.PENDING_MEMBER)
 
+    user_ids = []
+
     for pending_member in member_filter:
         user_profile = MembersSerializer(pending_member, community_id, current_user_id=requested_member_id,
                                          send_profile=pending_member.state == member_states.PENDING_MEMBER)
+        
+        user_ids.append(user_profile['id'])
 
         pending_requests.append(user_profile)
+
+    # Add sdk_client_info to all pending member objects
+    sdk_meta_dict = get_users_sdk_meta_dict(user_ids, only_sdk_client_info=True)
+
+    for pending_request in pending_requests:
+        pending_request['sdk_client_info'] = sdk_meta_dict.get(pending_request['id'])
 
     return pending_requests
 
