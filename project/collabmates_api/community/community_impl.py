@@ -2970,11 +2970,11 @@ class CommunityHelper:
                 error_logger.error(e)
                 return
 
-            if value_list and value_list[0]['profile_platform'] == INSTAGRAM:
+            if value_list and value_list[0]['profile_platform'] == INSTAGRAM and answer_instance.question_answer:
                 answer_instance.question_answer = INSTAGRAM_URL + answer_instance.question_answer
                 answer_instance.save()
 
-            elif value_list and value_list[0]['profile_platform'] == TWITTER:
+            elif value_list and value_list[0]['profile_platform'] == TWITTER and answer_instance.question_answer:
                 answer_instance.question_answer = TWITTER_URL + answer_instance.question_answer
                 answer_instance.save()
 
