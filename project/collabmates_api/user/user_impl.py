@@ -435,7 +435,7 @@ class UserImpl(UserManager):
         login_type = user_context.get('login_type')
         verified = False
 
-        if login_type not in [login_types.CUSTOM, login_types.SDK]:
+        if login_type not in [login_types.CUSTOM]:
             verified = True
 
         user_exists = ModelUtilities.is_model_filter_exists(userEmails, {'verified': verified,
