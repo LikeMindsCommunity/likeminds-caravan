@@ -138,7 +138,7 @@ class VersionUtilities:
 
     participants_meta_pagination: dict = {
         SdkSource.CHAT: {
-            PlatformCode.ANDROID: 214,
+            PlatformCode.ANDROID: unreleased_version_code,
             PlatformCode.FLUTTER: unreleased_version_code, 
             PlatformCode.IOS: 373,
             PlatformCode.REACT: unreleased_version_code,
