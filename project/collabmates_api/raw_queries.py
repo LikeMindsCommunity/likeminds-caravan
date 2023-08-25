@@ -1899,7 +1899,8 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
 
         return []
 
-def get_members_meta_list(community_id: int, member_ids:list = None, page=1, page_size = 50, search_string:str = '') :
+
+def get_members_meta_list(community_id: int, member_ids: list = None, page=1, page_size=50, search_string: str = ''):
     """returns meta data of members based on community_id and or member_ids"""
 
     try:
@@ -3435,11 +3436,10 @@ def fetch_user_communities_sorted_by_order_time(user_id, community_id=None):
         conn = get_connection()
         curr = conn.cursor()
 
+        community_id_query = ""
+
         if community_id:
             community_id_query = "AND community_id_id = {}".format(community_id)
-
-        else:
-            community_id_query = "AND community_id_id NOT IN (SELECT community_id FROM collabmates_api_sdkclient)"
 
         sql = """
                 SELECT   id

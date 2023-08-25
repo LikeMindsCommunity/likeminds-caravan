@@ -1123,6 +1123,12 @@ class ChatroomImpl(ChatroomManager):
         chatroom_filter_type = validated_req.get('chatroom_filter_type')
         chatroom_excluded_type = validated_req.get('chatroom_excluded_type')
 
+        if not chatroom_excluded_type:
+            chatroom_excluded_type = [card_types.CARD_INTRO]
+
+        else:
+            chatroom_excluded_type.append(card_types.CARD_INTRO)
+
         card_ids = get_all_chatrooms_of_community_old(community_instance.id, chatroom_filter_type,
                                                       chatroom_excluded_type)
         chatroom_list = ModelUtilities.get_model_filter(collabcardState,
@@ -1872,9 +1878,14 @@ class ChatroomImpl(ChatroomManager):
                                                                       VersionUtilities.participants_meta_pagination,
                                                                       self.get_sdk_source())
 
+            community_hood_version_check = VersionUtilities.check_version(self.get_request_platform(),
+                                                                          self.get_version_code(),
+                                                                          VersionUtilities.community_hood,
+                                                                          self.get_sdk_source())
+
             order_by_name = False
 
-            if pagination_version_check:
+            if pagination_version_check and (not community_hood_version_check):
                 order_by_name = True
 
             participant_list = self.compute_tagging_list_for_secret_participants(
@@ -1889,7 +1900,7 @@ class ChatroomImpl(ChatroomManager):
                 'can_edit_participant': can_edit_participant
             }
 
-            if pagination_version_check:
+            if pagination_version_check and (not community_hood_version_check):
                 participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
                 response_dict['total_participants_count'] = participants_count
 
@@ -2736,7 +2747,8 @@ class ChatroomImpl(ChatroomManager):
         card_instance = validated_req.get('card_instance')
         community_instance = card_instance.community
 
-        if create_chatroom_revamp_version_check(self.get_request_platform(), self.get_version_code()):
+        if VersionUtilities.check_version(self.get_request_platform(), self.get_version_code(),
+                                          VersionUtilities.new_chatroom_settings, self.get_sdk_source()):
             chatroom_settings = settings_for_chatroom_with_revamp.copy()
             admin_has_delete_right = check_admin_delete_right(user=user_instance,
                                                               community=community_instance)
@@ -3071,9 +3083,14 @@ class ChatroomImpl(ChatroomManager):
                                                                   VersionUtilities.participants_meta_pagination,
                                                                   self.get_sdk_source())
 
+        community_hood_version_check = VersionUtilities.check_version(self.get_request_platform(),
+                                                                      self.get_version_code(),
+                                                                      VersionUtilities.community_hood,
+                                                                      self.get_sdk_source())
+
         order_by_name = False
 
-        if pagination_version_check:
+        if pagination_version_check and (not community_hood_version_check):
             order_by_name = True
 
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list, community_instance,
@@ -3089,7 +3106,7 @@ class ChatroomImpl(ChatroomManager):
             'can_edit_participant': can_edit_participant
         }
 
-        if pagination_version_check:
+        if pagination_version_check and (not community_hood_version_check):
             participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
             response_dict['total_participants_count'] = participants_count
 

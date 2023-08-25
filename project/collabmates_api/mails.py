@@ -18,6 +18,7 @@ from utility.utils import (android_app_download_link, ios_app_download_link, get
 from utility.encryption import encrypt, decrypt
 
 from .static_files import GOOGLE_PLAYSTORE, APPLE_APPSTORE, APP_LOGO
+from collabmates_api.static_text import (SENDER_NAME_FOR_EMAIL_COMMS, SENDER_EMAIL_FOR_EMAIL_COMMS)
 from utility.constants import (COMMUNITY_HOOD_ID, COMMUNITY_HOOD_PENDING_MEMBER_MAIL_SUBJECT,
                                COMMUNITY_HOOD_PENDING_MEMBER_MAIL_BODY)
 from collabmates_api.notifications.tasks_impl import TasksHelper
@@ -134,11 +135,29 @@ def send_community_hood_waitlist_email_to_pending_member(user_id, community_id):
     if not user_instance:
         return
 
+    from collabmates_api.sdk.models import (CommunityEmailConfiguration)
+
+    email_sender_data = CommunityEmailConfiguration.get_email_sender_data_for_community(community_id)
+
+    sender_name = email_sender_data.get('name') if email_sender_data.get('name') \
+        else SENDER_NAME_FOR_EMAIL_COMMS
+
+    sender_email = email_sender_data.get('from_email') if email_sender_data.get('from_email') \
+        else SENDER_EMAIL_FOR_EMAIL_COMMS
+
+    reply_to_email = email_sender_data.get('reply_email') if email_sender_data.get('reply_email') \
+        else SENDER_EMAIL_FOR_EMAIL_COMMS
+
     mail_to_list = TasksHelper.get_emails_list_for_user_instances([user_instance])
 
     mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.REGISTRATION,
                                                                                     EmailSubCategories.WAITLIST)
 
-    MailWrapper.send_email(COMMUNITY_HOOD_PENDING_MEMBER_MAIL_SUBJECT,
-                           COMMUNITY_HOOD_PENDING_MEMBER_MAIL_BODY.format(user_instance.userinfo.name),
-                           mail_to_list, categories=mail_categories)
+    MailWrapper.send_email_with_custom_from_email(
+        COMMUNITY_HOOD_PENDING_MEMBER_MAIL_SUBJECT,
+        COMMUNITY_HOOD_PENDING_MEMBER_MAIL_BODY.format(user_instance.userinfo.name),
+        to_mails_list=mail_to_list,
+        from_email=sender_email,
+        reply_to=reply_to_email,
+        categories=mail_categories,
+        from_name=sender_name)

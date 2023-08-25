@@ -21,7 +21,7 @@ from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices
                             conversationEngage, CommunitySettings, SDKClientUsersInfo, mobileBackup)
 from collabmates_api.user.user_manager import UserManager
 from collabmates_api.notifications.models import (WhatsappSubscription)
-from collabmates_api.sdk.models import (SdkClient)
+from collabmates_api.sdk.models import (SdkClient, OnboardedVerifiedIUsers)
 from collabmates_api.notifications.constants import (
     WHATSAPP_TEMPLATE_NAME_FOR_WHATSAPP_UNSUBSCRIBE_SUCCESS,
     WHATSAPP_TEMPLATE_NAME_FOR_WHATSAPP_RESUBSCRIBE_SUCCESS
@@ -435,7 +435,7 @@ class UserImpl(UserManager):
         login_type = user_context.get('login_type')
         verified = False
 
-        if login_type not in [login_types.CUSTOM, login_types.SDK]:
+        if login_type not in [login_types.CUSTOM]:
             verified = True
 
         user_exists = ModelUtilities.is_model_filter_exists(userEmails, {'verified': verified,
@@ -1231,6 +1231,10 @@ class UserImpl(UserManager):
                     return ResponseUtilities.get_impl_error_context(verify_user_mobile_otp.get('error_message'),
                                                                     status_code=status_codes.HTTP_400_BAD_REQUEST)
 
+                UserHelper.save_onboarded_verified_user_data.delay(self.get_api_key(),
+                                                                   mobile_no=mobile_no,
+                                                                   country_code=country_code)
+
                 return verify_user_mobile_otp
 
         elif otp_type == OTPTypes.EMAIL:
@@ -1266,6 +1270,9 @@ class UserImpl(UserManager):
                     return ResponseUtilities.get_impl_error_context(verify_user_email_otp.get('error_message'),
                                                                     status_code=status_codes.HTTP_400_BAD_REQUEST)
 
+                UserHelper.save_onboarded_verified_user_data.delay(self.get_api_key(),
+                                                                   email=email_id)
+
                 return verify_user_email_otp
 
         else:
@@ -1290,6 +1297,9 @@ class UserImpl(UserManager):
 
             user_context = UserHelper.create_user_context_based_on_google_response(google_json)
 
+            UserHelper.save_onboarded_verified_user_data.delay(self.get_api_key(),
+                                                               email=google_json.get('email'))
+
             return {
                 'success': True,
                 'user': user_context
@@ -1298,6 +1308,34 @@ class UserImpl(UserManager):
         else:
             return ResponseUtilities.get_impl_error_context("Invalid login type!",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    def user_meta(self) -> dict:
+        validated_req = UserHelper.validate_user_meta_request(self.get_user_id(), self.get_api_key())
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = validated_req.get('user_instance')
+        community_instance = validated_req.get('community_instance')
+
+        sdk_user_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                            {'community_id': community_instance.id,
+                                                             'user_id': user_instance.id}).first()
+
+        if not sdk_user_instance:
+            return ResponseUtilities.get_impl_error_context('User is not member of community!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        else:
+            return {
+                'success': True,
+                'user_meta': {
+                    'id': sdk_user_instance.user_id,
+                    'uuid': sdk_user_instance.user.userinfo.user_unique_id,
+                    'client_uuid': sdk_user_instance.user_unique_id
+                }
+            }
 
 
 class UserHelper:
@@ -2365,4 +2403,56 @@ class UserHelper:
             'existing_user': existing_user,
             'user': user_object,
             'app_access': app_access
+        }
+
+    @staticmethod
+    @shared_task
+    def save_onboarded_verified_user_data(api_key: str, email: str = None, mobile_no: int = None,
+                                          country_code: int = None):
+        if not (email or (mobile_no and country_code)):
+            return
+
+        filter_dict = {
+            'sdk_client__api_key': api_key
+        }
+
+        if email:
+            filter_dict['email'] = email
+
+        if mobile_no and country_code:
+            filter_dict = {**filter_dict, **{'mobile_no': mobile_no, 'country_code': country_code}}
+
+        onboarded_user_instance = ModelUtilities.get_model_filter(OnboardedVerifiedIUsers, filter_dict).first()
+
+        if onboarded_user_instance:
+            return
+
+        del filter_dict['sdk_client__api_key']
+
+        sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key}).first()
+
+        if not sdk_client_instance:
+            return
+
+        filter_dict['sdk_client'] = sdk_client_instance
+
+        OnboardedVerifiedIUsers(**filter_dict).save()
+
+    @staticmethod
+    def validate_user_meta_request(user_id, api_key):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        return {
+            'user_instance': validated_dict.get('user_id'),
+            'community_instance': validated_dict.get('community_id')
         }

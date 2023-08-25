@@ -3,6 +3,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from django.conf import settings
 from togther.models import (ModelUtilities)
 from collabmates_api.sdk.models import (SdkClient)
+from utility.constants import (COMMUNITY_HOOD_ID)
 
 import analytics
 
@@ -19,9 +20,9 @@ class SegmentImpl(SegmentManager):
 
         community_id = event_data.get('community_id')
 
-        community_instance = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
+        community_instance = ModelUtilities.get_model_filter(SdkClient, {'community': community_id}).first()
 
-        if community_instance:
+        if community_instance and community_instance.community_id != COMMUNITY_HOOD_ID:
             return
 
         try:

@@ -290,11 +290,21 @@ def get_pending_members_of_community(community_id, requested_member_id):
 
     member_filter = Members.objects.filter(community_id=community_id, state=member_states.PENDING_MEMBER)
 
+    user_ids = []
+
     for pending_member in member_filter:
         user_profile = MembersSerializer(pending_member, community_id, current_user_id=requested_member_id,
                                          send_profile=pending_member.state == member_states.PENDING_MEMBER)
+        
+        user_ids.append(user_profile['id'])
 
         pending_requests.append(user_profile)
+
+    # Add sdk_client_info to all pending member objects
+    sdk_meta_dict = get_users_sdk_meta_dict(user_ids, only_sdk_client_info=True)
+
+    for pending_request in pending_requests:
+        pending_request['sdk_client_info'] = sdk_meta_dict.get(pending_request['id'])
 
     return pending_requests
 
@@ -859,17 +869,11 @@ def get_filtered_users(filter_list, member_list):
     distinct_members = {}
 
     for key, value in filter_map.items():
+        question_set = set(questionFilters.objects
+                           .filter(filter__in=value, question=key)
+                           .values_list('member_id', flat=True))
 
-        question_id = key
-        question_set = set()
-
-        for option in value:
-            question_set = set(questionFilters.objects
-                               .filter(filter=option, question=question_id)
-                               .only('member_id')
-                               .values_list('member_id', flat=True))
-
-        distinct_members[question_id] = question_set
+        distinct_members[key] = question_set
 
     for key, value in distinct_members.items():
         member_set = intersect_sets(member_set, value)

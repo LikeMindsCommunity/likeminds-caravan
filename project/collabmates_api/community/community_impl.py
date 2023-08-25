@@ -38,7 +38,9 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     Report_Tags, Report, CommunityConfigurations
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
-    PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST
+    PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST, IMAGE_URLS_FOR_QUESTION_TITLES, SENDER_NAME_FOR_EMAIL_COMMS, \
+    SENDER_EMAIL_FOR_EMAIL_COMMS
+from collabmates_api.static_files import (ICONS)
 from collabmates_api.branch import create_community_feed_url, create_community_otl_url, create_payment_page_url, \
     create_community_feed_url_for_cm_onboarding
 from collabmates_api.user_moderation_rights import check_admin_edit_community_right, give_all_manager_rights, \
@@ -57,7 +59,7 @@ from external_services.caching.cache_impl import CacheImpl
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
-from collabmates_api.sdk.models import (SdkClient)
+from collabmates_api.sdk.models import (SdkClient, CommunityEmailConfiguration)
 
 from collabmates_api.mails import send_created_community_email_to_team, send_report_mail_to_team
 
@@ -992,6 +994,15 @@ class CommunityImpl(CommunityManager):
                                                                          sdk_client_info_flag=True)
         members = ChatroomImpl.remove_guest_user_from_participants_data_list(members)
 
+        # Add question answers data in users info
+        members_question_answer_data = CommunityHelper.get_members_filled_community_answers_data(community_instance,
+                                                                                                 members)
+
+        for member in members:
+
+            if member.get('id') in members_question_answer_data:
+                member['question_answers'] = members_question_answer_data.get(member.get('id'))
+
         return {'success': True, 'members': members}
 
     # Fetch members meta v2, with pagination & search and returns is_deleted key in member object
@@ -1013,6 +1024,15 @@ class CommunityImpl(CommunityManager):
         # Get members meta list
         members_list = CommunityHelper.compute_members_meta_list(community_instance, member_ids, page, 
                                                                  page_size, search_name, sdk_client_info_flag=True)
+
+        # Add question answers data in users info
+        members_question_answer_data = CommunityHelper.get_members_filled_community_answers_data(community_instance,
+                                                                                                 members_list)
+
+        for member in members_list:
+
+            if member.get('id') in members_question_answer_data:
+                member['question_answers'] = members_question_answer_data.get(member.get('id'))
 
         return {'success': True, 'members': members_list}
 
@@ -1493,11 +1513,30 @@ class CommunityImpl(CommunityManager):
         mail_data, should_send_email = CommunityImpl._fetch_join_email_data(community_id, community_instance)
 
         if should_send_email:
+            from collabmates_api.sdk.models import (CommunityEmailConfiguration)
+
+            email_sender_data = CommunityEmailConfiguration.get_email_sender_data_for_community(community_id)
+
+            sender_name = email_sender_data.get('name') if email_sender_data.get('name') \
+                else SENDER_NAME_FOR_EMAIL_COMMS
+
+            sender_email = email_sender_data.get('from_email') if email_sender_data.get('from_email') \
+                else SENDER_EMAIL_FOR_EMAIL_COMMS
+
+            reply_to_email = mail_data.get('reply_email') if email_sender_data.get('reply_email') \
+                else SENDER_EMAIL_FOR_EMAIL_COMMS
+
             mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.WELCOME,
                                                                                             EmailSubCategories.WELCOME)
 
-            MailWrapper.send_email.delay(mail_data["subject"], mail_data["body"], mail_to, categories=mail_categories,
-                                         reply_to=mail_data["reply_to"])
+            MailWrapper.send_email_with_custom_from_email.delay(
+                mail_data["subject"],
+                mail_data["body"],
+                to_mails_list=mail_to,
+                from_email=sender_email,
+                reply_to=reply_to_email,
+                categories=mail_categories,
+                from_name=sender_name)
 
     @staticmethod
     def _fetch_join_email_data(community_id, community_instance) -> {}:
@@ -1680,27 +1719,21 @@ class CommunityImpl(CommunityManager):
                 'get_started_list': get_started_list}
 
     def send_invite(self, req_body) -> {}:
+        validated_req = CommunityHelper.validate_send_invite_request(self.get_member_id(),
+                                                                     req_body,
+                                                                     self.get_api_key())
 
-        validated_req_body = CommunityHelper.validate_send_invite(req_body)
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if not validated_req_body.get('success'):
-            return validated_req_body
-
-        validated_req_body = validated_req_body.get('req_body')
-
-        validated_logic = CommunityHelper.validate_send_invite_logic(self.get_member_id(), validated_req_body)
-
-        if not validated_logic.get('success'):
-            return validated_logic
-
-        user_instance = validated_logic.get('user_instance')
-
-        community_instance = validated_logic.get('community_instance')
+        user_instance = validated_req.get('user_instance')
+        community_instance = validated_req.get('community_instance')
 
         self.set_community_id(community_instance.id)
 
-        if validated_req_body.get('type') == send_invite_types.EMAIL_INVITE:
-            email_ids_list = CommunityHelper.get_list_from_comma_string(validated_req_body.get('email_id'))
+        if req_body.get('type') == send_invite_types.EMAIL_INVITE:
+            email_ids_list = CommunityHelper.get_list_from_comma_string(req_body.get('email_id'))
 
             valid_email_ids_list = [email_id for email_id in email_ids_list if CommunityHelper.is_valid_email(email_id)]
 
@@ -1712,28 +1745,29 @@ class CommunityImpl(CommunityManager):
                 else:
                     error_text = "Invalid email ID's!"
 
-                return {'success': False, 'error_message': error_text}
+                return ResponseUtilities.get_impl_error_context(error_text,
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-            mail_text = validated_req_body.get('text')
+            mail_text = req_body.get('text')
 
             CommunityHelper.send_invite_email_to_given_emails_list(user_instance, community_instance,
-                                                                   valid_email_ids_list, validated_req_body,
+                                                                   valid_email_ids_list, req_body,
                                                                    self.get_request_platform(),
                                                                    self.get_version_code(), mail_text)
 
             update_community_get_started(community_instance, get_started_types.INVITE_MEMBERS_TYPE, is_enabled=True)
             return {'success': True}
 
-        elif validated_req_body.get('type') == send_invite_types.WHATSAPP_INVITE:
-            mobile_nos_list = CommunityHelper.get_list_from_comma_string(validated_req_body.get('mobile_no'))
+        elif req_body.get('type') == send_invite_types.WHATSAPP_INVITE:
+            mobile_nos_list = CommunityHelper.get_list_from_comma_string(req_body.get('mobile_no'))
             mobile_nos_list = [NumberUtilities.get_integer_from_string(i) if str(i).isdigit() else i for i in
                                mobile_nos_list]
 
-            template_name = WHATSAPP_INVITE_TEMPLATE_WITH_CODE_NAME if validated_req_body.get('link_type') == FREE_PLAN \
+            template_name = WHATSAPP_INVITE_TEMPLATE_WITH_CODE_NAME if req_body.get('link_type') == FREE_PLAN \
                 else WHATSAPP_INVITE_TEMPLATE_WITHOUT_CODE_NAME
 
             receivers_list = CommunityHelper.send_invite_whatsapp_context_dict(user_instance, community_instance,
-                                                                               mobile_nos_list, validated_req_body,
+                                                                               mobile_nos_list, req_body,
                                                                                self.get_request_platform(),
                                                                                self.get_version_code())
 
@@ -1749,7 +1783,8 @@ class CommunityImpl(CommunityManager):
             return {'success': True}
 
         else:
-            return {'success': False, 'error_message': 'Invalid type!'}
+            return ResponseUtilities.get_impl_error_context('Invalid type!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def edit_questions(self, req_body) -> {}:
         validated_req_body = CommunityHelper.validate_edit_question_request(self.get_member_id(),
@@ -1841,7 +1876,8 @@ class CommunityImpl(CommunityManager):
                                                                                                     community_instance,
                                                                                                     aj, shared_by)
 
-        CommunityHelper.send_drop_off_notification_in_join(user_instance, community_instance, aj)
+        if user_instance and community_instance:
+            CommunityHelper.send_drop_off_notification_in_join(user_instance, community_instance, aj)
 
         community_meta_data['questions'] = CommunityHelper.get_community_questions_data(user_instance,
                                                                                         community_instance,
@@ -2719,7 +2755,9 @@ class CommunityHelper:
         if auto_join_code is None and shared_by_user is None:
             history_type = moderation_history_types.APPLIED_PUBLIC_LINK_WEBSITE
 
-        if api_type == api_types.SDK:
+        is_sdk = api_type == api_types.SDK
+
+        if is_sdk:
             history_type = moderation_history_types.SDK_JOIN
 
         is_rejoined = ModelUtilities.is_model_filter_exists(removedMembers, {'member': user_instance,
@@ -2732,6 +2770,10 @@ class CommunityHelper:
 
         if is_rejoined:
             history_type = moderation_history_types.REJOINED_COMMUNITY_PRIVATE_LINK
+
+            if is_sdk:
+                history_type = moderation_history_types.SDK_REJOINED_MEMBER
+
             CommunityHelper.update_followed_chatrooms_for_rejoined_member(user_instance, community_instance)
 
         moderationHistory.create_instance({'user_instance': user_instance, 'community_instance': community_instance,
@@ -2968,11 +3010,15 @@ class CommunityHelper:
             question_instance = question_filter[0]
             mobile_filter = get_user_phone(user_instance.id)
 
+            answer_instance = ModelUtilities.get_model_filter(communityAnswers, {'member': user_instance,
+                                                                                 'question': question_instance}).first()
+
             if mobile_filter:
                 mobile_no = "+{} {}".format(str(mobile_filter.get('country_code')), str(mobile_filter.get('mobile_no')))
                 CommunityHelper.create_or_update_answer_instance(user_instance, community_instance,
                                                                  question_instance, mobile_no,
-                                                                 question_title=question_instance.question_title)
+                                                                 question_title=question_instance.question_title,
+                                                                 answer_instance=answer_instance)
 
         question_filter = ModelUtilities.get_model_filter(communityQuestions, {
             'community': community_instance,
@@ -2982,9 +3028,14 @@ class CommunityHelper:
 
         if question_filter:
             question_instance = question_filter[0]
+
+            answer_instance = ModelUtilities.get_model_filter(communityAnswers, {'member': user_instance,
+                                                                                 'question': question_instance}).first()
+
             CommunityHelper.create_or_update_answer_instance(user_instance, community_instance,
                                                              question_instance, user_instance.userinfo.name,
-                                                             question_title=question_instance.question_title)
+                                                             question_title=question_instance.question_title,
+                                                             answer_instance=answer_instance)
 
     @staticmethod
     def send_questions_data_on_airtable(user_instance, community_instance, question_data):
@@ -3266,32 +3317,6 @@ class CommunityHelper:
         return req_body
 
     @staticmethod
-    def validate_send_invite(req_body):
-
-        if 'type' not in req_body:
-            return {'success': False, 'error_message': 'Send type'}
-
-        if 'community_id' not in req_body:
-            return {'success': False, 'error_message': 'Send community_id'}
-
-        if req_body.get('type') not in [send_invite_types.EMAIL_INVITE, send_invite_types.WHATSAPP_INVITE]:
-            return {'success': False, 'error_message': 'invalid type'}
-
-        if (req_body.get('type') == send_invite_types.EMAIL_INVITE) and ('email_id' not in req_body):
-            return {'success': False, 'error_message': 'Send email_id'}
-
-        if (req_body.get('type') == send_invite_types.WHATSAPP_INVITE) and ('mobile_no' not in req_body):
-            return {'success': False, 'error_message': 'send mobile_no'}
-
-        if 'text' not in req_body:
-            return {'success': False, 'error_message': 'Send text'}
-
-        if 'link_type' not in req_body:
-            return {'success': False, 'error_message': 'Send link_type'}
-
-        return {'success': True, 'req_body': req_body}
-
-    @staticmethod
     def get_list_from_comma_string(comma_seperated_string):
 
         comma_seperated_string = comma_seperated_string.split(',')
@@ -3550,31 +3575,60 @@ class CommunityHelper:
         return {'success': True, 'community_instance': community_instance, 'user_instance': user_instance}
 
     @staticmethod
-    def validate_send_invite_logic(member_id, validated_req_body):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, member_id)
+    def validate_send_invite_request(member_id, req_body, api_key: str = None):
+        if 'type' not in req_body:
+            return ResponseUtilities.get_inner_error_context('Send type!')
 
-        if not user_instance:
-            return {'success': False, 'error_message': 'Invalid member_id'}
+        if not (api_key or 'community_id' in req_body):
+            return ResponseUtilities.get_inner_error_context('Send API key/community ID!')
 
-        community_instance = ModelUtilities.get_model_instance_or_none(Community,
-                                                                       validated_req_body.get('community_id'))
+        if req_body.get('type') not in [send_invite_types.EMAIL_INVITE, send_invite_types.WHATSAPP_INVITE]:
+            return ResponseUtilities.get_inner_error_context('Invalid type!')
 
-        if not community_instance:
-            return {'success': False, 'error_message': 'Invalid community_id'}
+        if (req_body.get('type') == send_invite_types.EMAIL_INVITE) and ('email_id' not in req_body):
+            return ResponseUtilities.get_inner_error_context('Send email ID!')
+
+        if (req_body.get('type') == send_invite_types.WHATSAPP_INVITE) and ('mobile_no' not in req_body):
+            return ResponseUtilities.get_inner_error_context('Send mobile no!')
+
+        if 'text' not in req_body:
+            return ResponseUtilities.get_inner_error_context('Send text!')
+
+        if 'link_type' not in req_body:
+            return ResponseUtilities.get_inner_error_context('Send link type!')
+
+        validation_params = {
+            'community_id': {
+                'community_id': req_body.get('community_id'),
+                'api_key': api_key
+            },
+            'user_id': member_id,
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
 
         members_filter = ModelUtilities.get_model_filter(Members,
                                                          {'member_id': user_instance,
                                                           'community_id': community_instance})
 
         if not members_filter:
-            return {'success': False, 'error_message': 'You are not part of the community.'}
+            return ResponseUtilities.get_inner_error_context('You are not part of the community.')
 
         is_admin = members_filter[0].state == member_states.ADMIN
 
         if not is_admin:
-            return {'success': False, 'error_message': 'You are not the CM of this community!'}
+            return ResponseUtilities.get_inner_error_context('You are not the CM of this community!')
 
-        return {'success': True, 'community_instance': community_instance, 'user_instance': user_instance}
+        return {
+            'community_instance': community_instance,
+            'user_instance': user_instance
+        }
 
     @staticmethod
     def send_invite_email_to_given_emails_list(user_instance, community_instance, valid_email_ids_list,
@@ -3587,6 +3641,17 @@ class CommunityHelper:
         community_share_link = CommunityHelper.generate_community_share_link(user_instance, community_instance,
                                                                              platform_code, version_code,
                                                                              validated_req_body.get('link_type'))
+
+        email_sender_data = CommunityEmailConfiguration.get_email_sender_data_for_community(community_instance.id)
+
+        sender_name = email_sender_data.get('name') if email_sender_data.get('name') \
+            else SENDER_NAME_FOR_EMAIL_COMMS
+
+        sender_email = email_sender_data.get('from_email') if email_sender_data.get('from_email') \
+            else SENDER_EMAIL_FOR_EMAIL_COMMS
+
+        reply_to_email = email_sender_data.get('reply_email') if email_sender_data.get('reply_email') \
+            else INVITE_MEMBER_REPLY_EMAIL
 
         for valid_email_id in valid_email_ids_list:
 
@@ -3617,11 +3682,10 @@ class CommunityHelper:
             mail_categories = MailHelper.get_email_category_list_using_category_subcategory(
                 EmailCategories.INVITE_MEMBER, EmailSubCategories.WITH_JOIN_CODE)
 
-            send_email_response = MailWrapper.send_email_with_custom_from_email.delay(subject=mail_subject,
-                                                                                      template=mail_template,
-                                                                                      to_mails_list=[valid_email_id],
-                                                                                      categories=mail_categories,
-                                                                                      reply_to=INVITE_MEMBER_REPLY_EMAIL)
+            MailWrapper.send_email_with_custom_from_email.delay(
+                subject=mail_subject, template=mail_template, to_mails_list=[valid_email_id],
+                from_email=sender_email, categories=mail_categories, reply_to=reply_to_email,
+                from_name=sender_name)
 
     @staticmethod
     def send_invite_whatsapp_context_dict(user_instance, community_instance, mobile_nos_list, validated_req_body,
@@ -4117,8 +4181,7 @@ class CommunityHelper:
             'community_id': {
                 'community_id': community_id,
                 'api_key': api_key
-            },
-            'user_id': user_id,
+            }
         }
 
         validated_dict = ValidationUtilities.is_valid(validation_params)
@@ -4126,9 +4189,18 @@ class CommunityHelper:
         if validated_dict.get('error_message'):
             return validated_dict
 
+        community_instance = validated_dict.get('community_id')
+        user_instance = None
+
+        if user_id:
+            user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_instance.id)
+
+            if not user_instance:
+                return ResponseUtilities.get_inner_error_context('Invalid user ID!')
+
         return {
-            'user_instance': validated_dict.get('user_id'),
-            'community_instance': validated_dict.get('community_id'),
+            'user_instance': user_instance,
+            'community_instance': community_instance,
             'aj': req_body.get('aj', None),
             'shared_by': req_body.get('shared_by', None)
         }
@@ -4249,16 +4321,15 @@ class CommunityHelper:
 
             if serialized_question['state'] == question_states.INTRODUCTION:
                 serialized_question['rank'] = 0
-                answers_filter = ModelUtilities.get_model_filter(communityAnswers,
-                                                                 {'question': serialized_question['id'],
-                                                                  'member': user_instance.id})
-                if answers_filter.exists():
-                    answer_instance = answers_filter[0]
-                    introduction_answer = answer_instance.question_answer
-                    serialized_question['previous_answer'] = introduction_answer
 
-            else:
-                serialized_question['rank'] = 1
+                if user_instance:
+                    answers_filter = ModelUtilities.get_model_filter(communityAnswers,
+                                                                     {'question': serialized_question['id'],
+                                                                      'member': user_instance.id})
+                    if answers_filter.exists():
+                        answer_instance = answers_filter[0]
+                        introduction_answer = answer_instance.question_answer
+                        serialized_question['previous_answer'] = introduction_answer
 
             # Don't append question if remove_state is True
             if not serialized_question['remove_state']:
@@ -4636,7 +4707,7 @@ class CommunityHelper:
     
     @staticmethod
     def compute_members_meta_list(community_instance, member_ids, page, page_size, search_name, 
-                                  sdk_client_info_flag:bool=False):
+                                  sdk_client_info_flag: bool = False):
         
         members_data = []
 
@@ -4883,7 +4954,81 @@ class CommunityHelper:
             'member_instance': member_instance
         }
 
-   
+    @staticmethod
+    def create_answer_data_dict(user_answer, question_data):
+        user_answer_dict = {
+            'answer': user_answer.get('question_answer'),
+            'member_id': user_answer.get('member'),
+            'question_id': user_answer.get('question'),
+            'community_id': user_answer.get('community')
+        }
+
+        # If question_state is present in question_data, then replace it with state
+        if question_data.get('question_state') is not None:
+            question_data['state'] = question_data.get('question_state')
+            del question_data['question_state']
+
+        if all([question_data.get('question_title'),
+                (question_data.get('question_title') in IMAGE_URLS_FOR_QUESTION_TITLES),
+                (question_data.get('question_title') in ICONS)]):
+            user_answer_dict['image_url'] = ICONS[question_data.get('question_title')]
+
+        return {
+            'question_answer': user_answer_dict,
+            'question': question_data
+        }
+
+    @staticmethod
+    def get_members_filled_community_answers_data(community_instance, members_object_list):
+        users_question_answer_dict = {}
+
+        from collabmates_api.member_community.member_community_impl import MemberCommunityHelper
+        member_ids_list = [member_object.get('id') for member_object in members_object_list]
+
+        community_questions_filter = ModelUtilities.get_model_filter(communityQuestions,
+                                                                     {'community': community_instance})
+
+        if not community_questions_filter:
+            return users_question_answer_dict
+
+        else:
+            questions_data = CommunityQuestionsSerializerV2(community_questions_filter, many=True).data
+            questions_data_dict = {question_data.get('id'): dict(question_data) for question_data in questions_data}
+
+            community_answers_filter = ModelUtilities.get_model_filter(communityAnswers,
+                                                                       {'member__in': member_ids_list,
+                                                                        'community': community_instance})
+
+            if community_answers_filter:
+                user_answers = CommunityAnswersSerializer(community_answers_filter, many=True).data
+
+                for user_answer in user_answers:
+                    user_answer = dict(user_answer)
+                    question_data = questions_data_dict.get(user_answer.get('question'))
+
+                    if any([all([question_data.get('question_title') == CREATE_COMMUNITY_QUESTION_NAME_TITLE,
+                                 question_data.get('is_hidden'),
+                                 question_data.get('field'),
+                                 question_data.get('question_state') == question_states.PARAGRAPH]),
+                            question_data.get('question_state') == question_states.NAME]):
+                        continue
+
+                    discard_question = True
+
+                    if not MemberCommunityHelper.is_user_answer_private(question_data):
+                        discard_question = False
+
+                    if not discard_question:
+                        question_answer_data = CommunityHelper.create_answer_data_dict(user_answer, question_data)
+
+                        if users_question_answer_dict.get(user_answer.get('member')):
+                            users_question_answer_dict[user_answer.get('member')].append(question_answer_data)
+
+                        else:
+                            users_question_answer_dict[user_answer.get('member')] = [question_answer_data]
+
+            return users_question_answer_dict
+
     @staticmethod
     def validate_fetch_community_configurations_request(user_id, api_key, configuration_types=None):
 

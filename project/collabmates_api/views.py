@@ -4980,6 +4980,11 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
     """ function to get chatroom actions """
 
     is_sdk = api_type == api_types.SDK
+    is_community_hood_version_code = VersionUtilities.check_version(platform_code,
+                                                                    version_code,
+                                                                    VersionUtilities.community_hood)
+
+    show_sdk_actions_only = is_sdk and not is_community_hood_version_code
 
     if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE]):
 
@@ -5091,16 +5096,15 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
     for action in final:
 
-        if (api_type == api_types.SDK) and any([action['id'] == chatroom_actions.ACTION_RENAME,
-                                                action['id'] == chatroom_actions.ACTION_VIEW_COMMUNITY,
-                                                action['id'] == chatroom_actions.ACTION_ADD_ALL_MEMBERS,
-                                                action['id'] == chatroom_actions.ACTION_SETTINGS,
-                                                action['id'] == chatroom_actions.ACTION_DELETE,
-                                                action['id'] == chatroom_actions.ACTION_REPORT]):
+        if show_sdk_actions_only and any([action['id'] == chatroom_actions.ACTION_RENAME,
+                                          action['id'] == chatroom_actions.ACTION_VIEW_COMMUNITY,
+                                          action['id'] == chatroom_actions.ACTION_ADD_ALL_MEMBERS,
+                                          action['id'] == chatroom_actions.ACTION_SETTINGS,
+                                          action['id'] == chatroom_actions.ACTION_DELETE,
+                                          action['id'] == chatroom_actions.ACTION_REPORT]):
             continue
 
-        if all([api_type == api_types.SDK,
-                action['id'] == chatroom_actions.ACTION_INVITE]):
+        if all([show_sdk_actions_only, action['id'] == chatroom_actions.ACTION_INVITE]):
 
             if not VersionUtilities.check_version(platform_code, version_code, VersionUtilities.invite_settings):
                 continue
@@ -5112,8 +5116,8 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         if purpose_card or master_intro_card:
 
-            if action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM or action[
-                'id'] == chatroom_actions.ACTION_UNFOLLOW:
+            if any([action['id'] == chatroom_actions.ACTION_JOIN_CHATROOM,
+                    action['id'] == chatroom_actions.ACTION_UNFOLLOW]):
                 continue
 
             if not promoter:
@@ -5164,7 +5168,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
         actions.append(action)
 
-    if (api_type != api_types.SDK) and promoter and len(actions) and not card_instance.is_secret:
+    if (not show_sdk_actions_only) and promoter and len(actions) and not card_instance.is_secret:
 
         if (platform_code == "ios" and version_code < CHATROOM_SETTINGS_VERSION_CODE_IOS) \
                 or (
@@ -5206,7 +5210,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                      or (platform_code == VersionUtilities.PlatformCode.ANDROID and
                          version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)
                      or platform_code == VersionUtilities.PlatformCode.WEB) \
-            and not master_intro_card and (api_type != api_types.SDK):
+            and not master_intro_card and (not show_sdk_actions_only):
         actions.append(chatroom_settings)
 
     if (platform_code == VersionUtilities.PlatformCode.IOS and version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS) \
@@ -9839,12 +9843,23 @@ class GetTaggingList(APIView):
 def fetch_filters(request):
     '''api to get all the filtered data'''
 
-    community_id = request.GET.get('community_id')
-
     member_id = get_member_id_from_headers(request)
 
     if not member_id:
-        return JsonResponse({'success': False, 'error_message': "Member id is not coming in header"})
+        return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                "Member id is not coming in header", status_codes.HTTP_400_BAD_REQUEST))
+
+    community_id = request.GET.get('community_id')
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+
+    if not community_id:
+        community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
+
+        if not community_instance:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                "Invalid API key/community ID", status_codes.HTTP_400_BAD_REQUEST))
+
+        community_id = community_instance.id
 
     send_empty_list = False
 
@@ -9860,7 +9875,7 @@ def fetch_filters(request):
         send_empty_list = True
 
     if send_empty_list:
-        return JsonResponse({'questions': []})
+        return JsonResponse({'success': True, 'questions': []})
 
     community_options = communityAnswers.objects.filter(community_id=community_id
                                                         ).filter(
@@ -9886,7 +9901,7 @@ def fetch_filters(request):
                 question_set.add(serialized_instance['id'])
                 option_list.append(serialized_instance)
 
-    return JsonResponse({'questions': option_list})
+    return JsonResponse({'success': True, 'questions': option_list})
 
 
 def get_user_selected_option_list(question_id):
@@ -10935,10 +10950,16 @@ def fetch_community_types(request):
 
 def fetch_intro_examples(request):
     '''api to send introduction questions examples'''
-
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+    sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+    
     intro_examples = INTRODUCTION_EXAMPLES
 
-    return JsonResponse({'intro_examples': intro_examples})
+    if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.community_hood, sdk_source):
+        intro_examples = COMMUNITY_HOOD_INTRODUCTION_EXAMPLES
+
+    return JsonResponse({'success': True, 'intro_examples': intro_examples})
 
 
 ################################# moderation rights ###############################################

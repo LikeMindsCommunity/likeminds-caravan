@@ -314,7 +314,11 @@ class FetchParticipantsOfSecretChatroom(APIView):
                                                                   VersionUtilities.participants_meta_pagination,
                                                                   sdk_source)
 
-        if not pagination_version_check:
+        community_hood_version_check = VersionUtilities.check_version(platform_code, version_code,
+                                                                      VersionUtilities.community_hood,
+                                                                      sdk_source)
+
+        if (not pagination_version_check) or community_hood_version_check:
             page, page_size = None, None
 
         try:
@@ -656,10 +660,12 @@ class FetchChatroomSettingsView(APIView):
 
         request_platform = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
 
         chatroom_id = request.GET.get('chatroom_id')
         chatroom_manager = ChatroomImpl(member_id=member_id, chatroom_id=chatroom_id,
-                                        request_platform=request_platform, version_code=version_code)
+                                        request_platform=request_platform, version_code=version_code,
+                                        sdk_source=sdk_source)
         response_context = chatroom_manager.fetch_chatroom_settings()
 
         if response_context.get('error_message'):
@@ -1051,7 +1057,6 @@ class FetchChatroomParticipantsView(APIView):
         version_code = RequestUtilities.get_version_code_from_headers(request)
         sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
 
-
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, request_platform=platform_code,
                                         version_code=version_code, sdk_source=sdk_source)
 
@@ -1059,7 +1064,11 @@ class FetchChatroomParticipantsView(APIView):
                                                                   VersionUtilities.participants_meta_pagination,
                                                                   sdk_source)
 
-        if not pagination_version_check:
+        community_hood_version_check = VersionUtilities.check_version(platform_code, version_code,
+                                                                      VersionUtilities.community_hood,
+                                                                      sdk_source)
+
+        if (not pagination_version_check) or community_hood_version_check:
             page, page_size = None, None
 
         try:

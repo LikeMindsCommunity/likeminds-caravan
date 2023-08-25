@@ -138,7 +138,7 @@ class VersionUtilities:
 
     participants_meta_pagination: dict = {
         SdkSource.CHAT: {
-            PlatformCode.ANDROID: 214,
+            PlatformCode.ANDROID: unreleased_version_code,
             PlatformCode.FLUTTER: unreleased_version_code, 
             PlatformCode.IOS: 373,
             PlatformCode.REACT: unreleased_version_code,
@@ -419,6 +419,58 @@ class VersionUtilities:
             PlatformCode.REACT_SDK: unreleased_version_code,
             PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
             PlatformCode.WEB_SDK: unreleased_version_code,
+        }
+    }
+
+    new_chatroom_settings: dict = {
+        SdkSource.CHAT: {
+            PlatformCode.ANDROID: unreleased_version_code,
+            PlatformCode.FLUTTER: unreleased_version_code,
+            PlatformCode.IOS: unreleased_version_code,
+            PlatformCode.REACT: unreleased_version_code,
+            PlatformCode.REACT_NATIVE: unreleased_version_code,
+            PlatformCode.WEB: unreleased_version_code,
+
+            PlatformCode.ANDROID_SDK: unreleased_version_code,
+            PlatformCode.FLUTTER_SDK: unreleased_version_code,
+            PlatformCode.IOS_SDK: unreleased_version_code,
+            PlatformCode.REACT_SDK: unreleased_version_code,
+            PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+            PlatformCode.WEB_SDK: unreleased_version_code,
+        },
+        SdkSource.FEED: {
+            PlatformCode.ANDROID_SDK: unreleased_version_code,
+            PlatformCode.FLUTTER_SDK: unreleased_version_code,
+            PlatformCode.IOS_SDK: unreleased_version_code,
+            PlatformCode.REACT_SDK: unreleased_version_code,
+            PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+            PlatformCode.WEB_SDK: unreleased_version_code,
+        }
+    }
+
+    community_hood: dict = {
+        SdkSource.CHAT: {
+            PlatformCode.ANDROID: 1000,
+            PlatformCode.FLUTTER: unreleased_version_code,
+            PlatformCode.IOS: 1000,
+            PlatformCode.REACT: unreleased_version_code,
+            PlatformCode.REACT_NATIVE: unreleased_version_code,
+            PlatformCode.WEB: 1000,
+
+            PlatformCode.ANDROID_SDK: 1000,
+            PlatformCode.FLUTTER_SDK: unreleased_version_code,
+            PlatformCode.IOS_SDK: 100,
+            PlatformCode.REACT_SDK: unreleased_version_code,
+            PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+            PlatformCode.WEB_SDK: 1000,
+        },
+        SdkSource.FEED: {
+            PlatformCode.ANDROID_SDK: 1000,
+            PlatformCode.FLUTTER_SDK: unreleased_version_code,
+            PlatformCode.IOS_SDK: 1000,
+            PlatformCode.REACT_SDK: unreleased_version_code,
+            PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+            PlatformCode.WEB_SDK: 1000,
         }
     }
 
