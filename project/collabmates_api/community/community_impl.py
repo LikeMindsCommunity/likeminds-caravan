@@ -1529,7 +1529,7 @@ class CommunityImpl(CommunityManager):
             mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.WELCOME,
                                                                                             EmailSubCategories.WELCOME)
 
-            MailWrapper.send_email_with_custom_from_email(
+            MailWrapper.send_email_with_custom_from_email.delay(
                 mail_data["subject"],
                 mail_data["body"],
                 to_mails_list=mail_to,
