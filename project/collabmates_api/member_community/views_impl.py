@@ -796,3 +796,22 @@ class UserHomeMeta(APIView):
                                                                                 community_context.get('status')))
 
         return JsonResponse(community_context)
+    
+class PendingMembers(APIView):
+
+    def get(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        if not member_id:
+            return JsonResponse({'error_message': 'Invalid header member id'}, status=400)
+        
+        member_community_manager = MemberCommunityImpl(member_id, None, api_key=api_key)
+        community_context = member_community_manager.fetch_pending_members()
+
+        if 'error_message' in community_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                                community_context.get('status')))
+
+        return JsonResponse(community_context)

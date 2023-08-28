@@ -81,6 +81,7 @@ from ..utility import pagination, single_community_view_version_check, create_ch
     m2cm_v2_version_check
 from collabmates_api.notification import (send_notification_to_admins)
 from collabmates_api.mails import (send_community_hood_waitlist_email_to_pending_member)
+from collabmates_api.members import (get_pending_members_of_community)
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
 from utility.json_utilities import JsonUtilities
@@ -2214,6 +2215,26 @@ class MemberCommunityImpl(MemberCommunityManager):
             'unseen_channel_count': unseen_channel_count,
             'actions': community_actions
         }
+    
+    def fetch_pending_members(self):
+        validated_request = MemberCommunityHelper.validate_fetch_pending_members_request(self.get_member_id(),
+                                                                                         self.get_api_key())
+        
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+
+        community_id = community_instance.id
+        
+        pending_members_list = get_pending_members_of_community(community_id, requested_member_id=user_instance.id)
+
+        return {
+            'success': True,
+            'pending_members': pending_members_list
+        }
 
 
 class MemberCommunityHelper:
@@ -3622,3 +3643,30 @@ class MemberCommunityHelper:
             management_tools.append(community_settings_action)
 
         return management_tools
+    
+    @staticmethod
+    def validate_fetch_pending_members_request(member_id, api_key):
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': member_id,
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+
+        # check if user has member approve/remove right
+        if not check_admin_approve_right(user=user_instance.id, community=community_instance.id):
+            return ResponseUtilities.get_inner_error_context("You are not authorized to perform this action!")
+        
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance
+        }
