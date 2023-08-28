@@ -1033,6 +1033,8 @@ class CommunityImpl(CommunityManager):
 
             if member.get('id') in members_question_answer_data:
                 member['question_answers'] = members_question_answer_data.get(member.get('id'))
+            else:
+                member['question_answers'] = None
 
         return {'success': True, 'members': members_list}
 
