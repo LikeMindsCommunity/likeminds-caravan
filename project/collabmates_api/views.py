@@ -12418,7 +12418,7 @@ def fetch_community_setting_rights(request):
     user_id = request.GET.get('user_id', None)
 
     api_key = RequestUtilities.get_api_key_from_headers(request)
-    platform_code = RequestUtilities.get_platform_code(request)
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
     sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
 
@@ -12461,7 +12461,7 @@ def fetch_community_setting_rights(request):
         # fetching all the rights of the community
         rights_context = get_saved_member_rights_list(user_rights, show_dm_right=can_show, is_m2cm_v2=is_m2cm_v2,
                                                       is_feed_enabled=is_feed_enabled)
-        return JsonResponse({"rights": rights_context})
+        return JsonResponse({"success": True, "rights": rights_context})
     else:
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
