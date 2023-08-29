@@ -73,6 +73,10 @@ class SyncImpl(SyncManager):
         min_timestamp = validated_request_body.get('min_timestamp')
         max_timestamp = validated_request_body.get('max_timestamp')
 
+        min_timestamp = SyncHelper.get_min_timestamp_keys_for_sync_in_cache(user_instance.id,
+                                                                            self.get_community_id(),
+                                                                            min_timestamp)
+
         included_chatroom_types = [card_types.CARD_NORMAL, card_types.CARD_INTRO, card_types.CARD_EVENT,
                                    card_types.CARD_POLL, card_types.CARD_FEEDBACK, card_types.CARD_HIDDEN,
                                    card_types.CARD_PUBLIC_EVENT, card_types.CARD_PURPOSE, card_types.CARD_MASTER_INTRO]

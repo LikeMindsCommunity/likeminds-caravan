@@ -3195,6 +3195,9 @@ class MemberCommunityHelper:
 
         CommunityHelper.send_community_moderation_mail_to_cm.delay(community_instance.id)
 
+        from collabmates_api.sync.sync_helper import SyncHelper
+        SyncHelper.update_min_timestamp_keys_for_sync_in_cache(user_instance.id, community_instance.id)
+
     @staticmethod
     def make_requesting_user_as_pending_member_of_community(user_instance, community_instance, req_body):
 
