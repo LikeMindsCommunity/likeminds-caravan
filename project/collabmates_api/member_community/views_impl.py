@@ -805,7 +805,8 @@ class PendingMembers(APIView):
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not member_id:
-            return JsonResponse({'error_message': 'Invalid header member id'}, status=400)
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Send x-member-id in headers",
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
         
         member_community_manager = MemberCommunityImpl(member_id, None, api_key=api_key)
         community_context = member_community_manager.fetch_pending_members()
