@@ -3149,7 +3149,7 @@ class CommunityHelper:
 
         for question in question_list:
 
-            if not question.get(answer_key):
+            if question.get(answer_key) is None:
                 continue
 
             question_id = NumberUtilities.get_integer_from_string(question.get(question_id_key))
@@ -3169,6 +3169,11 @@ class CommunityHelper:
                 ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
                                                                         'community': community_instance,
                                                                         'question': question_instance})
+            
+            # If answer is empty, delete the answer instance
+            if answer_instance and question.get(answer_key) == "":
+                answer_instance.delete()
+                continue
 
             question_title = question.get('question_title') if question.get('question_title') else \
                 question_instance.question_title
