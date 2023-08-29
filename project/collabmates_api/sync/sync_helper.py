@@ -3,6 +3,8 @@ from utility.validation_utilities import ValidationUtilities
 from utility.json_utilities import JsonUtilities
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
+from utility.cache_keys import (SYNC_LJ_MIN_TIMESTAMP)
+from external_services.caching.cache_impl import CacheImpl
 from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFIX, SYNC_RESPONSE_MAP_PRIMARY_KEYS,
                         USERS_META_KEY_VALUE, MEMBERS_META_KEY_VALUE, MAIN_PRIMARY_KEY_VALUE,
                         CONVERSATIONS_META_KEY_VALUE, SYNC_DATA_KEYS, COMMUNITY_META_KEY_VALUE,
@@ -14,6 +16,7 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         PUBLIC_VOTING_NAME_VALUE, CONVERSATION_SUBMIT_TYPE_TEXT_KEY, CHATROOM_DATE_KEY,
                         CHATROOM_DATE_EPOCH_KEY, SDK_CLIENT_META_KEY_VALUE, SDK_CLIENT_INFO_KEY_VALUE)
 from utility.states import (conversation_states, conversation_poll_types)
+from utility.constants import (LITTLE_JOYS_ID)
 from togther.models import (ModelUtilities, card_answers)
 
 
@@ -455,3 +458,56 @@ class SyncHelper:
 
         for chatroom_data in chatroom_data_list:
             SyncHelper.compute_chatroom_additional_data(chatroom_data)
+
+    @staticmethod
+    def update_min_timestamp_keys_for_sync_in_cache(user_id, community_id, min_timestamp: int = 0):
+
+        if community_id != LITTLE_JOYS_ID:
+            return
+
+        key = SYNC_LJ_MIN_TIMESTAMP.format(community_id, user_id)
+        min_timestamp_cache_data = CacheImpl.get_cache(key)
+
+        if not min_timestamp_cache_data:
+            cache_data = {
+                'current_min': 0
+            }
+
+        else:
+            current_min = min_timestamp_cache_data.get('current_min')
+
+            if current_min >= min_timestamp:
+                return
+
+            cache_data = {
+                'current_min': min_timestamp
+            }
+
+        CacheImpl.set_cache(key, cache_data)
+
+    @staticmethod
+    def get_min_timestamp_keys_for_sync_in_cache(user_id, community_id, min_timestamp: int = 0):
+
+        if community_id != LITTLE_JOYS_ID:
+            return min_timestamp
+
+        key = SYNC_LJ_MIN_TIMESTAMP.format(community_id, user_id)
+        min_timestamp_cache_data = CacheImpl.get_cache(key)
+
+        updated_min_timestamp = min_timestamp
+        needs_updation = True
+
+        if min_timestamp_cache_data:
+            current_min = min_timestamp_cache_data.get('current_min')
+
+            if current_min == 0 and (current_min < min_timestamp):
+                needs_updation = True
+                updated_min_timestamp = current_min
+
+            else:
+                needs_updation = False
+
+        if needs_updation:
+            SyncHelper.update_min_timestamp_keys_for_sync_in_cache(user_id, community_id, min_timestamp)
+
+        return updated_min_timestamp
