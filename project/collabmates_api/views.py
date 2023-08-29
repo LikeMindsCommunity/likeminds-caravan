@@ -12416,7 +12416,9 @@ def fetch_community_setting_rights(request):
     current_user_id = get_member_id_from_headers(request)
     community_id = request.GET.get('community_id', None)
     user_id = request.GET.get('user_id', None)
-    platform_code = RequestUtilities.get_platform_code(request)
+
+    api_key = RequestUtilities.get_api_key_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
     sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
 
@@ -12436,13 +12438,13 @@ def fetch_community_setting_rights(request):
     if not current_user_id:
         context = get_error_context(False, "send member_id in headers")
         return JsonResponse(context)
-    if not community_id:
-        context = get_error_context(False, "send community_id in params")
+    if not (community_id or api_key):
+        context = get_error_context(False, "send community_id or api-key")
         return JsonResponse(context)
 
-    community_instance = Community.get_community_or_None(community_id)
+    community_instance = SdkClient.get_community_instance_or_none(community_id, api_key)
     if community_instance is None:
-        context = get_error_context(False, f"Invalid community_id {community_id}")
+        context = get_error_context(False, f"Invalid community_id {community_id} or api_key {api_key}")
         return JsonResponse(context)
 
     current_user_instance = User.get_user_or_none(current_user_id)
@@ -12459,7 +12461,7 @@ def fetch_community_setting_rights(request):
         # fetching all the rights of the community
         rights_context = get_saved_member_rights_list(user_rights, show_dm_right=can_show, is_m2cm_v2=is_m2cm_v2,
                                                       is_feed_enabled=is_feed_enabled)
-        return JsonResponse({"rights": rights_context})
+        return JsonResponse({"success": True, "rights": rights_context})
     else:
         context = get_error_context(False, "user is not a admin")
         return JsonResponse(context)
