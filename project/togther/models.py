@@ -1708,7 +1708,7 @@ class communityAnswers(models.Model):
 
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     question_title = models.TextField(null=True)
-    question_answer = models.TextField(blank=True)
+    question_answer = models.TextField()
     member = models.ForeignKey(User, on_delete=models.CASCADE)
     question = models.ForeignKey(communityQuestions, on_delete=models.CASCADE)
 

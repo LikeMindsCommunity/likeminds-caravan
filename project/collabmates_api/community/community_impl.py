@@ -1529,7 +1529,7 @@ class CommunityImpl(CommunityManager):
             mail_categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.WELCOME,
                                                                                             EmailSubCategories.WELCOME)
 
-            MailWrapper.send_email_with_custom_from_email(
+            MailWrapper.send_email_with_custom_from_email.delay(
                 mail_data["subject"],
                 mail_data["body"],
                 to_mails_list=mail_to,
@@ -3149,7 +3149,7 @@ class CommunityHelper:
 
         for question in question_list:
 
-            if question.get(answer_key) is None:
+            if not question.get(answer_key):
                 continue
 
             question_id = NumberUtilities.get_integer_from_string(question.get(question_id_key))
