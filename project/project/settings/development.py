@@ -77,6 +77,8 @@ OTP_TEMPLATE_ID = '5fd9f7f1e96b780fae01acff'
 
 ADMINS = [
             ('Deepanshu', 'deepanshu.saxena@likeminds.community'),
+            ('Shubh', 'shubh.gupta@likeminds.community'),
+            ('Mahir', 'mahir.gupta@likeminds.community'),
             ('Backend Team', 'backend@likeminds.community')
          ]
 
