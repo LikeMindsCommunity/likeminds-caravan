@@ -2965,16 +2965,21 @@ class CommunityHelper:
                     new_answer_instance.community = community_instance
                     new_answer_instance.save()
 
-                    dropdown_list.append(option)
-                questionFilters.create_instance({'question_instance': question_instance,
-                                                 'option': option,
-                                                 'user_instance': user_instance,
-                                                 'community_instance': community_instance})
+                    if not question_instance.options_only_for_self:
+                        dropdown_list.append(option)
 
-            result = [{'value': value} for value in dropdown_list]
-            json_dump = json.dumps(result)
-            question_instance.value = json_dump
-            question_instance.save()
+                if not question_instance.options_only_for_self:  
+                    questionFilters.create_instance({'question_instance': question_instance,
+                                                    'option': option,
+                                                    'user_instance': user_instance,
+                                                    'community_instance': community_instance})
+
+            if not question_instance.options_only_for_self:
+
+                result = [{'value': value} for value in dropdown_list]
+                json_dump = json.dumps(result)
+                question_instance.value = json_dump
+                question_instance.save()
 
     @staticmethod
     def save_profile_links_for_social_handles(question_instance, community_answer_id):
