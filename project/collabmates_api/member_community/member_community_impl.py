@@ -71,7 +71,7 @@ from ..static_text import SECRET_CHATROOM_VERSION_CODE_IOS, MEMBER_PROFILE_MENU_
     MEMBER_REQUESTS_COMMUNITY_ACTION_TITLE, MEMBER_REQUESTS_COMMUNITY_ACTION_IMAGE_URL, \
     REVIEW_REPORTS_COMMUNITY_ACTION_TITLE, REVIEW_REPORTS_COMMUNITY_ACTION_IMAGE_URL, \
     COMMUNITY_SETTINGS_COMMUNITY_ACTION_TITLE, COMMUNITY_SETTINGS_COMMUNITY_ACTION_IMAGE_URL, \
-    INVITE_MEMBERS_COMMUNITY_ACTION_IMAGE_URL
+    INVITE_MEMBERS_COMMUNITY_ACTION_IMAGE_URL, COMMUNITY_SETTINGS_ROUTE
 from ..user.user_impl import UserImpl
 from ..user_moderation_rights import check_admin_approve_right, check_admin_delete_right, \
     check_admin_edit_community_right, check_all_member_rights, check_admin_view_contact_right, \
@@ -3640,7 +3640,7 @@ class MemberCommunityHelper:
             community_settings_action = {
                 "title": COMMUNITY_SETTINGS_COMMUNITY_ACTION_TITLE,
                 "image_url": COMMUNITY_SETTINGS_COMMUNITY_ACTION_IMAGE_URL,
-                "route": REPORTS_TOOL_ROUTE.format(community_id, community_name)
+                "route": COMMUNITY_SETTINGS_ROUTE.format(community_id, community_name)
             }
 
             management_tools.append(community_settings_action)
