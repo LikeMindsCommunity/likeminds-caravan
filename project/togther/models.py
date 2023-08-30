@@ -1686,6 +1686,7 @@ class communityQuestions(models.Model):
 
     rank = models.IntegerField(default=0)
     can_add_options = models.BooleanField(default=False)
+    options_only_for_self = models.BooleanField(default=False)
     is_answer_editable = models.BooleanField(default=True)
     tag = models.TextField(null=True)
     image_url = models.TextField(null=True)

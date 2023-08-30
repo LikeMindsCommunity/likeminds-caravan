@@ -2965,7 +2965,9 @@ class CommunityHelper:
                     new_answer_instance.community = community_instance
                     new_answer_instance.save()
 
-                    dropdown_list.append(option)
+                    if not question_instance.options_only_for_self:
+                        dropdown_list.append(option)
+                        
                 questionFilters.create_instance({'question_instance': question_instance,
                                                  'option': option,
                                                  'user_instance': user_instance,
