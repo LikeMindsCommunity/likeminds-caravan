@@ -78,7 +78,8 @@ OTP_TEMPLATE_ID = os.getenv('MSG_91_OTP_TEMPLATE_ID')
 ADMINS = [  
             ('Ankit', 'ankit.garg@likeminds.community'),
             ('Shubh', 'shubh.gupta@likeminds.community'),
-            ('Mahir', 'mahir.gupta@likeminds.community')
+            ('Mahir', 'mahir.gupta@likeminds.community'),
+            ('Ketan', 'ketan@likeminds.community')
          ]
 
 CACHES = {
