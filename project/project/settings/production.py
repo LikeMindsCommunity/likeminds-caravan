@@ -81,8 +81,7 @@ ADMINS = [
     ('Ketan', 'ketan@likeminds.community'),
     ('Ankit', 'ankit.garg@likeminds.community'),
     ('Shubh', 'shubh.gupta@likeminds.community'),
-    ('Mahir', 'mahir.gupta@likeminds.community'),
-    ('Backend Team', 'backend@likeminds.community')
+    ('Mahir', 'mahir.gupta@likeminds.community')
 ]
 
 CACHES = {
