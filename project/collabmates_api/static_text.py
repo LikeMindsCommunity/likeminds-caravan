@@ -683,6 +683,7 @@ DIRECTORY_QUESTIONS_MANAGEMENT_TOOLS_TITLE = "Customise join form"
 MEMBER_REQUEST_TOOL_ROUTE = "route://member_approve?community_id={}&community_name={}"
 PENDING_CHATROOM_TOOL_ROUTE = "route://pending_chatrooms?community_id={}&community_name={}"
 REPORTS_TOOL_ROUTE = "route://review_reports?community_id={}&community_name={}"
+COMMUNITY_SETTINGS_ROUTE = "route://community_settings?community_id={}&community_name={}"
 MANAGEMENT_TOOLS_HEADER = "Management tools for {}"
 
 MEMBER_PROFILE_MENU_ITEMS = {

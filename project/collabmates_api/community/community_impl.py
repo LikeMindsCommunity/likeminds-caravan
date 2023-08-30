@@ -1033,6 +1033,9 @@ class CommunityImpl(CommunityManager):
 
             if member.get('id') in members_question_answer_data:
                 member['question_answers'] = members_question_answer_data.get(member.get('id'))
+                
+            else:
+                member['question_answers'] = None
 
         return {'success': True, 'members': members_list}
 
@@ -2962,16 +2965,21 @@ class CommunityHelper:
                     new_answer_instance.community = community_instance
                     new_answer_instance.save()
 
-                    dropdown_list.append(option)
-                questionFilters.create_instance({'question_instance': question_instance,
-                                                 'option': option,
-                                                 'user_instance': user_instance,
-                                                 'community_instance': community_instance})
+                    if not question_instance.options_only_for_self:
+                        dropdown_list.append(option)
 
-            result = [{'value': value} for value in dropdown_list]
-            json_dump = json.dumps(result)
-            question_instance.value = json_dump
-            question_instance.save()
+                if not question_instance.options_only_for_self:  
+                    questionFilters.create_instance({'question_instance': question_instance,
+                                                    'option': option,
+                                                    'user_instance': user_instance,
+                                                    'community_instance': community_instance})
+
+            if not question_instance.options_only_for_self:
+
+                result = [{'value': value} for value in dropdown_list]
+                json_dump = json.dumps(result)
+                question_instance.value = json_dump
+                question_instance.save()
 
     @staticmethod
     def save_profile_links_for_social_handles(question_instance, community_answer_id):
@@ -3149,7 +3157,7 @@ class CommunityHelper:
 
         for question in question_list:
 
-            if not question.get(answer_key):
+            if question.get(answer_key) is None:
                 continue
 
             question_id = NumberUtilities.get_integer_from_string(question.get(question_id_key))
@@ -3169,6 +3177,11 @@ class CommunityHelper:
                 ModelUtilities.delete_record_in_model(questionFilters, {'member': user_instance,
                                                                         'community': community_instance,
                                                                         'question': question_instance})
+            
+            # If answer is empty, delete the answer instance
+            if answer_instance and question.get(answer_key) == "":
+                answer_instance.delete()
+                continue
 
             question_title = question.get('question_title') if question.get('question_title') else \
                 question_instance.question_title
