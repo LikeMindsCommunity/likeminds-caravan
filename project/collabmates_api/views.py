@@ -8988,15 +8988,17 @@ def save_push_notification_details_for_web(user_id, token, version_code=None):
                                                                   'device_id': device_id})
     if not device_filter:
         userDevices.create_instance({'user_instance': user_instance,
-                                     'platform_code': "web",
+                                     'mobile_os': "web",
                                      'token': token,
                                      'device_id': device_id,
-                                     'version_code':version_code})
+                                     'version_code':version_code,
+                                     'platform_code': "web"})
     else:
         ModelUtilities.model_update(userDevices,
                                     {'user': user_instance, 'device_id': device_id},
                                     {'updated_at': TimeUtilities.current_time_in_sec(), 
-                                     'fcm_token': token, 'version_code': version_code})
+                                     'fcm_token': token, 'version_code': version_code, 
+                                     'platform_code': "web"})
 
     return {'success': True}
 
@@ -9009,6 +9011,8 @@ def push(request):
     token = request.GET.get('token', '')
     platform_code = get_platform_code_from_headers(request)
     version_code = get_version_code_from_headers(request)
+
+    header_platform_code = platform_code
 
     if not version_code:
         version_code = None
@@ -9064,6 +9068,7 @@ def push(request):
                     data.device_id = device_id
                     data.fcm_tokem = token
                     data.version_code = version_code
+                    data.platform_code = header_platform_code
                     data.updated_at = time.time()
                     data.save()
 
@@ -9074,6 +9079,7 @@ def push(request):
                 instance.user = user_instance
                 instance.mobile_os = platform_code
                 instance.version_code = version_code
+                instance.platform_code = header_platform_code
                 instance.updated_at = time.time()
                 instance.fcm_token = token
                 instance.device_id = device_id
@@ -9084,6 +9090,7 @@ def push(request):
                 instance.user = user_instance
                 instance.mobile_os = platform_code
                 instance.version_code = version_code
+                instance.platform_code = header_platform_code
                 instance.updated_at = time.time()
                 instance.fcm_token = token
                 instance.device_id = device_id
@@ -9097,6 +9104,7 @@ def push(request):
                 instance.user = user_instance
                 instance.mobile_os = platform_code
                 instance.version_code = version_code
+                instance.platform_code = header_platform_code
                 instance.updated_at = time.time()
                 instance.fcm_token = token
                 instance.device_id = device_id
@@ -9105,6 +9113,7 @@ def push(request):
                 instance = device_filter[0]
                 instance.fcm_token = token
                 instance.version_code = version_code
+                instance.platform_code = header_platform_code
                 instance.updated_at = time.time()
                 instance.save()
 
