@@ -96,7 +96,7 @@ from ..user.user_impl import UserHelper, UserImpl
 from ..raw_queries import get_members_meta_list, get_users_meta_info
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
-    directory_questions_v2_version_check, get_user_phone, update_report_count_for_all_promoters
+    directory_questions_v2_version_check, get_user_phone, fetch_alias_question_version_check, update_report_count_for_all_promoters
 
 from ..sms import send_community_confirmation_sms
 from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check, \
@@ -112,7 +112,7 @@ class CommunityImpl(CommunityManager):
     version_code = None
 
     def __init__(self, member_id: str, community_id: str = None, version_code: str = None, device_id: str = None,
-                 request_platform: str = None, api_key: str = None, sdk_source: str = None):
+                 request_platform: str = None, api_key: str = None):
 
         self.member_id = member_id
         self.community_id = community_id
@@ -120,7 +120,6 @@ class CommunityImpl(CommunityManager):
         self.device_id = device_id
         self.request_platform = request_platform
         self.api_key = api_key
-        self.sdk_source = sdk_source
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -142,9 +141,6 @@ class CommunityImpl(CommunityManager):
 
     def get_api_key(self):
         return self.api_key
-
-    def get_sdk_source(self):
-        return self.sdk_source
 
     def set_community_id(self, community_id) -> None:
         self.community_id = community_id
@@ -1889,8 +1885,7 @@ class CommunityImpl(CommunityManager):
         community_meta_data['questions'] = CommunityHelper.get_community_questions_data(user_instance,
                                                                                         community_instance,
                                                                                         self.get_request_platform(),
-                                                                                        self.get_version_code(),
-                                                                                        self.get_sdk_source())
+                                                                                        self.get_version_code())
 
         community_meta_data['success'] = True
 
@@ -4311,8 +4306,7 @@ class CommunityHelper:
         return context
 
     @staticmethod
-    def get_community_questions_data(user_instance, community_instance, platform_code='web', version_code=0,
-                                     sdk_source=None):
+    def get_community_questions_data(user_instance, community_instance, platform_code='web', version_code=0):
         data = ModelUtilities.get_model_filter(communityQuestions,
                                                {"community": community_instance}).order_by('-rank', 'id')
 
@@ -4330,8 +4324,7 @@ class CommunityHelper:
                 continue
 
             if all([serialized_question['question_state'] == question_states.NAME,
-                    not VersionUtilities.check_version(platform_code, version_code, VersionUtilities.alias_question,
-                                                       sdk_source)]):
+                    not fetch_alias_question_version_check(platform_code, version_code)]):
                 continue
 
             serialized_question['state'] = serialized_question['question_state']
