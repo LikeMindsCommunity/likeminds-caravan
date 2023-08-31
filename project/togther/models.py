@@ -2211,6 +2211,9 @@ class userDevices(models.Model):
     fcm_token = models.TextField(null=True)
     mobile_os = models.TextField(null=True)
 
+    platform_code = models.TextField(null=True)
+    version_code = models.BigIntegerField(null=True)
+
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(null=True)
 
@@ -2220,7 +2223,9 @@ class userDevices(models.Model):
     def create_instance(create_info):
         instance = userDevices()
         instance.user = create_info.get('user_instance')
-        instance.mobile_os = create_info.get('platform_code')
+        instance.mobile_os = create_info.get('mobile_os')
+        instance.platform_code = create_info.get('platform_code')
+        instance.version_code = create_info.get('version_code')
         instance.fcm_token = create_info.get('token')
         instance.device_id = create_info.get('device_id')
         instance.save()

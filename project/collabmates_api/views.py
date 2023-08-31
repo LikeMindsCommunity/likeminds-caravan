@@ -8973,7 +8973,7 @@ def get_create_community_actions(community_id, promoter_name):
     return actions
 
 
-def save_push_notification_details_for_web(user_id, token):
+def save_push_notification_details_for_web(user_id, token, version_code=None):
     user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
     if not user_instance:
@@ -8988,13 +8988,17 @@ def save_push_notification_details_for_web(user_id, token):
                                                                   'device_id': device_id})
     if not device_filter:
         userDevices.create_instance({'user_instance': user_instance,
-                                     'platform_code': "web",
+                                     'mobile_os': "web",
                                      'token': token,
-                                     'device_id': device_id})
+                                     'device_id': device_id,
+                                     'version_code':version_code,
+                                     'platform_code': "web"})
     else:
         ModelUtilities.model_update(userDevices,
                                     {'user': user_instance, 'device_id': device_id},
-                                    {'updated_at': TimeUtilities.current_time_in_sec(), 'fcm_token': token})
+                                    {'updated_at': TimeUtilities.current_time_in_sec(), 
+                                     'fcm_token': token, 'version_code': version_code, 
+                                     'platform_code': "web"})
 
     return {'success': True}
 
@@ -9006,12 +9010,18 @@ def push(request):
     member_id = request.GET.get('member_id', '')
     token = request.GET.get('token', '')
     platform_code = get_platform_code_from_headers(request)
+    version_code = get_version_code_from_headers(request)
+
+    header_platform_code = platform_code
+
+    if not version_code:
+        version_code = None
 
     device_id = request.GET.get('device_id', None)
 
     if RequestUtilities.is_request_web(request):
         user_id = RequestUtilities.get_member_id_from_headers(request)
-        response = save_push_notification_details_for_web(user_id, token)
+        response = save_push_notification_details_for_web(user_id, token, version_code)
 
         if response.get('error_message'):
             return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -9057,6 +9067,8 @@ def push(request):
                 if not data.device_id:
                     data.device_id = device_id
                     data.fcm_tokem = token
+                    data.version_code = version_code
+                    data.platform_code = header_platform_code
                     data.updated_at = time.time()
                     data.save()
 
@@ -9066,6 +9078,8 @@ def push(request):
                 instance = userDevices()
                 instance.user = user_instance
                 instance.mobile_os = platform_code
+                instance.version_code = version_code
+                instance.platform_code = header_platform_code
                 instance.updated_at = time.time()
                 instance.fcm_token = token
                 instance.device_id = device_id
@@ -9075,6 +9089,8 @@ def push(request):
                 instance = device_filter[0]
                 instance.user = user_instance
                 instance.mobile_os = platform_code
+                instance.version_code = version_code
+                instance.platform_code = header_platform_code
                 instance.updated_at = time.time()
                 instance.fcm_token = token
                 instance.device_id = device_id
@@ -9087,6 +9103,8 @@ def push(request):
                 instance = userDevices()
                 instance.user = user_instance
                 instance.mobile_os = platform_code
+                instance.version_code = version_code
+                instance.platform_code = header_platform_code
                 instance.updated_at = time.time()
                 instance.fcm_token = token
                 instance.device_id = device_id
@@ -9094,6 +9112,8 @@ def push(request):
             else:
                 instance = device_filter[0]
                 instance.fcm_token = token
+                instance.version_code = version_code
+                instance.platform_code = header_platform_code
                 instance.updated_at = time.time()
                 instance.save()
 
