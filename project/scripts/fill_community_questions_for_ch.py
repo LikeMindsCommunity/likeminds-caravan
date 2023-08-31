@@ -3,8 +3,8 @@ import time
 from togther.models import (ModelUtilities, communityQuestions, questionFilters, communityAnswers, Community)
 from collabmates_api.community.community_impl import CommunityHelper
 
-COMMUNITY_ID = 50441
-USER_ID = 36894
+COMMUNITY_ID = None
+USER_ID = None
 
 REPLACE_QUESTION_OPTIONS = {
     '50020': {
