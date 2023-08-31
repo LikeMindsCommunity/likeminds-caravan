@@ -134,3 +134,5 @@ HIDE_DM_TEXT = "DM feature has been disabled by the community manager. This tab 
 CREATE_USER_BOT_NAME = "{} bot"
 
 HOURLY_INTERNATIONAL_OTP_GENERATE_LIMIT: int = 10
+
+LM_PROD_MOBILE_NO_LIST = ["9458668721", "9467796637"]

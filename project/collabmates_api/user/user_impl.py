@@ -1203,6 +1203,17 @@ class UserImpl(UserManager):
             community_instance = validated_req.get('community_instance')
             phone_no = str(country_code) + str(mobile_no)
 
+            if (mobile_no in LM_PROD_MOBILE_NO_LIST) and (otp == '0000'):
+                verify_user_mobile_otp_beta = UserHelper.verify_user_mobile_otp_on_prod_for_approval(community_instance,
+                                                                                                     mobile_no,
+                                                                                                     country_code)
+
+                if verify_user_mobile_otp_beta.get('error_message'):
+                    return ResponseUtilities.get_impl_error_context(verify_user_mobile_otp_beta.get('error_message'),
+                                                                    status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+                return verify_user_mobile_otp_beta
+
             if settings.IS_BETA and (otp == '9999'):
                 verify_user_mobile_otp_beta = UserHelper.verify_user_mobile_otp_on_beta(community_instance, mobile_no,
                                                                                         country_code)
@@ -2246,6 +2257,44 @@ class UserHelper:
             return ResponseUtilities.get_inner_error_context('Invalid email ID!')
 
         return {}
+
+    @staticmethod
+    def verify_user_mobile_otp_on_prod_for_approval(community_instance, mobile_no, country_code):
+        app_access = True
+
+        filter_dict = {
+            'country_code': country_code,
+            'mobile_no': mobile_no
+        }
+
+        mobile_filter = ModelUtilities.get_model_filter(userMobiles, filter_dict)
+
+        if not mobile_filter:
+            return ResponseUtilities.get_inner_error_context('Wrong OTP!')
+
+        user_ids_list = list(mobile_filter.values_list('user_id', flat=True))
+
+        sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                                        {'community': community_instance,
+                                                                         'user__in': user_ids_list}).first()
+
+        if not sdk_client_user_info_instance:
+            return ResponseUtilities.get_inner_error_context('Wrong OTP!')
+
+        removed_member = ModelUtilities.get_model_filter(removedMembers,
+                                                         {'community': community_instance,
+                                                          'member': sdk_client_user_info_instance.user})
+
+        if len(removed_member):
+            app_access = False
+
+        return {
+            'success': True,
+            'existing_user': True,
+            'user': get_logged_in_user(user_instance=sdk_client_user_info_instance.user,
+                                       sdk_client_info_flag=True),
+            'app_access': app_access
+        }
 
     @staticmethod
     def verify_user_mobile_otp_on_beta(community_instance, mobile_no, country_code):
