@@ -117,5 +117,3 @@ Best regards,
 Team CommunityHood
 </p>
 """
-
-ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION = 212
