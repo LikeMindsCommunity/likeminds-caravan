@@ -674,11 +674,12 @@ class FetchCommunityQuestionsView(APIView):
 
     def get(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        platform_code = RequestUtilities.get_platform_code(request)
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         req_body = RequestUtilities.fetch_request_query_params(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
         validated_body = self._validate_request(member_id, req_body)
+        sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
 
         if not validated_body.get('success'):
             return JsonResponse(validated_body, status=status_codes.HTTP_400_BAD_REQUEST)
@@ -687,7 +688,8 @@ class FetchCommunityQuestionsView(APIView):
                                           community_id=validated_body.get('community_id'),
                                           version_code=version_code,
                                           request_platform=platform_code,
-                                          api_key=api_key)
+                                          api_key=api_key,
+                                          sdk_source=sdk_source)
 
         res = community_manager.fetch_community_questions(validated_body)
 
