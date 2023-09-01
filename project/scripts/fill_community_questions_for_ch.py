@@ -109,7 +109,7 @@ CREATE_OR_UPDATE_QUESTIONS_LIST = [
         "question_title": "Your LinkedIn Profile URL",
         "value": "[{\"profile_platform\": \"LinkedIn\", \"answer_privacy\": \"Public\"}]",
         "optional": True,
-        "state": 8,
+        "question_state": 8,
         "image_url": "https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/files/utilities/LinkedIn.png",
         "help_text": "Type URL",
         "is_hidden": False,
