@@ -104,11 +104,11 @@ def run_script():
 
     start_time = time.time()
 
-    # JSON file path
-    input_file = "/Users/shubhgupta/Desktop/Togther/project/scripts/input.json"
+    # JSON file path relative to project directory
+    input_file = "scripts/input.json"
 
-    # Output file path
-    output_file = "/Users/shubhgupta/Desktop/Togther/project/scripts/output.json"
+    # Output file path relative to project directory
+    output_file = "scripts/output.json"
     
     # Open JSON file and get data
     json_logs = open_json_file_and_get_data(input_file)
@@ -125,4 +125,4 @@ def run_script():
 
 if __name__ == "__main__":
     run_script()
-    
+
