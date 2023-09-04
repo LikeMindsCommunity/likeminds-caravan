@@ -1326,61 +1326,62 @@ def compute_mute_status_for_users(current_user_id):
 def get_custom_data_for_new_conversation_created(user_id: str, community_id: str, page_size: int = 10) -> list:
     """function to send notification for new conversation posted to followed users"""
 
+    from collabmates_api.raw_queries import (get_excluded_chatroom_ids_for_notification_settings_for_user,
+                                             get_ordered_chatrooms_data_on_unseen_count)
+
     mute_status_list = compute_mute_status_for_users(user_id)
 
-    filter_dict = _get_conversation_engage_filter_for_new_conversation(user_id, community_id)
+    ordered_unseen_dict = get_ordered_chatrooms_data_on_unseen_count(user_id, community_id)
 
-    followed_chatrooms = ModelUtilities.get_model_filter(conversationEngage, filter_dict)
+    if not ordered_unseen_dict:
+        return []
 
-    followed_chatrooms_ids_list = list(followed_chatrooms.values_list('card_id', flat=True))
+    followed_chatrooms_ids_list = list(ordered_unseen_dict.keys())
 
-    from collabmates_api.raw_queries import get_excluded_chatroom_ids_for_notification_settings_for_user
     excluded_card_ids = get_excluded_chatroom_ids_for_notification_settings_for_user(
         user_id, chatroom_ids_list=followed_chatrooms_ids_list)
 
     excluded_card_ids = list(set(mute_status_list + excluded_card_ids))
 
-    followed_chatrooms = followed_chatrooms.exclude(
-        card_id__in=excluded_card_ids
-    ).select_related(
-        'card',
-        'community'
-    ).order_by(
-        '-updated_at',
-        '-id'
-    )[:page_size]
-
     unread_conversation = []
 
-    for conversation in followed_chatrooms:
+    for card_id, unread_dict in ordered_unseen_dict.items():
+
+        if card_id in excluded_card_ids:
+            continue
+
+        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+
+        if not card_instance:
+            continue
+
         temp = {}
-        card_instance = conversation.card
-        community_instance = conversation.community
+        community_instance = card_instance.community
 
         chatroom_name = card_instance.header
 
         if not chatroom_name:
             chatroom_name = card_instance.title
 
-        if conversation.unseen_count > 1:
-            chatroom_name = chatroom_name + """ (%s messages)""" % (str(conversation.unseen_count))
+        if unread_dict.get('unseen_count') > 1:
+            chatroom_name = chatroom_name + """ (%s messages)""" % (str(unread_dict.get('unseen_count')))
 
         temp['community_name'] = community_instance.name
         temp['chatroom_name'] = chatroom_name
         temp['chatroom_title'] = card_instance.title
         temp['chatroom_user_name'] = ""
         temp['chatroom_user_image'] = ""
-        temp['chatroom_id'] = conversation.card_id
+        temp['chatroom_id'] = card_instance.id
 
-        temp['notification_id'] = str(conversation.card_id) + "_followed"
+        temp['notification_id'] = str(card_id) + "_followed"
         temp['route'] = """route://chatroom_followed_feed?community_id=%s&community_name=%s""" % (
             str(community_instance.id), str(community_instance.name))
-        temp['chatroom_unread_conversation_count'] = conversation.unseen_count
+        temp['chatroom_unread_conversation_count'] = unread_dict.get('unseen_count')
         temp['community_id'] = str(community_instance.id)
         temp['community_image'] = community_instance.image_link
-        temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(conversation.card_id))
+        temp['route_child'] = """route://collabcard?collabcard_id=%s""" % (str(card_id))
 
-        last_instance = card_answers.objects.filter(card=conversation.card, state=0).last()
+        last_instance = card_answers.objects.filter(card=card_id, state=0).last()
 
         if last_instance:
             user_id = last_instance.user_id

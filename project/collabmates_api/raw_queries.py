@@ -4755,3 +4755,65 @@ def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True):
         return user_meta_info
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_ordered_chatrooms_data_on_unseen_count(user_id, community_id: str = None, excluded_card_ids: list = None):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        community_id_query = ""
+        excluded_card_ids_query = ""
+
+        if community_id:
+            community_id_query = "AND togther_collabcardstate.community_id={}".format(community_id)
+
+        if excluded_card_ids:
+            excluded_card_ids_query = "AND togther_collabcardstate.card_id NOT IN {}".format(get_tuple_from_array(
+                excluded_card_ids))
+
+        included_conv_states = [conversation_states.ANSWER, conversation_states.CONVERSATION_HEADER,
+                                conversation_states.CONVERSATION_POLL]
+
+        included_conv_states_query = get_tuple_from_array(included_conv_states)
+
+        sql = """
+                SELECT state_data.card_id,
+                       Sum(state_data.is_unseen)  AS unseen_count,
+                       Max(state_data.created_at) AS last_conversation_epoch,
+                       Max(state_data.id)         AS last_conversation
+                FROM   (SELECT togther_collabcardstate.card_id,
+                               ( CASE
+                                   WHEN Coalesce(last_seen_conversation_id, 0) <
+                                        togther_card_answers.id
+                                        AND togther_card_answers.state NOT IN ( 1 ) THEN 1
+                                   ELSE 0
+                                 end ) AS is_unseen,
+                               togther_card_answers.created_at,
+                               togther_card_answers.id
+                        FROM   togther_collabcardstate
+                               LEFT JOIN togther_card_answers
+                                      ON togther_card_answers.card_id =
+                                         togther_collabcardstate.card_id
+                        WHERE  togther_collabcardstate.user_id = {}
+                               AND togther_collabcardstate.follow_status = true
+                               AND togther_collabcardstate.remove_id IS NULL {} {}
+                               AND togther_card_answers.state IN {}) AS state_data
+                WHERE state_data.is_unseen > 0
+                GROUP  BY state_data.card_id
+                ORDER  BY last_conversation_epoch DESC; 
+        """.format(user_id, community_id_query, excluded_card_ids_query, included_conv_states_query)
+
+        curr.execute(sql)
+        chatroom_data = curr.fetchall()
+        curr.close()
+
+        return {
+            data[0]: {
+                'unseen_count': data[1],
+                'last_conversation_epoch': data[2],
+                'last_conversation_id': data[3]
+            } for data in chatroom_data}
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
