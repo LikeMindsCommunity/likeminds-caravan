@@ -6,10 +6,15 @@ def get_json_data_from_file(json_file):
     """
         open file and return parsed json data (file should be in json format)
     """
-
-    with open(json_file) as f:
-        data = json.load(f)
-        return data
+    
+    try:
+        with open(json_file) as f:
+            data = json.load(f)
+            return data
+        
+    except Exception as e:
+        print("Error opening file: ", e)
+        return []
     
 def fill_userDevices_data(members_data: list):
     """
