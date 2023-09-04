@@ -591,6 +591,7 @@ def get_tagged_members_list(community_id, chatroom_id, answer):
 
     if tagged_uuids_list:
         valid_ids = ModelUtilities.get_valid_user_ids_from_uuids(tagged_uuids_list, community_id)
+        valid_ids = ListUtilities.convert_elements_int_to_str(valid_ids)
         tagged_users_list.extend(valid_ids)
 
     group_tagged_users, conversation_text, should_unmute_members, is_group_tag = process_group_tags(
