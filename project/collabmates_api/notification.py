@@ -27,7 +27,8 @@ from utility.celery_beat_tasks import CeleryBeatTask
 from utility.constants import (INTRO_ROOM_LOOKBACK_PERIOD,
                                MINUTES_2, HOURS_24, MINUTES_5,
                                MINUTES_10, MINUTES_30, VALID_URLS_REGEX, 
-                               ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION)
+                               ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_START,
+                               ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END)
 from project.celery import app
 from utility.states import *
 
@@ -363,10 +364,11 @@ def pre_compute_user_devices_by_user_list(user_list, is_broadcast_notification=F
 
     devices_filter = ModelUtilities.get_model_filter(userDevices, {'user_id__in': user_list})
 
-    # If it is a broadcast notification, then dont send notifications to users with android version less than specified
+    # If it is a broadcast notification, then dont send notifications to users with android version in range specified
     if is_broadcast_notification:
         devices_filter = devices_filter.exclude(platform_code='an', 
-                                                version_code__lte=ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION)
+                                                version_code__lte=ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END, 
+                                                version_code__gte=ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_START)
         
     devices_filter = list(devices_filter.values('id', 'fcm_token', 'mobile_os', 'user_id'))
         
