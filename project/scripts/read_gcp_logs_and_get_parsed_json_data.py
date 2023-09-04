@@ -1,4 +1,4 @@
-import json
+import json, time
 
 def get_textPayload_from_gcp_log(log):
 
@@ -64,9 +64,13 @@ def get_members_data_for_userDevices_from_logs(json_data):
             if key in ["x_member_id", "platform_code", "version_code"]:
                 member_data[key] = value
         
-        # if member_data is not empty then append it to userDevices_data
+        # If member_data is not empty then append it to userDevices_data
         if member_data:
             userDevices_data.append(member_data)
+        
+        print("Member Data: ", member_data)
+
+    print("Total members_data parsed: ", len(userDevices_data))
 
     return userDevices_data
 
@@ -75,6 +79,9 @@ def open_json_file_and_get_data(filepath):
     try:
         with open(filepath) as f:
             data = json.load(f)
+
+            print("JSON file opened: ", filepath)
+
             return data
         
     except Exception as e:
@@ -87,11 +94,15 @@ def dump_json_data_to_file(json_data, file_path: str = "output.json"):
         with open(file_path, "w") as f:
             json.dump(json_data, f)
 
+            print("JSON data dumped to file: ", file_path)
+
     except Exception as e:
         print("Error dumping json data to file: ", e)
 
 
 def run_script():
+
+    start_time = time.time()
 
     # JSON file path
     input_file = "/Users/shubhgupta/Desktop/Togther/project/scripts/input.json"
@@ -106,6 +117,10 @@ def run_script():
     members_data_for_userDevices = get_members_data_for_userDevices_from_logs(json_logs)
 
     dump_json_data_to_file(members_data_for_userDevices, output_file)
+
+    end_time = time.time()
+
+    print("Time taken: ", end_time - start_time)
 
 
 if __name__ == "__main__":
