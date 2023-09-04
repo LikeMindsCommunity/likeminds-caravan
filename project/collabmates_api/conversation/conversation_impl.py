@@ -1016,6 +1016,9 @@ class ConversationImpl(ConversationManager):
         context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
 
+        # Updating the updated_at of Collabcard schema
+        chatroom_instance.save()
+
         conversation_response = {
             'success': True,
             'id': conversation_instance.id,
@@ -2380,9 +2383,6 @@ class ConversationHelper:
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
         chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
         conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
-
-        # Updating the updated_at of Collabcard schema
-        chatroom_instance.save()
 
         chatroom_state_instance = None
         state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_instance,
