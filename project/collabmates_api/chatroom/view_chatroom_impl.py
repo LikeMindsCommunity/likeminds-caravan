@@ -1069,8 +1069,6 @@ class FetchChatroomParticipantsView(APIView):
         if (not pagination_version_check) or non_pagination_version_check:
             page, page_size = None, None
 
-        print(page, page_size)
-
         try:
             chatroom_data = chatroom_manager.fetch_chatroom_participants(participant_name, page, page_size)
 
