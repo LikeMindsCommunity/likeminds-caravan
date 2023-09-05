@@ -452,14 +452,14 @@ class VersionUtilities:
         SdkSource.CHAT: {
             PlatformCode.ANDROID: 1000,
             PlatformCode.FLUTTER: unreleased_version_code,
-            PlatformCode.IOS: 1000,
+            PlatformCode.IOS: unreleased_version_code,
             PlatformCode.REACT: unreleased_version_code,
             PlatformCode.REACT_NATIVE: unreleased_version_code,
             PlatformCode.WEB: 1000,
 
             PlatformCode.ANDROID_SDK: 1000,
             PlatformCode.FLUTTER_SDK: unreleased_version_code,
-            PlatformCode.IOS_SDK: 100,
+            PlatformCode.IOS_SDK: unreleased_version_code,
             PlatformCode.REACT_SDK: unreleased_version_code,
             PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
             PlatformCode.WEB_SDK: 1000,
