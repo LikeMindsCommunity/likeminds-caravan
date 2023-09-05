@@ -3579,7 +3579,7 @@ class ChatroomImpl(ChatroomManager):
 
         # Check if chatroom creation time is more than 1 hour ago
         if card_instance.created_at + TimeUtilities.MILLI_SEC_IN_AN_HOUR < TimeUtilities.current_time_in_milliseconds():
-            return ResponseUtilities.get_impl_error_context('Action not allowed, try again after a few hours.',
+            return ResponseUtilities.get_impl_error_context('Action not allowed, try again after 1 hour',
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         conversion_filter = ModelUtilities.get_model_filter(ChatroomSecretTypeConversion, {'chatroom': card_instance})
