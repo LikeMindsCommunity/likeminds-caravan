@@ -314,11 +314,10 @@ class FetchParticipantsOfSecretChatroom(APIView):
                                                                   VersionUtilities.participants_meta_pagination,
                                                                   sdk_source)
 
-        community_hood_version_check = VersionUtilities.check_version(platform_code, version_code,
-                                                                      VersionUtilities.community_hood,
-                                                                      sdk_source)
+        non_pagination_version_check = VersionUtilities.check_version(
+            platform_code, version_code, VersionUtilities.participants_meta_without_pagination, sdk_source)
 
-        if (not pagination_version_check) or community_hood_version_check:
+        if (not pagination_version_check) or non_pagination_version_check:
             page, page_size = None, None
 
         try:
@@ -1064,12 +1063,13 @@ class FetchChatroomParticipantsView(APIView):
                                                                   VersionUtilities.participants_meta_pagination,
                                                                   sdk_source)
 
-        community_hood_version_check = VersionUtilities.check_version(platform_code, version_code,
-                                                                      VersionUtilities.community_hood,
-                                                                      sdk_source)
+        non_pagination_version_check = VersionUtilities.check_version(
+            platform_code, version_code, VersionUtilities.participants_meta_without_pagination, sdk_source)
 
-        if (not pagination_version_check) or community_hood_version_check:
+        if (not pagination_version_check) or non_pagination_version_check:
             page, page_size = None, None
+
+        print(page, page_size)
 
         try:
             chatroom_data = chatroom_manager.fetch_chatroom_participants(participant_name, page, page_size)
