@@ -3575,6 +3575,10 @@ class ChatroomImpl(ChatroomManager):
         if is_secret == card_instance.is_secret:
             return {'success': True}
 
+        if (card_instance.created_at + TimeUtilities.MILLI_SEC_IN_AN_HOUR) > TimeUtilities.current_time_in_milliseconds():
+            return ResponseUtilities.get_impl_error_context('Action not allowed, try again after 1 hour',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
         conversion_filter = ModelUtilities.get_model_filter(ChatroomSecretTypeConversion, {'chatroom': card_instance})
 
         if conversion_filter:
