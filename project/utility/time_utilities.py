@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 class TimeUtilities:
     MILLI_SEC_IN_A_DAY = 86400000
+    MILLI_SEC_IN_AN_HOUR = 3600000
 
     @staticmethod
     def current_time_in_millis() -> float:

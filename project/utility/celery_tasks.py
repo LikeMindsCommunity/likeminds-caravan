@@ -2511,7 +2511,7 @@ def log_chatroom_secret_type_conversion_activity(chatroom_id, is_secret):
     ModelUtilities.update_or_create_model(ChatroomSecretTypeConversion, {
         'chatroom': chatroom_instance
     }, {
-        'is_secret': False,
+        'is_secret': is_secret,
         'converted_at': TimeUtilities.current_time_in_milliseconds()
     })
 

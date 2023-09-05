@@ -26,7 +26,9 @@ from utility.time_utilities import TimeUtilities
 from utility.celery_beat_tasks import CeleryBeatTask
 from utility.constants import (INTRO_ROOM_LOOKBACK_PERIOD,
                                MINUTES_2, HOURS_24, MINUTES_5,
-                               MINUTES_10, MINUTES_30, VALID_URLS_REGEX)
+                               MINUTES_10, MINUTES_30, VALID_URLS_REGEX, 
+                               ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_START,
+                               ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END)
 from project.celery import app
 from utility.states import *
 
@@ -357,12 +359,19 @@ def track_notification_with_notification_payload_list(notification_payload_list)
                                     event_data=notification['payload'])
 
 
-def pre_compute_user_devices_by_user_list(user_list):
+def pre_compute_user_devices_by_user_list(user_list, is_broadcast_notification=False):
     """function to pre compute users' devices with user list"""
 
-    devices_filter = list(
-        ModelUtilities.get_model_filter(userDevices, {'user_id__in': user_list}).values('id', 'fcm_token', 'mobile_os',
-                                                                                        'user_id'))
+    devices_filter = ModelUtilities.get_model_filter(userDevices, {'user_id__in': user_list})
+
+    # If it is a broadcast notification, then dont send notifications to users with android version in range specified
+    if is_broadcast_notification:
+        devices_filter = devices_filter.exclude(platform_code='an', 
+                                                version_code__lte=ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END, 
+                                                version_code__gte=ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_START)
+        
+    devices_filter = list(devices_filter.values('id', 'fcm_token', 'mobile_os', 'user_id'))
+        
     devices_dict = {user_id: [] for user_id in user_list}
 
     for device in devices_filter:
@@ -376,11 +385,12 @@ def pre_compute_user_devices_by_user_list(user_list):
     return devices_dict
 
 
-def notification_meta(notification_list, message, calling_notification=""):
+def notification_meta(notification_list, message, is_broadcast_notification=False):
     """function to process notification to send"""
 
     user_id_list = [user_dict['id'] for user_dict in notification_list]
-    user_device_dict = pre_compute_user_devices_by_user_list(user_id_list)
+    user_device_dict = pre_compute_user_devices_by_user_list(user_list=user_id_list, 
+                                                             is_broadcast_notification=is_broadcast_notification)
 
     tokens = {
         'Android': [],
@@ -583,6 +593,7 @@ def get_tagged_members_list(community_id, chatroom_id, answer):
 
     if tagged_uuids_list:
         valid_ids = ModelUtilities.get_valid_user_ids_from_uuids(tagged_uuids_list, community_id)
+        valid_ids = ListUtilities.convert_elements_int_to_str(valid_ids)
         tagged_users_list.extend(valid_ids)
 
     group_tagged_users, conversation_text, should_unmute_members, is_group_tag = process_group_tags(
@@ -1305,7 +1316,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
         notification_list.append(user_context)
 
     message = TasksHelper.add_community_info_to_notification_payload(message, community_instance.id)
-    notification_meta(notification_list, message)
+    notification_meta(notification_list, message, is_broadcast_notification=is_group_tag)
 
 
 def compute_mute_status_for_users(current_user_id):
@@ -3350,7 +3361,7 @@ def send_poll_conversation_creation_notification_v1(card_id, poll_conversation_c
         notification_list.append(temp)
 
     message = TasksHelper.add_community_info_to_notification_payload(message, community_instance.id)
-    notification_meta(notification_list, message)
+    notification_meta(notification_list, message, is_broadcast_notification=True)
 
 
 @shared_task
