@@ -1878,14 +1878,13 @@ class ChatroomImpl(ChatroomManager):
                                                                       VersionUtilities.participants_meta_pagination,
                                                                       self.get_sdk_source())
 
-            community_hood_version_check = VersionUtilities.check_version(self.get_request_platform(),
-                                                                          self.get_version_code(),
-                                                                          VersionUtilities.community_hood,
-                                                                          self.get_sdk_source())
+            non_pagination_version_check = VersionUtilities.check_version(
+                self.get_request_platform(), self.get_version_code(),
+                VersionUtilities.participants_meta_without_pagination, self.get_sdk_source())
 
             order_by_name = False
 
-            if pagination_version_check and (not community_hood_version_check):
+            if pagination_version_check and (not non_pagination_version_check):
                 order_by_name = True
 
             participant_list = self.compute_tagging_list_for_secret_participants(
@@ -1900,7 +1899,7 @@ class ChatroomImpl(ChatroomManager):
                 'can_edit_participant': can_edit_participant
             }
 
-            if pagination_version_check and (not community_hood_version_check):
+            if pagination_version_check and (not non_pagination_version_check):
                 participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
                 response_dict['total_participants_count'] = participants_count
 
@@ -3083,14 +3082,13 @@ class ChatroomImpl(ChatroomManager):
                                                                   VersionUtilities.participants_meta_pagination,
                                                                   self.get_sdk_source())
 
-        community_hood_version_check = VersionUtilities.check_version(self.get_request_platform(),
-                                                                      self.get_version_code(),
-                                                                      VersionUtilities.community_hood,
-                                                                      self.get_sdk_source())
+        non_pagination_version_check = VersionUtilities.check_version(
+            self.get_request_platform(), self.get_version_code(), VersionUtilities.participants_meta_without_pagination,
+            self.get_sdk_source())
 
         order_by_name = False
 
-        if pagination_version_check and (not community_hood_version_check):
+        if pagination_version_check and (not non_pagination_version_check):
             order_by_name = True
 
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(total_participants_list, community_instance,
@@ -3106,7 +3104,7 @@ class ChatroomImpl(ChatroomManager):
             'can_edit_participant': can_edit_participant
         }
 
-        if pagination_version_check and (not community_hood_version_check):
+        if pagination_version_check and (not non_pagination_version_check):
             participants_count = ChatroomHelper.get_participants_count_in_chatroom(card_instance)
             response_dict['total_participants_count'] = participants_count
 
