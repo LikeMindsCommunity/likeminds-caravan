@@ -34,6 +34,7 @@ def convert_secret_chatroom_again_to_secret_for_bugfix(chatroom_id):
     start_time = time.time()
     print("Converting chatroom to secret chatroom")
 
+    # Convert chatroom to secret chatroom and delete collabcard states for users with follow_status : false
     convert_chatroom_to_secret_chatroom(chatroom_id)
 
     print("Time taken to convert chatroom to secret chatroom: ", time.time() - start_time)
