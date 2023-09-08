@@ -4108,7 +4108,6 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                               AND togther_collabcardstate.community_id = {} 
                                               AND togther_collabcardstate.remove_id IS NULL 
                                               AND togther_collabcard.type IN {} 
-                                              AND togther_collabcard.is_deleted = false 
                                               AND togther_collabcard.updated_at >= {} 
                                               AND togther_collabcard.updated_at <= {}
                                             ) 
