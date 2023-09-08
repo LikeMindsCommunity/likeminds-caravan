@@ -300,7 +300,7 @@ def my_chatrooms_version_1(request):
     community_id = request.GET.get('community_id', None)
     community_instance = SdkClient.get_community_instance_or_none(community_id, api_key)
 
-    if (community_id or api_key) and not community_instance:
+    if not community_instance:
         context = ResponseUtilities.get_view_impl_error_context("Invalid community ID/API key!",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
