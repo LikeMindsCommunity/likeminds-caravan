@@ -1,18 +1,20 @@
 from rest_framework import status as status_codes
 
 from .webhook_manager import WebhookManager
-from .constants import WEBHOOK_LIMIT
 from .serializers import WebhookSerializer
 from utility.response_utilities import ResponseUtilities
 from utility.auth_utilities import AuthUtilities
 from togther.models import ModelUtilities
 from .models import CommunityWebhook
 
+from .webhook_impl_helper import WebhookImplHelper
+
 import json
 
 
 class WebhookImpl(WebhookManager):
 
+    api_key = None
     member_id = None
     community_id = None
     webhook_type = None
@@ -20,12 +22,13 @@ class WebhookImpl(WebhookManager):
     webhook_id = None
 
     def __init__(self, member_id: str = None, community_id: str = None, webhook_type: int = None, url: str = None,
-                 webhook_id: str = None):
+                 webhook_id: str = None, api_key: str = None):
         self.member_id = member_id
         self.community_id = community_id
         self.webhook_type = webhook_type
         self.url = url
         self.webhook_id = webhook_id
+        self.api_key = api_key
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -41,6 +44,9 @@ class WebhookImpl(WebhookManager):
 
     def get_webhook_id(self) -> str:
         return self.webhook_id
+    
+    def get_api_key(self) -> str:
+        return self.api_key
 
     def fetch_webhooks(self) -> dict:
 
@@ -77,28 +83,22 @@ class WebhookImpl(WebhookManager):
 
     def add_webhook(self) -> dict:
 
-        authentication_response = AuthUtilities.is_cm(self.get_community_id(), self.get_member_id())
+        validated_request = WebhookImplHelper.validate_add_webhook_request(self.get_api_key(),
+                                                                           self.get_member_id(),
+                                                                           self.get_url(),
+                                                                           self.get_webhook_type())
+        
+        if 'error_message' in validated_request:
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        community_instance = validated_request.get('community_instance')
+        webhook_url = validated_request.get('webhook_url')
+        webhook_type = validated_request.get('webhook_type')
 
-        if 'error_message' in authentication_response:
-            return ResponseUtilities.get_impl_error_context(authentication_response['error_message'],
-                                                            authentication_response['status'])
-
-        webhook_instances = ModelUtilities.get_model_filter(
-            CommunityWebhook, {'community_id': self.get_community_id(), 'webhook_type': self.get_webhook_type()})
-
-        if len(webhook_instances) >= WEBHOOK_LIMIT:
-            return ResponseUtilities.get_impl_error_context('You can only create 5 webhooks of same type',
-                                                            status_codes.HTTP_403_FORBIDDEN)
-
-        same_webhook_instances = webhook_instances.filter(url=self.get_url())
-
-        if len(same_webhook_instances) > 0:
-            return ResponseUtilities.get_impl_error_context('Webhook exist with given details',
-                                                            status_codes.HTTP_403_FORBIDDEN)
-
-        create_webhook = self._create_webhook_instance(self.get_community_id(),
-                                                       self.get_url(),
-                                                       self.get_webhook_type())
+        create_webhook = self._create_webhook_instance(community_instance.id,
+                                                       webhook_url,
+                                                       webhook_type)
 
         if 'error_message' in create_webhook:
             return ResponseUtilities.get_impl_error_context(create_webhook['error_message'],

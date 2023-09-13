@@ -1,17 +1,19 @@
 from utility.states import WebhookTypes
 from utility.response_utilities import ResponseUtilities
 
-
 class WebhookViewHelper:
 
     @staticmethod
-    def basic_body_validator(request_body, member_id):
+    def basic_body_validator(request_body, member_id, api_key=None):
+
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context('send x-api-key in headers')
 
         if not request_body:
             return ResponseUtilities.get_inner_error_context('invalid request body')
 
         if not member_id:
-            return ResponseUtilities.get_inner_error_context('send member_id in headers')
+            return ResponseUtilities.get_inner_error_context('send x-member-id in headers')
 
         return None
 
@@ -29,15 +31,12 @@ class WebhookViewHelper:
         return request_body
 
     @staticmethod
-    def add_webhook_body_validator(request_body, member_id):
+    def add_webhook_body_validator(request_body, member_id, api_key=None):
 
-        basic_validator = WebhookViewHelper.basic_body_validator(request_body, member_id)
+        basic_validator = WebhookViewHelper.basic_body_validator(request_body, member_id, api_key)
 
         if basic_validator:
             return basic_validator
-
-        if 'community_id' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send community_id in body')
 
         if 'webhook_type' not in request_body:
             return ResponseUtilities.get_inner_error_context('send webhook_type in body')

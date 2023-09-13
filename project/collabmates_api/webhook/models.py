@@ -6,9 +6,10 @@ from togther.models import Community
 
 class CommunityWebhook(models.Model):
 
-    community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
     url = models.TextField()
-    webhook_type = models.IntegerField(choices=[(webhook_type.value, webhook_type) for webhook_type in WebhookTypes])
+    webhook_type = models.CharField(max_length=30, choices=[(webhook_type.value, webhook_type) for webhook_type in WebhookTypes])
+    is_active = models.BooleanField(default=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 

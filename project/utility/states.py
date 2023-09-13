@@ -593,7 +593,10 @@ airtable_webhook_types = AirtableWebhookTypes()
 
 
 class WebhookTypes(enum.Enum):
-    COMMUNITY_JOIN = 1
+    COMMUNITY_JOIN = "community.join"
+    CHATROOM_JOIN = "chatroom.joined"
+    CHATROOM_LEAVE = "chatroom.left"
+    PROFILE_CREATED = "profile.created"
 
 
 class CohortAccess(enum.Enum):
