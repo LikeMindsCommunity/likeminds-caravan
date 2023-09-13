@@ -8,6 +8,7 @@ from togther.models import ModelUtilities
 from .models import CommunityWebhook
 
 from .webhook_impl_helper import WebhookImplHelper
+from utility.string_utilities import StringUtilities
 
 import json
 
@@ -50,7 +51,7 @@ class WebhookImpl(WebhookManager):
 
     def fetch_webhooks(self) -> dict:
 
-        validated_request = WebhookImplHelper.validate_fetch_webhook_request(self.get_api_key(),
+        validated_request = WebhookImplHelper.validate_fetch_webhooks_request(self.get_api_key(),
                                                                              self.get_member_id())
 
         if 'error_message' in validated_request:
@@ -113,36 +114,38 @@ class WebhookImpl(WebhookManager):
 
     def fetch_webhook(self) -> dict:
 
-        webhook_instance = ModelUtilities.get_model_instance_or_none(CommunityWebhook, self.get_webhook_id())
-
-        if not webhook_instance:
-            return ResponseUtilities.get_impl_error_context('Invalid webhook_id', status_codes.HTTP_404_NOT_FOUND)
-
-        authentication_response = AuthUtilities.is_cm(webhook_instance.community_id, self.get_member_id())
-
-        if 'error_message' in authentication_response:
-            return ResponseUtilities.get_impl_error_context(authentication_response['error_message'],
-                                                            authentication_response['status'])
+        validated_request = WebhookImplHelper.validate_fetch_webhook_request(self.get_api_key(),
+                                                                             self.get_member_id(),
+                                                                             self.get_webhook_id())
+        
+        if 'error_message' in validated_request:
+            return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+    
+        webhook_instance = validated_request.get('webhook_instance')
 
         webhook_data = WebhookSerializer(webhook_instance)
 
         return {'success': True, 'webhooks': webhook_data.data}
 
-    def update_webhook(self) -> dict:
+    def update_webhook(self, webhook_url:str = None, is_active:bool = None) -> dict:
 
-        webhook_instance = ModelUtilities.get_model_instance_or_none(CommunityWebhook, self.get_webhook_id())
+        validated_request = WebhookImplHelper.validate_update_webhook_request(self.get_api_key(),
+                                                                             self.get_member_id(),
+                                                                             self.get_webhook_id())
+        
+        if 'error_message' in validated_request:
+            return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        webhook_instance = validated_request.get('webhook_instance')
 
-        if not webhook_instance:
-            return ResponseUtilities.get_impl_error_context("Invalid webhook details",
-                                                            status_codes.HTTP_403_FORBIDDEN)
+        if is_active is not None:
+            webhook_instance.is_active = is_active
 
-        authentication_response = AuthUtilities.is_cm(webhook_instance.community_id, self.get_member_id())
+        if webhook_url is not None :
+            webhook_instance.url = webhook_url
 
-        if 'error_message' in authentication_response:
-            return ResponseUtilities.get_impl_error_context(authentication_response['error_message'],
-                                                            authentication_response['status'])
-
-        webhook_instance.url = self.get_url()
         webhook_instance.save()
 
         webhook_instance_data = WebhookSerializer(webhook_instance).data
