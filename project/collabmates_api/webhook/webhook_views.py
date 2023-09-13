@@ -113,17 +113,17 @@ class WebhookView(APIView):
 
     def delete(self, request, webhook_id):
 
-        request_body = RequestUtilities.load_request_body(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        validated_request_body = WebhookViewHelper.delete_webhook_body_validator(request_body, member_id)
+        validate_request = WebhookViewHelper.validate_basic_webhook_request(member_id, api_key)
 
-        if 'error_message' in validated_request_body:
-            context = ResponseUtilities.get_view_impl_error_context(validated_request_body['error_message'],
+        if 'error_message' in validate_request:
+            context = ResponseUtilities.get_view_impl_error_context(validate_request['error_message'],
                                                                     status_codes.HTTP_400_BAD_REQUEST)
             return JsonResponse(context['data'], status=context['status'])
 
-        webhook_manager = WebhookImpl(member_id=member_id,
-                                      webhook_id=webhook_id)
+        webhook_manager = WebhookImpl(member_id=member_id, api_key=api_key, webhook_id=webhook_id)
+        
         response_data = webhook_manager.delete_webhook()
 
         if 'error_message' in response_data:

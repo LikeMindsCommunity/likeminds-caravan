@@ -154,17 +154,16 @@ class WebhookImpl(WebhookManager):
 
     def delete_webhook(self) -> dict:
 
-        webhook_instance = ModelUtilities.get_model_instance_or_none(CommunityWebhook, self.get_webhook_id())
-
-        if not webhook_instance:
-            return ResponseUtilities.get_impl_error_context('Invalid webhook details', status_codes.HTTP_403_FORBIDDEN)
-
-        authentication_response = AuthUtilities.is_cm(webhook_instance.community_id, self.get_member_id())
-
-        if 'error_message' in authentication_response:
-            return ResponseUtilities.get_impl_error_context(authentication_response['error_message'],
-                                                            authentication_response['status'])
-
+        validated_request = WebhookImplHelper.validate_delete_webhook_request(self.get_api_key(),
+                                                                              self.get_member_id(),
+                                                                              self.get_webhook_id())
+        
+        if 'error_message' in validated_request:
+            return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        webhook_instance = validated_request.get('webhook_instance')
+        
         webhook_instance.delete()
 
         return {'success': True}

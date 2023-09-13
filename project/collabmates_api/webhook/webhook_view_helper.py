@@ -64,13 +64,3 @@ class WebhookViewHelper:
             return ResponseUtilities.get_inner_error_context('is_active should be boolean')
 
         return request_body
-
-    @staticmethod
-    def delete_webhook_body_validator(request_body, member_id):
-
-        basic_validator = WebhookViewHelper.validate_body_webhook_request(request_body, member_id)
-
-        if basic_validator:
-            return basic_validator
-
-        return request_body
