@@ -50,13 +50,16 @@ class WebhookImpl(WebhookManager):
 
     def fetch_webhooks(self) -> dict:
 
-        authentication_response = AuthUtilities.is_cm(self.get_community_id(), self.get_member_id())
+        validated_request = WebhookImplHelper.validate_fetch_webhook_request(self.get_api_key(),
+                                                                             self.get_member_id())
 
-        if 'error_message' in authentication_response:
-            return ResponseUtilities.get_impl_error_context(authentication_response['error_message'],
-                                                            authentication_response['status'])
+        if 'error_message' in validated_request:
+            return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        community_instance = validated_request.get('community_instance')
 
-        webhook_instances = ModelUtilities.get_model_filter(CommunityWebhook, {'community_id': self.get_community_id()})
+        webhook_instances = ModelUtilities.get_model_filter(CommunityWebhook, {'community_id': community_instance.id})
 
         webhook_data = WebhookSerializer(webhook_instances, many=True)
 

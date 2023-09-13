@@ -4,36 +4,33 @@ from utility.response_utilities import ResponseUtilities
 class WebhookViewHelper:
 
     @staticmethod
-    def basic_body_validator(request_body, member_id, api_key=None):
+    def validate_body_webhook_request(request_body, member_id, api_key=None):
 
-        if not api_key:
-            return ResponseUtilities.get_inner_error_context('send x-api-key in headers')
+        basic_validation = WebhookViewHelper.validate_basic_webhook_request(member_id, api_key)
+
+        if 'error_message' in basic_validation:
+            return basic_validation
 
         if not request_body:
             return ResponseUtilities.get_inner_error_context('invalid request body')
 
-        if not member_id:
-            return ResponseUtilities.get_inner_error_context('send x-member-id in headers')
-
         return None
 
     @staticmethod
-    def fetch_webhooks_body_validator(request_body, member_id):
+    def validate_basic_webhook_request(member_id, api_key):
 
-        basic_validator = WebhookViewHelper.basic_body_validator(request_body, member_id)
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context('send x-member-id in headers')
+        
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context('send x-api-key in headers')
 
-        if basic_validator:
-            return basic_validator
-
-        if 'community_id' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send community_id in body')
-
-        return request_body
+        return {'success': True}
 
     @staticmethod
     def add_webhook_body_validator(request_body, member_id, api_key=None):
 
-        basic_validator = WebhookViewHelper.basic_body_validator(request_body, member_id, api_key)
+        basic_validator = WebhookViewHelper.validate_body_webhook_request(request_body, member_id, api_key)
 
         if basic_validator:
             return basic_validator
@@ -52,7 +49,7 @@ class WebhookViewHelper:
     @staticmethod
     def fetch_webhook_body_validator(request_body, member_id):
 
-        basic_validator = WebhookViewHelper.basic_body_validator(request_body, member_id)
+        basic_validator = WebhookViewHelper.validate_body_webhook_request(request_body, member_id)
 
         if basic_validator:
             return basic_validator
@@ -62,7 +59,7 @@ class WebhookViewHelper:
     @staticmethod
     def update_webhook_body_validator(request_body, member_id):
 
-        basic_validator = WebhookViewHelper.basic_body_validator(request_body, member_id)
+        basic_validator = WebhookViewHelper.validate_body_webhook_request(request_body, member_id)
 
         if basic_validator:
             return basic_validator
@@ -75,7 +72,7 @@ class WebhookViewHelper:
     @staticmethod
     def delete_webhook_body_validator(request_body, member_id):
 
-        basic_validator = WebhookViewHelper.basic_body_validator(request_body, member_id)
+        basic_validator = WebhookViewHelper.validate_body_webhook_request(request_body, member_id)
 
         if basic_validator:
             return basic_validator

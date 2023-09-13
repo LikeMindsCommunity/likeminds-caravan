@@ -53,4 +53,32 @@ class WebhookImplHelper:
             'webhook_type': webhook_type,
             'webhook_url': webhook_url,
         }
+    
+    @staticmethod
+    def validate_fetch_webhook_request(api_key: str, user_id: str) -> dict:
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id,
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        community_instace = validated_dict.get('community_id')
+        user_instance = validated_dict.get('user_id')
+
+        is_admin = Members.is_member_community_promoter(community_instace, user_instance)
+
+        if not is_admin:
+            return ResponseUtilities.get_inner_error_context('You are not the owner/CM of community')
+
+        return {
+            'community_instance': community_instace,
+            'user_instance': user_instance,
+        }
 
