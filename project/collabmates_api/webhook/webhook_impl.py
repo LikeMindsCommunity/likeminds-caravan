@@ -52,7 +52,7 @@ class WebhookImpl(WebhookManager):
     def fetch_webhooks(self) -> dict:
 
         validated_request = WebhookImplHelper.validate_fetch_webhooks_request(self.get_api_key(),
-                                                                             self.get_member_id())
+                                                                              self.get_member_id())
 
         if 'error_message' in validated_request:
             return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
