@@ -22,7 +22,7 @@ class WebhookUtilties:
         if not secret or not payload:
             return None
         
-        message = str(payload, 'utf-8')
+        message = json.dumps(payload)
 
         digest = hmac.new(
             key=bytes(secret, 'utf-8'),
@@ -32,7 +32,7 @@ class WebhookUtilties:
 
         return digest
 
-    @shared_task(bind=True, autoretry_for=(Exception), retry_kwargs={'max_retries': MAX_WEBHOOK_RETRY_LIMIT + 1})
+    @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': MAX_WEBHOOK_RETRY_LIMIT + 1})
     def send_webhook_request_with_payload(self, url:str, payload:dict, webhook_type:str, secret:str = None):
         """
         Celery task to send webhook request with payload
@@ -81,10 +81,12 @@ class WebhookUtilties:
                 current_retries = self.request.retries
 
                 # If current retries are less than max retries, retry the task with exponential countdown
-                if current_retries < MAX_WEBHOOK_RETRY_LIMIT:
+                if current_retries > MAX_WEBHOOK_RETRY_LIMIT:
+
+                    countdown_secs = 60 ** current_retries
 
                     # Retry wity countdown 1 -> 60 -> 3600 seconds
-                    raise self.retry(countdown= 60 ** current_retries)
+                    raise self.retry(countdown=countdown_secs)
                 
                 # If current retries are equal to max retries, set webhook as inactive and send mail
                 else:

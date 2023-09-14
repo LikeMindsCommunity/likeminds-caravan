@@ -4226,7 +4226,7 @@ class ChatroomImpl(ChatroomManager):
         }
         
         payload = {
-            "id": uuid.uuid4(),
+            "id": str(uuid.uuid4()),
             "event": WebhookTypes.CHATROOM_JOIN.value,
             "source": WEBHOOK_SOURCE_CHAT,
             "created_at": TimeUtilities.current_time_in_milliseconds(),
@@ -4245,13 +4245,14 @@ class ChatroomImpl(ChatroomManager):
         
         webhook_instance = ModelUtilities.get_model_filter(CommunityWebhook, 
                                                            {'community': community_id,
-                                                            'webhook_type': WebhookTypes.CHATROOM_JOIN.value}
+                                                            'webhook_type': WebhookTypes.CHATROOM_JOIN.value,
+                                                            'is_active': True}
                                                             ).first()
         
         if not webhook_instance:
             return
 
-        webhook_url = webhook_instance.webhook_url
+        webhook_url = webhook_instance.url
         secret = ""
 
         sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()

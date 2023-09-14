@@ -30,10 +30,10 @@ class WebhookViewHelper:
     @staticmethod
     def add_webhook_body_validator(request_body, member_id, api_key=None):
 
-        basic_validator = WebhookViewHelper.validate_body_webhook_request(request_body, member_id, api_key)
+        basic_validation = WebhookViewHelper.validate_body_webhook_request(request_body, member_id, api_key)
 
-        if basic_validator:
-            return basic_validator
+        if 'error_message' in basic_validation:
+            return basic_validation
 
         if 'webhook_type' not in request_body:
             return ResponseUtilities.get_inner_error_context('send webhook_type in body')
