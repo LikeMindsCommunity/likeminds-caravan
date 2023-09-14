@@ -102,7 +102,7 @@ class WebhookUtilties:
                     webhook_instance.save()
 
                     subject = WEBHOOK_FAILURE_MAIL_SUBJECT
-                    body = WEBHOOK_FAILURE_MAIL_BODY.format(webhook_type, url, TimeUtilities.get_current_datetime_in_IST, json.dumps(payload, indent=4))
+                    body = WEBHOOK_FAILURE_MAIL_BODY.format(webhook_type, url, json.dumps(payload, indent=4))
                     
                     # Fetch team emails from settings
                     team_emails = settings.WEBHOOK_FAILURE_NOTIFICATION_TEAM_EMAILS
@@ -116,8 +116,8 @@ class WebhookUtilties:
 
         except Exception as e:
 
-            # If not a RETRY exception, log the error and raise the exception
-            if not isinstance(e, Retry):
-                logger.error(f"{payload['id']} | Webhook request failed with unhandled exception: {e.args}, url: {url}, payload: {payload}")
-
-            raise e
+            # If RETRY exception, raise and retry, else log the error and exit
+            if isinstance(e, Retry):
+                raise e
+        
+            logger.error(f"{payload['id']} | Webhook request failed with unhandled exception: {e.args}, url: {url}, payload: {payload}")

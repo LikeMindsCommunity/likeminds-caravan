@@ -6409,11 +6409,11 @@ def follow_chatroom_async(collabcard_id,
 
             # Trigger chatroom leave webhook for self leave
             from .chatroom.chatroom_impl import ChatroomImpl
-            ChatroomImpl.trigger_webhook_for_chatroom_event(community_id=community_instance.id,
-                                                                    chatroom_id=card_instance.id,
-                                                                    users_list=[user_instance.id],
-                                                                    event_type=WebhookTypes.CHATROOM_LEAVE.value,
-                                                                    type_method=WEBHOOK_CHATROOM_LEAVE_SELF)
+            ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=community_instance.id,
+                                                                  chatroom_id=card_instance.id,
+                                                                  users_list=[user_instance.id],
+                                                                  event_type=WebhookTypes.CHATROOM_LEAVE.value,
+                                                                  type_method=WEBHOOK_CHATROOM_LEAVE_SELF)
 
     if status:
         card_state_instance = collabcard_state_filter[0]

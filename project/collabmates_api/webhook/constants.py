@@ -21,13 +21,21 @@ WEBHOOK_COMMUNITY_JOIN = "community_join"
 
 WEBHOOK_FAILURE_MAIL_SUBJECT = "Notification for webhook failure"
 WEBHOOK_FAILURE_MAIL_BODY = """
-Hey Team,
-{} for URL: {} has failed on {}.
-Hence the webhook has been set as inactive
+<h2>Hey Team</h2>
+<br>
+<h2>
+Webhook Event type: '{}' for URL: <i>{}</i> has failed more than the maximum retry limit.
+<br>
+Hence the webhook has been set as Inactive.
+<br>
 Please check logs for more info.
-
-Webhook details: 
+</h2>
+<br>
+<h2>Webhook details:</h2> 
+<br>
+<code>
 {}
-
-Please inform the concerned team.
+</code>
+<br>
+<h3>Please inform the concerned team.<h3>
 """

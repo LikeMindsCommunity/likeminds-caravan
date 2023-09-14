@@ -195,5 +195,3 @@ class WebhookImplHelper:
                 'user_instance': user_instance,
                 'webhook_instance': webhook_instance
             }
-        
-

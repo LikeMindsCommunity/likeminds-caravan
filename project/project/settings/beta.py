@@ -119,4 +119,4 @@ CALENDAR_CREDENTIALS = {
     }
 }
 
-WEBHOOK_FAILURE_NOTIFICATION_TEAM_EMAILS = ['product@likeminds.community', 'backend@likeminds.community']
+WEBHOOK_FAILURE_NOTIFICATION_TEAM_EMAILS = ['backend@likeminds.community']
