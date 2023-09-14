@@ -6413,8 +6413,10 @@ def follow_chatroom_async(collabcard_id,
 
         # Trigger chatroom join webhook for self join
         from .chatroom.chatroom_impl import ChatroomImpl
-        ChatroomImpl.trigger_chatroom_join_webhook.delay(community_instance.id, user_instance.id, 
-                                                         card_instance.id, WEBHOOK_CHATROOM_JOIN_METHOD_SELF)
+        ChatroomImpl.trigger_chatroom_join_webhook.delay(community_id=community_instance.id, 
+                                                         chatroom_id=card_instance.id, 
+                                                         users_list=[user_instance.id], 
+                                                         join_method=WEBHOOK_CHATROOM_JOIN_METHOD_SELF)
         
 
     send_sync_notification.delay({'chatroom_id': card_instance.id,

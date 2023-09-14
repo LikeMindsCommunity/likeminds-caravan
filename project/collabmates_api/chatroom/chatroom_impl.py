@@ -1259,7 +1259,8 @@ class ChatroomImpl(ChatroomManager):
             ChatroomHelper.make_secret_chatroom_relation_for_community_members.delay(participants_list,
                                                                                      self.get_chatroom_id(),
                                                                                      community_id,
-                                                                                     room_creator_id=room_creator_id)
+                                                                                     room_creator_id=room_creator_id,
+                                                                                     trigger_webhook=True)
 
         if chatroom_instance.co_hosts:
             ChatroomHelper.auto_follow_event_co_hosts_and_send_notification(chatroom_instance, user_instance.userinfo)
@@ -4211,7 +4212,9 @@ class ChatroomImpl(ChatroomManager):
             "event": WebhookTypes.CHATROOM_JOIN.value,
             "source": WEBHOOK_SOURCE_CHAT,
             "created_at": TimeUtilities.current_time_in_milliseconds(),
-            "data": {}
+            "data": {
+                "join_method": join_method
+            }
         }
 
         chatroom_instance = ModelUtilities.get_model_filter(Collabcard, {'id': chatroom_id}).first()
@@ -4239,31 +4242,26 @@ class ChatroomImpl(ChatroomManager):
 
         # If join method is auto follow chatroom, send only chatroom data along with users added count
         if join_method == WEBHOOK_CHATROOM_JOIN_METHOD_AUTO_FOLLOW_CHATROOM: 
-            payload['data']['join_method'] = join_method
             payload['data']['users_added'] = len(users_list)
 
             return payload
 
-        users_meta = get_users_sdk_meta_dict(users_list)
+        # Truncate users list to MAX_WEBHOOK_USERS_LIMIT
+        users_meta = get_users_sdk_meta_dict(users_list[:MAX_WEBHOOK_USERS_META_LIMIT])
         users_data = []
 
-        for user_meta in users_meta:
+        for key, user_meta in users_meta.items():
             
-            # Truncate Users data according to MAX LIMIT
-            if len(users_data) >= MAX_WEBHOOK_USERS_META_LIMIT:
-                break
-
             user = {
                 "custom_title": user_meta.get('custom_title'),
                 "image_url": user_meta.get('image_url'),
                 "is_guest": user_meta.get('is_guest'),
                 "name": user_meta.get('name'),
                 "sdk_client_info": {
-                    "community": user_meta.get('sdk_client_info').get('community'),
-                    "uuid": user_meta.get('sdk_client_info').get('user_unique_id')
+                    "community": user_meta.get('sdk_client_info').get('community') if user_meta.get('sdk_client_info') else None,
+                    "uuid": user_meta.get('sdk_client_info').get('user_unique_id') if user_meta.get('sdk_client_info') else None
                 },
                 "uuid": user_meta.get('user_unique_id'),
-                "join_method": join_method
             }
 
             users_data.append(user)
@@ -4274,13 +4272,13 @@ class ChatroomImpl(ChatroomManager):
 
         else:
             payload['data']['users'] = users_data
-            payload['data']['users_added'] = len(users_meta)
+            payload['data']['users_added'] = len(users_list)
 
         return payload
 
     @staticmethod
     @shared_task
-    def trigger_chatroom_join_webhook(community_id, users_list, chatroom_id, join_method):
+    def trigger_chatroom_join_webhook(community_id: int, chatroom_id: int, users_list: list, join_method: str):
         
         webhook_instance = ModelUtilities.get_model_filter(CommunityWebhook, 
                                                            {'community': community_id,
@@ -4398,7 +4396,7 @@ class ChatroomHelper:
     @staticmethod
     @shared_task
     def make_secret_chatroom_relation_for_community_members(user_list, chatroom_id, community_id,
-                                                            room_creator_id):
+                                                            room_creator_id, trigger_webhook = False):
 
         community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
@@ -4442,6 +4440,13 @@ class ChatroomHelper:
 
         for user_id in user_list:
             update_last_unseen_in_engage(user=user_id, community=community_instance.id)
+
+        # Trigger webhook for chatroom join
+        if trigger_webhook:
+            ChatroomImpl.trigger_chatroom_join_webhook.delay(community_id=community_id,
+                                                             chatroom_id=chatroom_id,
+                                                             users_list=user_list,
+                                                             join_method=WEBHOOK_CHATROOM_JOIN_METHOD_ADDED_BY_CM)
 
         ChatroomHelper.update_secret_chatroom_for_community_promoters(card_instance, community_instance, member_dict)
         ElasticSearchSync.update_chatroom(card_instance.id)
@@ -4850,10 +4855,16 @@ class ChatroomHelper:
             card_engagement_user_list = auto_follow_members_list
 
             if trigger_webhook:
+                if card_instance.auto_follow_done:
+                    join_method = WEBHOOK_CHATROOM_JOIN_METHOD_AUTO_FOLLOW_CHATROOM
+
+                else:
+                    join_method = WEBHOOK_CHATROOM_JOIN_METHOD_ADDED_BY_CM
+
                 ChatroomImpl.trigger_chatroom_join_webhook.delay(community_id=community_instance.id,
-                                                                 users_list=auto_follow_members_list,
                                                                  chatroom_id=card_instance.id,
-                                                                 join_method=WEBHOOK_CHATROOM_JOIN_METHOD_AUTO_FOLLOW_CHATROOM)
+                                                                 users_list=auto_follow_members_list,
+                                                                 join_method=join_method)
 
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
             card_instance.id, card_engagement_user_list)
@@ -5096,10 +5107,10 @@ class ChatroomHelper:
             .delay(card_instance.id, chatroom_member_list)
 
         # Trigger webhook for bulk follow chatroom users
-        if trigger_webhook:
+        if chatroom_member_list and trigger_webhook:
             ChatroomImpl.trigger_chatroom_join_webhook.delay(community_id=card_instance.community_id,
                                                              chatroom_id=card_instance.id,
-                                                             user_id_list=chatroom_member_list,
+                                                             users_list=chatroom_member_list,
                                                              join_method=join_method)
 
     @staticmethod

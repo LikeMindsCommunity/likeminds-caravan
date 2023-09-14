@@ -63,7 +63,10 @@ class WebhookUtilties:
             api_client.update_body(payload)
 
             # If secret is present, create a signature and add it to headers
-            if secret:
+            if secret:  
+
+                # sort the payload keys to ensure the signature is consistent
+                payload = json.loads(json.dumps(payload, sort_keys=True))
 
                 signature = WebhookUtilties.create_hexdigest_from_payload(payload, secret)
                 api_client.add_header('x-signature', signature)
@@ -87,7 +90,7 @@ class WebhookUtilties:
                 if current_retries < MAX_WEBHOOK_RETRY_LIMIT:
 
                     # Retry wity countdown 1 -> 60 -> 3600 seconds
-                    countdown_secs = 6 ** current_retries
+                    countdown_secs = 60 ** current_retries
 
                     raise self.retry(countdown=countdown_secs)
                 
