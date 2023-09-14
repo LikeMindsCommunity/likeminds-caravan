@@ -279,9 +279,11 @@ def get_followed_chatrooms(user_id,
         is_private_val = "FALSE"
         chatroom_with_user_val = "NULL"
         dm_chatrooms_communities_filter = ""
+        conversation_communities_filter = ""
 
         if community_id:
             dm_chatrooms_communities_filter = f"AND togther_collabcard.community_id IN ({str(community_id)})"
+            conversation_communities_filter = f"WHERE community_id IN ({str(community_id)})"
 
         if consider_dm_chatrooms and len(dm_instance_community_ids_list) == 0:
             return []
@@ -394,7 +396,7 @@ def get_followed_chatrooms(user_id,
                                                                AND      ca.user_id = %s) THEN 1
                                                       ELSE 2
                                              END                  AS cond_row
-                                    FROM     togther_card_answers AS ca
+                                    FROM     togther_card_answers AS ca %s
                                     ) SELECT   card_id,
                            id,
                            created_at,
@@ -416,7 +418,7 @@ def get_followed_chatrooms(user_id,
                            lca.created_at DESC,
                            lca.id DESC limit %s offset %s""" % (
             included_conversation_states, follow_conversation_state, user_id, included_conversation_states,
-            follow_conversation_state, user_id, str(user_id),
+            follow_conversation_state, user_id, conversation_communities_filter, str(user_id),
             str(dm_chatrooms_filter), str(filter_intro_rooms_query), str(dm_chatrooms_communities_filter),
             str(excluded_card_ids_filter), str(chatroom_type_filter), custom_tag_filter, str(limit), str(offset))
 
