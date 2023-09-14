@@ -43,6 +43,9 @@ class WebhookViewHelper:
 
         if 'url' not in request_body:
             return ResponseUtilities.get_inner_error_context('send url in body')
+        
+        if 'is_active' not in request_body:
+            return ResponseUtilities.get_inner_error_context('send is_active in body')
 
         return request_body
 

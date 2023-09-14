@@ -67,12 +67,13 @@ class WebhookImpl(WebhookManager):
         return {'success': True, 'webhooks': webhook_data.data}
 
     @staticmethod
-    def _create_webhook_instance(community_id, url, webhook_type) -> dict:
+    def _create_webhook_instance(community_id, url, webhook_type, is_active) -> dict:
 
         webhook_data = {
             'community': community_id,
             'url': url,
             'webhook_type': webhook_type,
+            'is_active': is_active
         }
 
         webhook_instance = WebhookSerializer(data=webhook_data)
@@ -85,12 +86,13 @@ class WebhookImpl(WebhookManager):
         return ResponseUtilities.get_impl_error_context(json.dumps(webhook_instance.errors),
                                                         status_codes.HTTP_400_BAD_REQUEST)
 
-    def add_webhook(self) -> dict:
+    def add_webhook(self, is_active) -> dict:
 
         validated_request = WebhookImplHelper.validate_add_webhook_request(self.get_api_key(),
                                                                            self.get_member_id(),
                                                                            self.get_url(),
-                                                                           self.get_webhook_type())
+                                                                           self.get_webhook_type(),
+                                                                           is_active)
         
         if 'error_message' in validated_request:
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -102,7 +104,8 @@ class WebhookImpl(WebhookManager):
 
         create_webhook = self._create_webhook_instance(community_instance.id,
                                                        webhook_url,
-                                                       webhook_type)
+                                                       webhook_type,
+                                                       is_active)
 
         if 'error_message' in create_webhook:
             return ResponseUtilities.get_impl_error_context(create_webhook['error_message'],

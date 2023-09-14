@@ -50,7 +50,7 @@ class WebhooksView(APIView):
                                       webhook_type=validated_request_body.get('webhook_type'),
                                       url=validated_request_body.get('url'))
         
-        response_data = webhook_manager.add_webhook()
+        response_data = webhook_manager.add_webhook(validated_request_body.get('is_active'))
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],

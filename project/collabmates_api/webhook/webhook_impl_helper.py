@@ -13,8 +13,11 @@ from .models import CommunityWebhook
 class WebhookImplHelper:
 
     @staticmethod
-    def validate_add_webhook_request(api_key: str, user_id: str, 
-                                     webhook_url: str, webhook_type: str) -> dict:
+    def validate_add_webhook_request(api_key: str, user_id: str, webhook_url: str, webhook_type: str,
+                                     is_active) -> dict:
+        
+        if not isinstance(is_active, bool):
+            return ResponseUtilities.get_inner_error_context('send is_active in body as boolean')
         
         validation_params = {
             'community_id': {
