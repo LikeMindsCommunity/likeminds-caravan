@@ -4625,7 +4625,7 @@ class ChatroomHelper:
 
     @staticmethod
     def auto_follow_chatroom(card_instance, user_instance, community_instance, status=True, func_dict=None,
-                             member_state=0):
+                             member_state=0, trigger_webhook=False):
 
         if func_dict is None:
             func_dict = {}
@@ -4685,6 +4685,13 @@ class ChatroomHelper:
         if status:
             ChatroomHelper.create_card_engagement_for_home_screen(card_instance, user_instance, community_instance,
                                                                   member_state=member_state)
+            
+            if trigger_webhook:
+                ChatroomImpl.trigger_webhook_for_chatroom_event(community_id=card_instance.community_id,
+                                                                chatroom_id=card_instance.id,
+                                                                users_list=user_instance.id,
+                                                                event_type=WebhookTypes.CHATROOM_JOIN,
+                                                                type_method=WEBHOOK_CHATROOM_JOIN_AUTO_FOLLOW_CHATROOM)
 
         conversation_impl.ConversationHelper.update_homescreen_meta_on_chatroom_follow(community_instance,
                                                                                        card_instance,

@@ -15,6 +15,8 @@ WEBHOOK_CHATROOM_TAGGED_JOIN = "tagged_join"
 WEBHOOK_CHATROOM_LEAVE_SELF = "self_leave"
 WEBHOOK_CHATROOM_LEAVE_REMOVED_BY_CM = "removed_by_cm"
 
+WEBHOOK_COMMUNITY_JOIN = "community_join"
+
 
 WEBHOOK_FAILURE_MAIL_SUBJECT = "Notification for webhook failure"
 WEBHOOK_FAILURE_MAIL_BODY = """
