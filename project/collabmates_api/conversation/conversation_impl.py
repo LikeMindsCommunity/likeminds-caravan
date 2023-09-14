@@ -2323,7 +2323,12 @@ class ConversationHelper:
         
         empty_conversation = (conversation_instance.attachment_count > 0 and not conversation_instance.attachments_uploaded)
 
+        followed_chatroom = False
+
         if chatroom_state_instance:
+
+            follow_status_old = chatroom_state_instance.follow_status
+
             if not empty_conversation:
                 chatroom_state_instance.last_seen_conversation = conversation_instance
             chatroom_state_instance.follow_status = True
@@ -2337,13 +2342,8 @@ class ConversationHelper:
 
             ElasticSearchSync.update_chatroom_for_user.delay(chatroom_instance.id, user_instance.id)
 
-            # Trigger webhook for chatroom join
-            if trigger_webhook:
-                chatroom_impl.ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
-                                                                                    chatroom_id=chatroom_instance.id,
-                                                                                    users_list=[user_instance.id],
-                                                                                    event_type=WebhookTypes.CHATROOM_JOIN.value,
-                                                                                    type_method=WEBHOOK_CHATROOM_JOIN_METHOD_SELF)
+            if follow_status_old != chatroom_state_instance.follow_status:
+                followed_chatroom = True
 
         else:
             community_current_noti_state = ConversationHelper._get_community_notification_state(chatroom_instance)
@@ -2356,6 +2356,7 @@ class ConversationHelper:
                                                                state=collabcard_states.COLLABCARD_STATE_UNSEEN,
                                                                follow_status=True,
                                                                noti_state=community_current_noti_state)
+                
 
             elif member_state != member_states.KNOWN_NOMINATED_PROMOTER:
                 collabcardState.create_chatroom_state_instance(chatroom_instance, user_instance,
@@ -2365,6 +2366,16 @@ class ConversationHelper:
 
                 ModelUtilities.model_update(Userinfo, {'user': user_instance},
                                             {'updated_at': TimeUtilities.current_time_in_sec()})
+                
+            followed_chatroom = True
+                
+        if followed_chatroom and trigger_webhook:
+            chatroom_impl.ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
+                                                                                chatroom_id=chatroom_instance.id,
+                                                                                users_list=[user_instance.id],
+                                                                                event_type=WebhookTypes.CHATROOM_JOIN.value,
+                                                                                type_method=WEBHOOK_CHATROOM_JOIN_METHOD_SELF)
+
 
     @staticmethod
     def _send_conversation_creation_notifications(user_instance, chatroom_instance, conversation_instance, has_files):
