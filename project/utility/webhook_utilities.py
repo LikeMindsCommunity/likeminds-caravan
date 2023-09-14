@@ -87,7 +87,7 @@ class WebhookUtilties:
                 if current_retries < MAX_WEBHOOK_RETRY_LIMIT:
 
                     # Retry wity countdown 1 -> 60 -> 3600 seconds
-                    countdown_secs = 60 ** current_retries
+                    countdown_secs = 6 ** current_retries
 
                     raise self.retry(countdown=countdown_secs)
                 
@@ -106,8 +106,8 @@ class WebhookUtilties:
 
                     # Send Mail to admin
                     MailWrapper.send_email_with_custom_from_email(subject=subject, 
-                                                                template=body, 
-                                                                to_mails_list=team_emails)
+                                                                 template=body, 
+                                                                 to_mails_list=team_emails)
                     
                     logger.error(f"{payload['id']} | Webhook request failed and maximum retry limit reached - Webhook set as inactive and mail sent to admin | url: {url}, payload: {payload} and response: {api_client.response.text}")
 
