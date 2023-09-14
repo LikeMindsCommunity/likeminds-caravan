@@ -94,6 +94,7 @@ from .branch import create_community_feed_url_for_cm_onboarding
 from .search.sync import ElasticSearchSync
 from .community.constants import *
 from .chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE
+from collabmates_api.webhook.constants import (WEBHOOK_CHATROOM_JOIN_METHOD_SELF)
 
 from urllib import parse
 
@@ -6409,6 +6410,13 @@ def follow_chatroom_async(collabcard_id,
         card_state_instance = collabcard_state_filter[0]
         ConversationHelper.update_homescreen_meta_on_chatroom_follow(community_instance, card_instance,
                                                                      card_state_instance, user_instance)
+
+        # Trigger chatroom join webhook for self join
+        from .chatroom.chatroom_impl import ChatroomImpl
+        ChatroomImpl.trigger_chatroom_join_webhook.delay(community_instance.id, user_instance.id, 
+                                                         card_instance.id, WEBHOOK_CHATROOM_JOIN_METHOD_SELF)
+        
+
     send_sync_notification.delay({'chatroom_id': card_instance.id,
                                   'member_id': user_instance.id,
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})

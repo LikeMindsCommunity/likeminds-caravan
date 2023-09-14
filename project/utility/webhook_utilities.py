@@ -11,7 +11,7 @@ from collabmates_api.webhook.constants import (MAX_WEBHOOK_RETRY_LIMIT, WEBHOOK_
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper
 
-from time_utilities import TimeUtilities
+from utility.time_utilities import TimeUtilities
 
 logger = LoggingWrapper.get_instance()
 
