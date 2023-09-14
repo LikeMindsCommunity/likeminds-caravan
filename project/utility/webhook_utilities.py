@@ -17,7 +17,6 @@ logger = LoggingWrapper.get_instance()
 
 class WebhookUtilties:
 
-    @staticmethod
     def create_hexdigest_from_payload(payload, secret:str) -> str:
 
         if not secret or not payload:
@@ -33,11 +32,10 @@ class WebhookUtilties:
 
         return digest
 
-    @staticmethod
     @shared_task(bind=True, autoretry_for=(Exception), retry_kwargs={'max_retries': MAX_WEBHOOK_RETRY_LIMIT + 1})
-    def send_webhook_request(self, url:str, payload:dict, webhook_type:str, secret:str = None):
+    def send_webhook_request_with_payload(self, url:str, payload:dict, webhook_type:str, secret:str = None):
         """
-        Celery task to send webhook request
+        Celery task to send webhook request with payload
         """
 
         try:

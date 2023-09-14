@@ -1,4 +1,4 @@
-import json
+import json, uuid
 
 from django.db.models import QuerySet
 from collections import Iterable
@@ -38,7 +38,7 @@ from ..raw_queries import get_last_seen_event_chatroom_id_for_user, get_count_of
     get_all_chatrooms_of_community, get_chatroom_participants_count,\
     get_sorted_user_data_on_basis_of_activity_in_chatroom, get_members_based_on_user_list_query, \
     get_community_members_data_on_basis_of_name_search, get_last_conversation_id_corresponding_to_chatrooms_list, \
-    get_chatroom_invites_for_user, get_all_chatrooms_of_community_old
+    get_chatroom_invites_for_user, get_all_chatrooms_of_community_old, get_users_sdk_meta_dict
 from ..rest_api import EventRecordingsAttachmentsSerializer, GetChatroomInstanceSerializer, get_error_context, \
     CardAnswersDBSyncSerializer, GetChatroomInstanceSerializer, EventRecordingsURLSerializer, EventInstructorSerializer, \
     EventHighlightsSerializer, EventMemberTestimonialsSerializer, EventFAQSerializer, \
@@ -76,6 +76,10 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember, removedMembers,
                             CommunityGetStarted, EventRecordingsURL, ChatroomSecretTypeConversion,
                             ScheduledChatroomFollow, CommunitySettings, ChatroomInvite, UserChannelSettings)
+
+from collabmates_api.webhook.models import (WebhookTypes, CommunityWebhook)
+from utility.webhook_utilities import (WebhookUtilties)
+from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, WEBHOOK_CHATROOM_JOIN_METHOD_SELF)
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.webflow.webflow_impl import WebflowImpl
@@ -4184,6 +4188,86 @@ class ChatroomImpl(ChatroomManager):
 
         # Return chatroom user settings
         return {'success': True, 'channel_settings': serialized_data} 
+    
+    @staticmethod
+    def generate_payload_for_chatroom_join_webhook(user_id, chatroom_id, join_method) -> dict:
+
+        chatroom_instance = ModelUtilities.get_model_filter(Collabcard, {'id': chatroom_id}).first()
+        user_meta = get_users_sdk_meta_dict([user_id]).get(user_id)
+
+        if not chatroom_instance or not user_meta:
+            return {}
+        
+        participants_count = ChatroomHelper.chatroom_participants_count(chatroom_instance)
+
+        chatroom = {
+            "chatroom_image_url": chatroom_instance.chatroom_image_url,
+            "community_id": chatroom_instance.community.id,
+            "community_name": chatroom_instance.community.name,
+            "title": chatroom_instance.title,
+            "header": chatroom_instance.header,
+            "id": chatroom_instance.id,
+            "is_secret": chatroom_instance.is_secret,
+            "updated_at": chatroom_instance.updated_at,
+            "created_at": chatroom_instance.created_at,
+            "participants_count": participants_count
+        }
+
+        user = {
+            "custom_title": user_meta.get('custom_title'),
+            "image_url": user_meta.get('image_url'),
+            "is_guest": user_meta.get('is_guest'),
+            "name": user_meta.get('name'),
+            "sdk_client_info": {
+                "community": user_meta.get('sdk_client_info').get('community'),
+                "uuid": user_meta.get('sdk_client_info').get('user_unique_id')
+            },
+            "uuid": user_meta.get('user_unique_id')
+        }
+        
+        payload = {
+            "id": uuid.uuid4(),
+            "event": WebhookTypes.CHATROOM_JOIN.value,
+            "source": WEBHOOK_SOURCE_CHAT,
+            "created_at": TimeUtilities.current_time_in_milliseconds(),
+            "data": {
+                "chatroom": chatroom,
+                "user": user,
+                "join_method": join_method
+            }
+        }
+
+        return payload
+
+    @staticmethod
+    @shared_task
+    def trigger_chatroom_join_webhook(community_id, user_id, chatroom_id, join_method):
+        
+        webhook_instance = ModelUtilities.get_model_filter(CommunityWebhook, 
+                                                           {'community': community_id,
+                                                            'webhook_type': WebhookTypes.CHATROOM_JOIN.value}
+                                                            ).first()
+        
+        if not webhook_instance:
+            return
+
+        webhook_url = webhook_instance.webhook_url
+        secret = ""
+
+        sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
+        
+        if sdk_client_instance:
+            secret = sdk_client_instance.api_key
+        
+        payload = ChatroomImpl.generate_payload_for_chatroom_join_webhook(user_id, chatroom_id, 
+                                                                          join_method=join_method)
+
+        # Send webhook request
+        WebhookUtilties.send_webhook_request_with_payload.delay(url=webhook_url, 
+                                                                payload=payload,
+                                                                webhook_type=WebhookTypes.CHATROOM_JOIN.value,
+                                                                secret=secret)
+        
 
 
 
