@@ -94,7 +94,7 @@ from .branch import create_community_feed_url_for_cm_onboarding
 from .search.sync import ElasticSearchSync
 from .community.constants import *
 from .chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE
-from collabmates_api.webhook.constants import (WEBHOOK_CHATROOM_JOIN_METHOD_SELF, WEBHOOK_CHATROOM_LEAVE_METHOD_SELF)
+from collabmates_api.webhook.constants import (WEBHOOK_CHATROOM_JOIN_SELF, WEBHOOK_CHATROOM_LEAVE_SELF)
 from collabmates_api.webhook.models import (WebhookTypes)
 
 from urllib import parse
@@ -6413,7 +6413,7 @@ def follow_chatroom_async(collabcard_id,
                                                                     chatroom_id=card_instance.id,
                                                                     users_list=[user_instance.id],
                                                                     event_type=WebhookTypes.CHATROOM_LEAVE.value,
-                                                                    type_method=WEBHOOK_CHATROOM_LEAVE_METHOD_SELF)
+                                                                    type_method=WEBHOOK_CHATROOM_LEAVE_SELF)
 
     if status:
         card_state_instance = collabcard_state_filter[0]
@@ -6426,7 +6426,7 @@ def follow_chatroom_async(collabcard_id,
                                                               chatroom_id=card_instance.id, 
                                                               users_list=[user_instance.id],
                                                               event_type=WebhookTypes.CHATROOM_JOIN.value, 
-                                                              type_method=WEBHOOK_CHATROOM_JOIN_METHOD_SELF)
+                                                              type_method=WEBHOOK_CHATROOM_JOIN_SELF)
         
 
     send_sync_notification.delay({'chatroom_id': card_instance.id,

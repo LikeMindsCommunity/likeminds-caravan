@@ -82,7 +82,7 @@ from utility.string_utilities import StringUtilities
 from celery import shared_task
 from ..owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from collabmates_api.search.sync import ElasticSearchSync
-from collabmates_api.webhook.constants import (WEBHOOK_CHATROOM_JOIN_METHOD_SELF, WEBHOOK_CHATROOM_TAGGED_JOIN)
+from collabmates_api.webhook.constants import (WEBHOOK_CHATROOM_JOIN_SELF, WEBHOOK_CHATROOM_TAGGED_JOIN)
 from collabmates_api.webhook.models import (WebhookTypes)
 
 error_logger = LoggingWrapper.get_instance()
@@ -2374,7 +2374,7 @@ class ConversationHelper:
                                                                                 chatroom_id=chatroom_instance.id,
                                                                                 users_list=[user_instance.id],
                                                                                 event_type=WebhookTypes.CHATROOM_JOIN.value,
-                                                                                type_method=WEBHOOK_CHATROOM_JOIN_METHOD_SELF)
+                                                                                type_method=WEBHOOK_CHATROOM_JOIN_SELF)
 
 
     @staticmethod

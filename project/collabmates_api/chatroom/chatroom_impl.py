@@ -79,9 +79,10 @@ from togther.models import (Members, Collabcard, card_answers, Community,
 
 from collabmates_api.webhook.models import (WebhookTypes, CommunityWebhook)
 from utility.webhook_utilities import (WebhookUtilties)
-from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, WEBHOOK_CHATROOM_JOIN_METHOD_ADDED_BY_CM, 
-                                               MAX_WEBHOOK_USERS_META_LIMIT, WEBHOOK_CHATROOM_JOIN_METHOD_AUTO_FOLLOW_CHATROOM, 
-                                               WEBHOOK_CHATROOM_JOIN_CHANNEL_INVITE)
+from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, WEBHOOK_CHATROOM_JOIN_ADDED_BY_CM, 
+                                               MAX_WEBHOOK_USERS_META_LIMIT, WEBHOOK_CHATROOM_JOIN_AUTO_FOLLOW_CHATROOM, 
+                                               WEBHOOK_CHATROOM_JOIN_CHANNEL_INVITE, WEBHOOK_CHATROOM_LEAVE_REMOVED_BY_CM,
+                                               WEBHOOK_CHATROOM_LEAVE_SELF)
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.webflow.webflow_impl import WebflowImpl
@@ -1467,6 +1468,18 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_state == conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM:
             send_notification_for_removed_secret_room_participant.delay(member_id, self.get_chatroom_id())
 
+            type_method = WEBHOOK_CHATROOM_LEAVE_REMOVED_BY_CM
+
+        else:
+            type_method = WEBHOOK_CHATROOM_LEAVE_SELF
+
+        # Trigger webhook for secret chatroom left
+        ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
+                                                              chatroom_id=chatroom_instance.id,
+                                                              users_list=[member_id],
+                                                              event_type=WebhookTypes.CHATROOM_LEAVE.value,
+                                                              type_method=type_method)
+
     def add_secret_chatroom_participant(self, req_body: dict, is_internal: bool = True, add_user_joined_message: bool = True, 
                                         trigger_webhook: bool = False, join_method: str = None) -> dict:
         validated_req_body = ChatroomViewHelper.validate_add_secret_chatroom_participants_request(self.get_member_id(),
@@ -1785,7 +1798,7 @@ class ChatroomImpl(ChatroomManager):
 
             ChatroomHelper.bulk_follow_chatroom_users(chatroom_instance, community_members, 
                                                       trigger_webhook=True, 
-                                                      join_method=WEBHOOK_CHATROOM_JOIN_METHOD_AUTO_FOLLOW_CHATROOM)
+                                                      join_method=WEBHOOK_CHATROOM_JOIN_AUTO_FOLLOW_CHATROOM)
 
             # removing tag status for tagged users
             ModelUtilities.model_update(collabcardState,
@@ -2834,7 +2847,7 @@ class ChatroomImpl(ChatroomManager):
                                                                         community_id=card_instance.community_id)
 
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants,
-                                                  trigger_webhook=True, join_method=WEBHOOK_CHATROOM_JOIN_METHOD_ADDED_BY_CM)
+                                                  trigger_webhook=True, join_method=WEBHOOK_CHATROOM_JOIN_ADDED_BY_CM)
 
         conversation_impl.ConversationHelper.create_conversation_state(card_instance, user_instance,
                                                                        conversation_states.CONVERSATION_ADD_ALL_MEMBERS,
@@ -4028,7 +4041,7 @@ class ChatroomImpl(ChatroomManager):
 
         ChatroomHelper.run_async_tasks_for_users_removing_from_chatroom.delay(
             chatroom_id=chatroom_instance.id, removed_members_list=list(state_filter.values_list('user_id', flat=True)),
-            current_user_id=self.get_member_id(), chatroom_state=chatroom_state)
+            current_user_id=self.get_member_id(), chatroom_state=chatroom_state, trigger_webhook=True)
 
         return {'success': True}
 
@@ -4454,7 +4467,7 @@ class ChatroomHelper:
                                                              chatroom_id=chatroom_id,
                                                              users_list=user_list,
                                                              event_type=WebhookTypes.CHATROOM_JOIN.value, 
-                                                             type_method=WEBHOOK_CHATROOM_JOIN_METHOD_ADDED_BY_CM)
+                                                             type_method=WEBHOOK_CHATROOM_JOIN_ADDED_BY_CM)
 
         ChatroomHelper.update_secret_chatroom_for_community_promoters(card_instance, community_instance, member_dict)
         ElasticSearchSync.update_chatroom(card_instance.id)
@@ -4758,7 +4771,7 @@ class ChatroomHelper:
                                                                      chatroom_id=card_instance.id,
                                                                      users_list=[user_instance.id],
                                                                      event_type=WebhookTypes.CHATROOM_JOIN.value, 
-                                                                     type_method=WEBHOOK_CHATROOM_JOIN_METHOD_AUTO_FOLLOW_CHATROOM)
+                                                                     type_method=WEBHOOK_CHATROOM_JOIN_AUTO_FOLLOW_CHATROOM)
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_chatroom_list(
@@ -4871,10 +4884,10 @@ class ChatroomHelper:
 
             if trigger_webhook:
                 if card_instance.auto_follow_done:
-                    join_method = WEBHOOK_CHATROOM_JOIN_METHOD_AUTO_FOLLOW_CHATROOM
+                    join_method = WEBHOOK_CHATROOM_JOIN_AUTO_FOLLOW_CHATROOM
 
                 else:
-                    join_method = WEBHOOK_CHATROOM_JOIN_METHOD_ADDED_BY_CM
+                    join_method = WEBHOOK_CHATROOM_JOIN_ADDED_BY_CM
 
                 ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=community_instance.id,
                                                                  chatroom_id=card_instance.id,
@@ -5139,7 +5152,7 @@ class ChatroomHelper:
             co_host_list = new_co_hosts
 
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, co_host_list, 
-                                                  trigger_webhook=True, join_method=WEBHOOK_CHATROOM_JOIN_METHOD_ADDED_BY_CM)
+                                                  trigger_webhook=True, join_method=WEBHOOK_CHATROOM_JOIN_ADDED_BY_CM)
 
         co_hosts_chatroom_state = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
                                                                                     'user_id__in': co_host_list})
@@ -5909,7 +5922,8 @@ class ChatroomHelper:
     @staticmethod
     @shared_task
     def run_async_tasks_for_users_removing_from_chatroom(chatroom_id, removed_members_list, current_user_id,
-                                                         chatroom_state=conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM):
+                                                         chatroom_state=conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM, 
+                                                         trigger_webhook=False):
 
         chatroom_instance = ModelUtilities.get_model_filter(Collabcard, chatroom_id)
 
@@ -5933,6 +5947,14 @@ class ChatroomHelper:
             update_last_unseen_in_engage(user=user_id, community=chatroom_instance.community_id)
 
             ElasticSearchSync.delete_chatroom_for_user(chatroom_id, user_id)
+
+        if trigger_webhook:
+            ChatroomImpl.trigger_webhook_for_chatroom_event(community_id=chatroom_instance.community_id,
+                                                            chatroom_id=chatroom_instance.id,
+                                                            users_list=removed_members_list,
+                                                            event_type=WebhookTypes.CHATROOM_LEAVE.value,
+                                                            type_method=WEBHOOK_CHATROOM_LEAVE_REMOVED_BY_CM)
+
 
     @staticmethod
     def validate_remove_chatroom_participant_request(user_id, chatroom_id, removed_members_list: list,
