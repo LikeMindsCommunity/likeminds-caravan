@@ -82,7 +82,7 @@ from utility.webhook_utilities import (WebhookUtilties)
 from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, WEBHOOK_CHATROOM_JOIN_ADDED_BY_CM, 
                                                MAX_WEBHOOK_USERS_META_LIMIT, WEBHOOK_CHATROOM_JOIN_AUTO_FOLLOW_CHATROOM, 
                                                WEBHOOK_CHATROOM_JOIN_CHANNEL_INVITE, WEBHOOK_CHATROOM_LEAVE_REMOVED_BY_CM,
-                                               WEBHOOK_CHATROOM_LEAVE_SELF)
+                                               WEBHOOK_CHATROOM_LEAVE_SELF, WEBHOOK_CHATROOM_COHORT_CHATROOM_REMOVED)
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.webflow.webflow_impl import WebflowImpl
@@ -1386,7 +1386,7 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True}
 
-    def leave_secret_chatroom(self, member_id: Union[int, str] = None, uuid = None) -> None:
+    def leave_secret_chatroom(self, member_id: Union[int, str] = None, uuid = None, trigger_webhook=False) -> None:
 
         chatroom_instance = Collabcard.get_chatroom_with_joins_or_raise_exception(self.get_chatroom_id())
 
@@ -1474,11 +1474,12 @@ class ChatroomImpl(ChatroomManager):
             type_method = WEBHOOK_CHATROOM_LEAVE_SELF
 
         # Trigger webhook for secret chatroom left
-        ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
-                                                              chatroom_id=chatroom_instance.id,
-                                                              users_list=[member_id],
-                                                              event_type=WebhookTypes.CHATROOM_LEAVE.value,
-                                                              type_method=type_method)
+        if trigger_webhook:
+            ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
+                                                                  chatroom_id=chatroom_instance.id,
+                                                                  users_list=[member_id],
+                                                                  event_type=WebhookTypes.CHATROOM_LEAVE.value,
+                                                                  type_method=type_method)
 
     def add_secret_chatroom_participant(self, req_body: dict, is_internal: bool = True, add_user_joined_message: bool = True, 
                                         trigger_webhook: bool = False, join_method: str = None) -> dict:
@@ -2996,6 +2997,8 @@ class ChatroomImpl(ChatroomManager):
         cohort_member_ids = ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort_id}) \
             .values_list('user_id', flat=True)
 
+        removed_members_list = []
+
         for cohort_member_id in cohort_member_ids:
 
             if cohort_member_id not in other_cohort_participants:
@@ -3003,10 +3006,19 @@ class ChatroomImpl(ChatroomManager):
                 try:
                     chatroom_manager = ChatroomImpl(self.get_member_id(), chatroom_id=self.get_chatroom_id())
                     chatroom_manager.leave_secret_chatroom(cohort_member_id)
+                    removed_members_list.append(cohort_member_id)
                     removed_member_count += 1
 
                 except Exception as e:
                     error_logger.error(e.args)
+
+        # Trigger webhook for cohort remove
+        if removed_members_list:
+            ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
+                                                                  chatroom_id=chatroom_instance.id,
+                                                                  users_list=removed_members_list,
+                                                                  event_type=WebhookTypes.CHATROOM_LEAVE.value,
+                                                                  type_method=WEBHOOK_CHATROOM_COHORT_CHATROOM_REMOVED)
 
         chatroom_cohort_filter.delete()
 

@@ -40,7 +40,7 @@ from utility.states import card_types, conversation_poll_types, conversation_sta
 from utility.validation_utilities import ValidationUtilities
 
 from collabmates_api.search.sync import ElasticSearchSync
-from collabmates_api.webhook.constants import (WEBHOOK_CHATROOM_COHORT_JOIN)
+from collabmates_api.webhook.constants import (WEBHOOK_CHATROOM_COHORT_ADDED)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -2327,7 +2327,7 @@ def add_new_participants_to_cohorts_secret_chatroom(cohort_id, member_id, member
             'is_channel_invite': False
         }
 
-        chatroom_manager.add_secret_chatroom_participant(req_body, trigger_webhook=True, join_method=WEBHOOK_CHATROOM_COHORT_JOIN)
+        chatroom_manager.add_secret_chatroom_participant(req_body, trigger_webhook=True, join_method=WEBHOOK_CHATROOM_COHORT_ADDED)
 
 
 @shared_task
@@ -2349,7 +2349,7 @@ def add_new_participants_to_secret_chatroom(current_user_id, chatroom_id, member
     }
 
     chatroom_manager.add_secret_chatroom_participant(req_body, add_user_joined_message=add_user_joined_message, 
-                                                     trigger_webhook=True, join_method=WEBHOOK_CHATROOM_COHORT_JOIN)
+                                                     trigger_webhook=True, join_method=WEBHOOK_CHATROOM_COHORT_ADDED)
 
 
 @shared_task

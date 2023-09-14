@@ -172,7 +172,7 @@ class LeaveSecretChatroomView(APIView):
 
         chatroom_manager = ChatroomImpl(header_member_id, chatroom_id=chatroom_id)
 
-        context = chatroom_manager.leave_secret_chatroom(member_id, uuid=uuid)
+        context = chatroom_manager.leave_secret_chatroom(member_id, uuid=uuid, trigger_webhook=True)
 
         context = {
             "success": True
