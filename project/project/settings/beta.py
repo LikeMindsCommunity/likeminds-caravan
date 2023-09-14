@@ -118,3 +118,5 @@ CALENDAR_CREDENTIALS = {
         "client_x509_cert_url": os.getenv("CALENDER_CLIENT_X509_CERT_URL")
     }
 }
+
+WEBHOOK_FAILURE_NOTIFICATION_TEAM_EMAILS = ['product@likeminds.community', 'backend@likeminds.community']

@@ -1,6 +1,9 @@
 import uuid, hmac, hashlib, json
 
+from django.conf import settings
+
 from celery import shared_task
+from celery.exceptions import Retry
 from utility.api_client import ApiClient
 
 from togther.models import ModelUtilities
@@ -72,20 +75,20 @@ class WebhookUtilties:
 
             # If response code is 200, webhook request is successful
             if response_code == 200:
-                logger.info(f"{payload['id']} | Webhook request successfully made for url: {url} and payload: {payload}")
+                logger.info(f"{payload['id']} | Webhook request successfully made for url: {url} | payload: {payload}")
             
             # If not successful
             else:
-                logger.error(f"{payload['id']} | Webhook request failed with status code: {response_code}, url: {url}, payload: {payload} and response: {api_client.response.text}")
+                logger.error(f"{payload['id']} | Webhook request failed for url: {url}, with status code: {response_code} and response: {api_client.response.text} | payload: {payload}")
 
                 current_retries = self.request.retries
 
                 # If current retries are less than max retries, retry the task with exponential countdown
-                if current_retries > MAX_WEBHOOK_RETRY_LIMIT:
-
-                    countdown_secs = 60 ** current_retries
+                if current_retries < MAX_WEBHOOK_RETRY_LIMIT:
 
                     # Retry wity countdown 1 -> 60 -> 3600 seconds
+                    countdown_secs = 60 ** current_retries
+
                     raise self.retry(countdown=countdown_secs)
                 
                 # If current retries are equal to max retries, set webhook as inactive and send mail
@@ -96,15 +99,22 @@ class WebhookUtilties:
                     webhook_instance.save()
 
                     subject = WEBHOOK_FAILURE_MAIL_SUBJECT
-                    body = WEBHOOK_FAILURE_MAIL_BODY.format(webhook_type, url, TimeUtilities.get_current_datetime_in_IST,
-                                                            json.dumps(payload, indent=4))
-                    admin_mails = []
+                    body = WEBHOOK_FAILURE_MAIL_BODY.format(webhook_type, url, TimeUtilities.get_current_datetime_in_IST, json.dumps(payload, indent=4))
+                    
+                    # Fetch team emails from settings
+                    team_emails = settings.WEBHOOK_FAILURE_NOTIFICATION_TEAM_EMAILS
 
                     # Send Mail to admin
                     MailWrapper.send_email_with_custom_from_email(subject=subject, 
                                                                 template=body, 
-                                                                to_mails_list=admin_mails)
+                                                                to_mails_list=team_emails)
                     
+                    logger.error(f"{payload['id']} | Webhook request failed and maximum retry limit reached - Webhook set as inactive and mail sent to admin | url: {url}, payload: {payload} and response: {api_client.response.text}")
+
         except Exception as e:
-            logger.error(f"{payload['id']} | Webhook request failed with exception: {e.args}, url: {url}, payload: {payload}")
+
+            # If not a RETRY exception, log the error and raise the exception
+            if not isinstance(e, Retry):
+                logger.error(f"{payload['id']} | Webhook request failed with unhandled exception: {e.args}, url: {url}, payload: {payload}")
+
             raise e
