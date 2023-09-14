@@ -14,7 +14,7 @@ WEBHOOK_CHATROOM_COHORT_JOIN = "cohort_join"
 WEBHOOK_FAILURE_MAIL_SUBJECT = "Notification for webhook failure"
 WEBHOOK_FAILURE_MAIL_BODY = """
 Hey Team,
-{} for URLS: {} has failed on {}.
+{} for URL: {} has failed on {}.
 Hence the webhook has been set as inactive
 Please check logs for more info.
 

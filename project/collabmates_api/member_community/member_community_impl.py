@@ -3182,7 +3182,8 @@ class MemberCommunityHelper:
                                                                    introduction_answer=introduction_answer)
 
         else:
-            ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance)
+            ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance, 
+                                                                                 trigger_webhook=True)
 
         action_required_by_promoter = ModelUtilities.is_model_filter_exists(Members,
                                                                             {'community_id': community_instance,

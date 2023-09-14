@@ -4240,12 +4240,6 @@ class ChatroomImpl(ChatroomManager):
         # Add chatroom data to payload
         payload['data']['chatroom'] = chatroom
 
-        # If join method is auto follow chatroom, send only chatroom data along with users added count
-        if join_method == WEBHOOK_CHATROOM_JOIN_METHOD_AUTO_FOLLOW_CHATROOM: 
-            payload['data']['users_added'] = len(users_list)
-
-            return payload
-
         # Truncate users list to MAX_WEBHOOK_USERS_LIMIT
         users_meta = get_users_sdk_meta_dict(users_list[:MAX_WEBHOOK_USERS_META_LIMIT])
         users_data = []
@@ -4708,7 +4702,7 @@ class ChatroomHelper:
         return conversation_created_at
 
     @staticmethod
-    def update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance):
+    def update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance, trigger_webhook=False):
         chatroom_filter = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
                                                                        'is_pending': False,
                                                                        'is_deleted': False,
@@ -4744,6 +4738,12 @@ class ChatroomHelper:
 
                 if instance:
                     bulk_create_list.append(instance)
+
+                if follow_status and trigger_webhook:
+                    ChatroomImpl.trigger_chatroom_join_webhook.delay(community_id=community_instance.id,
+                                                                     chatroom_id=card_instance.id,
+                                                                     users_list=[user_instance.id],
+                                                                     join_method=WEBHOOK_CHATROOM_JOIN_METHOD_AUTO_FOLLOW_CHATROOM)
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_chatroom_list(
