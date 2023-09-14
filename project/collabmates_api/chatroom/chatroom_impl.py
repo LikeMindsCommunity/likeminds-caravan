@@ -4020,6 +4020,8 @@ class ChatroomImpl(ChatroomManager):
 
         if not state_filter:
             return {'success': True}
+        
+        members_list = list(state_filter.values_list("user_id", flat=True))
 
         state_filter.update(**{'follow_status': False})
 
@@ -4040,7 +4042,7 @@ class ChatroomImpl(ChatroomManager):
                                                'user__in': removed_members_list})
 
         ChatroomHelper.run_async_tasks_for_users_removing_from_chatroom.delay(
-            chatroom_id=chatroom_instance.id, removed_members_list=list(state_filter.values_list('user_id', flat=True)),
+            chatroom_id=chatroom_instance.id, removed_members_list=members_list,
             current_user_id=self.get_member_id(), chatroom_state=chatroom_state, trigger_webhook=True)
 
         return {'success': True}
@@ -5925,7 +5927,7 @@ class ChatroomHelper:
                                                          chatroom_state=conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM, 
                                                          trigger_webhook=False):
 
-        chatroom_instance = ModelUtilities.get_model_filter(Collabcard, chatroom_id)
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
         if not chatroom_instance:
             return
@@ -5948,12 +5950,12 @@ class ChatroomHelper:
 
             ElasticSearchSync.delete_chatroom_for_user(chatroom_id, user_id)
 
-        if trigger_webhook:
-            ChatroomImpl.trigger_webhook_for_chatroom_event(community_id=chatroom_instance.community_id,
-                                                            chatroom_id=chatroom_instance.id,
-                                                            users_list=removed_members_list,
-                                                            event_type=WebhookTypes.CHATROOM_LEAVE.value,
-                                                            type_method=WEBHOOK_CHATROOM_LEAVE_REMOVED_BY_CM)
+        if trigger_webhook and removed_members_list:
+            ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
+                                                                  chatroom_id=chatroom_instance.id,
+                                                                  users_list=removed_members_list,
+                                                                  event_type=WebhookTypes.CHATROOM_LEAVE.value,
+                                                                  type_method=WEBHOOK_CHATROOM_LEAVE_REMOVED_BY_CM)
 
 
     @staticmethod
@@ -6811,33 +6813,33 @@ class ChatroomHelper:
         add_new_participants_to_secret_chatroom(current_user_id, chatroom_id, user_ids_list)
 
     @staticmethod
-    def fetch_users_interaction_with_chatroom(users_ids: list, chatroom_id: int) -> dict:
+    def fetch_users_interaction_with_chatroom(user_ids: list, chatroom_id: int) -> dict:
         """
             This method fetches users interactions with chatroom
             Returns a dict with user_id as key and True/False as value
         """
 
-        if not users_ids or not isinstance(users_ids, list):
+        if not user_ids or not isinstance(user_ids, list):
             return {}
         
         user_interactions_dict = {}
         
         # Fetch conversations count from card_answers table for each user against chatroom_id
-        conversations_count = User.objects.filter(id__in=users_ids
+        conversations_count = User.objects.filter(id__in=user_ids
                                                   ).annotate(count=Count('card_answers', 
                                                              filter=Q(card_answers__card_id=chatroom_id) & Q(card_answers__state__in=[0,10]))
                                                              ).values_list('id', 'count')
 
         # Fetch reactions count from card_reactions table for each user against chatroom_id
-        reactions_count = User.objects.filter(id__in=users_ids
+        reactions_count = User.objects.filter(id__in=user_ids
                                               ).annotate(count=Count('messagereactions', 
                                                          filter=Q(messagereactions__chatroom_id=chatroom_id))
                                                          ).values_list('id', 'count')
 
         # iterate over all user_ids and index
-        for i in range(len(users_ids)):
+        for i in range(len(user_ids)):
             user_interaction = True if (conversations_count[i][1] or reactions_count[i][1]) else False
-            user_interactions_dict[users_ids[i]] = user_interaction
+            user_interactions_dict[user_ids[i]] = user_interaction
 
         return user_interactions_dict
 
