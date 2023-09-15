@@ -5096,6 +5096,9 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
     for action in final:
 
+        if action['id'] == chatroom_actions.ACTION_VIEW_COMMUNITY:
+            continue
+
         if show_sdk_actions_only and any([action['id'] == chatroom_actions.ACTION_RENAME,
                                           action['id'] == chatroom_actions.ACTION_VIEW_COMMUNITY,
                                           action['id'] == chatroom_actions.ACTION_ADD_ALL_MEMBERS,
