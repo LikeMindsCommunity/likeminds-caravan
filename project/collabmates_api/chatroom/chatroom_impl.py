@@ -4284,7 +4284,7 @@ class ChatroomImpl(ChatroomManager):
                                                             'is_active': True}
                                                             ).first()
         
-        if not webhook_instance:
+        if not (webhook_instance and users_list):
             return
 
         webhook_url = webhook_instance.url
