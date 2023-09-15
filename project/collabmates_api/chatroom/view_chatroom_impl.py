@@ -16,8 +16,7 @@ from .chatroom_view_helper import ChatroomViewHelper
 from ..mixins import TransactionMixin
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.response_utilities import ResponseUtilities
-from utility.states import (api_types)
-from collabmates_api.webhook.constants import (WEBHOOK_CHATROOM_JOIN_ADDED_BY_CM)
+from utility.states import (api_types, webhook_chatroom_methods)
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -195,7 +194,7 @@ class AddSecretChatroomParticipantView(APIView):
         chatroom_manager = ChatroomImpl(member_id, chatroom_id=chatroom_id)
         chatroom_data = chatroom_manager.add_secret_chatroom_participant(req_body, is_internal=False, 
                                                                          trigger_webhook=True, 
-                                                                         join_method=WEBHOOK_CHATROOM_JOIN_ADDED_BY_CM)
+                                                                         join_method=webhook_chatroom_methods.ADDED_BY_CM)
 
         if 'error_message' in chatroom_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),

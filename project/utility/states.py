@@ -598,6 +598,29 @@ class WebhookTypes(enum.Enum):
     CHATROOM_LEAVE = "chatroom.left"
     PROFILE_CREATED = "profile.created"
 
+class WenhookChatroomMethodTypes():
+    SELF_JOIN = "self_join"
+    ADDED_BY_CM = "added_by_cm"
+    AUTO_FOLLOW_CHATROOM = "auto_follow_chatroom"
+    INVITE_JOIN = "invite_join"
+    COHORT_CHATROOM_ADDED = "cohort_chatroom_added"
+    TAGGED_JOIN = "tagged_join"
+    SELF_LEAVE = "self_leave"
+    REMOVED_BY_CM = "removed_by_cm"
+    COHORT_CHATROOM_REMOVED = "cohort_chatroom_removed"
+
+webhook_chatroom_methods = WenhookChatroomMethodTypes()
+
+class WebhookCommunityMethodTypes():
+    COMMUNITY_JOIN = "community_join"
+
+webhook_community_methods = WebhookCommunityMethodTypes()
+
+class WebhookProfileMethodTypes():
+    COMMUNITY_JOIN = "community_join"
+
+webhook_profile_methods = WebhookProfileMethodTypes()
+
 
 class CohortAccess(enum.Enum):
     NO_ACCESS = 0

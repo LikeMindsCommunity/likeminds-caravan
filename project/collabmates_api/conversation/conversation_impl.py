@@ -60,7 +60,7 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
     conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types, \
-    member_rights, unsubscribe_types, noti_states, chat_request_states
+    member_rights, unsubscribe_types, noti_states, chat_request_states, webhook_chatroom_methods
 
 from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
     is_member_verified, filter_user_instances_based_on_notification_flag
@@ -82,7 +82,6 @@ from utility.string_utilities import StringUtilities
 from celery import shared_task
 from ..owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from collabmates_api.search.sync import ElasticSearchSync
-from collabmates_api.webhook.constants import (WEBHOOK_CHATROOM_JOIN_SELF, WEBHOOK_CHATROOM_TAGGED_JOIN)
 from collabmates_api.webhook.models import (WebhookTypes)
 
 error_logger = LoggingWrapper.get_instance()
@@ -2237,7 +2236,7 @@ class ConversationHelper:
                                                                                     chatroom_id=chatroom_instance.id,
                                                                                     users_list=search_update_users_list,
                                                                                     webhook_type=WebhookTypes.CHATROOM_JOIN.value,
-                                                                                    type_method=WEBHOOK_CHATROOM_TAGGED_JOIN)
+                                                                                    type_method=webhook_chatroom_methods.TAGGED_JOIN)
 
 
         if not is_group_tag:
@@ -2374,7 +2373,7 @@ class ConversationHelper:
                                                                                 chatroom_id=chatroom_instance.id,
                                                                                 users_list=[user_instance.id],
                                                                                 event_type=WebhookTypes.CHATROOM_JOIN.value,
-                                                                                type_method=WEBHOOK_CHATROOM_JOIN_SELF)
+                                                                                type_method=webhook_chatroom_methods.SELF_JOIN)
 
 
     @staticmethod

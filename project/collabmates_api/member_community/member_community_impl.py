@@ -24,7 +24,8 @@ from utility.exception_utilities import CustomException
 from utility.states import member_states, card_types, deleted_members, question_states, \
     conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers, \
     community_dm_settings_state_types, community_dm_settings_duration_types, dm_icon_from_states, get_started_types, \
-    api_types, access_types, feed_order_types, DMFabShowList, click_states, moderation_history_types, WebhookTypes
+    api_types, access_types, feed_order_types, DMFabShowList, click_states, moderation_history_types, WebhookTypes, \
+    webhook_profile_methods
 
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
@@ -91,7 +92,7 @@ from ..views import get_home_screen_community_actions, generate_internal_link_pr
 
 from collabmates_api.search.sync import ElasticSearchSync
 from collabmates_api.webhook.models import (CommunityWebhook)
-from collabmates_api.webhook.constants import(WEBHOOK_SOURCE_CHAT, WEBHOOK_COMMUNITY_JOIN)
+from collabmates_api.webhook.constants import(WEBHOOK_SOURCE_CHAT)
 from utility.webhook_utilities import (WebhookUtilties)
 
 error_logger = LoggingWrapper.get_instance()
@@ -2285,7 +2286,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                         "uuid": user_meta.get('sdk_client_info').get('user_unique_id') if user_meta.get('sdk_client_info') else None,
                     },
                     "uuid": user_meta.get('user_unique_id'),
-                    "creation_method": WEBHOOK_COMMUNITY_JOIN
+                    "creation_method": webhook_profile_methods.COMMUNITY_JOIN
                 }
             }
         }

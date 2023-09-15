@@ -35,12 +35,11 @@ from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
 from utility.states import card_types, conversation_poll_types, conversation_states, community_level_states, \
     level_click_states, event_access, event_webflow_update_types, deleted_members, collabcard_states, SyncTypes, \
-    community_setting_types, CollabcardTypes, poll_types, message_template_chatroom_types
+    community_setting_types, CollabcardTypes, poll_types, message_template_chatroom_types, webhook_chatroom_methods
 
 from utility.validation_utilities import ValidationUtilities
 
 from collabmates_api.search.sync import ElasticSearchSync
-from collabmates_api.webhook.constants import (WEBHOOK_CHATROOM_COHORT_ADDED)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -2327,7 +2326,7 @@ def add_new_participants_to_cohorts_secret_chatroom(cohort_id, member_id, member
             'is_channel_invite': False
         }
 
-        chatroom_manager.add_secret_chatroom_participant(req_body, trigger_webhook=True, join_method=WEBHOOK_CHATROOM_COHORT_ADDED)
+        chatroom_manager.add_secret_chatroom_participant(req_body, trigger_webhook=True, join_method=webhook_chatroom_methods.COHORT_CHATROOM_ADDED)
 
 
 @shared_task
@@ -2349,7 +2348,7 @@ def add_new_participants_to_secret_chatroom(current_user_id, chatroom_id, member
     }
 
     chatroom_manager.add_secret_chatroom_participant(req_body, add_user_joined_message=add_user_joined_message, 
-                                                     trigger_webhook=True, join_method=WEBHOOK_CHATROOM_COHORT_ADDED)
+                                                     trigger_webhook=True, join_method=webhook_chatroom_methods.COHORT_CHATROOM_ADDED)
 
 
 @shared_task

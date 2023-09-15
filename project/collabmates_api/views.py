@@ -19,7 +19,7 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
-from utility.states import report_Tag_Types, member_states, card_types
+from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
@@ -94,7 +94,6 @@ from .branch import create_community_feed_url_for_cm_onboarding
 from .search.sync import ElasticSearchSync
 from .community.constants import *
 from .chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE
-from collabmates_api.webhook.constants import (WEBHOOK_CHATROOM_JOIN_SELF, WEBHOOK_CHATROOM_LEAVE_SELF)
 from collabmates_api.webhook.models import (WebhookTypes)
 
 from urllib import parse
@@ -6413,7 +6412,7 @@ def follow_chatroom_async(collabcard_id,
                                                                   chatroom_id=card_instance.id,
                                                                   users_list=[user_instance.id],
                                                                   event_type=WebhookTypes.CHATROOM_LEAVE.value,
-                                                                  type_method=WEBHOOK_CHATROOM_LEAVE_SELF)
+                                                                  type_method=webhook_chatroom_methods.SELF_LEAVE)
 
     if status:
         card_state_instance = collabcard_state_filter[0]
@@ -6426,7 +6425,7 @@ def follow_chatroom_async(collabcard_id,
                                                               chatroom_id=card_instance.id, 
                                                               users_list=[user_instance.id],
                                                               event_type=WebhookTypes.CHATROOM_JOIN.value, 
-                                                              type_method=WEBHOOK_CHATROOM_JOIN_SELF)
+                                                              type_method=webhook_chatroom_methods.SELF_JOIN)
         
 
     send_sync_notification.delay({'chatroom_id': card_instance.id,
