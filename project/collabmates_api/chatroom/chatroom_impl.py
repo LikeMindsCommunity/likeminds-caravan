@@ -4253,7 +4253,7 @@ class ChatroomImpl(ChatroomManager):
         payload['data']['chatroom'] = ChatroomHelper.get_chatroom_payload_for_webhook_events(chatroom_id=chatroom_id)
 
         # Get users paylaod for webhook events
-        users_data = ChatroomHelper.get_users_payload_for_webhook_events(user_ids=users_list)
+        users_data = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list=users_list)
 
         # Add user interaction data to payload if event is chatroom left
         if event_type == WebhookTypes.CHATROOM_LEAVE.value:
@@ -6819,33 +6819,6 @@ class ChatroomHelper:
         }
 
         return chatroom
-    
-    @staticmethod
-    def get_users_payload_for_webhook_events(user_ids: list) -> list:
-
-        # Truncate users list to MAX_WEBHOOK_USERS_LIMIT
-        truncated_list = user_ids[:MAX_WEBHOOK_USERS_META_LIMIT]
-        users_meta = get_users_sdk_meta_dict(truncated_list)
-        users_payload = []
-
-        for key, user_meta in users_meta.items():
-            
-            user = {
-                "id": user_meta.get('id'),
-                "custom_title": user_meta.get('custom_title'),
-                "image_url": user_meta.get('image_url'),
-                "is_guest": user_meta.get('is_guest'),
-                "name": user_meta.get('name'),
-                "sdk_client_info": {
-                    "community": user_meta.get('sdk_client_info').get('community') if user_meta.get('sdk_client_info') else None,
-                    "uuid": user_meta.get('sdk_client_info').get('user_unique_id') if user_meta.get('sdk_client_info') else None
-                },
-                "uuid": user_meta.get('user_unique_id'),
-            }
-
-            users_payload.append(user)
-
-        return users_payload
     
     @staticmethod
     def fetch_users_interaction_with_chatroom(user_ids: list, chatroom_id: int) -> dict:

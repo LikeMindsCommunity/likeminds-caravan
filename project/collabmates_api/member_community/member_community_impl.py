@@ -92,7 +92,7 @@ from ..views import get_home_screen_community_actions, generate_internal_link_pr
 
 from collabmates_api.search.sync import ElasticSearchSync
 from collabmates_api.webhook.models import (CommunityWebhook)
-from collabmates_api.webhook.constants import(WEBHOOK_SOURCE_CHAT)
+from collabmates_api.webhook.constants import(WEBHOOK_SOURCE_CHAT, MAX_WEBHOOK_USERS_META_LIMIT)
 from utility.webhook_utilities import (WebhookUtilties)
 
 error_logger = LoggingWrapper.get_instance()
@@ -2244,7 +2244,7 @@ class MemberCommunityImpl(MemberCommunityManager):
     
     @staticmethod
     @shared_task
-    def trigger_member_profile_webhook_event(community_id: int, member_id: int):
+    def trigger_webhook_for_profile_events(community_id: int, member_id: int):
 
         webhook_instance = ModelUtilities.get_model_filter(CommunityWebhook, 
                                                         {'community': community_id,
@@ -2252,7 +2252,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                         'is_active': True}
                                                         ).first()
         
-        if not webhook_instance:
+        if not (webhook_instance and member_id) :
             return
 
         webhook_url = webhook_instance.url
@@ -2276,20 +2276,12 @@ class MemberCommunityImpl(MemberCommunityManager):
             "source": WEBHOOK_SOURCE_CHAT,
             "created_at": TimeUtilities.current_time_in_sec(),
             "data": {
-                "user": {
-                    "custom_title": user_meta.get('custom_title'),
-                    "name": user_meta.get('name'),
-                    "image_url": user_meta.get('image_url'),
-                    "is_guest": user_meta.get('is_guest'),
-                    "sdk_client_info": {
-                        "community": user_meta.get('sdk_client_info').get('community') if user_meta.get('sdk_client_info') else None,
-                        "uuid": user_meta.get('sdk_client_info').get('user_unique_id') if user_meta.get('sdk_client_info') else None,
-                    },
-                    "uuid": user_meta.get('user_unique_id'),
-                    "creation_method": webhook_profile_methods.COMMUNITY_JOIN
-                }
+                "creation_method": webhook_profile_methods.COMMUNITY_JOIN
             }
         }
+
+        # Add user's payload in webhook payload
+        payload['data']['user'] = MemberCommunityHelper.get_users_payload_for_webhook_events([member_id])
 
         # Send webhook request
         WebhookUtilties.send_webhook_request_with_payload.delay(url=webhook_url, 
@@ -3253,7 +3245,7 @@ class MemberCommunityHelper:
             
         # Trigger webhook event for profile creation
         if trigger_webhook:
-            MemberCommunityImpl.trigger_member_profile_webhook_event.delay(community_id=community_instance.id,
+            MemberCommunityImpl.trigger_webhook_for_profile_events.delay(community_id=community_instance.id,
                                                                            member_id=user_instance.id)
 
         action_required_by_promoter = ModelUtilities.is_model_filter_exists(Members,
@@ -3745,3 +3737,30 @@ class MemberCommunityHelper:
             'user_instance': user_instance,
             'community_instance': community_instance
         }
+        
+    @staticmethod
+    def get_users_payload_for_webhook_events(user_ids: list) -> list:
+
+        # Truncate users list to MAX_WEBHOOK_USERS_LIMIT
+        truncated_list = user_ids[:MAX_WEBHOOK_USERS_META_LIMIT]
+        users_meta = get_users_sdk_meta_dict(truncated_list)
+        users_payload = []
+
+        for key, user_meta in users_meta.items():
+            
+            user = {
+                "id": user_meta.get('id'),
+                "custom_title": user_meta.get('custom_title'),
+                "image_url": user_meta.get('image_url'),
+                "is_guest": user_meta.get('is_guest'),
+                "name": user_meta.get('name'),
+                "sdk_client_info": {
+                    "community": user_meta.get('sdk_client_info').get('community') if user_meta.get('sdk_client_info') else None,
+                    "uuid": user_meta.get('sdk_client_info').get('user_unique_id') if user_meta.get('sdk_client_info') else None
+                },
+                "uuid": user_meta.get('user_unique_id'),
+            }
+
+            users_payload.append(user)
+
+        return users_payload
