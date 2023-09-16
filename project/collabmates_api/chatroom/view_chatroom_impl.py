@@ -194,7 +194,7 @@ class AddSecretChatroomParticipantView(APIView):
         chatroom_manager = ChatroomImpl(member_id, chatroom_id=chatroom_id)
         chatroom_data = chatroom_manager.add_secret_chatroom_participant(req_body, is_internal=False, 
                                                                          trigger_webhook=True, 
-                                                                         join_method=webhook_chatroom_methods.ADDED_BY_CM)
+                                                                         join_method=webhook_chatroom_methods.CM_ADDED)
 
         if 'error_message' in chatroom_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),

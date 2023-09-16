@@ -35,8 +35,68 @@ class WebhookUtilties:
         ).hexdigest()
 
         return digest
+    
+    @staticmethod
+    def fetch_active_webhook_instance(url: str, webhook_type: str) -> CommunityWebhook:
+        """
+        Fetch webhook instance
+        """
 
-    @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': MAX_WEBHOOK_RETRY_LIMIT + 1})
+        webhook_instance = ModelUtilities.get_model_filter(CommunityWebhook, {
+            'url': url,
+            'webhook_type': webhook_type,
+            'is_active': True
+        }).first()
+
+        return webhook_instance
+    
+    @staticmethod
+    def create_api_client_with_payload_and_secret(url: str, payload: dict, secret: str = None) -> ApiClient:
+        """
+        Create api client instance with payload and secret
+        """
+
+        # If id is not present in payload, add a random UUID to it
+        if not payload.get('id'):
+            payload['id'] = str(uuid.uuid4())
+
+        api_client = ApiClient()
+        api_client.update_request_url(url)
+        api_client.update_body(payload)
+
+        if secret:
+            signature = WebhookUtilties.create_hexdigest_from_payload(payload, secret)
+            api_client.add_header('x-signature', signature)
+
+        return api_client
+    
+    @staticmethod
+    def set_webhook_as_inactive_and_send_mail(webhook_instance: CommunityWebhook, payload: dict,
+                                              response_code: int, response_text: str):
+        """
+        Set webhook as inactive and send mail
+        """
+
+        # Set webhook as inactive
+        webhook_instance.is_active = False
+        webhook_instance.save()
+
+        subject = WEBHOOK_FAILURE_MAIL_SUBJECT
+
+        current_date_time = TimeUtilities.get_current_datetime_in_IST().strftime("%d-%m-%Y %H:%M")
+        body = WEBHOOK_FAILURE_MAIL_BODY.format(webhook_instance.webhook_type, current_date_time,
+                                                webhook_instance.url, current_date_time, response_code, response_text,
+                                                json.dumps(payload, indent=4))
+        
+        # Fetch team emails from settings
+        team_emails = settings.WEBHOOK_FAILURE_NOTIFICATION_TEAM_EMAILS
+
+        # Send Mail to admin
+        MailWrapper.send_email_with_custom_from_email(subject=subject, 
+                                                      template=body, 
+                                                      to_mails_list=team_emails)
+        
+    @shared_task(bind=True, retry_kwargs={'max_retries': MAX_WEBHOOK_RETRY_LIMIT + 1})
     def send_webhook_request_with_payload(self, url:str, payload:dict, webhook_type:str, secret:str = None):
         """
         Celery task to send webhook request with payload
@@ -45,40 +105,20 @@ class WebhookUtilties:
         try:
 
             # Check if webhook is active or not
-            webhook_instance = ModelUtilities.get_model_filter(CommunityWebhook, {
-                'url': url,
-                'webhook_type': webhook_type,
-                'is_active': True
-            }).first()
+            webhook_instance = WebhookUtilties.fetch_active_webhook_instance(url, webhook_type)
 
             if not webhook_instance:
                 return
             
-            # If id is not present in payload, add a random UUID to it
-            if not payload.get('id'):
-                payload['id'] = str(uuid.uuid4())
+            # Create api client instance with payload and secret
+            api_client = WebhookUtilties.create_api_client_with_payload_and_secret(url, payload, secret)
 
-            # Create api client instance
-            api_client = ApiClient()
-            api_client.update_request_url(url)
-            api_client.update_body(payload)
-
-            # If secret is present, create a signature and add it to headers
-            if secret:  
-
-                # sort the payload keys to ensure the signature is consistent
-                payload = json.loads(json.dumps(payload, sort_keys=True))
-
-                signature = WebhookUtilties.create_hexdigest_from_payload(payload, secret)
-                api_client.add_header('x-signature', signature)
-
-            # Send request and get response
+            # Send request
             api_client.post()
 
-            response_code = api_client.fetch_response_code()
+            response_code = api_client.response.status_code
             response_text = api_client.response.text
 
-            # If response code is 200, webhook request is successful
             if response_code == 200:
                 logger.info(f"{payload['id']} | Webhook request successfully made for url: {url} | payload: {payload}")
             
@@ -99,25 +139,8 @@ class WebhookUtilties:
                 # If current retries are equal to max retries, set webhook as inactive and send mail
                 else:
 
-                    # Set webhook as inactive
-                    webhook_instance.is_active = False
-                    webhook_instance.save()
+                    WebhookUtilties.set_webhook_as_inactive_and_send_mail(webhook_instance, payload, response_code, response_text)
 
-                    subject = WEBHOOK_FAILURE_MAIL_SUBJECT
-
-                    current_date_time = TimeUtilities.get_current_datetime_in_IST().strftime("%d-%m-%Y %H:%M")
-                    body = WEBHOOK_FAILURE_MAIL_BODY.format(webhook_type, current_date_time,
-                                                            url, current_date_time, response_code, response_text,
-                                                            json.dumps(payload, indent=4))
-                    
-                    # Fetch team emails from settings
-                    team_emails = settings.WEBHOOK_FAILURE_NOTIFICATION_TEAM_EMAILS
-
-                    # Send Mail to admin
-                    MailWrapper.send_email_with_custom_from_email(subject=subject, 
-                                                                 template=body, 
-                                                                 to_mails_list=team_emails)
-                    
                     logger.error(f"{payload['id']} | Webhook request failed and maximum retry limit reached - Webhook set as inactive and mail sent to admin | url: {url}, payload: {payload} and response: {response_text}")
 
         except Exception as e:

@@ -504,7 +504,7 @@ class CommunityImpl(CommunityManager):
     def send_join_data_on_webhook(member_id, community_id):
 
         webhook_instances = ModelUtilities.get_model_filter(
-            CommunityWebhook, {'community_id': community_id, 'webhook_type': WebhookTypes.COMMUNITY_JOIN.value})
+            CommunityWebhook, {'community_id': community_id, 'webhook_type': WebhookTypes.COMMUNITY_JOINED.value})
 
         if not webhook_instances:
             return

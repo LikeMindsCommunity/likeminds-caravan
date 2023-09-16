@@ -6414,8 +6414,8 @@ def follow_chatroom_async(collabcard_id,
             ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=community_instance.id,
                                                                   chatroom_id=card_instance.id,
                                                                   users_list=[user_instance.id],
-                                                                  event_type=WebhookTypes.CHATROOM_LEAVE.value,
-                                                                  type_method=webhook_chatroom_methods.SELF_LEAVE)
+                                                                  event_type=WebhookTypes.CHATROOM_LEFT.value,
+                                                                  type_method=webhook_chatroom_methods.SELF_LEFT)
 
     if status:
         card_state_instance = collabcard_state_filter[0]
@@ -6427,8 +6427,8 @@ def follow_chatroom_async(collabcard_id,
         ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=community_instance.id, 
                                                               chatroom_id=card_instance.id, 
                                                               users_list=[user_instance.id],
-                                                              event_type=WebhookTypes.CHATROOM_JOIN.value, 
-                                                              type_method=webhook_chatroom_methods.SELF_JOIN)
+                                                              event_type=WebhookTypes.CHATROOM_JOINED.value, 
+                                                              type_method=webhook_chatroom_methods.SELF_JOINED)
         
 
     send_sync_notification.delay({'chatroom_id': card_instance.id,
