@@ -4662,11 +4662,11 @@ class ChatroomHelper:
                                                                   member_state=member_state)
             
             if trigger_webhook:
-                ChatroomImpl.trigger_webhook_for_chatroom_event(community_id=card_instance.community_id,
-                                                                chatroom_id=card_instance.id,
-                                                                users_list=user_instance.id,
-                                                                event_type=WebhookTypes.CHATROOM_JOIN,
-                                                                type_method=webhook_chatroom_methods.AUTO_FOLLOW_CHATROOM)
+                ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=card_instance.community_id,
+                                                                      chatroom_id=card_instance.id,
+                                                                      users_list=user_instance.id,
+                                                                      event_type=WebhookTypes.CHATROOM_JOIN,
+                                                                      type_method=webhook_chatroom_methods.AUTO_FOLLOW_CHATROOM)
 
         conversation_impl.ConversationHelper.update_homescreen_meta_on_chatroom_follow(community_instance,
                                                                                        card_instance,
