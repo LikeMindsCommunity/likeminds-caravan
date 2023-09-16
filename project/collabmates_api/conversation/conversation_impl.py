@@ -2231,12 +2231,12 @@ class ConversationHelper:
             search_update_users_list = list(set(search_update_users_list))
             ElasticSearchSync.update_chatroom_for_users_list.delay(chatroom_instance.id, search_update_users_list)
 
-            if trigger_webhook:
-                chatroom_impl.ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
-                                                                                    chatroom_id=chatroom_instance.id,
-                                                                                    users_list=search_update_users_list,
-                                                                                    webhook_type=WebhookTypes.CHATROOM_JOIN.value,
-                                                                                    type_method=webhook_chatroom_methods.TAGGED_JOIN)
+        if state_filter_user_ids_list and trigger_webhook:
+            chatroom_impl.ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
+                                                                                chatroom_id=chatroom_instance.id,
+                                                                                users_list=list(state_filter_user_ids_list),
+                                                                                event_type=WebhookTypes.CHATROOM_JOIN.value,
+                                                                                type_method=webhook_chatroom_methods.TAGGED_JOIN)
 
 
         if not is_group_tag:
