@@ -2260,6 +2260,9 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         for webhook in webhooks:
 
+            # Generate id for webhook payload
+            payload['id'] = str(uuid.uuid4())
+
             # Send webhook request for all webhook urls
             WebhookUtilties.send_webhook_request_with_payload.delay(url=webhook.get('url'), 
                                                                     payload=payload,

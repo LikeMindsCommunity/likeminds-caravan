@@ -1466,17 +1466,17 @@ class ChatroomImpl(ChatroomManager):
         if chatroom_state == conversation_states.CONVERSATION_REMOVED_FROM_CHATROOM:
             send_notification_for_removed_secret_room_participant.delay(member_id, self.get_chatroom_id())
 
-            type_method = webhook_chatroom_methods.REMOVED_BY_CM
+            type_method = webhook_chatroom_methods.CM_REMOVED
 
         else:
-            type_method = webhook_chatroom_methods.SELF_LEAVE
+            type_method = webhook_chatroom_methods.SELF_LEFT
 
         # Trigger webhook for secret chatroom left
         if trigger_webhook:
             ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
                                                                   chatroom_id=chatroom_instance.id,
                                                                   users_list=[member_id],
-                                                                  event_type=WebhookTypes.CHATROOM_LEAVE.value,
+                                                                  event_type=WebhookTypes.CHATROOM_LEFT.value,
                                                                   type_method=type_method)
 
     def add_secret_chatroom_participant(self, req_body: dict, is_internal: bool = True, add_user_joined_message: bool = True, 
@@ -1582,7 +1582,7 @@ class ChatroomImpl(ChatroomManager):
             ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
                                                              chatroom_id=chatroom_instance.id,
                                                              users_list=new_participants_list,
-                                                             event_type=WebhookTypes.CHATROOM_JOIN.value, 
+                                                             event_type=WebhookTypes.CHATROOM_JOINED.value, 
                                                              type_method=join_method)
         # updating all secret chatroom participants
         filter_dict = {
@@ -1797,7 +1797,7 @@ class ChatroomImpl(ChatroomManager):
 
             ChatroomHelper.bulk_follow_chatroom_users(chatroom_instance, community_members, 
                                                       trigger_webhook=True, 
-                                                      join_method=webhook_chatroom_methods.AUTO_FOLLOW_CHATROOM)
+                                                      join_method=webhook_chatroom_methods.CHATROOM_AUTO_FOLLOWED)
 
             # removing tag status for tagged users
             ModelUtilities.model_update(collabcardState,
@@ -2847,7 +2847,7 @@ class ChatroomImpl(ChatroomManager):
 
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants,
                                                   trigger_webhook=True, 
-                                                  join_method=webhook_chatroom_methods.ADDED_BY_CM)
+                                                  join_method=webhook_chatroom_methods.CM_ADDED)
 
         conversation_impl.ConversationHelper.create_conversation_state(card_instance, user_instance,
                                                                        conversation_states.CONVERSATION_ADD_ALL_MEMBERS,
@@ -3016,7 +3016,7 @@ class ChatroomImpl(ChatroomManager):
             ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
                                                                   chatroom_id=chatroom_instance.id,
                                                                   users_list=removed_members_list,
-                                                                  event_type=WebhookTypes.CHATROOM_LEAVE.value,
+                                                                  event_type=WebhookTypes.CHATROOM_LEFT.value,
                                                                   type_method=webhook_chatroom_methods.COHORT_CHATROOM_REMOVED)
 
         chatroom_cohort_filter.delete()
@@ -4138,7 +4138,7 @@ class ChatroomImpl(ChatroomManager):
                 'is_channel_invite': False
             }
 
-            self.add_secret_chatroom_participant(req_body, trigger_webhook=True, join_method=webhook_chatroom_methods.INVITE_JOIN)
+            self.add_secret_chatroom_participant(req_body, trigger_webhook=True, join_method=webhook_chatroom_methods.INVITE_JOINED)
             chatroom_invite_filter.update(invite_status=chatroom_invite_status_types.INVITE_ACCEPTED,
                                           updated_at=TimeUtilities.current_time_in_milliseconds())
 
@@ -4232,7 +4232,7 @@ class ChatroomImpl(ChatroomManager):
         return {'success': True, 'channel_settings': serialized_data} 
     
     @staticmethod
-    def generate_payload_for_catroom_webhook_event(chatroom_id: int, users_list: list, 
+    def generate_payload_for_chatroom_webhook_event(chatroom_id: int, users_list: list, 
                                                    event_type: str, type_method: str) -> dict:
 
         payload = {
@@ -4243,10 +4243,10 @@ class ChatroomImpl(ChatroomManager):
             "data": {}
         }
 
-        if event_type == WebhookTypes.CHATROOM_JOIN.value:
+        if event_type == WebhookTypes.CHATROOM_JOINED.value:
             payload['data']['join_method'] = type_method
 
-        elif event_type == WebhookTypes.CHATROOM_LEAVE.value:
+        elif event_type == WebhookTypes.CHATROOM_LEFT.value:
             payload['data']['left_method'] = type_method
 
     
@@ -4257,7 +4257,7 @@ class ChatroomImpl(ChatroomManager):
         users_data = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
 
         # Add user interaction data to payload if event is chatroom left
-        if event_type == WebhookTypes.CHATROOM_LEAVE.value:
+        if event_type == WebhookTypes.CHATROOM_LEFT.value:
 
             user_interaction_dict = ChatroomHelper.fetch_users_interaction_with_chatroom(user_ids=users_list[:MAX_WEBHOOK_USERS_META_LIMIT],
                                                                                          chatroom_id=chatroom_id)
@@ -4289,7 +4289,7 @@ class ChatroomImpl(ChatroomManager):
         if not webhooks:
             return
     
-        payload = ChatroomImpl.generate_payload_for_catroom_webhook_event(chatroom_id=chatroom_id, 
+        payload = ChatroomImpl.generate_payload_for_chatroom_webhook_event(chatroom_id=chatroom_id, 
                                                                           users_list=users_list,
                                                                           event_type=event_type,
                                                                           type_method=type_method)
@@ -4298,6 +4298,9 @@ class ChatroomImpl(ChatroomManager):
             return
 
         for webhook in webhooks:
+
+            # Generate id for webhook payload
+            payload['id'] = str(uuid.uuid4())
 
             # Send webhook request
             WebhookUtilties.send_webhook_request_with_payload.delay(url=webhook.get('url'),
@@ -4443,8 +4446,8 @@ class ChatroomHelper:
             ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=community_id,
                                                              chatroom_id=chatroom_id,
                                                              users_list=user_list,
-                                                             event_type=WebhookTypes.CHATROOM_JOIN.value, 
-                                                             type_method=webhook_chatroom_methods.ADDED_BY_CM)
+                                                             event_type=WebhookTypes.CHATROOM_JOINED.value, 
+                                                             type_method=webhook_chatroom_methods.CM_ADDED)
 
         ChatroomHelper.update_secret_chatroom_for_community_promoters(card_instance, community_instance, member_dict)
         ElasticSearchSync.update_chatroom(card_instance.id)
@@ -4665,8 +4668,8 @@ class ChatroomHelper:
                 ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=card_instance.community_id,
                                                                       chatroom_id=card_instance.id,
                                                                       users_list=[user_instance.id],
-                                                                      event_type=WebhookTypes.CHATROOM_JOIN.value,
-                                                                      type_method=webhook_chatroom_methods.AUTO_FOLLOW_CHATROOM)
+                                                                      event_type=WebhookTypes.CHATROOM_JOINED.value,
+                                                                      type_method=webhook_chatroom_methods.CHATROOM_AUTO_FOLLOWED)
 
         conversation_impl.ConversationHelper.update_homescreen_meta_on_chatroom_follow(community_instance,
                                                                                        card_instance,
@@ -4754,8 +4757,8 @@ class ChatroomHelper:
                     ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=community_instance.id,
                                                                      chatroom_id=card_instance.id,
                                                                      users_list=[user_instance.id],
-                                                                     event_type=WebhookTypes.CHATROOM_JOIN.value, 
-                                                                     type_method=webhook_chatroom_methods.AUTO_FOLLOW_CHATROOM)
+                                                                     event_type=WebhookTypes.CHATROOM_JOINED.value, 
+                                                                     type_method=webhook_chatroom_methods.CHATROOM_AUTO_FOLLOWED)
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_chatroom_list(
@@ -4868,15 +4871,15 @@ class ChatroomHelper:
 
             if trigger_webhook:
                 if card_instance.auto_follow_done:
-                    join_method = webhook_chatroom_methods.AUTO_FOLLOW_CHATROOM
+                    join_method = webhook_chatroom_methods.CHATROOM_AUTO_FOLLOWED
 
                 else:
-                    join_method = webhook_chatroom_methods.ADDED_BY_CM
+                    join_method = webhook_chatroom_methods.CM_ADDED
 
                 ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=community_instance.id,
                                                                  chatroom_id=card_instance.id,
                                                                  users_list=auto_follow_members_list,
-                                                                 event_type=WebhookTypes.CHATROOM_JOIN.value, 
+                                                                 event_type=WebhookTypes.CHATROOM_JOINED.value, 
                                                                  type_method=join_method)
 
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
@@ -5124,7 +5127,7 @@ class ChatroomHelper:
             ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=card_instance.community_id,
                                                              chatroom_id=card_instance.id,
                                                              users_list=chatroom_member_list,
-                                                             event_type=WebhookTypes.CHATROOM_JOIN.value, 
+                                                             event_type=WebhookTypes.CHATROOM_JOINED.value, 
                                                              type_method=join_method)
 
     @staticmethod
@@ -5136,7 +5139,7 @@ class ChatroomHelper:
             co_host_list = new_co_hosts
 
         ChatroomHelper.bulk_follow_chatroom_users(card_instance, co_host_list, 
-                                                  trigger_webhook=True, join_method=webhook_chatroom_methods.ADDED_BY_CM)
+                                                  trigger_webhook=True, join_method=webhook_chatroom_methods.CM_ADDED)
 
         co_hosts_chatroom_state = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
                                                                                     'user_id__in': co_host_list})
@@ -5936,8 +5939,8 @@ class ChatroomHelper:
             ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
                                                                   chatroom_id=chatroom_instance.id,
                                                                   users_list=removed_members_list,
-                                                                  event_type=WebhookTypes.CHATROOM_LEAVE.value,
-                                                                  type_method=webhook_chatroom_methods.REMOVED_BY_CM)
+                                                                  event_type=WebhookTypes.CHATROOM_LEFT.value,
+                                                                  type_method=webhook_chatroom_methods.CM_REMOVED)
 
 
     @staticmethod

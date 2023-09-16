@@ -2364,8 +2364,8 @@ class ConversationHelper:
             chatroom_impl.ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
                                                                                 chatroom_id=chatroom_instance.id,
                                                                                 users_list=[user_instance.id],
-                                                                                event_type=WebhookTypes.CHATROOM_JOIN.value,
-                                                                                type_method=webhook_chatroom_methods.SELF_JOIN)
+                                                                                event_type=WebhookTypes.CHATROOM_JOINED.value,
+                                                                                type_method=webhook_chatroom_methods.SELF_JOINED)
 
 
     @staticmethod
