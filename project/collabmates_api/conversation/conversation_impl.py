@@ -2159,7 +2159,7 @@ class ConversationHelper:
         conversation_instance.save()
 
     @staticmethod
-    def _auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance, trigger_webhook=False):
+    def _auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance):
 
         conversation_text = conversation_instance.answer
         tagged_member_list, answer_text, tagged_user_names, should_unmute_members, is_group_tag = get_tagged_members_list(
@@ -2230,14 +2230,6 @@ class ConversationHelper:
         if search_update_users_list:
             search_update_users_list = list(set(search_update_users_list))
             ElasticSearchSync.update_chatroom_for_users_list.delay(chatroom_instance.id, search_update_users_list)
-
-            if trigger_webhook:
-                chatroom_impl.ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
-                                                                                    chatroom_id=chatroom_instance.id,
-                                                                                    users_list=search_update_users_list,
-                                                                                    webhook_type=WebhookTypes.CHATROOM_JOIN.value,
-                                                                                    type_method=webhook_chatroom_methods.TAGGED_JOIN)
-
 
         if not is_group_tag:
             ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
@@ -2427,8 +2419,7 @@ class ConversationHelper:
                                                  user_instance, member_state, trigger_webhook=trigger_webhook)
 
         tagged_members_list = ConversationHelper._auto_follow_for_tagged_members(chatroom_instance, user_instance,
-                                                                                 conversation_instance, 
-                                                                                 trigger_webhook=trigger_webhook)
+                                                                                 conversation_instance)
 
         # ConversationHelper._create_or_update_conversation_engage(chatroom_instance, user_instance,
         #                                                          conversation_instance, tagged_members_list)

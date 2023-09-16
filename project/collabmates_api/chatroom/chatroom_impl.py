@@ -4237,7 +4237,7 @@ class ChatroomImpl(ChatroomManager):
 
         payload = {
             "id": str(uuid.uuid4()),
-            "event": WebhookTypes.CHATROOM_JOIN.value,
+            "event": event_type,
             "source": WEBHOOK_SOURCE_CHAT,
             "created_at": TimeUtilities.current_time_in_milliseconds(),
             "data": {}
