@@ -7,6 +7,7 @@ from celery.exceptions import Retry
 from utility.api_client import ApiClient
 
 from togther.models import (ModelUtilities)
+from utility.time_utilities import (TimeUtilities)
 from collabmates_api.sdk.models import (SdkClient)
 from collabmates_api.webhook.models import (CommunityWebhook)
 from collabmates_api.webhook.constants import (MAX_WEBHOOK_RETRY_LIMIT, WEBHOOK_FAILURE_MAIL_SUBJECT, 
@@ -75,6 +76,7 @@ class WebhookUtilties:
             api_client.post()
 
             response_code = api_client.fetch_response_code()
+            response_text = api_client.response.text
 
             # If response code is 200, webhook request is successful
             if response_code == 200:
@@ -102,7 +104,11 @@ class WebhookUtilties:
                     webhook_instance.save()
 
                     subject = WEBHOOK_FAILURE_MAIL_SUBJECT
-                    body = WEBHOOK_FAILURE_MAIL_BODY.format(webhook_type, url, json.dumps(payload, indent=4))
+
+                    current_date_time = TimeUtilities.get_current_datetime_in_IST().strftime("%d-%m-%Y %H:%M")
+                    body = WEBHOOK_FAILURE_MAIL_BODY.format(webhook_type, current_date_time,
+                                                            url, current_date_time, response_code, response_text,
+                                                            json.dumps(payload, indent=4))
                     
                     # Fetch team emails from settings
                     team_emails = settings.WEBHOOK_FAILURE_NOTIFICATION_TEAM_EMAILS
@@ -112,7 +118,7 @@ class WebhookUtilties:
                                                                  template=body, 
                                                                  to_mails_list=team_emails)
                     
-                    logger.error(f"{payload['id']} | Webhook request failed and maximum retry limit reached - Webhook set as inactive and mail sent to admin | url: {url}, payload: {payload} and response: {api_client.response.text}")
+                    logger.error(f"{payload['id']} | Webhook request failed and maximum retry limit reached - Webhook set as inactive and mail sent to admin | url: {url}, payload: {payload} and response: {response_text}")
 
         except Exception as e:
 
