@@ -92,7 +92,7 @@ class WebhookUtilties:
                 if current_retries < MAX_WEBHOOK_RETRY_LIMIT:
 
                     # Retry wity countdown 1 -> 60 -> 3600 seconds
-                    countdown_secs = 60 ** current_retries
+                    countdown_secs = 6 ** current_retries
 
                     raise self.retry(countdown=countdown_secs)
                 
