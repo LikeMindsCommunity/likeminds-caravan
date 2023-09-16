@@ -1,5 +1,6 @@
-import math
+import math, uuid
 
+from celery import shared_task
 from django.contrib.auth.models import User
 from django.db.models import Q, When, Case
 from django.db.models.functions import Lower
@@ -23,7 +24,8 @@ from utility.exception_utilities import CustomException
 from utility.states import member_states, card_types, deleted_members, question_states, \
     conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers, \
     community_dm_settings_state_types, community_dm_settings_duration_types, dm_icon_from_states, get_started_types, \
-    api_types, access_types, feed_order_types, DMFabShowList, click_states, moderation_history_types
+    api_types, access_types, feed_order_types, DMFabShowList, click_states, moderation_history_types, WebhookTypes, \
+    webhook_profile_methods
 
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
@@ -89,6 +91,9 @@ from ..views import get_home_screen_community_actions, generate_internal_link_pr
     get_latest_conversation_members, post_introduction_card_for_community, update_community_get_started
 
 from collabmates_api.search.sync import ElasticSearchSync
+from collabmates_api.webhook.models import (CommunityWebhook)
+from collabmates_api.webhook.constants import(WEBHOOK_SOURCE_CHAT, MAX_WEBHOOK_USERS_META_LIMIT)
+from utility.webhook_utilities import (WebhookUtilties)
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -1898,7 +1903,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             MemberCommunityHelper.make_requesting_user_as_member_of_community(user_instance, community_instance,
                                                                               req_body, device_id=self.get_device_id(),
                                                                               platform=self.get_platform_code(),
-                                                                              version_code=self.get_version_code())
+                                                                              version_code=self.get_version_code(),
+                                                                              trigger_webhook=True)
 
         elif (not members_filter) and (community_setting_instance and not community_setting_instance.enabled):
             MemberCommunityHelper.make_requesting_user_as_pending_member_of_community(user_instance,
@@ -2235,6 +2241,30 @@ class MemberCommunityImpl(MemberCommunityManager):
             'success': True,
             'pending_members': pending_members_list
         }
+    
+    @staticmethod
+    @shared_task
+    def trigger_webhook_for_profile_events(community_id: int, member_id: int):
+        
+        webhooks = WebhookUtilties.validate_and_fetch_all_webhook_url_and_secret(community_id, 
+                                                                                 WebhookTypes.PROFILE_CREATED.value)
+        
+        if not webhooks:
+            return
+        
+        # generate payload for profile events
+        payload = MemberCommunityHelper.generate_payload_for_profile_webhook_events(member_id)
+
+        if not payload:
+            return
+
+        for webhook in webhooks:
+
+            # Send webhook request for all webhook urls
+            WebhookUtilties.send_webhook_request_with_payload.delay(url=webhook.get('url'), 
+                                                                    payload=payload,
+                                                                    webhook_type=WebhookTypes.PROFILE_CREATED.value,
+                                                                    secret=webhook.get('secret'))
 
 
 class MemberCommunityHelper:
@@ -3099,7 +3129,7 @@ class MemberCommunityHelper:
 
     @staticmethod
     def make_requesting_user_as_member_of_community(user_instance, community_instance, req_body, device_id=None,
-                                                    platform=None, version_code=None):
+                                                    platform=None, version_code=None, trigger_webhook=False):
 
         from collabmates_api.community.community_impl import CommunityHelper, CommunityImpl
         from collabmates_api.community.constants import (DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY)
@@ -3136,7 +3166,8 @@ class MemberCommunityHelper:
 
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
         CommunityHelper.set_follow_status_for_announcement_chatroom_for_community(community_instance,
-                                                                                  user_instance)
+                                                                                  user_instance, 
+                                                                                  trigger_webhook=trigger_webhook)
 
         shared_user_id = None
         auto_join_code = None
@@ -3182,7 +3213,13 @@ class MemberCommunityHelper:
                                                                    introduction_answer=introduction_answer)
 
         else:
-            ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance)
+            ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance, 
+                                                                                 trigger_webhook=trigger_webhook)
+            
+        # Trigger webhook event for profile creation
+        if trigger_webhook:
+            MemberCommunityImpl.trigger_webhook_for_profile_events.delay(community_id=community_instance.id,
+                                                                           member_id=user_instance.id)
 
         action_required_by_promoter = ModelUtilities.is_model_filter_exists(Members,
                                                                             {'community_id': community_instance,
@@ -3673,3 +3710,57 @@ class MemberCommunityHelper:
             'user_instance': user_instance,
             'community_instance': community_instance
         }
+        
+    @staticmethod
+    def get_users_payload_for_webhook_events(user_ids: list) -> list:
+
+        if not user_ids or not isinstance(user_ids, list):
+            return []
+
+        # Truncate users list to MAX_WEBHOOK_USERS_LIMIT
+        truncated_list = user_ids[:MAX_WEBHOOK_USERS_META_LIMIT]
+        users_meta = get_users_sdk_meta_dict(truncated_list)
+        users_payload = []
+
+        for key, user_meta in users_meta.items():
+            
+            user = {
+                "id": user_meta.get('id'),
+                "custom_title": user_meta.get('custom_title'),
+                "image_url": user_meta.get('image_url'),
+                "is_guest": user_meta.get('is_guest'),
+                "name": user_meta.get('name'),
+                "sdk_client_info": {
+                    "community": user_meta.get('sdk_client_info').get('community') if user_meta.get('sdk_client_info') else None,
+                    "uuid": user_meta.get('sdk_client_info').get('user_unique_id') if user_meta.get('sdk_client_info') else None
+                },
+                "uuid": user_meta.get('user_unique_id'),
+            }
+
+            users_payload.append(user)
+
+        return users_payload
+    
+    @staticmethod
+    def generate_payload_for_profile_webhook_events(user_id) -> dict:
+
+        if not user_id:
+            return {}
+
+        users_data = MemberCommunityHelper.get_users_payload_for_webhook_events([user_id])
+
+        if not users_data:
+            return {}
+        
+        payload = {
+            "id": str(uuid.uuid4()),
+            "event": WebhookTypes.PROFILE_CREATED.value,
+            "source": WEBHOOK_SOURCE_CHAT,
+            "created_at": TimeUtilities.current_time_in_sec(),
+            "data": {
+                "user":  users_data[0],
+                "creation_method": webhook_profile_methods.COMMUNITY_JOIN
+            }
+        }
+
+        return payload

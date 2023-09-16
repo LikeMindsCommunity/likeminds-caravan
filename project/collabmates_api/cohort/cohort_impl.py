@@ -317,7 +317,7 @@ class CohortImpl(CohortManager):
 
             try:
                 chatroom_manager = ChatroomImpl(self.get_member_id(), chatroom_id=chatroom_id)
-                chatroom_manager.leave_secret_chatroom(user_id)
+                chatroom_manager.leave_secret_chatroom(user_id, trigger_webhook=True)
 
             except Exception as e:
                 error_logger.error(e.args)
