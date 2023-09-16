@@ -60,7 +60,7 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
     conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types, \
-    member_rights, unsubscribe_types, noti_states, chat_request_states
+    member_rights, unsubscribe_types, noti_states, chat_request_states, webhook_chatroom_methods
 
 from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
     is_member_verified, filter_user_instances_based_on_notification_flag
@@ -82,6 +82,7 @@ from utility.string_utilities import StringUtilities
 from celery import shared_task
 from ..owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from collabmates_api.search.sync import ElasticSearchSync
+from collabmates_api.webhook.models import (WebhookTypes)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -1011,7 +1012,8 @@ class ConversationImpl(ConversationManager):
                                                                        chatroom_id=chatroom_instance.id,
                                                                        conversation_id=conversation_instance.id,
                                                                        req_body=req_body,
-                                                                       member_state=member_state)
+                                                                       member_state=member_state,
+                                                                       trigger_webhook=True)
 
         context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
         conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
@@ -2308,11 +2310,16 @@ class ConversationHelper:
 
     @staticmethod
     def _auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance, user_instance,
-                              member_state):
+                              member_state, trigger_webhook = False):
         
         empty_conversation = (conversation_instance.attachment_count > 0 and not conversation_instance.attachments_uploaded)
 
+        followed_chatroom = False
+
         if chatroom_state_instance:
+
+            follow_status_old = chatroom_state_instance.follow_status
+
             if not empty_conversation:
                 chatroom_state_instance.last_seen_conversation = conversation_instance
             chatroom_state_instance.follow_status = True
@@ -2326,6 +2333,9 @@ class ConversationHelper:
 
             ElasticSearchSync.update_chatroom_for_user.delay(chatroom_instance.id, user_instance.id)
 
+            if follow_status_old != chatroom_state_instance.follow_status:
+                followed_chatroom = True
+
         else:
             community_current_noti_state = ConversationHelper._get_community_notification_state(chatroom_instance)
 
@@ -2337,6 +2347,7 @@ class ConversationHelper:
                                                                state=collabcard_states.COLLABCARD_STATE_UNSEEN,
                                                                follow_status=True,
                                                                noti_state=community_current_noti_state)
+                
 
             elif member_state != member_states.KNOWN_NOMINATED_PROMOTER:
                 collabcardState.create_chatroom_state_instance(chatroom_instance, user_instance,
@@ -2346,6 +2357,16 @@ class ConversationHelper:
 
                 ModelUtilities.model_update(Userinfo, {'user': user_instance},
                                             {'updated_at': TimeUtilities.current_time_in_sec()})
+                
+            followed_chatroom = True
+                
+        if followed_chatroom and trigger_webhook:
+            chatroom_impl.ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=chatroom_instance.community_id,
+                                                                                chatroom_id=chatroom_instance.id,
+                                                                                users_list=[user_instance.id],
+                                                                                event_type=WebhookTypes.CHATROOM_JOINED.value,
+                                                                                type_method=webhook_chatroom_methods.SELF_JOINED)
+
 
     @staticmethod
     def _send_conversation_creation_notifications(user_instance, chatroom_instance, conversation_instance, has_files):
@@ -2370,7 +2391,8 @@ class ConversationHelper:
     @staticmethod
     @shared_task
     def run_async_task_on_conversation_create(user_id: int, chatroom_id: int, conversation_id: int,
-                                              req_body: dict = None, member_state: int = member_states.GUEST):
+                                              req_body: dict = None, member_state: int = member_states.GUEST,
+                                              trigger_webhook: bool = False):
 
         if req_body is None:
             req_body = dict()
@@ -2394,7 +2416,7 @@ class ConversationHelper:
         ConversationHelper._set_preview_for_conversation(conversation_instance, user_id, req_body)
 
         ConversationHelper._auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance,
-                                                 user_instance, member_state)
+                                                 user_instance, member_state, trigger_webhook=trigger_webhook)
 
         tagged_members_list = ConversationHelper._auto_follow_for_tagged_members(chatroom_instance, user_instance,
                                                                                  conversation_instance)

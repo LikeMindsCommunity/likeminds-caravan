@@ -19,7 +19,7 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
-from utility.states import report_Tag_Types, member_states, card_types
+from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
@@ -94,6 +94,7 @@ from .branch import create_community_feed_url_for_cm_onboarding
 from .search.sync import ElasticSearchSync
 from .community.constants import *
 from .chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE
+from collabmates_api.webhook.models import (WebhookTypes)
 
 from urllib import parse
 
@@ -300,7 +301,7 @@ def my_chatrooms_version_1(request):
     community_id = request.GET.get('community_id', None)
     community_instance = SdkClient.get_community_instance_or_none(community_id, api_key)
 
-    if (community_id or api_key) and not community_instance:
+    if not community_instance:
         context = ResponseUtilities.get_view_impl_error_context("Invalid community ID/API key!",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
@@ -6408,10 +6409,28 @@ def follow_chatroom_async(collabcard_id,
                                                          state=conversation_states.CONVERSATION_UNFOLLOW,
                                                          community_instance=community_instance)
 
+            # Trigger chatroom leave webhook for self leave
+            from .chatroom.chatroom_impl import ChatroomImpl
+            ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=community_instance.id,
+                                                                  chatroom_id=card_instance.id,
+                                                                  users_list=[user_instance.id],
+                                                                  event_type=WebhookTypes.CHATROOM_LEFT.value,
+                                                                  type_method=webhook_chatroom_methods.SELF_LEFT)
+
     if status:
         card_state_instance = collabcard_state_filter[0]
         ConversationHelper.update_homescreen_meta_on_chatroom_follow(community_instance, card_instance,
                                                                      card_state_instance, user_instance)
+
+        # Trigger chatroom join webhook for self join
+        from .chatroom.chatroom_impl import ChatroomImpl
+        ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=community_instance.id, 
+                                                              chatroom_id=card_instance.id, 
+                                                              users_list=[user_instance.id],
+                                                              event_type=WebhookTypes.CHATROOM_JOINED.value, 
+                                                              type_method=webhook_chatroom_methods.SELF_JOINED)
+        
+
     send_sync_notification.delay({'chatroom_id': card_instance.id,
                                   'member_id': user_instance.id,
                                   'sync_notification_type': SyncNotificationTypes.SINGLE_MEMBER.value})

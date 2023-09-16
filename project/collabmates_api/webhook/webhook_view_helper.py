@@ -1,43 +1,39 @@
 from utility.states import WebhookTypes
 from utility.response_utilities import ResponseUtilities
 
-
 class WebhookViewHelper:
 
     @staticmethod
-    def basic_body_validator(request_body, member_id):
+    def validate_basic_webhook_request(member_id, api_key):
+
+        if not member_id:
+            return ResponseUtilities.get_inner_error_context('send x-member-id in headers')
+        
+        if not api_key:
+            return ResponseUtilities.get_inner_error_context('send x-api-key in headers')
+
+        return {'success': True}
+
+    @staticmethod
+    def validate_body_webhook_request(request_body, member_id, api_key=None):
+
+        basic_validation = WebhookViewHelper.validate_basic_webhook_request(member_id, api_key)
+
+        if 'error_message' in basic_validation:
+            return basic_validation
 
         if not request_body:
             return ResponseUtilities.get_inner_error_context('invalid request body')
 
-        if not member_id:
-            return ResponseUtilities.get_inner_error_context('send member_id in headers')
-
-        return None
+        return {'success': True}
 
     @staticmethod
-    def fetch_webhooks_body_validator(request_body, member_id):
+    def add_webhook_body_validator(request_body, member_id, api_key=None):
 
-        basic_validator = WebhookViewHelper.basic_body_validator(request_body, member_id)
+        basic_validation = WebhookViewHelper.validate_body_webhook_request(request_body, member_id, api_key)
 
-        if basic_validator:
-            return basic_validator
-
-        if 'community_id' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send community_id in body')
-
-        return request_body
-
-    @staticmethod
-    def add_webhook_body_validator(request_body, member_id):
-
-        basic_validator = WebhookViewHelper.basic_body_validator(request_body, member_id)
-
-        if basic_validator:
-            return basic_validator
-
-        if 'community_id' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send community_id in body')
+        if 'error_message' in basic_validation:
+            return basic_validation
 
         if 'webhook_type' not in request_body:
             return ResponseUtilities.get_inner_error_context('send webhook_type in body')
@@ -47,38 +43,27 @@ class WebhookViewHelper:
 
         if 'url' not in request_body:
             return ResponseUtilities.get_inner_error_context('send url in body')
+        
+        if 'is_active' not in request_body:
+            return ResponseUtilities.get_inner_error_context('send is_active in body')
 
         return request_body
 
     @staticmethod
-    def fetch_webhook_body_validator(request_body, member_id):
+    def update_webhook_body_validator(request_body, member_id, api_key):
 
-        basic_validator = WebhookViewHelper.basic_body_validator(request_body, member_id)
+        basic_validator = WebhookViewHelper.validate_basic_webhook_request(member_id, api_key)
 
-        if basic_validator:
+        if 'error_message' in basic_validator:
             return basic_validator
 
-        return request_body
+        url = request_body.get('url')
+        is_active = request_body.get('is_active')
 
-    @staticmethod
-    def update_webhook_body_validator(request_body, member_id):
-
-        basic_validator = WebhookViewHelper.basic_body_validator(request_body, member_id)
-
-        if basic_validator:
-            return basic_validator
-
-        if 'url' not in request_body:
-            return ResponseUtilities.get_inner_error_context('send url in body')
-
-        return request_body
-
-    @staticmethod
-    def delete_webhook_body_validator(request_body, member_id):
-
-        basic_validator = WebhookViewHelper.basic_body_validator(request_body, member_id)
-
-        if basic_validator:
-            return basic_validator
+        if (not url) and (is_active is None):
+            return ResponseUtilities.get_inner_error_context('Please send url or is_active in body')
+        
+        if is_active and not isinstance(is_active, bool):
+            return ResponseUtilities.get_inner_error_context('is_active should be boolean')
 
         return request_body

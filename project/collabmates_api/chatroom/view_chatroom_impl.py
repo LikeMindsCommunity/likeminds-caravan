@@ -16,8 +16,7 @@ from .chatroom_view_helper import ChatroomViewHelper
 from ..mixins import TransactionMixin
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.response_utilities import ResponseUtilities
-from utility.states import (api_types)
-from utility.number_utilities import NumberUtilities
+from utility.states import (api_types, webhook_chatroom_methods)
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -172,7 +171,7 @@ class LeaveSecretChatroomView(APIView):
 
         chatroom_manager = ChatroomImpl(header_member_id, chatroom_id=chatroom_id)
 
-        context = chatroom_manager.leave_secret_chatroom(member_id, uuid=uuid)
+        context = chatroom_manager.leave_secret_chatroom(member_id, uuid=uuid, trigger_webhook=True)
 
         context = {
             "success": True
@@ -193,7 +192,9 @@ class AddSecretChatroomParticipantView(APIView):
         chatroom_id = req_body.get('chatroom_id', None)
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id=chatroom_id)
-        chatroom_data = chatroom_manager.add_secret_chatroom_participant(req_body, is_internal=False)
+        chatroom_data = chatroom_manager.add_secret_chatroom_participant(req_body, is_internal=False, 
+                                                                         trigger_webhook=True, 
+                                                                         join_method=webhook_chatroom_methods.CM_ADDED)
 
         if 'error_message' in chatroom_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatroom_data.get('error_message'),

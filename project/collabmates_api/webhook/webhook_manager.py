@@ -19,14 +19,14 @@ class WebhookManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_webhook(self) -> dict:
+    def add_webhook(self, is_active) -> dict:
         """
         add webhook for community
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update_webhook(self) -> dict:
+    def update_webhook(self, webhook_url:str = None, is_active:bool = None) -> dict:
         """
         update webhook for community
         """

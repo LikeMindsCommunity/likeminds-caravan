@@ -504,7 +504,7 @@ class CommunityImpl(CommunityManager):
     def send_join_data_on_webhook(member_id, community_id):
 
         webhook_instances = ModelUtilities.get_model_filter(
-            CommunityWebhook, {'community_id': community_id, 'webhook_type': WebhookTypes.COMMUNITY_JOIN.value})
+            CommunityWebhook, {'community_id': community_id, 'webhook_type': WebhookTypes.COMMUNITY_JOINED.value})
 
         if not webhook_instances:
             return
@@ -2822,7 +2822,7 @@ class CommunityHelper:
         ElasticSearchSync.update_chatrooms_for_rejoined_member.delay(community_instance.id, user_instance.id)
 
     @staticmethod
-    def set_follow_status_for_announcement_chatroom_for_community(community_instance, user_instance):
+    def set_follow_status_for_announcement_chatroom_for_community(community_instance, user_instance, trigger_webhook=False):
 
         card_filter = ModelUtilities.get_model_filter(Collabcard, {'community': community_instance,
                                                                    'type': card_types.CARD_PURPOSE})
@@ -2830,7 +2830,7 @@ class CommunityHelper:
             card_instance = card_filter[0]
 
             ChatroomHelper.auto_follow_chatroom(card_instance, user_instance, community_instance, status=True,
-                                                member_state=member_states.MEMBER)
+                                                member_state=member_states.MEMBER, trigger_webhook=trigger_webhook)
 
     @staticmethod
     def create_introduction_text_for_intro_chatroom(community_instance, user_instance, question_list=None,

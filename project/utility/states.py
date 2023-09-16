@@ -593,7 +593,33 @@ airtable_webhook_types = AirtableWebhookTypes()
 
 
 class WebhookTypes(enum.Enum):
-    COMMUNITY_JOIN = 1
+    COMMUNITY_JOINED = "community.joined"
+    CHATROOM_JOINED = "chatroom.joined"
+    CHATROOM_LEFT = "chatroom.left"
+    PROFILE_CREATED = "profile.created"
+
+class WenhookChatroomMethodTypes:
+    SELF_JOINED = "self_joined"
+    CM_ADDED = "cm_added"
+    CHATROOM_AUTO_FOLLOWED = "chatroom_auto_followed"
+    INVITE_JOINED = "invite_joined"
+    COHORT_CHATROOM_ADDED = "cohort_chatroom_added"
+    TAGGED_JOINED = "tagged_joined"
+    SELF_LEFT = "self_left"
+    CM_REMOVED = "cm_removed"
+    COHORT_CHATROOM_REMOVED = "cohort_chatroom_removed"
+
+webhook_chatroom_methods = WenhookChatroomMethodTypes()
+
+class WebhookCommunityMethodTypes:
+    COMMUNITY_JOIN = "community_join"
+
+webhook_community_methods = WebhookCommunityMethodTypes()
+
+class WebhookProfileMethodTypes:
+    COMMUNITY_JOIN = "community_join"
+
+webhook_profile_methods = WebhookProfileMethodTypes()
 
 
 class CohortAccess(enum.Enum):

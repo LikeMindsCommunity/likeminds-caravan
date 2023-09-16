@@ -11,18 +11,17 @@ from .webhook_impl import WebhookImpl
 class WebhooksView(APIView):
 
     def get(self, request):
-
-        request_body = RequestUtilities.load_request_body(request)
+        
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        validated_request_body = WebhookViewHelper.fetch_webhooks_body_validator(request_body, member_id)
+        validated_request = WebhookViewHelper.validate_basic_webhook_request(member_id, api_key)
 
-        if 'error_message' in validated_request_body:
-            context = ResponseUtilities.get_view_impl_error_context(validated_request_body['error_message'],
+        if 'error_message' in validated_request:
+            context = ResponseUtilities.get_view_impl_error_context(validated_request['error_message'],
                                                                     status_codes.HTTP_400_BAD_REQUEST)
             return JsonResponse(context['data'], status=context['status'])
 
-        webhook_manager = WebhookImpl(member_id=member_id,
-                                      community_id=validated_request_body.get('community_id'))
+        webhook_manager = WebhookImpl(member_id=member_id, api_key=api_key)
         response_data = webhook_manager.fetch_webhooks()
 
         if 'error_message' in response_data:
@@ -37,47 +36,44 @@ class WebhooksView(APIView):
 
     def post(self, request):
 
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         request_body = RequestUtilities.load_request_body(request)
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        validated_request_body = WebhookViewHelper.add_webhook_body_validator(request_body, member_id)
+        validated_request_body = WebhookViewHelper.add_webhook_body_validator(request_body, member_id, api_key)
 
         if 'error_message' in validated_request_body:
             context = ResponseUtilities.get_view_impl_error_context(validated_request_body['error_message'],
                                                                     status_codes.HTTP_400_BAD_REQUEST)
             return JsonResponse(context['data'], status=context['status'])
 
-        webhook_manager = WebhookImpl(member_id=member_id,
-                                      community_id=validated_request_body.get('community_id'),
+        webhook_manager = WebhookImpl(member_id=member_id, api_key=api_key,
                                       webhook_type=validated_request_body.get('webhook_type'),
                                       url=validated_request_body.get('url'))
-        response_data = webhook_manager.add_webhook()
+        
+        response_data = webhook_manager.add_webhook(validated_request_body.get('is_active'))
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
                                                                     response_data['status'])
             return JsonResponse(context['data'], status=context['status'])
 
-        return JsonResponse(
-            {'success': True},
-            status=status_codes.HTTP_200_OK
-        )
+        return JsonResponse(response_data)
 
 
 class WebhookView(APIView):
 
     def get(self, request, webhook_id):
 
-        request_body = RequestUtilities.load_request_body(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        validated_request_body = WebhookViewHelper.fetch_webhook_body_validator(request_body, member_id)
+        validated_request = WebhookViewHelper.validate_basic_webhook_request(member_id, api_key)
 
-        if 'error_message' in validated_request_body:
-            context = ResponseUtilities.get_view_impl_error_context(validated_request_body['error_message'],
+        if 'error_message' in validated_request:
+            context = ResponseUtilities.get_view_impl_error_context(validated_request['error_message'],
                                                                     status_codes.HTTP_400_BAD_REQUEST)
             return JsonResponse(context['data'], status=context['status'])
 
-        webhook_manager = WebhookImpl(member_id=member_id,
-                                      webhook_id=webhook_id)
+        webhook_manager = WebhookImpl(member_id=member_id, api_key=api_key, webhook_id=webhook_id)
         response_data = webhook_manager.fetch_webhook()
 
         if 'error_message' in response_data:
@@ -92,43 +88,42 @@ class WebhookView(APIView):
 
     def patch(self, request, webhook_id):
 
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         request_body = RequestUtilities.load_request_body(request)
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        validated_request_body = WebhookViewHelper.update_webhook_body_validator(request_body, member_id)
+        validated_request_body = WebhookViewHelper.update_webhook_body_validator(request_body, member_id, api_key)
 
         if 'error_message' in validated_request_body:
             context = ResponseUtilities.get_view_impl_error_context(validated_request_body['error_message'],
                                                                     status_codes.HTTP_400_BAD_REQUEST)
             return JsonResponse(context['data'], status=context['status'])
 
-        webhook_manager = WebhookImpl(member_id=member_id,
-                                      webhook_id=webhook_id,
-                                      url=validated_request_body.get('url'))
-        response_data = webhook_manager.update_webhook()
+        webhook_manager = WebhookImpl(member_id=member_id, api_key=api_key,
+                                      webhook_id=webhook_id, url=validated_request_body.get('url'))
+        
+        response_data = webhook_manager.update_webhook(validated_request_body.get('url'), 
+                                                       validated_request_body.get('is_active'))
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
                                                                     response_data['status'])
             return JsonResponse(context['data'], status=context['status'])
 
-        return JsonResponse(
-            {'success': True},
-            status=status_codes.HTTP_200_OK
-        )
+        return JsonResponse(response_data)
 
     def delete(self, request, webhook_id):
 
-        request_body = RequestUtilities.load_request_body(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
         member_id = RequestUtilities.get_member_id_from_headers(request)
-        validated_request_body = WebhookViewHelper.delete_webhook_body_validator(request_body, member_id)
+        validate_request = WebhookViewHelper.validate_basic_webhook_request(member_id, api_key)
 
-        if 'error_message' in validated_request_body:
-            context = ResponseUtilities.get_view_impl_error_context(validated_request_body['error_message'],
+        if 'error_message' in validate_request:
+            context = ResponseUtilities.get_view_impl_error_context(validate_request['error_message'],
                                                                     status_codes.HTTP_400_BAD_REQUEST)
             return JsonResponse(context['data'], status=context['status'])
 
-        webhook_manager = WebhookImpl(member_id=member_id,
-                                      webhook_id=webhook_id)
+        webhook_manager = WebhookImpl(member_id=member_id, api_key=api_key, webhook_id=webhook_id)
+        
         response_data = webhook_manager.delete_webhook()
 
         if 'error_message' in response_data:
