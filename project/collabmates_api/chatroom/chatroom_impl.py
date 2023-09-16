@@ -4664,7 +4664,7 @@ class ChatroomHelper:
             if trigger_webhook:
                 ChatroomImpl.trigger_webhook_for_chatroom_event.delay(community_id=card_instance.community_id,
                                                                       chatroom_id=card_instance.id,
-                                                                      users_list=user_instance.id,
+                                                                      users_list=[user_instance.id],
                                                                       event_type=WebhookTypes.CHATROOM_JOIN.value,
                                                                       type_method=webhook_chatroom_methods.AUTO_FOLLOW_CHATROOM)
 
