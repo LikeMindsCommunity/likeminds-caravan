@@ -6,7 +6,8 @@ from celery import shared_task
 from celery.exceptions import Retry
 from utility.api_client import ApiClient
 
-from togther.models import ModelUtilities
+from togther.models import (ModelUtilities)
+from collabmates_api.sdk.models import (SdkClient)
 from collabmates_api.webhook.models import (CommunityWebhook)
 from collabmates_api.webhook.constants import (MAX_WEBHOOK_RETRY_LIMIT, WEBHOOK_FAILURE_MAIL_SUBJECT, 
                                                WEBHOOK_FAILURE_MAIL_BODY)
@@ -14,7 +15,6 @@ from collabmates_api.webhook.constants import (MAX_WEBHOOK_RETRY_LIMIT, WEBHOOK_
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.email.email_wrapper import MailWrapper
 
-from utility.time_utilities import TimeUtilities
 
 logger = LoggingWrapper.get_instance()
 
@@ -121,3 +121,34 @@ class WebhookUtilties:
                 raise e
         
             logger.error(f"{payload['id']} | Webhook request failed with unhandled exception: {e.args}, url: {url}, payload: {payload}")
+
+    @staticmethod
+    def validate_and_fetch_all_webhook_url_and_secret(community_id: int, webhook_type: str) -> list:
+
+        if not (community_id and webhook_type):
+            return {}
+
+        webhook_instances = ModelUtilities.get_model_filter(CommunityWebhook, {
+            'community_id': community_id,
+            'webhook_type': webhook_type,
+            'is_active': True
+        })
+
+        webhooks = []
+
+        secret = ""
+
+        # Use API Key as secret for SDK Communities
+        sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {
+            'community_id': community_id}).first()
+
+        if sdk_client_instance:
+            secret = sdk_client_instance.secret
+
+        for webhook_instance in webhook_instances:
+            webhooks.append({
+                'url': webhook_instance.url,
+                'secret': secret
+            })
+
+        return webhooks

@@ -4232,7 +4232,8 @@ class ChatroomImpl(ChatroomManager):
         return {'success': True, 'channel_settings': serialized_data} 
     
     @staticmethod
-    def generate_payload_for_catroom_webhook_event(chatroom_id: int, users_list: list, event_type: str, type_method: str) -> dict:
+    def generate_payload_for_catroom_webhook_event(chatroom_id: int, users_list: list, 
+                                                   event_type: str, type_method: str) -> dict:
 
         payload = {
             "id": str(uuid.uuid4()),
@@ -4276,35 +4277,33 @@ class ChatroomImpl(ChatroomManager):
 
     @staticmethod
     @shared_task
-    def trigger_webhook_for_chatroom_event(community_id: int, chatroom_id: int, users_list: list, event_type: str, type_method: str):
+    def trigger_webhook_for_chatroom_event(community_id: int, chatroom_id: int, users_list: list, 
+                                           event_type: str, type_method: str):
         
-        webhook_instance = ModelUtilities.get_model_filter(CommunityWebhook, 
-                                                           {'community': community_id,
-                                                            'webhook_type': event_type,
-                                                            'is_active': True}
-                                                            ).first()
-        
-        if not (webhook_instance and users_list):
+        if not (community_id and chatroom_id and users_list and event_type):
             return
-
-        webhook_url = webhook_instance.url
-        secret = ""
-
-        sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
         
-        if sdk_client_instance:
-            secret = sdk_client_instance.api_key
+        webhooks = WebhookUtilties.validate_and_fetch_all_webhook_url_and_secret(community_id, 
+                                                                                 event_type)
         
+        if not webhooks:
+            return
+    
         payload = ChatroomImpl.generate_payload_for_catroom_webhook_event(chatroom_id=chatroom_id, 
                                                                           users_list=users_list,
                                                                           event_type=event_type,
                                                                           type_method=type_method)
 
-        # Send webhook request
-        WebhookUtilties.send_webhook_request_with_payload.delay(url=webhook_url, 
-                                                                payload=payload,
-                                                                webhook_type=event_type,
-                                                                secret=secret)
+        if not payload:
+            return
+
+        for webhook in webhooks:
+
+            # Send webhook request
+            WebhookUtilties.send_webhook_request_with_payload.delay(url=webhook.get('url'),
+                                                                    payload=payload,
+                                                                    webhook_type=event_type,
+                                                                    secret=webhook.get('secret'))
 
 
 class ChatroomHelper:

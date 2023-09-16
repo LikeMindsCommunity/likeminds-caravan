@@ -1008,7 +1008,7 @@ class ConversationImpl(ConversationManager):
 
         self._fill_poll_options(user_instance, conversation_instance, req_body)
 
-        ConversationHelper.run_async_task_on_conversation_create(user_id=user_instance.id,
+        ConversationHelper.run_async_task_on_conversation_create.delay(user_id=user_instance.id,
                                                                        chatroom_id=chatroom_instance.id,
                                                                        conversation_id=conversation_instance.id,
                                                                        req_body=req_body,

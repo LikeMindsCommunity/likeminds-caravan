@@ -598,7 +598,7 @@ class WebhookTypes(enum.Enum):
     CHATROOM_LEAVE = "chatroom.left"
     PROFILE_CREATED = "profile.created"
 
-class WenhookChatroomMethodTypes():
+class WenhookChatroomMethodTypes:
     SELF_JOIN = "self_join"
     ADDED_BY_CM = "added_by_cm"
     AUTO_FOLLOW_CHATROOM = "auto_follow_chatroom"
@@ -611,12 +611,12 @@ class WenhookChatroomMethodTypes():
 
 webhook_chatroom_methods = WenhookChatroomMethodTypes()
 
-class WebhookCommunityMethodTypes():
+class WebhookCommunityMethodTypes:
     COMMUNITY_JOIN = "community_join"
 
 webhook_community_methods = WebhookCommunityMethodTypes()
 
-class WebhookProfileMethodTypes():
+class WebhookProfileMethodTypes:
     COMMUNITY_JOIN = "community_join"
 
 webhook_profile_methods = WebhookProfileMethodTypes()

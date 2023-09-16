@@ -2245,53 +2245,26 @@ class MemberCommunityImpl(MemberCommunityManager):
     @staticmethod
     @shared_task
     def trigger_webhook_for_profile_events(community_id: int, member_id: int):
-
-        webhook_instance = ModelUtilities.get_model_filter(CommunityWebhook, 
-                                                        {'community': community_id,
-                                                        'webhook_type': WebhookTypes.PROFILE_CREATED.value,
-                                                        'is_active': True}
-                                                        ).first()
         
-        if not (webhook_instance and member_id) :
-            return
-
-        webhook_url = webhook_instance.url
-        secret = ""
-
-        sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
+        webhooks = WebhookUtilties.validate_and_fetch_all_webhook_url_and_secret(community_id, 
+                                                                                 WebhookTypes.PROFILE_CREATED.value)
         
-        if sdk_client_instance:
-            secret = sdk_client_instance.api_key
-
-        users_meta = get_users_sdk_meta_dict([member_id])
-
-        if not users_meta:
+        if not webhooks:
             return
         
-        user_meta = users_meta.get(member_id)
-        
-        payload = {
-            "id": str(uuid.uuid4()),
-            "event": WebhookTypes.PROFILE_CREATED.value,
-            "source": WEBHOOK_SOURCE_CHAT,
-            "created_at": TimeUtilities.current_time_in_sec(),
-            "data": {
-                "creation_method": webhook_profile_methods.COMMUNITY_JOIN
-            }
-        }
+        # generate payload for profile events
+        payload = MemberCommunityHelper.generate_payload_for_profile_webhook_events(member_id)
 
-        # Add user's payload in webhook payload
-        payload['data']['user'] = MemberCommunityHelper.get_users_payload_for_webhook_events([member_id])
+        if not payload:
+            return
 
-        # Send webhook request
-        WebhookUtilties.send_webhook_request_with_payload.delay(url=webhook_url, 
-                                                                payload=payload,
-                                                                webhook_type=WebhookTypes.PROFILE_CREATED.value,
-                                                                secret=secret)
+        for webhook in webhooks:
 
-        
-
-
+            # Send webhook request for all webhook urls
+            WebhookUtilties.send_webhook_request_with_payload.delay(url=webhook.get('url'), 
+                                                                    payload=payload,
+                                                                    webhook_type=WebhookTypes.PROFILE_CREATED.value,
+                                                                    secret=webhook.get('secret'))
 
 
 class MemberCommunityHelper:
@@ -3741,6 +3714,9 @@ class MemberCommunityHelper:
     @staticmethod
     def get_users_payload_for_webhook_events(user_ids: list) -> list:
 
+        if not user_ids or not isinstance(user_ids, list):
+            return []
+
         # Truncate users list to MAX_WEBHOOK_USERS_LIMIT
         truncated_list = user_ids[:MAX_WEBHOOK_USERS_META_LIMIT]
         users_meta = get_users_sdk_meta_dict(truncated_list)
@@ -3764,3 +3740,27 @@ class MemberCommunityHelper:
             users_payload.append(user)
 
         return users_payload
+    
+    @staticmethod
+    def generate_payload_for_profile_webhook_events(user_id) -> dict:
+
+        if not user_id:
+            return {}
+
+        users_data = MemberCommunityHelper.get_users_payload_for_webhook_events([user_id])
+
+        if not users_data:
+            return {}
+        
+        payload = {
+            "id": str(uuid.uuid4()),
+            "event": WebhookTypes.PROFILE_CREATED.value,
+            "source": WEBHOOK_SOURCE_CHAT,
+            "created_at": TimeUtilities.current_time_in_sec(),
+            "data": {
+                "user":  users_data[0],
+                "creation_method": webhook_profile_methods.COMMUNITY_JOIN
+            }
+        }
+
+        return payload

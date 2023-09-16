@@ -6,4 +6,4 @@ class WebhookSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CommunityWebhook
-        fields = ('__all__')
+        fields = '__all__'
