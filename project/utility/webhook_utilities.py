@@ -143,7 +143,7 @@ class WebhookUtilties:
             'community_id': community_id}).first()
 
         if sdk_client_instance:
-            secret = sdk_client_instance.secret
+            secret = sdk_client_instance.api_key
 
         for webhook_instance in webhook_instances:
             webhooks.append({

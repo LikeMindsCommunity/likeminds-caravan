@@ -4254,7 +4254,7 @@ class ChatroomImpl(ChatroomManager):
         payload['data']['chatroom'] = ChatroomHelper.get_chatroom_payload_for_webhook_events(chatroom_id=chatroom_id)
 
         # Get users paylaod for webhook events
-        users_data = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list=users_list)
+        users_data = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
 
         # Add user interaction data to payload if event is chatroom left
         if event_type == WebhookTypes.CHATROOM_LEAVE.value:
