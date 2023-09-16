@@ -3219,7 +3219,7 @@ class MemberCommunityHelper:
         # Trigger webhook event for profile creation
         if trigger_webhook:
             MemberCommunityImpl.trigger_webhook_for_profile_events.delay(community_id=community_instance.id,
-                                                                           member_id=user_instance.id)
+                                                                         member_id=user_instance.id)
 
         action_required_by_promoter = ModelUtilities.is_model_filter_exists(Members,
                                                                             {'community_id': community_instance,
