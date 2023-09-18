@@ -10871,11 +10871,11 @@ def edit_conversation(request):
 
         from collabmates_api.conversation.conversation_impl import ConversationHelper
 
-        og_tags = ConversationHelper.fetch_og_tags(og_tags_payload)
+        ConversationHelper.update_og_tags_in_conversation.delay(conversation_id, og_tags_payload)
 
         update_models_for_syncing_apis(SyncTypes.CONVERSATION,
                                        {'id': conversation_id},
-                                       {'answer': edited_answer, 'is_edited': True, 'og_tags': og_tags})
+                                       {'answer': edited_answer, 'is_edited': True})
         conversation.refresh_from_db()
 
         ElasticSearchSync.update_conversations.delay([conversation_id])
