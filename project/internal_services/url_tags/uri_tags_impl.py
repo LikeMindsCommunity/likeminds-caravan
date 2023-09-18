@@ -189,6 +189,7 @@ class UriTagsHelper:
         
         if timeout:
             request_timeout_in_seconds = timeout
+
         else:
             request_timeout_in_seconds = settings.OG_TAGS_URL_REQUEST_TIMEOUT_IN_SECONDS if settings.OG_TAGS_URL_REQUEST_TIMEOUT_IN_SECONDS else REQUEST_TIMEOUT_SECONDS
 
