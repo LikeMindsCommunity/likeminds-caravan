@@ -3132,6 +3132,21 @@ class CommunityHelper:
         ElasticSearchSync.update_member_name.delay(user_id, user_name)
 
     @staticmethod
+    def validate_number_of_options_for_dropdown_selection(question_instance, value):
+
+        if not question_instance.dropdown_selection_limit:
+            return True
+
+        if (question_instance.question_state == question_states.CHOICE_SINGLE
+                or question_instance.question_state == question_states.CHOICE_MULTIPLE):
+            selected_choices = value.split("$#")
+
+            if len(selected_choices) > question_instance.dropdown_selection_limit:
+                return False
+
+        return True
+
+    @staticmethod
     @shared_task
     def save_responses_of_member_in_community(user_id, community_id, question_list, is_directory_questions_v2=False):
 
@@ -3176,6 +3191,10 @@ class CommunityHelper:
                 continue
 
             if answer_instance and not question_instance.is_answer_editable:
+                continue
+
+            if not CommunityHelper.validate_number_of_options_for_dropdown_selection(question_instance,
+                                                                                     question.get(answer_key)):
                 continue
 
             if answer_instance:
