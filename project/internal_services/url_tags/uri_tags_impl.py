@@ -9,6 +9,8 @@ from internal_services.url_tags.constants import REQUEST_TIMEOUT_SECONDS, URL_HI
     FORCE_STATUS_LIST, BROWSER_USER_AGENT
 from internal_services.url_tags.uri_tags_manager import UriTagsManager
 
+from django.conf import settings
+
 
 class UriTagsImpl(UriTagsManager):
     uri: str = None
@@ -34,9 +36,9 @@ class UriTagsImpl(UriTagsManager):
     def set_tags(self, tags: dict):
         self.tags = tags
 
-    def get_tags_from_uri(self) -> dict:
+    def get_tags_from_uri(self, timeout: int=None) -> dict:
         validated_uri: str = UriTagsHelper.validate_uri(self.get_uri())
-        uri_page: str = UriTagsHelper.get_uri_page(validated_uri)
+        uri_page: str = UriTagsHelper.get_uri_page(validated_uri, timeout)
         page_tags: dict = self._get_tags_from_page(uri_page)
         self._fill_tags(self.get_uri(), page_tags)
 
@@ -174,7 +176,7 @@ class UriTagsHelper:
         return parsed_url.geturl().replace(parsed_url.scheme, scheme, 1)
 
     @staticmethod
-    def get_uri_page(uri: str) -> str:
+    def get_uri_page(uri: str, timeout: int=None) -> str:
         requests_session: requests.sessions.Session = requests.Session()
         retries: Retry = Retry(total=URL_HIT_RETRIES,
                                backoff_factor=RETRY_BACKOFF_FACTOR,
@@ -184,7 +186,14 @@ class UriTagsHelper:
         headers = {
             'User-Agent': BROWSER_USER_AGENT
         }
-        response: requests.models.Response = requests_session.get(uri, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
+        
+        if timeout:
+            request_timeout_in_seconds = timeout
+
+        else:
+            request_timeout_in_seconds = settings.OG_TAGS_URL_REQUEST_TIMEOUT_IN_SECONDS if settings.OG_TAGS_URL_REQUEST_TIMEOUT_IN_SECONDS else REQUEST_TIMEOUT_SECONDS
+
+        response: requests.models.Response = requests_session.get(uri, headers=headers, timeout=int(request_timeout_in_seconds))
         requests_session.close()
 
         return response.text

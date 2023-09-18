@@ -40,6 +40,8 @@ EMAIL_UNSUBSCRIBE_URL = "%s/email_unsubscribe?communityId=%s&memberId=%s"
 
 LIKEMINDS_WEB_URL = "https://likeminds.community/?utm_source=%s&utm_medium=email&utm_campaign=%s&utm_content=%s"
 
+CREATE_CONVERSATION_OG_TAGS_REQUEST_TIMEOUT = 30
+
 class PauseChatroomNotificationTime:
     EIGHT_HR = 8
     TWENTY_FOUR_HR = 24
