@@ -10871,7 +10871,12 @@ def edit_conversation(request):
 
         from collabmates_api.conversation.conversation_impl import ConversationHelper
 
-        og_tags = ConversationHelper.fetch_og_tags(og_tags_payload)
+        if 'og_tags' in og_tags_payload:
+            og_tags = json.loads(og_tags_payload['og_tags'])
+
+        if 'share_link' in og_tags_payload:
+            ConversationHelper.update_share_link_og_tags_in_conversation.delay(conversation_id, 
+                                                                               og_tags_payload['share_link'])
 
         update_models_for_syncing_apis(SyncTypes.CONVERSATION,
                                        {'id': conversation_id},

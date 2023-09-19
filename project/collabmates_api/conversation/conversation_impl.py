@@ -44,7 +44,7 @@ from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
 from ..static_text import EVERYONE_TAG_REGEX, PARTICIPANTS_TAG_REGEX
 
 from .constants import *
-from ..chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE
+from ..chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE, CREATE_CONVERSATION_OG_TAGS_REQUEST_TIMEOUT
 
 from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
@@ -1002,8 +1002,11 @@ class ConversationImpl(ConversationManager):
                                               has_files, chatroom_state_instance, is_guest=is_guest)
 
         conversation_content['reply'] = ConversationHelper.fetch_replied_conversation(req_body)
-        conversation_content['og_tags'] = ConversationHelper.fetch_og_tags(req_body)
         conversation_content['created_at'] = TimeUtilities.current_time_in_milliseconds()
+
+        if 'og_tags' in req_body:
+            conversation_content['og_tags'] = json.dumps(req_body['og_tags'])
+
         conversation_instance = self._create_conversation_instance(conversation_content)
 
         self._fill_poll_options(user_instance, conversation_instance, req_body)
@@ -1609,6 +1612,27 @@ class ConversationHelper:
         else:
             return
         return og_tags
+    
+    @staticmethod
+    @shared_task
+    def update_share_link_og_tags_in_conversation(conversation_id, share_link):
+
+        try:
+            conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+            
+            if not (conversation_instance and share_link):
+                return
+            
+            og_tags = UriTagsImpl(share_link).get_tags_from_uri(timeout=CREATE_CONVERSATION_OG_TAGS_REQUEST_TIMEOUT)
+
+            if og_tags:
+                og_tags = json.dumps(og_tags)
+                conversation_instance.og_tags = og_tags
+                conversation_instance.save()  
+
+        except Exception as e:
+            error_logger.error(f'Error in fetching og tags from share_link url: {share_link}, errors: {e}')
+            return
 
     @staticmethod
     def fetch_auto_follow_dict(member_id, chatroom_id, status, source):
@@ -2412,6 +2436,9 @@ class ConversationHelper:
 
         if state_filter:
             chatroom_state_instance = state_filter[0]
+
+        if 'share_link' in req_body:
+            ConversationHelper.update_share_link_og_tags_in_conversation.delay(conversation_instance.id, req_body['share_link'])
 
         ConversationHelper._set_preview_for_conversation(conversation_instance, user_id, req_body)
 
