@@ -4844,6 +4844,7 @@ class ChatroomHelper:
             'chatroom': card_instance.id
         }
 
+        info_logger.info(f"calendar/invite 1: Sending calendar invite for event type {card_instance.type}")
         send_calender_invite_for_event_type.delay(payload_for_calendar_invite, EVENT_TYPE.REGISTRATION,
                                                   send_to_members=False, user_list=event_creator_and_community_owner,
                                                   calendar_invite_type=CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION)
