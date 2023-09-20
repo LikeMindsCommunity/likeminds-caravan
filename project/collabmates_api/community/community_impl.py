@@ -47,7 +47,8 @@ from collabmates_api.user_moderation_rights import check_admin_edit_community_ri
     give_all_member_rights, save_moderation_history, give_all_community_setting_rights, \
     update_member_rights_in_member_engage, check_admin_moderate_dm_settings_right, \
     update_direct_message_right_in_member_rights_schema, check_admin_moderate_feed_and_comments_right, \
-    update_feed_rights_in_user_member_rights_table, check_admin_delete_right, check_admin_approve_right
+    update_feed_rights_in_user_member_rights_table, check_admin_delete_right, check_admin_approve_right, \
+    update_poll_rights_in_user_member_rights_table
 from django.db.models import Q, F
 
 from external_services.mixpanel.events import MixpanelEvents
@@ -1372,6 +1373,10 @@ class CommunityImpl(CommunityManager):
 
                 if not cohort_right_add.get('success'):
                     return cohort_right_add
+
+            if community_setting["setting_type"] == community_setting_types.CREATE_POLL:
+                update_poll_rights_in_user_member_rights_table.delay(community_id=community_instance.id,
+                                                                     is_enabled=community_setting['enabled'])
 
             if not community_setting['enabled']:
                 disabled_community_setting_context = {
