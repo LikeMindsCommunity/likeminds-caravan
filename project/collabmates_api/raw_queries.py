@@ -1917,10 +1917,11 @@ def get_members_meta_list(community_id: int, member_ids: list = None, page=1, pa
         if member_ids:  
             user_ids = get_tuple_from_array(member_ids)
 
-            join_removed_members_table = """
-                                            left join togther_removedmembers 
-                                            on togther_userinfo.user_id_id = togther_removedmembers.member_id
-                                         """
+            join_removed_members_table = f"""
+                                                left join togther_removedmembers 
+                                                on (togther_userinfo.user_id_id = togther_removedmembers.member_id
+                                                AND togther_removedmembers.community_id = {community_id})
+                                          """
             
             get_removed_members = f""" 
                                     And togther_members.member_id_id in {user_ids}
@@ -1947,9 +1948,9 @@ def get_members_meta_list(community_id: int, member_ids: list = None, page=1, pa
 
                 from  togther_userinfo
                 left join togther_members 
-                on togther_userinfo.user_id_id = togther_members.member_id_id
+                on (togther_userinfo.user_id_id = togther_members.member_id_id AND togther_members.community_id_id = {community_id})
                 left join togther_sdkclientusersinfo 
-                on togther_sdkclientusersinfo.user_id = togther_userinfo.user_id_id
+                on (togther_sdkclientusersinfo.user_id = togther_userinfo.user_id_id AND togther_sdkclientusersinfo.community_id = {community_id})
                 {join_removed_members_table}
 
                 where
