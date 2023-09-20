@@ -1175,8 +1175,6 @@ class TasksHelper:
 
         EventGoogleCalendarLogs.create_instance(filter_dict)
 
-        error_logger.info(f"calendar/invite 5: calendar event object logged in db for event {filter_dict}")
-
         return
 
     @staticmethod

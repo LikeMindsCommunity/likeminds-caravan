@@ -313,9 +313,6 @@ def schedule_app_notification_event_comms(self, payload_for_app_notification, ap
 def send_calender_invite_for_event_type(payload_for_calendar_invite, event_type, send_to_members=True, user_list=None,
                                         calendar_invite_type=CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION):
     try:
-
-        info_logger.info(f"calendar/invite 2: send_calender_invite_for_event_type: calendar_invite_type = {calendar_invite_type} | user_list = {user_list} | payload_for_calendar_invite = {payload_for_calendar_invite}")
-        
         payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_calendar_invite)
 
         event_instance = payload.get('chatroom')
@@ -334,12 +331,10 @@ def send_calender_invite_for_event_type(payload_for_calendar_invite, event_type,
 
         task_expiry_time = TasksHelper.get_end_time_for_event(event_instance)
 
-        info_logger.info(f"calendar/invite 3: send_calender_invite_for_event_type: with task_begin_time = {task_begin_time} | task_expiry_time = {task_expiry_time} | event_metadata = {event_metadata}")
-
         if task_begin_time != 0:
             args = [payload_for_calendar_invite, event_metadata, event_type, calendar_invite_type]
 
-            info_logger.info("calendar/invite 4: Scheduling calendar invite for event_type = %s | event_metadata = %s | \
+            info_logger.info("Scheduling calendar invite for event_type = %s | event_metadata = %s | \
                             payload received = %s" % (event_type, event_metadata, payload))
 
             schedule_calendar_invite_for_event_comms.apply_async(
@@ -364,12 +359,8 @@ def schedule_calendar_invite_for_event_comms(payload_for_calendar_invite, event_
     try:
         payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_calendar_invite)
 
-        info_logger.info(f"calendar/invite 4: schedule_calendar_invite_for_event_comms: {event_metadata} | calendar_invite_type = {calendar_invite_type}")
-
         if event_metadata:
             if calendar_invite_type == CALENDAR_INVITE_TYPE.NEW_CALENDAR_CREATION:
-
-                info_logger.info(f"calendar/invite 4: schedule_calendar_invite_for_event_comms: {payload_for_calendar_invite} | calendar_invite_type = {calendar_invite_type}")
 
                 calendar_obj = CalendarImpl().call_calender_api(event_metadata)
 
