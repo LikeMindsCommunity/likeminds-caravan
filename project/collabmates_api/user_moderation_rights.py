@@ -1190,3 +1190,29 @@ def update_feed_rights_in_user_member_rights_table(community_id, is_enabled=Fals
         ModelUtilities.delete_record_in_model(communityRightsSettings, filter_dict_for_comment_and_reply_on_posts_right)
         remove_right_for_all_members(community_instance, create_post_right_filter[0])
         remove_right_for_all_members(community_instance, comment_and_reply_on_posts_right_filter[0])
+
+
+@shared_task
+def update_poll_rights_in_user_member_rights_table(community_id, is_enabled=False):
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+    if not community_instance:
+        return
+
+    create_poll_right_filter = ModelUtilities.get_model_filter(memberRights,
+                                                               {'state': member_rights.MEMBER_RIGHT_CREATE_POLL})
+    if not create_poll_right_filter:
+        return
+
+    filter_dict_for_create_poll_right = {'community': community_instance, 'right': create_poll_right_filter[0]}
+
+    if is_enabled:
+        ModelUtilities.update_or_create_model(communityRightsSettings,
+                                              filter_dict_for_create_poll_right,
+                                              filter_dict_for_create_poll_right)
+
+        give_right_to_all_members(community_instance, create_poll_right_filter[0])
+        update_member_rights_list_for_community_members(community_id)
+
+    if not is_enabled:
+        ModelUtilities.delete_record_in_model(communityRightsSettings, filter_dict_for_create_poll_right)
+        remove_right_for_all_members(community_instance, create_poll_right_filter[0])
