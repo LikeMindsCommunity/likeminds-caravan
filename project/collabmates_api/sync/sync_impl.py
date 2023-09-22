@@ -144,7 +144,7 @@ class SyncImpl(SyncManager):
 
     def sync_conversations(self, chatroom_id: int = None, page: int = None, page_size: int = None,
                            min_timestamp: int = None, max_timestamp: int = None, is_local_db: bool = True,
-                           conversation_id: str = None) -> dict:
+                           conversation_id: str = None, excluded_conversation_states: list = None) -> dict:
 
         validated_request_body = SyncHelper.validate_sync_conversations_request(self.get_member_id(),
                                                                                 self.get_community_id(),
@@ -166,14 +166,10 @@ class SyncImpl(SyncManager):
         min_timestamp = validated_request_body.get('min_timestamp')
         max_timestamp = validated_request_body.get('max_timestamp')
 
-        conversations_data, conversation_ids_list = get_chatroom_conversations_data(user_instance.id,
-                                                                                    community_instance.id,
-                                                                                    chatroom_instance.id,
-                                                                                    min_timestamp,
-                                                                                    max_timestamp,
-                                                                                    page=page, limit=page_size,
-                                                                                    is_local_db=is_local_db,
-                                                                                    conversation_id=conversation_id)
+        conversations_data, conversation_ids_list = get_chatroom_conversations_data(
+            user_instance.id, community_instance.id, chatroom_instance.id, min_timestamp, max_timestamp, page=page,
+            limit=page_size, is_local_db=is_local_db, conversation_id=conversation_id,
+            excluded_conversation_states=excluded_conversation_states)
 
         # Conversation data
         conversations_data = SyncHelper.parse_sync_raw_query_response(conversations_data, SYNC_CONVERSATIONS_DATA_KEY)

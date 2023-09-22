@@ -4219,7 +4219,8 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
 
 def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_timestamp: int = None,
                                     max_timestamp: int = None, page: int = 1, limit: int = 10,
-                                    only_query: bool = False, is_local_db: bool = True, conversation_id: str = None):
+                                    only_query: bool = False, is_local_db: bool = True, conversation_id: str = None,
+                                    excluded_conversation_states: list = None):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -4234,9 +4235,14 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
             order_by_query = "created_at DESC"
 
         conversation_id_query = ""
+        excluded_conversation_states_query = ""
 
         if conversation_id:
             conversation_id_query = "togther_card_answers.id = {} AND".format(conversation_id)
+
+        if excluded_conversation_states:
+            excluded_conversation_states_query = "togther_card_answers.state NOT IN {} AND".format(
+                get_tuple_from_array_v2(excluded_conversation_states))
 
         chatroom_data_query = ",".join([get_chatroom_query_meta_for_sync_revamp("conv_room"),
                                         get_chatroom_state_query_meta_for_sync_revamp("conv_room"),
@@ -4268,7 +4274,7 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                                          FROM       (
                                                                              SELECT   {}
                                                                              FROM     togther_card_answers
-                                                                             WHERE    ({}
+                                                                             WHERE    ({} {}
                                                                                                togther_card_answers.card_id = {}
                                                                                       AND      togther_card_answers.community_id = {}
                                                                                       AND NOT   ( 
@@ -4324,8 +4330,8 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                 ORDER BY chatroom_preview_meta.{};
         """.format(get_chatroom_query_meta_for_sync_revamp("reply"), room_creator, chatroom_meta_query,
                    chatroom_data_query, get_conversation_query_meta_for_sync_revamp(), conversation_id_query,
-                   chatroom_id, community_id, min_timestamp, max_timestamp, order_by_query, offset, limit, user_id,
-                   order_by_query)
+                   excluded_conversation_states_query, chatroom_id, community_id, min_timestamp, max_timestamp,
+                   order_by_query, offset, limit, user_id, order_by_query)
 
         if only_query:
             return sql
