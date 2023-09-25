@@ -154,6 +154,7 @@ class MemberDirectorySearchView(APIView):
         order_by = request.GET.get('order_type', "").lower()
         member_states = request.GET.get('member_states')
         parsed_member_states = StringUtilities.get_list_from_string(member_states) 
+        send_question_answers = StringUtilities.get_boolean_from_string(request.GET.get('send_question_answers', False))
 
         # Validation for member states list
         if member_states and (parsed_member_states == None or not isinstance(parsed_member_states, list)):
@@ -181,6 +182,6 @@ class MemberDirectorySearchView(APIView):
                                     follow_status=True, page=page, page_size=page_size, community_id=community_id,
                                     api_key=api_key)
 
-        members_data = search_manager.search_member_directory(parsed_member_states, order_by)
+        members_data = search_manager.search_member_directory(parsed_member_states, order_by, send_question_answers)
 
         return JsonResponse(members_data)
