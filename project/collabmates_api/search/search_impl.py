@@ -15,6 +15,7 @@ from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING,CHATROOM
 from collabmates_api.sdk.models import SdkClient
 from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
                            get_chatrooms_of_user_with_follow_status, get_users_sdk_meta_dict)
+from collabmates_api.community.community_impl import CommunityHelper
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -478,7 +479,7 @@ class SearchImpl(SearchManager):
 
         return member_img
 
-    def search_member_directory(self, member_states: list = None, order_by: str = None):
+    def search_member_directory(self, member_states: list = None, order_by: str = None, send_question_answers: bool = False):
 
         community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
                                                                       api_key=self.get_api_key())
@@ -565,6 +566,18 @@ class SearchImpl(SearchManager):
                 self.get_member_id(), hit['member']['id'], self.get_community_id(), user_data)
 
             members_list.append(member_introduction_dict)
+
+        # If send_question_answers is True, then send question answers of all members
+        if send_question_answers:
+            members_question_answer_dict = CommunityHelper.get_members_filled_community_answers_data(community_instance, members_list)
+
+            for member in members_list:
+
+                if member.get('id') in members_question_answer_dict:
+                    member['question_answers'] = members_question_answer_dict.get(member.get('id'))
+                    
+                else:
+                    member['question_answers'] = None
 
         context = {
             'success': True,
