@@ -810,3 +810,9 @@ class UTMCampaing:
 class UTMContent:
     LIKEMINDS = "LikeMinds"
     CUSTOMCOMMUNITY = "customcommunity"
+
+class QuestionAnswersVersions:
+    V1 = "v1"
+    V2 = "v2"
+
+question_answers_versions = QuestionAnswersVersions()

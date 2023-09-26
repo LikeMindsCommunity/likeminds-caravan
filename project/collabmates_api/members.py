@@ -8,7 +8,7 @@ from .rest_api import CommunitySerializerV1
 from .raw_queries import (get_users_sdk_meta_dict)
 from collabmates_api.sdk.models import (SdkClient)
 from utility.response_utilities import ResponseUtilities
-
+from utility.states import (question_answers_versions)
 
 def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=None):
     '''function to give tagging list of members in community'''
@@ -505,6 +505,8 @@ def get_all_members_version_1(request, req_dict=None):
     user_type = request.GET.get('type', None)
     member_state = request.GET.get('member_state', None)
     member_state = NumberUtilities.get_integer_from_string(member_state, -1)
+    question_answers_version = request.GET.get('question_answers_version', '')
+
     api_key = RequestUtilities.get_api_key_from_headers(request)
 
     if not current_user_instance:
@@ -627,7 +629,7 @@ def get_all_members_version_1(request, req_dict=None):
     else:
 
         unfiltered_context = unfiltered_member_list(current_user_id, community_id, page, member_state=member_state,
-                                                    sdk_client_info_flag=True)
+                                                    sdk_client_info_flag=True, question_answers_version=question_answers_version)
         members = unfiltered_context['members']
         total_filtered_members = community['members_count']
 
@@ -698,12 +700,20 @@ def filtered_member_list(current_user_id, community_id, filter_list, page, membe
     return filter_context
 
 
-def unfiltered_member_list(current_user_id, community_id, page, member_state=None, sdk_client_info_flag:bool=False):
+def unfiltered_member_list(current_user_id, community_id, page, member_state=None, sdk_client_info_flag:bool=False, 
+                           question_answers_version:str=''):
     member_list = get_member_query_set(current_user_id, community_id, page=page, remove_guest_user=True,
                                        member_state=member_state)
-
+    
+    if question_answers_version.lower() == question_answers_versions.V2:
+        question_answers_v2 = True
+    
+    else:
+        question_answers_v2 = False
+        
     members = get_member_instances_without_filter(member_list, current_user_id, community_id, page=page, 
-                                                  member_state=member_state, sdk_client_info_flag=sdk_client_info_flag)
+                                                  member_state=member_state, sdk_client_info_flag=sdk_client_info_flag,
+                                                  question_answers_v2=question_answers_v2)
 
     unfilter_context = {
         'members': members
@@ -729,7 +739,7 @@ def get_community_managers(community_instance):
 
 
 def get_member_instances_without_filter(member_list, current_user_id, community_id, page=1, member_state: int = None, 
-                                        sdk_client_info_flag:bool=False):
+                                        sdk_client_info_flag:bool=False, question_answers_v2: bool = False):
     '''function to get members instances from members table'''
 
     members = []
@@ -752,7 +762,7 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
 
         if current_filter:
             current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
-                                             send_profile=True,
+                                             send_profile=(not question_answers_v2),
                                              all_members_api=True, is_promoter=is_promoter,
                                              is_owner=is_owner)
 
@@ -767,7 +777,7 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
             continue
 
         userinfo_serialized_object = MembersSerializer(member, community_id, current_user_id=current_user_id,
-                                                       send_profile=True,
+                                                       send_profile=(not question_answers_v2),
                                                        all_members_api=True, is_promoter=is_promoter,
                                                        is_owner=is_owner, user_admin_rights=user_admin_rights)
         members.append(userinfo_serialized_object)
@@ -782,6 +792,22 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
 
         for member in members:
             member['sdk_client_info'] = sdk_client_info_meta.get(member['id'])
+
+    # If question_answers_v2 is True, then add latest serialised question_answers to members object
+    if question_answers_v2:
+
+        from collabmates_api.community.community_impl import CommunityHelper
+
+        question_answers_dict = CommunityHelper.get_members_filled_community_answers_data(community_id, members)
+
+        for member in members:
+
+            if member.get('id') in question_answers_dict:
+                member['question_answers'] = question_answers_dict.get(member.get('id'))
+                
+            else:
+                member['question_answers'] = None
+
 
     return members
 
