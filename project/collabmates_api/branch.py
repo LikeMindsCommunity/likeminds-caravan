@@ -11,7 +11,7 @@ from utility.constants import (BRANCH_QUICKLINK_URI, DIRECTORY_FEATURE,
                                BRANCH_FEATURE_DIRECTORY_LINK, BRANCH_FEATURE_PRIVATE_LINK, BRANCH_FEATURE_PUBLIC_LINK,
                                BRANCH_FEATURE_COMMUNITY_OTL_URL, BRANCH_FEATURE_PAYMENT_PAGE_URL,
                                BRANCH_CM_ONBOARDING_COMMUNITY_FEED_URL, COMMUNITY_HOOD_ID,
-                               COMMUNITY_HOOD_MARKETING_TITLE, BRANCH_LINK_TYPE, BRANCH_SINGLE_EVENT_URL)
+                               COMMUNITY_HOOD_MARKETING_TITLE, BRANCH_SINGLE_EVENT_URL)
 from utility.api_client import ApiClient
 from .utility import free_link_and_freemium_community_version_check
 
@@ -205,7 +205,6 @@ def create_link_item(base_url, community, channel, feature, private=False):
     }
 
     if community.id == COMMUNITY_HOOD_ID:
-        link_item["type"] = BRANCH_LINK_TYPE
         link_item["data"]["$marketing_title"] = COMMUNITY_HOOD_MARKETING_TITLE
 
     fallback_url = desktop_url = 'https://%s' % base_url

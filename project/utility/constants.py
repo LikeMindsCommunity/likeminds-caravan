@@ -93,7 +93,6 @@ CONVERSATIONS_UNREAD_USER_CHATROOM_KEY = "conversations_unread_%s_%s"
 COMMUNITY_HOOD_ID = 49977 if settings.IS_BETA else 49751
 LITTLE_JOYS_ID = 50441 if settings.IS_BETA else 50449
 COMMUNITY_HOOD_MARKETING_TITLE = "CH onboarding beta" if settings.IS_BETA else "CH onboarding prod"
-BRANCH_LINK_TYPE = 2
 
 PLATFORM_CODE_WEB = 'web'
 
