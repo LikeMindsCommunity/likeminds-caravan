@@ -154,7 +154,7 @@ class MemberDirectorySearchView(APIView):
         order_by = request.GET.get('order_type', "").lower()
         member_states = request.GET.get('member_states')
         parsed_member_states = StringUtilities.get_list_from_string(member_states) 
-        question_answers_version = request.GET.get('question_answers_version', "v1")
+        question_answers_version = request.GET.get('question_answers_version', '')
 
         # Validation for member states list
         if member_states and (parsed_member_states == None or not isinstance(parsed_member_states, list)):

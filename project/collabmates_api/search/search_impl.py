@@ -5,7 +5,7 @@ from .search_manager import SearchManager
 from .search_helper import SearchHelper
 from togther.models import (collabcardState, userMemberRights, Members, communityAnswers, ModelUtilities)
 
-from utility.states import member_rights, card_types, member_states, question_states
+from utility.states import member_rights, card_types, member_states, question_states, question_answers_versions
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
 from utility.response_utilities import ResponseUtilities
@@ -480,7 +480,7 @@ class SearchImpl(SearchManager):
 
         return member_img
 
-    def search_member_directory(self, member_states: list = None, order_by: str = None, question_answers_version: str = None):
+    def search_member_directory(self, member_states: list = None, order_by: str = None, question_answers_version: str = ''):
 
         community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
                                                                       api_key=self.get_api_key())
@@ -497,7 +497,7 @@ class SearchImpl(SearchManager):
 
         answer_dict = {}
 
-        if question_answers_version.lower() != "v2":
+        if question_answers_version.lower() != question_answers_versions.V2:
 
             introduction_filter = ModelUtilities.get_model_filter(communityAnswers,
                                                                 {'question__question_state': question_states.INTRODUCTION,
@@ -573,7 +573,7 @@ class SearchImpl(SearchManager):
             members_list.append(member_introduction_dict)
 
         # If questions version is v2, then send question answers data 
-        if question_answers_version.lower() == "v2":
+        if question_answers_version.lower() == question_answers_versions.V2:
             members_question_answer_dict = CommunityHelper.get_members_filled_community_answers_data(community_instance, members_list)
 
             for member in members_list:
