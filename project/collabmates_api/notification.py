@@ -2468,6 +2468,11 @@ def send_notification_for_right_given_to_member(user_id, community_id, rights_ad
             card_type = 3
         elif right.state == member_rights.MEMBER_RIGHT_CREATE_EVENT:
             card_type = 2
+        
+        # If right state is a feed member right, then skip the notification
+        elif right.state in (member_rights.FEED_MEMBER_RIGHTS):
+            continue
+        
         category = NotificationCategories.MODERATION
 
         route = f"route://create_chatroom?community_id={community_id}&community_name={community_name}&type={card_type}"
