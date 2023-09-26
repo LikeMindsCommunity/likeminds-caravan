@@ -16,6 +16,7 @@ from collabmates_api.sdk.models import SdkClient
 from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
                            get_chatrooms_of_user_with_follow_status, get_users_sdk_meta_dict)
 from collabmates_api.community.community_impl import CommunityHelper
+from collabmates_api.community.community_impl import CommunityHelper
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
