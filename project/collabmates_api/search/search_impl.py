@@ -479,7 +479,7 @@ class SearchImpl(SearchManager):
 
         return member_img
 
-    def search_member_directory(self, member_states: list = None, order_by: str = None, send_question_answers: bool = False):
+    def search_member_directory(self, member_states: list = None, order_by: str = None, question_answers_version: str = None):
 
         community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
                                                                       api_key=self.get_api_key())
@@ -494,12 +494,16 @@ class SearchImpl(SearchManager):
 
         user_list = [hit['member']['id'] for hit in res]
 
-        introduction_filter = ModelUtilities.get_model_filter(communityAnswers,
-                                                              {'question__question_state': question_states.INTRODUCTION,
-                                                               'question__community__id': self.get_community_id(),
-                                                               'member__id__in': user_list})
+        answer_dict = {}
 
-        answer_dict = {instance.member_id: instance for instance in introduction_filter}
+        if question_answers_version.lower() != "v2":
+
+            introduction_filter = ModelUtilities.get_model_filter(communityAnswers,
+                                                                {'question__question_state': question_states.INTRODUCTION,
+                                                                'question__community__id': self.get_community_id(),
+                                                                'member__id__in': user_list})
+
+            answer_dict = {instance.member_id: instance for instance in introduction_filter}           
 
         # Get sdk_client_info user dict
         sdk_client_info_dict = get_users_sdk_meta_dict(user_list, only_sdk_client_info=True)
@@ -567,8 +571,8 @@ class SearchImpl(SearchManager):
 
             members_list.append(member_introduction_dict)
 
-        # If send_question_answers is True, then send question answers of all members
-        if send_question_answers:
+        # If questions version is v2, then send question answers data 
+        if question_answers_version.lower() == "v2":
             members_question_answer_dict = CommunityHelper.get_members_filled_community_answers_data(community_instance, members_list)
 
             for member in members_list:
