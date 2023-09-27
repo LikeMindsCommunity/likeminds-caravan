@@ -11070,6 +11070,9 @@ def fetch_community_manager_rights(request):
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
     api_key = RequestUtilities.get_api_key_from_headers(request)
+    accept_version = RequestUtilities.get_accept_version_from_headers(request)
+
+    apiRevampV1Check = VersionUtilities.api_revamp_v1_check(accept_version)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -11149,6 +11152,12 @@ def fetch_community_manager_rights(request):
     mobile_list = []
     for mobile_no in mobile_filter:
         mobile_list.append(userMobilesSerializer(mobile_no))
+
+    # If api revamp checkk, remove state from rights
+    if apiRevampV1Check:
+        
+        for right in rights_context:
+            right.pop('state')
 
     return JsonResponse({'success': True, "admin_mobiles": mobile_list, "member": member_profile[0],
                          "rights": rights_context})
@@ -11693,6 +11702,9 @@ def fetch_community_member_rights(request):
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
     sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+    accept_version = RequestUtilities.get_accept_version_from_headers(request)
+
+    apiRevampV1Check = VersionUtilities.api_revamp_v1_check(accept_version)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -11752,6 +11764,13 @@ def fetch_community_member_rights(request):
 
     member_profile = get_members_profile([user_instance], community_instance, 
                                          sdk_client_info_flag=True)
+
+    # If api revamp checkk, remove state from rights
+    if apiRevampV1Check:
+        
+        for right in rights_context:
+            right.pop('state')
+
 
     return JsonResponse({"success": True, "member": member_profile[0], "rights": rights_context})
 
