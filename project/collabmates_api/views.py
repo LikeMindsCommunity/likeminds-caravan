@@ -19,7 +19,7 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
-from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods
+from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods, MemberRoles
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
@@ -8853,6 +8853,9 @@ def members_state(request, req_dict=None):
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
     sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+    accept_version = RequestUtilities.get_accept_version_from_headers(request)
+
+    apiRevampV1Check = VersionUtilities.api_revamp_v1_check(accept_version=accept_version)
 
     community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
     user_instance = ModelUtilities.get_user_instance_or_none(member_id)
@@ -8890,7 +8893,13 @@ def members_state(request, req_dict=None):
         custom_title = data.custom_title
 
         if data.created_at > 0:
-            created_at = time.strftime('%A, %b %d', time.localtime(data.created_at))
+            
+            # If ApiRevamp Check, send epoch time
+            if not apiRevampV1Check:
+                created_at = time.strftime('%A, %b %d', time.localtime(data.created_at))
+            
+            else:
+                created_at = data.created_at
 
         if state in [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
             is_member = True
@@ -8915,11 +8924,21 @@ def members_state(request, req_dict=None):
 
     json_response = {
         'success': True,
-        'state': state,
-        'tool_state': 1,
-        'edit_required': edit_required,
         'created_at': created_at
     }
+
+    # If ApiRevamp Check, send role instead of state
+    if apiRevampV1Check:
+        json_response['role'] =  MemberRoles.get_role_from_state(state)
+
+    else:
+
+        json_response.update(
+            {   
+                'state': state,
+                'tool_state': 1,
+                'edit_required': edit_required
+            })
 
     if state == member_states.PENDING_MEMBER:
         json_response['member_direction_lock'] = get_data_for_filter_pop_ups(email=user_email)
@@ -8934,6 +8953,9 @@ def members_state(request, req_dict=None):
     json_response['member']['state'] = state
     json_response['member']['is_owner'] = is_owner
 
+    if apiRevampV1Check:
+        del json_response['member']['state']
+
     is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights,
                                                      sdk_source)
 
@@ -8942,7 +8964,13 @@ def members_state(request, req_dict=None):
 
     if state == member_states.ADMIN:
         admin_rights = check_all_manager_rights(query_set[0].member_id, community_instance)
-        json_response['manager_rights'] = get_saved_manager_rights_list(admin_rights)
+        manager_rights = get_saved_manager_rights_list(admin_rights)
+
+        if apiRevampV1Check:
+            json_response['admin_rights'] = manager_rights
+        
+        else:
+            json_response['manager_rights'] = manager_rights
 
     if state in [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
         user_rights = check_all_member_rights(query_set[0].member_id, community_instance, is_feed_enabled=is_feed_enabled)
@@ -8962,6 +8990,15 @@ def members_state(request, req_dict=None):
     if image_url:
         json_response['member']['image_url'] = image_url
 
+    # if Api Revamp v1 check, remove state from rights
+    if apiRevampV1Check:
+
+        for right in (json_response.get('member_rights') if json_response.get('member_rights') else []):
+            right.pop('state')
+        
+        for right in (json_response.get('admin_rights') if json_response.get('admin_rights') else []):
+            right.pop('state')
+        
     toast_filter = communityToast.objects.filter(community=community_instance, user=member_id)
 
     if toast_filter:

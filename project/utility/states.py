@@ -253,6 +253,23 @@ class MemberStates:
 member_states = MemberStates()
 
 
+class MemberRoles(enum.Enum):
+    GUEST = 0
+    ADMIN = 1
+    TEMP_ADMIN = 2
+    PENDING_MEMBER = 3
+    MEMBER = 4
+    DECLINED_MEMBER = 5
+    UNKNOWN_NOMINATED_PROMOTER = 6
+    KNOWN_NOMINATED_PROMOTER = 7
+    INTERESTED_MEMBER = 8
+    PROFILE_UNAVAILABLE = 9
+
+    @classmethod
+    def get_role_from_state(cls, value) -> str:
+
+        return cls(value).name.lower() if value in cls._value2member_map_ else ""
+
 class DeletedMembers:
     LEFT = 0
     REMOVED = 1
