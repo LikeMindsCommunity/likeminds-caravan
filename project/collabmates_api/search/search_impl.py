@@ -500,7 +500,7 @@ class SearchImpl(SearchManager):
         # If question answers version is v2, then send v2 question answers data
         if question_answers_v2:
 
-            member_objects_list = [ {'id': user_id } for user_id in user_list]
+            member_objects_list = [{'id': user_id } for user_id in user_list]
             answer_dict = CommunityHelper.get_members_filled_community_answers_data(community_instance, member_objects_list)
 
         else:
@@ -518,19 +518,13 @@ class SearchImpl(SearchManager):
 
         for hit in res:
             member_introduction_dict = dict()
+                
+            if hit['member']['id'] in answer_dict:
 
-            if question_answers_v2:
-
-                if hit['member']['id'] in answer_dict:
+                if question_answers_v2:
                     member_introduction_dict['question_answers'] = answer_dict[hit['member']['id']]
-                
+            
                 else:
-                    member_introduction_dict['question_answers'] = None
-
-            else:
-                
-                if hit['member']['id'] in answer_dict:
-                    
                     answer_instance = answer_dict[hit['member']['id']]
 
                     member_dict = dict()
@@ -544,10 +538,14 @@ class SearchImpl(SearchManager):
                     member_dict['question_title'] = answer_instance.question_title
                     member_introduction_dict['question_answers'] = [member_dict]
 
-                else:
-                    custom_intro_text, custom_click_text = self.get_custom_click_intro_text(hit['member']['user']['name'], 
-                                                                                            hit['state'],
-                                                                                            hit['created_at'])
+            else:
+
+                if question_answers_v2:
+                    member_introduction_dict['question_answers'] = None
+
+                custom_intro_text, custom_click_text = self.get_custom_click_intro_text(hit['member']['user']['name'], 
+                                                                                        hit['state'],
+                                                                                        hit['created_at'])
 
                 if custom_intro_text is not None:
                     member_introduction_dict['custom_intro_text'] = custom_intro_text
