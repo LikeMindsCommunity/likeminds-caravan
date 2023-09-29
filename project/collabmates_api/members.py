@@ -595,13 +595,15 @@ def get_all_members_version_1(request, req_dict=None):
             return context
 
         if is_request_web(request):
-            context = collabcard_members(chatroom_instance, community_id, current_user_id, page)
+            context = collabcard_members(chatroom_instance, community_id, current_user_id, page, 
+                                         question_answers_v2=question_answers_v2)
             context['total_members'] = total_participants
             context['success'] = True
 
             return context
 
-        context = chatroom_participants(chatroom_instance, filter_list, community_id, current_user_id, page)
+        context = chatroom_participants(chatroom_instance, filter_list, community_id, current_user_id, page,
+                                        question_answers_v2=question_answers_v2)
         context['total_members'] = total_participants
         context['success'] = True
 
@@ -661,8 +663,9 @@ def pending_members_count_in_community(community_instance, user_instance):
         return user_engage[0].pending_members
 
 
-def collabcard_members(chatroom_instance, community_id, current_user_id, page):
-    members = get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=page)
+def collabcard_members(chatroom_instance, community_id, current_user_id, page, question_answers_v2:bool=False):
+    members = get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=page,
+                                              question_answers_v2=question_answers_v2)
     context = {'members': members}
 
     return context
@@ -681,8 +684,9 @@ def collabcard_members_for_given_list(chatroom_instance, community_id, current_u
     return {"members": members_serialized_object, "community": community_instance}
 
 
-def chatroom_participants(chatroom_instance, filter_list, community_id, current_user_id, page):
-    context = send_participants_of_chatroom(chatroom_instance, filter_list, community_id, current_user_id, page=page)
+def chatroom_participants(chatroom_instance, filter_list, community_id, current_user_id, page, question_answers_v2:bool=False):
+    context = send_participants_of_chatroom(chatroom_instance, filter_list, community_id, current_user_id, page=page,
+                                            question_answers_v2=question_answers_v2) 
 
     return context
 
@@ -1015,17 +1019,18 @@ def get_member_query_set(current_user_id, community_id, send_all=False, page=1, 
     return member_list
 
 
-def send_participants_of_chatroom(chatroom_instance, filter_list, community_id, current_user_id, page=1):
+def send_participants_of_chatroom(chatroom_instance, filter_list, community_id, current_user_id, page=1, 
+                                  question_answers_v2:bool=False):
     member_list = get_member_query_set(current_user_id, community_id, send_all=True)
 
     if filter_list:
         filter_list = json.loads(filter_list)
         member_set = get_filtered_users(filter_list, member_list)
         members = get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=page,
-                                                  member_set=member_set)
+                                                  member_set=member_set, question_answers_v2=question_answers_v2)
     else:
         members = get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=page,
-                                                  member_set=None)
+                                                  member_set=None, question_answers_v2=question_answers_v2)
 
     community_instance = chatroom_instance.community
 
