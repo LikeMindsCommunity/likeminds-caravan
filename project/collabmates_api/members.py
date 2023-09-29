@@ -663,7 +663,7 @@ def pending_members_count_in_community(community_instance, user_instance):
         return user_engage[0].pending_members
 
 
-def collabcard_members(chatroom_instance, community_id, current_user_id, page, question_answers_v2:bool=False):
+def collabcard_members(chatroom_instance, community_id, current_user_id, page, question_answers_v2: bool=False):
     members = get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=page,
                                               question_answers_v2=question_answers_v2)
     context = {'members': members}
@@ -672,7 +672,7 @@ def collabcard_members(chatroom_instance, community_id, current_user_id, page, q
 
 
 def collabcard_members_for_given_list(chatroom_instance, community_id, current_user_id, page,
-                                      total_participants_list=[], question_answers_v2:bool=False):
+                                      total_participants_list=[], question_answers_v2: bool=False):
     members_serialized_object = get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page,
                                                                 collabcard_state_list=total_participants_list, 
                                                                 question_answers_v2=question_answers_v2)
@@ -684,7 +684,7 @@ def collabcard_members_for_given_list(chatroom_instance, community_id, current_u
     return {"members": members_serialized_object, "community": community_instance}
 
 
-def chatroom_participants(chatroom_instance, filter_list, community_id, current_user_id, page, question_answers_v2:bool=False):
+def chatroom_participants(chatroom_instance, filter_list, community_id, current_user_id, page, question_answers_v2: bool=False):
     context = send_participants_of_chatroom(chatroom_instance, filter_list, community_id, current_user_id, page=page,
                                             question_answers_v2=question_answers_v2) 
 
@@ -909,7 +909,7 @@ def get_filtered_users(filter_list, member_list):
 
 
 def get_members_data_for_collabcard(chatroom_instance, community_id, current_user_id, page_no=1, member_set=None,
-                                    collabcard_state_list=[], question_answers_v2:bool=False):
+                                    collabcard_state_list=[], question_answers_v2: bool=False):
     if not collabcard_state_list:
         collabcard_state_list = collabcardState.objects \
             .filter(card=chatroom_instance,
@@ -1020,7 +1020,7 @@ def get_member_query_set(current_user_id, community_id, send_all=False, page=1, 
 
 
 def send_participants_of_chatroom(chatroom_instance, filter_list, community_id, current_user_id, page=1, 
-                                  question_answers_v2:bool=False):
+                                  question_answers_v2: bool=False):
     member_list = get_member_query_set(current_user_id, community_id, send_all=True)
 
     if filter_list:
