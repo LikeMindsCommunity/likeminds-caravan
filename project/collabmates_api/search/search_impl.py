@@ -495,16 +495,23 @@ class SearchImpl(SearchManager):
 
         user_list = [hit['member']['id'] for hit in res]
 
-        answer_dict = {}
+        question_answers_v2 = question_answers_version.lower() == question_answers_versions.V2
 
-        if question_answers_version.lower() != question_answers_versions.V2:
+        # If question answers version is v2, then send v2 question answers data
+        if question_answers_v2:
 
-            introduction_filter = ModelUtilities.get_model_filter(communityAnswers,
-                                                                {'question__question_state': question_states.INTRODUCTION,
-                                                                'question__community__id': self.get_community_id(),
-                                                                'member__id__in': user_list})
+            member_objects_list = [ {'id': user_id } for user_id in user_list]
+            answer_dict = CommunityHelper.get_members_filled_community_answers_data(community_instance, member_objects_list)
 
-            answer_dict = {instance.member_id: instance for instance in introduction_filter}           
+        else:
+            introduction_filter = ModelUtilities.get_model_filter(communityAnswers, 
+                                                                  {
+                                                                      'question__question_state': question_states.INTRODUCTION,
+                                                                      'question__community__id': self.get_community_id(),
+                                                                      'member__id__in': user_list
+                                                                  })
+
+            answer_dict = {instance.member_id: instance for instance in introduction_filter}
 
         # Get sdk_client_info user dict
         sdk_client_info_dict = get_users_sdk_meta_dict(user_list, only_sdk_client_info=True)
@@ -512,24 +519,35 @@ class SearchImpl(SearchManager):
         for hit in res:
             member_introduction_dict = dict()
 
-            if hit['member']['id'] in answer_dict:
-                answer_instance = answer_dict[hit['member']['id']]
+            if question_answers_v2:
 
-                member_dict = dict()
-                member_dict['member_id'] = hit['member']['id']
-                member_dict['community_id'] = self.get_community_id()
-                member_dict['state'] = answer_instance.question.question_state
-                member_dict['value'] = answer_instance.question_answer
-                member_dict['question_id'] = answer_instance.question.id
-                member_dict['is_hidden'] = answer_instance.question.is_hidden
-                member_dict['directory_fields'] = answer_instance.question.field
-                member_dict['question_title'] = answer_instance.question_title
-                member_introduction_dict['question_answers'] = [member_dict]
+                if hit['member']['id'] in answer_dict:
+                    member_introduction_dict['question_answers'] = answer_dict[hit['member']['id']]
+                
+                else:
+                    member_introduction_dict['question_answers'] = None
 
             else:
-                custom_intro_text, custom_click_text = self.get_custom_click_intro_text(hit['member']['user'][
-                                                                                            'name'], hit['state'],
-                                                                                        hit['created_at'])
+                
+                if hit['member']['id'] in answer_dict:
+                    
+                    answer_instance = answer_dict[hit['member']['id']]
+
+                    member_dict = dict()
+                    member_dict['member_id'] = hit['member']['id']
+                    member_dict['community_id'] = self.get_community_id()
+                    member_dict['state'] = answer_instance.question.question_state
+                    member_dict['value'] = answer_instance.question_answer
+                    member_dict['question_id'] = answer_instance.question.id
+                    member_dict['is_hidden'] = answer_instance.question.is_hidden
+                    member_dict['directory_fields'] = answer_instance.question.field
+                    member_dict['question_title'] = answer_instance.question_title
+                    member_introduction_dict['question_answers'] = [member_dict]
+
+                else:
+                    custom_intro_text, custom_click_text = self.get_custom_click_intro_text(hit['member']['user']['name'], 
+                                                                                            hit['state'],
+                                                                                            hit['created_at'])
 
                 if custom_intro_text is not None:
                     member_introduction_dict['custom_intro_text'] = custom_intro_text
@@ -571,18 +589,6 @@ class SearchImpl(SearchManager):
                 self.get_member_id(), hit['member']['id'], self.get_community_id(), user_data)
 
             members_list.append(member_introduction_dict)
-
-        # If questions version is v2, then send question answers data 
-        if question_answers_version.lower() == question_answers_versions.V2:
-            members_question_answer_dict = CommunityHelper.get_members_filled_community_answers_data(community_instance, members_list)
-
-            for member in members_list:
-
-                if member.get('id') in members_question_answer_dict:
-                    member['question_answers'] = members_question_answer_dict.get(member.get('id'))
-                    
-                else:
-                    member['question_answers'] = None
 
         context = {
             'success': True,
