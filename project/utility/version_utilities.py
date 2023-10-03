@@ -201,7 +201,7 @@ class VersionUtilities:
             PlatformCode.FLUTTER_SDK: unreleased_version_code,
             PlatformCode.IOS_SDK: 360,
             PlatformCode.REACT_SDK: unreleased_version_code,
-            PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+            PlatformCode.REACT_NATIVE_SDK: 16,
             PlatformCode.WEB_SDK: unreleased_version_code,
         },
         SdkSource.FEED: {
