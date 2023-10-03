@@ -76,7 +76,7 @@ from utility.states import member_states, card_types, click_states, member_right
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
-from utility.constants import PLATFORM_CODE_WEB
+from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -2498,30 +2498,9 @@ class CommunityImpl(CommunityManager):
         community_instance = validated_request.get('community_instance')
         community_configuration_types = validated_request.get('community_configuration_types')
 
-        # fetch community configurations from db
-        community_configurations_instances = ModelUtilities.get_model_filter(CommunityConfigurations,
-                                                                   {'community': community_instance, 
-                                                                    'type__in': community_configuration_types})
-            
-        # key value pair of configuration_type -> configuration instance
-        configuration_instances_response = {instance.type : instance for instance in community_configurations_instances}
-
-        # Add default configurations if not present
-        for configuration_type in community_configuration_types:
-            
-            if configuration_type not in configuration_instances_response:
-                
-                instance = CommunityConfigurations(
-                    type=COMMUNITY_CONFIGURATIONS[configuration_type]['type'],
-                    description=COMMUNITY_CONFIGURATIONS[configuration_type]['description'],
-                    value=COMMUNITY_CONFIGURATIONS[configuration_type]['value'],
-                )
-
-                configuration_instances_response[configuration_type] = instance
-
         # serialize community configurations
-        serialised_community_configurations = CommunityConfigurationsSerializer(configuration_instances_response.values(), 
-                                                                                many=True).data
+        serialised_community_configurations = CommunityHelper.fetch_or_return_default_community_configurations(
+            community_instance, community_configuration_types)
 
         response = {
             'success': True,
@@ -5118,3 +5097,25 @@ class CommunityHelper:
             'community_instance': community_instance,
             'community_configuration_types': community_configuration_types
         }
+
+    @staticmethod
+    def fetch_or_return_default_community_configurations(community_instance, community_configuration_types: list):
+        # fetch community configurations from db
+        community_configurations_instances = ModelUtilities.get_model_filter(
+            CommunityConfigurations, {'community': community_instance, 'type__in': community_configuration_types})
+
+        # key value pair of configuration_type -> configuration instance
+        configuration_instances_response = {instance.type: instance for instance in community_configurations_instances}
+
+        # Add default configurations if not present
+        for configuration_type in community_configuration_types:
+
+            if configuration_type not in configuration_instances_response:
+                instance = CommunityConfigurations(**COMMUNITY_CONFIGURATIONS[configuration_type])
+                configuration_instances_response[configuration_type] = instance
+
+        # serialize community configurations
+        serialised_community_configurations = CommunityConfigurationsSerializer(
+            configuration_instances_response.values(), many=True).data
+
+        return serialised_community_configurations

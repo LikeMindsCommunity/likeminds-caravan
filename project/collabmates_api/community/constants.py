@@ -251,18 +251,3 @@ REPORT_TYPES_INT = {
     REPORT_TYPE_COMMENT_INT: REPORT_TYPE_COMMENT,
     REPORT_TYPE_REPLY_INT: REPORT_TYPE_REPLY
 }
-
-# Community Configurations
-COMMUNITY_CONFIGURATIONS = {
-    "media_limits" : 
-    {
-        "type": "media_limits",
-        "description": "Media size upload limit (in Kilobytes) for different file formats",
-        "value": 
-        {
-            "max_image_size": 5124, # 5 MB
-            "max_video_size": 102400, # 100 MB        
-        }
-    }
-}
-

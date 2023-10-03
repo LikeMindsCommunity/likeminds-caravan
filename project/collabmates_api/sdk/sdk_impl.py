@@ -5,11 +5,12 @@ from utility.response_utilities import ResponseUtilities
 from utility.states import (api_types, login_types, question_states)
 from utility.auth_utilities import AuthUtilities
 from utility.version_utilities import VersionUtilities
+from utility.constants import (COMMUNITY_CONFIGURATIONS)
 from togther.models import (ModelUtilities, communityAnswers, Community, SDKClientUsersInfo)
 from .models import SdkClient, SdkPlatform, SdkOnboardingScreen
 from .sdk_view_helper import SdkViewHelper
 from .serializers import SdkProjectSerializer, OnboardingScreenSerializer
-from collabmates_api.community.community_impl import CommunityImpl
+from collabmates_api.community.community_impl import (CommunityImpl, CommunityHelper)
 from collabmates_api.user.view_impl import UserImpl
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 from collabmates_api.rest_api import CommunitySerializerV1
@@ -320,7 +321,14 @@ class SdkImpl(SdkManager):
 
         sdk_client = api_key_validation.get('sdk_client')
 
-        return {'success': True, 'community_id': sdk_client.community_id}
+        community_configurations_list = CommunityHelper.fetch_or_return_default_community_configurations(
+            sdk_client.community, COMMUNITY_CONFIGURATIONS.keys())
+
+        return {
+            'success': True,
+            'community_id': sdk_client.community_id,
+            'community_configurations': community_configurations_list
+        }
 
     def fetch_onboarding_screens(self, req_params) -> dict:
 
