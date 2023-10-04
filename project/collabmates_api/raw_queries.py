@@ -4340,7 +4340,7 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                             chatroom_dm_meta.chatroom___chatroom_with_user_id___conv_room = togther_members.member_id_id
                        AND  chatroom_dm_meta.chatroom___community_id___conv_room = togther_members.community_id_id)
                 LEFT JOIN togther_sdkclientusersinfo 
-                ON         chatroom_dm_meta.chatroom___user_id___conv_room = togther_sdkclientusersinfo.user_id 
+                ON         chatroom_dm_meta.chatroom___chatroom_with_user_id___conv_room = togther_sdkclientusersinfo.user_id 
                 ORDER BY chatroom_dm_meta.{};
         """.format(dm_other_user, get_chatroom_query_meta_for_sync_revamp("reply"), room_creator, chatroom_meta_query,
                    chatroom_data_query, get_conversation_query_meta_for_sync_revamp(), conversation_id_query,
