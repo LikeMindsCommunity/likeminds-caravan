@@ -4256,6 +4256,10 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                  get_members_query_meta_for_sync_revamp("room_creator"),
                                  get_sdk_client_query_meta_for_sync_revamp("room_creator")])
 
+        dm_other_user = ",".join([get_users_query_meta_for_sync_revamp("dm_other_user"),
+                                  get_members_query_meta_for_sync_revamp("dm_other_user"),
+                                  get_sdk_client_query_meta_for_sync_revamp("dm_other_user")])
+
         chatroom_meta_query = ",".join([get_users_query_meta_for_sync_revamp("conv_deleter"),
                                         get_members_query_meta_for_sync_revamp("conv_deleter"),
                                         get_sdk_client_query_meta_for_sync_revamp("conv_deleter"),
@@ -4263,7 +4267,8 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                         get_community_query_meta_for_sync_revamp("preview")])
 
         sql = """
-                SELECT    chatroom_preview_meta.*,
+                SELECT chatroom_dm_meta.*, {} FROM
+                (SELECT    chatroom_preview_meta.*,
                           {}, {}
                 FROM      (
                                     SELECT    chatroom_meta.*,
@@ -4326,9 +4331,18 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                 LEFT JOIN togther_sdkclientusersinfo 
                 ON         chatroom_preview_meta.chatroom___user_id___conv_room = togther_sdkclientusersinfo.user_id
                 LEFT JOIN togther_collabcard
-                ON        chatroom_preview_meta.reply_chatroom_id = togther_collabcard.id 
-                ORDER BY chatroom_preview_meta.{};
-        """.format(get_chatroom_query_meta_for_sync_revamp("reply"), room_creator, chatroom_meta_query,
+                ON        chatroom_preview_meta.reply_chatroom_id = togther_collabcard.id) AS chatroom_dm_meta
+                LEFT JOIN togther_userinfo
+                ON         chatroom_dm_meta.chatroom___chatroom_with_user_id___conv_room = 
+                togther_userinfo.user_id_id
+                LEFT JOIN  togther_members
+                ON   (
+                            chatroom_dm_meta.chatroom___chatroom_with_user_id___conv_room = togther_members.member_id_id
+                       AND  chatroom_dm_meta.chatroom___community_id___conv_room = togther_members.community_id_id)
+                LEFT JOIN togther_sdkclientusersinfo 
+                ON         chatroom_dm_meta.chatroom___user_id___conv_room = togther_sdkclientusersinfo.user_id 
+                ORDER BY chatroom_dm_meta.{};
+        """.format(dm_other_user, get_chatroom_query_meta_for_sync_revamp("reply"), room_creator, chatroom_meta_query,
                    chatroom_data_query, get_conversation_query_meta_for_sync_revamp(), conversation_id_query,
                    excluded_conversation_states_query, chatroom_id, community_id, min_timestamp, max_timestamp,
                    order_by_query, offset, limit, user_id, order_by_query)
