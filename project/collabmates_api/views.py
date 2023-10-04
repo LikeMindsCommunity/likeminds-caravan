@@ -5706,7 +5706,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, api_type=ap
     if is_ios:
         request_type = "iOS"
 
-    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+    platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
     chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance,

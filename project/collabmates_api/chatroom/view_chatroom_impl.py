@@ -28,7 +28,7 @@ class FetchChatroomView(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
 
-        request_platform = RequestUtilities.get_platform_code_with_sdk(request)
+        request_platform = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         is_internal = StringUtilities.get_boolean_from_string(request.GET.get('is_internal'))
 
