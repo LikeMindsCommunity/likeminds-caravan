@@ -1,0 +1,21 @@
+{
+  "rabbit_version": "3.8.11",
+  "rabbitmq_version": "3.8.11",
+  "product_name": "RabbitMQ",
+  "product_version": "3.8.11",
+  "users": [{
+    "name": "caravan-celery-load-user",
+    "password":"caravan-celery-load-user-password",
+    "tags": "administrator"
+  }],
+  "vhosts": [{
+    "name": "caravan-celery-load-vhost"
+  }],
+  "permissions": [{
+    "user": "caravan-celery-load-user",
+    "vhost": "caravan-celery-load-vhost",
+    "configure": ".*",
+    "write": ".*",
+    "read": ".*"
+  }]
+}
