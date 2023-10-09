@@ -5,7 +5,6 @@ from utility.response_utilities import ResponseUtilities
 from utility.states import (api_types, login_types, question_states)
 from utility.auth_utilities import AuthUtilities
 from utility.version_utilities import VersionUtilities
-from utility.constants import (COMMUNITY_CONFIGURATIONS)
 from togther.models import (ModelUtilities, communityAnswers, Community, SDKClientUsersInfo)
 from .models import SdkClient, SdkPlatform, SdkOnboardingScreen
 from .sdk_view_helper import SdkViewHelper
@@ -321,13 +320,9 @@ class SdkImpl(SdkManager):
 
         sdk_client = api_key_validation.get('sdk_client')
 
-        community_configurations_list = CommunityHelper.fetch_or_return_default_community_configurations(
-            sdk_client.community, COMMUNITY_CONFIGURATIONS.keys())
-
         return {
             'success': True,
-            'community_id': sdk_client.community_id,
-            'community_configurations': community_configurations_list
+            'community_id': sdk_client.community_id
         }
 
     def fetch_onboarding_screens(self, req_params) -> dict:

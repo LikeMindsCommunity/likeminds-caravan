@@ -2488,9 +2488,10 @@ class CommunityImpl(CommunityManager):
     
     def fetch_community_configurations(self, configuration_types=None) -> dict:
         validated_request = CommunityHelper.validate_fetch_community_configurations_request(self.get_member_id(),
+                                                                                            self.get_community_id(),
                                                                                             self.get_api_key(),
                                                                                             configuration_types)
-    
+
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
@@ -5053,10 +5054,11 @@ class CommunityHelper:
             return users_question_answer_dict
 
     @staticmethod
-    def validate_fetch_community_configurations_request(user_id, api_key, configuration_types=None):
+    def validate_fetch_community_configurations_request(user_id, community_id, api_key, configuration_types=None):
 
         validation_params = {
             'community_id': {
+                'community_id': community_id,
                 'api_key': api_key
             },
             'user_id': user_id
