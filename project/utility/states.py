@@ -267,7 +267,6 @@ class MemberRoles(enum.Enum):
 
     @classmethod
     def get_role_from_state(cls, value) -> str:
-
         return cls(value).name.lower() if value in cls._value2member_map_ else ""
 
 class DeletedMembers:

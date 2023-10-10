@@ -8855,7 +8855,7 @@ def members_state(request, req_dict=None):
     sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
     accept_version = RequestUtilities.get_accept_version_from_headers(request)
 
-    apiRevampV1Check = VersionUtilities.api_revamp_v1_check(accept_version=accept_version)
+    api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version=accept_version)
 
     community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
     user_instance = ModelUtilities.get_user_instance_or_none(member_id)
@@ -8895,7 +8895,7 @@ def members_state(request, req_dict=None):
         if data.created_at > 0:
             
             # If ApiRevamp Check, send epoch time
-            if not apiRevampV1Check:
+            if not api_revamp_v1_check:
                 created_at = time.strftime('%A, %b %d', time.localtime(data.created_at))
             
             else:
@@ -8928,7 +8928,7 @@ def members_state(request, req_dict=None):
     }
 
     # If ApiRevamp Check, send role instead of state
-    if apiRevampV1Check:
+    if api_revamp_v1_check:
         json_response['role'] =  MemberRoles.get_role_from_state(state)
 
     else:
@@ -8953,7 +8953,7 @@ def members_state(request, req_dict=None):
     json_response['member']['state'] = state
     json_response['member']['is_owner'] = is_owner
 
-    if apiRevampV1Check:
+    if api_revamp_v1_check:
         del json_response['member']['state']
 
     is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights,
@@ -8966,7 +8966,7 @@ def members_state(request, req_dict=None):
         admin_rights = check_all_manager_rights(query_set[0].member_id, community_instance)
         manager_rights = get_saved_manager_rights_list(admin_rights)
 
-        if apiRevampV1Check:
+        if api_revamp_v1_check:
             json_response['admin_rights'] = manager_rights
         
         else:
@@ -8991,12 +8991,15 @@ def members_state(request, req_dict=None):
         json_response['member']['image_url'] = image_url
 
     # if Api Revamp v1 check, remove state from rights
-    if apiRevampV1Check:
+    if api_revamp_v1_check:
 
-        for right in (json_response.get('member_rights') if json_response.get('member_rights') else []):
+        member_rights_list = json_response.get('member_rights') if json_response.get('member_rights') else []
+        admin_rights_list = json_response.get('admin_rights') if json_response.get('admin_rights') else []
+
+        for right in member_rights_list:
             right.pop('state')
         
-        for right in (json_response.get('admin_rights') if json_response.get('admin_rights') else []):
+        for right in admin_rights_list:
             right.pop('state')
         
     toast_filter = communityToast.objects.filter(community=community_instance, user=member_id)
@@ -11072,7 +11075,7 @@ def fetch_community_manager_rights(request):
     api_key = RequestUtilities.get_api_key_from_headers(request)
     accept_version = RequestUtilities.get_accept_version_from_headers(request)
 
-    apiRevampV1Check = VersionUtilities.api_revamp_v1_check(accept_version)
+    api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -11154,7 +11157,7 @@ def fetch_community_manager_rights(request):
         mobile_list.append(userMobilesSerializer(mobile_no))
 
     # If api revamp checkk, remove state from rights
-    if apiRevampV1Check:
+    if api_revamp_v1_check:
         
         for right in rights_context:
             right.pop('state')
@@ -11704,7 +11707,7 @@ def fetch_community_member_rights(request):
     sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
     accept_version = RequestUtilities.get_accept_version_from_headers(request)
 
-    apiRevampV1Check = VersionUtilities.api_revamp_v1_check(accept_version)
+    api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -11766,7 +11769,7 @@ def fetch_community_member_rights(request):
                                          sdk_client_info_flag=True)
 
     # If api revamp checkk, remove state from rights
-    if apiRevampV1Check:
+    if api_revamp_v1_check:
         
         for right in rights_context:
             right.pop('state')
