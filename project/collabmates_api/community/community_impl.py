@@ -20,7 +20,8 @@ from collabmates_api.views import get_leave_community_text, send_notification_fo
     update_community_get_started, get_branch_links_for_community_share_v1, fill_share_context_for_paid_community, \
     fill_share_context_for_unpaid_community, check_join_community_hood_get_started, \
     add_community_upload_image_analytics, create_introduction_question_in_community, edit_community_data, \
-    get_community_creator, change_community_level_context_for_paid_community
+    get_community_creator, change_community_level_context_for_paid_community, remove_members, save_moderation_history, \
+    remove_all_member_rights, remove_all_manager_rights, check_reports_and_update_action, send_notification_for_removed_member
 
 from collabmates_api.notification import send_sync_notification, send_notification_for_reports
 
@@ -74,7 +75,7 @@ from utility.states import member_states, card_types, click_states, member_right
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
-    api_types, login_types, noti_states, feed_notification_states
+    api_types, login_types, noti_states, feed_notification_states, deleted_members, report_Action_Types
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -2550,29 +2551,27 @@ class CommunityImpl(CommunityManager):
         user_instance = validated_request.get('user_instance')
         uuids = validated_request.get('uuids')
 
-        is_async = False
-
         # If uuids are more than the limit, then remove members asynchronously
         if len(uuids) > COMMUNITY_REMOVE_MEMBER_ASYNC_LIMIT:
-            is_async = True
-
-        if is_async:
-            CommunityHelper.remove_community_members.delay(is_async=is_async, community_id=community_instance.id, user_id=user_instance.id, 
-                                                           uuids=uuids, tag_id=tag_id, reason=reason)
+            CommunityHelper.remove_community_members.delay(is_async=True, community_id=community_instance.id, 
+                                                           current_user_id=user_instance.id, uuids=uuids, 
+                                                           tag_id=tag_id, reason=reason)
             
             return {'success': True, 
                     'message': COMMUNITY_REMOVE_MEMBER_ASYNC_MESSAGE}
         
         # Else remove members synchronously and return response
-        response = CommunityHelper.remove_community_members(is_async=is_async, community_id=community_instance.id, user_id=user_instance.id, 
-                                                            uuids=uuids, tag_id=tag_id, reason=reason)
-        
-        removal_status = response.get('removal_status')
-        message = response.get('message')
-        
-        return {'success': True, 
-                'removal_status': removal_status, 
-                'message': message}
+        else:
+            response = CommunityHelper.remove_community_members(is_async=False, community_id=community_instance.id, 
+                                                                current_user_id=user_instance.id, uuids=uuids, 
+                                                                tag_id=tag_id, reason=reason)
+            
+            removal_status = response.get('removal_status')
+            message = response.get('message')
+            
+            return {'success': True, 
+                    'removal_status': removal_status, 
+                    'message': message}
 
 
 class CommunityHelper:
@@ -5199,56 +5198,145 @@ class CommunityHelper:
     
     @staticmethod
     @shared_task
-    def remove_community_members(is_async: bool, community_id: int, user_id:int, uuids: list,
-                                 tag_id: int, reason: str):
-        
-        response = {}
+    def remove_community_members(is_async: bool, community_id: int, current_user_id:int, uuids: list,
+                                 tag_id: int, reason: str) -> dict:
+                
+        if not uuids and not (isinstance(uuids, list)):
+            return {}
 
         community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        current_user_instance = ModelUtilities.get_model_instance_or_none(User, current_user_id)
 
-        if not community_instance:
-            return response
-        
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+        if not (community_instance and current_user_instance):
+            return {}
 
-        if not user_instance:
-            return response
-        
-        if not uuids or not (isinstance(uuids, list)):
-            return response
+        users_removal_status = []
+        users_removed = 0
 
-        response = {
-            "message": "Successfully removed members from community",
-            "removal_status": [
-                {
-                    "uuid": "user 1",
-                    "lm_uuid": "kasjbdjasnd",
-                    "is_removed": True,
-                    "status": "Successfully removed"
-                },
-                 {
-                    "uuid": "user 2",
-                    "lm_uuid": "kasjbdjasnd",
-                    "is_removed": True,
-                    "status": "Successfully removed"
-                },
-                 {
-                    "uuid": "user 3",
-                    "lm_uuid": "kasjbdjasnd",
-                    "is_removed": True,
-                    "status": "Successfully removed"
-                }
-            ]
-        }
+        users_meta_dict = get_users_meta_info(community_id=community_id, member_ids=uuids, user_meta_or_none_dict=True)
 
-        
-        # If async, upload reports to s3
         if is_async:
-            CommunityHelper.upload_users_removal_reports(removal_status=response.get('removal_status'), 
-                                                         community_id=community_id)
+            info_logger.info(f"Running async tasks for removing {len(uuids)} members from community {community_id}")
 
-        return response
-    
+        for uuid, user_meta in users_meta_dict.items():
+
+            status = {
+                "uuid": uuid,
+                "lm_uuid": "",
+                "is_removed": False,
+                "status": ""
+            }
+            
+            # If invalid uuid is sent, append to users_removal_status and continue
+            if not user_meta:
+                status['status'] = "Invalid uuid sent"
+                users_removal_status.append(status)
+                continue
+            
+            else:
+                status['lm_uuid'] = user_meta.get('user_unique_id')
+
+            user_id = user_meta.get('user_id')
+
+            member_instance = Members.get_member_instance_or_none(community_instance, user_id)
+
+            if not member_instance:
+                status['status'] = "User is not a member of community"
+                users_removal_status.append(status)
+                continue
+
+            if member_instance.is_owner:
+                status['status'] = "Cannot remove owner"
+                users_removal_status.append(status)
+                continue
+
+            eligible_member_states = [member_states.ADMIN, member_states.MEMBER,
+                                      member_states.PROFILE_UNAVAILABLE]
+
+            if member_instance.state not in eligible_member_states:
+                status['status'] = f"Cannot remove member with state {member_instance.state}" 
+                users_removal_status.append(status)
+                continue
+
+            # Run async tasks for member removal
+            CommunityHelper.run_async_tasks_for_member_removal.delay(community_id=community_id,
+                                                                     user_id=user_id,
+                                                                     current_user_id=current_user_id,
+                                                                     reason=reason, tag_id=tag_id)
+
+            status['is_removed'] = True
+            status['status'] = "Successfully removed user"
+            users_removal_status.append(status)
+
+            users_removed += 1
+
+        # If function call is Async, upload reports to s3
+        if is_async:
+            CommunityHelper.upload_users_removal_reports.delay(removal_status=users_removal_status, 
+                                                               community_id=community_id)
+        
+        else: 
+            return {
+                "removal_status": users_removal_status,
+                "message": f"Successfully removed {users_removed} users"
+            }
+        
+    @staticmethod
+    @shared_task
+    def run_async_tasks_for_member_removal(community_id: int, user_id: int, current_user_id, reason: str, tag_id: int):
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+        current_user_instance = ModelUtilities.get_model_instance_or_none(User, current_user_id)
+
+        if not (community_instance and user_instance and current_user_instance):
+            return
+        
+        try:
+
+            info_logger.info(f"Removing user {user_id} from community {community_id} by {current_user_id}")
+
+            remove_members(community_instance, user_instance, 
+                           removed_state=deleted_members.REMOVED,
+                           current_user_instance=current_user_instance)
+                
+            save_moderation_history(user=user_instance, community=community_instance,
+                                    moderation_by=current_user_instance,
+                                    type=moderation_history_types.REMOVED_FROM_COMMUNITY)
+
+            remove_all_member_rights(community_instance, user_instance)
+            
+            remove_all_manager_rights(community_instance, user_instance)
+
+            check_reports_and_update_action.delay(action_taken_by=current_user_instance.id,
+                                                    action_taken=report_Action_Types.REMOVE_FROM_COMMUNITY,
+                                                    user=user_id, community=community_id,
+                                                    action_taken_tag_id=tag_id, action_taken_reason=reason)
+            
+            send_notification_for_removed_member.delay(admin_id=current_user_instance.id,
+                                                       removed_user_id=user_id, community_id=community_id)
+            
+            analytics_data = {
+                'removed_member_id': user_id,
+                'community_id': community_id,
+                'reason': reason
+            }
+
+            SegmentImpl.track_event(current_user_instance.id, 'Member removed (Backend)', analytics_data)
+
+            send_sync_notification.delay({'community_id': community_id,
+                                            'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+            update_multiple_previews_in_community.delay({'community_id': community_id})
+
+            ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, user_id)
+
+            CohortHelper.fetch_user_cohorts_having_filters_with_community_id(community_id, user_instance)
+
+            info_logger.info(f"Successfully removed user {user_id} from community {community_id} by {current_user_id}")
+
+        except Exception as e:
+            error_logger.error(f"Exception occurred while removing member {user_id} from community {community_id } - {e.args}")
+        
     @staticmethod
     @shared_task
     def upload_users_removal_reports(removal_status: list, community_id: int) -> bool:
@@ -5257,6 +5345,8 @@ class CommunityHelper:
             return False
 
         try:
+
+            info_logger.info(f"Uploading user removal reports to s3 for community {community_id}")
         
             csv_file_path = CommunityHelper.parse_json_to_csv_for_users_removal_reports(removal_status)
 
@@ -5264,10 +5354,13 @@ class CommunityHelper:
                 return False
 
             uploaded = CommunityHelper.upload_users_removal_reports_to_s3(community_id=community_id,
-                                                                    csv_file_path=csv_file_path)
+                                                                          csv_file_path=csv_file_path)
             
             # delete csv file from local
             os.remove(csv_file_path)
+
+            if uploaded:
+                info_logger.info(f"Successfully uploaded user removal reports to s3 for community {community_id}")
 
             return uploaded
         
@@ -5285,8 +5378,8 @@ class CommunityHelper:
         
             absolute_path = os.path.abspath(os.getcwd())
             
-            file_name = f"{absolute_path}/csv_file_{TimeUtilities.current_time_in_sec()}.csv"
-            csv_file = open(file_name, 'w')
+            file_path = f"{absolute_path}/project/external_services/amazon_s3/csv_file_{TimeUtilities.current_time_in_sec()}.csv"
+            csv_file = open(file_path, 'w')
     
             csv_writer = csv.writer(csv_file)
     
@@ -5302,7 +5395,7 @@ class CommunityHelper:
 
             csv_file.close()
 
-            return file_name
+            return file_path
 
         except Exception as e:
             error_logger.error("Exception occurred while parsing json to csv for user removal reports - %s" % e.args)
@@ -5317,9 +5410,11 @@ class CommunityHelper:
         bucket = settings.S3_BUCKETS.get(COMMUNITY_REMOVE_MEMBER_S3_BUCKET)
         s3_client = S3ClientImpl(bucket)
 
+        current_date_time_in_str = TimeUtilities.get_current_datetime_in_IST().strftime("%d-%m-%y-%X")
+
         s3_user_removal_reports_path = COMMUNITY_REMOVE_MEMBER_S3_FILE_PATH.format(community_id, 
                                                                                    community_id, 
-                                                                                   TimeUtilities.current_time_in_milliseconds())
+                                                                                   current_date_time_in_str)
 
         uploaded = s3_client.upload_file_to_s3_bucket(object_path=csv_file_path, file_path=s3_user_removal_reports_path)
 
