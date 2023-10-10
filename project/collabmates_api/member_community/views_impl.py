@@ -828,7 +828,7 @@ class LeaveCommunity(APIView):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Send x-member-id in headers",
                                                                                 status_codes.HTTP_400_BAD_REQUEST))
 
-        member_community_manager = MemberCommunityImpl(member_id=member_id, api_key=api_key)
+        member_community_manager = MemberCommunityImpl(member_id, None, api_key=api_key)
         community_context = member_community_manager.self_leave_community()
 
         if 'error_message' in community_context:

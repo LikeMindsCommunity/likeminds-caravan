@@ -3820,7 +3820,7 @@ class MemberCommunityHelper:
         user_instance = validated_dict.get('user_id')
         community_instance = validated_dict.get('community_id')
 
-        member_instance = Members.get_member_instance_or_none(user_instance, community_instance)
+        member_instance = Members.get_member_instance_or_none(community_instance, user_instance)
 
         if member_instance.state == member_states.ADMIN:
             return ResponseUtilities.get_inner_error_context("You are an Admin of this community. You can be removed by other Admins")
