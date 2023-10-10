@@ -35,6 +35,29 @@ class S3ClientImpl(S3ClientManager):
                                                       fields,
                                                       conditions,
                                                       expiration)
+    
+    def upload_file_to_s3_bucket(self, object_path: str, file_path: str) -> bool:
+        """
+        Upload a file to an S3 bucket with public read access
+        :param object_path: string
+        :param file_path: string
+        :return: True if file was uploaded, else False
+        """
+
+        bucket_name = self.get_s3_bucket().get('name')
+        region_name = self.get_s3_bucket().get('region')
+
+        s3_client = boto3.client('s3', region_name=region_name,
+                                 aws_access_key_id=settings.AWS_CREDENTIALS.get('ACCESS_KEY'),
+                                 aws_secret_access_key=settings.AWS_CREDENTIALS.get('SECRET_KEY'))
+        
+        try:
+            s3_client.upload_file(object_path, bucket_name, file_path, ExtraArgs={'ACL': 'public-read'})
+        except ClientError as e:
+            self.logger.error(str(e))
+            return False
+
+        return True
 
     def _generate_presigned_post_internal(self,
                                           bucket_name: str,
