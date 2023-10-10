@@ -816,3 +816,24 @@ class PendingMembers(APIView):
                                                                                 community_context.get('status')))
 
         return JsonResponse(community_context)
+    
+class LeaveCommunity(APIView):
+
+    def delete(self, request):
+
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        if not member_id:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context("Send x-member-id in headers",
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
+
+        member_community_manager = MemberCommunityImpl(member_id=member_id, api_key=api_key)
+        community_context = member_community_manager.self_leave_community()
+
+        if 'error_message' in community_context:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_context.get('error_message'),
+                                                                                community_context.get('status_code')))
+
+        return JsonResponse(community_context)
+
