@@ -4,16 +4,16 @@
   "product_name": "RabbitMQ",
   "product_version": "3.8.11",
   "users": [{
-    "name": "caravan-celery-load-user",
-    "password":"caravan-celery-load-user-password",
+    "name": "caravan-load-user",
+    "password":"caravan-load-user-password",
     "tags": "administrator"
   }],
   "vhosts": [{
-    "name": "caravan-celery-load-vhost"
+    "name": "caravan-load-vhost"
   }],
   "permissions": [{
-    "user": "caravan-celery-load-user",
-    "vhost": "caravan-celery-load-vhost",
+    "user": "caravan-load-user",
+    "vhost": "caravan-load-vhost",
     "configure": ".*",
     "write": ".*",
     "read": ".*"
