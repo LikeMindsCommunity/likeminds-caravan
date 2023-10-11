@@ -7,6 +7,7 @@ from django.db.models.functions import Lower
 from rest_framework import status as status_codes
 from rest_framework.utils import json
 
+from external_services.mixpanel.events import MixpanelEvents
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
@@ -25,7 +26,7 @@ from utility.states import member_states, card_types, deleted_members, question_
     conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers, \
     community_dm_settings_state_types, community_dm_settings_duration_types, dm_icon_from_states, get_started_types, \
     api_types, access_types, feed_order_types, DMFabShowList, click_states, moderation_history_types, WebhookTypes, \
-    webhook_profile_methods
+    webhook_profile_methods, report_action_types, SyncNotificationTypes
 
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
@@ -88,7 +89,10 @@ from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
 from utility.json_utilities import JsonUtilities
 from ..views import get_home_screen_community_actions, generate_internal_link_preview_for_conversation, \
-    get_latest_conversation_members, post_introduction_card_for_community, update_community_get_started
+    get_latest_conversation_members, post_introduction_card_for_community, update_community_get_started, \
+    remove_members, check_reports_and_update_action, update_pending_member_count_in_engage, send_sync_notification, \
+    update_multiple_previews_in_community, save_moderation_history, remove_all_manager_rights, \
+    remove_all_member_rights, send_notification_to_managers_when_member_leaves_community
 
 from collabmates_api.search.sync import ElasticSearchSync
 from collabmates_api.webhook.models import (CommunityWebhook)
@@ -2242,6 +2246,36 @@ class MemberCommunityImpl(MemberCommunityManager):
             'pending_members': pending_members_list
         }
     
+    def self_leave_community(self):
+        validated_request = MemberCommunityHelper.validate_self_leave_community_request(self.get_member_id(),
+                                                                                        self.get_api_key())
+        
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        member_instance = validated_request.get('member_instance')
+
+        success = False
+        
+        if member_instance.state == member_states.PENDING_MEMBER:
+            success = MemberCommunityHelper.leave_community_for_pending_member(community_instance, member_instance, user_instance)
+
+        if member_instance.state in [member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
+            success = MemberCommunityHelper.leave_community_for_member_and_profile_unavailable(community_instance, member_instance, user_instance)
+        
+        else:
+            return ResponseUtilities.get_impl_error_context('Unable to leave community, invalid member state!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        if not success:
+            return ResponseUtilities.get_impl_error_context('Unable to leave community, some error occurred!',
+                                                            status_code=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return {'success': True}
+    
     @staticmethod
     @shared_task
     def trigger_webhook_for_profile_events(community_id: int, member_id: int):
@@ -3767,3 +3801,113 @@ class MemberCommunityHelper:
         }
 
         return payload
+    
+    @staticmethod
+    def validate_self_leave_community_request(user_id, api_key):
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id,
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+
+        member_instance = Members.get_member_instance_or_none(community_instance, user_instance)
+
+        if member_instance.state == member_states.ADMIN:
+            return ResponseUtilities.get_inner_error_context("You are an admin of this community. You can be removed by other admins")
+
+        return {    
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'member_instance': member_instance
+        }
+
+    @staticmethod
+    def leave_community_for_pending_member(community_instance, member_instance, user_instance) -> bool:
+
+        if not (community_instance and user_instance and member_instance):
+            return False
+        
+        if not (member_instance.state == member_states.PENDING_MEMBER):
+            return False
+
+        try:
+
+            remove_members(community_instance, user_instance, removed_state=deleted_members.LEFT,
+                            current_user_instance=user_instance)
+            
+            check_reports_and_update_action.delay(action_taken_by=user_instance.id,
+                                                  action_taken=report_action_types.LEFT_THE_COMMUNITY,
+                                                  user=user_instance.id, community=community_instance.id)
+            
+            update_pending_member_count_in_engage(community_instance)
+
+            send_sync_notification.delay({'community_id': community_instance.id,
+                                            'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+            
+            update_multiple_previews_in_community.delay({'community_id': community_instance.id})
+
+            return True
+        
+        except Exception as e:
+            error_logger.error(f"Error in leave_community_for_pending_member for user_id {user_instance.id}: {e.args}")
+            return False
+
+    @staticmethod
+    def leave_community_for_member_and_profile_unavailable(community_instance, member_instance, user_instance) -> bool:
+
+        if not (community_instance and user_instance and member_instance):
+            return False
+        
+        if not (member_instance.state in [member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]):
+            return False
+        
+        try: 
+            user_id = user_instance.id
+            community_id = community_instance.id
+                
+            remove_members(community_instance, user_instance, removed_state=deleted_members.LEFT,
+                            current_user_instance=user_instance)
+
+            save_moderation_history(user=user_instance, community=community_instance,
+                                    moderation_by=user_instance,
+                                    type=moderation_history_types.LEFT_COMMUNITY)
+
+            check_reports_and_update_action.delay(action_taken_by=user_id,
+                                                  action_taken=report_action_types.LEFT_THE_COMMUNITY,
+                                                  user=user_id, community=community_id)
+
+            remove_all_member_rights(community_instance, user_instance)
+            remove_all_manager_rights(community_instance, user_instance)
+
+            from collabmates_api.cohort.cohort_impl import CohortHelper
+            CohortHelper.fetch_user_cohorts_having_filters_with_community_id(community_id, user_instance)
+
+            send_sync_notification.delay({'community_id': community_id,
+                                        'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
+
+            send_notification_to_managers_when_member_leaves_community.delay(user_id, community_id)
+
+            ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, user_id)
+            MixpanelEvents.leave_community.delay(user_id, community_id)
+
+            # Send delete request to swarm service to delete feed data
+            from collabmates_api.community.community_impl import CommunityHelper
+
+            CommunityHelper.remove_users_feed_data.delay(community_instance.id, user_instance.id, 
+                                                         [user_instance.userinfo.user_unique_id], False)
+            
+            return True
+        
+        except Exception as e:
+            error_logger.error(f"Error in leave_community_for_member_and_unavailable for user_id {user_instance.id}: {e.args}")
+            return False

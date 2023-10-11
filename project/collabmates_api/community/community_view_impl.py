@@ -941,6 +941,19 @@ class CommunityMemberView(APIView):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_data.get('error_message'),
                                                                                 community_data.get('status')))
         return JsonResponse(community_data)
+    
+    def delete(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        community_data = community_manager.remove_community_members(req_body)
+
+        if community_data.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(community_data.get('error_message'),
+                                                                                community_data.get('status')))
+        return JsonResponse(community_data)
 
 
 class CommunityNotificationSettings(APIView):
@@ -1088,3 +1101,18 @@ class CommunityConfigurationsView(APIView):
         
         return JsonResponse(res)
      
+
+class RemovalReportsView(APIView):
+
+    def get(self, request): 
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        res = community_manager.fetch_community_removal_reports()
+
+        if 'error_message' in res:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        
+        return JsonResponse(res)

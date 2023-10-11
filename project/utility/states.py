@@ -129,7 +129,7 @@ class ReportActionTypes:
     CHATROOM_DELETED_BY_CREATOR = 6
 
 
-report_Action_Types = ReportActionTypes()
+report_action_types = ReportActionTypes()
 
 
 class ReportTypes:

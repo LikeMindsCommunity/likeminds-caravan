@@ -208,6 +208,16 @@ DEFAULT_JOIN_EMAIL_BODY = ""
 
 REPORT_MAIL_TO_TEAM_SUBJECT = "[{} reported] Likeminds App"
 
+COMMUNITY_REMOVE_MEMBER_ASYNC_LIMIT = 100
+COMMUNITY_REMOVE_MEMBER_ASYNC_MESSAGE = "Removal of users is happening in background, please check after some time."
+COMMUNITY_REMOVE_MEMBER_CSV_REPORT_LOCAL_PATH = "{}/project/external_services/amazon_s3/csv_file_{}.csv"
+COMMUNITY_REMOVE_MEMBER_S3_BUCKET = "media_bucket"
+COMMUNITY_REMOVE_MEMBER_S3_FILE_PATH = "users_removal_reports/{}/{}_removal_report_{}.csv"
+COMMUNITY_USERS_REMOVAL_REPORTS_PATH = "users_removal_reports/{}/"
+COMMUNITYY_USERS_REMOVAL_S3_DOWNLOAD_URL = "https://{}.s3.{}.amazonaws.com/{}"
+
+SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT = "/user"
+
 # Report Types string consants
 REPORT_TYPE_MEMBER = "member"
 REPORT_TYPE_CHATROOM = "chatroom"
