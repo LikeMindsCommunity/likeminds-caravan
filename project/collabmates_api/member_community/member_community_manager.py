@@ -191,3 +191,8 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         """Fetches user home meta data"""
 
         raise NotImplementedError
+    
+    def self_leave_community(self):
+        """Method for self leave a community"""
+
+        raise NotImplementedError

@@ -384,3 +384,10 @@ class CommunityManager(metaclass=abc.ABCMeta):
         Fetches users meta info
         """
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_community_removal_reports(self):
+        """
+        Fetches community removal reports
+        """
+        raise NotImplementedError

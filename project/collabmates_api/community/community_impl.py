@@ -5491,7 +5491,7 @@ class CommunityHelper:
         bucket = settings.S3_BUCKETS.get(COMMUNITY_REMOVE_MEMBER_S3_BUCKET)
         s3_client = S3ClientImpl(bucket)
 
-        s3_user_removal_community_path = COMMUNITY_USERS_REMOVAL_REPORTS_PATH.format(community_id)
+        s3_user_removal_community_path = COMMUNITY_MEMBER_REMOVAL_REPORTS_PATH.format(community_id)
 
         # Fetch all objects from s3 bucket for the community
         s3_objects = s3_client.fetch_files_from_s3_bucket(file_path=s3_user_removal_community_path)
@@ -5500,7 +5500,7 @@ class CommunityHelper:
             object_key = object.get('Key')
             last_modified = object.get('LastModified')
 
-            download_url = COMMUNITYY_USERS_REMOVAL_S3_DOWNLOAD_URL.format(bucket.get("name"), 
+            download_url = COMMUNITYY_MEMBER_REMOVAL_S3_DOWNLOAD_URL.format(bucket.get("name"), 
                                                                            bucket.get("region"), 
                                                                            object_key)
             
