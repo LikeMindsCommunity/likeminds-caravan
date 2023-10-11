@@ -74,9 +74,6 @@ class S3ClientImpl(S3ClientManager):
         
         objects = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=file_path)
 
-        for obj in objects.get('Contents', []):
-            print(obj.key)
-
         return objects
         
 

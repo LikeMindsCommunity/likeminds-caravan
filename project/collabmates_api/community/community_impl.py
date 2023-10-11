@@ -5398,7 +5398,7 @@ class CommunityHelper:
         
             absolute_path = os.path.abspath(os.getcwd())
             
-            file_path = f"{absolute_path}/project/external_services/amazon_s3/csv_file_{TimeUtilities.current_time_in_sec()}.csv"
+            file_path = COMMUNITY_REMOVE_MEMBER_CSV_REPORT_LOCAL_PATH.format(absolute_path, TimeUtilities.current_time_in_sec())
             csv_file = open(file_path, 'w')
     
             csv_writer = csv.writer(csv_file)
