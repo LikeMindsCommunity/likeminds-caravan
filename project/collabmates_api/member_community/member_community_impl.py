@@ -2246,7 +2246,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             'pending_members': pending_members_list
         }
     
-    def self_leave_community(self):
+    def self_leave_community(self) -> dict:
         validated_request = MemberCommunityHelper.validate_self_leave_community_request(self.get_member_id(),
                                                                                         self.get_api_key())
         

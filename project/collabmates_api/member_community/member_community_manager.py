@@ -39,7 +39,9 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_user_chatroom_status') and callable(
                     subclass.fetch_user_chatroom_status)) and
                 (hasattr(subclass, 'fetch_user_home_meta') and callable(
-                    subclass.fetch_user_home_meta)) or
+                    subclass.fetch_user_home_meta)) and 
+                (hasattr(subclass, 'self_leave_community') and callable(
+                    subclass.self_leave_community)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -192,7 +194,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
     
-    def self_leave_community(self):
+    def self_leave_community(self) -> dict:
         """Method for self leave a community"""
 
         raise NotImplementedError

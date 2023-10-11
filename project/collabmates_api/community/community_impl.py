@@ -2578,7 +2578,7 @@ class CommunityImpl(CommunityManager):
                 'message': message
             }
         
-    def fetch_community_removal_reports(self):
+    def fetch_community_removal_reports(self) -> dict:
         validated_request = CommunityHelper.validate_fetch_community_removal_reports_request(self.get_member_id(),
                                                                                              self.get_api_key())
     
