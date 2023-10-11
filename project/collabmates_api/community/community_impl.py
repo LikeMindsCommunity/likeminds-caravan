@@ -75,7 +75,7 @@ from utility.states import member_states, card_types, click_states, member_right
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
-    api_types, login_types, noti_states, feed_notification_states, deleted_members, report_Action_Types
+    api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -2557,8 +2557,10 @@ class CommunityImpl(CommunityManager):
                                                            current_user_id=user_instance.id, uuids=uuids, 
                                                            tag_id=tag_id, reason=reason)
             
-            return {'success': True, 
-                    'message': COMMUNITY_REMOVE_MEMBER_ASYNC_MESSAGE}
+            return {
+                'success': True, 
+                'message': COMMUNITY_REMOVE_MEMBER_ASYNC_MESSAGE
+            }
         
         # Else remove members synchronously and return response
         else:
@@ -2569,13 +2571,15 @@ class CommunityImpl(CommunityManager):
             removal_status = response.get('removal_status')
             message = response.get('message')
             
-            return {'success': True, 
-                    'removal_status': removal_status, 
-                    'message': message}
+            return {
+                'success': True, 
+                'removal_status': removal_status, 
+                'message': message
+            }
         
     def fetch_community_removal_reports(self):
         validated_request = CommunityHelper.validate_fetch_community_removal_reports_request(self.get_member_id(),
-                                                                                                self.get_api_key())
+                                                                                             self.get_api_key())
     
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -5313,7 +5317,6 @@ class CommunityHelper:
             return
         
         try:
-
             info_logger.info(f"Removing user {user_id} from community {community_id} by {current_user_id}")
 
             remove_members(community_instance, user_instance, 
@@ -5329,7 +5332,7 @@ class CommunityHelper:
             remove_all_manager_rights(community_instance, user_instance)
 
             check_reports_and_update_action.delay(action_taken_by=current_user_instance.id,
-                                                    action_taken=report_Action_Types.REMOVE_FROM_COMMUNITY,
+                                                    action_taken=report_action_types.REMOVE_FROM_COMMUNITY,
                                                     user=user_id, community=community_id,
                                                     action_taken_tag_id=tag_id, action_taken_reason=reason)
             
@@ -5365,7 +5368,6 @@ class CommunityHelper:
             return False
 
         try:
-
             info_logger.info(f"Uploading user removal reports to s3 for community {community_id}")
         
             csv_file_path = CommunityHelper.parse_json_to_csv_for_users_removal_reports(removal_status)
@@ -5394,8 +5396,7 @@ class CommunityHelper:
         if not removal_status:
             return None
         
-        try:
-        
+        try:        
             absolute_path = os.path.abspath(os.getcwd())
             
             file_path = COMMUNITY_REMOVE_MEMBER_CSV_REPORT_LOCAL_PATH.format(absolute_path, TimeUtilities.current_time_in_sec())
@@ -5481,6 +5482,6 @@ class CommunityHelper:
 
         s3_user_removal_community_path = COMMUNITY_USERS_REMOVAL_REPORTS_PATH.format(community_id)
 
-        reports = s3_client.fetch_files_from_s3_bucket(object_path=s3_user_removal_community_path)
+        reports = s3_client.fetch_files_from_s3_bucket(file_path=s3_user_removal_community_path)
 
         return reports

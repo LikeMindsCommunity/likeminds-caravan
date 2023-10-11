@@ -1985,7 +1985,7 @@ def remove_from_member(request):
                         snackbar_manager.create_snackbar(snackbar_dict)
 
                         check_reports_and_update_action.delay(action_taken_by=member_id,
-                                                              action_taken=report_Action_Types.REMOVE_FROM_COMMUNITY,
+                                                              action_taken=report_action_types.REMOVE_FROM_COMMUNITY,
                                                               user=member, community=community_id,
                                                               action_taken_tag_id=tag_id, action_taken_reason=reason)
                         send_notification_for_removed_member.delay(admin_id=member_id,
@@ -2033,7 +2033,7 @@ def remove_from_member(request):
             toast_filter.update(toast_message=PENDING_MEMBER_REQUEST_REJECTED_COMMUNITY_TOAST)
 
             check_reports_and_update_action.delay(action_taken_by=member_id,
-                                                  action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
+                                                  action_taken=report_action_types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
             update_pending_member_count_in_engage(community_instance)
             send_sync_notification.delay({'community_id': community_id,
@@ -2063,7 +2063,7 @@ def remove_from_member(request):
                                     type=moderation_history_types.LEFT_COMMUNITY)
 
             check_reports_and_update_action.delay(action_taken_by=member_id,
-                                                  action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
+                                                  action_taken=report_action_types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
 
             info_logger.info(f"REMOVE_MEMBER_API (Left CASE) - current user id = {member_id}, user id = {member_id}"
@@ -3834,7 +3834,7 @@ def update_collabcard_delete_status(collabcard_instance, current_user_instance, 
     collabcard_instance.save()
 
     if int(current_user_instance.id) == int(collabcard_instance.user.id):
-        action_taken = report_Action_Types.CHATROOM_DELETED_BY_CREATOR
+        action_taken = report_action_types.CHATROOM_DELETED_BY_CREATOR
         snackbar_manager = SnackbarImpl()
         snackbar_dict = {
             'chatroom_id': collabcard_instance.id,
@@ -3843,7 +3843,7 @@ def update_collabcard_delete_status(collabcard_instance, current_user_instance, 
         snackbar_manager.create_snackbar(snackbar_dict)
 
     else:
-        action_taken = report_Action_Types.CHATROOM_DELETED_BY_CM
+        action_taken = report_action_types.CHATROOM_DELETED_BY_CM
         snackbar_manager = SnackbarImpl()
         snackbar_dict = {
             'chatroom_id': collabcard_instance.id,
@@ -10838,9 +10838,9 @@ def update_conversation_delete_status(conversation_instance, current_user_instan
                                    {'deleted_by_user': current_user_instance, 'is_deleted': True})
 
     if int(current_user_instance.id) == int(conversation_instance.user.id):
-        action_taken = report_Action_Types.RESPONSE_DELETED_BY_CREATOR
+        action_taken = report_action_types.RESPONSE_DELETED_BY_CREATOR
     else:
-        action_taken = report_Action_Types.RESPONSE_DELETED_BY_CM
+        action_taken = report_action_types.RESPONSE_DELETED_BY_CM
 
     check_reports_and_update_action.delay(action_taken_by=current_user_instance.id,
                                           action_taken=action_taken,
@@ -11878,7 +11878,7 @@ def update_community_member_rights(request):
                                     type=moderation_history_types.MEMBER_PERMISSION_EDITED)
 
             check_reports_and_update_action.delay(action_taken_by=current_user_id,
-                                                  action_taken=report_Action_Types.EDIT_MEMBER_PERMISSION,
+                                                  action_taken=report_action_types.EDIT_MEMBER_PERMISSION,
                                                   user=user_id, community=community_id,
                                                   added_member_rights=list(rights_added),
                                                   removed_member_rights=list(rights_removed))

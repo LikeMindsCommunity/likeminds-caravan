@@ -26,7 +26,7 @@ from utility.states import member_states, card_types, deleted_members, question_
     conversation_states, member_rights, community_setting_types, SyncTypes, api_version_headers, \
     community_dm_settings_state_types, community_dm_settings_duration_types, dm_icon_from_states, get_started_types, \
     api_types, access_types, feed_order_types, DMFabShowList, click_states, moderation_history_types, WebhookTypes, \
-    webhook_profile_methods, report_Action_Types, SyncNotificationTypes
+    webhook_profile_methods, report_action_types, SyncNotificationTypes
 
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
@@ -3823,7 +3823,7 @@ class MemberCommunityHelper:
         member_instance = Members.get_member_instance_or_none(community_instance, user_instance)
 
         if member_instance.state == member_states.ADMIN:
-            return ResponseUtilities.get_inner_error_context("You are an Admin of this community. You can be removed by other Admins")
+            return ResponseUtilities.get_inner_error_context("You are an admin of this community. You can be removed by other admins")
 
         return {    
             'user_instance': user_instance,
@@ -3846,8 +3846,8 @@ class MemberCommunityHelper:
                             current_user_instance=user_instance)
             
             check_reports_and_update_action.delay(action_taken_by=user_instance.id,
-                                                    action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
-                                                    user=user_instance.id, community=community_instance.id)
+                                                  action_taken=report_action_types.LEFT_THE_COMMUNITY,
+                                                  user=user_instance.id, community=community_instance.id)
             
             update_pending_member_count_in_engage(community_instance)
 
@@ -3883,8 +3883,8 @@ class MemberCommunityHelper:
                                     type=moderation_history_types.LEFT_COMMUNITY)
 
             check_reports_and_update_action.delay(action_taken_by=user_id,
-                                                    action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
-                                                    user=user_id, community=community_id)
+                                                  action_taken=report_action_types.LEFT_THE_COMMUNITY,
+                                                  user=user_id, community=community_id)
 
             remove_all_member_rights(community_instance, user_instance)
             remove_all_manager_rights(community_instance, user_instance)
