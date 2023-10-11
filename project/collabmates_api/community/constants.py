@@ -212,6 +212,7 @@ COMMUNITY_REMOVE_MEMBER_ASYNC_LIMIT = 100
 COMMUNITY_REMOVE_MEMBER_ASYNC_MESSAGE = "Removal of users is happening in background, please check after some time."
 COMMUNITY_REMOVE_MEMBER_S3_BUCKET = "media_bucket"
 COMMUNITY_REMOVE_MEMBER_S3_FILE_PATH = "users_removal_reports/{}/{}_removal_report_{}.csv"
+COMMUNITY_USERS_REMOVAL_REPORTS_PATH = "users_removal_reports/{}/"
 
 # Report Types string consants
 REPORT_TYPE_MEMBER = "member"

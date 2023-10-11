@@ -58,6 +58,27 @@ class S3ClientImpl(S3ClientManager):
             return False
 
         return True
+    
+    def fetch_files_from_s3_bucket(self, file_path: str):
+        """
+        fetch files from an S3 bucket on the basis of file path with public read access
+        :param file_path: string
+        """
+
+        bucket_name = self.get_s3_bucket().get('name')
+        region_name = self.get_s3_bucket().get('region')
+
+        s3_client = boto3.client('s3', region_name=region_name,
+                                 aws_access_key_id=settings.AWS_CREDENTIALS.get('ACCESS_KEY'),
+                                 aws_secret_access_key=settings.AWS_CREDENTIALS.get('SECRET_KEY'))
+        
+        objects = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=file_path)
+
+        for obj in objects.get('Contents', []):
+            print(obj.key)
+
+        return objects
+        
 
     def _generate_presigned_post_internal(self,
                                           bucket_name: str,

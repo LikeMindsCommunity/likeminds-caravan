@@ -2572,6 +2572,26 @@ class CommunityImpl(CommunityManager):
             return {'success': True, 
                     'removal_status': removal_status, 
                     'message': message}
+        
+    def fetch_community_removal_reports(self):
+        validated_request = CommunityHelper.validate_fetch_community_removal_reports_request(self.get_member_id(),
+                                                                                                self.get_api_key())
+    
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        community_instance = validated_request.get('community_instance')
+
+        # Fetch user removal reports from s3 bucket
+        removal_reports = CommunityHelper.fetch_users_removal_reports_from_s3(community_instance.id)
+        
+        response = {
+            'success': True,
+            'removal_reports': removal_reports
+        }
+
+        return response
 
 
 class CommunityHelper:
@@ -5419,3 +5439,48 @@ class CommunityHelper:
         uploaded = s3_client.upload_file_to_s3_bucket(object_path=csv_file_path, file_path=s3_user_removal_reports_path)
 
         return uploaded
+
+    @staticmethod
+    def validate_fetch_community_removal_reports_request(user_id, api_key) -> dict:
+            
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        community_instance = validated_dict.get('community_id')
+        user_instance = validated_dict.get('user_id')
+
+        member_instance = Members.get_member_instance_or_none(community_instance, user_instance)
+
+        # Validate if user is admin or not
+        if not member_instance or (member_instance.state != member_states.ADMIN):
+            return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
+        
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'member_instance': member_instance
+        }
+
+    @staticmethod
+    def fetch_users_removal_reports_from_s3(community_id: int) -> list:
+
+        if not community_id:
+            return
+
+        bucket = settings.S3_BUCKETS.get(COMMUNITY_REMOVE_MEMBER_S3_BUCKET)
+        s3_client = S3ClientImpl(bucket)
+
+        s3_user_removal_community_path = COMMUNITY_USERS_REMOVAL_REPORTS_PATH.format(community_id)
+
+        reports = s3_client.fetch_files_from_s3_bucket(object_path=s3_user_removal_community_path)
+
+        return reports

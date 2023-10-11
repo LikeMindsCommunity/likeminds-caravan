@@ -16,7 +16,7 @@ from collabmates_api.community.community_view_impl import (FetchCommunity, Fetch
                                                            FetchCommunityDMRightView, CommunityMemberView,
                                                            CommunityNotificationSettings, FeedNotificationSettings,
                                                            UsersView, ReportTagsView, CommunityReportView, 
-                                                           CommunityConfigurationsView)
+                                                           CommunityConfigurationsView, RemovalReportsView)
 
 urlpatterns = [
     path('create', CreateCommunityView.as_view(), name="create_community"),
@@ -58,4 +58,5 @@ urlpatterns = [
     path('report/tags', ReportTagsView.as_view(), name="report_tags"),
     path('report', CommunityReportView.as_view(), name="community_report"),
     path('configurations', CommunityConfigurationsView.as_view(), name='community_configurations'),
+    path('removal_reports', RemovalReportsView.as_view(), name="removal_reports"),
 ]
