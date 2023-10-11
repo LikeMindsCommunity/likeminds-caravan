@@ -2263,7 +2263,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         if member_instance.state == member_states.PENDING_MEMBER:
             success = MemberCommunityHelper.leave_community_for_pending_member(community_instance, member_instance, user_instance)
 
-        if member_instance.state in [member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
+        elif member_instance.state in [member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
             success = MemberCommunityHelper.leave_community_for_member_and_profile_unavailable(community_instance, member_instance, user_instance)
         
         else:
@@ -3821,6 +3821,9 @@ class MemberCommunityHelper:
         community_instance = validated_dict.get('community_id')
 
         member_instance = Members.get_member_instance_or_none(community_instance, user_instance)
+
+        if not member_instance:
+            return ResponseUtilities.get_inner_error_context("You are not a member of this community")
 
         if member_instance.state == member_states.ADMIN:
             return ResponseUtilities.get_inner_error_context("You are an admin of this community. You can be removed by other admins")
