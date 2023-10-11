@@ -220,7 +220,8 @@ class SyncHelper:
                     if chatroom_data_keys[1] in SYNC_RESPONSE_MAP_PRIMARY_KEYS:
                         chatroom_data_keys[1] = MAIN_PRIMARY_KEY_VALUE
 
-                    if chatroom_data_keys[2] in removed_keys_list:
+                    if chatroom_data_keys[2] in removed_keys_list and \
+                          not chatroom_data_keys[0] == SDK_CLIENT_INFO_KEY_VALUE:
                         continue
 
                     if all([chatroom_data_keys[1] in SYNC_RESPONSE_MAP_PRIMARY_KEYS,
