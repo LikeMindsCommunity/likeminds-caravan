@@ -72,8 +72,8 @@ class S3ClientImpl(S3ClientManager):
         try:
 
             s3_client = boto3.client('s3', region_name=region_name,
-                                    aws_access_key_id=settings.AWS_CREDENTIALS.get('ACCESS_KEY'),
-                                    aws_secret_access_key=settings.AWS_CREDENTIALS.get('SECRET_KEY'))
+                                     aws_access_key_id=settings.AWS_CREDENTIALS.get('ACCESS_KEY'),
+                                     aws_secret_access_key=settings.AWS_CREDENTIALS.get('SECRET_KEY'))
             
             objects = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=file_path)
 

@@ -3906,7 +3906,6 @@ class MemberCommunityHelper:
             CommunityHelper.remove_users_feed_data.delay(community_instance.id, user_instance.id, 
                                                          [user_instance.userinfo.user_unique_id], False)
             
-    
             return True
         
         except Exception as e:
