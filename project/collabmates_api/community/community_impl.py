@@ -5396,7 +5396,7 @@ class CommunityHelper:
             return uploaded
         
         except Exception as e:
-            error_logger.error("Exception occurred while uploading user removal reports to s3 - %s" % e.args)
+            error_logger.error(f"Exception occurred while uploading user removal reports to s3 - {e.args}")
             return False
     
     @staticmethod
@@ -5428,7 +5428,7 @@ class CommunityHelper:
             return file_path
 
         except Exception as e:
-            error_logger.error("Exception occurred while parsing json to csv for user removal reports - %s" % e.args)
+            error_logger.error(f"Exception occurred while parsing json to csv for user removal reports - {e.args}")
             return None
     
     @staticmethod
