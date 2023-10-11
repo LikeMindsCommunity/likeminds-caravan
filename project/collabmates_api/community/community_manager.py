@@ -153,6 +153,10 @@ class CommunityManager(metaclass=abc.ABCMeta):
                     (
                             hasattr(subclass, 'fetch_users_meta_info') and
                             callable(subclass.fetch_users_meta_info)
+                    ) and 
+                    (
+                            hasattr(subclass, 'fetch_community_removal_reports') and
+                            callable(subclass.fetch_community_removal_reports)
                     ) or
                     NotImplemented
         )
@@ -382,5 +386,12 @@ class CommunityManager(metaclass=abc.ABCMeta):
     def fetch_users_meta_info(self, member_ids: list) -> dict:
         """
         Fetches users meta info
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_community_removal_reports(self) -> dict:
+        """
+        Fetches community removal reports
         """
         raise NotImplementedError
