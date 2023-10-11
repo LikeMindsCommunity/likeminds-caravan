@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.template.loader import get_template
 import re
 from rest_framework import status as status_codes
+from django.conf import settings
 
 from cms.models import NewAnswer
 from collabmates_api.community.constants import *
@@ -5235,6 +5236,7 @@ class CommunityHelper:
             return {}
 
         users_removal_status = []
+        lm_uuids = []
         users_removed = 0
 
         users_meta_dict = get_users_meta_info(community_id=community_id, member_ids=uuids, user_meta_or_none_dict=True)
@@ -5290,9 +5292,16 @@ class CommunityHelper:
 
             status['is_removed'] = True
             status['status'] = "Successfully removed user"
+
+            lm_uuids.append(status['lm_uuid'])
             users_removal_status.append(status)
 
             users_removed += 1
+
+        # Call swarm service to remove users feed data
+        if lm_uuids:
+            CommunityHelper.remove_users_feed_data.delay(community_id=community_id, user_id=current_user_id, 
+                                                         lm_uuids=lm_uuids, is_cm=True)
 
         # If function call is Async, upload reports to s3
         if is_async:
@@ -5502,3 +5511,49 @@ class CommunityHelper:
             })
 
         return removal_reports
+    
+    @staticmethod
+    @shared_task
+    def remove_users_feed_data(community_id: int, user_id: int, lm_uuids: list, is_cm: bool):
+
+        if not lm_uuids:
+            return
+        
+        try:    
+            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
+            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
+
+            if not (user_info_filter and sdk_client_instance):
+                return
+
+            user_feed_removal_endpoint = settings.SWARM_BASE_URL + SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT
+
+            client = ApiClient()
+            client.update_request_url(user_feed_removal_endpoint)
+
+            # Add headers
+            client.update_headers({
+                'x-member-id': user_info_filter.user_unique_id,
+                'x-api-key': sdk_client_instance.api_key
+            })
+
+            # Add Delete request body
+            client.update_body({
+                "user_ids": lm_uuids,
+                "user_is_cm": is_cm
+            })
+
+            # Send delete request
+            response = client.delete().response
+
+            if response.status_code == 200:
+                info_logger.info(f"Successfully removed users feed data (if exists) for community: {community_id} for users: {lm_uuids}")
+
+            else:
+                error_logger.error(f"Failed to remove users feed data for community {community_id} for users: {lm_uuids} - status code: {response.status_code} | response: {response.json()}")
+
+            return 
+        
+        except Exception as e:
+            error_logger.error(f"Exception occurred while removing users feed data - {e.args}")
+            return 

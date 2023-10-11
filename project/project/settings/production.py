@@ -122,3 +122,5 @@ CALENDAR_CREDENTIALS = {
 }
 
 WEBHOOK_FAILURE_NOTIFICATION_TEAM_EMAILS = ['product@likeminds.community', 'backend@likeminds.community']
+
+SWARM_BASE_URL = os.getenv('SWARM_BASE_URL')

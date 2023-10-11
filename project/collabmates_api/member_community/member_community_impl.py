@@ -3899,6 +3899,13 @@ class MemberCommunityHelper:
 
             ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, user_id)
             MixpanelEvents.leave_community.delay(user_id, community_id)
+
+            # Send delete request to swarm service to delete feed data
+            from collabmates_api.community.community_impl import CommunityHelper
+
+            CommunityHelper.remove_users_feed_data.delay(community_instance.id, user_instance.id, 
+                                                         [user_instance.userinfo.user_unique_id], False)
+            
     
             return True
         
