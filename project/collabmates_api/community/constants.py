@@ -214,6 +214,7 @@ COMMUNITY_REMOVE_MEMBER_CSV_REPORT_LOCAL_PATH = "{}/project/external_services/am
 COMMUNITY_REMOVE_MEMBER_S3_BUCKET = "media_bucket"
 COMMUNITY_REMOVE_MEMBER_S3_FILE_PATH = "users_removal_reports/{}/{}_removal_report_{}.csv"
 COMMUNITY_USERS_REMOVAL_REPORTS_PATH = "users_removal_reports/{}/"
+COMMUNITYY_USERS_REMOVAL_S3_DOWNLOAD_URL = "https://{}.s3.{}.amazonaws.com/{}"
 
 # Report Types string consants
 REPORT_TYPE_MEMBER = "member"
