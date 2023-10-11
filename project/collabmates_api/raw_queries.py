@@ -4731,7 +4731,7 @@ def get_user_chatroom_status(user_id, community_id, chatroom_types: list, page: 
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True):
+def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True, user_meta_or_none_dict: bool=False):
     try:
         member_ids = [str(member_id) for member_id in member_ids]
         member_ids_query = get_tuple_from_array_v2(member_ids)
@@ -4755,6 +4755,30 @@ def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True):
         curr.execute(sql)
         user_meta_info = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
+
+        # if user_meta_or_none_dict is True, then return dict of all member_ids with user_meta if exists or None
+        if user_meta_or_none_dict:
+
+            uuids = {}
+            client_uuids = {}
+            users_meta = {}
+
+            # make a dict of user_unique_id and clients_user_unique_id
+            for user_meta in user_meta_info:
+                uuids[user_meta.get('user_unique_id')] = user_meta 
+                client_uuids[user_meta.get('clients_user_unique_id')] = user_meta
+
+            for member_id in member_ids:
+                if member_id in uuids:
+                    users_meta[member_id] = uuids.get(member_id)
+
+                elif member_id in client_uuids:
+                    users_meta[member_id] = client_uuids.get(member_id)
+
+                else: 
+                    users_meta[member_id] = None 
+
+            return users_meta
 
         if check_for_user_id:
             found_user_ids = []
