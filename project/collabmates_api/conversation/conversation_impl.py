@@ -2,6 +2,7 @@ import time
 import json
 import re
 from django.contrib.auth.models import User
+from django.db import transaction
 from typing import Union
 
 from django.db.models import F, Q, Count
@@ -41,7 +42,7 @@ from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
                      generate_internal_link_preview_for_conversation, send_poll_conversation_creation_notification,
                      create_chatroom_engagement, create_chatroom, collabcard_follow_internal_v1)
 
-from ..static_text import EVERYONE_TAG_REGEX, PARTICIPANTS_TAG_REGEX
+from ..static_text import (EVERYONE_TAG_REGEX, PARTICIPANTS_TAG_REGEX, GIF_ATTACHMENT_FILL_TEXT)
 
 from .constants import *
 from ..chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE, CREATE_CONVERSATION_OG_TAGS_REQUEST_TIMEOUT
@@ -60,7 +61,7 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
     conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types, \
-    member_rights, unsubscribe_types, noti_states, chat_request_states, webhook_chatroom_methods
+    member_rights, unsubscribe_types, noti_states, chat_request_states, webhook_chatroom_methods, attachment_types
 
 from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
     is_member_verified, filter_user_instances_based_on_notification_flag
@@ -941,12 +942,15 @@ class ConversationImpl(ConversationManager):
 
         chatroom_id = req_body.get('chatroom_id', None)
         has_files = req_body.get('has_files', False)
+        replied_conversation_id = req_body.get('replied_conversation_id')
+        attachments_data = req_body.get('attachments')
 
         validated_request = ConversationHelper.validate_create_conversation_request(None,
-                                                                                      self.get_member_id(),
-                                                                                      None,
-                                                                                      chatroom_id,
-                                                                                      req_body['text'])
+                                                                                    self.get_member_id(),
+                                                                                    None,
+                                                                                    chatroom_id,
+                                                                                    req_body['text'],
+                                                                                    replied_conversation_id)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -1001,36 +1005,50 @@ class ConversationImpl(ConversationManager):
                                               chatroom_instance, user_instance, community_instance,
                                               has_files, chatroom_state_instance, is_guest=is_guest)
 
-        conversation_content['reply'] = ConversationHelper.fetch_replied_conversation(req_body)
+        conversation_content['reply'] = validated_request.get('replied_conv_instance')
         conversation_content['created_at'] = TimeUtilities.current_time_in_milliseconds()
 
         if 'og_tags' in req_body:
             conversation_content['og_tags'] = json.dumps(req_body['og_tags'])
 
-        conversation_instance = self._create_conversation_instance(conversation_content)
+        try:
 
-        self._fill_poll_options(user_instance, conversation_instance, req_body)
+            with transaction.atomic():
+                conversation_instance = self._create_conversation_instance(conversation_content)
+                self._fill_poll_options(user_instance, conversation_instance, req_body)
+                # ConversationHelper.auto_follow_chatroom(chatroom_instance, chatroom_state_instance,
+                #                                         conversation_instance, user_instance, member_state,
+                #                                         trigger_webhook=True)
+                #
+                # ConversationHelper.auto_follow_for_tagged_members(chatroom_instance, user_instance,
+                #                                                   conversation_instance)
 
-        ConversationHelper.run_async_task_on_conversation_create.delay(user_id=user_instance.id,
-                                                                       chatroom_id=chatroom_instance.id,
-                                                                       conversation_id=conversation_instance.id,
-                                                                       req_body=req_body,
-                                                                       member_state=member_state,
-                                                                       trigger_webhook=True)
+            ConversationHelper.run_async_task_on_conversation_create.delay(user_id=user_instance.id,
+                                                                           chatroom_id=chatroom_instance.id,
+                                                                           conversation_id=conversation_instance.id,
+                                                                           req_body=req_body,
+                                                                           member_state=member_state,
+                                                                           trigger_webhook=True,
+                                                                           attachments_data=attachments_data)
 
-        context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
-        conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
+            context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
+            conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
 
-        # Updating the updated_at of Collabcard schema
-        chatroom_instance.save()
+            # Updating the updated_at of Collabcard schema
+            chatroom_instance.save()
 
-        conversation_response = {
-            'success': True,
-            'id': conversation_instance.id,
-            'conversation': conversation
-        }
+            conversation_response = {
+                'success': True,
+                'id': conversation_instance.id,
+                'conversation': conversation
+            }
 
-        return conversation_response
+            return conversation_response
+
+        except Exception as error:
+            transaction.rollback()
+            return ResponseUtilities.get_impl_error_context("Some error occurred in creating conversation!",
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
     def add_reaction(self, reaction: str) -> dict:
         validated_request = ConversationViewHelper.validate_add_reaction_request(self.get_member_id(),
@@ -2183,7 +2201,7 @@ class ConversationHelper:
         conversation_instance.save()
 
     @staticmethod
-    def _auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance):
+    def auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance):
 
         conversation_text = conversation_instance.answer
         tagged_member_list, answer_text, tagged_user_names, should_unmute_members, is_group_tag = get_tagged_members_list(
@@ -2255,10 +2273,10 @@ class ConversationHelper:
             search_update_users_list = list(set(search_update_users_list))
             ElasticSearchSync.update_chatroom_for_users_list.delay(chatroom_instance.id, search_update_users_list)
 
-        if not is_group_tag:
-            ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
-                                                                        user_instance,
-                                                                        chatroom_instance)
+        # if not is_group_tag:
+        #     ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
+        #                                                                 user_instance,
+        #                                                                 chatroom_instance)
 
         return tagged_member_list
 
@@ -2333,9 +2351,9 @@ class ConversationHelper:
         ModelUtilities.bulk_create_instances(conversationEngage, create_engage_list)
 
     @staticmethod
-    def _auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance, user_instance,
-                              member_state, trigger_webhook = False):
-        
+    def auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance, user_instance,
+                             member_state, trigger_webhook=False):
+
         empty_conversation = (conversation_instance.attachment_count > 0 and not conversation_instance.attachments_uploaded)
 
         followed_chatroom = False
@@ -2371,7 +2389,6 @@ class ConversationHelper:
                                                                state=collabcard_states.COLLABCARD_STATE_UNSEEN,
                                                                follow_status=True,
                                                                noti_state=community_current_noti_state)
-                
 
             elif member_state != member_states.KNOWN_NOMINATED_PROMOTER:
                 collabcardState.create_chatroom_state_instance(chatroom_instance, user_instance,
@@ -2391,9 +2408,9 @@ class ConversationHelper:
                                                                                 event_type=WebhookTypes.CHATROOM_JOINED.value,
                                                                                 type_method=webhook_chatroom_methods.SELF_JOINED)
 
-
     @staticmethod
-    def _send_conversation_creation_notifications(user_instance, chatroom_instance, conversation_instance, has_files):
+    def _send_conversation_creation_notifications(user_instance, chatroom_instance, conversation_instance, has_files,
+                                                  all_files_uploaded: bool = False):
 
         is_poll_conversation = (conversation_instance.state == conversation_states.CONVERSATION_POLL)
 
@@ -2405,7 +2422,57 @@ class ConversationHelper:
         update_chatroom_for_users_and_send_follow_notification.delay(chatroom_instance.id,
                                                                      user_instance.id,
                                                                      conversation_instance.id,
-                                                                     has_files=has_files)
+                                                                     has_files=has_files,
+                                                                     all_files_uploaded=all_files_uploaded)
+
+    @staticmethod
+    def _save_attachments(conversation_instance, attachments_data: list):
+
+        with transaction.atomic():
+
+            for attachment_data in attachments_data:
+                index = attachment_data.get('index', None)
+                attachment_meta = JsonUtilities.dump_json_data(attachment_data.get('meta'))
+
+                attachment_context = {
+                    'type': attachment_data.get('type', None),
+                    'file_url': attachment_data.get('url', None),
+                    'location_name': attachment_data.get('location_name', None),
+                    'location_lat': attachment_data.get('location_lat', None),
+                    'location_long': attachment_data.get('location_long', None),
+                    'width': attachment_data.get('width', None),
+                    'height': attachment_data.get('height', None),
+                    'thumbnail_url': attachment_data.get('thumbnail_url', None),
+                    'meta': attachment_meta,
+                    'name': attachment_data.get('name', None)
+                }
+
+                filter_dict = {
+                    'answer': conversation_instance,
+                    'index': index
+                }
+
+                ModelUtilities.update_or_create_model(answerAttachment, filter_dict, attachment_context)
+
+                if attachment_data.get('type') == attachment_types.GIF:
+                    conversation_instance.answer = conversation_instance.answer + GIF_ATTACHMENT_FILL_TEXT
+
+            uploaded_files_count = ModelUtilities.get_model_filter(answerAttachment,
+                                                                   {'answer': conversation_instance}).count()
+
+            all_files_uploaded = uploaded_files_count == conversation_instance.attachment_count
+
+            # updating the last updated when posting answer
+            conversation_instance.last_updated = TimeUtilities.current_time_in_milliseconds()
+
+            if not all_files_uploaded:
+                conversation_instance.save()
+
+            elif all_files_uploaded:
+                conversation_instance.attachments_uploaded = True
+                conversation_instance.save()
+
+        return all_files_uploaded
 
     @staticmethod
     @shared_task
@@ -2416,7 +2483,7 @@ class ConversationHelper:
     @shared_task
     def run_async_task_on_conversation_create(user_id: int, chatroom_id: int, conversation_id: int,
                                               req_body: dict = None, member_state: int = member_states.GUEST,
-                                              trigger_webhook: bool = False):
+                                              trigger_webhook: bool = False, attachments_data: list = []):
 
         if req_body is None:
             req_body = dict()
@@ -2438,15 +2505,16 @@ class ConversationHelper:
             chatroom_state_instance = state_filter[0]
 
         if 'share_link' in req_body:
-            ConversationHelper.update_share_link_og_tags_in_conversation.delay(conversation_instance.id, req_body['share_link'])
+            ConversationHelper.update_share_link_og_tags_in_conversation.delay(conversation_instance.id,
+                                                                               req_body['share_link'])
 
         ConversationHelper._set_preview_for_conversation(conversation_instance, user_id, req_body)
 
-        ConversationHelper._auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance,
-                                                 user_instance, member_state, trigger_webhook=trigger_webhook)
+        ConversationHelper.auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance,
+                                                user_instance, member_state, trigger_webhook=trigger_webhook)
 
-        tagged_members_list = ConversationHelper._auto_follow_for_tagged_members(chatroom_instance, user_instance,
-                                                                                 conversation_instance)
+        tagged_members_list = ConversationHelper.auto_follow_for_tagged_members(chatroom_instance, user_instance,
+                                                                                conversation_instance)
 
         # ConversationHelper._create_or_update_conversation_engage(chatroom_instance, user_instance,
         #                                                          conversation_instance, tagged_members_list)
@@ -2454,15 +2522,21 @@ class ConversationHelper:
         # ConversationHelper.update_activity_in_chatroom_for_followed_users.delay(chatroom_instance.id,
         #                                                                         user_instance.id)
 
-        if not has_files:
+        all_files_uploaded = ConversationHelper._save_attachments(conversation_instance, attachments_data)
+
+        if (not has_files) or all_files_uploaded:
             ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(chatroom_instance.id,
                                                                                   conversation_instance.id,
                                                                                   chatroom_instance.community_id)
 
-        ConversationHelper._handle_dm_chatroom_communication(chatroom_instance, user_instance)
+        # ConversationHelper._handle_dm_chatroom_communication(chatroom_instance, user_instance)
         ConversationHelper.update_previews_on_conversation_creation(chatroom_instance)
         ConversationHelper._send_conversation_creation_notifications(user_instance, chatroom_instance,
-                                                                     conversation_instance, has_files)
+                                                                     conversation_instance, has_files,
+                                                                     all_files_uploaded)
+
+        ConversationHelper.update_last_seen_conversation_in_collabcard_state(conversation_instance,
+                                                                             user_instance, chatroom_instance)
 
         args = [conversation_instance.id]
 
@@ -2493,7 +2567,8 @@ class ConversationHelper:
         return True
 
     @staticmethod
-    def validate_create_conversation_request(user_instance, user_id, chatroom_instance, chatroom_id, message):
+    def validate_create_conversation_request(user_instance, user_id, chatroom_instance, chatroom_id, message,
+                                             replied_conversation_id=None):
 
         if user_instance is None:
             user_instance = ModelUtilities.get_user_instance_or_none(user_id)
@@ -2507,8 +2582,13 @@ class ConversationHelper:
             if not chatroom_instance:
                 return ResponseUtilities.get_inner_error_context('Invalid chatroom id')
 
-        if chatroom_instance.is_pending:
-            return ResponseUtilities.get_inner_error_context('This is a pending chatroom!')
+        replied_conv_instance = None
+
+        if replied_conversation_id:
+            replied_conv_instance = ModelUtilities.get_model_instance_or_none(card_answers, replied_conversation_id)
+
+            if not replied_conv_instance:
+                return ResponseUtilities.get_inner_error_context('Invalid replied conversation id')
 
         community_instance = chatroom_instance.community
         member_state = Members.get_community_member_state(community_instance, user_instance)
@@ -2547,5 +2627,6 @@ class ConversationHelper:
         return {
             'user_instance': user_instance,
             'chatroom_instance': chatroom_instance,
-            'member_state': member_state
+            'member_state': member_state,
+            'replied_conv_instance': replied_conv_instance
         }
