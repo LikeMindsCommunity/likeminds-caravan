@@ -1,0 +1,21 @@
+{
+  "rabbit_version": "3.8.11",
+  "rabbitmq_version": "3.8.11",
+  "product_name": "RabbitMQ",
+  "product_version": "3.8.11",
+  "users": [{
+    "name": "caravan-load-user",
+    "password":"caravan-load-user-password",
+    "tags": "administrator"
+  }],
+  "vhosts": [{
+    "name": "caravan-load-vhost"
+  }],
+  "permissions": [{
+    "user": "caravan-load-user",
+    "vhost": "caravan-load-vhost",
+    "configure": ".*",
+    "write": ".*",
+    "read": ".*"
+  }]
+}

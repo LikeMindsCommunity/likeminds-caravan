@@ -1,0 +1,8 @@
+# syntax=docker/dockerfile:1
+
+FROM rabbitmq:3.8.11-management
+
+ADD ./docker-entrypoint/rabbitmq-load.conf /etc/rabbitmq/rabbitmq.conf
+ADD ./docker-entrypoint/definitions-load.json /etc/rabbitmq/definitions.json
+
+EXPOSE 5672 15672
