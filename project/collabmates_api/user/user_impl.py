@@ -897,14 +897,12 @@ class UserImpl(UserManager):
                                           'chat_request_state': chat_request_states.INITIATED}).exclude(
                         chat_requested_by=user_instance).count()
 
-                    dm_response = {
+                    return {
                         "success": True,
                         "unread_dm_count": unseen_count + connection_requests_count,
                         "is_cm": is_cm,
                         "hide_dm_tab": False
                     }
-
-                    return dm_response
 
                 else:
                     return {"success": True, "clicked": False, "messaged": False, "is_cm": is_cm}
