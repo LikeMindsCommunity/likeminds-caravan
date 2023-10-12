@@ -773,7 +773,7 @@ class UserImpl(UserManager):
     def fetch_dm_home(self) -> dict:
 
         is_m2cm_v1 = m2cm_v1_version_check(self.get_platform_code(), self.get_version_code())
-        is_m2cm_v2 = m2cm_v2_version_check(self.get_platform_code(), self.get_version_code())
+        is_m2cm_v2 = m2cm_v2_version_check(self.get_platform_code(), self.get_version_code(), is_sdk=True)
 
         if not is_m2cm_v1:
             return {'success': True}
@@ -897,11 +897,14 @@ class UserImpl(UserManager):
                                           'chat_request_state': chat_request_states.INITIATED}).exclude(
                         chat_requested_by=user_instance).count()
 
-                    return {
+                    dm_response = {
                         "success": True,
                         "unread_dm_count": unseen_count + connection_requests_count,
-                        "is_cm": is_cm
+                        "is_cm": is_cm,
+                        "hide_dm_tab": False
                     }
+
+                    return dm_response
 
                 else:
                     return {"success": True, "clicked": False, "messaged": False, "is_cm": is_cm}
