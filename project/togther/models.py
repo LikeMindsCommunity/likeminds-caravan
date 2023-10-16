@@ -3689,6 +3689,7 @@ class ActiveUser(models.Model):
 
         super(ActiveUser, self).save(*args, **kwargs)
 
+
 class CommunityConfigurations(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     type = models.CharField(max_length=255)

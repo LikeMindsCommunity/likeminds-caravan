@@ -1084,7 +1084,8 @@ class CommunityReportView(APIView):
                                                                                 res.get('status')))
         
         return JsonResponse(res)
-    
+
+
 class CommunityConfigurationsView(APIView):
 
     def get(self, request):
@@ -1092,7 +1093,9 @@ class CommunityConfigurationsView(APIView):
         api_key = RequestUtilities.get_api_key_from_headers(request)
         req_params = RequestUtilities.fetch_request_query_params(request)
 
-        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        community_manager = CommunityImpl(member_id=member_id,
+                                          community_id=req_params.get('community_id'),
+                                          api_key=api_key)
         res = community_manager.fetch_community_configurations(req_params.get('configuration_types'))
 
         if 'error_message' in res:
@@ -1100,7 +1103,7 @@ class CommunityConfigurationsView(APIView):
                                                                                 res.get('status')))
         
         return JsonResponse(res)
-     
+
 
 class RemovalReportsView(APIView):
 
