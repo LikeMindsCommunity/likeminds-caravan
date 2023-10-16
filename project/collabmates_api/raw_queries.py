@@ -4260,6 +4260,10 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                   get_members_query_meta_for_sync_revamp("dm_other_user"),
                                   get_sdk_client_query_meta_for_sync_revamp("dm_other_user")])
 
+        conv_reply_user = ",".join([get_users_query_meta_for_sync_revamp("conv_reply_user"),
+                                    get_members_query_meta_for_sync_revamp("conv_reply_user"),
+                                    get_sdk_client_query_meta_for_sync_revamp("conv_reply_user")])
+
         chatroom_meta_query = ",".join([get_users_query_meta_for_sync_revamp("conv_deleter"),
                                         get_members_query_meta_for_sync_revamp("conv_deleter"),
                                         get_sdk_client_query_meta_for_sync_revamp("conv_deleter"),
@@ -4267,7 +4271,8 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                         get_community_query_meta_for_sync_revamp("preview")])
 
         sql = """
-                SELECT chatroom_dm_meta.*, {} FROM
+                SELECT conv_reply_user_meta.*, {} FROM
+                (SELECT chatroom_dm_meta.*, {} FROM
                 (SELECT    chatroom_preview_meta.*,
                           {}, {}
                 FROM      (
@@ -4340,12 +4345,21 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                             chatroom_dm_meta.chatroom___chatroom_with_user_id___conv_room = togther_members.member_id_id
                        AND  chatroom_dm_meta.chatroom___community_id___conv_room = togther_members.community_id_id)
                 LEFT JOIN togther_sdkclientusersinfo 
-                ON         chatroom_dm_meta.chatroom___chatroom_with_user_id___conv_room = togther_sdkclientusersinfo.user_id 
-                ORDER BY chatroom_dm_meta.{};
-        """.format(dm_other_user, get_chatroom_query_meta_for_sync_revamp("reply"), room_creator, chatroom_meta_query,
-                   chatroom_data_query, get_conversation_query_meta_for_sync_revamp(), conversation_id_query,
-                   excluded_conversation_states_query, chatroom_id, community_id, min_timestamp, max_timestamp,
-                   order_by_query, offset, limit, user_id, order_by_query)
+                ON         chatroom_dm_meta.chatroom___chatroom_with_user_id___conv_room = 
+                togther_sdkclientusersinfo.user_id) AS conv_reply_user_meta
+                LEFT JOIN togther_userinfo
+                ON         conv_reply_user_meta.conversation___user_id___reply = togther_userinfo.user_id_id
+                LEFT JOIN  togther_members
+                ON   (
+                            conv_reply_user_meta.conversation___user_id___reply = togther_members.member_id_id
+                       AND  conv_reply_user_meta.conversation___community_id___reply = togther_members.community_id_id)
+                LEFT JOIN togther_sdkclientusersinfo 
+                ON         conv_reply_user_meta.conversation___user_id___reply = togther_sdkclientusersinfo.user_id 
+                ORDER BY conv_reply_user_meta.{};
+        """.format(conv_reply_user, dm_other_user, get_chatroom_query_meta_for_sync_revamp("reply"), room_creator,
+                   chatroom_meta_query, chatroom_data_query, get_conversation_query_meta_for_sync_revamp(),
+                   conversation_id_query, excluded_conversation_states_query, chatroom_id, community_id,
+                   min_timestamp, max_timestamp, order_by_query, offset, limit, user_id, order_by_query)
 
         if only_query:
             return sql
@@ -4717,7 +4731,7 @@ def get_user_chatroom_status(user_id, community_id, chatroom_types: list, page: 
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True):
+def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True, user_meta_or_none_dict: bool=False):
     try:
         member_ids = [str(member_id) for member_id in member_ids]
         member_ids_query = get_tuple_from_array_v2(member_ids)
@@ -4741,6 +4755,30 @@ def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True):
         curr.execute(sql)
         user_meta_info = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
+
+        # if user_meta_or_none_dict is True, then return dict of all member_ids with user_meta if exists or None
+        if user_meta_or_none_dict:
+
+            uuids = {}
+            client_uuids = {}
+            users_meta = {}
+
+            # make a dict of user_unique_id and clients_user_unique_id
+            for user_meta in user_meta_info:
+                uuids[user_meta.get('user_unique_id')] = user_meta 
+                client_uuids[user_meta.get('clients_user_unique_id')] = user_meta
+
+            for member_id in member_ids:
+                if member_id in uuids:
+                    users_meta[member_id] = uuids.get(member_id)
+
+                elif member_id in client_uuids:
+                    users_meta[member_id] = client_uuids.get(member_id)
+
+                else: 
+                    users_meta[member_id] = None 
+
+            return users_meta
 
         if check_for_user_id:
             found_user_ids = []

@@ -25,7 +25,7 @@ from utility.utils import (android_app_download_link, ios_app_download_link,
                            filter_user_instances_based_on_notification_flag)
 from utility.states import (collabcard_states, member_states, community_states,
                             card_types, chatroom_actions, member_rights, manager_rights,
-                            moderation_history_types, report_Action_Types, report_Types, multi_select_poll_states,
+                            moderation_history_types, report_action_types, report_Types, multi_select_poll_states,
                             user_email_send_status_types, get_started_types, email_states, mobile_states,
                             unsubscribe_types, UTMContent, UTMCampaing)
 from utility.celery_beat_tasks import CeleryBeatTask
