@@ -119,3 +119,27 @@ Team CommunityHood
 
 ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_START = 200
 ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END = 212
+
+# Community Configurations
+COMMUNITY_CONFIGURATIONS = {
+    "media_limits":
+    {
+        "type": "media_limits",
+        "description": "Media size upload limit (in Kilobytes) for different file formats",
+        "value":
+        {
+            "max_image_size": 5124, # 5 MB
+            "max_video_size": 102400, # 100 MB
+        }
+    },
+    "feed_metadata":
+    {
+        "type": "feed_metadata",
+        "description": "",
+        "value":
+        {
+            "post": "post"
+        }
+    }
+}
+
