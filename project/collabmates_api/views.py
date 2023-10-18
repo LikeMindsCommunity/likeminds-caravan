@@ -9264,13 +9264,11 @@ def config(request):
 
     # update version code
 
-    version_code = get_version_code_from_headers(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     userinfo_instance = user_instance.userinfo
 
     community_hood_check = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.community_hood)
-
-    version_code = NumberUtilities.get_integer_from_string(version_code)
 
     if userinfo_instance.version_code != version_code:
         userinfo_instance.version_code = version_code
