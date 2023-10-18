@@ -19,7 +19,7 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
-from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods, MemberRoles
+from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods, MemberRoles, update_priority
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
@@ -9264,10 +9264,11 @@ def config(request):
 
     # update version code
 
-    version_code = get_version_code_from_headers(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     userinfo_instance = user_instance.userinfo
 
-    version_code = NumberUtilities.get_integer_from_string(version_code)
+    community_hood_check = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.community_hood)
 
     if userinfo_instance.version_code != version_code:
         userinfo_instance.version_code = version_code
@@ -9299,6 +9300,10 @@ def config(request):
 
     if RequestUtilities.is_request_android(request):
         context['updatePriority'] = NumberUtilities.get_integer_from_string(settings.FORCE_UPDATE.get('android'))
+
+    # if user is not on latest communityhood version app, send force update flag
+    if not community_hood_check:
+        context['updatePriority'] = update_priority.FORCE_UPDATE
 
     context['use_segment'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('SEGMENT'))
     context['micro_polls_enabled'] = StringUtilities.get_boolean_from_string(
