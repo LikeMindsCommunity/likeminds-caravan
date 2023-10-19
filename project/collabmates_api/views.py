@@ -19,7 +19,7 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
-from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods, MemberRoles
+from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods, MemberRoles, update_priority
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
@@ -54,7 +54,8 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     cm_onboarding_version_check, directory_questions_v2_version_check,
-                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail,)
+                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail,
+                    create_secret_chatroom_states_for_new_cm, remove_secret_chatroom_states_for_removed_cm)
 from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
     tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
@@ -9264,10 +9265,11 @@ def config(request):
 
     # update version code
 
-    version_code = get_version_code_from_headers(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     userinfo_instance = user_instance.userinfo
 
-    version_code = NumberUtilities.get_integer_from_string(version_code)
+    community_hood_check = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.community_hood)
 
     if userinfo_instance.version_code != version_code:
         userinfo_instance.version_code = version_code
@@ -9299,6 +9301,10 @@ def config(request):
 
     if RequestUtilities.is_request_android(request):
         context['updatePriority'] = NumberUtilities.get_integer_from_string(settings.FORCE_UPDATE.get('android'))
+
+    # if user is not on latest communityhood version app, send force update flag
+    if not community_hood_check:
+        context['updatePriority'] = update_priority.FORCE_UPDATE
 
     context['use_segment'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('SEGMENT'))
     context['micro_polls_enabled'] = StringUtilities.get_boolean_from_string(
@@ -11361,7 +11367,10 @@ def update_community_manager_rights(request):
                 member_becomes_cm_dm_chatroom.delay(user_id, community_id, is_m2cm_v2=is_m2cm_v2)
 
                 # Delete user channel settings with settings type as member_can_message for all the members of community
-                delete_user_channel_settings_for_a_user.delay(user_instance.id, community_instance.id, CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE)
+                delete_user_channel_settings_for_a_user.delay(user_instance.id, community_instance.id,
+                                                              CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE)
+
+                create_secret_chatroom_states_for_new_cm.delay(user_instance.id, community_instance.id)
 
             elif custom_title_changed:
                 member_title_changed = True
@@ -11515,6 +11524,7 @@ def remove_community_manager(request):
         if is_user_cm:
             is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code)
             cm_removed_dm_chatroom.delay(user_id, community_id, is_m2cm_v2=is_m2cm_v2)
+            remove_secret_chatroom_states_for_removed_cm.delay(user_id, community_id)
 
         # Update Members Index
         ElasticSearchSync.update_member.delay(user_id, community_id)

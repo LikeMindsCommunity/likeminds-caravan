@@ -838,6 +838,13 @@ class QuestionAnswersVersions:
 question_answers_versions = QuestionAnswersVersions()
 
 
+class UpdatePriority:
+    FLEXIBLE_UPDATE = 0
+    FORCE_UPDATE = 1
+
+update_priority = UpdatePriority()
+
+
 class EventKinds:
     DEFAULT = ""
     PARTNER_EVENT = "partner_event"
