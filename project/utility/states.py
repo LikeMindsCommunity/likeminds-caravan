@@ -832,3 +832,9 @@ class QuestionAnswersVersions:
     V2 = "v2"
 
 question_answers_versions = QuestionAnswersVersions()
+
+class UpdatePriority:
+    OPTIONAL_UPDATE = 0  # Optional Update, user can skip 
+    FORCE_UPDATE = 1    # Force Update, user cannot skip
+
+update_priority = UpdatePriority()
