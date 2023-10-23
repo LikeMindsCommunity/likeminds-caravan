@@ -3854,7 +3854,7 @@ def get_chatroom_query_meta_for_sync_revamp(key_name_prefix: str = None):
                     'secret_chatroom_participants', 'has_reactions', 'device_id', 'topic_id', 'auto_follow_done',
                     'is_edited', 'is_paid', 'access', 'is_private', 'chatroom_with_user_id', 'member_can_message',
                     'online_link_type', 'is_private_member', 'chatroom_image_url', 'created_at', 'custom_tag',
-                    'updated_at']
+                    'updated_at', 'event_kind']
 
     meta_query = create_query_with_prefix(query_fields, 'togther_collabcard', 'chatroom', key_name_prefix)
 
