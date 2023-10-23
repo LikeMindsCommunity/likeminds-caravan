@@ -892,7 +892,8 @@ def get_chatroom_query_meta_for_sync():
                     togther_collabcardState.chat_request_state,
                     togther_collabcardState.chat_requested_by_id,
                     togther_collabcardState.chat_request_created_at,
-                    togther_collabcard.chatroom_image_url
+                    togther_collabcard.chatroom_image_url,
+                    togther_collabcard.event_kind
                 """
 
     return meta_query
@@ -1561,7 +1562,8 @@ def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info: bool = False) 
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
         return users_dict
-    
+
+
 def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, follow_status, type_list):
     """function to update chatroom data"""
 
@@ -3852,7 +3854,7 @@ def get_chatroom_query_meta_for_sync_revamp(key_name_prefix: str = None):
                     'secret_chatroom_participants', 'has_reactions', 'device_id', 'topic_id', 'auto_follow_done',
                     'is_edited', 'is_paid', 'access', 'is_private', 'chatroom_with_user_id', 'member_can_message',
                     'online_link_type', 'is_private_member', 'chatroom_image_url', 'created_at', 'custom_tag',
-                    'updated_at']
+                    'updated_at', 'event_kind']
 
     meta_query = create_query_with_prefix(query_fields, 'togther_collabcard', 'chatroom', key_name_prefix)
 

@@ -13025,6 +13025,8 @@ class SyncChatrooms(APIView):
 
             if data[73]:
                 chatroom["chatroom_image_url"] = data[73]
+            
+            chatroom["event_kind"] = data[74]
 
             chatroom['unread_messages'] = fetch_conversations_unread(data[0], member_id)
 
