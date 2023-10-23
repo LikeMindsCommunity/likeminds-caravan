@@ -488,7 +488,7 @@ class VersionUtilities:
             PlatformCode.IOS_SDK: 360,
             PlatformCode.REACT_SDK: unreleased_version_code,
             PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
-            PlatformCode.WEB_SDK: unreleased_version_code,
+            PlatformCode.WEB_SDK: 1000,
         },
         SdkSource.FEED: {
             PlatformCode.ANDROID_SDK: unreleased_version_code,
