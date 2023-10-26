@@ -591,6 +591,8 @@ class Collabcard(models.Model):
 
     tag_only_participants = models.BooleanField(default=False)
 
+    event_kind = models.TextField(default="", blank=True)
+
     # method for indexing id as string in elastic search
     def parse_id_to_string(self):
         return str(self.id)
@@ -3688,6 +3690,7 @@ class ActiveUser(models.Model):
         self.updated_at = current_time
 
         super(ActiveUser, self).save(*args, **kwargs)
+
 
 class CommunityConfigurations(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)

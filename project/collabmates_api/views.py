@@ -19,7 +19,7 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
-from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods
+from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods, MemberRoles, update_priority
 from random import randint
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
@@ -54,7 +54,8 @@ from .utility import *
 from .tasks import (send_verification_mail_for_email_sync, update_pending_chatrooms_and_report_count,
                     update_pending_chatroom_count_for_promoters, update_report_count_for_all_promoters,
                     cm_onboarding_version_check, directory_questions_v2_version_check,
-                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail,)
+                    get_user_email_preferred_verified, international_otp_generate_requests_blocked_mail,
+                    create_secret_chatroom_states_for_new_cm, remove_secret_chatroom_states_for_removed_cm)
 from .static_text import ALL_MEMBER_COHORT_TEXT, tool_edit_directory_questions, tool_edit_community_details, \
     tool_community_settings
 from .owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
@@ -1985,7 +1986,7 @@ def remove_from_member(request):
                         snackbar_manager.create_snackbar(snackbar_dict)
 
                         check_reports_and_update_action.delay(action_taken_by=member_id,
-                                                              action_taken=report_Action_Types.REMOVE_FROM_COMMUNITY,
+                                                              action_taken=report_action_types.REMOVE_FROM_COMMUNITY,
                                                               user=member, community=community_id,
                                                               action_taken_tag_id=tag_id, action_taken_reason=reason)
                         send_notification_for_removed_member.delay(admin_id=member_id,
@@ -2033,7 +2034,7 @@ def remove_from_member(request):
             toast_filter.update(toast_message=PENDING_MEMBER_REQUEST_REJECTED_COMMUNITY_TOAST)
 
             check_reports_and_update_action.delay(action_taken_by=member_id,
-                                                  action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
+                                                  action_taken=report_action_types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
             update_pending_member_count_in_engage(community_instance)
             send_sync_notification.delay({'community_id': community_id,
@@ -2063,7 +2064,7 @@ def remove_from_member(request):
                                     type=moderation_history_types.LEFT_COMMUNITY)
 
             check_reports_and_update_action.delay(action_taken_by=member_id,
-                                                  action_taken=report_Action_Types.LEFT_THE_COMMUNITY,
+                                                  action_taken=report_action_types.LEFT_THE_COMMUNITY,
                                                   user=member_id, community=community_id)
 
             info_logger.info(f"REMOVE_MEMBER_API (Left CASE) - current user id = {member_id}, user id = {member_id}"
@@ -3834,7 +3835,7 @@ def update_collabcard_delete_status(collabcard_instance, current_user_instance, 
     collabcard_instance.save()
 
     if int(current_user_instance.id) == int(collabcard_instance.user.id):
-        action_taken = report_Action_Types.CHATROOM_DELETED_BY_CREATOR
+        action_taken = report_action_types.CHATROOM_DELETED_BY_CREATOR
         snackbar_manager = SnackbarImpl()
         snackbar_dict = {
             'chatroom_id': collabcard_instance.id,
@@ -3843,7 +3844,7 @@ def update_collabcard_delete_status(collabcard_instance, current_user_instance, 
         snackbar_manager.create_snackbar(snackbar_dict)
 
     else:
-        action_taken = report_Action_Types.CHATROOM_DELETED_BY_CM
+        action_taken = report_action_types.CHATROOM_DELETED_BY_CM
         snackbar_manager = SnackbarImpl()
         snackbar_dict = {
             'chatroom_id': collabcard_instance.id,
@@ -5706,7 +5707,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, api_type=ap
     if is_ios:
         request_type = "iOS"
 
-    platform_code = RequestUtilities.get_platform_code(request)
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
     chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance,
@@ -8853,6 +8854,9 @@ def members_state(request, req_dict=None):
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
     sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+    accept_version = RequestUtilities.get_accept_version_from_headers(request)
+
+    api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version=accept_version)
 
     community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
     user_instance = ModelUtilities.get_user_instance_or_none(member_id)
@@ -8890,7 +8894,13 @@ def members_state(request, req_dict=None):
         custom_title = data.custom_title
 
         if data.created_at > 0:
-            created_at = time.strftime('%A, %b %d', time.localtime(data.created_at))
+            
+            # If ApiRevamp Check, send epoch time
+            if not api_revamp_v1_check:
+                created_at = time.strftime('%A, %b %d', time.localtime(data.created_at))
+            
+            else:
+                created_at = data.created_at
 
         if state in [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
             is_member = True
@@ -8915,11 +8925,21 @@ def members_state(request, req_dict=None):
 
     json_response = {
         'success': True,
-        'state': state,
-        'tool_state': 1,
-        'edit_required': edit_required,
         'created_at': created_at
     }
+
+    # If ApiRevamp Check, send role instead of state
+    if api_revamp_v1_check:
+        json_response['role'] =  MemberRoles.get_role_from_state(state)
+
+    else:
+
+        json_response.update(
+            {   
+                'state': state,
+                'tool_state': 1,
+                'edit_required': edit_required
+            })
 
     if state == member_states.PENDING_MEMBER:
         json_response['member_direction_lock'] = get_data_for_filter_pop_ups(email=user_email)
@@ -8934,6 +8954,9 @@ def members_state(request, req_dict=None):
     json_response['member']['state'] = state
     json_response['member']['is_owner'] = is_owner
 
+    if api_revamp_v1_check:
+        del json_response['member']['state']
+
     is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights,
                                                      sdk_source)
 
@@ -8942,7 +8965,13 @@ def members_state(request, req_dict=None):
 
     if state == member_states.ADMIN:
         admin_rights = check_all_manager_rights(query_set[0].member_id, community_instance)
-        json_response['manager_rights'] = get_saved_manager_rights_list(admin_rights)
+        manager_rights = get_saved_manager_rights_list(admin_rights)
+
+        if api_revamp_v1_check:
+            json_response['admin_rights'] = manager_rights
+        
+        else:
+            json_response['manager_rights'] = manager_rights
 
     if state in [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
         user_rights = check_all_member_rights(query_set[0].member_id, community_instance, is_feed_enabled=is_feed_enabled)
@@ -8962,6 +8991,18 @@ def members_state(request, req_dict=None):
     if image_url:
         json_response['member']['image_url'] = image_url
 
+    # if Api Revamp v1 check, remove state from rights
+    if api_revamp_v1_check:
+
+        member_rights_list = json_response.get('member_rights') if json_response.get('member_rights') else []
+        admin_rights_list = json_response.get('admin_rights') if json_response.get('admin_rights') else []
+
+        for right in member_rights_list:
+            right.pop('state')
+        
+        for right in admin_rights_list:
+            right.pop('state')
+        
     toast_filter = communityToast.objects.filter(community=community_instance, user=member_id)
 
     if toast_filter:
@@ -9224,10 +9265,11 @@ def config(request):
 
     # update version code
 
-    version_code = get_version_code_from_headers(request)
+    version_code = RequestUtilities.get_version_code_from_headers(request)
+    platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     userinfo_instance = user_instance.userinfo
 
-    version_code = NumberUtilities.get_integer_from_string(version_code)
+    community_hood_check = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.community_hood)
 
     if userinfo_instance.version_code != version_code:
         userinfo_instance.version_code = version_code
@@ -9259,6 +9301,10 @@ def config(request):
 
     if RequestUtilities.is_request_android(request):
         context['updatePriority'] = NumberUtilities.get_integer_from_string(settings.FORCE_UPDATE.get('android'))
+
+    # if user is not on latest communityhood version app, send force update flag
+    if not community_hood_check:
+        context['updatePriority'] = update_priority.FORCE_UPDATE
 
     context['use_segment'] = StringUtilities.get_boolean_from_string(settings.CONFIG_FLAGS.get('SEGMENT'))
     context['micro_polls_enabled'] = StringUtilities.get_boolean_from_string(
@@ -10798,9 +10844,9 @@ def update_conversation_delete_status(conversation_instance, current_user_instan
                                    {'deleted_by_user': current_user_instance, 'is_deleted': True})
 
     if int(current_user_instance.id) == int(conversation_instance.user.id):
-        action_taken = report_Action_Types.RESPONSE_DELETED_BY_CREATOR
+        action_taken = report_action_types.RESPONSE_DELETED_BY_CREATOR
     else:
-        action_taken = report_Action_Types.RESPONSE_DELETED_BY_CM
+        action_taken = report_action_types.RESPONSE_DELETED_BY_CM
 
     check_reports_and_update_action.delay(action_taken_by=current_user_instance.id,
                                           action_taken=action_taken,
@@ -11033,6 +11079,9 @@ def fetch_community_manager_rights(request):
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
     api_key = RequestUtilities.get_api_key_from_headers(request)
+    accept_version = RequestUtilities.get_accept_version_from_headers(request)
+
+    api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -11112,6 +11161,12 @@ def fetch_community_manager_rights(request):
     mobile_list = []
     for mobile_no in mobile_filter:
         mobile_list.append(userMobilesSerializer(mobile_no))
+
+    # If api revamp checkk, remove state from rights
+    if api_revamp_v1_check:
+        
+        for right in rights_context:
+            right.pop('state')
 
     return JsonResponse({'success': True, "admin_mobiles": mobile_list, "member": member_profile[0],
                          "rights": rights_context})
@@ -11312,7 +11367,10 @@ def update_community_manager_rights(request):
                 member_becomes_cm_dm_chatroom.delay(user_id, community_id, is_m2cm_v2=is_m2cm_v2)
 
                 # Delete user channel settings with settings type as member_can_message for all the members of community
-                delete_user_channel_settings_for_a_user.delay(user_instance.id, community_instance.id, CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE)
+                delete_user_channel_settings_for_a_user.delay(user_instance.id, community_instance.id,
+                                                              CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE)
+
+                create_secret_chatroom_states_for_new_cm.delay(user_instance.id, community_instance.id)
 
             elif custom_title_changed:
                 member_title_changed = True
@@ -11466,6 +11524,7 @@ def remove_community_manager(request):
         if is_user_cm:
             is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code)
             cm_removed_dm_chatroom.delay(user_id, community_id, is_m2cm_v2=is_m2cm_v2)
+            remove_secret_chatroom_states_for_removed_cm.delay(user_id, community_id)
 
         # Update Members Index
         ElasticSearchSync.update_member.delay(user_id, community_id)
@@ -11656,6 +11715,9 @@ def fetch_community_member_rights(request):
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
     sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+    accept_version = RequestUtilities.get_accept_version_from_headers(request)
+
+    api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -11715,6 +11777,13 @@ def fetch_community_member_rights(request):
 
     member_profile = get_members_profile([user_instance], community_instance, 
                                          sdk_client_info_flag=True)
+
+    # If api revamp checkk, remove state from rights
+    if api_revamp_v1_check:
+        
+        for right in rights_context:
+            right.pop('state')
+
 
     return JsonResponse({"success": True, "member": member_profile[0], "rights": rights_context})
 
@@ -11819,7 +11888,7 @@ def update_community_member_rights(request):
                                     type=moderation_history_types.MEMBER_PERMISSION_EDITED)
 
             check_reports_and_update_action.delay(action_taken_by=current_user_id,
-                                                  action_taken=report_Action_Types.EDIT_MEMBER_PERMISSION,
+                                                  action_taken=report_action_types.EDIT_MEMBER_PERMISSION,
                                                   user=user_id, community=community_id,
                                                   added_member_rights=list(rights_added),
                                                   removed_member_rights=list(rights_removed))
@@ -12956,6 +13025,8 @@ class SyncChatrooms(APIView):
 
             if data[73]:
                 chatroom["chatroom_image_url"] = data[73]
+            
+            chatroom["event_kind"] = data[74]
 
             chatroom['unread_messages'] = fetch_conversations_unread(data[0], member_id)
 

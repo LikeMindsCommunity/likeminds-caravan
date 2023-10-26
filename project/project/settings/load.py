@@ -2,18 +2,18 @@ from .base import *
 
 DEBUG = False
 
-URL = os.getenv('DEVELOPMENT_URL')
-WEB_URL = os.getenv('DEVELOPMENT_WEB_URL')
+URL = os.getenv('URL')
+WEB_URL = os.getenv('WEB_URL')
 
-DB_HOST = os.getenv('DEVELOPMENT_DB_HOST')
+DB_HOST = os.getenv('DB_HOST')
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.getenv('DEVELOPMENT_DB_NAME'),
-        'USER': os.getenv('DEVELOPMENT_DB_USER'),
-        'PASSWORD': os.getenv('DEVELOPMENT_DB_PASSWORD'),
-        'HOST': os.getenv('DEVELOPMENT_DB_HOST'),
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
         'PORT': '5432',
         'CONN_MAX_AGE': 600,
         'TEST': {
@@ -27,9 +27,9 @@ TIME_ZONE = 'Asia/Kolkata'
 # variable to check for beta server
 IS_BETA = True
 
-ALLOWED_HOSTS = [os.getenv("DEVELOPMENT_ALLOWED_HOST_2"), os.getenv("DEVELOPMENT_ALLOWED_HOST_3")]
+ALLOWED_HOSTS = [os.getenv("ALLOWED_HOST_2"), os.getenv("ALLOWED_HOST_3"), os.getenv("ALLOWED_HOST_ELB")]
 
-FCM_SERVER_KEY = os.getenv('DEVELOPMENT_FCM_SERVER_KEY')
+FCM_SERVER_KEY = os.getenv('FCM_SERVER_KEY')
 
 # variable for google sign in oauth client ID
 # GOOGLE_OAUTH_CLIENT_ID=os.getenv('BETA_GOOGLE_OAUTH_CLIENT_ID')
@@ -38,13 +38,13 @@ GOOGLE_OAUTH_CLIENT_ID = "983690302378-vmcfu305q815j0n430t385to742s3epu.apps.goo
 
 # hard coding here for prod unless key it is moved to beta env
 FIREBASE_CONFIG = {
-    'apiKey':  "AIzaSyBWjDQEiYKdQbQNvoiVvvOn_cbufQzvWuo",
-    'authDomain':  "collabmates-beta.firebaseapp.com",
-    'databaseURL':  "https://collabmates-beta.firebaseio.com",
-    'projectId':  "collabmates-beta",
-    'storageBucket':  "collabmates-beta.appspot.com",
+    'apiKey': "AIzaSyBWjDQEiYKdQbQNvoiVvvOn_cbufQzvWuo",
+    'authDomain': "collabmates-beta.firebaseapp.com",
+    'databaseURL': "https://collabmates-beta.firebaseio.com",
+    'projectId': "collabmates-beta",
+    'storageBucket': "collabmates-beta.appspot.com",
     'messagingSenderId': "983690302378",
-    'appId':  "1:983690302378:web:b2fa2c58f2351d5c1b91d3",
+    'appId': "1:983690302378:web:b2fa2c58f2351d5c1b91d3",
     'measurementId': "G-R2PXYC9F4S"
 }
 
@@ -53,12 +53,12 @@ AWS_CREDENTIALS = {
     'SECRET_KEY': os.getenv('AWS_S3_SECRET_KEY')
 }
 
-USE_INTERNAL_FILE_LOGGER = True
-OMIT_200_OK_FULL_RESPONSE = False
+USE_INTERNAL_FILE_LOGGER = False
+OMIT_200_OK_FULL_RESPONSE = True
 
 CORALOGIX_LOGGER = {
     'PRIVATE_API_KEY': os.getenv('CORALOGIX_LOGGER_PRIVATE_API_KEY'),
-    'APPLICATION_NAME': 'LikeMinds_Development',
+    'APPLICATION_NAME': 'LikeMinds_Load',
     'SUBSYSTEM_NAME_API': 'Backend_App_Api',
     'SUBSYSTEM_NAME_APP': 'Backend_App_System'
 }
@@ -73,12 +73,13 @@ S3_BUCKETS = {
 
 GHUPSHUP_KEY = "03f92dd7cbf3b983d8c9a4dc7ac485c7"
 
-OTP_TEMPLATE_ID = '5fd9f7f1e96b780fae01acff'
+OTP_TEMPLATE_ID = os.getenv('MSG_91_OTP_TEMPLATE_ID')
 
-ADMINS = [
+ADMINS = [  
             ('Ankit', 'ankit.garg@likeminds.community'),
             ('Shubh', 'shubh.gupta@likeminds.community'),
-            ('Mahir', 'mahir.gupta@likeminds.community')
+            ('Mahir', 'mahir.gupta@likeminds.community'),
+            ('Ketan', 'ketan@likeminds.community')
          ]
 
 CACHES = {
@@ -119,5 +120,3 @@ CALENDAR_CREDENTIALS = {
 }
 
 WEBHOOK_FAILURE_NOTIFICATION_TEAM_EMAILS = ['backend@likeminds.community']
-
-SWARM_BASE_URL = os.getenv('SWARM_BASE_URL')

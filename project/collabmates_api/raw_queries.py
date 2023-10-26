@@ -892,7 +892,8 @@ def get_chatroom_query_meta_for_sync():
                     togther_collabcardState.chat_request_state,
                     togther_collabcardState.chat_requested_by_id,
                     togther_collabcardState.chat_request_created_at,
-                    togther_collabcard.chatroom_image_url
+                    togther_collabcard.chatroom_image_url,
+                    togther_collabcard.event_kind
                 """
 
     return meta_query
@@ -1561,7 +1562,8 @@ def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info: bool = False) 
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
         return users_dict
-    
+
+
 def fetch_chatroom_query_with_follow_status(user_id, limit, page, last_updated, follow_status, type_list):
     """function to update chatroom data"""
 
@@ -3852,7 +3854,7 @@ def get_chatroom_query_meta_for_sync_revamp(key_name_prefix: str = None):
                     'secret_chatroom_participants', 'has_reactions', 'device_id', 'topic_id', 'auto_follow_done',
                     'is_edited', 'is_paid', 'access', 'is_private', 'chatroom_with_user_id', 'member_can_message',
                     'online_link_type', 'is_private_member', 'chatroom_image_url', 'created_at', 'custom_tag',
-                    'updated_at']
+                    'updated_at', 'event_kind']
 
     meta_query = create_query_with_prefix(query_fields, 'togther_collabcard', 'chatroom', key_name_prefix)
 
@@ -4731,7 +4733,7 @@ def get_user_chatroom_status(user_id, community_id, chatroom_types: list, page: 
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True):
+def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True, user_meta_or_none_dict: bool=False):
     try:
         member_ids = [str(member_id) for member_id in member_ids]
         member_ids_query = get_tuple_from_array_v2(member_ids)
@@ -4755,6 +4757,30 @@ def get_users_meta_info(community_id, member_ids: list, check_for_user_id=True):
         curr.execute(sql)
         user_meta_info = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
+
+        # if user_meta_or_none_dict is True, then return dict of all member_ids with user_meta if exists or None
+        if user_meta_or_none_dict:
+
+            uuids = {}
+            client_uuids = {}
+            users_meta = {}
+
+            # make a dict of user_unique_id and clients_user_unique_id
+            for user_meta in user_meta_info:
+                uuids[user_meta.get('user_unique_id')] = user_meta 
+                client_uuids[user_meta.get('clients_user_unique_id')] = user_meta
+
+            for member_id in member_ids:
+                if member_id in uuids:
+                    users_meta[member_id] = uuids.get(member_id)
+
+                elif member_id in client_uuids:
+                    users_meta[member_id] = client_uuids.get(member_id)
+
+                else: 
+                    users_meta[member_id] = None 
+
+            return users_meta
 
         if check_for_user_id:
             found_user_ids = []
