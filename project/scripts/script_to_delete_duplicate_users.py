@@ -85,8 +85,8 @@ def run_script():
 
     print("Script started")
 
-    input_file_name = "project/scripts/users_interaction_data.json"
-    output_file_name = "project/scripts/final_user_deletion_data.json"
+    input_file_name = "scripts/user_interaction.json"
+    output_file_name = "scripts/final_user_deletion_data.json"
 
     parsed_users_data = open_file_and_parse_json(input_file_name)
     user_deletion_data = delete_duplicate_users(parsed_users_data)
