@@ -1016,12 +1016,12 @@ class ConversationImpl(ConversationManager):
             with transaction.atomic():
                 conversation_instance = self._create_conversation_instance(conversation_content)
                 self._fill_poll_options(user_instance, conversation_instance, req_body)
-                # ConversationHelper.auto_follow_chatroom(chatroom_instance, chatroom_state_instance,
-                #                                         conversation_instance, user_instance, member_state,
-                #                                         trigger_webhook=True)
-                #
-                # ConversationHelper.auto_follow_for_tagged_members(chatroom_instance, user_instance,
-                #                                                   conversation_instance)
+                ConversationHelper.auto_follow_chatroom(chatroom_instance, chatroom_state_instance,
+                                                        conversation_instance, user_instance, member_state,
+                                                        trigger_webhook=True)
+
+                ConversationHelper.auto_follow_for_tagged_members(chatroom_instance, user_instance,
+                                                                  conversation_instance)
 
             ConversationHelper.run_async_task_on_conversation_create.delay(user_id=user_instance.id,
                                                                            chatroom_id=chatroom_instance.id,
@@ -2510,11 +2510,11 @@ class ConversationHelper:
 
         ConversationHelper._set_preview_for_conversation(conversation_instance, user_id, req_body)
 
-        ConversationHelper.auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance,
-                                                user_instance, member_state, trigger_webhook=trigger_webhook)
-
-        tagged_members_list = ConversationHelper.auto_follow_for_tagged_members(chatroom_instance, user_instance,
-                                                                                conversation_instance)
+        # ConversationHelper.auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance,
+        #                                         user_instance, member_state, trigger_webhook=trigger_webhook)
+        #
+        # tagged_members_list = ConversationHelper.auto_follow_for_tagged_members(chatroom_instance, user_instance,
+        #                                                                         conversation_instance)
 
         # ConversationHelper._create_or_update_conversation_engage(chatroom_instance, user_instance,
         #                                                          conversation_instance, tagged_members_list)
