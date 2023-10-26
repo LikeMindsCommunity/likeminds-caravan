@@ -88,7 +88,8 @@ from external_services.email.email_wrapper import MailWrapper, MailHelper
 from utility.states import member_states, card_types, collabcard_states, SyncNotificationTypes, \
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
     event_online_link_types, block_chatroom_states, chat_request_states, api_types, noti_states, \
-    community_setting_types, chatroom_invite_status_types, chatroom_setting_states, webhook_chatroom_methods
+    community_setting_types, chatroom_invite_status_types, chatroom_setting_states, webhook_chatroom_methods, \
+    event_kinds
 
 from utility.utils import check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -751,6 +752,7 @@ class ChatroomImpl(ChatroomManager):
         create_context['member_state'] = member_state
         create_context['event_payment_link'] = req_body.get('event_payment_link')
         create_context['event_web_page'] = req_body.get('event_web_page')
+        create_context['event_kind'] = req_body.get('event_kind', '')
 
         if create_context.get('access') in [event_access.NON_COMMUNITY_USERS,
                                             event_access.NON_COMMUNITY_USERS_AND_MEMBERS]:
@@ -1943,6 +1945,7 @@ class ChatroomImpl(ChatroomManager):
 
         validated_req = ChatroomHelper.validate_create_event_request(self.get_member_id(),
                                                                      req_body.get('community_id'),
+                                                                     req_body,
                                                                      self.get_api_key())
 
         if validated_req.get('error_message'):
@@ -6407,7 +6410,7 @@ class ChatroomHelper:
         return {'user_instance': user_instance, 'chatroom_instance': card_instance}
     
     @staticmethod
-    def validate_create_event_request(user_id, community_id, api_key=None):
+    def validate_create_event_request(user_id, community_id, req_body, api_key=None):
 
         validation_params = {
             'user_id': user_id,
@@ -6428,11 +6431,17 @@ class ChatroomHelper:
         member_state = Members.get_community_member_state(community_instance, user_instance)
 
         if member_state == member_states.GUEST:
-            return {'success': False, 'error_message': "Only members can create events"}
+            return ResponseUtilities.get_inner_error_context('Only members can create events')
+
+        if (req_body.get('event_kind') and
+                req_body.get('event_kind') not in [event_kinds.DEFAULT, event_kinds.PARTNER_EVENT]):
+            return ResponseUtilities.get_inner_error_context('Invalid event kind!')
         
-        return {'user_instance': user_instance, 
-                'community_instance': community_instance,
-                'member_state': member_state}
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'member_state': member_state
+        }
     
     @staticmethod
     def validate_add_or_update_instructor_request(chatroom_id, api_key=None):

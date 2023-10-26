@@ -16,6 +16,7 @@ from external_services.wa_notification.wa_notification_impl import NotificationI
 from collabmates_api.notification import notification_meta
 from external_services.calender.calendar_impl import CalendarImpl
 from collabmates_api.sdk.models import CommunityEmailConfiguration
+from utility.states import (event_kinds)
 
 from ..chatroom.constants import EMAIL_UNSUBSCRIBE_URL
 
@@ -46,12 +47,16 @@ def trigger_whatsapp_communication_for_event(payload_for_whatsapp_comms):
     send_whatsapp_notification_for_event_type(payload_for_whatsapp_comms, EVENT_TYPE.ATTENDANCE_5_HRS)
     send_whatsapp_notification_for_event_type(payload_for_whatsapp_comms, EVENT_TYPE.ATTENDANCE_10_MIN)
 
+
 @shared_task
 def send_whatsapp_notification_for_event_type(payload_for_whatsapp_comms, event_type):
     try:
         payload = TasksHelper.update_whatsapp_comms_payload_with_object_instances(payload_for_whatsapp_comms)
 
         event_instance = payload.get('chatroom')
+
+        if (event_instance.event_kind == event_kinds.PARTNER_EVENT) and (event_type != EVENT_TYPE.CREATION):
+            return
 
         tasks_instance = TasksImpl(event_type=event_type, comm_type=COMM_TYPE.WA)
         custom_params = tasks_instance.get_response_dict_for_whatsapp_comms(payload)
@@ -84,6 +89,7 @@ def send_whatsapp_notification_for_event_type(payload_for_whatsapp_comms, event_
     except Exception as e:
         error_logger.exception("got error in send_whatsapp_notification_for_event_type | error - %s | payload received = %s |\
                             event_type = %s" % (str(e), payload_for_whatsapp_comms, event_type))
+
 
 @app.task
 @shared_task(bind=True)
@@ -181,12 +187,16 @@ def trigger_app_notification_for_event(payload_for_app_notifications):
     send_app_notification_for_event_type(payload_for_app_notifications, EVENT_TYPE.LAST_CALL)
     send_app_notification_for_event_type(payload_for_app_notifications, EVENT_TYPE.ATTENDANCE_15_MIN)
 
+
 @shared_task
 def send_app_notification_for_event_type(payload_for_app_notification, event_type):
     try:
         payload = TasksHelper.update_app_notification_payload_with_object_instances(payload_for_app_notification)
 
         event_instance = payload.get('chatroom')
+
+        if (event_instance.event_kind == event_kinds.PARTNER_EVENT) and (event_type != EVENT_TYPE.CREATION):
+            return
 
         tasks_instance = TasksImpl(event_type=event_type, comm_type=COMM_TYPE.APP_NOTI)
         app_noti_dict = tasks_instance.get_response_dict_for_app_notifications(payload)
@@ -385,8 +395,9 @@ def trigger_email_communication_for_event(payload_for_email_comms):
     if not payload.get('chatroom').is_paid:
         send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.CREATION)
 
-    send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.LAST_CALL)
-    send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.ATTENDANCE_9_AM)
+    if payload.get('chatroom').event_kind != event_kinds.PARTNER_EVENT:
+        send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.LAST_CALL)
+        send_email_notification_for_event_type(payload_for_email_comms, EVENT_TYPE.ATTENDANCE_9_AM)
 
 
 @shared_task

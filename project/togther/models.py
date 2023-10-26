@@ -591,6 +591,8 @@ class Collabcard(models.Model):
 
     tag_only_participants = models.BooleanField(default=False)
 
+    event_kind = models.TextField(default="", blank=True)
+
     # method for indexing id as string in elastic search
     def parse_id_to_string(self):
         return str(self.id)

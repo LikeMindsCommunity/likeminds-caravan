@@ -948,3 +948,76 @@ def get_user_last_active_check_timestamp():
     )
 
     return last_active_timestamp
+
+
+@shared_task
+def create_secret_chatroom_states_for_new_cm(user_id, community_id):
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
+
+    if not user_instance:
+        return
+
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+    if not community_instance:
+        return
+
+    # Fetch all existing secret chatrooms
+    filter_dict = {
+        'user': user_id,
+        'card__community': community_id,
+        'card__is_secret': True,
+        'card__is_deleted': False
+    }
+
+    state_filter = ModelUtilities.get_model_filter(collabcardState, filter_dict)
+    already_existed_states_card_ids = list(state_filter.values_list('card_id', flat=True))
+
+    filter_dict = {
+        'community': community_id,
+        'is_secret': True,
+        'is_deleted': False
+    }
+
+    card_filter = ModelUtilities.get_model_filter(Collabcard, filter_dict).exclude(
+        id__in=already_existed_states_card_ids)
+
+    bulk_create_list = []
+
+    for card_instance in card_filter:
+        instance = collabcardState.create_chatroom_state_instances_for_bulk_create(card_instance,
+                                                                                   user_instance,
+                                                                                   follow_status=False,
+                                                                                   state=0,
+                                                                                   community_instance=community_instance,
+                                                                                   external_seen=False,
+                                                                                   expire_at=None)
+
+        if instance:
+            bulk_create_list.append(instance)
+
+    ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
+
+
+@shared_task
+def remove_secret_chatroom_states_for_removed_cm(user_id, community_id):
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
+
+    if not user_instance:
+        return
+
+    community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+    if not community_instance:
+        return
+
+    # Fetch all existing secret chatrooms
+    filter_dict = {
+        'user': user_id,
+        'card__community': community_id,
+        'card__is_secret': True,
+        'card__is_deleted': False,
+        'follow_status': False
+    }
+
+    ModelUtilities.get_model_filter(collabcardState, filter_dict).delete()

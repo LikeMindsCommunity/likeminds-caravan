@@ -813,6 +813,7 @@ class OTPTypes:
     MOBILE = "mobile"
     EMAIL = "email"
 
+
 class UTMCampaing:
     REQUESTACCEPTED = "requestaccepted"
     DOWNLOADDRIP = "downloaddrip"
@@ -823,12 +824,30 @@ class UTMCampaing:
     EVENTREGISTRATIONLASTCALL = "eventregistrationlastcall"
     REGISTRATIONSUCCESSFUL = "registrationsuccessful"
 
+
 class UTMContent:
     LIKEMINDS = "LikeMinds"
     CUSTOMCOMMUNITY = "customcommunity"
+
 
 class QuestionAnswersVersions:
     V1 = "v1"
     V2 = "v2"
 
+
 question_answers_versions = QuestionAnswersVersions()
+
+
+class UpdatePriority:
+    OPTIONAL_UPDATE = 0  # Optional Update, user can skip 
+    FORCE_UPDATE = 1    # Force Update, user cannot skip
+
+update_priority = UpdatePriority()
+
+
+class EventKinds:
+    DEFAULT = ""
+    PARTNER_EVENT = "partner_event"
+
+
+event_kinds = EventKinds()
