@@ -8,7 +8,7 @@ from .rest_api import CommunitySerializerV1
 from .raw_queries import (get_users_sdk_meta_dict)
 from collabmates_api.sdk.models import (SdkClient)
 from utility.response_utilities import ResponseUtilities
-from utility.states import (question_answers_versions)
+from utility.states import (question_answers_versions, MemberRoles)
 
 
 def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=None):
@@ -508,6 +508,7 @@ def get_all_members_version_1(request, req_dict=None):
     member_state = NumberUtilities.get_integer_from_string(member_state, -1)
     question_answers_version = request.GET.get('question_answers_version', '')
     included_member_states = StringUtilities.get_list_from_string(request.GET.get('included_member_states', ''))
+    included_member_states = MemberRoles.get_state_from_roles_list(included_member_states)
 
     question_answers_v2 = question_answers_version.lower() == question_answers_versions.V2
 
