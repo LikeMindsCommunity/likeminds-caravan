@@ -10,6 +10,7 @@ from collabmates_api.sdk.models import (SdkClient)
 from utility.response_utilities import ResponseUtilities
 from utility.states import (question_answers_versions)
 
+
 def get_tagging_list_internal(community_id, chatroom_id=None, current_member_id=None):
     '''function to give tagging list of members in community'''
 
@@ -506,6 +507,7 @@ def get_all_members_version_1(request, req_dict=None):
     member_state = request.GET.get('member_state', None)
     member_state = NumberUtilities.get_integer_from_string(member_state, -1)
     question_answers_version = request.GET.get('question_answers_version', '')
+    included_member_states = StringUtilities.get_list_from_string(request.GET.get('included_member_states', ''))
 
     question_answers_v2 = question_answers_version.lower() == question_answers_versions.V2
 
@@ -626,14 +628,15 @@ def get_all_members_version_1(request, req_dict=None):
     if filter_list:
 
         filter_context = filtered_member_list(current_user_id, community_id, filter_list, page, member_instance,
-                                              member_state=member_state)
+                                              member_state=member_state, included_member_states=included_member_states)
         members = filter_context['members']
         total_filtered_members = filter_context['total_filtered_members']
 
     else:
 
         unfiltered_context = unfiltered_member_list(current_user_id, community_id, page, member_state=member_state,
-                                                    sdk_client_info_flag=True, question_answers_v2=question_answers_v2)
+                                                    sdk_client_info_flag=True, question_answers_v2=question_answers_v2,
+                                                    included_member_states=included_member_states)
         members = unfiltered_context['members']
         total_filtered_members = community['members_count']
 
@@ -691,8 +694,10 @@ def chatroom_participants(chatroom_instance, filter_list, community_id, current_
     return context
 
 
-def filtered_member_list(current_user_id, community_id, filter_list, page, member_instance, member_state=None):
-    member_list = get_member_query_set(current_user_id, community_id, send_all=True, member_state=member_state)
+def filtered_member_list(current_user_id, community_id, filter_list, page, member_instance, member_state=None,
+                         included_member_states=[]):
+    member_list = get_member_query_set(current_user_id, community_id, send_all=True, member_state=member_state,
+                                       included_member_states=included_member_states)
     member_list = member_list.filter(member_id__userinfo__is_guest=False)
     filter_list = json.loads(filter_list)
     member_set = get_filtered_users(filter_list, member_list)
@@ -708,9 +713,9 @@ def filtered_member_list(current_user_id, community_id, filter_list, page, membe
 
 
 def unfiltered_member_list(current_user_id, community_id, page, member_state=None, sdk_client_info_flag:bool=False, 
-                           question_answers_v2: bool=False):
+                           question_answers_v2: bool=False, included_member_states: list = []):
     member_list = get_member_query_set(current_user_id, community_id, page=page, remove_guest_user=True,
-                                       member_state=member_state)
+                                       member_state=member_state, included_member_states=included_member_states)
         
     members = get_member_instances_without_filter(member_list, current_user_id, community_id, page=page, 
                                                   member_state=member_state, sdk_client_info_flag=sdk_client_info_flag,
@@ -982,10 +987,11 @@ def intersect_sets(set1, set2):
 
 
 def get_member_query_set(current_user_id, community_id, send_all=False, page=1, remove_guest_user=False,
-                         member_state=None):
+                         member_state=None, included_member_states=[]):
 
-    included_member_states = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE,
-                              member_states.PENDING_MEMBER]
+    if not included_member_states:
+        included_member_states = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE,
+                                  member_states.PENDING_MEMBER]
 
     if send_all:
 
