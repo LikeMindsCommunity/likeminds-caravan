@@ -508,7 +508,11 @@ def get_all_members_version_1(request, req_dict=None):
     member_state = NumberUtilities.get_integer_from_string(member_state, -1)
     question_answers_version = request.GET.get('question_answers_version', '')
     filter_member_roles = StringUtilities.get_list_from_string(request.GET.get('filter_member_roles', ''))
-    included_member_states = MemberRoles.get_state_from_roles_list(filter_member_roles)
+
+    included_member_states = []
+
+    if filter_member_roles and isinstance(filter_member_roles, list):
+        included_member_states = MemberRoles.get_state_from_roles_list(filter_member_roles)
 
     question_answers_v2 = question_answers_version.lower() == question_answers_versions.V2
 
