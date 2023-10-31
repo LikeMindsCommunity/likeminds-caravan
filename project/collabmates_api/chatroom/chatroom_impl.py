@@ -2482,7 +2482,11 @@ class ChatroomImpl(ChatroomManager):
 
         chatroom_context = {}
 
-        if (is_edit_mode and (user_instance == card_instance.user or member_state == member_states.ADMIN)):
+        if card_instance.event_kind == event_kinds.PARTNER_EVENT:
+            self._fill_online_link_for_event(chatroom_context, card_instance)
+            return chatroom_context
+
+        if is_edit_mode and (user_instance == card_instance.user or member_state == member_states.ADMIN):
 
             self._fill_online_link_for_event(chatroom_context, card_instance)
             return chatroom_context
