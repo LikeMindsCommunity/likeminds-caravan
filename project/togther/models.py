@@ -3480,6 +3480,7 @@ class SDKClientUsersInfo(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     user_unique_id = models.CharField(max_length=255, null=True)
+    widget_id = models.CharField(max_length=255, null=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 

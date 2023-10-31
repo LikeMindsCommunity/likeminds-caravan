@@ -1516,7 +1516,8 @@ def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info: bool = False) 
                 SELECT  togther_sdkclientusersinfo.user_id          AS "user",
                         togther_sdkclientusersinfo.user_unique_id   AS "user_unique_id",
                         togther_sdkclientusersinfo.user_unique_id   AS "uuid",
-                        togther_sdkclientusersinfo.community_id     AS "community"
+                        togther_sdkclientusersinfo.community_id     AS "community",
+                        togther_sdkclientusersinfo.widget_id        AS "widget_id"
                 FROM    togther_sdkclientusersinfo
 
                 WHERE   togther_sdkclientusersinfo.user_id IN {user_id_tuple};
@@ -1536,7 +1537,8 @@ def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info: bool = False) 
                     togther_sdkclientusersinfo.user_id          AS "sdk_client_info___user",
                     togther_sdkclientusersinfo.user_unique_id   AS "sdk_client_info___user_unique_id",
                     togther_sdkclientusersinfo.user_unique_id   AS "sdk_client_info___uuid",
-                    togther_sdkclientusersinfo.community_id     AS "sdk_client_info___community"
+                    togther_sdkclientusersinfo.community_id     AS "sdk_client_info___community",
+                    togther_sdkclientusersinfo.widget_id        AS "sdk_client_info___widget_id"
 
                     FROM togther_userinfo
                     LEFT JOIN togther_sdkclientusersinfo
@@ -3923,7 +3925,7 @@ def get_users_query_meta_for_sync_revamp(key_name_prefix: str = None):
     return ",".join(meta_query + [userinfo_uuid])
 
 def get_sdk_client_query_meta_for_sync_revamp(key_name_prefix: str = None):
-    query_fields = ['user_unique_id', 'community_id']
+    query_fields = ['user_unique_id', 'community_id', 'widget_id']
     meta_query = create_query_with_prefix(query_fields, 'togther_sdkclientusersinfo', 'sdk_client_info', key_name_prefix)
 
     # To add uuid and user in sdk_client_info object
