@@ -8870,7 +8870,7 @@ def members_state(request, req_dict=None):
         response = get_error_context(False, "Invalid member ID")
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
 
-    member_id = user_instance.id if user_instance else member_id
+    member_id = user_instance.id
 
     community_id = community_instance.id
 
