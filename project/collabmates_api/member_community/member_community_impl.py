@@ -1627,8 +1627,8 @@ class MemberCommunityImpl(MemberCommunityManager):
                 MemberCommunityHelper.update_user_image_in_sdk(user_instance, image_url)
 
         if widget_id:
-            MemberCommunityHelper.update_widget_id_for_member(user_id=user_instance.id, 
-                                                              widget_id=widget_id)
+            MemberCommunityHelper.update_widget_id_for_user(user_id=user_instance.id, 
+                                                            widget_id=widget_id)
 
         if (not user_intro_card_instance) and (user_member_instance.state in [member_states.ADMIN,
                                                                               member_states.MEMBER,
@@ -3921,7 +3921,7 @@ class MemberCommunityHelper:
             return False
 
     @staticmethod
-    def update_widget_id_for_member(user_id: int, widget_id: str) -> bool:
+    def update_widget_id_for_user(user_id: int, widget_id: str) -> bool:
         """
             Updates widget_id in sdk_client_info for user
         """
