@@ -108,13 +108,19 @@ class InitiateSdkView(APIView):
 
             error_logger.error("IntegrityError Occured:", str(e), "Request Body: ", request_body, "Request Headers: ", request.headers)
 
-            return JsonResponse({'error_message': "Integrity Error Occured, duplicate key constraint"}, status=status_codes.HTTP_400_BAD_REQUEST)
+            context = ResponseUtilities.get_view_impl_error_context("Integrity Error Occured, duplicate key constraint",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            
+            return JsonResponse(context['data'], status=context['status'])
         
         except Exception as e:
 
             error_logger.error("Exception Occured:", str(e), "Request Body: ", request_body, "Request Headers: ", request.headers)
             
-            return JsonResponse({'error_message': "Internal server error"}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+            context = ResponseUtilities.get_view_impl_error_context("Internal server error",
+                                                                    status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            return JsonResponse(context['data'], status=context['status'])
         
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
