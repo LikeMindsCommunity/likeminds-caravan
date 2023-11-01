@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.db import IntegrityError
 from rest_framework.views import APIView
 from rest_framework import status as status_codes
 
@@ -6,6 +7,9 @@ from utility.request_utilities import RequestUtilities
 from utility.response_utilities import ResponseUtilities
 from .sdk_impl import SdkImpl
 
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+error_logger = LoggingWrapper.get_instance()
 
 class SdkProjectView(APIView):
 
@@ -93,10 +97,25 @@ class InitiateSdkView(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
-        sdk_manager = SdkImpl(api_key=api_key, request_platform=request_platform,
-                              version_code=version_code, device_id=device_id)
-        response_data = sdk_manager.initiate_sdk(request_body)
 
+        try:
+            sdk_manager = SdkImpl(api_key=api_key, request_platform=request_platform,
+                                version_code=version_code, device_id=device_id)
+            response_data = sdk_manager.initiate_sdk(request_body)
+        
+        # If IntegrityError is raised, log error and return 400
+        except IntegrityError as e:
+
+            error_logger.error("IntegrityError Occured:", str(e), "Request Body: ", request_body, "Request Headers: ", request.headers)
+
+            return JsonResponse({'error_message': "Integrity Error Occured, duplicate key constraint"}, status=status_codes.HTTP_400_BAD_REQUEST)
+        
+        except Exception as e:
+
+            error_logger.error("Exception Occured:", str(e), "Request Body: ", request_body, "Request Headers: ", request.headers)
+            
+            return JsonResponse({'error_message': "Internal server error"}, status=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
+        
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
                                                                     response_data['status'])
