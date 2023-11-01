@@ -4117,9 +4117,7 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                               AND togther_collabcard.updated_at <= {}
                                             ) 
                                           ORDER BY 
-                                            togther_collabcard.updated_at DESC offset {} 
-                                          limit 
-                                            {}
+                                            togther_collabcard.updated_at DESC
                                         ) AS chatroom_data 
                                         INNER JOIN togther_community ON chatroom_data.community_id = togther_community.id
                                         {}
@@ -4193,13 +4191,13 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                      AND chatrooms_data.conversation___community_id___topic = togther_sdkclientusersinfo.community_id
                   )
                 
-                  ORDER BY chatrooms_data.updated_at DESC;
+                  ORDER BY chatrooms_data.updated_at DESC offset {} limit {};
         """.format(topic_user_data_query, topic_conversation_data_query,
                    get_conversation_query_meta_for_sync_revamp("last"),
                    chatroom_with_user_data_query, chat_requested_user_data_query, creator_data_query,
                    get_community_query_meta_for_sync_revamp(""), chatroom_query, dm_chatroom_message_query,
                    dm_chatroom_conversation_query, user_id, community_id, included_chatroom_types_query,
-                   min_timestamp, max_timestamp, offset, limit, dm_chatroom_message_filter_query)
+                   min_timestamp, max_timestamp, dm_chatroom_message_filter_query, offset, limit)
 
         if only_query:
             return sql

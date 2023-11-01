@@ -2520,7 +2520,7 @@ class ChatroomImpl(ChatroomManager):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
         
-        user_instance = validated_request.get('user_instance')                        
+        user_instance = validated_request.get('user_instance')
 
         event_filter_dict = self.get_filter_dict_for_fetch_all_events(user_instance=user_instance,
                                                                       attending_status=attending_status,
