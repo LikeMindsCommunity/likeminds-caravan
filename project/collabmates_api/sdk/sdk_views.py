@@ -106,7 +106,7 @@ class InitiateSdkView(APIView):
         # If IntegrityError is raised, log error and return 400
         except IntegrityError as e:
 
-            error_logger.error("IntegrityError Occured:", str(e), "Request Body: ", request_body, "Request Headers: ", request.headers)
+            error_logger.error(f"IntegrityError Occured in sdk/initiate | Request Body: {request_body} , Request Headers: {request.headers}")
 
             context = ResponseUtilities.get_view_impl_error_context("Integrity Error Occured, duplicate key constraint",
                                                                     status_codes.HTTP_400_BAD_REQUEST)
@@ -115,8 +115,8 @@ class InitiateSdkView(APIView):
         
         except Exception as e:
 
-            error_logger.error("Exception Occured:", str(e), "Request Body: ", request_body, "Request Headers: ", request.headers)
-            
+            error_logger.error(f"Exception occured in sdk/initiate: {e} ")
+
             context = ResponseUtilities.get_view_impl_error_context("Internal server error",
                                                                     status_codes.HTTP_500_INTERNAL_SERVER_ERROR)
             

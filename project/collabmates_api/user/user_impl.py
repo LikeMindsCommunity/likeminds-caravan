@@ -7,6 +7,7 @@ from urllib import parse
 from typing import Union
 from rest_framework import status as status_codes
 from django.template.loader import get_template
+from django.db import IntegrityError
 from celery import shared_task
 
 from django.db.models import Q, Sum, CharField
@@ -417,7 +418,16 @@ class UserImpl(UserManager):
                 sdk_client_user_info_instance.community = community_instance
                 sdk_client_user_info_instance.user = user_instance
                 sdk_client_user_info_instance.user_unique_id = user_unique_id if user_unique_id else unique_id
-                sdk_client_user_info_instance.save()
+
+                try:
+                    sdk_client_user_info_instance.save()
+
+                # If user_unique_id is already present in the table, delete User instances and raise IntegrityError
+                except IntegrityError as e:
+
+                    error_logger.error(f"Integrity error occured in SdkClientUsersInfo: {e} | User Instance deleted: {user_instance.id}")
+                    user_instance.delete()
+                    raise e
 
         return {'user_instance': user_instance,
                 'sdk_client_user_info_instance': sdk_client_user_info_instance,
