@@ -8859,13 +8859,18 @@ def members_state(request, req_dict=None):
     api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version=accept_version)
 
     community_instance = SdkClient.get_community_instance_or_none(community_id=community_id, api_key=api_key)
-    user_instance = ModelUtilities.get_user_instance_or_none(member_id)
-
-    member_id = user_instance.id if user_instance else member_id
 
     if not community_instance:
         response = get_error_context(False, "Invalid API key/community ID")
         return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    user_instance = ModelUtilities.get_user_instance_or_none(member_id, community_instance.id)
+
+    if not user_instance:
+        response = get_error_context(False, "Invalid member ID")
+        return JsonResponse(response, status=status_codes.HTTP_400_BAD_REQUEST)
+
+    member_id = user_instance.id
 
     community_id = community_instance.id
 

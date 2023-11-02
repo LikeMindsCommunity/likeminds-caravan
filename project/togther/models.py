@@ -3484,7 +3484,7 @@ class SDKClientUsersInfo(models.Model):
     updated_at = models.BigIntegerField(default=0)
 
     class Meta:
-        unique_together = [['community', 'user', 'user_unique_id']]
+        unique_together = [['community', 'user_unique_id']]
 
     def save(self, *args, **kwargs):
         current_time = TimeUtilities.current_time_in_milliseconds()

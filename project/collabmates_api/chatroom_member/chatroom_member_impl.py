@@ -516,10 +516,13 @@ class ChatroomMemberImpl(ChatroomMemberManager):
             error_logger.error("[process_chatroom] fetching members_profile ")
 
             if data.chat_requested_by:
-                chatroom_context['chat_requested_by'] = get_members_profile([data.chat_requested_by.id],
-                                                                            community_instance.id,
-                                                                            send_profile=False, 
-                                                                            sdk_client_info_flag=sdk_client_info_flag)
+                chat_requested_by_data = get_members_profile([data.chat_requested_by.id],
+                                                             community_instance.id,
+                                                             send_profile=False,
+                                                             sdk_client_info_flag=sdk_client_info_flag)
+
+                if chat_requested_by_data:
+                    chatroom_context['chat_requested_by'] = chat_requested_by_data[0]
                 
             error_logger.error("[process_chatroom] fetching members_profile done")
 

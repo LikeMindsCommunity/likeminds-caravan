@@ -269,6 +269,21 @@ class MemberRoles(enum.Enum):
     def get_role_from_state(cls, value) -> str:
         return cls(value).name.lower() if value in cls._value2member_map_ else ""
 
+    @classmethod
+    def get_state_from_roles_list(cls, roles_list: list) -> list:
+        state_list = []
+
+        for role in roles_list:
+
+            if role.upper() in cls._member_names_:
+                member_state = cls[role.upper()].value
+
+                if member_state not in state_list:
+                    state_list.append(member_state)
+
+        return state_list
+
+
 class DeletedMembers:
     LEFT = 0
     REMOVED = 1
@@ -841,6 +856,7 @@ question_answers_versions = QuestionAnswersVersions()
 class UpdatePriority:
     OPTIONAL_UPDATE = 0  # Optional Update, user can skip 
     FORCE_UPDATE = 1    # Force Update, user cannot skip
+
 
 update_priority = UpdatePriority()
 
