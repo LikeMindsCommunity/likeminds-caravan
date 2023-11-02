@@ -140,6 +140,15 @@ COMMUNITY_CONFIGURATIONS = {
         {
             "post": "post"
         }
+    },
+    "profile_metadata":
+    {
+        "type": "profile_metadata",
+        "description": "Community user profiles metadata",
+        "value":
+        {
+            "widgets_enabled": False
+        }
     }
 }
 
