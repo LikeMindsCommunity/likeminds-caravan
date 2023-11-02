@@ -144,7 +144,7 @@ COMMUNITY_CONFIGURATIONS = {
     "profile_metadata":
     {
         "type": "profile_metadata",
-        "description": "Community user profiles metadata",
+        "description": "User profiles metadata for a community",
         "value":
         {
             "widgets_enabled": False
