@@ -47,7 +47,7 @@ spec:
     name: "caravan-beta"
     apiVersion: "apps/v1"
   minReplicas: 1
-  maxReplicas: 17
+  maxReplicas: 20
   metrics:
   - type: "Resource"
     resource:
