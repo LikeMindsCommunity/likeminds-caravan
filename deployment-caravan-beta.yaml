@@ -6,7 +6,7 @@ metadata:
   labels:
     app: "caravan-beta"
 spec:
-  replicas: 1
+  replicas: 17
   selector:
     matchLabels:
       app: "caravan-beta"
@@ -47,7 +47,7 @@ spec:
     name: "caravan-beta"
     apiVersion: "apps/v1"
   minReplicas: 1
-  maxReplicas: 3
+  maxReplicas: 17
   metrics:
   - type: "Resource"
     resource:
