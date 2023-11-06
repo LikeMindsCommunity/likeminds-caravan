@@ -2954,7 +2954,8 @@ class MemberCommunityHelper:
             return {'success': True, 'show_dm': False}
 
         if not member_instance:
-            return get_error_context(False, 'Invalid member_id or uuid')
+            return ResponseUtilities.get_impl_error_context('Invalid member_id or uuid',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         is_member_admin = Members.get_community_member_state(community_instance, member_instance) == member_states.ADMIN
         is_user_admin = Members.get_community_member_state(community_instance, user_instance) == member_states.ADMIN
@@ -3111,7 +3112,8 @@ class MemberCommunityHelper:
         chatroom_instance = validated_request.get('chatroom_instance')
 
         if not chatroom_instance:
-            return get_error_context(False, 'Invalid chatroom id')
+            return ResponseUtilities.get_impl_error_context('Invalid chatroom id!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = chatroom_instance.community
 
