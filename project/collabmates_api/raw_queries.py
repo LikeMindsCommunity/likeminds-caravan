@@ -1475,7 +1475,7 @@ def process_users_meta_data_from_query_response(users_data: list, list_only: boo
 
                 parsed_user_data[split_keys[0]][split_keys[1]] = user[key]
 
-                if split_keys[0] == 'sdk_client_info' and not user[key]:
+                if split_keys[0] == 'sdk_client_info' and user[key] is None:
                     sdk_client_info_null = True
             else:
                 parsed_user_data[key] = user[key]
@@ -1948,7 +1948,8 @@ def get_members_meta_list(community_id: int, member_ids: list = None, page=1, pa
                 togther_sdkclientusersinfo.user_unique_id as "sdk_client_info___user_unique_id",
                 togther_sdkclientusersinfo.user_unique_id as "sdk_client_info___uuid",
                 togther_sdkclientusersinfo.community_id as "sdk_client_info___community",
-                togther_sdkclientusersinfo.user_id as "sdk_client_info___user"
+                togther_sdkclientusersinfo.user_id as "sdk_client_info___user",
+                togther_sdkclientusersinfo.widget_id as "sdk_client_info___widget_id"
 
                 from  togther_userinfo
                 left join togther_members 
@@ -3558,7 +3559,9 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=N
                            togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___user_unique_id,
                            togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___uuid,
                            togther_sdkclientusersinfo.community_id   AS sdk_client_info___community,
-                           togther_sdkclientusersinfo.user_id        AS sdk_client_info___user
+                           togther_sdkclientusersinfo.user_id        AS sdk_client_info___user,
+                           togther_sdkclientusersinfo.widget_id      AS sdk_client_info___widget_id 
+
                 FROM       togther_userinfo
                 INNER JOIN
                            (
@@ -3602,7 +3605,6 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=N
         # Process users data to add sdk client info
         users_meta = process_users_meta_data_from_query_response(users_data, list_only=True)
 
-        return users_meta
         return users_meta
 
     except (Exception, psycopg2.Error) as error:
@@ -3654,7 +3656,8 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
                            togther_sdkclientusersinfo.user_unique_id    AS sdk_client_info___user_unique_id,
                            togther_sdkclientusersinfo.user_unique_id    AS sdk_client_info___uuid,
                            togther_sdkclientusersinfo.community_id      AS sdk_client_info___community, 
-                           togther_sdkclientusersinfo.user_id           AS sdk_client_info___user 
+                           togther_sdkclientusersinfo.user_id           AS sdk_client_info___user,
+                           togther_sdkclientusersinfo.widget_id         AS sdk_client_info___widget_id 
                 FROM       togther_userinfo
                 INNER JOIN togther_members
                 ON         togther_members.member_id_id=togther_userinfo.user_id_id {} {}
