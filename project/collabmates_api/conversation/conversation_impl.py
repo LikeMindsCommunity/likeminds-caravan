@@ -2522,7 +2522,10 @@ class ConversationHelper:
         # ConversationHelper.update_activity_in_chatroom_for_followed_users.delay(chatroom_instance.id,
         #                                                                         user_instance.id)
 
-        all_files_uploaded = ConversationHelper._save_attachments(conversation_instance, attachments_data)
+        all_files_uploaded = False
+
+        if attachments_data:
+            all_files_uploaded = ConversationHelper._save_attachments(conversation_instance, attachments_data)
 
         if (not has_files) or all_files_uploaded:
             ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(chatroom_instance.id,
