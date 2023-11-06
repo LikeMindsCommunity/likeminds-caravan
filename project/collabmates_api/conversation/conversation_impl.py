@@ -1023,6 +1023,9 @@ class ConversationImpl(ConversationManager):
                 ConversationHelper.auto_follow_for_tagged_members(chatroom_instance, user_instance,
                                                                   conversation_instance)
 
+                # Updating the updated_at of Collabcard schema
+                chatroom_instance.save()
+
             ConversationHelper.run_async_task_on_conversation_create.delay(user_id=user_instance.id,
                                                                            chatroom_id=chatroom_instance.id,
                                                                            conversation_id=conversation_instance.id,
@@ -1033,9 +1036,6 @@ class ConversationImpl(ConversationManager):
 
             context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
             conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
-
-            # Updating the updated_at of Collabcard schema
-            chatroom_instance.save()
 
             conversation_response = {
                 'success': True,
