@@ -1561,6 +1561,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         question_answers = req_body.get('question_answers', [])
         image_url = req_body.get('image_url')
         name = req_body.get('name')
+        widget_id = req_body.get('widget_id')
 
         if question_answers:
 
@@ -1624,6 +1625,10 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             if len(community):
                 MemberCommunityHelper.update_user_image_in_sdk(user_instance, image_url)
+
+        if widget_id:
+            MemberCommunityHelper.update_widget_id_for_user(user_id=user_instance.id, 
+                                                            widget_id=widget_id)
 
         if (not user_intro_card_instance) and (user_member_instance.state in [member_states.ADMIN,
                                                                               member_states.MEMBER,
@@ -3915,4 +3920,28 @@ class MemberCommunityHelper:
         
         except Exception as e:
             error_logger.error(f"Error in leave_community_for_member_and_unavailable for user_id {user_instance.id}: {e.args}")
+            return False
+
+    @staticmethod
+    def update_widget_id_for_user(user_id: int, widget_id: str) -> bool:
+        """
+            Updates widget_id in sdk_client_info for user
+        """
+
+        if not (user_id and widget_id):
+            return False
+
+        try:
+            sdk_client_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id': user_id}).first()
+
+            if not sdk_client_info_instance:
+                return False
+            
+            sdk_client_info_instance.widget_id = widget_id
+            sdk_client_info_instance.save()
+
+            return True
+        
+        except Exception as e:
+            error_logger.error(f"Error in update_widget_id_for_member for user_id {user_id}: {e.args}")
             return False
