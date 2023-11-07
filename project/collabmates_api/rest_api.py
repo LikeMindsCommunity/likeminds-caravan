@@ -1506,7 +1506,7 @@ class SDKClientUsersInfoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SDKClientUsersInfo
-        fields = ('user', 'community', 'user_unique_id')
+        fields = ('user', 'community', 'user_unique_id', 'widget_id')
 
     def to_representation(self, instance):
         data = super(SDKClientUsersInfoSerializer, self).to_representation(instance)
