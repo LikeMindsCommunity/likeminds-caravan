@@ -6,7 +6,7 @@ metadata:
   labels:
     app: "caravan-celery"
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: "caravan-celery"
@@ -52,7 +52,7 @@ spec:
     kind: "Deployment"
     name: "caravan-celery"
     apiVersion: "apps/v1"
-  minReplicas: 3
+  minReplicas: 1
   maxReplicas: 3
   metrics:
   - type: "Resource"
