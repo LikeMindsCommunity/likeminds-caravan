@@ -1561,6 +1561,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         question_answers = req_body.get('question_answers', [])
         image_url = req_body.get('image_url')
         name = req_body.get('name')
+        widget_id = req_body.get('widget_id')
 
         if question_answers:
 
@@ -1624,6 +1625,10 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             if len(community):
                 MemberCommunityHelper.update_user_image_in_sdk(user_instance, image_url)
+
+        if widget_id:
+            MemberCommunityHelper.update_widget_id_for_user(user_id=user_instance.id, 
+                                                            widget_id=widget_id)
 
         if (not user_intro_card_instance) and (user_member_instance.state in [member_states.ADMIN,
                                                                               member_states.MEMBER,
@@ -2954,7 +2959,8 @@ class MemberCommunityHelper:
             return {'success': True, 'show_dm': False}
 
         if not member_instance:
-            return get_error_context(False, 'Invalid member_id or uuid')
+            return ResponseUtilities.get_impl_error_context('Invalid member_id or uuid',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         is_member_admin = Members.get_community_member_state(community_instance, member_instance) == member_states.ADMIN
         is_user_admin = Members.get_community_member_state(community_instance, user_instance) == member_states.ADMIN
@@ -3111,7 +3117,8 @@ class MemberCommunityHelper:
         chatroom_instance = validated_request.get('chatroom_instance')
 
         if not chatroom_instance:
-            return get_error_context(False, 'Invalid chatroom id')
+            return ResponseUtilities.get_impl_error_context('Invalid chatroom id!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = chatroom_instance.community
 
@@ -3913,4 +3920,28 @@ class MemberCommunityHelper:
         
         except Exception as e:
             error_logger.error(f"Error in leave_community_for_member_and_unavailable for user_id {user_instance.id}: {e.args}")
+            return False
+
+    @staticmethod
+    def update_widget_id_for_user(user_id: int, widget_id: str) -> bool:
+        """
+            Updates widget_id in sdk_client_info for user
+        """
+
+        if not (user_id and widget_id):
+            return False
+
+        try:
+            sdk_client_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo, {'user_id': user_id}).first()
+
+            if not sdk_client_info_instance:
+                return False
+            
+            sdk_client_info_instance.widget_id = widget_id
+            sdk_client_info_instance.save()
+
+            return True
+        
+        except Exception as e:
+            error_logger.error(f"Error in update_widget_id_for_member for user_id {user_id}: {e.args}")
             return False
