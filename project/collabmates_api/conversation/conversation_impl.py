@@ -939,11 +939,15 @@ class ConversationImpl(ConversationManager):
         return conversation_response
 
     def create_conversation_v1(self, req_body: dict) -> {}:
+        start = time.time()
 
         chatroom_id = req_body.get('chatroom_id', None)
         has_files = req_body.get('has_files', False)
         replied_conversation_id = req_body.get('replied_conversation_id')
         attachments_data = req_body.get('attachments')
+
+        info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 1 - {time.time() - start}")
+        start = time.time()
 
         validated_request = ConversationHelper.validate_create_conversation_request(None,
                                                                                     self.get_member_id(),
@@ -952,13 +956,22 @@ class ConversationImpl(ConversationManager):
                                                                                     req_body['text'],
                                                                                     replied_conversation_id)
 
+        info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 2 - {time.time() - start}")
+        start = time.time()
+
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
+        info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 3 - {time.time() - start}")
+        start = time.time()
+
         user_instance = validated_request.get('user_instance')
         chatroom_instance = validated_request.get('chatroom_instance')
         member_state = validated_request.get('member_state')
+
+        info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 4 - {time.time() - start}")
+        start = time.time()
 
         community_instance = chatroom_instance.community
 
@@ -966,6 +979,9 @@ class ConversationImpl(ConversationManager):
                 not ConversationHelper.is_user_secret_chatroom_participant(chatroom_instance, self.get_member_id()):
             return ResponseUtilities.get_impl_error_context('You are not a part of this secret chatroom',
                                                             status_codes.HTTP_400_BAD_REQUEST)
+
+        info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 5 - {time.time() - start}")
+        start = time.time()
 
         if req_body.get('state') and (req_body['state'] == conversation_states.CONVERSATION_POLL):
             has_right = ModelUtilities.get_model_filter(userMemberRights,
@@ -976,11 +992,17 @@ class ConversationImpl(ConversationManager):
                 return ResponseUtilities.get_impl_error_context("You don't have the rights to create a poll",
                                                                 status_codes.HTTP_400_BAD_REQUEST)
 
+        info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 6 - {time.time() - start}")
+        start = time.time()
+
         is_guest = False
 
         chatroom_state_instance = None
         state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_instance,
                                                                          'user': user_instance})
+
+        info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 7 - {time.time() - start}")
+        start = time.time()
 
         if state_filter:
             chatroom_state_instance = state_filter[0]
@@ -994,19 +1016,31 @@ class ConversationImpl(ConversationManager):
                 return ResponseUtilities.get_impl_error_context("Chatroom messaging is blocked!",
                                                                 status_codes.HTTP_403_FORBIDDEN)
 
+        info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 8 - {time.time() - start}")
+        start = time.time()
+
         if chatroom_instance.access_without_subscription:
             status = is_member_verified(community_instance.id, self.get_member_id())
 
             if not status and not state_filter:
                 is_guest = True
 
+        info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 9 - {time.time() - start}")
+        start = time.time()
+
         conversation_content = {}
         self._fill_basic_conversation_content(req_body, conversation_content,
                                               chatroom_instance, user_instance, community_instance,
                                               has_files, chatroom_state_instance, is_guest=is_guest)
 
+        info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 10 - {time.time() - start}")
+        start = time.time()
+
         conversation_content['reply'] = validated_request.get('replied_conv_instance')
         conversation_content['created_at'] = TimeUtilities.current_time_in_milliseconds()
+
+        info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 11 - {time.time() - start}")
+        start = time.time()
 
         if 'og_tags' in req_body:
             conversation_content['og_tags'] = json.dumps(req_body['og_tags'])
@@ -1015,16 +1049,37 @@ class ConversationImpl(ConversationManager):
 
             with transaction.atomic():
                 conversation_instance = self._create_conversation_instance(conversation_content)
+                info_logger.info(
+                    f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 12 - {time.time() - start}")
+                start = time.time()
+
                 self._fill_poll_options(user_instance, conversation_instance, req_body)
+
+                info_logger.info(
+                    f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 13 - {time.time() - start}")
+                start = time.time()
+
                 ConversationHelper.auto_follow_chatroom(chatroom_instance, chatroom_state_instance,
                                                         conversation_instance, user_instance, member_state,
                                                         trigger_webhook=True)
 
+                info_logger.info(
+                    f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 14 - {time.time() - start}")
+                start = time.time()
+
                 ConversationHelper.auto_follow_for_tagged_members(chatroom_instance, user_instance,
                                                                   conversation_instance)
 
+                info_logger.info(
+                    f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 15 - {time.time() - start}")
+                start = time.time()
+
                 # Updating the updated_at of Collabcard schema
                 chatroom_instance.save()
+
+                info_logger.info(
+                    f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 16 - {time.time() - start}")
+                start = time.time()
 
             ConversationHelper.run_async_task_on_conversation_create.delay(user_id=user_instance.id,
                                                                            chatroom_id=chatroom_instance.id,
@@ -1034,8 +1089,16 @@ class ConversationImpl(ConversationManager):
                                                                            trigger_webhook=True,
                                                                            attachments_data=attachments_data)
 
+            info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 17 -"
+                             f" {time.time() - start}")
+            start = time.time()
+
             context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
             conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
+
+            info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 18 -"
+                             f" {time.time() - start}")
+            start = time.time()
 
             conversation_response = {
                 'success': True,
