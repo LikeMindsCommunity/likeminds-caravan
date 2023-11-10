@@ -2417,7 +2417,13 @@ class ConversationHelper:
     def auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance, user_instance,
                              member_state, trigger_webhook=False):
 
+        start = time.time()
+
         empty_conversation = (conversation_instance.attachment_count > 0 and not conversation_instance.attachments_uploaded)
+
+        info_logger.info(
+            f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.1 - {time.time() - start}")
+        start = time.time()
 
         followed_chatroom = False
 
@@ -2425,33 +2431,74 @@ class ConversationHelper:
 
             follow_status_old = chatroom_state_instance.follow_status
 
+            info_logger.info(
+                f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.2 - {time.time() - start}")
+            start = time.time()
+
             if not empty_conversation:
                 chatroom_state_instance.last_seen_conversation = conversation_instance
+
+            info_logger.info(
+                f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.3 - {time.time() - start}")
+            start = time.time()
+
             chatroom_state_instance.follow_status = True
             chatroom_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+
+            info_logger.info(
+                f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.4 - {time.time() - start}")
+            start = time.time()
 
             if chatroom_state_instance.is_tagged:
                 chatroom_state_instance.is_tagged = False
                 chatroom_state_instance.mute_status = False
 
+            info_logger.info(
+                f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.5 - {time.time() - start}")
+            start = time.time()
+
             chatroom_state_instance.save()
 
+            info_logger.info(
+                f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.6 - {time.time() - start}")
+            start = time.time()
+
             ElasticSearchSync.update_chatroom_for_user.delay(chatroom_instance.id, user_instance.id)
+
+            info_logger.info(
+                f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.7 - {time.time() - start}")
+            start = time.time()
 
             if follow_status_old != chatroom_state_instance.follow_status:
                 followed_chatroom = True
 
+            info_logger.info(
+                f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.8 - {time.time() - start}")
+            start = time.time()
+
         else:
             community_current_noti_state = ConversationHelper._get_community_notification_state(chatroom_instance)
+
+            info_logger.info(
+                f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.9 - {time.time() - start}")
+            start = time.time()
 
             if any([member_state == member_states.ADMIN,
                     member_state == member_states.MEMBER,
                     member_state == member_states.PROFILE_UNAVAILABLE]):
 
+                info_logger.info(
+                    f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.10 - {time.time() - start}")
+                start = time.time()
+
                 collabcardState.create_chatroom_state_instance(chatroom_instance, user_instance,
                                                                state=collabcard_states.COLLABCARD_STATE_UNSEEN,
                                                                follow_status=True,
                                                                noti_state=community_current_noti_state)
+
+                info_logger.info(
+                    f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.11 - {time.time() - start}")
+                start = time.time()
 
             elif member_state != member_states.KNOWN_NOMINATED_PROMOTER:
                 collabcardState.create_chatroom_state_instance(chatroom_instance, user_instance,
@@ -2459,8 +2506,16 @@ class ConversationHelper:
                                                                is_guest=True, follow_status=True,
                                                                noti_state=community_current_noti_state)
 
+                info_logger.info(
+                    f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.12 - {time.time() - start}")
+                start = time.time()
+
                 ModelUtilities.model_update(Userinfo, {'user': user_instance},
                                             {'updated_at': TimeUtilities.current_time_in_sec()})
+
+                info_logger.info(
+                    f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.13 - {time.time() - start}")
+                start = time.time()
                 
             followed_chatroom = True
                 
@@ -2470,6 +2525,9 @@ class ConversationHelper:
                                                                                 users_list=[user_instance.id],
                                                                                 event_type=WebhookTypes.CHATROOM_JOINED.value,
                                                                                 type_method=webhook_chatroom_methods.SELF_JOINED)
+
+            info_logger.info(
+                f"[{conversation_instance.temporary_id}-{user_instance.id}], Step 13.14 - {time.time() - start}")
 
     @staticmethod
     def _send_conversation_creation_notifications(user_instance, chatroom_instance, conversation_instance, has_files,
