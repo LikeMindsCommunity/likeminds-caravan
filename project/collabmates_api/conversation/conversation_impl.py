@@ -498,7 +498,7 @@ class ConversationImpl(ConversationManager):
 
         self._save_conversation(conversation_instance)
         info_logger.info(
-            f"[{conversation_content.get('temporary_id')}-{self.get_member_id()}], Step 11.1 - {time.time() - start}")
+            f"[{conversation_content.get('temporary_id')}-{self.get_member_id()}], Step 11.2 - {time.time() - start}")
 
         return conversation_instance
 
