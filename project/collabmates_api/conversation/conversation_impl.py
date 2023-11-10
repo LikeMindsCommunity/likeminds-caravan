@@ -489,8 +489,16 @@ class ConversationImpl(ConversationManager):
         self._save_conversation(conversation_instance)
 
     def _create_conversation_instance(self, conversation_content):
+        start = time.time()
+
         conversation_instance = card_answers(**conversation_content)
+        info_logger.info(
+            f"[{conversation_content.get('temporary_id')}-{self.get_member_id()}], Step 11.1 - {time.time() - start}")
+        start = time.time()
+
         self._save_conversation(conversation_instance)
+        info_logger.info(
+            f"[{conversation_content.get('temporary_id')}-{self.get_member_id()}], Step 11.1 - {time.time() - start}")
 
         return conversation_instance
 
