@@ -10,8 +10,6 @@ from togther.models import Members, ModelUtilities, CohortMember, Cohort, SDKCli
 # Max index length
 max_index_length = settings.MAX_INDEX_LENGTH_ELASTICSEARCH
 
-settings.ELASTICSEARCH_DSL_AUTOSYNC = False
-
 # Name of the Elasticsearch index
 INDEX = Index(settings.ELASTICSEARCH_INDEX_NAMES[__name__])
 
