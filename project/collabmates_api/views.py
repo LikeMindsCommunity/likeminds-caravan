@@ -11407,13 +11407,6 @@ def update_community_manager_rights(request):
         return JsonResponse(context)
 
 
-def get_added_and_removed_rights(selected_rights, existing_rights):
-    selected_rights_list = set([right["id"] for right in selected_rights if right["is_selected"]])
-    rights_added = selected_rights_list - existing_rights
-    removed_rights = existing_rights - selected_rights_list
-    return rights_added, removed_rights
-
-
 @csrf_exempt
 def remove_community_manager(request):
     """ function to remove a communtiy manager as manager """
@@ -12594,6 +12587,11 @@ def update_community_rights(request):
     if request.method == 'GET':
         return JsonResponse({'success': False, 'error_message': 'Change HTTP method to POST'})
 
+    patch_request = False
+
+    if request.method == 'PATCH':
+        patch_request = True
+
     current_user_id = get_member_id_from_headers(request)
     req_body = json.loads(request.body)
     community_id = req_body['community_id'] if "community_id" in req_body else None
@@ -12628,6 +12626,11 @@ def update_community_rights(request):
     # checking if the logged in user is Manager of the community or not
     if admin.exists():
 
+        if patch_request and not selected_rights:
+            context = ResponseUtilities.get_view_impl_error_context("rights are required",
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+            return JsonResponse(**context)
+        
         if selected_rights is None:
             all_rights = memberRights.objects.all()
             for right in all_rights:
@@ -12640,7 +12643,8 @@ def update_community_rights(request):
         existing_rights = set(
             communityRightsSettings.objects.filter(community=community_instance).values_list("right__id", flat=True))
         rights_added, removed_rights = get_added_and_removed_rights(selected_rights=selected_rights,
-                                                                    existing_rights=existing_rights)
+                                                                    existing_rights=existing_rights,
+                                                                    only_update=patch_request)
 
         for right_id in rights_added:
             # if right is added, the right is given to all the members

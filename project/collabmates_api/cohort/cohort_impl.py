@@ -27,8 +27,8 @@ from ..static_text import create_room_member_right, create_poll_member_right, cr
 from ..user.user_impl import UserImpl, UserHelper
 from ..user_moderation_rights import check_all_manager_rights, get_saved_member_rights_list, check_history_exists, \
     check_rights_history_existence, save_member_right, update_member_rights_in_conversation_engage, \
-    update_member_rights_in_member_engage
-from ..views import get_added_and_removed_rights, get_error_context
+    update_member_rights_in_member_engage, get_added_and_removed_rights
+from ..views import get_error_context
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
 
