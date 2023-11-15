@@ -14,6 +14,8 @@ from utility.states import conversation_states
 # Max index length
 max_index_length = settings.MAX_INDEX_LENGTH_ELASTICSEARCH
 
+settings.ELASTICSEARCH_DSL_AUTOSYNC = True
+
 # Name of the Elasticsearch index
 INDEX = Index(settings.ELASTICSEARCH_INDEX_NAMES[__name__])
 
