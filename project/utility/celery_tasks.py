@@ -540,8 +540,14 @@ def update_member_images_for_account(member_filter, image_url):
             update_multiple_previews_in_chatroom({'chatroom_id': card_instance.id})
         data.image_url = image_url
         data.updated_at = TimeUtilities.current_time_in_sec()
+                
+        start_time = TimeUtilities.current_time_in_milliseconds()
+        info_logger.info("Saving members data using .save() in update_member_images_for_account")
+
         data.save()
 
+        end_time = TimeUtilities.current_time_in_milliseconds()
+        info_logger.info(f"{end_time - start_time} ms Time taken to save members data using .save() in update_member_images_for_account")
 
 @shared_task
 def update_preview_for_account_image_change(preview_info):

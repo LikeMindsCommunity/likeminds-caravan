@@ -140,6 +140,7 @@ class MemberDirectoryDocument(Document):
         """Inner nested class Django."""
         model = Members  # The model associate with this Document
         queryset_pagination = 50
+        ignore_signals = True  # Ignores all Django Model signals
 
     @staticmethod
     def prepare_cohorts(instance):
