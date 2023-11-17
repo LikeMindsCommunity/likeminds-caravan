@@ -3282,8 +3282,7 @@ def get_conversations_after_last_seen_messages_in_chatrooms(chatrooms_list, data
 
         chatrooms_list_string = ",".join([str(card_id) for card_id in chatrooms_list])
 
-        included_conv_states = [conversation_states.ANSWER, conversation_states.CONVERSATION_HEADER,
-                                conversation_states.CONVERSATION_POLL]
+        included_conv_states = [conversation_states.ANSWER, conversation_states.CONVERSATION_POLL]
 
         included_conv_states_query = get_tuple_from_array(included_conv_states)
 
