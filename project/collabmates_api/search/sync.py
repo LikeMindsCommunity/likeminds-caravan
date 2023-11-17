@@ -1,3 +1,4 @@
+import time
 from elasticsearch_dsl import Search, UpdateByQuery
 from elasticsearch import Elasticsearch
 
@@ -380,7 +381,10 @@ class ElasticSearchSync:
         """
         member_instances = ModelUtilities.get_model_filter(Members, {'member_id_id__in': member_ids,
                                                                      'community_id_id': community_id})
+        
+        start_time = time.time()
         ElasticSearchSync.update_document(member_instances)
+        print(f"Time taken to update members Index : {time.time() - start_time} secs | Community Id : {community_id} | Member Ids : {member_ids}")
 
 
 class ElasticSearchQueryHelper:
