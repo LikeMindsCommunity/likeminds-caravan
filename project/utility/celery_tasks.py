@@ -1979,6 +1979,7 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
             Q(attachment_count=0) | Q(attachments_uploaded=True) | Q(api_version=1)).order_by("created_at")
 
         last_conversation = conversation_filter.last()
+        conversation_filter = conversation_filter.filter(state=conversation_states.ANSWER)
 
         last_seen_conversation = card_state_instance.last_seen_conversation_id
 

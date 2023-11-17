@@ -3275,19 +3275,23 @@ def get_last_conversation_id_corresponding_to_chatrooms_list(chatrooms_list, exc
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
-def get_conversations_after_last_seen_messages_in_chatrooms(chatrooms_list, data_state=0):
+def get_conversations_after_last_seen_messages_in_chatrooms(user_id, chatrooms_list, data_state=0):
     try:
         if not (chatrooms_list or data_state):
             return 0
 
         chatrooms_list_string = ",".join([str(card_id) for card_id in chatrooms_list])
 
+        included_conv_states = [conversation_states.ANSWER, conversation_states.CONVERSATION_POLL]
+
+        included_conv_states_query = get_tuple_from_array(included_conv_states)
+
         raw_data = "CS.card_id, CA.id, CA.state"
         additional_filter = ""
 
         if not data_state:
             raw_data = "Count(*)"
-            additional_filter = "AND CA.state IN (0, 13, 14, 15, 16, 17, 19, 20)"
+            additional_filter = f"AND CA.state IN {included_conv_states_query}"
 
         conn = get_connection()
         curr = conn.cursor()
@@ -3295,12 +3299,12 @@ def get_conversations_after_last_seen_messages_in_chatrooms(chatrooms_list, data
         sql = """SELECT %s
                 FROM   togther_card_answers AS CA
                        INNER JOIN togther_collabcardstate AS CS
-                               ON CA.card_id = CS.card_id
+                               ON (CA.card_id = CS.card_id AND CS.user_id=%s)
                 WHERE  CS.id IN (%s)
                        AND ( ( CS.last_seen_conversation_id IS NOT NULL
                                AND CA.id > CS.last_seen_conversation_id )
                               OR ( CS.last_seen_conversation_id IS NULL ) ) %s; 
-        """ % (raw_data, chatrooms_list_string, additional_filter)
+        """ % (raw_data, user_id, chatrooms_list_string, additional_filter)
 
         curr.execute(sql)
         data = curr.fetchall()
