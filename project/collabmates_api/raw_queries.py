@@ -3292,7 +3292,7 @@ def get_conversations_after_last_seen_messages_in_chatrooms(chatrooms_list, data
 
         if not data_state:
             raw_data = "Count(*)"
-            additional_filter = "AND CA.state IN {}".format(included_conv_states_query)
+            additional_filter = f"AND CA.state IN {included_conv_states_query}"
 
         conn = get_connection()
         curr = conn.cursor()
