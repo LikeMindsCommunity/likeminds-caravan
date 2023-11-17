@@ -865,7 +865,8 @@ class UserImpl(UserManager):
 
                 if get_dm_chatrooms_state_list:
                     get_dm_chatrooms_list = [card_id[1] for card_id in get_dm_chatrooms_state_list]
-                    unseen_count = get_conversations_after_last_seen_messages_in_chatrooms(get_dm_chatrooms_list)
+                    unseen_count = get_conversations_after_last_seen_messages_in_chatrooms(user_instance.id,
+                                                                                           get_dm_chatrooms_list)
 
                 if self.get_community_id():
                     hide_dm_tab = ModelUtilities.get_model_instance_or_none(Community,
@@ -901,11 +902,12 @@ class UserImpl(UserManager):
                     get_dm_chatrooms_state_list = get_dm_chatrooms_of_user(user_id=user_instance.id,
                                                                            community_id=community_ids_list)
                     get_dm_chatrooms_list = [card_id[1] for card_id in get_dm_chatrooms_state_list]
-                    unseen_count = get_conversations_after_last_seen_messages_in_chatrooms(get_dm_chatrooms_list)
+                    unseen_count = get_conversations_after_last_seen_messages_in_chatrooms(user_instance.id,
+                                                                                           get_dm_chatrooms_list)
                     connection_requests_count = ModelUtilities.get_model_filter(
                         collabcardState, {'id__in': get_dm_chatrooms_list,
                                           'chat_request_state': chat_request_states.INITIATED}).exclude(
-                        chat_requested_by=user_instance).count()
+                        chat_request_initiated_by=user_instance).count()
 
                     return {
                         "success": True,
