@@ -3282,12 +3282,17 @@ def get_conversations_after_last_seen_messages_in_chatrooms(chatrooms_list, data
 
         chatrooms_list_string = ",".join([str(card_id) for card_id in chatrooms_list])
 
+        included_conv_states = [conversation_states.ANSWER, conversation_states.CONVERSATION_HEADER,
+                                conversation_states.CONVERSATION_POLL]
+
+        included_conv_states_query = get_tuple_from_array(included_conv_states)
+
         raw_data = "CS.card_id, CA.id, CA.state"
         additional_filter = ""
 
         if not data_state:
             raw_data = "Count(*)"
-            additional_filter = "AND CA.state IN (0, 13, 14, 15, 16, 17, 19, 20)"
+            additional_filter = f"AND CA.state IN {included_conv_states_query}"
 
         conn = get_connection()
         curr = conn.cursor()
