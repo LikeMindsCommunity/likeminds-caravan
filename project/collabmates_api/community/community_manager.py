@@ -359,7 +359,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_community_noti_settings(self) -> {}:
+    def fetch_community_noti_settings(self, api_revamp_v1_check=False) -> {}:
         """Fetches notification settings of community"""
 
         raise NotImplementedError
@@ -371,7 +371,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_feed_notification_settings(self) -> {}:
+    def fetch_feed_notification_settings(self, api_revamp_v1_check=False) -> {}:
         """Fetches feed notification settings of community"""
 
         raise NotImplementedError

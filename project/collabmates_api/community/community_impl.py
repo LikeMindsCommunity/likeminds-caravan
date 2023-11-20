@@ -2221,7 +2221,7 @@ class CommunityImpl(CommunityManager):
 
         return ResponseUtilities.get_impl_error_context(serializer.errors, status_codes.HTTP_400_BAD_REQUEST)
 
-    def fetch_community_noti_settings(self):
+    def fetch_community_noti_settings(self, api_revamp_v1_check=False):
         
         validated_req_body = CommunityHelper.validate_fetch_community_noti_settings(self.get_member_id(),
                                                                                     self.get_community_id(),
@@ -2234,16 +2234,20 @@ class CommunityImpl(CommunityManager):
         noti_setting_instance = CommunityHelper.fetch_community_noti_settings_instance(
             validated_req_body.get('community_instance'))
 
-        serializer = CommunityNotificationSettingsSerializer(noti_setting_instance)
+        response = CommunityNotificationSettingsSerializer(noti_setting_instance).data
+
+        # If api_revamp_v1_check is True, then add notification title
+        if api_revamp_v1_check:
+            response['notification_title'] = noti_states.get_string_state_type_from_int(response.get('noti_state'))
 
         res = {
             'success': True,
-            'community_notification_settings': serializer.data
+            'community_notification_settings': response
         }
 
         return res
 
-    def fetch_feed_notification_settings(self):
+    def fetch_feed_notification_settings(self, api_revamp_v1_check=False):
 
         validated_req_body = CommunityHelper.validate_fetch_feed_notification_settings(self.get_member_id(),
                                                                                        self.get_api_key())
@@ -2255,11 +2259,16 @@ class CommunityImpl(CommunityManager):
         notification_setting_instances = CommunityHelper.fetch_feed_notification_settings_instances(
             validated_req_body.get('community_instance'))
 
-        serializer = FeedNotificationSettingsSerializer(notification_setting_instances, many=True)
+        response = FeedNotificationSettingsSerializer(notification_setting_instances, many=True).data
+
+        if api_revamp_v1_check:
+            for notification_setting in response:
+                notification_setting['notification_title'] = feed_notification_states.get_string_state_type_from_int(
+                    notification_setting.get('notification_type'))
 
         response = {
             'success': True,
-            'community_notification_settings': serializer.data
+            'community_notification_settings': response
         }
 
         return response

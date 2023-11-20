@@ -742,6 +742,13 @@ class NotificationStates:
     ONLY_MENTIONS_AND_REPLIES_ANALYTICS = "mentions_replies"
     DM_MENTION_REPLIES_POLL_ANALYTICS = "dm_mention_replies_poll"
 
+    @classmethod
+    def get_string_state_type_from_int(cls, value) -> str:
+        return cls(value).name.lower() if value in cls._value2member_map_ else ""
+    
+    @classmethod
+    def get_int_state_type_from_string(cls, value) -> int:
+        return cls[value.upper()].value if value.upper() in cls._member_names_ else -1
 
 noti_states = NotificationStates()
 
@@ -752,6 +759,13 @@ class FeedNotificationStates:
     REPLIES_ON_YOUR_COMMENTS = 3
     UPDATES_ON_COMMENTED_POST = 4
 
+    @classmethod
+    def get_string_state_type_from_int(cls, value) -> str:
+        return cls(value).name.lower() if value in cls._value2member_map_ else ""
+    
+    @classmethod
+    def get_int_state_type_from_string(cls, value) -> int:
+        return cls[value.upper()].value if value.upper() in cls._member_names_ else -1
 
 feed_notification_states = FeedNotificationStates()
 

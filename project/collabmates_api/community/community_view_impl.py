@@ -986,9 +986,12 @@ class CommunityNotificationSettings(APIView):
         api_key = RequestUtilities.get_api_key_from_headers(request)
         req_body = RequestUtilities.fetch_request_query_params(request)
 
+        accept_version = RequestUtilities.get_accept_version_from_headers(request)
+        api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
+
         community_manager = CommunityImpl(member_id=member_id, community_id=req_body.get('community_id'),
                                           api_key=api_key)
-        res = community_manager.fetch_community_noti_settings()
+        res = community_manager.fetch_community_noti_settings(api_revamp_v1_check=api_revamp_v1_check)
 
         if res.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
@@ -1018,8 +1021,11 @@ class FeedNotificationSettings(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
+        accept_version = RequestUtilities.get_accept_version_from_headers(request)
+        api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
+
         community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
-        res = community_manager.fetch_feed_notification_settings()
+        res = community_manager.fetch_feed_notification_settings(api_revamp_v1_check=api_revamp_v1_check)
 
         if res.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
