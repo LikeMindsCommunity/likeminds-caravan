@@ -380,7 +380,6 @@ class ElasticSearchSync:
         """
         member_instances = ModelUtilities.get_model_filter(Members, {'member_id_id__in': member_ids,
                                                                      'community_id_id': community_id})
-        
         ElasticSearchSync.update_document(member_instances)
 
 
