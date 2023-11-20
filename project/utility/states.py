@@ -675,6 +675,13 @@ class CommunityDMSettingsStateTypes:
     UNLIMITED = 0
     LIMITED = 1
 
+    @classmethod
+    def get_string_state_type_from_int(cls, value) -> str:
+        return cls(value).name.lower() if value in cls._value2member_map_ else ""
+    
+    @classmethod
+    def get_int_state_type_from_string(cls, value) -> int:
+        return cls[value.upper()].value if value.upper() in cls._member_names_ else -1
 
 community_dm_settings_state_types = CommunityDMSettingsStateTypes()
 

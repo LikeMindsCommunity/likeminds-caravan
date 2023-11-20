@@ -1965,11 +1965,12 @@ class CommunityImpl(CommunityManager):
 
         return output
 
-    def update_community_dm_settings(self, req_body) -> {}:
+    def update_community_dm_settings(self, req_body, api_revamp_v1_check=False) -> {}:
         validated_req_body = CommunityHelper.validate_update_community_dm_settings_request(self.get_member_id(),
                                                                                            self.get_community_id(),
                                                                                            self.get_api_key(),
-                                                                                           req_body)
+                                                                                           req_body,
+                                                                                           api_revamp_v1_check)
 
         if not validated_req_body.get('success'):
             return validated_req_body
@@ -1983,7 +1984,7 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True}
 
-    def fetch_community_dm_settings(self) -> {}:
+    def fetch_community_dm_settings(self, api_revamp_v1_check=False) -> {}:
         validated_req_body = CommunityHelper.validate_fetch_community_dm_settings_request(self.get_member_id(),
                                                                                           self.get_community_id(),
                                                                                           self.get_api_key())
@@ -1999,6 +2000,12 @@ class CommunityImpl(CommunityManager):
 
         if community_dm_settings_filter:
             community_dm_setting_object = CommunityDMSettingsSerializer(community_dm_settings_filter[0]).data
+
+            # If api_revamp_v1_check is True, then convert state from int to string
+            if api_revamp_v1_check:
+                community_dm_setting_object['state'] = community_dm_settings_state_types.get_string_state_type_from_int(
+                    community_dm_setting_object['state'])
+
             return {'success': True, 'community_dm_settings': community_dm_setting_object}
 
         else:
@@ -4505,7 +4512,8 @@ class CommunityHelper:
                 'aj': req_body.get('aj', None), 'shared_by': req_body.get('shared_by', None)}
 
     @staticmethod
-    def validate_update_community_dm_settings_request(user_id, community_id, api_key, req_body):
+    def validate_update_community_dm_settings_request(user_id, community_id, api_key, req_body, 
+                                                      api_revamp_v1_check=False):
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
         if not user_instance:
@@ -4525,6 +4533,10 @@ class CommunityHelper:
         update_dict = {}
 
         if req_body.get('state') is not None:
+
+            # If api revamp v1 is TRUE, update state
+            if api_revamp_v1_check:
+                req_body['state'] = community_dm_settings_state_types.get_int_state_type_from_string(req_body.get('state'))
 
             if req_body.get('state') not in [community_dm_settings_state_types.UNLIMITED,
                                              community_dm_settings_state_types.LIMITED]:
