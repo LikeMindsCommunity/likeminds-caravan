@@ -530,6 +530,9 @@ class CohortTypes:
     SUBSCRIPTION_EXPIRED_PLAN = 2
     ALL_MEMBER = 3
 
+    @classmethod
+    def get_cohort_type_from_int(cls, value) -> str:
+        return cls(value).name.lower() if value in cls._value2member_map_ else ""
 
 cohort_types = CohortTypes()
 

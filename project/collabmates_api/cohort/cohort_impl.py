@@ -243,7 +243,7 @@ class CohortImpl(CohortManager):
 
         return {'success': True, 'member_cohorts': member_cohort_dict}
 
-    def fetch_cohorts_with_community_id(self, community_id):
+    def fetch_cohorts_with_community_id(self, community_id, api_revamp_v1_check=False):
         validated_req_body = CohortHelper.validate_fetch_community_cohorts_request(self.get_member_id(),
                                                                                    community_id=community_id,
                                                                                    api_key=self.get_api_key())
@@ -265,6 +265,11 @@ class CohortImpl(CohortManager):
                 'type': cohort.type,
                 'total_members': ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort.id}).count()
             }
+
+            # If api revamp v1 check, update response
+            if api_revamp_v1_check:
+                cohort_context['type'] = CohortTypes.get_cohort_type_from_int(cohort_context['type'])
+
             cohort_context_list.append(cohort_context)
 
         return {'success': True, 'cohorts': cohort_context_list}
@@ -333,7 +338,7 @@ class CohortImpl(CohortManager):
 
         return {'success': True}
 
-    def fetch_cohorts_with_community_and_cohort_id(self, cohort_id, community_id):
+    def fetch_cohorts_with_community_and_cohort_id(self, cohort_id, community_id, api_revamp_v1_check=False):
 
         validated_req_body = CohortHelper.validate_fetch_cohort_request(self.get_member_id(),
                                                                         cohort_id=cohort_id,
@@ -371,6 +376,13 @@ class CohortImpl(CohortManager):
 
         if cohorts.get('type') in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN]:
             cohorts['type_id'] = cohort_instance.type_id
+
+        # If api revamp v1 check, update response
+        if api_revamp_v1_check:
+            cohorts['type'] = CohortTypes.get_cohort_type_from_int(cohorts['type'])
+
+            for right in cohorts['rights']:
+                right.pop('state')
 
         return {'success': True, 'cohorts': cohorts}
 

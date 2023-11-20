@@ -12535,8 +12535,9 @@ def fetch_community_setting_rights(request):
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
     sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+    accept_version = RequestUtilities.get_accept_version_from_headers(request)
 
-
+    api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
     can_show = False
 
     if m2cm_v1_version_check(platform_code, version_code):
@@ -12575,6 +12576,13 @@ def fetch_community_setting_rights(request):
         # fetching all the rights of the community
         rights_context = get_saved_member_rights_list(user_rights, show_dm_right=can_show, is_m2cm_v2=is_m2cm_v2,
                                                       is_feed_enabled=is_feed_enabled)
+        
+        # If api revamp checkk, remove state from rights
+        if api_revamp_v1_check:
+        
+            for right in rights_context:
+                right.pop('state')
+
         return JsonResponse({"success": True, "rights": rights_context})
     else:
         context = get_error_context(False, "user is not a admin")
