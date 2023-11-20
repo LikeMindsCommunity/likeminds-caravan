@@ -301,7 +301,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
                   'online_link', 'online_link_id', 'online_link_password', 'event_payment_link', 'event_web_page',
                   'webflow_item_id', 'is_private', 'chatroom_with_user_id', 'member_can_message', 'cohorts',
                   'has_event_recording', 'unread_messages', 'access_without_subscription', 'third_party_unique_id',
-                  'include_members_later', 'custom_tag')
+                  'include_members_later', 'custom_tag', 'event_kind')
 
     def __init__(self, *args, **kwargs):
         super(GetChatroomInstanceSerializer, self).__init__(*args, **kwargs)

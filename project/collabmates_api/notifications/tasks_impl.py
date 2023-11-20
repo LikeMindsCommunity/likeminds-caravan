@@ -15,7 +15,7 @@ from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import member_states, mobile_states, email_states, chatroom_not_opened_types, \
     user_email_send_status_types, event_access, card_types, get_started_types, feed_notification_states, \
-    UTMCampaing, UTMContent
+    UTMCampaing, UTMContent, event_kinds
 from utility.url_utilities import UrlUtilities
 from utility.celery_tasks import get_event_pricing
 from collabmates_api.static_text import CUSTOMISE_JOIN_FORM_MAIL_SUBJECT
@@ -154,6 +154,7 @@ class TasksImpl(TaskManager):
         online_link_enable_before = payload.get('chatroom').online_link_enable_before
         community_id = payload.get('chatroom').community.id
         attending_status = payload.get('attending_status', True)
+        event_kind = payload.get('chatroom').event_kind
 
         online_link_enable_before_in_mins = TimeUtilities.convert_milliseconds_to_min(online_link_enable_before)
 
@@ -161,13 +162,13 @@ class TasksImpl(TaskManager):
 
         response_dict = self.process_app_notification_response_dict(event_name, is_paid_event, event_id,
                                                                     online_link_enable_before_in_mins, member_name,
-                                                                    community_id, attending_status=attending_status)
-
+                                                                    community_id, event_kind,
+                                                                    attending_status=attending_status)
         return response_dict
 
     def process_app_notification_response_dict(self, event_name, is_paid_event, event_id,
                                                online_link_enable_before_in_mins, member_name, community_id,
-                                               attending_status=True):
+                                               event_kind, attending_status=True):
 
         if self.get_event_type() == EVENT_TYPE.CREATION:
 
@@ -176,7 +177,11 @@ class TasksImpl(TaskManager):
 
             category = NotificationCategories.EVENT_REGISTER_CATEGORY
 
-            if is_paid_event:
+            if event_kind == event_kinds.PARTNER_EVENT:
+                route = ROUTE_FREE_PARTNER_EVENT_APP_NOTIFICATION % event_id
+                subcategory = NotificationSubCategories.FREE_EVENT_CREATED_SUBCATEGORY
+
+            elif is_paid_event:
                 route = ROUTE_PAID_EVENT_CREATION_APP_NOTIFICATION % event_id
                 subcategory = NotificationSubCategories.PAID_EVENT_CREATED_SUBCATEGORY
 

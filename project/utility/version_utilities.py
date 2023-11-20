@@ -119,9 +119,9 @@ class VersionUtilities:
             PlatformCode.REACT_NATIVE: unreleased_version_code,
             PlatformCode.WEB: unreleased_version_code,
 
-            PlatformCode.ANDROID_SDK: unreleased_version_code,
+            PlatformCode.ANDROID_SDK: 1010,
             PlatformCode.FLUTTER_SDK: unreleased_version_code,
-            PlatformCode.IOS_SDK: unreleased_version_code,
+            PlatformCode.IOS_SDK: 1012,
             PlatformCode.REACT_SDK: 15,
             PlatformCode.REACT_NATIVE_SDK: 7,
             PlatformCode.WEB_SDK: 15,

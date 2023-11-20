@@ -13028,7 +13028,7 @@ class SyncChatrooms(APIView):
             if chatroom['is_private'] and not can_add_dm_chatrooms:
                 continue
 
-            if chatroom['is_private_member'] and not m2cm_v2_version_check(platform_code, version_code):
+            if chatroom['is_private_member'] and not m2cm_v2_version_check(platform_code, version_code, is_sdk=True):
                 continue
 
             if data[70] is not None:
