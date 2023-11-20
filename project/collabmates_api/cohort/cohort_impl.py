@@ -162,6 +162,8 @@ class CohortImpl(CohortManager):
         user_instance = validated_req_body.get('user_instance')
         member_instance = validated_req_body.get('member_instance')
 
+        cohort_meta_update = False
+
         # If uudids are passed, get valid user ids and update member_ids
         if uuids:
             member_ids = ModelUtilities.get_valid_user_ids_from_uuids(uuids, cohort_instance.community_id)
@@ -181,6 +183,7 @@ class CohortImpl(CohortManager):
 
         if name:
             ModelUtilities.model_update(Cohort, {'id': cohort_id}, {'name': name})
+            cohort_meta_update = True
 
         if rights:
             existing_rights = set(
@@ -203,7 +206,7 @@ class CohortImpl(CohortManager):
             self._add_rights_to_cohort(rights_to_add, cohort_instance)
             CohortHelper.remove_rights_to_all_cohort_members(cohort_instance, rights_to_remove)
 
-        self._update_members_for_cohort(cohort_instance, member_ids)
+        self._update_members_for_cohort(cohort_instance, member_ids, meta_update=cohort_meta_update)
 
         if filter_list:
             CohortHelper.create_cohort_filters(filter_list, cohort_instance)
@@ -424,7 +427,7 @@ class CohortImpl(CohortManager):
             except:
                 error_logger.error(f"rights already exists for cohort {cohort_instance}")
 
-    def _update_members_for_cohort(self, cohort_instance, member_ids):
+    def _update_members_for_cohort(self, cohort_instance, member_ids, meta_update=False):
         # Doesn't remove any existing member
         existing_cohort_members = set(
             ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort_instance.id}).values_list('user_id',
@@ -436,7 +439,7 @@ class CohortImpl(CohortManager):
         add_new_participants_to_cohorts_secret_chatroom(cohort_instance.id, self.get_member_id(), member_ids)
 
         # In case of cohort meta-data update, updating elasticsearch doc.
-        if not members_to_add:
+        if meta_update:
             ElasticSearchSync.update_members.delay(member_ids=list(existing_cohort_members),
                                                    community_id=cohort_instance.community_id)
 
