@@ -794,7 +794,8 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
         members.append(userinfo_serialized_object)
 
     # If first page and current user'state matches member_state filter, then add him to the top of the list 
-    if current_user and (not member_state or current_user['state'] == member_state):        
+    if current_user and (not member_state or current_user['state'] == member_state):  
+        member_ids.append(current_user_id)      
         members.insert(0, current_user)
     
     # If sdk_client_info_flag is True, then add sdk_client_info to members object
