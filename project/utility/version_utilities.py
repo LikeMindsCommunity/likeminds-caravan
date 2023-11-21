@@ -1,3 +1,4 @@
+from django.conf import settings
 class VersionUtilities:
 
     class PlatformCode:
@@ -565,3 +566,22 @@ class VersionUtilities:
         """
 
         return accept_version == 'v1'
+
+    @staticmethod
+    def force_update_version_check_for_ch(platform_code: str, version_code: int) -> bool:
+
+        try:
+
+            android_version = int(settings.CH_FORCE_UPDATE_ANDROID_VERSION)
+            ios_version = int(settings.CH_FORCE_UPDATE_IOS_VERSION)
+
+            if platform_code == VersionUtilities.PlatformCode.ANDROID_SDK:
+                return version_code >= android_version
+            
+            if platform_code == VersionUtilities.PlatformCode.IOS_SDK:
+                return version_code >= ios_version
+        
+        except Exception as e:
+            print(e)
+
+        return False
