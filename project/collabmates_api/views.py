@@ -9274,7 +9274,7 @@ def config(request):
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     userinfo_instance = user_instance.userinfo
 
-    community_hood_check = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.community_hood)
+    community_hood_check = VersionUtilities.force_update_version_check_for_ch(platform_code, version_code)
 
     if userinfo_instance.version_code != version_code:
         userinfo_instance.version_code = version_code
