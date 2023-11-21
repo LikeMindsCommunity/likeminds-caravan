@@ -589,20 +589,24 @@ def get_tagged_members_list(community_id, chatroom_id, answer):
     tagged_users_list = re.findall("route:\/\/[member member_profile]+\/([0-9]+)", answer)
     tagged_uuids_list = re.findall("route:\/\/user_profile\/([\s\S]*?)>>", answer)
     answer_text = re.sub(r'\|route://[member member_profile]+/[0-9]+>>|<<', '', answer)
+    answer_text_from_uuid = re.sub(r'\|route:\/\/user_profile\/([\s\S]*?)>>|<<', '', answer)
     tagged_user_names = "@" + ' @'.join(re.findall('(?<=\<\<).+?(?=\|)', answer))
 
     if tagged_uuids_list:
         valid_ids = ModelUtilities.get_valid_user_ids_from_uuids(tagged_uuids_list, community_id)
         valid_ids = ListUtilities.convert_elements_int_to_str(valid_ids)
         tagged_users_list.extend(valid_ids)
+        answer_text = answer_text_from_uuid
 
     group_tagged_users, conversation_text, should_unmute_members, is_group_tag = process_group_tags(
         community_id,
         chatroom_id,
         answer_text
     )
+
     if group_tagged_users:
         tagged_users_list = ListUtilities.merge_lists(tagged_users_list, group_tagged_users)
+
     if conversation_text:
         answer_text = conversation_text
 
@@ -1277,7 +1281,8 @@ def send_follow_notification(card_id, user_id, conversation_id):
                                                                     card_instance, userinfo_instance,
                                                                     conversation_instance)
     
-    # If @participants or @everyone tag is used, send different route, to not trigger unread_notification api from client side
+    # If @participants or @everyone tag is used, send different route,
+    # to not trigger unread_notification api from client side
     if is_group_tag:
         route = CHATROOM_DETAIL_NOTIFICATION_ROUTE % card_id
 
