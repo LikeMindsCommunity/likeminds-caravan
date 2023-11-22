@@ -6,8 +6,8 @@ from collabmates_api.chatroom.chatroom_impl import (ChatroomImpl)
 from django.conf import settings
 
 if settings.IS_BETA:
-    previous_notification_state = noti_states.ONLY_MENTIONS_AND_REPLIES
-    notification_state = noti_states.ALL_MESSAGES
+    previous_notification_state = noti_states.ALL_MESSAGES
+    notification_state = noti_states.ONLY_MENTIONS_AND_REPLIES
     chatroom_id = None
     user_id = None
     community_id = 50441
