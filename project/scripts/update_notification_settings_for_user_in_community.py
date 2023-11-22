@@ -10,7 +10,7 @@ if settings.IS_BETA:
     notification_state = noti_states.ONLY_MENTIONS_AND_REPLIES
     chatroom_id = None
     user_id = None
-    community_id = 50441
+    community_id = None
 
     filter_dict = {
         'community': community_id
