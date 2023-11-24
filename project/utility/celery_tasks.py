@@ -1867,7 +1867,7 @@ def compute_member_images_for_homescreen_celery(chatroom_instance, community_ins
 
 def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_user, community_instance,
                                 user_instances_list, answer="", user_member_state=member_states.ADMIN,
-                                member_state=None, conversation_state=None):
+                                member_state=None, conversation_state=None, update_chatroom_updated_at=False):
     is_guest = False
     is_tagged = False
     ref_instance = None
@@ -1898,6 +1898,9 @@ def initial_message_dm_chatroom(chatroom_instance, member_instance, chatroom_use
                                       state=conversation_state)
 
     dm_card_answer.save()
+
+    if update_chatroom_updated_at:
+        chatroom_instance.save()
 
     # Create Conversation Engage
     for user_instance in user_instances_list:
