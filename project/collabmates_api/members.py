@@ -507,7 +507,7 @@ def get_all_members_version_1(request, req_dict=None):
     member_state = request.GET.get('member_state', None)
     member_state = NumberUtilities.get_integer_from_string(member_state, -1)
     question_answers_version = request.GET.get('question_answers_version', '')
-    filter_member_roles = StringUtilities.get_list_from_string(request.GET.get('filter_member_roles', ''))
+    filter_member_roles = StringUtilities.convert_string_to_list(request.GET.get('filter_member_roles', ''))
 
     included_member_states = []
 
