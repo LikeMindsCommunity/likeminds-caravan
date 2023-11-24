@@ -5682,7 +5682,8 @@ class ChatroomHelper:
         conversation_instance = initial_message_dm_chatroom(card_instance, user_instance, other_member_instance,
                                                             card_instance.community, user_instances_list,
                                                             message, user_member_state, member_state,
-                                                            conversation_state=conv_state)
+                                                            conversation_state=conv_state,
+                                                            update_chatroom_updated_at=True)
 
         send_notification_on_dm_request_initiation.delay(card_instance.id, user_instance.id,
                                                          user_instance.userinfo.name)
@@ -5720,7 +5721,8 @@ class ChatroomHelper:
             conversation_instance = initial_message_dm_chatroom(card_instance, user_instance, other_member_instance,
                                                                 card_instance.community, user_instances_list,
                                                                 message, user_member_state, member_state,
-                                                                conversation_state=conv_state)
+                                                                conversation_state=conv_state,
+                                                                update_chatroom_updated_at=True)
 
             context = {"current_user_id": user_instance.id, "fetch_reply": True}
             conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
