@@ -12635,7 +12635,7 @@ def update_community_rights(request):
     if admin.exists():
 
         if patch_request and not selected_rights:
-            context = ResponseUtilities.get_view_impl_error_context("rights are required",
+            context = ResponseUtilities.get_view_impl_error_context("Please send atleast one right to update",
                                                                     status_codes.HTTP_400_BAD_REQUEST)
             return JsonResponse(**context)
         

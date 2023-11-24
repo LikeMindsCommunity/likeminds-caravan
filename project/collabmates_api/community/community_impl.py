@@ -2262,6 +2262,7 @@ class CommunityImpl(CommunityManager):
         response = FeedNotificationSettingsSerializer(notification_setting_instances, many=True).data
 
         if api_revamp_v1_check:
+
             for notification_setting in response:
                 notification_setting['notification_title'] = feed_notification_states.get_string_state_type_from_int(
                     notification_setting.get('notification_type'))
