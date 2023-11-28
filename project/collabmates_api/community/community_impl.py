@@ -76,7 +76,8 @@ from utility.states import member_states, card_types, click_states, member_right
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
-    api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types
+    api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
+    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -2003,7 +2004,7 @@ class CommunityImpl(CommunityManager):
 
             # If api_revamp_v1_check is True, then convert state from int to string
             if api_revamp_v1_check:
-                community_dm_setting_object['state'] = community_dm_settings_state_types.get_string_state_type_from_int(
+                community_dm_setting_object['state'] = CommunityDMSettingTypes.get_string_state_type_from_int(
                     community_dm_setting_object['state'])
 
             return {'success': True, 'community_dm_settings': community_dm_setting_object}
@@ -2238,7 +2239,7 @@ class CommunityImpl(CommunityManager):
 
         # If api_revamp_v1_check is True, then add notification title
         if api_revamp_v1_check:
-            response['notification_title'] = noti_states.get_string_state_type_from_int(response.get('noti_state'))
+            response['notification_title'] = ChatNotificationTypes.get_string_state_type_from_int(response.get('noti_state'))
 
         res = {
             'success': True,
@@ -2264,7 +2265,7 @@ class CommunityImpl(CommunityManager):
         if api_revamp_v1_check:
 
             for notification_setting in response:
-                notification_setting['notification_title'] = feed_notification_states.get_string_state_type_from_int(
+                notification_setting['notification_title'] = FeedNotifcationTypes.get_string_state_type_from_int(
                     notification_setting.get('notification_type'))
 
         response = {
@@ -4546,7 +4547,7 @@ class CommunityHelper:
 
             # If api revamp v1 is TRUE, update state
             if api_revamp_v1_check:
-                req_body['state'] = community_dm_settings_state_types.get_int_state_type_from_string(req_body.get('state'))
+                req_body['state'] = CommunityDMSettingTypes.get_int_state_type_from_string(req_body.get('state'))
 
             if req_body.get('state') not in [community_dm_settings_state_types.UNLIMITED,
                                              community_dm_settings_state_types.LIMITED]:

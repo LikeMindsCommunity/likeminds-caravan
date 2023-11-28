@@ -524,7 +524,20 @@ class CommunitySettingTypes:
 community_setting_types = CommunitySettingTypes()
 
 
-class CohortTypes:
+class CohortType:
+    NORMAL = 0
+    SUBSCRIPTION_PLAN = 1
+    SUBSCRIPTION_EXPIRED_PLAN = 2
+    ALL_MEMBER = 3
+
+
+cohort_types = CohortType()
+
+cohort_type_list = [cohort_types.NORMAL, cohort_types.SUBSCRIPTION_PLAN,
+                    cohort_types.SUBSCRIPTION_EXPIRED_PLAN, cohort_types.ALL_MEMBER]
+
+
+class CohortTypes(enum.Enum):
     NORMAL = 0
     SUBSCRIPTION_PLAN = 1
     SUBSCRIPTION_EXPIRED_PLAN = 2
@@ -533,11 +546,6 @@ class CohortTypes:
     @classmethod
     def get_cohort_type_from_int(cls, value) -> str:
         return cls(value).name.lower() if value in cls._value2member_map_ else ""
-
-cohort_types = CohortTypes()
-
-cohort_type_list = [cohort_types.NORMAL, cohort_types.SUBSCRIPTION_PLAN,
-                    cohort_types.SUBSCRIPTION_EXPIRED_PLAN, cohort_types.ALL_MEMBER]
 
 
 class GetStartedTypes:
@@ -675,6 +683,12 @@ class CommunityDMSettingsStateTypes:
     UNLIMITED = 0
     LIMITED = 1
 
+community_dm_settings_state_types = CommunityDMSettingsStateTypes()
+
+class CommunityDMSettingTypes(enum.Enum):
+    UNLIMITED = 0
+    LIMITED = 1
+
     @classmethod
     def get_string_state_type_from_int(cls, value) -> str:
         return cls(value).name.lower() if value in cls._value2member_map_ else ""
@@ -682,8 +696,6 @@ class CommunityDMSettingsStateTypes:
     @classmethod
     def get_int_state_type_from_string(cls, value) -> int:
         return cls[value.upper()].value if value.upper() in cls._member_names_ else -1
-
-community_dm_settings_state_types = CommunityDMSettingsStateTypes()
 
 
 class CommunityDMSettingsDurationTypes:
@@ -742,6 +754,17 @@ class NotificationStates:
     ONLY_MENTIONS_AND_REPLIES_ANALYTICS = "mentions_replies"
     DM_MENTION_REPLIES_POLL_ANALYTICS = "dm_mention_replies_poll"
 
+noti_states = NotificationStates()
+
+class ChatNotificationTypes(enum.Enum):
+    ALL_MESSAGES = 1
+    ONLY_MENTIONS_AND_REPLIES = 2
+    DM_MENTION_REPLIES_POLL = 3
+
+    ALL_MESSAGES_ANALYTICS = "all_messages"
+    ONLY_MENTIONS_AND_REPLIES_ANALYTICS = "mentions_replies"
+    DM_MENTION_REPLIES_POLL_ANALYTICS = "dm_mention_replies_poll"
+
     @classmethod
     def get_string_state_type_from_int(cls, value) -> str:
         return cls(value).name.lower() if value in cls._value2member_map_ else ""
@@ -750,10 +773,17 @@ class NotificationStates:
     def get_int_state_type_from_string(cls, value) -> int:
         return cls[value.upper()].value if value.upper() in cls._member_names_ else -1
 
-noti_states = NotificationStates()
-
 
 class FeedNotificationStates:
+    LIKES = 1
+    COMMENTS = 2
+    REPLIES_ON_YOUR_COMMENTS = 3
+    UPDATES_ON_COMMENTED_POST = 4
+
+feed_notification_states = FeedNotificationStates()
+
+
+class FeedNotifcationTypes(enum.Enum):
     LIKES = 1
     COMMENTS = 2
     REPLIES_ON_YOUR_COMMENTS = 3
@@ -766,8 +796,6 @@ class FeedNotificationStates:
     @classmethod
     def get_int_state_type_from_string(cls, value) -> int:
         return cls[value.upper()].value if value.upper() in cls._member_names_ else -1
-
-feed_notification_states = FeedNotificationStates()
 
 
 class WhatsappSubscriptionStateActions:
