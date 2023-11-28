@@ -754,6 +754,7 @@ class NotificationStates:
     ONLY_MENTIONS_AND_REPLIES_ANALYTICS = "mentions_replies"
     DM_MENTION_REPLIES_POLL_ANALYTICS = "dm_mention_replies_poll"
 
+
 noti_states = NotificationStates()
 
 class ChatNotificationTypes(enum.Enum):
@@ -779,6 +780,7 @@ class FeedNotificationStates:
     COMMENTS = 2
     REPLIES_ON_YOUR_COMMENTS = 3
     UPDATES_ON_COMMENTED_POST = 4
+
 
 feed_notification_states = FeedNotificationStates()
 
