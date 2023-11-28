@@ -507,7 +507,7 @@ def get_all_members_version_1(request, req_dict=None):
     member_state = request.GET.get('member_state', None)
     member_state = NumberUtilities.get_integer_from_string(member_state, -1)
     question_answers_version = request.GET.get('question_answers_version', '')
-    filter_member_roles = StringUtilities.get_list_from_string(request.GET.get('filter_member_roles', ''))
+    filter_member_roles = StringUtilities.convert_string_to_list(request.GET.get('filter_member_roles', ''))
 
     included_member_states = []
 
@@ -794,7 +794,8 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
         members.append(userinfo_serialized_object)
 
     # If first page and current user'state matches member_state filter, then add him to the top of the list 
-    if current_user and (not member_state or current_user['state'] == member_state):        
+    if current_user and (not member_state or current_user['state'] == member_state):  
+        member_ids.append(current_user_id)      
         members.insert(0, current_user)
     
     # If sdk_client_info_flag is True, then add sdk_client_info to members object
@@ -1014,11 +1015,13 @@ def get_member_query_set(current_user_id, community_id, send_all=False, page=1, 
 
     is_promoter = state == member_states.ADMIN
 
-    if is_promoter:
-        is_promoter = check_admin_approve_right(community=community_id, user=current_user_id)
+    if not included_member_states:
 
-    if not is_promoter:
-        included_member_states = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]
+        if is_promoter:
+            is_promoter = check_admin_approve_right(community=community_id, user=current_user_id)
+
+        if not is_promoter:
+            included_member_states = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]
 
     if member_state:
         included_member_states = [member_state]
