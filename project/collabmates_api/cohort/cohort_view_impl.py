@@ -9,6 +9,7 @@ from collabmates_api.views import get_error_context
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.request_utilities import RequestUtilities
 from utility.response_utilities import ResponseUtilities
+from utility.version_utilities import VersionUtilities
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -64,6 +65,9 @@ class FetchCohortWithMemberCountView(APIView):
         api_key = RequestUtilities.get_api_key_from_headers(request)
         community_id = request.GET.get('community_id', "")
 
+        accept_version = RequestUtilities.get_accept_version_from_headers(request)
+        api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
+
         if not member_id:
             response = ResponseUtilities.get_view_impl_error_context('Invalid header member id',
                                                                      status_codes.HTTP_400_BAD_REQUEST)
@@ -75,7 +79,7 @@ class FetchCohortWithMemberCountView(APIView):
             return JsonResponse(**response)
 
         cohort_manager = CohortImpl(member_id=member_id, api_key=api_key)
-        response = cohort_manager.fetch_cohorts_with_community_id(community_id)
+        response = cohort_manager.fetch_cohorts_with_community_id(community_id, api_revamp_v1_check=api_revamp_v1_check)
 
         if response.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),
@@ -92,9 +96,13 @@ class FetchCohortView(APIView):
         community_id = request.GET.get('community_id', "")
         cohort_id = request.GET.get('cohort_id', "")
 
+        accept_version = RequestUtilities.get_accept_version_from_headers(request)
+        api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
+
         cohort_manager = CohortImpl(member_id=member_id, api_key=api_key)
         response = cohort_manager.fetch_cohorts_with_community_and_cohort_id(cohort_id=cohort_id,
-                                                                             community_id=community_id)
+                                                                             community_id=community_id,
+                                                                             api_revamp_v1_check=api_revamp_v1_check)
 
         if response.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response.get('error_message'),

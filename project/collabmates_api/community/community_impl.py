@@ -76,7 +76,8 @@ from utility.states import member_states, card_types, click_states, member_right
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
-    api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types
+    api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
+    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -1965,11 +1966,12 @@ class CommunityImpl(CommunityManager):
 
         return output
 
-    def update_community_dm_settings(self, req_body) -> {}:
+    def update_community_dm_settings(self, req_body, api_revamp_v1_check=False) -> {}:
         validated_req_body = CommunityHelper.validate_update_community_dm_settings_request(self.get_member_id(),
                                                                                            self.get_community_id(),
                                                                                            self.get_api_key(),
-                                                                                           req_body)
+                                                                                           req_body,
+                                                                                           api_revamp_v1_check)
 
         if not validated_req_body.get('success'):
             return validated_req_body
@@ -1983,7 +1985,7 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True}
 
-    def fetch_community_dm_settings(self) -> {}:
+    def fetch_community_dm_settings(self, api_revamp_v1_check=False) -> {}:
         validated_req_body = CommunityHelper.validate_fetch_community_dm_settings_request(self.get_member_id(),
                                                                                           self.get_community_id(),
                                                                                           self.get_api_key())
@@ -1999,6 +2001,12 @@ class CommunityImpl(CommunityManager):
 
         if community_dm_settings_filter:
             community_dm_setting_object = CommunityDMSettingsSerializer(community_dm_settings_filter[0]).data
+
+            # If api_revamp_v1_check is True, then convert state from int to string
+            if api_revamp_v1_check:
+                community_dm_setting_object['state'] = CommunityDMSettingTypes.get_string_state_type_from_int(
+                    community_dm_setting_object['state'])
+
             return {'success': True, 'community_dm_settings': community_dm_setting_object}
 
         else:
@@ -2214,7 +2222,7 @@ class CommunityImpl(CommunityManager):
 
         return ResponseUtilities.get_impl_error_context(serializer.errors, status_codes.HTTP_400_BAD_REQUEST)
 
-    def fetch_community_noti_settings(self):
+    def fetch_community_noti_settings(self, api_revamp_v1_check=False):
         
         validated_req_body = CommunityHelper.validate_fetch_community_noti_settings(self.get_member_id(),
                                                                                     self.get_community_id(),
@@ -2227,16 +2235,20 @@ class CommunityImpl(CommunityManager):
         noti_setting_instance = CommunityHelper.fetch_community_noti_settings_instance(
             validated_req_body.get('community_instance'))
 
-        serializer = CommunityNotificationSettingsSerializer(noti_setting_instance)
+        response = CommunityNotificationSettingsSerializer(noti_setting_instance).data
+
+        # If api_revamp_v1_check is True, then add notification title
+        if api_revamp_v1_check:
+            response['notification_title'] = ChatNotificationTypes.get_string_state_type_from_int(response.get('noti_state'))
 
         res = {
             'success': True,
-            'community_notification_settings': serializer.data
+            'community_notification_settings': response
         }
 
         return res
 
-    def fetch_feed_notification_settings(self):
+    def fetch_feed_notification_settings(self, api_revamp_v1_check=False):
 
         validated_req_body = CommunityHelper.validate_fetch_feed_notification_settings(self.get_member_id(),
                                                                                        self.get_api_key())
@@ -2248,11 +2260,17 @@ class CommunityImpl(CommunityManager):
         notification_setting_instances = CommunityHelper.fetch_feed_notification_settings_instances(
             validated_req_body.get('community_instance'))
 
-        serializer = FeedNotificationSettingsSerializer(notification_setting_instances, many=True)
+        response = FeedNotificationSettingsSerializer(notification_setting_instances, many=True).data
+
+        if api_revamp_v1_check:
+
+            for notification_setting in response:
+                notification_setting['notification_title'] = FeedNotifcationTypes.get_string_state_type_from_int(
+                    notification_setting.get('notification_type'))
 
         response = {
             'success': True,
-            'community_notification_settings': serializer.data
+            'community_notification_settings': response
         }
 
         return response
@@ -4505,7 +4523,8 @@ class CommunityHelper:
                 'aj': req_body.get('aj', None), 'shared_by': req_body.get('shared_by', None)}
 
     @staticmethod
-    def validate_update_community_dm_settings_request(user_id, community_id, api_key, req_body):
+    def validate_update_community_dm_settings_request(user_id, community_id, api_key, req_body, 
+                                                      api_revamp_v1_check=False):
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
 
         if not user_instance:
@@ -4525,6 +4544,10 @@ class CommunityHelper:
         update_dict = {}
 
         if req_body.get('state') is not None:
+
+            # If api revamp v1 is TRUE, update state
+            if api_revamp_v1_check:
+                req_body['state'] = CommunityDMSettingTypes.get_int_state_type_from_string(req_body.get('state'))
 
             if req_body.get('state') not in [community_dm_settings_state_types.UNLIMITED,
                                              community_dm_settings_state_types.LIMITED]:
