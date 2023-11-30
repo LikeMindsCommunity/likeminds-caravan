@@ -3669,7 +3669,7 @@ class ChatroomImpl(ChatroomManager):
 
         return {'success': True, 'is_converting': change_chatroom_status}
 
-    def create_dm_chatroom(self, req_body) -> dict:
+    def create_dm_chatroom(self, req_body, created_at_check: bool=False) -> dict:
         validated_request = ChatroomViewHelper.validate_create_dm_chatroom_request(self.get_member_id(), req_body,
                                                                                    self.get_api_key())
 
@@ -3746,7 +3746,8 @@ class ChatroomImpl(ChatroomManager):
         context = {
             'success': True,
             'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance, 
-                                                                 community_instance, sdk_client_info_flag=True),
+                                                                 community_instance, sdk_client_info_flag=True,
+                                                                 created_at_check=created_at_check),
             'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
                                                                                            chatroom_instance)
         }
@@ -5064,7 +5065,8 @@ class ChatroomHelper:
                                                       'right__state': member_rights.MEMBER_RIGHT_CREATE_SECRET_ROOM})
 
     @staticmethod
-    def compute_chatroom_response(card_instance, user_instance, community_instance=None, sdk_client_info_flag=False):
+    def compute_chatroom_response(card_instance, user_instance, community_instance=None, sdk_client_info_flag=False,
+                                  created_at_check=False):
 
         if community_instance is None:
             community_instance = card_instance.community
@@ -5075,7 +5077,8 @@ class ChatroomHelper:
 
         chatroom_member_instance = ChatroomMemberImpl(member_id=user_instance.id)
         chatroom_list = chatroom_member_instance.process_chatroom_list(chatroom_list, community_instance, 
-                                                                       sdk_client_info_flag=sdk_client_info_flag)
+                                                                       sdk_client_info_flag=sdk_client_info_flag,
+                                                                       created_at_check=created_at_check)
 
         if chatroom_list:
             return chatroom_list[0]
