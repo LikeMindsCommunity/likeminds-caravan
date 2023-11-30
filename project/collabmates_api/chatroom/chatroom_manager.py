@@ -490,7 +490,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def create_dm_chatroom(self, req_body, created_at_check: bool=False) -> dict:
+    def create_dm_chatroom(self, req_body, chatroom_created_at_uniform_check: bool=False) -> dict:
         """
         Creates a DM chatroom
         """

@@ -374,14 +374,14 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         chatroom_context['cohorts'] = cohort_context_list
 
     def process_chatroom(self, card_instance, state_instance, community_instance, poll_data,
-                         poll_votes, sdk_client_info_flag: bool=False, created_at_check: bool=False) -> {}:
+                         poll_votes, sdk_client_info_flag: bool=False, chatroom_created_at_uniform_check: bool=False) -> {}:
         
         error_logger.error(f"[process_chatroom] serializing chatroom - {card_instance.id}")
 
         chatroom_context = ChatroomMemberHelper.serialize_chatroom(card_instance, user=self.get_member_id(),
                                                                    return_topic=True, 
                                                                    sdk_client_info_flag=sdk_client_info_flag,
-                                                                   created_at_check=created_at_check)
+                                                                   chatroom_created_at_uniform_check=chatroom_created_at_uniform_check)
         
         error_logger.error(f"[process_chatroom] serializing chatroom done - {card_instance.id}")
 
@@ -465,7 +465,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
         return chatroom_context
 
     def process_chatroom_list(self, chatroom_list, community_instance, sdk_client_info_flag: bool=False,
-                              created_at_check: bool=False) -> []:
+                              chatroom_created_at_uniform_check: bool=False) -> []:
 
         error_logger.error("[process_chatroom] starting proceess chatroom lost")
 
@@ -495,7 +495,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
             chatroom_context = self.process_chatroom(card_instance, state_instance, community_instance
                                                      , poll_data, poll_votes, sdk_client_info_flag=sdk_client_info_flag,
-                                                     created_at_check=created_at_check)
+                                                     chatroom_created_at_uniform_check=chatroom_created_at_uniform_check)
             
             error_logger.error(f"[process_chatroom] processing chatroom done - {card_instance.id}")
 
@@ -658,7 +658,7 @@ class ChatroomMemberHelper:
 
     @staticmethod
     def serialize_chatroom(card_instance, user, return_topic=False, sdk_client_info_flag: bool=False,
-                           created_at_check: bool=False) -> dict:
+                           chatroom_created_at_uniform_check: bool=False) -> dict:
 
         chatroom_context = {'id': card_instance.id,
                             'title': card_instance.title,
@@ -702,7 +702,7 @@ class ChatroomMemberHelper:
                             'custom_tag': card_instance.custom_tag,
                             'event_kind': card_instance.event_kind}
         
-        if created_at_check:
+        if chatroom_created_at_uniform_check:
             chatroom_context['created_at'] = card_instance.date_epoch
 
         if card_instance.chatroom_image_url:
