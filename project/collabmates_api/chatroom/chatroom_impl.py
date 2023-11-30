@@ -3749,7 +3749,8 @@ class ChatroomImpl(ChatroomManager):
                                                                  community_instance, sdk_client_info_flag=True,
                                                                  chatroom_created_at_uniform_check=chatroom_created_at_uniform_check),
             'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
-                                                                                           chatroom_instance)
+                                                                                           chatroom_instance,
+                                                                                           chatroom_created_at_uniform_check=chatroom_created_at_uniform_check)
         }
 
         return context
@@ -4360,12 +4361,16 @@ class ChatroomHelper:
         return Community.get_community_or_raise_exception(community_id=community_id)
 
     @staticmethod
-    def fetch_serialized_chatroom_for_local_db_sycing(member_id, chatroom_instance):
+    def fetch_serialized_chatroom_for_local_db_sycing(member_id, chatroom_instance, 
+                                                      chatroom_created_at_uniform_check: bool=False):
         member_data = {'member_id': member_id, 'current_user_id': member_id, 'state_instance': None}
         chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_instance.id)
-        chatroom_obj = GetChatroomInstanceSerializer(chatroom_instance, context=member_data, many=False)
+        chatroom_obj = GetChatroomInstanceSerializer(chatroom_instance, context=member_data, many=False).data
 
-        return chatroom_obj.data
+        if chatroom_created_at_uniform_check:
+            chatroom_obj['created_at'] = chatroom_instance.date_epoch
+
+        return chatroom_obj
 
     @staticmethod
     def fetch_serialized_user_info(user_info_instance: object):
