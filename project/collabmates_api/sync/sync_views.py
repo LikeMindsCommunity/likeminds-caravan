@@ -20,10 +20,15 @@ class SyncChatrooms(APIView):
         min_timestamp = params.get('min_timestamp')
         max_timestamp = params.get('max_timestamp')
         chatroom_type = StringUtilities.get_list_from_string(params.get('chatroom_types', []), default=[])
+        is_local_db = StringUtilities.get_boolean_from_string(params.get('is_local_db'), True)
+        included_conversation_states = StringUtilities.get_list_from_string(params.get('included_conversation_states'),
+                                                                            default=None)
 
         sync_manager = SyncImpl(member_id=member_id, community_id=params.get('community_id'),
                                 api_key=api_key, request_platform=platform, version_code=version_code)
-        response_data = sync_manager.sync_chatrooms(page, page_size, min_timestamp, max_timestamp, chatroom_type)
+        response_data = sync_manager.sync_chatrooms(page, page_size, min_timestamp, max_timestamp, chatroom_type,
+                                                    is_local_db=is_local_db,
+                                                    included_conversation_states=included_conversation_states)
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data.get('error_message'),
