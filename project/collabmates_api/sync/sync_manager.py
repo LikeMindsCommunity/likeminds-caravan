@@ -11,7 +11,8 @@ class SyncManager(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def sync_chatrooms(self, page: int = None, page_size: int = None, min_timestamp: int = None,
-                       max_timestamp: int = None, chatroom_type: list = None) -> dict:
+                       max_timestamp: int = None, chatroom_type: list = None, is_local_db: bool = True,
+                       included_conversation_states: list = None) -> dict:
         """
         Sync chatrooms data for local db
         """

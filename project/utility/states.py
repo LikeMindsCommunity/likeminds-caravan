@@ -683,7 +683,9 @@ class CommunityDMSettingsStateTypes:
     UNLIMITED = 0
     LIMITED = 1
 
+
 community_dm_settings_state_types = CommunityDMSettingsStateTypes()
+
 
 class CommunityDMSettingTypes(enum.Enum):
     UNLIMITED = 0
@@ -756,6 +758,7 @@ class NotificationStates:
 
 
 noti_states = NotificationStates()
+
 
 class ChatNotificationTypes(enum.Enum):
     ALL_MESSAGES = 1
