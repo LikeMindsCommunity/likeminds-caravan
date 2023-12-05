@@ -89,8 +89,10 @@ class SyncImpl(SyncManager):
             included_chatroom_types = chatroom_type
 
         if not included_conversation_states:
-            included_conversation_states = [conversation_states.ANSWER, conversation_states.CONVERSATION_POLL,
-                                            conversation_states.CONVERSATION_HEADER]
+            included_conversation_states = [
+                conversation_states.ANSWER, conversation_states.CONVERSATION_POLL,
+                conversation_states.CONVERSATION_HEADER, conversation_states.CHATROOM_DELETE
+            ]
 
         chatrooms_data, chatroom_ids_list = get_home_feed_chatrooms_against_user(
             user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,

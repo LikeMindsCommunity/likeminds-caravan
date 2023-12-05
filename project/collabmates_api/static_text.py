@@ -767,3 +767,5 @@ COMMUNITY_SETTINGS_COMMUNITY_ACTION_IMAGE_URL = "https://beta-likeminds-media.s3
 
 SENDER_NAME_FOR_EMAIL_COMMS = "Team LikeMinds"
 SENDER_EMAIL_FOR_EMAIL_COMMS = "hello@likeminds.community"
+
+CHATROOM_DELETE_DEFAULT_STATE_MESSAGE = "Chatroom has been deleted!"

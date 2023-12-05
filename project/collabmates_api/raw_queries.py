@@ -4053,10 +4053,13 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
 
         min_max_filter_key = "togther_card_answers.created_at"
         order_by_filter_key = "chatrooms_data.conversation___created_at___last"
+        deleted_chatroom_query = "AND (togther_collabcard.is_deleted = FALSE AND " \
+                                 "togther_collabcard.deleted_by_user_id IS NULL)"
 
         if is_local_db:
             min_max_filter_key = "togther_card_answers.last_updated"
             order_by_filter_key = "chatrooms_data.conversation___last_updated___last"
+            deleted_chatroom_query = ""
 
         if is_dm_chatroom:
             dm_chatroom_message_query = "AND togther_collabcard.is_private = true"
@@ -4122,7 +4125,7 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                                     togther_card_answers.attachment_count > 0
                                                     AND togther_card_answers.attachments_uploaded = False
                                                 )
-                                              {dm_chatroom_message_query}
+                                              {dm_chatroom_message_query} {deleted_chatroom_query}
                                               )
                                         ) AS chatroom_data 
                                         INNER JOIN togther_community 

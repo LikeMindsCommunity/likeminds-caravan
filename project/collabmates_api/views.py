@@ -40,7 +40,8 @@ from utility.celery_tasks import (
     reset_unread_message_count_in_cache, fetch_conversations_unread, update_deferred_card_poll_updated_at_value,
     get_to_show_results_for_conversation_poll, send_chatroom_deleted_analytics_data, cm_removed_dm_chatroom,
     member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data,
-    update_community_pin_chatrooms_list_in_cache, delete_user_channel_settings_for_a_user)
+    update_community_pin_chatrooms_list_in_cache, delete_user_channel_settings_for_a_user,
+    post_state_message_in_chatroom)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -3706,17 +3707,17 @@ def chatroom_delete(request):
     disallow_create_chatroom = request.POST.get('disallow_create_chatroom', None)
 
     context = delete_chatroom_async(member_id,
-                              chatroom_id=chatroom_id,
-                              draft_id=draft_id,
-                              tag_id=tag_id,
-                              reason=reason,
-                              disallow_create_chatroom=disallow_create_chatroom)
+                                    chatroom_id=chatroom_id,
+                                    draft_id=draft_id,
+                                    tag_id=tag_id,
+                                    reason=reason,
+                                    disallow_create_chatroom=disallow_create_chatroom)
 
     return JsonResponse(context)
 
 @shared_task
 def delete_chatroom_async(member_id, chatroom_id=None, draft_id=None,
-                    tag_id=None, reason=None, disallow_create_chatroom=None):
+                          tag_id=None, reason=None, disallow_create_chatroom=None):
 
     if disallow_create_chatroom is not None:
         disallow_create_chatroom = disallow_create_chatroom.lower() == "true"
@@ -3804,6 +3805,10 @@ def delete_chatroom_async(member_id, chatroom_id=None, draft_id=None,
 
         # update elastic search
         ElasticSearchSync.delete_chatroom.delay(chatroom_id)
+
+        # Post a delete chatroom message in the chatroom
+        post_state_message_in_chatroom.delay(member_id, chatroom_id, CHATROOM_DELETE_DEFAULT_STATE_MESSAGE,
+                                             conversation_states.CHATROOM_DELETE)
 
     except Exception as e:
         context = get_error_context(False, str(e))
