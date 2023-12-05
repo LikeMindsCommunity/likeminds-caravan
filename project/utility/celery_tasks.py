@@ -2766,3 +2766,123 @@ def backfill_all_conversation_poll_options():
 
     except Exception as e:
         error_logger.error("Error while backfilling all conversation poll options: {}".format(e))
+
+
+@shared_task
+def post_state_message_in_chatroom(user_id, chatroom_id, conversation_answer,
+                                   conversation_state: int = conversation_states.CONVERSATION_HEADER):
+    is_guest = False
+    is_tagged = False
+    ref_instance = None
+    mute_status = False
+    attending_status = False
+    status = True
+
+    chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+    community_instance = chatroom_instance.community
+
+    if not chatroom_instance:
+        return
+
+    user_instance = ModelUtilities.get_user_instance_or_none(user_id, chatroom_instance.community_id)
+
+    if not user_instance:
+        return
+
+    card_instance = card_answers(answer=conversation_answer, card=chatroom_instance, user=user_instance,
+                                 community=community_instance, state=conversation_state)
+
+    card_instance.save()
+
+    # Create Conversation Engage
+    collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_instance,
+                                                                                'user': user_instance})
+
+    if not collabcard_state_filter:
+        expiry_time = TimeUtilities.current_time_in_sec() + CHATROOM_EXPIRE_DURATION
+        card_state_instance = collabcardState.create_chatroom_state_instance(
+            chatroom_instance, user_instance, state=collabcard_states.COLLABCARD_STATE_SEEN, expire_at=expiry_time,
+            is_guest=is_guest, source=ref_instance, follow_status=status, mute_status=mute_status, is_tagged=is_tagged,
+            attending_status=attending_status)
+    else:
+        card_state_instance = collabcard_state_filter[0]
+        card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+        card_state_instance.follow_status = status
+        card_state_instance.mute_status = mute_status
+        card_state_instance.is_guest = is_guest
+        card_state_instance.is_tagged = is_tagged
+        card_state_instance.attending_status = attending_status
+        card_state_instance.save()
+
+    # Create Card Engagement for Home Screen
+    instance_list = ModelUtilities.get_model_filter(conversationEngage,
+                                                    {'card': chatroom_instance,
+                                                     'user': user_instance})
+
+    # Update rights list in conversation engage
+    rights_list = list(userMemberRights.objects.filter(user=user_instance,
+                                                       community=community_instance).values_list("right__state",
+                                                                                                 flat=True))
+
+    if not rights_list:
+        member_state = Members.get_community_member_state(community_instance, user_instance)
+
+        if member_state == member_states.ADMIN:
+            rights_list = json.dumps(member_rights.ALL_MEMBER_RIGHTS)
+
+        elif member_state == member_states.MEMBER:
+            rights_list = json.dumps(member_rights.DEFAULT_MEMBER_RIGHTS)
+
+    else:
+        rights_list = json.dumps(rights_list)
+
+    if not instance_list:
+        conversationEngage.create_instance({'card_instance': chatroom_instance,
+                                            'user_instance': user_instance,
+                                            'community_instance': community_instance,
+                                            'rights_list': rights_list})
+
+    else:
+        instance = instance_list[0]
+        ModelUtilities.model_update(conversationEngage, {'id': instance.id},
+                                    {'last_conversation': None,
+                                     'updated_at': TimeUtilities.current_time_in_sec()})
+
+    # Update Home screen meta on chatroom follow
+    last_conversation_member, second_last_conversation_member, last_conversation_user, \
+    second_last_conversation_user = compute_member_images_for_homescreen_celery(chatroom_instance,
+                                                                                community_instance)
+
+    conv_states_list = conversation_states.get_all_states_list()
+
+    conversation_filter = card_answers.objects.filter(card=chatroom_instance).filter(state__in=conv_states_list).filter(
+        Q(attachment_count=0) | Q(attachments_uploaded=True) | Q(api_version=1)).order_by("created_at")
+
+    last_conversation = conversation_filter.last()
+    conversation_filter = conversation_filter.filter(state=conversation_states.ANSWER)
+
+    last_seen_conversation = card_state_instance.last_seen_conversation_id
+
+    if not last_seen_conversation:
+        unseen_count = conversation_filter.count()
+
+    else:
+        unseen_count = conversation_filter.filter(id__gt=last_seen_conversation).count()
+
+    if user_instance:
+        conversationEngage.objects.filter(card=chatroom_instance,
+                                          user=user_instance.id).update(
+            unseen_count=unseen_count,
+            last_conversation=last_conversation,
+            updated_at=TimeUtilities.current_time_in_sec(),
+            last_conversation_member=last_conversation_member,
+            second_last_conversation_member=second_last_conversation_member,
+            last_conversation_user=last_conversation_user,
+            second_last_conversation_user=second_last_conversation_user,
+        )
+
+    if unseen_count > 0:
+        card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
+        card_state_instance.save()
+
+    return card_instance
