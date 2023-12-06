@@ -34,6 +34,8 @@ def backfill_state_message_for_deleted_chatrooms():
         if card_answer_filter:
             continue
 
+        print(f"Posting message in {deleted_card_instance.id}")
+
         conv_instance = post_state_message_in_chatroom(user_id=deleted_card_instance.deleted_by_user_id,
                                                        chatroom_id=deleted_card_instance.id,
                                                        conversation_answer=CHATROOM_DELETE_DEFAULT_STATE_MESSAGE,
