@@ -4026,7 +4026,12 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
         if is_dm_chatroom:
             included_chatroom_types.remove(card_types.CARD_DIRECT_MESSAGE)
 
-        included_chatroom_types_query = get_tuple_from_array(included_chatroom_types)
+        chatroom_message_query = ""
+
+        if included_chatroom_types:
+            included_chatroom_types_query = get_tuple_from_array(included_chatroom_types)
+            chatroom_message_query = f"AND ((togther_collabcard.type IN {included_chatroom_types_query} AND " \
+                                     f"togther_card_answers.state IN {included_conversation_states_query})"
 
         chatroom_query = ",".join([get_chatroom_query_meta_for_sync_revamp(),
                                    get_chatroom_state_query_meta_for_sync_revamp()])
@@ -4068,9 +4073,18 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
             included_dm_conversation_states_query = get_tuple_from_array_v2([conversation_states.ANSWER,
                                                                              conversation_states.CONVERSATION_POLL])
 
-            dm_chatroom_message_query = f"OR (togther_collabcard.type IN (10) AND " \
+            dm_chatroom_message_query = f"(togther_collabcard.type IN (10) AND " \
                                         f"togther_card_answers.state IN {included_dm_conversation_states_query} AND "\
                                         f"togther_collabcard.is_private = true)"
+
+            if chatroom_message_query:
+                chatroom_message_query = f"{chatroom_message_query} OR {dm_chatroom_message_query})"
+
+            else:
+                chatroom_message_query = f"AND {dm_chatroom_message_query}"
+
+        else:
+            chatroom_message_query = f"{chatroom_message_query})"
 
         sql = f"""
                 SELECT chatrooms_data.*, {topic_user_data_query} FROM
@@ -4125,13 +4139,7 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                               AND togther_collabcardstate.remove_id IS NULL 
                                               AND {min_max_filter_key} >= {min_timestamp} 
                                               AND {min_max_filter_key} <= {max_timestamp}
-                                              AND 
-                                              (
-                                                (
-                                                    togther_collabcard.type IN {included_chatroom_types_query} AND
-                                                    togther_card_answers.state IN {included_conversation_states_query}
-                                                ) {dm_chatroom_message_query}
-                                              )
+                                              {chatroom_message_query}
                                               AND NOT (
                                                     togther_card_answers.attachment_count > 0
                                                     AND togther_card_answers.attachments_uploaded = False
