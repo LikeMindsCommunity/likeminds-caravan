@@ -4139,13 +4139,7 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                               AND togther_collabcardstate.remove_id IS NULL 
                                               AND {min_max_filter_key} >= {min_timestamp} 
                                               AND {min_max_filter_key} <= {max_timestamp}
-                                              AND 
-                                              (
-                                                (
-                                                    togther_collabcard.type IN {included_chatroom_types_query} AND
-                                                    togther_card_answers.state IN {included_conversation_states_query}
-                                                ) {dm_chatroom_message_query}
-                                              )
+                                              {chatroom_message_query}
                                               AND NOT (
                                                     togther_card_answers.attachment_count > 0
                                                     AND togther_card_answers.attachments_uploaded = False
