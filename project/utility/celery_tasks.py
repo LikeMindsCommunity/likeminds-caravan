@@ -2789,10 +2789,10 @@ def post_state_message_in_chatroom(user_id, chatroom_id, conversation_answer,
     if not user_instance:
         return
 
-    card_instance = card_answers(answer=conversation_answer, card=chatroom_instance, user=user_instance,
-                                 community=community_instance, state=conversation_state)
+    conversation_instance = card_answers(answer=conversation_answer, card=chatroom_instance, user=user_instance,
+                                         community=community_instance, state=conversation_state)
 
-    card_instance.save()
+    conversation_instance.save()
 
     # Create Conversation Engage
     collabcard_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_instance,
@@ -2885,4 +2885,4 @@ def post_state_message_in_chatroom(user_id, chatroom_id, conversation_answer,
         card_state_instance.updated_at = TimeUtilities.current_time_in_sec()
         card_state_instance.save()
 
-    return card_instance
+    return conversation_instance
