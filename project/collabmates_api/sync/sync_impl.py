@@ -12,7 +12,7 @@ from togther.models import (Members)
 from collabmates_api.raw_queries import (get_home_feed_chatrooms_against_user, get_chatroom_conversations_data,
                                          get_unseen_count_for_chatroom_ids,
                                          get_reactions_for_chatroom_or_conversations, get_attachments_data,
-                                         get_conversation_polls_data)
+                                         get_conversation_polls_data, get_home_feed_chatrooms_against_non_local_db_user)
 
 
 class SyncImpl(SyncManager):
@@ -94,10 +94,16 @@ class SyncImpl(SyncManager):
                 conversation_states.CONVERSATION_HEADER, conversation_states.CHATROOM_DELETE
             ]
 
-        chatrooms_data, chatroom_ids_list = get_home_feed_chatrooms_against_user(
-            user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
-            included_chatroom_types=included_chatroom_types, included_conversation_states=included_conversation_states,
-            is_local_db=is_local_db)
+        if not is_local_db:
+            chatrooms_data, chatroom_ids_list = get_home_feed_chatrooms_against_non_local_db_user(
+                user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
+                included_chatroom_types=included_chatroom_types,
+                included_conversation_states=included_conversation_states)
+
+        else:
+            chatrooms_data, chatroom_ids_list = get_home_feed_chatrooms_against_user(
+                user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
+                included_chatroom_types=included_chatroom_types)
 
         card_unseen_count_map = None
 
