@@ -184,7 +184,7 @@ class VersionUtilities:
             PlatformCode.FLUTTER_SDK: 2,
             PlatformCode.IOS_SDK: 1,
             PlatformCode.REACT_SDK: 1,
-            PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+            PlatformCode.REACT_NATIVE_SDK: 1,
             PlatformCode.WEB_SDK: unreleased_version_code,
         }
     }
@@ -236,7 +236,7 @@ class VersionUtilities:
             PlatformCode.FLUTTER_SDK: 1, 
             PlatformCode.IOS_SDK: 1,
             PlatformCode.REACT_SDK: 1,
-            PlatformCode.REACT_NATIVE_SDK: unreleased_version_code,
+            PlatformCode.REACT_NATIVE_SDK: 1,
             PlatformCode.WEB_SDK: unreleased_version_code,
         }
     }
