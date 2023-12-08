@@ -6420,6 +6420,8 @@ def follow_chatroom_async(collabcard_id,
                                                                   event_type=WebhookTypes.CHATROOM_LEFT.value,
                                                                   type_method=webhook_chatroom_methods.SELF_LEFT)
 
+            card_instance.save()
+
     if status:
         card_state_instance = collabcard_state_filter[0]
         ConversationHelper.update_homescreen_meta_on_chatroom_follow(community_instance, card_instance,
