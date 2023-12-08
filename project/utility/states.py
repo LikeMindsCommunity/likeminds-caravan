@@ -519,6 +519,7 @@ class CommunitySettingTypes:
     SECRET_GROUP_INVITE = "secret_groups_invite"
     CREATE_INTRO_ROOMS = "create_intro_rooms"
     CREATE_POLL = "create_poll"
+    USER_CONNECTION = "user_connection"
 
 
 community_setting_types = CommunitySettingTypes()
@@ -867,3 +868,27 @@ class EventKinds:
 
 
 event_kinds = EventKinds()
+
+
+class ConnectionRequestActions:
+    ACCEPT = "accept"
+    REJECT = "reject"
+
+
+connection_request_actions = ConnectionRequestActions()
+
+
+class ConnectionRequestStatus:
+    ACCEPTED = "accepted"
+    PENDING = "pending"
+
+
+connection_request_status = ConnectionRequestStatus()
+
+
+class ConnectionStates:
+    CONNECTED = "connected"
+    DISCONNECTED = "disconnected"
+
+
+connection_states = ConnectionStates()
