@@ -135,7 +135,7 @@ COMMUNITY_CONFIGURATIONS = {
     "feed_metadata":
     {
         "type": "feed_metadata",
-        "description": "",
+        "description": "Metadata related to feed and its entity",
         "value":
         {
             "post": "post"
