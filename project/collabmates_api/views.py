@@ -10940,6 +10940,11 @@ def edit_conversation(request):
 
         ElasticSearchSync.update_conversations.delay([conversation_id])
 
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, {'id': conversation_id})
+
+        if conversation_instance:
+            conversation_instance.card.save()
+
     else:
         context = ResponseUtilities.get_view_impl_error_context('Only conversation creator can edit their message',
                                                                 status_codes.HTTP_400_BAD_REQUEST)
