@@ -3715,6 +3715,7 @@ def chatroom_delete(request):
 
     return JsonResponse(context)
 
+
 @shared_task
 def delete_chatroom_async(member_id, chatroom_id=None, draft_id=None,
                           tag_id=None, reason=None, disallow_create_chatroom=None):
@@ -3805,10 +3806,6 @@ def delete_chatroom_async(member_id, chatroom_id=None, draft_id=None,
 
         # update elastic search
         ElasticSearchSync.delete_chatroom.delay(chatroom_id)
-
-        # Post a delete chatroom message in the chatroom
-        post_state_message_in_chatroom.delay(member_id, chatroom_id, CHATROOM_DELETE_DEFAULT_STATE_MESSAGE,
-                                             conversation_states.CHATROOM_DELETE)
 
     except Exception as e:
         context = get_error_context(False, str(e))
@@ -6422,6 +6419,8 @@ def follow_chatroom_async(collabcard_id,
                                                                   users_list=[user_instance.id],
                                                                   event_type=WebhookTypes.CHATROOM_LEFT.value,
                                                                   type_method=webhook_chatroom_methods.SELF_LEFT)
+
+            card_instance.save()
 
     if status:
         card_state_instance = collabcard_state_filter[0]
@@ -10940,6 +10939,11 @@ def edit_conversation(request):
         conversation.refresh_from_db()
 
         ElasticSearchSync.update_conversations.delay([conversation_id])
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, {'id': conversation_id})
+
+        if conversation_instance:
+            conversation_instance.card.save()
 
     else:
         context = ResponseUtilities.get_view_impl_error_context('Only conversation creator can edit their message',
