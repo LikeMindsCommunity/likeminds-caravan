@@ -40,7 +40,8 @@ from utility.celery_tasks import (
     reset_unread_message_count_in_cache, fetch_conversations_unread, update_deferred_card_poll_updated_at_value,
     get_to_show_results_for_conversation_poll, send_chatroom_deleted_analytics_data, cm_removed_dm_chatroom,
     member_becomes_cm_dm_chatroom, send_chatroom_updated_analytics_data,
-    update_community_pin_chatrooms_list_in_cache, delete_user_channel_settings_for_a_user)
+    update_community_pin_chatrooms_list_in_cache, delete_user_channel_settings_for_a_user,
+    post_state_message_in_chatroom)
 
 from utility.firebase import (update_last_answer_id, upload_image_to_firebase, upload_community_thumbnail)
 
@@ -3706,17 +3707,18 @@ def chatroom_delete(request):
     disallow_create_chatroom = request.POST.get('disallow_create_chatroom', None)
 
     context = delete_chatroom_async(member_id,
-                              chatroom_id=chatroom_id,
-                              draft_id=draft_id,
-                              tag_id=tag_id,
-                              reason=reason,
-                              disallow_create_chatroom=disallow_create_chatroom)
+                                    chatroom_id=chatroom_id,
+                                    draft_id=draft_id,
+                                    tag_id=tag_id,
+                                    reason=reason,
+                                    disallow_create_chatroom=disallow_create_chatroom)
 
     return JsonResponse(context)
 
+
 @shared_task
 def delete_chatroom_async(member_id, chatroom_id=None, draft_id=None,
-                    tag_id=None, reason=None, disallow_create_chatroom=None):
+                          tag_id=None, reason=None, disallow_create_chatroom=None):
 
     if disallow_create_chatroom is not None:
         disallow_create_chatroom = disallow_create_chatroom.lower() == "true"
@@ -6417,6 +6419,8 @@ def follow_chatroom_async(collabcard_id,
                                                                   users_list=[user_instance.id],
                                                                   event_type=WebhookTypes.CHATROOM_LEFT.value,
                                                                   type_method=webhook_chatroom_methods.SELF_LEFT)
+
+            card_instance.save()
 
     if status:
         card_state_instance = collabcard_state_filter[0]
@@ -10935,6 +10939,11 @@ def edit_conversation(request):
         conversation.refresh_from_db()
 
         ElasticSearchSync.update_conversations.delay([conversation_id])
+
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, {'id': conversation_id})
+
+        if conversation_instance:
+            conversation_instance.card.save()
 
     else:
         context = ResponseUtilities.get_view_impl_error_context('Only conversation creator can edit their message',
