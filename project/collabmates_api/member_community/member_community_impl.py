@@ -2027,7 +2027,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             if access_type in [access_types.CREATE_POST, access_types.VIEW_POST, access_types.LIKE_POST,
                                access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.LIKE_COMMENT,
                                access_types.SAVE_POST, access_types.VIEW_ACTIVITY, access_types.VIEW_REPORT_ENTITY,
-                               access_types.IS_MEMBER]:
+                               access_types.IS_MEMBER, access_types.VIEW_USER_ACTIVITY]:
                 output_context['access'] = True
 
         if member_state == member_states.MEMBER:
@@ -2042,7 +2042,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             if access_type in [access_types.VIEW_POST, access_types.DELETE_POST, access_types.LIKE_POST,
                                access_types.VIEW_COMMENT, access_types.DELETE_COMMENT, access_types.LIKE_COMMENT,
                                access_types.SAVE_POST, access_types.VIEW_ACTIVITY, access_types.EDIT_COMMENT,
-                               access_types.EDIT_POST, access_types.IS_MEMBER]:
+                               access_types.EDIT_POST, access_types.IS_MEMBER, access_types.VIEW_USER_ACTIVITY]:
                 output_context['access'] = True
 
             if access_type in [access_types.PIN_POST, access_types.CREATE_ACTIVITY, access_types.VIEW_REPORT_ENTITY,
@@ -3407,7 +3407,8 @@ class MemberCommunityHelper:
                               access_types.SAVE_POST, access_types.CREATE_COMMENT, access_types.VIEW_COMMENT,
                               access_types.DELETE_COMMENT, access_types.EDIT_COMMENT, access_types.LIKE_COMMENT,
                               access_types.CREATE_ACTIVITY, access_types.VIEW_ACTIVITY, access_types.CREATE_TOPIC,
-                              access_types.EDIT_TOPIC, access_types.IS_MEMBER, access_types.CHANGE_AUTHOR]
+                              access_types.EDIT_TOPIC, access_types.IS_MEMBER, access_types.CHANGE_AUTHOR,
+                              access_types.VIEW_USER_ACTIVITY]
 
         access_type = access_type_value
         if access_type not in valid_access_types:
