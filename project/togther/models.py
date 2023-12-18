@@ -1232,7 +1232,7 @@ class Card_Attachment(models.Model):
     name = models.CharField(max_length=200, null=True)
     meta = models.TextField(null=True)
     attachment = models.FileField(upload_to="media/collabcard_files", default='')
-    file_url = models.CharField(max_length=500, null=True)
+    file_url = models.CharField(max_length=5000, null=True)
     thumbnail_url = models.TextField(null=True)
     type = models.CharField(max_length=50, default='')
     index = models.IntegerField(default=1, null=True)
