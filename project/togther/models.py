@@ -414,7 +414,7 @@ class Userinfo(models.Model):
     mobile_os = models.CharField(max_length=200, null=True)
     created_at = models.BigIntegerField(default=-9223372036854775808)
     version_code = models.IntegerField(null=True, default=21)
-    image_link = models.CharField(max_length=500, null=True)
+    image_link = models.CharField(max_length=5000, null=True)
     apple_id = models.CharField(max_length=100, null=True)
     has_tags = models.BooleanField(default=False)
     updated_at = models.BigIntegerField(default=0)
