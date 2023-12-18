@@ -2020,7 +2020,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             if all([access_type in [access_types.DELETE_POST, access_types.PIN_POST, access_types.DELETE_COMMENT,
                                     access_types.CREATE_ACTIVITY, access_types.EDIT_COMMENT, access_types.EDIT_POST,
-                                    access_types.CREATE_TOPIC, access_types.EDIT_TOPIC, access_types.CHANGE_AUTHOR],
+                                    access_types.CREATE_TOPIC, access_types.EDIT_TOPIC, access_types.DELETE_TOPIC, 
+                                    xaccess_types.CHANGE_AUTHOR],
                     check_admin_moderate_feed_and_comments_right(user_instance, community_instance)]):
                 output_context['access'] = True
 
@@ -2046,7 +2047,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                 output_context['access'] = True
 
             if access_type in [access_types.PIN_POST, access_types.CREATE_ACTIVITY, access_types.VIEW_REPORT_ENTITY,
-                               access_types.CREATE_TOPIC, access_types.EDIT_TOPIC]:
+                               access_types.CREATE_TOPIC, access_types.EDIT_TOPIC, access_types.DELETE_TOPIC]:
                 output_context['access'] = False
 
         return output_context
@@ -3407,8 +3408,8 @@ class MemberCommunityHelper:
                               access_types.SAVE_POST, access_types.CREATE_COMMENT, access_types.VIEW_COMMENT,
                               access_types.DELETE_COMMENT, access_types.EDIT_COMMENT, access_types.LIKE_COMMENT,
                               access_types.CREATE_ACTIVITY, access_types.VIEW_ACTIVITY, access_types.CREATE_TOPIC,
-                              access_types.EDIT_TOPIC, access_types.IS_MEMBER, access_types.CHANGE_AUTHOR,
-                              access_types.VIEW_USER_ACTIVITY]
+                              access_types.EDIT_TOPIC, access_types.DELETE_TOPIC, access_types.IS_MEMBER, 
+                              access_types.CHANGE_AUTHOR, access_types.VIEW_USER_ACTIVITY]
 
         access_type = access_type_value
         if access_type not in valid_access_types:
