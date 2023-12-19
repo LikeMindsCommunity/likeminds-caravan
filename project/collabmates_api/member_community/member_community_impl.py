@@ -2505,7 +2505,8 @@ class MemberCommunityImpl(MemberCommunityManager):
     def fetch_connections(self, user_id: str, page: int, page_size: int, status: str) -> dict:
         validated_request = MemberCommunityHelper.validate_fetch_connection_request(self.get_member_id(),
                                                                                     self.get_api_key(),
-                                                                                    user_id)
+                                                                                    self.get_community_id(),
+                                                                                    user_id, status)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),

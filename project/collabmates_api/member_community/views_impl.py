@@ -866,7 +866,8 @@ class ConnectionView(APIView):
         request_params = RequestUtilities.fetch_request_query_params(request)
 
         member_community_manager = MemberCommunityImpl(member_id=member_id, platform_code=request_platform,
-                                                       version_code=version_code, api_key=api_key)
+                                                       version_code=version_code, api_key=api_key,
+                                                       community_id=request_params.get('community_id'))
         response_data = member_community_manager.fetch_connections(
             user_id, request_params.get('page', 1), request_params.get('page_size', 10),
             request_params.get('status', ConnectionRequestStatus.ACCEPTED.value))

@@ -1770,9 +1770,9 @@ class MemberCommunityHelper:
             return False
 
     @staticmethod
-    def validate_connection_users(member_id, api_key, user_id):
+    def validate_connection_users(member_id, api_key, user_id, community_id=None):
 
-        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+        community_instance = SdkClient.get_community_instance_or_none(api_key=api_key, community_id=community_id)
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key!")
@@ -1851,7 +1851,7 @@ class MemberCommunityHelper:
         return validated_request
 
     @staticmethod
-    def validate_fetch_connection_request(member_id, api_key, user_id, status):
+    def validate_fetch_connection_request(member_id, api_key, community_id, user_id, status):
         validated_request = MemberCommunityHelper.validate_connection_users(member_id, api_key, user_id)
 
         if validated_request.get('error_message'):
