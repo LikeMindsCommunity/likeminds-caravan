@@ -123,4 +123,3 @@ class ConversationDocument(Document):
         """Inner nested class Django."""
         model = card_answers  # The model associate with this Document
         queryset_pagination = 50
-        ignore_signals = True
