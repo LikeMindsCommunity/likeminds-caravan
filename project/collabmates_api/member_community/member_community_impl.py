@@ -2027,7 +2027,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             if access_type in [access_types.CREATE_POST, access_types.VIEW_POST, access_types.LIKE_POST,
                                access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.LIKE_COMMENT,
                                access_types.SAVE_POST, access_types.VIEW_ACTIVITY, access_types.VIEW_REPORT_ENTITY,
-                               access_types.IS_MEMBER]:
+                               access_types.IS_MEMBER, access_types.VIEW_USER_ACTIVITY]:
                 output_context['access'] = True
 
         if member_state == member_states.MEMBER:
@@ -2042,7 +2042,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             if access_type in [access_types.VIEW_POST, access_types.DELETE_POST, access_types.LIKE_POST,
                                access_types.VIEW_COMMENT, access_types.DELETE_COMMENT, access_types.LIKE_COMMENT,
                                access_types.SAVE_POST, access_types.VIEW_ACTIVITY, access_types.EDIT_COMMENT,
-                               access_types.EDIT_POST, access_types.IS_MEMBER]:
+                               access_types.EDIT_POST, access_types.IS_MEMBER, access_types.VIEW_USER_ACTIVITY]:
                 output_context['access'] = True
 
             if access_type in [access_types.PIN_POST, access_types.CREATE_ACTIVITY, access_types.VIEW_REPORT_ENTITY,
@@ -2962,8 +2962,14 @@ class MemberCommunityHelper:
             return ResponseUtilities.get_impl_error_context('Invalid member_id or uuid',
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        is_member_admin = Members.get_community_member_state(community_instance, member_instance) == member_states.ADMIN
-        is_user_admin = Members.get_community_member_state(community_instance, user_instance) == member_states.ADMIN
+        member_state = Members.get_community_member_state(community_instance, member_instance)
+        user_state = Members.get_community_member_state(community_instance, user_instance)
+
+        is_member_admin = member_state == member_states.ADMIN
+        is_user_admin = user_state == member_states.ADMIN
+
+        if any([member_state == member_states.PENDING_MEMBER, user_state == member_states.PENDING_MEMBER]):
+            return {'success': True, 'show_dm': False}
 
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
         user_member_dm_chatroom = ChatroomHelper.get_dm_chatroom_from_members(community_instance.id,
@@ -3076,7 +3082,12 @@ class MemberCommunityHelper:
         if dm_filter and not dm_filter[0].enabled:
             return response_dict
 
-        is_user_admin = Members.get_community_member_state(community_instance, user_instance) == member_states.ADMIN
+        user_state = Members.get_community_member_state(community_instance, user_instance)
+
+        if user_state == member_states.PENDING_MEMBER:
+            return response_dict
+
+        is_user_admin = user_state == member_states.ADMIN
 
         response_dict['show_dm'] = True
 
@@ -3396,7 +3407,8 @@ class MemberCommunityHelper:
                               access_types.SAVE_POST, access_types.CREATE_COMMENT, access_types.VIEW_COMMENT,
                               access_types.DELETE_COMMENT, access_types.EDIT_COMMENT, access_types.LIKE_COMMENT,
                               access_types.CREATE_ACTIVITY, access_types.VIEW_ACTIVITY, access_types.CREATE_TOPIC,
-                              access_types.EDIT_TOPIC, access_types.IS_MEMBER, access_types.CHANGE_AUTHOR]
+                              access_types.EDIT_TOPIC, access_types.IS_MEMBER, access_types.CHANGE_AUTHOR,
+                              access_types.VIEW_USER_ACTIVITY]
 
         access_type = access_type_value
         if access_type not in valid_access_types:

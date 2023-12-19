@@ -78,6 +78,8 @@ SUB_TITLE_EVENT_REGISTRATION_APP_NOTIFICATION = "%s has registered for %s event 
 ROUTE_FREE_EVENT_REGISTRATION_APP_NOTIFICATION = "route://single_event?chatroom_id=%s&community_id=%s&is_paid=false&type=registered"
 ROUTE_PAID_EVENT_REGISTRATION_APP_NOTIFICATION = "route://single_event?chatroom_id=%s&community_id=%s&is_paid=true&type=registered"
 
+ROUTE_FREE_PARTNER_EVENT_APP_NOTIFICATION = "route://single_event?chatroom_id=%s&is_paid=false&type=partner_event"
+
 MAIL_EVENT_NOTIFICATION = 30
 
 POST_EVENT_ATTENDEES_LINK = "%s/dashboard/%s"

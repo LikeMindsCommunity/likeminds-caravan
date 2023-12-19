@@ -43,3 +43,36 @@ class StringUtilities:
 
         except (ValueError, TypeError):
             return default
+
+    @staticmethod
+    def convert_string_to_list(string: str, default: list = None):
+
+        if len(string) and (string[0] == '['):
+            string = string[1:]
+
+        if len(string) and (string[-1] == ']'):
+            string = string[:len(string)-1]
+
+        string = string.strip()
+
+        if len(string) > 0:
+            string_list = []
+
+            string_values = string.split(',')
+
+            for string_value in string_values:
+                string_value = string_value.strip()
+
+                if len(string_value) and (string_value[0] == '"'):
+                    string_value = string_value[1:]
+
+                if len(string_value) and (string_value[-1] == '"'):
+                    string_value = string_value[:len(string_value) - 1]
+
+                if len(string_value) and isinstance(string_value, str):
+                    string_list.append(string_value)
+
+            return string_list
+
+        else:
+            return default

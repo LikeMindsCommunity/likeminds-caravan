@@ -2,7 +2,7 @@ from rest_framework import status as status_codes
 
 from .sync_manager import SyncManager
 from .sync_helper import SyncHelper
-from utility.states import (card_types, SyncTypes)
+from utility.states import (card_types, SyncTypes, conversation_states)
 from .constants import (CONVERSATIONS_META_KEY_VALUE, CONVERSATION_POLLS_META_KEY_VALUE, SYNC_CHATROOMS_DATA_KEY,
                         SYNC_CONVERSATIONS_DATA_KEY)
 from utility.response_utilities import ResponseUtilities
@@ -12,7 +12,7 @@ from togther.models import (Members)
 from collabmates_api.raw_queries import (get_home_feed_chatrooms_against_user, get_chatroom_conversations_data,
                                          get_unseen_count_for_chatroom_ids,
                                          get_reactions_for_chatroom_or_conversations, get_attachments_data,
-                                         get_conversation_polls_data)
+                                         get_conversation_polls_data, get_home_feed_chatrooms_against_non_local_db_user)
 
 
 class SyncImpl(SyncManager):
@@ -54,7 +54,8 @@ class SyncImpl(SyncManager):
         self.community_id = community_id
 
     def sync_chatrooms(self, page: int = None, page_size: int = None, min_timestamp: int = None,
-                       max_timestamp: int = None, chatroom_type: list = None) -> dict:
+                       max_timestamp: int = None, chatroom_type: list = None, is_local_db: bool = True,
+                       included_conversation_states: list = None) -> dict:
 
         validated_request_body = SyncHelper.validate_sync_chatrooms_request(self.get_member_id(),
                                                                             self.get_community_id(),
@@ -87,9 +88,22 @@ class SyncImpl(SyncManager):
         if chatroom_type:
             included_chatroom_types = chatroom_type
 
-        chatrooms_data, chatroom_ids_list = get_home_feed_chatrooms_against_user(
-            user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
-            included_chatroom_types=included_chatroom_types)
+        if not included_conversation_states:
+            included_conversation_states = [
+                conversation_states.ANSWER, conversation_states.CONVERSATION_POLL,
+                conversation_states.CONVERSATION_HEADER, conversation_states.CHATROOM_DELETE
+            ]
+
+        if not is_local_db:
+            chatrooms_data, chatroom_ids_list = get_home_feed_chatrooms_against_non_local_db_user(
+                user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
+                included_chatroom_types=included_chatroom_types,
+                included_conversation_states=included_conversation_states)
+
+        else:
+            chatrooms_data, chatroom_ids_list = get_home_feed_chatrooms_against_user(
+                user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
+                included_chatroom_types=included_chatroom_types)
 
         card_unseen_count_map = None
 
@@ -216,6 +230,13 @@ class SyncImpl(SyncManager):
                                                             user_instance.id,
                                                             SYNC_CONVERSATIONS_DATA_KEY,
                                                             is_user_cm)
+        
+        # Add additional data for conversation_meta conversations
+        SyncHelper.add_additional_data_in_conversation_meta(conversations_data,
+                                                            user_instance.id,
+                                                            CONVERSATIONS_META_KEY_VALUE,
+                                                            is_user_cm)
+        
         SyncHelper.add_additional_data_in_chatroom_meta(conversations_data)
 
         return {**{'success': True}, **conversations_data}

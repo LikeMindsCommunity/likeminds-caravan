@@ -44,7 +44,7 @@ class CohortManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_cohorts_with_community_id(self, community_id):
+    def fetch_cohorts_with_community_id(self, community_id, api_revamp_v1_check=False):
         """
         Fetches cohorts with member count in a community
         """
@@ -58,7 +58,7 @@ class CohortManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_cohorts_with_community_and_cohort_id(self, cohort_id, community_id):
+    def fetch_cohorts_with_community_and_cohort_id(self, cohort_id, community_id, api_revamp_v1_check=False):
         """
         Fetches cohort details in a community
         """

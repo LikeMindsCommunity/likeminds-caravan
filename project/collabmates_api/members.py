@@ -507,7 +507,8 @@ def get_all_members_version_1(request, req_dict=None):
     member_state = request.GET.get('member_state', None)
     member_state = NumberUtilities.get_integer_from_string(member_state, -1)
     question_answers_version = request.GET.get('question_answers_version', '')
-    filter_member_roles = StringUtilities.get_list_from_string(request.GET.get('filter_member_roles', ''))
+    filter_member_roles = StringUtilities.convert_string_to_list(request.GET.get('filter_member_roles', ''))
+    exclude_self_member = StringUtilities.get_boolean_from_string(request.GET.get('exclude_self_user', ''))
 
     included_member_states = []
 
@@ -633,7 +634,8 @@ def get_all_members_version_1(request, req_dict=None):
     if filter_list:
 
         filter_context = filtered_member_list(current_user_id, community_id, filter_list, page, member_instance,
-                                              member_state=member_state, included_member_states=included_member_states)
+                                              member_state=member_state, included_member_states=included_member_states,
+                                              exclude_self_user=exclude_self_member)
         members = filter_context['members']
         total_filtered_members = filter_context['total_filtered_members']
 
@@ -641,25 +643,45 @@ def get_all_members_version_1(request, req_dict=None):
 
         unfiltered_context = unfiltered_member_list(current_user_id, community_id, page, member_state=member_state,
                                                     sdk_client_info_flag=True, question_answers_v2=question_answers_v2,
-                                                    included_member_states=included_member_states)
+                                                    included_member_states=included_member_states,
+                                                    exclude_self_user=exclude_self_member)
         members = unfiltered_context['members']
         total_filtered_members = community['members_count']
 
     members = add_expired_members_metadata(members, community_instance)
 
-    context = {'success': True, 'members': members, 'community': community,
-               'total_members': community['members_count'], 'total_filtered_members': total_filtered_members}
+    context = {
+        'success': True,
+        'members': members,
+        'community': community,
+        'total_members': community['members_count'],
+        'total_filtered_members': total_filtered_members
+    }
+
+    members_filter = ModelUtilities.get_model_filter(Members,
+                                                     {'community_id': community_instance,
+                                                      'member_id__userinfo__is_guest': False})
 
     if NumberUtilities.get_integer_from_string(page) == 1:
-        context['total_only_members'] = Members.objects \
-            .filter(community_id=community_instance, state=member_states.MEMBER, member_id__userinfo__is_guest=False) \
-            .count()
+        context['total_only_members'] = members_filter.filter(state=member_states.MEMBER).count()
 
     if promoter_instance:
-        pending_members = pending_members_count_in_community(community_instance, current_user_instance)
+        pending_members = members_filter.filter(state=member_states.PENDING_MEMBER).count()
 
-        if pending_members is not None:
+        if pending_members:
             context['total_pending_members'] = pending_members
+
+    if exclude_self_member:
+        members_filter = members_filter.exclude(member_id=current_user_id)
+
+    context = {
+        **context,
+        **{
+            'members_count': members_filter.filter(state=member_states.MEMBER).count(),
+            'admins_count': members_filter.filter(state=member_states.ADMIN).count(),
+            'pending_members_count': members_filter.filter(state=member_states.PENDING_MEMBER).count()
+        }
+    }
 
     return context
 
@@ -700,9 +722,10 @@ def chatroom_participants(chatroom_instance, filter_list, community_id, current_
 
 
 def filtered_member_list(current_user_id, community_id, filter_list, page, member_instance, member_state=None,
-                         included_member_states=[]):
+                         included_member_states=[], exclude_self_user=False):
     member_list = get_member_query_set(current_user_id, community_id, send_all=True, member_state=member_state,
-                                       included_member_states=included_member_states)
+                                       included_member_states=included_member_states,
+                                       exclude_self_user=exclude_self_user)
     member_list = member_list.filter(member_id__userinfo__is_guest=False)
     filter_list = json.loads(filter_list)
     member_set = get_filtered_users(filter_list, member_list)
@@ -717,14 +740,17 @@ def filtered_member_list(current_user_id, community_id, filter_list, page, membe
     return filter_context
 
 
-def unfiltered_member_list(current_user_id, community_id, page, member_state=None, sdk_client_info_flag:bool=False, 
-                           question_answers_v2: bool=False, included_member_states: list = []):
+def unfiltered_member_list(current_user_id, community_id, page, member_state=None, sdk_client_info_flag: bool = False,
+                           question_answers_v2: bool = False, included_member_states: list = [],
+                           exclude_self_user: bool = False):
     member_list = get_member_query_set(current_user_id, community_id, page=page, remove_guest_user=True,
-                                       member_state=member_state, included_member_states=included_member_states)
+                                       member_state=member_state, included_member_states=included_member_states,
+                                       exclude_self_user=exclude_self_user)
         
     members = get_member_instances_without_filter(member_list, current_user_id, community_id, page=page, 
                                                   member_state=member_state, sdk_client_info_flag=sdk_client_info_flag,
-                                                  question_answers_v2=question_answers_v2)
+                                                  question_answers_v2=question_answers_v2,
+                                                  exclude_self_user=exclude_self_user)
 
     unfilter_context = {
         'members': members
@@ -750,7 +776,8 @@ def get_community_managers(community_instance):
 
 
 def get_member_instances_without_filter(member_list, current_user_id, community_id, page=1, member_state: int = None, 
-                                        sdk_client_info_flag:bool=False, question_answers_v2: bool = False):
+                                        sdk_client_info_flag: bool = False, question_answers_v2: bool = False,
+                                        exclude_self_user: bool = False):
     '''function to get members instances from members table'''
 
     members = []
@@ -761,21 +788,21 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
     is_promoter = False
 
     # fetching the user profile to show his name at top
-
-    current_filter = Members.objects.filter(member_id=current_user_id, community_id=community_id)
-
-    if current_filter:
-        current_user_filter = current_filter[0]
-        is_owner = current_user_filter.is_owner
-        is_promoter = current_user_filter.state == member_states.ADMIN
-
-    if int(page) == 1:
+    if not exclude_self_user:
+        current_filter = Members.objects.filter(member_id=current_user_id, community_id=community_id)
 
         if current_filter:
-            current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
-                                             send_profile=(not question_answers_v2),
-                                             all_members_api=True, is_promoter=is_promoter,
-                                             is_owner=is_owner)
+            current_user_filter = current_filter[0]
+            is_owner = current_user_filter.is_owner
+            is_promoter = current_user_filter.state == member_states.ADMIN
+
+        if int(page) == 1:
+
+            if current_filter:
+                current_user = MembersSerializer(current_user_filter, community_id, current_user_id=current_user_id,
+                                                 send_profile=(not question_answers_v2),
+                                                 all_members_api=True, is_promoter=is_promoter,
+                                                 is_owner=is_owner)
 
     if is_owner or is_promoter:
         user_admin_rights = check_all_manager_rights(current_user_id, community_id)
@@ -794,7 +821,8 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
         members.append(userinfo_serialized_object)
 
     # If first page and current user'state matches member_state filter, then add him to the top of the list 
-    if current_user and (not member_state or current_user['state'] == member_state):        
+    if current_user and (not member_state or current_user['state'] == member_state):  
+        member_ids.append(current_user_id)      
         members.insert(0, current_user)
     
     # If sdk_client_info_flag is True, then add sdk_client_info to members object
@@ -818,7 +846,6 @@ def get_member_instances_without_filter(member_list, current_user_id, community_
                 
             else:
                 member['question_answers'] = None
-
 
     return members
 
@@ -992,7 +1019,7 @@ def intersect_sets(set1, set2):
 
 
 def get_member_query_set(current_user_id, community_id, send_all=False, page=1, remove_guest_user=False,
-                         member_state=None, included_member_states=[]):
+                         member_state=None, included_member_states=[], exclude_self_user=False):
 
     if not included_member_states:
         included_member_states = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE,
@@ -1004,6 +1031,10 @@ def get_member_query_set(current_user_id, community_id, send_all=False, page=1, 
             included_member_states = [member_state]
 
         member_list = Members.objects.filter(community_id=community_id, state__in=included_member_states).order_by('id')
+
+        if exclude_self_user:
+            member_list = member_list.exclude(member_id=current_user_id)
+
         return member_list
 
     state = 0
@@ -1014,18 +1045,21 @@ def get_member_query_set(current_user_id, community_id, send_all=False, page=1, 
 
     is_promoter = state == member_states.ADMIN
 
-    if is_promoter:
-        is_promoter = check_admin_approve_right(community=community_id, user=current_user_id)
+    if not included_member_states:
 
-    if not is_promoter:
-        included_member_states = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]
+        if is_promoter:
+            is_promoter = check_admin_approve_right(community=community_id, user=current_user_id)
+
+        if not is_promoter:
+            included_member_states = [member_states.ADMIN, member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]
 
     if member_state:
         included_member_states = [member_state]
 
-    member_list = get_paginated_member_queryset(page=page, community_id=community_id,
+    member_list = get_paginated_member_queryset(current_user_id, page=page, community_id=community_id,
                                                 remove_guest_user=remove_guest_user,
-                                                included_member_states=included_member_states)
+                                                included_member_states=included_member_states,
+                                                exclude_self_user=exclude_self_user)
 
     return member_list
 
@@ -1065,7 +1099,8 @@ def get_tuple_from_array(array):
     return tupp
 
 
-def get_paginated_member_queryset(page, community_id, remove_guest_user=False, included_member_states=None):
+def get_paginated_member_queryset(user_id, page, community_id, remove_guest_user=False, included_member_states=None,
+                                  exclude_self_user=False):
     '''function to get paginated  member ids'''
 
     cursor = connection.cursor()
@@ -1074,9 +1109,13 @@ def get_paginated_member_queryset(page, community_id, remove_guest_user=False, i
     offset = (page_number - 1) * 10
 
     guest_user_query = ""
+    exclude_self_user_query = ""
 
     if remove_guest_user:
         guest_user_query = "AND togther_userinfo.is_guest = false"
+
+    if exclude_self_user:
+        exclude_self_user_query = f"AND togther_members.member_id_id != {user_id}"
 
     included_member_state_query = ""
 
@@ -1091,9 +1130,10 @@ def get_paginated_member_queryset(page, community_id, remove_guest_user=False, i
             FROM togther_members
             INNER JOIN togther_userinfo
                 ON togther_members.member_id_id = togther_userinfo.user_id_id
-                    AND togther_members.community_id_id = %s %s %s
+                    AND togther_members.community_id_id = %s %s %s %s
             ORDER BY togther_members.created_at DESC limit %s offset %s
-    """ % (str(community_id), guest_user_query, included_member_state_query, str(limit), str(offset))
+    """ % (str(community_id), guest_user_query, included_member_state_query, exclude_self_user_query, str(limit),
+           str(offset))
 
     cursor.execute(sql)
     res = cursor.fetchall()

@@ -441,6 +441,20 @@ class ConversationStates:
     CONVERSATION_EVENT = 18
     CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT = 19
     CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT = 20
+    CHATROOM_DELETE = 21
+
+    def get_all_states_list(self) -> list:
+        return [self.ANSWER, self.CONVERSATION_HEADER, self.CONVERSATION_FOLLOW, self.CONVERSATION_UNFOLLOW,
+                self.CONVERSATION_CREATOR, self.CONVERSATION_COMMUNITY_EDIT, self.CONVERSATION_GUEST,
+                self.CONVERSATION_ADD_PARTICIPANT, self.CONVERSATION_LEAVE_CHATROOM,
+                self.CONVERSATION_REMOVED_FROM_CHATROOM, self.CONVERSATION_POLL, self.CONVERSATION_ADD_ALL_MEMBERS,
+                self.CHATROOM_TOPIC, self.CONVERSATION_DIRECT_MESSAGE_MEMBER_REMOVED_OR_LEFT,
+                self.CONVERSATION_DIRECT_MESSAGE_CM_REMOVED,
+                self.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_DISABLE_CHAT,
+                self.CONVERSATION_DIRECT_MESSAGE_CM_BECOMES_MEMBER_ENABLE_CHAT,
+                self.CONVERSATION_DIRECT_MESSAGE_MEMBER_BECOMES_CM_ENABLE_CHAT, self.CONVERSATION_EVENT,
+                self.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT,
+                self.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT, self.CHATROOM_DELETE]
 
 
 conversation_states = ConversationStates()
@@ -524,17 +538,28 @@ class CommunitySettingTypes:
 community_setting_types = CommunitySettingTypes()
 
 
-class CohortTypes:
+class CohortType:
     NORMAL = 0
     SUBSCRIPTION_PLAN = 1
     SUBSCRIPTION_EXPIRED_PLAN = 2
     ALL_MEMBER = 3
 
 
-cohort_types = CohortTypes()
+cohort_types = CohortType()
 
 cohort_type_list = [cohort_types.NORMAL, cohort_types.SUBSCRIPTION_PLAN,
                     cohort_types.SUBSCRIPTION_EXPIRED_PLAN, cohort_types.ALL_MEMBER]
+
+
+class CohortTypes(enum.Enum):
+    NORMAL = 0
+    SUBSCRIPTION_PLAN = 1
+    SUBSCRIPTION_EXPIRED_PLAN = 2
+    ALL_MEMBER = 3
+
+    @classmethod
+    def get_cohort_type_from_int(cls, value) -> str:
+        return cls(value).name.lower() if value in cls._value2member_map_ else ""
 
 
 class GetStartedTypes:
@@ -676,6 +701,19 @@ class CommunityDMSettingsStateTypes:
 community_dm_settings_state_types = CommunityDMSettingsStateTypes()
 
 
+class CommunityDMSettingTypes(enum.Enum):
+    UNLIMITED = 0
+    LIMITED = 1
+
+    @classmethod
+    def get_string_state_type_from_int(cls, value) -> str:
+        return cls(value).name.lower() if value in cls._value2member_map_ else ""
+    
+    @classmethod
+    def get_int_state_type_from_string(cls, value) -> int:
+        return cls[value.upper()].value if value.upper() in cls._member_names_ else -1
+
+
 class CommunityDMSettingsDurationTypes:
     DAYS = "day"
     WEEKS = "week"
@@ -736,6 +774,24 @@ class NotificationStates:
 noti_states = NotificationStates()
 
 
+class ChatNotificationTypes(enum.Enum):
+    ALL_MESSAGES = 1
+    ONLY_MENTIONS_AND_REPLIES = 2
+    DM_MENTION_REPLIES_POLL = 3
+
+    ALL_MESSAGES_ANALYTICS = "all_messages"
+    ONLY_MENTIONS_AND_REPLIES_ANALYTICS = "mentions_replies"
+    DM_MENTION_REPLIES_POLL_ANALYTICS = "dm_mention_replies_poll"
+
+    @classmethod
+    def get_string_state_type_from_int(cls, value) -> str:
+        return cls(value).name.lower() if value in cls._value2member_map_ else ""
+    
+    @classmethod
+    def get_int_state_type_from_string(cls, value) -> int:
+        return cls[value.upper()].value if value.upper() in cls._member_names_ else -1
+
+
 class FeedNotificationStates:
     LIKES = 1
     COMMENTS = 2
@@ -744,6 +800,21 @@ class FeedNotificationStates:
 
 
 feed_notification_states = FeedNotificationStates()
+
+
+class FeedNotifcationTypes(enum.Enum):
+    LIKES = 1
+    COMMENTS = 2
+    REPLIES_ON_YOUR_COMMENTS = 3
+    UPDATES_ON_COMMENTED_POST = 4
+
+    @classmethod
+    def get_string_state_type_from_int(cls, value) -> str:
+        return cls(value).name.lower() if value in cls._value2member_map_ else ""
+    
+    @classmethod
+    def get_int_state_type_from_string(cls, value) -> int:
+        return cls[value.upper()].value if value.upper() in cls._member_names_ else -1
 
 
 class WhatsappSubscriptionStateActions:
@@ -786,6 +857,7 @@ class AccessTypes:
     EDIT_TOPIC = "edit_topic"
     IS_MEMBER = "is_member"
     CHANGE_AUTHOR = "change_author"
+    VIEW_USER_ACTIVITY = "view_user_activity"
 
 
 access_types = AccessTypes()

@@ -1144,9 +1144,20 @@ class CreateDMChatroomView(APIView):
         device_id = RequestUtilities.get_device_id_from_headers(request)
         request_platform = RequestUtilities.get_platform_code(request)
 
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+
+        # version check for created_at epoch format change
+        chatroom_created_at_uniform_check = VersionUtilities.check_version(platform_code=platform_code, 
+                                                                   version_code=version_code, 
+                                                                   feature_version_dict=VersionUtilities.community_feed_date_uniform,
+                                                                   sdk_source=sdk_source)
+
         chatroom_manager = ChatroomImpl(member_id, device_id=device_id, request_platform=request_platform,
                                         api_key=api_key)
-        response_context = chatroom_manager.create_dm_chatroom(req_body)
+        response_context = chatroom_manager.create_dm_chatroom(req_body, 
+                                                               chatroom_created_at_uniform_check=chatroom_created_at_uniform_check)
 
         if 'error_message' in response_context:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),

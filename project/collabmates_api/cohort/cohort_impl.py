@@ -27,8 +27,8 @@ from ..static_text import create_room_member_right, create_poll_member_right, cr
 from ..user.user_impl import UserImpl, UserHelper
 from ..user_moderation_rights import check_all_manager_rights, get_saved_member_rights_list, check_history_exists, \
     check_rights_history_existence, save_member_right, update_member_rights_in_conversation_engage, \
-    update_member_rights_in_member_engage
-from ..views import get_added_and_removed_rights, get_error_context
+    update_member_rights_in_member_engage, get_added_and_removed_rights
+from ..views import get_error_context
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
 
@@ -162,6 +162,8 @@ class CohortImpl(CohortManager):
         user_instance = validated_req_body.get('user_instance')
         member_instance = validated_req_body.get('member_instance')
 
+        cohort_meta_update = False
+
         # If uudids are passed, get valid user ids and update member_ids
         if uuids:
             member_ids = ModelUtilities.get_valid_user_ids_from_uuids(uuids, cohort_instance.community_id)
@@ -181,6 +183,7 @@ class CohortImpl(CohortManager):
 
         if name:
             ModelUtilities.model_update(Cohort, {'id': cohort_id}, {'name': name})
+            cohort_meta_update = True
 
         if rights:
             existing_rights = set(
@@ -203,7 +206,7 @@ class CohortImpl(CohortManager):
             self._add_rights_to_cohort(rights_to_add, cohort_instance)
             CohortHelper.remove_rights_to_all_cohort_members(cohort_instance, rights_to_remove)
 
-        self._update_members_for_cohort(cohort_instance, member_ids)
+        self._update_members_for_cohort(cohort_instance, member_ids, meta_update=cohort_meta_update)
 
         if filter_list:
             CohortHelper.create_cohort_filters(filter_list, cohort_instance)
@@ -243,7 +246,7 @@ class CohortImpl(CohortManager):
 
         return {'success': True, 'member_cohorts': member_cohort_dict}
 
-    def fetch_cohorts_with_community_id(self, community_id):
+    def fetch_cohorts_with_community_id(self, community_id, api_revamp_v1_check=False):
         validated_req_body = CohortHelper.validate_fetch_community_cohorts_request(self.get_member_id(),
                                                                                    community_id=community_id,
                                                                                    api_key=self.get_api_key())
@@ -265,6 +268,11 @@ class CohortImpl(CohortManager):
                 'type': cohort.type,
                 'total_members': ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort.id}).count()
             }
+
+            # If api revamp v1 check, update response
+            if api_revamp_v1_check:
+                cohort_context['type'] = CohortTypes.get_cohort_type_from_int(cohort_context['type'])
+
             cohort_context_list.append(cohort_context)
 
         return {'success': True, 'cohorts': cohort_context_list}
@@ -333,7 +341,7 @@ class CohortImpl(CohortManager):
 
         return {'success': True}
 
-    def fetch_cohorts_with_community_and_cohort_id(self, cohort_id, community_id):
+    def fetch_cohorts_with_community_and_cohort_id(self, cohort_id, community_id, api_revamp_v1_check=False):
 
         validated_req_body = CohortHelper.validate_fetch_cohort_request(self.get_member_id(),
                                                                         cohort_id=cohort_id,
@@ -371,6 +379,13 @@ class CohortImpl(CohortManager):
 
         if cohorts.get('type') in [cohort_types.SUBSCRIPTION_PLAN, cohort_types.SUBSCRIPTION_EXPIRED_PLAN]:
             cohorts['type_id'] = cohort_instance.type_id
+
+        # If api revamp v1 check, update response
+        if api_revamp_v1_check:
+            cohorts['type'] = CohortTypes.get_cohort_type_from_int(cohorts['type'])
+
+            for right in cohorts['rights']:
+                right.pop('state')
 
         return {'success': True, 'cohorts': cohorts}
 
@@ -424,7 +439,7 @@ class CohortImpl(CohortManager):
             except:
                 error_logger.error(f"rights already exists for cohort {cohort_instance}")
 
-    def _update_members_for_cohort(self, cohort_instance, member_ids):
+    def _update_members_for_cohort(self, cohort_instance, member_ids, meta_update=False):
         # Doesn't remove any existing member
         existing_cohort_members = set(
             ModelUtilities.get_model_filter(CohortMember, {'cohort_id': cohort_instance.id}).values_list('user_id',
@@ -436,7 +451,7 @@ class CohortImpl(CohortManager):
         add_new_participants_to_cohorts_secret_chatroom(cohort_instance.id, self.get_member_id(), member_ids)
 
         # In case of cohort meta-data update, updating elasticsearch doc.
-        if not members_to_add:
+        if meta_update:
             ElasticSearchSync.update_members.delay(member_ids=list(existing_cohort_members),
                                                    community_id=cohort_instance.community_id)
 
