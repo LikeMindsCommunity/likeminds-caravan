@@ -230,6 +230,13 @@ class SyncImpl(SyncManager):
                                                             user_instance.id,
                                                             SYNC_CONVERSATIONS_DATA_KEY,
                                                             is_user_cm)
+        
+        # Add additional data for conversation_meta conversations
+        SyncHelper.add_additional_data_in_conversation_meta(conversations_data,
+                                                            user_instance.id,
+                                                            CONVERSATIONS_META_KEY_VALUE,
+                                                            is_user_cm)
+        
         SyncHelper.add_additional_data_in_chatroom_meta(conversations_data)
 
         return {**{'success': True}, **conversations_data}

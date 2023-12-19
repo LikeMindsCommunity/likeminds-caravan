@@ -659,7 +659,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         if send_expired_info:
             membership_expired_dict = MemberCommunityImpl.fetch_members_for_membership_expired(user_list,
                                                                                                community_instance)
-            
+
         if sdk_client_info_flag:
             sdk_client_info_dict = get_users_sdk_meta_dict(user_list, only_sdk_client_info=True)
 
@@ -709,7 +709,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                   (userinfo_instance.name,
                                                    TimeUtilities.convert_epoch_time_in_date(
                                                        membership_expired_instance.created_at))
-                
+
                 if sdk_client_info_flag:
                     member['sdk_client_info'] = sdk_client_info_dict.get(member['id'])
 
@@ -846,7 +846,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                          ).order_by('created_at')
         return member_queryset
 
-    def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1, 
+    def fetch_feed(self, pin_status, order_type, chatroom_id=None, scroll_direction=None, api_version="", page=1,
                    community_feed_date_uniform_check=False) -> {}:
 
         validated_req = MemberCommunityViewHelper.validate_fetch_feed_request(self.get_member_id(),
@@ -892,7 +892,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                                    pin_status, excluded_card_ids,
                                                                                    order_type, page=page,
                                                                                    api_version=api_version)
-            
+
         else:
 
             if not chatroom_id and not scroll_direction:
@@ -1014,7 +1014,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
         chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance,
                                                                            sdk_client_info_flag=True)
-        
+
         # Change created_at format from string to EPOCH date time
         if community_feed_date_uniform_check:
             for chatroom in chatroom_context_list:
@@ -1184,7 +1184,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             member_id = user_instance.id
 
             if card_instance:
-                chatroom_home['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False, 
+                chatroom_home['chatroom'] = get_chatroom_instance(card_instance, member_id, send_profile=False,
                                                                   sdk_client_info_flag=True)
 
                 context = {"current_user_id": member_id}
@@ -1488,7 +1488,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                   current_user_member_instance)
 
         user_menu = MemberCommunityHelper.update_member_profile_menu_for_sdk(user_member_instance, community_instance,
-                                                                             current_user_member_instance, user_menu, 
+                                                                             current_user_member_instance, user_menu,
                                                                              community_hood_check=community_hood_check)
 
         member_profile_response = {
@@ -1599,7 +1599,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                 MemberCommunityHelper.update_user_image_in_sdk(user_instance, image_url)
 
         if widget_id:
-            MemberCommunityHelper.update_widget_id_for_user(user_id=user_instance.id, 
+            MemberCommunityHelper.update_widget_id_for_user(user_id=user_instance.id,
                                                             widget_id=widget_id)
 
         if (not user_intro_card_instance) and (user_member_instance.state in [member_states.ADMIN,
@@ -1811,7 +1811,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             chatroom = MemberCommunityHelper.serialise_dm_chatrooms(user_instance, community_instance, card_id,
                                                                     card_ans_id, card_state_map,
                                                                     convsersation_states_to_consider, rights_list,
-                                                                    device_id=self.get_device_id(), 
+                                                                    device_id=self.get_device_id(),
                                                                     sdk_client_info_flag=True)
 
             chatroom['community'] = community_serializer_object
@@ -1999,7 +1999,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             if access_type in [access_types.CREATE_POST, access_types.VIEW_POST, access_types.LIKE_POST,
                                access_types.CREATE_COMMENT, access_types.VIEW_COMMENT, access_types.LIKE_COMMENT,
                                access_types.SAVE_POST, access_types.VIEW_ACTIVITY, access_types.VIEW_REPORT_ENTITY,
-                               access_types.IS_MEMBER]:
+                               access_types.IS_MEMBER, access_types.VIEW_USER_ACTIVITY]:
                 output_context['access'] = True
 
         if member_state == member_states.MEMBER:
@@ -2014,7 +2014,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             if access_type in [access_types.VIEW_POST, access_types.DELETE_POST, access_types.LIKE_POST,
                                access_types.VIEW_COMMENT, access_types.DELETE_COMMENT, access_types.LIKE_COMMENT,
                                access_types.SAVE_POST, access_types.VIEW_ACTIVITY, access_types.EDIT_COMMENT,
-                               access_types.EDIT_POST, access_types.IS_MEMBER]:
+                               access_types.EDIT_POST, access_types.IS_MEMBER, access_types.VIEW_USER_ACTIVITY]:
                 output_context['access'] = True
 
             if access_type in [access_types.PIN_POST, access_types.CREATE_ACTIVITY, access_types.VIEW_REPORT_ENTITY,
@@ -2202,51 +2202,51 @@ class MemberCommunityImpl(MemberCommunityManager):
             'unseen_channel_count': unseen_channel_count,
             'actions': community_actions
         }
-    
+
     def fetch_pending_members(self):
         validated_request = MemberCommunityHelper.validate_fetch_pending_members_request(self.get_member_id(),
                                                                                          self.get_api_key())
-        
+
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
-        
+
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
 
         community_id = community_instance.id
-        
+
         pending_members_list = get_pending_members_of_community(community_id, requested_member_id=user_instance.id)
 
         return {
             'success': True,
             'pending_members': pending_members_list
         }
-    
+
     def self_leave_community(self) -> dict:
         validated_request = MemberCommunityHelper.validate_self_leave_community_request(self.get_member_id(),
                                                                                         self.get_api_key())
-        
+
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
-        
+
         community_instance = validated_request.get('community_instance')
         user_instance = validated_request.get('user_instance')
         member_instance = validated_request.get('member_instance')
 
         success = False
-        
+
         if member_instance.state == member_states.PENDING_MEMBER:
             success = MemberCommunityHelper.leave_community_for_pending_member(community_instance, member_instance, user_instance)
 
         elif member_instance.state in [member_states.MEMBER, member_states.PROFILE_UNAVAILABLE]:
             success = MemberCommunityHelper.leave_community_for_member_and_profile_unavailable(community_instance, member_instance, user_instance)
-        
+
         else:
             return ResponseUtilities.get_impl_error_context('Unable to leave community, invalid member state!',
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
-        
+
         if not success:
             return ResponseUtilities.get_impl_error_context('Unable to leave community, some error occurred!',
                                                             status_code=status_codes.HTTP_500_INTERNAL_SERVER_ERROR)

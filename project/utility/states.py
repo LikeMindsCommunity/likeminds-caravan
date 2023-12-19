@@ -858,6 +858,7 @@ class AccessTypes:
     EDIT_TOPIC = "edit_topic"
     IS_MEMBER = "is_member"
     CHANGE_AUTHOR = "change_author"
+    VIEW_USER_ACTIVITY = "view_user_activity"
 
 
 access_types = AccessTypes()
