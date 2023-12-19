@@ -142,3 +142,4 @@ class ChatroomDocument(Document):
         """Inner nested class Django."""
         model = collabcardState  # The model associate with this Document
         queryset_pagination = 50
+        ignore_signals = True

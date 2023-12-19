@@ -399,6 +399,9 @@ MAX_INDEX_LENGTH_ELASTICSEARCH = 32765
 # Indexing only settings
 ELASTICSEARCH_DSL_QUERYSET_PAGINATION = 10000
 
+# Elastic search signal processor
+ELASTICSEARCH_DSL_SIGNAL_PROCESSOR = "collabmates_api.search.custom_signal_processor.CelerySignalProcessor"
+
 OG_TAGS_URL_REQUEST_TIMEOUT_IN_SECONDS = os.getenv('OG_TAGS_URL_REQUEST_TIMEOUT_IN_SECONDS')
 
 CORALOGIX_QUERY_API_KEY = os.getenv('CORALOGIX_QUERY_API_KEY')
