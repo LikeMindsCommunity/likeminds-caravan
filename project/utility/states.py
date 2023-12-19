@@ -941,25 +941,16 @@ class EventKinds:
 event_kinds = EventKinds()
 
 
-class ConnectionRequestActions:
+class ConnectionRequestActions(enum.Enum):
     ACCEPT = "accept"
     REJECT = "reject"
 
 
-connection_request_actions = ConnectionRequestActions()
-
-
-class ConnectionRequestStatus:
+class ConnectionRequestStatus(enum.Enum):
     ACCEPTED = "accepted"
     PENDING = "pending"
 
 
-connection_request_status = ConnectionRequestStatus()
-
-
-class ConnectionStates:
+class ConnectionStates(enum.Enum):
     CONNECTED = "connected"
     DISCONNECTED = "disconnected"
-
-
-connection_states = ConnectionStates()

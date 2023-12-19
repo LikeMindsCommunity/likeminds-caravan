@@ -1,6 +1,7 @@
 import uuid
 from django.contrib.auth.models import User
 from django.db.models import When, Case
+from django.conf import settings
 from rest_framework import status as status_codes
 from rest_framework.utils import json
 from celery import shared_task
@@ -11,19 +12,22 @@ from utility.response_utilities import ResponseUtilities
 from utility.webhook_utilities import WebhookUtilties
 from utility.validation_utilities import ValidationUtilities
 from utility.json_utilities import JsonUtilities
+from utility.api_client import ApiClient
 from utility.constants import (CREATE_INTRO_TEXT_ADMIN)
 from utility.cache_keys import (COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY)
 from utility.states import (card_types, community_setting_types, member_states, question_states, SyncTypes,
                             member_rights, community_dm_settings_state_types, community_dm_settings_duration_types,
                             conversation_states, DMFabShowList, api_types, get_started_types, click_states,
                             moderation_history_types, access_types, feed_order_types, WebhookTypes,
-                            webhook_profile_methods, deleted_members, report_action_types, SyncNotificationTypes)
+                            webhook_profile_methods, deleted_members, report_action_types, SyncNotificationTypes,
+                            ConnectionRequestActions, ConnectionRequestStatus)
 from utility.utils import (get_time_text_for_my_chatrooms)
 from utility.celery_tasks import (create_member_dm_chatroom, update_community_pin_chatrooms_list_in_cache,
                                   update_preview_for_account_image_change, update_multiple_previews_in_community)
 from togther.models import (collabcardState, ModelUtilities, CommunitySettings, Members, communityAnswers,
                             communityQuestions, Card_Attachment, Collabcard, CommunityDirectMessageSettings,
-                            card_answers, Member_Engage, moderationHistory, conversationEngage, SDKClientUsersInfo)
+                            card_answers, Member_Engage, moderationHistory, conversationEngage, SDKClientUsersInfo,
+                            Userinfo)
 from collabmates_api.search.sync import ElasticSearchSync
 from collabmates_api.notification import (send_notification_to_admins)
 from collabmates_api.mails import (send_community_hood_waitlist_email_to_pending_member)
@@ -64,7 +68,8 @@ from ..sync.model_update import update_models_for_syncing_apis
 
 from .constants import (ACTIVE_USER_LIMIT, MEMBER_COMMUNITY_PROFILE_ROUTE, MEMBER_SINCE_TEXT, PENDING_MEMBER_TEXT,
                         CTA_ROUTE_DIRECT_MESSAGES_MEMBER_PROFILE, CTA_ROUTE_DIRECT_MESSAGES_COMMUNITY_DETAIL_MULTIPLE_CM,
-                        CTA_ROUTE_DIRECT_MESSAGES_DM_FEED, CTA_ROUTE_DIRECT_MESSAGES_DM_FEED_V2)
+                        CTA_ROUTE_DIRECT_MESSAGES_DM_FEED, CTA_ROUTE_DIRECT_MESSAGES_DM_FEED_V2,
+                        SWARM_USER_CONNECTION_UPDATE_ENDPOINT)
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -172,10 +177,12 @@ class MemberCommunityHelper:
 
         if card_instance.header:
             header = card_instance.header
+
         else:
 
             if len(card_instance.title) <= 30:
                 header = card_instance.title[:30]
+
             else:
                 header = card_instance.title[:27] + "..."
 
@@ -263,11 +270,13 @@ class MemberCommunityHelper:
 
     @staticmethod
     def is_user_answer_private(answer_data):
+
         if answer_data.get('value'):
             value_list = json.loads(answer_data.get('value'))
             privacy = ANSWER_PRIVACY_PUBLIC_VALUE
 
             for value in value_list:
+
                 if ANSWER_PRIVACY_KEY in value:
                     privacy = value['answer_privacy']
 
@@ -475,6 +484,7 @@ class MemberCommunityHelper:
         allowed_menu_items = []
 
         if current_user_member_instance.state == member_states.ADMIN:
+
             if user_member_instance.state == member_states.ADMIN:
                 allowed_menu_items = [
                     all_menu_items.get("REPORT_MEMBER")
@@ -494,6 +504,7 @@ class MemberCommunityHelper:
                 ]
 
         elif current_user_member_instance.state == member_states.MEMBER:
+
             if user_member_instance.state == member_states.ADMIN:
                 allowed_menu_items = [
                     all_menu_items.get("REPORT_MEMBER")
@@ -506,6 +517,7 @@ class MemberCommunityHelper:
 
         allowed_menu_item_titles = [item.get("title") for item in allowed_menu_items]
         for menu_item in menu:
+
             if menu_item.get("title") in allowed_menu_item_titles:
                 updated_menu.append(menu_item)
 
@@ -1175,14 +1187,17 @@ class MemberCommunityHelper:
     @staticmethod
     def validate_fetch_member_access_request(user_id, api_key, access_type_value):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user ID")
 
         community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key")
 
         is_community_member = Members.is_community_member(community_instance, user_instance)
+
         if not is_community_member:
             return ResponseUtilities.get_inner_error_context("You are not a member of the community")
 
@@ -1196,6 +1211,7 @@ class MemberCommunityHelper:
                               access_types.EDIT_TOPIC, access_types.IS_MEMBER, access_types.CHANGE_AUTHOR]
 
         access_type = access_type_value
+
         if access_type not in valid_access_types:
             return ResponseUtilities.get_inner_error_context("Send valid access type")
 
@@ -1205,14 +1221,17 @@ class MemberCommunityHelper:
     @staticmethod
     def validate_fetch_post_feed_request(user_id, api_key, order_type, chatroom_ids):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user ID")
 
         community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key")
 
         is_community_member = Members.is_community_member(community_instance, user_instance)
+
         if not is_community_member:
             return ResponseUtilities.get_inner_error_context("You are not a member of the community")
 
@@ -1223,9 +1242,12 @@ class MemberCommunityHelper:
             return ResponseUtilities.get_inner_error_context("Invalid order_type")
 
         chatroom_ids_list = []
+
         if chatroom_ids and isinstance(chatroom_ids, str):
+
             try:
                 chatroom_ids_list = json.loads(chatroom_ids)
+
             except:
                 return ResponseUtilities.get_inner_error_context("Invalid chatroom_ids object")
 
@@ -1235,14 +1257,17 @@ class MemberCommunityHelper:
     @staticmethod
     def validate_fetch_excluded_chatrooms_request(user_id, api_key):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
+
         if not user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid user ID")
 
         community_instance = SdkClient.get_community_instance_or_none(api_key=api_key)
+
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key")
 
         is_community_member = Members.is_community_member(community_instance, user_instance)
+
         if not is_community_member:
             return ResponseUtilities.get_inner_error_context("You are not a member of the community")
 
@@ -1778,6 +1803,75 @@ class MemberCommunityHelper:
         }
 
     @staticmethod
+    def validate_create_connection_request(member_id, api_key, user_id):
+        validated_request = MemberCommunityHelper.validate_connection_users(member_id, api_key, user_id)
+
+        if validated_request.get('error_message'):
+            return validated_request
+
+        if member_id == user_id:
+            return ResponseUtilities.get_inner_error_context("You can't request a connection to yourself")
+
+        community_instance = validated_request.get('community_instance')
+
+        community_setting = ModelUtilities.get_model_filter(CommunitySettings,
+                                                            {'community': community_instance,
+                                                             'setting_type': community_setting_types.USER_CONNECTION,
+                                                             'enabled': True})
+
+        if not community_setting:
+            return ResponseUtilities.get_inner_error_context("Enable User Connection Setting to use this api")
+
+        return validated_request
+
+    @staticmethod
+    def validate_update_connection_request(member_id, api_key, user_id, action):
+        validated_request = MemberCommunityHelper.validate_connection_users(member_id, api_key, user_id)
+
+        if validated_request.get('error_message'):
+            return validated_request
+
+        if member_id == user_id:
+            return ResponseUtilities.get_inner_error_context("You can't perform a connection action on yourself")
+
+        community_instance = validated_request.get('community_instance')
+
+        community_setting = ModelUtilities.get_model_filter(CommunitySettings,
+                                                            {'community': community_instance,
+                                                             'setting_type': community_setting_types.USER_CONNECTION,
+                                                             'enabled': True})
+
+        if not community_setting:
+            return ResponseUtilities.get_inner_error_context("Enable User Connection Setting to use this api")
+
+        if action not in [ConnectionRequestActions.ACCEPT.value, ConnectionRequestActions.REJECT.value]:
+            return ResponseUtilities.get_inner_error_context("Invalid connection action sent")
+
+        return validated_request
+
+    @staticmethod
+    def validate_fetch_connection_request(member_id, api_key, user_id, status):
+        validated_request = MemberCommunityHelper.validate_connection_users(member_id, api_key, user_id)
+
+        if validated_request.get('error_message'):
+            return validated_request
+
+        community_instance = validated_request.get('community_instance')
+
+        community_setting = ModelUtilities.get_model_filter(CommunitySettings,
+                                                            {'community': community_instance,
+                                                             'setting_type': community_setting_types.USER_CONNECTION,
+                                                             'enabled': True})
+
+        if not community_setting:
+            return ResponseUtilities.get_inner_error_context("Enable User Connection Setting to use this api")
+
+        if member_id == user_id and status == ConnectionRequestStatus.PENDING.value:
+            return ResponseUtilities.get_inner_error_context("You can't access other's pending requests")
+
+        return validated_request
+
+    @staticmethod
     def parse_users_dict_for_lm_id_mapping(users):
         output = {}
 
@@ -1786,3 +1880,40 @@ class MemberCommunityHelper:
             output[UUID] = value
 
         return output
+
+    @staticmethod
+    @shared_task
+    def update_connection_data_cache_in_swarm_service(community_id, member_id, user_id, connection_status):
+        user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
+        member_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': member_id}).first()
+        sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id,
+                                                                          'is_deleted': False}).first()
+
+        if not (user_info_filter and sdk_client_instance):
+            return
+
+        endpoint = settings.SWARM_BASE_URL + SWARM_USER_CONNECTION_UPDATE_ENDPOINT.format(
+            user_info_filter.user_unique_id)
+
+        client = ApiClient()
+        client.update_request_url(endpoint)
+
+        # Add headers
+        client.update_headers({
+            'x-member-id': member_info_filter.user_unique_id,
+            'x-api-key': sdk_client_instance.api_key
+        })
+
+        # Add Delete request body
+        client.update_body({
+            "status": connection_status
+        })
+
+        # Send delete request
+        response = client.patch().response
+
+        if response.status_code != 200:
+            error_logger.error(
+                f"Failed to update connection data: api_key = {community_id}, member_id: {member_id}, user_id: {user_id}, connection_status: {connection_status} - status code: {response.status_code} | response: {response.json()}")
+
+        return

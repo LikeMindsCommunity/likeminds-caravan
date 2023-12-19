@@ -8,6 +8,7 @@ from utility.string_utilities import StringUtilities
 from utility.exception_utilities import InvalidHeaderException, CustomException
 from utility.response_utilities import ResponseUtilities
 from utility.version_utilities import VersionUtilities
+from utility.states import ConnectionRequestStatus
 
 from collabmates_api.views import get_error_context
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -843,7 +844,7 @@ class ConnectionView(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
-        request_platform = RequestUtilities.get_platform_code(request)
+        request_platform = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
 
         member_community_manager = MemberCommunityImpl(member_id=member_id, platform_code=request_platform,
@@ -860,16 +861,15 @@ class ConnectionView(APIView):
     def get(self, request, user_id):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
-        request_platform = RequestUtilities.get_platform_code(request)
+        request_platform = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         request_params = RequestUtilities.fetch_request_query_params(request)
 
         member_community_manager = MemberCommunityImpl(member_id=member_id, platform_code=request_platform,
                                                        version_code=version_code, api_key=api_key)
-        response_data = member_community_manager.fetch_connections(user_id,
-                                                                   request_params.get('page', 1),
-                                                                   request_params.get('page_size', 10),
-                                                                   request_params.get('status', 'accepted'))
+        response_data = member_community_manager.fetch_connections(
+            user_id, request_params.get('page', 1), request_params.get('page_size', 10),
+            request_params.get('status', ConnectionRequestStatus.ACCEPTED.value))
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
@@ -882,7 +882,7 @@ class ConnectionView(APIView):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
-        request_platform = RequestUtilities.get_platform_code(request)
+        request_platform = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         request_body = RequestUtilities.load_request_body(request)
 

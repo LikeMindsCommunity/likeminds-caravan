@@ -2,28 +2,25 @@ import math
 from django.contrib.auth.models import User
 from django.db.models import Q, F
 from django.db.models.functions import Lower
-from django.conf import settings
 from rest_framework import status as status_codes
 from rest_framework.utils import json
-from celery import shared_task
 
 from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
 from utility.exception_utilities import CustomException
 from utility.response_utilities import ResponseUtilities
 from utility.constants import (CONVERSATIONS_DISTINCT_CREATORS_KEY)
-from utility.api_client import ApiClient
 from utility.celery_tasks import (update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery,
                                   update_multiple_previews_in_chatroom, set_level_click_state)
 from utility.states import (member_states, card_types, deleted_members, question_states, conversation_states,
                             member_rights, community_setting_types, SyncTypes, api_version_headers, dm_icon_from_states,
-                            access_types, feed_order_types, WebhookTypes, connection_request_actions,
-                            connection_request_status, connection_states)
+                            access_types, feed_order_types, WebhookTypes, ConnectionRequestActions,
+                            ConnectionRequestStatus, ConnectionStates)
 from utility.utils import (get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room,
                            create_notification_flag, fetch_notification_flag)
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
                             Collabcard, card_answers, communityQuestions, CommunityUserDelete, communityRightsSettings,
-                            CommunitySettings, userMemberRights, Userinfo)
+                            CommunitySettings, userMemberRights)
 from collabmates_api.sdk.models import (SdkClient)
 from collabmates_api.members import (get_pending_members_of_community)
 from external_services.caching.cache_impl import CacheImpl
@@ -2269,18 +2266,21 @@ class MemberCommunityImpl(MemberCommunityManager):
     @staticmethod
     def get_user_connection_requests(community_instance, user_id):
         connection_requests = ModelUtilities.get_model_filter(ConnectionRequest, {}).filter(
-            Q(community = community_instance) &
-            (Q(request_by_id = user_id) | Q(request_to_id = user_id))
+            Q(community=community_instance) &
+            (Q(request_by_id=user_id) | Q(request_to_id=user_id))
         )
 
         return connection_requests
 
     @staticmethod
-    def process_connection_requests_for_user_ids(connection_requests) -> list:
-        request_by_user_ids = list(connection_requests.values_list('request_by_id', flat=True))
-        request_to_user_ids = list(connection_requests.values_list('request_to_id', flat=True))
+    def process_connection_requests_for_user_ids(connection_requests:list) -> list:
+        user_ids = set()
 
-        return list(set(request_by_user_ids + request_to_user_ids))
+        for connection_request in connection_requests:
+            user_ids.add(connection_request.request_by_id)
+            user_ids.add(connection_request.request_to_id)
+
+        return list(user_ids)
 
     @staticmethod
     def create_new_connection_request(community_instance, request_by_id, request_to_id):
@@ -2329,11 +2329,14 @@ class MemberCommunityImpl(MemberCommunityManager):
         return connections
 
     @staticmethod
-    def process_connections_for_user_ids(connections) -> list:
-        connection_by_user_ids = list(connections.values_list('connection_by_id', flat=True))
-        connection_with_user_ids = list(connections.values_list('connection_with_id', flat=True))
+    def process_connections_for_user_ids(connections: list) -> list:
+        user_ids = set()
 
-        return list(set(connection_by_user_ids + connection_with_user_ids))
+        for connection in connections:
+            user_ids.add(connection.connection_by_id)
+            user_ids.add(connection.connection_with_id)
+
+        return list(user_ids)
 
     @staticmethod
     def create_new_connection(community_instance, user1_id, user2_id):
@@ -2360,8 +2363,8 @@ class MemberCommunityImpl(MemberCommunityManager):
             }
             info_logger.info(f"Event Name: Connection Connected, Data: {data}")
 
-            MemberCommunityImpl.update_connection_data_cache_in_swarm_service.delay(
-                community_instance.id, user1_id, user2_id, connection_states.CONNECTED)
+            MemberCommunityHelper.update_connection_data_cache_in_swarm_service.delay(
+                community_instance.id, user1_id, user2_id, ConnectionStates.CONNECTED.value)
 
     @staticmethod
     def delete_connection(community_instance, user1_id, user2_id):
@@ -2379,48 +2382,13 @@ class MemberCommunityImpl(MemberCommunityManager):
         }
         info_logger.info(f"Event Name: Connection Disconnected, Data: {data}")
 
-        MemberCommunityImpl.update_connection_data_cache_in_swarm_service.delay(
-            community_instance.id, user1_id, user2_id, connection_states.DISCONNECTED)
-
-    @staticmethod
-    @shared_task
-    def update_connection_data_cache_in_swarm_service(community_id, member_id, user_id, connection_status):
-        user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
-        member_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': member_id}).first()
-        sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
-
-        if not (user_info_filter and sdk_client_instance):
-            return
-
-        endpoint = settings.SWARM_BASE_URL + SWARM_USER_CONNECTION_UPDATE_ENDPOINT.format(user_info_filter.user_unique_id)
-
-        client = ApiClient()
-        client.update_request_url(endpoint)
-
-        # Add headers
-        client.update_headers({
-            'x-member-id': member_info_filter.user_unique_id,
-            'x-api-key': sdk_client_instance.api_key
-        })
-
-        # Add Delete request body
-        client.update_body({
-            "status": connection_status
-        })
-
-        # Send delete request
-        response = client.patch().response
-
-        if response.status_code != 200:
-            error_logger.error(
-                f"Failed to update connection data: api_key = {community_id}, member_id: {member_id}, user_id: {user_id}, connection_status: {connection_status} - status code: {response.status_code} | response: {response.json()}")
-
-        return
+        MemberCommunityHelper.update_connection_data_cache_in_swarm_service.delay(
+            community_instance.id, user1_id, user2_id, ConnectionStates.DISCONNECTED.value)
 
     def create_connection_request(self, user_id) -> dict:
-        validated_request = MemberCommunityHelper.validate_connection_users(self.get_member_id(),
-                                                                            self.get_api_key(),
-                                                                            user_id)
+        validated_request = MemberCommunityHelper.validate_create_connection_request(self.get_member_id(),
+                                                                                     self.get_api_key(),
+                                                                                     user_id)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2432,19 +2400,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         self.set_member_id(member_instance.id)
         user_id = user_instance.id
-
-        if self.get_member_id() == user_id:
-            ResponseUtilities.get_impl_error_context("You can't request a connection to yourself",
-                                                     status_code=status_codes.HTTP_400_BAD_REQUEST)
-
-        community_setting = ModelUtilities.get_model_filter(CommunitySettings,
-                                                            {'community': community_instance,
-                                                             'setting_type': community_setting_types.USER_CONNECTION,
-                                                             'enabled': True})
-
-        if not community_setting:
-            return ResponseUtilities.get_impl_error_context("Enable User Connection Setting to use this api",
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         if MemberCommunityImpl.get_connections(community_instance, self.get_member_id(), user_id):
             return ResponseUtilities.get_impl_error_context("Connection already exists",
@@ -2461,10 +2416,12 @@ class MemberCommunityImpl(MemberCommunityManager):
     @staticmethod
     def accept_connection_request(community_instance, member_id, user_id):
         connection = MemberCommunityImpl.get_connections(community_instance, member_id, user_id)
+
         if connection:
             return ResponseUtilities.get_inner_error_context("Connection already exists")
 
         connection_requests = MemberCommunityImpl.get_connection_request(community_instance, member_id, user_id)
+
         if not connection_requests:
             return ResponseUtilities.get_inner_error_context("Connection request doesn't exist")
 
@@ -2480,11 +2437,13 @@ class MemberCommunityImpl(MemberCommunityManager):
     @staticmethod
     def reject_connection_request(community_instance, member_id, user_id):
         connection = MemberCommunityImpl.get_connections(community_instance, member_id, user_id)
+
         if connection:
             MemberCommunityImpl.delete_connection(community_instance, member_id, user_id)
             return {'success': True}
 
         connection_requests = MemberCommunityImpl.get_connection_request(community_instance, member_id, user_id)
+
         if not connection_requests:
             return ResponseUtilities.get_inner_error_context("Connection request doesn't exist")
 
@@ -2493,6 +2452,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         MemberCommunityImpl.delete_connection_requests(community_instance, member_id, user_id)
 
         event_name = "Connection Request Rejected"
+
         if connection_request.request_by_id == member_id and connection_request.request_to_id == user_id:
             event_name = "Connection Request Cancelled"
 
@@ -2507,9 +2467,9 @@ class MemberCommunityImpl(MemberCommunityManager):
         return {'success': True}
 
     def update_connection_request(self, user_id, action) -> dict:
-        validated_request = MemberCommunityHelper.validate_connection_users(self.get_member_id(),
-                                                                            self.get_api_key(),
-                                                                            user_id)
+        validated_request = MemberCommunityHelper.validate_update_connection_request(self.get_member_id(),
+                                                                                     self.get_api_key(),
+                                                                                     user_id, action)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2522,24 +2482,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         self.set_member_id(member_instance.id)
         user_id = user_instance.id
 
-        if self.get_member_id() == user_id:
-            ResponseUtilities.get_impl_error_context("You can't perform a connection action on yourself",
-                                                     status_code=status_codes.HTTP_400_BAD_REQUEST)
-
-        community_setting = ModelUtilities.get_model_filter(CommunitySettings,
-                                                            {'community': community_instance,
-                                                             'setting_type': community_setting_types.USER_CONNECTION,
-                                                             'enabled': True})
-
-        if not community_setting:
-            return ResponseUtilities.get_impl_error_context("Enable User Connection Setting to use this api",
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
-
-        if action not in [connection_request_actions.ACCEPT, connection_request_actions.REJECT]:
-            return ResponseUtilities.get_impl_error_context("Invalid connection action sent",
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
-
-        if action == connection_request_actions.ACCEPT:
+        if action == ConnectionRequestActions.ACCEPT.value:
             accept_connection = MemberCommunityImpl.accept_connection_request(community_instance,
                                                                               self.get_member_id(),
                                                                               user_id)
@@ -2548,7 +2491,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                 return ResponseUtilities.get_impl_error_context(accept_connection.get('error_message'),
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        elif action == connection_request_actions.REJECT:
+        elif action == ConnectionRequestActions.REJECT.value:
             reject_connection = MemberCommunityImpl.reject_connection_request(community_instance,
                                                                               self.get_member_id(),
                                                                               user_id)
@@ -2560,9 +2503,9 @@ class MemberCommunityImpl(MemberCommunityManager):
         return {'success': True}
 
     def fetch_connections(self, user_id: str, page: int, page_size: int, status: str) -> dict:
-        validated_request = MemberCommunityHelper.validate_connection_users(self.get_member_id(),
-                                                                            self.get_api_key(),
-                                                                            user_id)
+        validated_request = MemberCommunityHelper.validate_fetch_connection_request(self.get_member_id(),
+                                                                                    self.get_api_key(),
+                                                                                    user_id)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2575,25 +2518,16 @@ class MemberCommunityImpl(MemberCommunityManager):
         self.set_member_id(member_instance.id)
         user_id = user_instance.id
 
-        community_setting = ModelUtilities.get_model_filter(CommunitySettings,
-                                                            {'community': community_instance,
-                                                             'setting_type': community_setting_types.USER_CONNECTION,
-                                                             'enabled': True})
-
-        if not community_setting:
-            return ResponseUtilities.get_impl_error_context("Enable User Connection Setting to use this api",
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
-
         serialized_data = None
         users_list = []
 
-        if status == connection_request_status.ACCEPTED:
+        if status == ConnectionRequestStatus.ACCEPTED.value:
             connections_data = MemberCommunityImpl.get_user_connections(community_instance, user_id)
             paginated_connections_data = ModelUtilities.paginate_queryset(connections_data, page, page_size)
             users_list = MemberCommunityImpl.process_connections_for_user_ids(paginated_connections_data)
             serialized_data = ConnectionSerializer(paginated_connections_data, many=True).data
 
-        elif status == connection_request_status.PENDING:
+        elif status == ConnectionRequestStatus.PENDING.value:
             connections_data = MemberCommunityImpl.get_user_connection_requests(community_instance, user_id)
             paginated_connections_data = ModelUtilities.paginate_queryset(connections_data, page, page_size)
             users_list = MemberCommunityImpl.process_connection_requests_for_user_ids(paginated_connections_data)
