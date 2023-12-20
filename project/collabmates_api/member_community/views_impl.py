@@ -8,7 +8,6 @@ from utility.string_utilities import StringUtilities
 from utility.exception_utilities import InvalidHeaderException, CustomException
 from utility.response_utilities import ResponseUtilities
 from utility.version_utilities import VersionUtilities
-from utility.states import ConnectionRequestStatus
 
 from collabmates_api.views import get_error_context
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -875,8 +874,9 @@ class ConnectionView(APIView):
         member_community_manager = MemberCommunityImpl(member_id=member_id, platform_code=request_platform,
                                                        version_code=version_code, api_key=api_key,
                                                        community_id=request_params.get('community_id'))
+
         response_data = member_community_manager.fetch_connections(user_uuid, page, page_size,
-            request_params.get('status', ConnectionRequestStatus.ACCEPTED.value))
+                                                                   request_params.get('status'))
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],

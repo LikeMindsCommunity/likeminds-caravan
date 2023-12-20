@@ -2506,7 +2506,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True}
 
-    def fetch_connections(self, user_uuid: str, page: int, page_size: int, status: str) -> dict:
+    def fetch_connections(self, user_uuid: str, page: int, page_size: int, status: str = "") -> dict:
         validated_request = MemberCommunityHelper.validate_fetch_connection_request(self.get_member_id(),
                                                                                     self.get_api_key(),
                                                                                     self.get_community_id(),
@@ -2518,6 +2518,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         community_instance = validated_request.get('community_instance')
         requested_user_instance = validated_request.get('requested_user_instance')
+        status = validated_request.get('status')
 
         serialized_data = None
         users_list = []

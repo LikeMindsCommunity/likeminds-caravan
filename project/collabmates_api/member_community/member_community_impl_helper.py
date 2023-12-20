@@ -1863,6 +1863,14 @@ class MemberCommunityHelper:
 
         if validated_request.get('error_message'):
             return validated_request
+        
+        if status == "" :
+            status = ConnectionRequestStatus.ACCEPTED.value
+        
+        if status not in [ConnectionRequestStatus.PENDING.value, ConnectionRequestStatus.ACCEPTED.value]:
+            return ResponseUtilities.get_inner_error_context("Invalid status sent")
+        
+        validated_request['status'] = status
 
         community_instance = validated_request.get('community_instance')
         requesting_user = validated_request.get('requesting_user_instance')
