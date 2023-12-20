@@ -1884,7 +1884,7 @@ class MemberCommunityHelper:
         if not community_setting:
             return ResponseUtilities.get_inner_error_context("Enable User Connection Setting to use this api")
 
-        if requesting_user.id == requested_user.id and status == ConnectionRequestStatus.PENDING.value:
+        if requesting_user.id != requested_user.id and status == ConnectionRequestStatus.PENDING.value:
             return ResponseUtilities.get_inner_error_context("You can't access other's pending requests")
 
         return validated_request
