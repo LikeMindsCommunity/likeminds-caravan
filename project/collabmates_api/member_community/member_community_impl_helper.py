@@ -1864,7 +1864,7 @@ class MemberCommunityHelper:
         if validated_request.get('error_message'):
             return validated_request
         
-        if status == "" :
+        if not status:
             status = ConnectionRequestStatus.ACCEPTED.value
         
         if status not in [ConnectionRequestStatus.PENDING.value, ConnectionRequestStatus.ACCEPTED.value]:
