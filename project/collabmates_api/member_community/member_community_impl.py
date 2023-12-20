@@ -2021,7 +2021,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             if all([access_type in [access_types.DELETE_POST, access_types.PIN_POST, access_types.DELETE_COMMENT,
                                     access_types.CREATE_ACTIVITY, access_types.EDIT_COMMENT, access_types.EDIT_POST,
                                     access_types.CREATE_TOPIC, access_types.EDIT_TOPIC, access_types.DELETE_TOPIC, 
-                                    xaccess_types.CHANGE_AUTHOR],
+                                    access_types.CHANGE_AUTHOR],
                     check_admin_moderate_feed_and_comments_right(user_instance, community_instance)]):
                 output_context['access'] = True
 
