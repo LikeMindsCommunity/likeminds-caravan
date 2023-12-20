@@ -982,7 +982,8 @@ class MemberCommunityHelper:
 
     @staticmethod
     def make_requesting_user_as_member_of_community(user_instance, community_instance, req_body, device_id=None,
-                                                    platform=None, version_code=None, trigger_webhook=False):
+                                                    platform=None, version_code=None, trigger_webhook=False,
+                                                    api_version_code: int = 0):
 
         from collabmates_api.community.community_impl import CommunityHelper, CommunityImpl
         from collabmates_api.community.constants import (DIRECTORY_QUESTIONS_V2_QUESTIONS_LIST_KEY)
@@ -1083,7 +1084,7 @@ class MemberCommunityHelper:
             CommunityHelper.update_community_level_actions(community_instance,
                                                            action_required_by_promoter, members_count)
 
-        is_m2cm_v2 = m2cm_v2_version_check(platform, version_code)
+        is_m2cm_v2 = m2cm_v2_version_check(platform, version_code, api_version_code=api_version_code)
 
         create_member_dm_chatroom.delay(community_impl.get_member_id(), community_impl.get_community_id(),
                                         device_id=device_id, request_platform=platform, is_joining=True,
@@ -1412,7 +1413,7 @@ class MemberCommunityHelper:
 
     @staticmethod
     def approve_user_community_joining_request(user_instance, community_instance, promoter_instance,
-                                               platform_code, version_code):
+                                               platform_code, version_code, api_version_code: int = 0):
         from collabmates_api.community.community_impl import CommunityImpl, CommunityHelper
         from collabmates_api.cohort.cohort_impl import CohortHelper
         from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
@@ -1454,7 +1455,7 @@ class MemberCommunityHelper:
         else:
             ChatroomHelper.update_seen_status_for_older_chatrooms_for_new_member(community_instance, user_instance)
 
-        is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code, is_sdk=True)
+        is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code, is_sdk=True, api_version_code=api_version_code)
 
         CommunityHelper.run_async_for_community_approve(community_instance, user_instance,
                                                         promoter_instance.userinfo, is_m2cm_v2=is_m2cm_v2,

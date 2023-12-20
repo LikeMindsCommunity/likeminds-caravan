@@ -102,7 +102,7 @@ class ConversationImpl(ConversationManager):
     def __init__(self, member_id: str, chatroom_id: str = None, scroll_direction: str = None,
                  conversation_id: str = None, page: str = None, paginate_by: str = None,
                  device_id: str = None, platform_code: str = None, include_conversation_id: bool = False,
-                 version_code: str = None):
+                 version_code: str = None, api_version_code: int = 0):
 
         self.member_id = member_id
         self.chatroom_id = chatroom_id
@@ -114,6 +114,7 @@ class ConversationImpl(ConversationManager):
         self.platform_code = platform_code
         self.include_conversation_id = include_conversation_id
         self.version_code = version_code
+        self.api_version_code = api_version_code
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -123,6 +124,9 @@ class ConversationImpl(ConversationManager):
 
     def get_platform_code(self) -> Union[str, int]:
         return self.platform_code
+
+    def get_api_version_code(self) -> int:
+        return self.api_version_code
 
     def set_member_id(self, member_id: Union[str, int]) -> None:
         self.member_id = member_id
@@ -943,10 +947,10 @@ class ConversationImpl(ConversationManager):
         has_files = req_body.get('has_files', False)
 
         validated_request = ConversationHelper.validate_create_conversation_request(None,
-                                                                                      self.get_member_id(),
-                                                                                      None,
-                                                                                      chatroom_id,
-                                                                                      req_body['text'])
+                                                                                    self.get_member_id(),
+                                                                                    None,
+                                                                                    chatroom_id,
+                                                                                    req_body['text'])
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -981,7 +985,8 @@ class ConversationImpl(ConversationManager):
         if state_filter:
             chatroom_state_instance = state_filter[0]
 
-            is_m2cm_v2 = m2cm_v2_version_check(self.get_platform_code(), self.get_version_code())
+            is_m2cm_v2 = m2cm_v2_version_check(self.get_platform_code(), self.get_version_code(),
+                                               api_version_code=self.get_api_version_code())
 
             if all([is_m2cm_v2, chatroom_instance.is_private,
                     chatroom_instance.type == card_types.CARD_DIRECT_MESSAGE,

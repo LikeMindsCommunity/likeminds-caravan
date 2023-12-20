@@ -118,7 +118,7 @@ class CommunityImpl(CommunityManager):
     version_code = None
 
     def __init__(self, member_id: str, community_id: str = None, version_code: str = None, device_id: str = None,
-                 request_platform: str = None, api_key: str = None, sdk_source: str = None):
+                 request_platform: str = None, api_key: str = None, sdk_source: str = None, api_version_code: int = 0):
 
         self.member_id = member_id
         self.community_id = community_id
@@ -127,6 +127,7 @@ class CommunityImpl(CommunityManager):
         self.request_platform = request_platform
         self.api_key = api_key
         self.sdk_source = sdk_source
+        self.api_version_code = api_version_code
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -151,6 +152,9 @@ class CommunityImpl(CommunityManager):
 
     def get_sdk_source(self):
         return self.sdk_source
+
+    def get_api_version_code(self):
+        return self.api_version_code
 
     def set_community_id(self, community_id) -> None:
         self.community_id = community_id
@@ -1180,7 +1184,10 @@ class CommunityImpl(CommunityManager):
 
         community_settings = json.loads(json.dumps(community_settings_serializer.data))
         filtered_community_settings_list = []
-        is_m2cm_v2 = m2cm_v2_version_check(self.get_request_platform(), self.get_version_code())
+        is_m2cm_v2 = m2cm_v2_version_check(self.get_request_platform(),
+                                           self.get_version_code(),
+                                           api_version_code=self.get_api_version_code())
+
         is_chatroom_invite = VersionUtilities.check_version(self.get_request_platform(), self.get_version_code(),
                                                             VersionUtilities.chatroom_invite)
         is_create_intro_room_check = VersionUtilities.check_version(self.get_request_platform(),
@@ -2141,7 +2148,8 @@ class CommunityImpl(CommunityManager):
                                                        community_id=community_instance.id,
                                                        device_id=self.get_device_id(),
                                                        platform_code=self.get_request_platform(),
-                                                       version_code=self.get_version_code())
+                                                       version_code=self.get_version_code(),
+                                                       api_version_code=self.get_api_version_code())
 
         community_req_body = {
             "image_url": validated_req_body['user_body'].get('image_url')

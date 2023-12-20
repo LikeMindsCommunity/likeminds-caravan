@@ -25,12 +25,13 @@ class SdkImpl(SdkManager):
     device_id = None
 
     def __init__(self, member_id: str = None, api_key: str = None, request_platform: str = None,
-                 version_code: str = None, device_id: str = None):
+                 version_code: str = None, device_id: str = None, api_version_code: int = 0):
         self.member_id = member_id
         self.api_key = api_key
         self.request_platform = request_platform
         self.version_code = version_code
         self.device_id = device_id
+        self.api_version_code = api_version_code
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -46,6 +47,9 @@ class SdkImpl(SdkManager):
 
     def get_device_id(self) -> str:
         return self.device_id
+
+    def get_api_version_code(self) -> int:
+        return self.api_version_code
 
     def fetch_sdk_project(self, request_params) -> dict:
 
@@ -292,7 +296,8 @@ class SdkImpl(SdkManager):
                                                            device_id=self.get_device_id(),
                                                            platform_code=self.get_request_platform(),
                                                            version_code=self.get_version_code(),
-                                                           api_key=self.get_api_key())
+                                                           api_key=self.get_api_key(),
+                                                           api_version_code=self.get_api_version_code())
             join_community_context = member_community_manager.join_community_sdk(
                 validated_request_body.get('join_req_body'))
 
