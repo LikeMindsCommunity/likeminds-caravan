@@ -1801,7 +1801,7 @@ class MemberCommunityHelper:
 
         return {
             'community_instance': community_instance,
-            'requesting_user_instance': requested_user_instance,
+            'requesting_user_instance': requesting_user_instance,
             'requested_user_instance': requested_user_instance
         }
 
