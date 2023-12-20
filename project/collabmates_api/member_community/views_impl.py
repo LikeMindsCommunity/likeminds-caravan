@@ -869,11 +869,13 @@ class ConnectionView(APIView):
         version_code = RequestUtilities.get_version_code_from_headers(request)
         request_params = RequestUtilities.fetch_request_query_params(request)
 
+        page = RequestUtilities.get_page_number(request)
+        page_size = RequestUtilities.get_page_size(request, default=20)
+
         member_community_manager = MemberCommunityImpl(member_id=member_id, platform_code=request_platform,
                                                        version_code=version_code, api_key=api_key,
                                                        community_id=request_params.get('community_id'))
-        response_data = member_community_manager.fetch_connections(
-            user_uuid, request_params.get('page', 1), request_params.get('page_size', 10),
+        response_data = member_community_manager.fetch_connections(user_uuid, page, page_size,
             request_params.get('status', ConnectionRequestStatus.ACCEPTED.value))
 
         if 'error_message' in response_data:
