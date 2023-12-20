@@ -2389,31 +2389,34 @@ class MemberCommunityImpl(MemberCommunityManager):
         MemberCommunityHelper.update_connection_data_cache_in_swarm_service.delay(
             community_instance.id, user1_id, user2_id, ConnectionStates.DISCONNECTED.value)
 
-    def create_connection_request(self, user_id) -> dict:
+    def create_connection_request(self, user_uuid) -> dict:
         validated_request = MemberCommunityHelper.validate_create_connection_request(self.get_member_id(),
                                                                                      self.get_api_key(),
-                                                                                     user_id)
+                                                                                     user_uuid)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_request.get('community_instance')
-        member_instance = validated_request.get('member_instance')
-        user_instance = validated_request.get('user_instance')
+        requesting_user_instance = validated_request.get('requesting_user_instance')
+        requested_user_instance = validated_request.get('requested_user_instance')
 
-        self.set_member_id(member_instance.id)
-        user_id = user_instance.id
-
-        if MemberCommunityImpl.get_connections(community_instance, self.get_member_id(), user_id):
+        if MemberCommunityImpl.get_connections(community_instance,
+                                               requesting_user_instance.id,
+                                               requested_user_instance.id):
             return ResponseUtilities.get_impl_error_context("Connection already exists",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if MemberCommunityImpl.get_connection_request(community_instance, self.get_member_id(), user_id):
+        if MemberCommunityImpl.get_connection_request(community_instance,
+                                                      requesting_user_instance.id,
+                                                      requested_user_instance.id):
             return ResponseUtilities.get_impl_error_context("Connection request already exists",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        MemberCommunityImpl.create_new_connection_request(community_instance, self.get_member_id(), user_id)
+        MemberCommunityImpl.create_new_connection_request(community_instance,
+                                                          requesting_user_instance.id,
+                                                          requested_user_instance.id)
 
         return {'success': True}
 
@@ -2470,26 +2473,23 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True}
 
-    def update_connection_request(self, user_id, action) -> dict:
+    def update_connection_request(self, user_uuid, action) -> dict:
         validated_request = MemberCommunityHelper.validate_update_connection_request(self.get_member_id(),
                                                                                      self.get_api_key(),
-                                                                                     user_id, action)
+                                                                                     user_uuid, action)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_request.get('community_instance')
-        member_instance = validated_request.get('member_instance')
-        user_instance = validated_request.get('user_instance')
-
-        self.set_member_id(member_instance.id)
-        user_id = user_instance.id
+        requesting_user_instance = validated_request.get('requesting_user_instance')
+        requested_user_instance = validated_request.get('requested_user_instance')
 
         if action == ConnectionRequestActions.ACCEPT.value:
             accept_connection = MemberCommunityImpl.accept_connection_request(community_instance,
-                                                                              self.get_member_id(),
-                                                                              user_id)
+                                                                              requesting_user_instance.id,
+                                                                              requested_user_instance.id)
 
             if accept_connection.get('error_message'):
                 return ResponseUtilities.get_impl_error_context(accept_connection.get('error_message'),
@@ -2497,8 +2497,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         elif action == ConnectionRequestActions.REJECT.value:
             reject_connection = MemberCommunityImpl.reject_connection_request(community_instance,
-                                                                              self.get_member_id(),
-                                                                              user_id)
+                                                                              requesting_user_instance.id,
+                                                                              requested_user_instance.id )
 
             if reject_connection.get('error_message'):
                 return ResponseUtilities.get_impl_error_context(reject_connection.get('error_message'),
@@ -2506,34 +2506,31 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True}
 
-    def fetch_connections(self, user_id: str, page: int, page_size: int, status: str) -> dict:
+    def fetch_connections(self, user_uuid: str, page: int, page_size: int, status: str) -> dict:
         validated_request = MemberCommunityHelper.validate_fetch_connection_request(self.get_member_id(),
                                                                                     self.get_api_key(),
                                                                                     self.get_community_id(),
-                                                                                    user_id, status)
+                                                                                    user_uuid, status)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         community_instance = validated_request.get('community_instance')
-        member_instance = validated_request.get('member_instance')
-        user_instance = validated_request.get('user_instance')
-
-        self.set_member_id(member_instance.id)
-        user_id = user_instance.id
+        requested_user_instance = validated_request.get('requested_user_instance')
 
         serialized_data = None
         users_list = []
 
         if status == ConnectionRequestStatus.ACCEPTED.value:
-            connections_data = MemberCommunityImpl.get_user_connections(community_instance, user_id)
+            connections_data = MemberCommunityImpl.get_user_connections(community_instance, requested_user_instance.id)
             paginated_connections_data = ModelUtilities.paginate_queryset(connections_data, page, page_size)
             users_list = MemberCommunityImpl.process_connections_for_user_ids(paginated_connections_data)
             serialized_data = ConnectionSerializer(paginated_connections_data, many=True).data
 
         elif status == ConnectionRequestStatus.PENDING.value:
-            connections_data = MemberCommunityImpl.get_user_connection_requests(community_instance, user_id)
+            connections_data = MemberCommunityImpl.get_user_connection_requests(community_instance,
+                                                                                requested_user_instance.id)
             paginated_connections_data = ModelUtilities.paginate_queryset(connections_data, page, page_size)
             users_list = MemberCommunityImpl.process_connection_requests_for_user_ids(paginated_connections_data)
             serialized_data = ConnectionRequestSerializer(paginated_connections_data, many=True).data

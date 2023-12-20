@@ -32,5 +32,5 @@ urlpatterns = [
     path('home_meta', UserHomeMeta.as_view(), name="user_home_meta"),
     path('pending_members', PendingMembers.as_view(), name="get_pending_members"),
     path('leave', LeaveCommunity.as_view(), name="leave_community"),
-    path('<str:user_id>/connection', ConnectionView.as_view(), name="connection")
+    path('<str:user_uuid>/connection', ConnectionView.as_view(), name="connection")
 ]

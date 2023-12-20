@@ -844,7 +844,7 @@ class LeaveCommunity(APIView):
 
 class ConnectionView(APIView):
 
-    def post(self, request, user_id):
+    def post(self, request, user_uuid):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
@@ -853,7 +853,7 @@ class ConnectionView(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id=member_id, platform_code=request_platform,
                                                        version_code=version_code, api_key=api_key)
-        response_data = member_community_manager.create_connection_request(user_id)
+        response_data = member_community_manager.create_connection_request(user_uuid)
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
@@ -862,7 +862,7 @@ class ConnectionView(APIView):
 
         return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
 
-    def get(self, request, user_id):
+    def get(self, request, user_uuid):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
         request_platform = RequestUtilities.get_platform_code_with_sdk(request)
@@ -873,7 +873,7 @@ class ConnectionView(APIView):
                                                        version_code=version_code, api_key=api_key,
                                                        community_id=request_params.get('community_id'))
         response_data = member_community_manager.fetch_connections(
-            user_id, request_params.get('page', 1), request_params.get('page_size', 10),
+            user_uuid, request_params.get('page', 1), request_params.get('page_size', 10),
             request_params.get('status', ConnectionRequestStatus.ACCEPTED.value))
 
         if 'error_message' in response_data:
@@ -883,7 +883,7 @@ class ConnectionView(APIView):
 
         return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
 
-    def patch(self, request, user_id):
+    def patch(self, request, user_uuid):
 
         member_id = RequestUtilities.get_member_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
@@ -893,7 +893,7 @@ class ConnectionView(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id=member_id, platform_code=request_platform,
                                                        version_code=version_code, api_key=api_key)
-        response_data = member_community_manager.update_connection_request(user_id, request_body.get('action'))
+        response_data = member_community_manager.update_connection_request(user_uuid, request_body.get('action'))
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
