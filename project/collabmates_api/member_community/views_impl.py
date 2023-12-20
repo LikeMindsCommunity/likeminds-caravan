@@ -506,6 +506,7 @@ class JoinCommunitySDKView(APIView):
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
+        api_version = RequestUtilities.get_api_version_from_headers(request)
 
         if validated_req_body.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_req_body.get('error_message'),
@@ -513,7 +514,8 @@ class JoinCommunitySDKView(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id, community_id=req_body.get('community_id'),
                                                        device_id=device_id, platform_code=platform_code,
-                                                       api_key=api_key, version_code=version_code)
+                                                       api_key=api_key, version_code=version_code,
+                                                       api_version_code=api_version)
         community_context = member_community_manager.join_community_sdk(req_body=req_body)
 
         if 'error_message' not in community_context:
@@ -531,6 +533,7 @@ class JoinCommunitySDKView(APIView):
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
+        api_version = RequestUtilities.get_api_version_from_headers(request)
 
         if validated_req_body.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_req_body.get('error_message'),
@@ -538,7 +541,8 @@ class JoinCommunitySDKView(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id, community_id=req_body.get('community_id'),
                                                        device_id=device_id, platform_code=platform_code,
-                                                       api_key=api_key, version_code=version_code)
+                                                       api_key=api_key, version_code=version_code,
+                                                       api_version_code=api_version)
         community_context = member_community_manager.approve_decline_join_community_request(
             req_body.get('uuid'), req_body.get('is_accepted', False))
 
