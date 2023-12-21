@@ -1771,50 +1771,51 @@ class MemberCommunityHelper:
             return False
 
     @staticmethod
-    def validate_connection_users(member_id, api_key, user_id, community_id=None):
+    def validate_connection_users(requesting_user_id, api_key, requested_user_uuid, community_id=None):
 
         community_instance = SdkClient.get_community_instance_or_none(api_key=api_key, community_id=community_id)
 
         if not community_instance:
             return ResponseUtilities.get_inner_error_context("Invalid API key!")
 
-        user_instance_x_member_id = ModelUtilities.get_user_instance_or_none(member_id)
+        requesting_user_instance = ModelUtilities.get_user_instance_or_none(requesting_user_id)
 
-        if not user_instance_x_member_id:
+        if not requesting_user_instance:
             return ResponseUtilities.get_inner_error_context("Invalid x-member-id")
 
-        user_instance_user_id = ModelUtilities.get_user_instance_or_none(user_id)
+        requested_user_instance = ModelUtilities.get_user_instance_or_none_from_uuid(requested_user_uuid,
+                                                                                     community_instance.id)
 
-        if not user_instance_user_id:
-            return ResponseUtilities.get_inner_error_context("Invalid member_uuid")
+        if not requested_user_instance:
+            return ResponseUtilities.get_inner_error_context("Invalid user_uuid")
 
-        member_instance_x_member_id = Members.get_member_instance_or_none(community_instance, user_instance_x_member_id)
+        requesting_member_instance = Members.get_member_instance_or_none(community_instance, requesting_user_instance)
 
-        if not member_instance_x_member_id:
+        if not requesting_member_instance:
             return ResponseUtilities.get_inner_error_context("Invalid x-member-id")
 
-        member_instance_user_id = Members.get_member_instance_or_none(community_instance, user_instance_user_id)
+        requested_member_instance = Members.get_member_instance_or_none(community_instance, requested_user_instance)
 
-        if not member_instance_user_id:
+        if not requested_member_instance:
             return ResponseUtilities.get_inner_error_context("Invalid member_uuid")
 
         return {
             'community_instance': community_instance,
-            'member_instance': user_instance_x_member_id,
-            'user_instance': user_instance_user_id
+            'requesting_user_instance': requesting_user_instance,
+            'requested_user_instance': requested_user_instance
         }
 
     @staticmethod
-    def validate_create_connection_request(member_id, api_key, user_id):
-        validated_request = MemberCommunityHelper.validate_connection_users(member_id, api_key, user_id)
+    def validate_create_connection_request(requesting_user_id, api_key, requested_user_id):
+        validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key,
+                                                                            requested_user_id)
 
         if validated_request.get('error_message'):
             return validated_request
 
-        if member_id == user_id:
-            return ResponseUtilities.get_inner_error_context("You can't request a connection to yourself")
-
         community_instance = validated_request.get('community_instance')
+        requesting_user = validated_request.get('requesting_user_instance')
+        requested_user = validated_request.get('requested_user_instance')
 
         community_setting = ModelUtilities.get_model_filter(CommunitySettings,
                                                             {'community': community_instance,
@@ -1822,21 +1823,24 @@ class MemberCommunityHelper:
                                                              'enabled': True})
 
         if not community_setting:
-            return ResponseUtilities.get_inner_error_context("Enable User Connection Setting to use this api")
+            return ResponseUtilities.get_inner_error_context("Enable User Connection Setting to use this API")
+
+        if requesting_user.id == requested_user.id:
+            return ResponseUtilities.get_inner_error_context("You can't request a connection to yourself")
 
         return validated_request
 
     @staticmethod
-    def validate_update_connection_request(member_id, api_key, user_id, action):
-        validated_request = MemberCommunityHelper.validate_connection_users(member_id, api_key, user_id)
+    def validate_update_connection_request(requesting_user_id, api_key, requested_user_id, action):
+        validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key,
+                                                                            requested_user_id)
 
         if validated_request.get('error_message'):
             return validated_request
 
-        if member_id == user_id:
-            return ResponseUtilities.get_inner_error_context("You can't perform a connection action on yourself")
-
         community_instance = validated_request.get('community_instance')
+        requesting_user = validated_request.get('requesting_user_instance')
+        requested_user = validated_request.get('requested_user_instance')
 
         community_setting = ModelUtilities.get_model_filter(CommunitySettings,
                                                             {'community': community_instance,
@@ -1845,6 +1849,9 @@ class MemberCommunityHelper:
 
         if not community_setting:
             return ResponseUtilities.get_inner_error_context("Enable User Connection Setting to use this api")
+
+        if requesting_user.id == requested_user.id:
+            return ResponseUtilities.get_inner_error_context("You can't perform a connection action on yourself")
 
         if action not in [ConnectionRequestActions.ACCEPT.value, ConnectionRequestActions.REJECT.value]:
             return ResponseUtilities.get_inner_error_context("Invalid connection action sent")
@@ -1852,13 +1859,24 @@ class MemberCommunityHelper:
         return validated_request
 
     @staticmethod
-    def validate_fetch_connection_request(member_id, api_key, community_id, user_id, status):
-        validated_request = MemberCommunityHelper.validate_connection_users(member_id, api_key, user_id)
+    def validate_fetch_connection_request(requesting_user_id, api_key, community_id, requested_user_id, status):
+        validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key,
+                                                                            requested_user_id, community_id)
 
         if validated_request.get('error_message'):
             return validated_request
+        
+        if not status:
+            status = ConnectionRequestStatus.ACCEPTED.value
+        
+        if status not in [ConnectionRequestStatus.PENDING.value, ConnectionRequestStatus.ACCEPTED.value]:
+            return ResponseUtilities.get_inner_error_context("Invalid status sent")
+        
+        validated_request['status'] = status
 
         community_instance = validated_request.get('community_instance')
+        requesting_user = validated_request.get('requesting_user_instance')
+        requested_user = validated_request.get('requested_user_instance')
 
         community_setting = ModelUtilities.get_model_filter(CommunitySettings,
                                                             {'community': community_instance,
@@ -1868,7 +1886,7 @@ class MemberCommunityHelper:
         if not community_setting:
             return ResponseUtilities.get_inner_error_context("Enable User Connection Setting to use this api")
 
-        if member_id == user_id and status == ConnectionRequestStatus.PENDING.value:
+        if requesting_user.id != requested_user.id and status == ConnectionRequestStatus.PENDING.value:
             return ResponseUtilities.get_inner_error_context("You can't access other's pending requests")
 
         return validated_request
