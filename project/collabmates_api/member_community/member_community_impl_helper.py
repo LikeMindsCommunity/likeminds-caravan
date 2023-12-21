@@ -1806,8 +1806,9 @@ class MemberCommunityHelper:
         }
 
     @staticmethod
-    def validate_create_connection_request(requesting_user_id, api_key, user_uuid):
-        validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key, user_uuid)
+    def validate_create_connection_request(requesting_user_id, api_key, requested_user_id):
+        validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key,
+                                                                            requested_user_id)
 
         if validated_request.get('error_message'):
             return validated_request
@@ -1830,8 +1831,9 @@ class MemberCommunityHelper:
         return validated_request
 
     @staticmethod
-    def validate_update_connection_request(requesting_user_id, api_key, user_uuid, action):
-        validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key, user_uuid)
+    def validate_update_connection_request(requesting_user_id, api_key, requested_user_id, action):
+        validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key,
+                                                                            requested_user_id)
 
         if validated_request.get('error_message'):
             return validated_request
@@ -1857,9 +1859,9 @@ class MemberCommunityHelper:
         return validated_request
 
     @staticmethod
-    def validate_fetch_connection_request(requesting_user_id, api_key, community_id, user_uuid, status):
+    def validate_fetch_connection_request(requesting_user_id, api_key, community_id, requested_user_id, status):
         validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key,
-                                                                            user_uuid, community_id)
+                                                                            requested_user_id, community_id)
 
         if validated_request.get('error_message'):
             return validated_request
