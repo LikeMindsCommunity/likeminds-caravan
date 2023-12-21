@@ -77,15 +77,19 @@ class UserImpl(UserManager):
     community_id = None
     mobile_no = None
 
-    def __init__(self, user_id: str, community_id: str = None, mobile_no: str = None, platform_code: str = None,
-                 version_code: int = 0, api_key: str = None, api_version_code: int = 0):
+    def __init__(self,
+                 user_id: str,
+                 community_id: str = None,
+                 mobile_no: str = None,
+                 platform_code: str = None,
+                 version_code: int = 0,
+                 api_key=None):
         self.user_id = user_id
         self.community_id = community_id
         self.mobile_no = mobile_no
         self.platform_code = platform_code
         self.version_code = version_code
         self.api_key = api_key
-        self.api_version_code = api_version_code
 
     def get_user_id(self):
         return self.user_id
@@ -98,9 +102,6 @@ class UserImpl(UserManager):
 
     def get_api_key(self):
         return self.api_key
-
-    def get_api_version_code(self):
-        return self.api_version_code
 
     def set_community_id(self, community_id):
         self.community_id = community_id
@@ -782,8 +783,7 @@ class UserImpl(UserManager):
     def fetch_dm_home(self) -> dict:
 
         is_m2cm_v1 = m2cm_v1_version_check(self.get_platform_code(), self.get_version_code())
-        is_m2cm_v2 = m2cm_v2_version_check(self.get_platform_code(), self.get_version_code(), is_sdk=True,
-                                           api_version_code=self.get_api_version_code())
+        is_m2cm_v2 = m2cm_v2_version_check(self.get_platform_code(), self.get_version_code(), is_sdk=True)
 
         if not is_m2cm_v1:
             return {'success': True}

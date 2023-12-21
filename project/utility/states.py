@@ -533,7 +533,6 @@ class CommunitySettingTypes:
     SECRET_GROUP_INVITE = "secret_groups_invite"
     CREATE_INTRO_ROOMS = "create_intro_rooms"
     CREATE_POLL = "create_poll"
-    USER_CONNECTION = "user_connection"
 
 
 community_setting_types = CommunitySettingTypes()
@@ -940,18 +939,3 @@ class EventKinds:
 
 
 event_kinds = EventKinds()
-
-
-class ConnectionRequestActions(enum.Enum):
-    ACCEPT = "accept"
-    REJECT = "reject"
-
-
-class ConnectionRequestStatus(enum.Enum):
-    ACCEPTED = "accepted"
-    PENDING = "pending"
-
-
-class ConnectionStates(enum.Enum):
-    CONNECTED = "connected"
-    DISCONNECTED = "disconnected"

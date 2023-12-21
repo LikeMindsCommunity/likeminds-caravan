@@ -142,8 +142,7 @@ class ChatroomImpl(ChatroomManager):
     request_platform = None
 
     def __init__(self, member_id: str, chatroom_id: str = None, source_id: str = None, aj: str = None,
-                 device_id: str = None, request_platform: str = None, version_code: int = 0, api_key: str = None,
-                 sdk_source: str = None, api_version_code: int = 0):
+                 device_id: str = None, request_platform: str = None, version_code: int = 0, api_key: str = None, sdk_source: str = None):
         self.member_id = member_id
         self.chatroom_id = chatroom_id
         self.source_id = source_id
@@ -153,7 +152,6 @@ class ChatroomImpl(ChatroomManager):
         self.version_code = version_code
         self.api_key = api_key
         self.sdk_source = sdk_source
-        self.api_version_code = api_version_code
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -193,9 +191,6 @@ class ChatroomImpl(ChatroomManager):
 
     def get_api_key(self):
         return self.api_key
-
-    def get_api_version_code(self):
-        return self.api_version_code
 
     def _make_user_chatroom_guest(self, card_instance):
         guest_context = adding_guest_in_chatroom({}, card_instance, self.get_aj(), self.get_source_id(),
@@ -266,8 +261,7 @@ class ChatroomImpl(ChatroomManager):
                                                 current_user_instance=self.get_member_id(),
                                                 community_instance=card_instance.community, is_child=is_child,
                                                 parent_list=parent_list, platform_code=self.get_request_platform(),
-                                                version_code=self.get_version_code(), api_type=api_type,
-                                                api_version_code=self.get_api_version_code())
+                                                version_code=self.get_version_code(), api_type=api_type)
         return chatroom_actions
 
     def _save_external_seen_in_chatroom_state(self, card_instance, user_instance):

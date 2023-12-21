@@ -125,11 +125,6 @@ class RequestUtilities:
         return request.META.get('HTTP_X_SDK_SOURCE', None)
 
     @staticmethod
-    def get_api_version_from_headers(request: object, default: int = 0) -> int:
-        return NumberUtilities.get_integer_from_string(request.META.get('HTTP_X_API_VERSION', default),
-                                                       return_default=default)
-
-    @staticmethod
     def load_request_body(request):
 
         try:

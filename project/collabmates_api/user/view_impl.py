@@ -142,7 +142,6 @@ class FetchDmHome(APIView):
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
-        api_version = RequestUtilities.get_api_version_from_headers(request)
 
         if not member_id:
             raise InvalidHeaderException()
@@ -155,8 +154,11 @@ class FetchDmHome(APIView):
                     'error_message': 'missing required parameter: community_id'
                 })
 
-        user_manager = UserImpl(user_id=member_id, community_id=community_id, platform_code=platform_code,
-                                version_code=version_code, api_key=api_key, api_version_code=api_version)
+        user_manager = UserImpl(user_id=member_id,
+                                community_id=community_id,
+                                platform_code=platform_code,
+                                version_code=version_code,
+                                api_key=api_key)
         user_context = user_manager.fetch_dm_home()
 
         if 'error_message' in user_context:

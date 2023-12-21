@@ -136,13 +136,11 @@ def create_chatroom_revamp_version_check(platform_code: str, version_code: int) 
     return VersionUtilities.check_version(platform_code, version_code, VersionUtilities.create_chatroom_revamp)
 
 
-def m2cm_v2_version_check(platform_code, version_code, is_sdk=False, api_version_code=0):
-
+def m2cm_v2_version_check(platform_code, version_code, is_sdk=False):
     if is_sdk:
         platform_code = VersionUtilities.PlatformCode.convert_platform_code_to_sdk(platform_code)
 
-    return VersionUtilities.check_version(platform_code, version_code, VersionUtilities.m2cm_v2,
-                                          api_version_code=api_version_code)
+    return VersionUtilities.check_version(platform_code, version_code, VersionUtilities.m2cm_v2)
 
 
 def m2cm_v1_version_check(platform_code, version_code):

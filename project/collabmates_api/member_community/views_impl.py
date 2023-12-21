@@ -1,3 +1,4 @@
+from sys import platform, version
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework import status as status_codes
@@ -505,7 +506,6 @@ class JoinCommunitySDKView(APIView):
         platform_code = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
-        api_version = RequestUtilities.get_api_version_from_headers(request)
 
         if validated_req_body.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_req_body.get('error_message'),
@@ -513,8 +513,7 @@ class JoinCommunitySDKView(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id, community_id=req_body.get('community_id'),
                                                        device_id=device_id, platform_code=platform_code,
-                                                       api_key=api_key, version_code=version_code,
-                                                       api_version_code=api_version)
+                                                       api_key=api_key, version_code=version_code)
         community_context = member_community_manager.join_community_sdk(req_body=req_body)
 
         if 'error_message' not in community_context:
@@ -532,7 +531,6 @@ class JoinCommunitySDKView(APIView):
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
-        api_version = RequestUtilities.get_api_version_from_headers(request)
 
         if validated_req_body.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(validated_req_body.get('error_message'),
@@ -540,8 +538,7 @@ class JoinCommunitySDKView(APIView):
 
         member_community_manager = MemberCommunityImpl(member_id, community_id=req_body.get('community_id'),
                                                        device_id=device_id, platform_code=platform_code,
-                                                       api_key=api_key, version_code=version_code,
-                                                       api_version_code=api_version)
+                                                       api_key=api_key, version_code=version_code)
         community_context = member_community_manager.approve_decline_join_community_request(
             req_body.get('uuid'), req_body.get('is_accepted', False))
 
@@ -840,66 +837,3 @@ class LeaveCommunity(APIView):
 
         return JsonResponse(community_context)
 
-
-class ConnectionView(APIView):
-
-    def post(self, request, user_uuid):
-
-        member_id = RequestUtilities.get_member_id_from_headers(request)
-        api_key = RequestUtilities.get_api_key_from_headers(request)
-        request_platform = RequestUtilities.get_platform_code_with_sdk(request)
-        version_code = RequestUtilities.get_version_code_from_headers(request)
-
-        member_community_manager = MemberCommunityImpl(member_id=member_id, platform_code=request_platform,
-                                                       version_code=version_code, api_key=api_key)
-        response_data = member_community_manager.create_connection_request(user_uuid)
-
-        if 'error_message' in response_data:
-            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
-                                                                    response_data['status'])
-            return JsonResponse(context['data'], status=context['status'])
-
-        return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
-
-    def get(self, request, user_uuid):
-        member_id = RequestUtilities.get_member_id_from_headers(request)
-        api_key = RequestUtilities.get_api_key_from_headers(request)
-        request_platform = RequestUtilities.get_platform_code_with_sdk(request)
-        version_code = RequestUtilities.get_version_code_from_headers(request)
-        request_params = RequestUtilities.fetch_request_query_params(request)
-
-        page = RequestUtilities.get_page_number(request)
-        page_size = RequestUtilities.get_page_size(request, default=20)
-
-        member_community_manager = MemberCommunityImpl(member_id=member_id, platform_code=request_platform,
-                                                       version_code=version_code, api_key=api_key,
-                                                       community_id=request_params.get('community_id'))
-
-        response_data = member_community_manager.fetch_connections(user_uuid, page, page_size,
-                                                                   request_params.get('status'))
-
-        if 'error_message' in response_data:
-            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
-                                                                    response_data['status'])
-            return JsonResponse(context['data'], status=context['status'])
-
-        return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
-
-    def patch(self, request, user_uuid):
-
-        member_id = RequestUtilities.get_member_id_from_headers(request)
-        api_key = RequestUtilities.get_api_key_from_headers(request)
-        request_platform = RequestUtilities.get_platform_code_with_sdk(request)
-        version_code = RequestUtilities.get_version_code_from_headers(request)
-        request_body = RequestUtilities.load_request_body(request)
-
-        member_community_manager = MemberCommunityImpl(member_id=member_id, platform_code=request_platform,
-                                                       version_code=version_code, api_key=api_key)
-        response_data = member_community_manager.update_connection_request(user_uuid, request_body.get('action'))
-
-        if 'error_message' in response_data:
-            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
-                                                                    response_data['status'])
-            return JsonResponse(context['data'], status=context['status'])
-
-        return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
