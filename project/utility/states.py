@@ -654,7 +654,18 @@ class WebhookTypes(enum.Enum):
     COMMUNITY_JOINED = "community.joined"
     CHATROOM_JOINED = "chatroom.joined"
     CHATROOM_LEFT = "chatroom.left"
+    CHATROOM_USER_TAGGED = "chatroom.user.tagged"
+    CHATROOM_MESSAGE_REPLIED = "chatroom.message.replied"
     PROFILE_CREATED = "profile.created"
+
+    @classmethod
+    def validate_webhook_type(cls, webhook_type) -> bool:
+        return webhook_type in cls._value2member_map_
+    
+    @classmethod
+    def get_webhooks_map(cls) -> dict:
+        return cls._value2member_map_
+
 
 class WenhookChatroomMethodTypes:
     SELF_JOINED = "self_joined"
