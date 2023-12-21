@@ -4594,8 +4594,10 @@ def fetch_chatroom_version_2(request):
     api_type = NumberUtilities.get_integer_from_string(request.GET.get('api_type', api_types.Non_SDK),
                                                        api_types.Non_SDK)
     current_user_id = get_member_id_from_headers(request)
+    api_version_code = RequestUtilities.get_api_version_from_headers(request)
 
-    context = get_chatroom_internal_version_2(request, card_instance, current_user_id, api_type=api_type)
+    context = get_chatroom_internal_version_2(request, card_instance, current_user_id, api_type=api_type,
+                                              api_version_code=api_version_code)
 
     if context.get('error_message'):
         context = ResponseUtilities.get_view_impl_error_context(context.get('error_message'),
@@ -4980,7 +4982,7 @@ def get_answer_bubble_context_for_web(ans):
 
 def get_chatroom_actions(card_status, creator, card_instance, promoter=False, current_user_instance=None,
                          community_instance=None, is_child=False, request_type="", parent_list=None, version_code=None,
-                         platform_code=None, api_type=api_types.Non_SDK):
+                         platform_code=None, api_type=api_types.Non_SDK, api_version_code=0):
     """ function to get chatroom actions """
 
     is_sdk = api_type == api_types.SDK
@@ -4992,7 +4994,7 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
 
     if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE]):
 
-        if not m2cm_v2_version_check(platform_code, version_code, is_sdk=is_sdk):
+        if not m2cm_v2_version_check(platform_code, version_code, is_sdk=is_sdk, api_version_code=api_version_code):
 
             if card_status.get('mute_status'):
                 return collabcard_action_dm_user_mute
@@ -5638,7 +5640,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     return context
 
 
-def get_chatroom_internal_version_2(request, card_instance, user_id, api_type=api_types.Non_SDK):
+def get_chatroom_internal_version_2(request, card_instance, user_id, api_type=api_types.Non_SDK, api_version_code=0):
     '''version 1 function for sending chatroom instance without conversations'''
 
     context = {}
@@ -5716,7 +5718,8 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, api_type=ap
                                             promoter=is_promoter, current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
                                             request_type=request_type, parent_list=parent_list,
-                                            platform_code=platform_code, version_code=version_code, api_type=api_type)
+                                            platform_code=platform_code, version_code=version_code, api_type=api_type,
+                                            api_version_code=api_version_code)
 
     context['chatroom_actions'] = chatroom_actions
 
@@ -11094,6 +11097,7 @@ def fetch_community_manager_rights(request):
     version_code = RequestUtilities.get_version_code_from_headers(request)
     api_key = RequestUtilities.get_api_key_from_headers(request)
     accept_version = RequestUtilities.get_accept_version_from_headers(request)
+    api_version_code = RequestUtilities.get_api_version_from_headers(request)
 
     api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
 
@@ -11151,7 +11155,8 @@ def fetch_community_manager_rights(request):
             for right in admin_rights:
                 right = right.right
 
-                if all([not m2cm_v2_version_check(platform_code, version_code),
+                if all([not m2cm_v2_version_check(platform_code, version_code, is_sdk=True,
+                                                  api_version_code=api_version_code),
                         right.state == moderate_dm_settings.get('state')]):
                     continue
 
@@ -11232,6 +11237,7 @@ def update_community_manager_rights(request):
     api_key = RequestUtilities.get_api_key_from_headers(request)
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    api_version_code = RequestUtilities.get_api_version_from_headers(request)
 
     community_dict = validate_community_id_or_api_key(community_id, api_key)
 
@@ -11377,7 +11383,7 @@ def update_community_manager_rights(request):
                 update_attending_status_for_paid_events_for_new_community_manager(user_instance, community_instance)
 
                 # DM chatroom add new CM
-                is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code)
+                is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code, api_version_code=api_version_code)
                 member_becomes_cm_dm_chatroom.delay(user_id, community_id, is_m2cm_v2=is_m2cm_v2)
 
                 # Delete user channel settings with settings type as member_can_message for all the members of community
@@ -11432,6 +11438,7 @@ def remove_community_manager(request):
     uuid = request.POST.get('uuid', None)
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
+    api_version_code = RequestUtilities.get_api_version_from_headers(request)
 
     if not current_user_id:
         context = ResponseUtilities.get_view_impl_error_context("send member_id in headers",
@@ -11529,7 +11536,8 @@ def remove_community_manager(request):
 
         # Add Message in DM Chatrooms
         if is_user_cm:
-            is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code)
+            is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code, is_sdk=True,
+                                               api_version_code=api_version_code)
             cm_removed_dm_chatroom.delay(user_id, community_id, is_m2cm_v2=is_m2cm_v2)
             remove_secret_chatroom_states_for_removed_cm.delay(user_id, community_id)
 
@@ -12545,6 +12553,7 @@ def fetch_community_setting_rights(request):
     version_code = RequestUtilities.get_version_code_from_headers(request)
     sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
     accept_version = RequestUtilities.get_accept_version_from_headers(request)
+    api_version_code = RequestUtilities.get_api_version_from_headers(request)
 
     api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
     can_show = False
@@ -12552,9 +12561,10 @@ def fetch_community_setting_rights(request):
     if m2cm_v1_version_check(platform_code, version_code):
         can_show = True
 
-    is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code)
+    is_m2cm_v2 = m2cm_v2_version_check(platform_code, version_code, api_version_code=api_version_code)
 
-    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights, sdk_source)
+    is_feed_enabled = VersionUtilities.check_version(platform_code, version_code, VersionUtilities.feed_member_rights,
+                                                     sdk_source)
 
     if is_m2cm_v2:
         can_show = False
@@ -15430,7 +15440,7 @@ def add_community_settings_for_community(community_instance, user_instance):
                             community_setting_types.DIRECT_MSGS_GROUP_MSGS, community_setting_types.FEED,
                             community_setting_types.CHATROOMS, community_setting_types.SECRET_CHATROOMS_INVITE,
                             community_setting_types.POST_GROUPS, community_setting_types.SECRET_GROUP_INVITE,
-                            community_setting_types.CREATE_INTRO_ROOMS]:
+                            community_setting_types.CREATE_INTRO_ROOMS, community_setting_types.USER_CONNECTION]:
             is_enabled = False
 
         community_settings_data = {

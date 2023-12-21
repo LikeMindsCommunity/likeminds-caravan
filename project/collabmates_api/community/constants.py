@@ -81,7 +81,8 @@ COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
     "post_groups": "Post Groups",
     "secret_groups_invite": "Send invite for secret groups",
     "create_intro_rooms": "Create intro rooms",
-    "create_poll": "Create Poll"
+    "create_poll": "Create Poll",
+    "user_connection": "User Connection"
 }
 
 COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
@@ -100,7 +101,8 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
     "secret_groups_invite": "If enabled, the invited user will receive a request to join the secret groups and "
                             "will only become part of it once they accept it.",
     "create_intro_rooms": "",
-    "create_poll": ""
+    "create_poll": "",
+    "user_connection": "If enabled, the users will be able to send connection request to other members"
 }
 
 DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED = "Community managers will be able to message all members and vice-versa."
