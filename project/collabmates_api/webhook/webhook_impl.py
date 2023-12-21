@@ -134,8 +134,8 @@ class WebhookImpl(WebhookManager):
     def update_webhook(self, webhook_url:str = None, is_active:bool = None) -> dict:
 
         validated_request = WebhookImplHelper.validate_update_webhook_request(self.get_api_key(),
-                                                                             self.get_member_id(),
-                                                                             self.get_webhook_id())
+                                                                              self.get_member_id(),
+                                                                              self.get_webhook_id())
         
         if 'error_message' in validated_request:
             return ResponseUtilities.get_impl_error_context(validated_request['error_message'],

@@ -4248,7 +4248,7 @@ class ChatroomImpl(ChatroomManager):
     
     @staticmethod
     def generate_payload_for_chatroom_webhook_event(chatroom_id: int, users_list: list, 
-                                                   event_type: str, type_method: str) -> dict:
+                                                    event_type: str, type_method: str) -> dict:
 
         payload = {
             "id": str(uuid.uuid4()),
@@ -4268,7 +4268,7 @@ class ChatroomImpl(ChatroomManager):
         # Add chatroom data to payload
         payload['data']['chatroom'] = ChatroomHelper.get_chatroom_payload_for_webhook_events(chatroom_id=chatroom_id)
 
-        # Get users paylaod for webhook events
+        # Get users payload for webhook events
         users_data = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
 
         # Add user interaction data to payload if event is chatroom left

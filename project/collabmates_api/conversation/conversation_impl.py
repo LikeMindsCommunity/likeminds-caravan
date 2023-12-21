@@ -1,5 +1,5 @@
 import time
-import json
+import json, uuid
 import re
 from django.contrib.auth.models import User
 from typing import Union
@@ -62,6 +62,8 @@ from utility.states import member_states, collabcard_states, card_types, SyncNot
     conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types, \
     member_rights, unsubscribe_types, noti_states, chat_request_states, webhook_chatroom_methods
 
+from utility.webhook_utilities import (WebhookUtilties)
+from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, MAX_WEBHOOK_USERS_META_LIMIT)
 from utility.utils import check_notification_flag, is_version_code_supported_for_intro_room, \
     is_member_verified, filter_user_instances_based_on_notification_flag
 from utility.firebase import update_last_answer_id, update_my_chatrooms_on_homefeed_in_firebase_for_users_list, \
@@ -2188,7 +2190,7 @@ class ConversationHelper:
         conversation_instance.save()
 
     @staticmethod
-    def _auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance):
+    def _auto_follow_for_tagged_members(chatroom_instance, conversation_instance):
 
         conversation_text = conversation_instance.answer
         tagged_member_list, answer_text, tagged_user_names, should_unmute_members, is_group_tag = get_tagged_members_list(
@@ -2260,12 +2262,7 @@ class ConversationHelper:
             search_update_users_list = list(set(search_update_users_list))
             ElasticSearchSync.update_chatroom_for_users_list.delay(chatroom_instance.id, search_update_users_list)
 
-        if not is_group_tag:
-            ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_member_list,
-                                                                        user_instance,
-                                                                        chatroom_instance)
-
-        return tagged_member_list
+        return tagged_member_list, is_group_tag
 
     @staticmethod
     def _handle_dm_chatroom_communication(chatroom_instance, user_instance):
@@ -2450,8 +2447,15 @@ class ConversationHelper:
         ConversationHelper._auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance,
                                                  user_instance, member_state, trigger_webhook=trigger_webhook)
 
-        tagged_members_list = ConversationHelper._auto_follow_for_tagged_members(chatroom_instance, user_instance,
-                                                                                 conversation_instance)
+        tagged_members_list, is_group_tag = ConversationHelper._auto_follow_for_tagged_members(chatroom_instance,
+                                                                                               conversation_instance)
+        
+        if tagged_members_list and (not is_group_tag):
+            ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_members_list,
+                                                                        user_instance,
+                                                                        chatroom_instance)
+            
+            ConversationHelper.trigger_webhook_for_conversation_event()
 
         # ConversationHelper._create_or_update_conversation_engage(chatroom_instance, user_instance,
         #                                                          conversation_instance, tagged_members_list)
@@ -2554,3 +2558,86 @@ class ConversationHelper:
             'chatroom_instance': chatroom_instance,
             'member_state': member_state
         }
+    
+    @staticmethod
+    def get_conversation_payload_for_webhook_events(conversation_id: int):
+        
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, 
+                                                                          {'id': conversation_id}
+                                                                          ).first()
+        
+        if not conversation_instance:
+            return {}
+        
+        payload = {
+            "id": conversation_instance.id,
+            "text": conversation_instance.answer,
+            "created_at": conversation_instance.created_at,
+            "chatroom_id": conversation_instance.card_id,
+            "user_id": conversation_instance.user_id,
+        }
+        
+        return payload
+    
+    @staticmethod
+    def generate_payload_for_conversation_webhook_event(conversation_id: int, users_list: int, event_type: str):
+        
+        payload = {
+            "id": str(uuid.uuid4()),
+            "event": event_type,
+            "source": WEBHOOK_SOURCE_CHAT,
+            "created_at": TimeUtilities.current_time_in_milliseconds(),
+            "data": {}
+        }
+
+        conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id)
+        
+        if not conversation_payload:
+            return payload
+        
+        created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events(conversation_payload['user_id'])
+
+        if not created_by_user:
+            return payload
+        
+        chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(conversation_payload['chatroom_id'])
+        tagged_users = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
+
+        payload['data']['conversation'] = conversation_payload
+        payload['data']['chatroom'] = chatroom_payload
+        payload['data']['created_by_user'] = created_by_user
+        payload['data']['tagged_users'] = tagged_users
+
+        return payload
+    
+    @staticmethod
+    def trigger_webhook_for_conversation_event(community_id: int, conversation_id: int, users_list: list,
+                                               event_type: str, type_methoda: str):
+        
+        if not (community_id and conversation_id and event_type):
+            return
+        
+        webhooks = WebhookUtilties.validate_and_fetch_all_webhook_url_and_secret(community_id, 
+                                                                                 event_type)
+        
+        if not webhooks:
+            return
+        
+        payload = ConversationHelper.generate_payload_for_conversation_webhook_event(conversation_id, 
+                                                                                     users_list, 
+                                                                                     event_type)
+        
+        if not payload:
+            return
+        
+        for webhook in webhooks:
+
+            payload['id'] = str(uuid.uuid4())
+
+
+            # Send webhook request
+            WebhookUtilties.send_webhook_request_with_payload.delay(url=webhook.get('url'),
+                                                                    payload=payload,
+                                                                    webhook_type=event_type,
+                                                                    secret=webhook.get('secret'))
+
