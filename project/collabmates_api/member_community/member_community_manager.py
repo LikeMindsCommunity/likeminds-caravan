@@ -41,13 +41,7 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'fetch_user_home_meta') and callable(
                     subclass.fetch_user_home_meta)) and 
                 (hasattr(subclass, 'self_leave_community') and callable(
-                    subclass.self_leave_community)) and
-                (hasattr(subclass, 'create_connection_request') and callable(
-                    subclass.create_connection_request)) and
-                (hasattr(subclass, 'update_connection_request') and callable(
-                    subclass.update_connection_request)) and
-                (hasattr(subclass, 'fetch_connections') and callable(
-                    subclass.fetch_connections)) or
+                    subclass.self_leave_community)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -202,20 +196,5 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
     
     def self_leave_community(self) -> dict:
         """Method for self leave a community"""
-
-        raise NotImplementedError
-
-    def create_connection_request(self, user_uuid: str) -> dict:
-        """Method to create a new connection request"""
-
-        raise NotImplementedError
-
-    def update_connection_request(self, user_uuid: str, action: str) -> dict:
-        """Method to update the connection request"""
-
-        raise NotImplementedError
-
-    def fetch_connections(self, user_uuid: str, page: int, page_size: int, status: str) -> dict:
-        """Method to fetch the connections data"""
 
         raise NotImplementedError

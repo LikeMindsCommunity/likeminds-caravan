@@ -96,11 +96,11 @@ class InitiateSdkView(APIView):
         version_code = RequestUtilities.get_version_code_from_headers(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
-        api_version = RequestUtilities.get_api_version_from_headers(request)
+
 
         try:
-            sdk_manager = SdkImpl(api_key=api_key, request_platform=request_platform, version_code=version_code,
-                                  device_id=device_id, api_version_code=api_version)
+            sdk_manager = SdkImpl(api_key=api_key, request_platform=request_platform,
+                                version_code=version_code, device_id=device_id)
             response_data = sdk_manager.initiate_sdk(request_body)
         
         # If IntegrityError is raised, log error and return 400
