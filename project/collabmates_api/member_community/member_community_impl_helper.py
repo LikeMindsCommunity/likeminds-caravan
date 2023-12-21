@@ -1865,6 +1865,14 @@ class MemberCommunityHelper:
 
         if validated_request.get('error_message'):
             return validated_request
+        
+        if not status:
+            status = ConnectionRequestStatus.ACCEPTED.value
+        
+        if status not in [ConnectionRequestStatus.PENDING.value, ConnectionRequestStatus.ACCEPTED.value]:
+            return ResponseUtilities.get_inner_error_context("Invalid status sent")
+        
+        validated_request['status'] = status
 
         community_instance = validated_request.get('community_instance')
         requesting_user = validated_request.get('requesting_user_instance')
@@ -1878,7 +1886,7 @@ class MemberCommunityHelper:
         if not community_setting:
             return ResponseUtilities.get_inner_error_context("Enable User Connection Setting to use this api")
 
-        if requesting_user.id == requested_user.id and status == ConnectionRequestStatus.PENDING.value:
+        if requesting_user.id != requested_user.id and status == ConnectionRequestStatus.PENDING.value:
             return ResponseUtilities.get_inner_error_context("You can't access other's pending requests")
 
         return validated_request
