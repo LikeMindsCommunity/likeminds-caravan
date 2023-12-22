@@ -103,8 +103,6 @@ class VersionUtilities:
             PlatformCode.REACT_SDK: 21,
             PlatformCode.REACT_NATIVE_SDK: 4,
             PlatformCode.WEB_SDK: 16,
-
-            PlatformCode.API_VERSION_CODE: 1
         },
         SdkSource.FEED: {
             PlatformCode.ANDROID_SDK: unreleased_version_code,

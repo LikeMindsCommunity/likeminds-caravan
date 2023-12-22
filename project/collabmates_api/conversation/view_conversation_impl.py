@@ -76,7 +76,7 @@ class CreateConversation(APIView):
                                                 version_code=version_code, api_version_code=api_version)
 
         if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.create_conversation_revamp,
-                                          sdk_source, api_version_code=api_version):
+                                          sdk_source):
             conversation_response = conversation_manager.create_conversation_v1(req_body)
 
         else:
