@@ -70,11 +70,13 @@ class CreateConversation(APIView):
         version_code = RequestUtilities.get_version_code_from_headers(request)
         sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
         device_id = RequestUtilities.get_device_id_from_headers(request)
+        api_version = RequestUtilities.get_api_version_from_headers(request)
 
         conversation_manager = ConversationImpl(member_id, platform_code=platform_code, device_id=device_id,
-                                                version_code=version_code)
+                                                version_code=version_code, api_version_code=api_version)
 
-        if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.create_conversation_revamp, sdk_source):
+        if VersionUtilities.check_version(platform_code, version_code, VersionUtilities.create_conversation_revamp,
+                                          sdk_source):
             conversation_response = conversation_manager.create_conversation_v1(req_body)
 
         else:
