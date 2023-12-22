@@ -2426,6 +2426,8 @@ class ConversationHelper:
         has_files = req_body.get('has_files', False)
         attachment_count = req_body.get('attachment_count', 0)
 
+        replied_conversation = req_body.get('replied_conversation_id', None)
+
         has_files = has_files or attachment_count > 0
 
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
@@ -2440,22 +2442,38 @@ class ConversationHelper:
             chatroom_state_instance = state_filter[0]
 
         if 'share_link' in req_body:
-            ConversationHelper.update_share_link_og_tags_in_conversation.delay(conversation_instance.id, req_body['share_link'])
+            ConversationHelper.update_share_link_og_tags_in_conversation.delay(conversation_instance.id, 
+                                                                               req_body['share_link'])
+            
+        if replied_conversation:
+            # Trigger webhook if user replies to a conversation in a chatroom
+            ConversationHelper.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
+                                                                            conversation_instance.id,
+                                                                            tagged_members_list,
+                                                                            WebhookTypes.CHATROOM_MESSAGE_REPLIED.value)
+
 
         ConversationHelper._set_preview_for_conversation(conversation_instance, user_id, req_body)
 
         ConversationHelper._auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance,
                                                  user_instance, member_state, trigger_webhook=trigger_webhook)
 
+        # Auto follow for tagged members
         tagged_members_list, is_group_tag = ConversationHelper._auto_follow_for_tagged_members(chatroom_instance,
                                                                                                conversation_instance)
         
         if tagged_members_list and (not is_group_tag):
+
+            # Send engagement communication for tagged members
             ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_members_list,
                                                                         user_instance,
                                                                         chatroom_instance)
             
-            ConversationHelper.trigger_webhook_for_conversation_event()
+            # Trigger webhook for user tagging in a chatroom
+            ConversationHelper.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
+                                                                            conversation_instance.id,
+                                                                            tagged_members_list,
+                                                                            WebhookTypes.CHATROOM_USER_TAGGED.value)
 
         # ConversationHelper._create_or_update_conversation_engage(chatroom_instance, user_instance,
         #                                                          conversation_instance, tagged_members_list)
@@ -2560,7 +2578,7 @@ class ConversationHelper:
         }
     
     @staticmethod
-    def get_conversation_payload_for_webhook_events(conversation_id: int):
+    def get_conversation_payload_for_webhook_events(conversation_id: int, event_type: str):
         
         conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, 
                                                                           {'id': conversation_id}
@@ -2576,43 +2594,53 @@ class ConversationHelper:
             "chatroom_id": conversation_instance.card_id,
             "user_id": conversation_instance.user_id,
         }
+
+        if event_type == WebhookTypes.CHATROOM_MESSAGE_REPLIED.value:
+            payload['replied_conversation_id'] = conversation_instance.reply_id
         
         return payload
     
     @staticmethod
-    def generate_payload_for_conversation_webhook_event(conversation_id: int, users_list: int, event_type: str):
+    def generate_payload_for_conversation_webhook_event(conversation_id: int, users_list: list, event_type: str):
         
         payload = {
-            "id": str(uuid.uuid4()),
             "event": event_type,
             "source": WEBHOOK_SOURCE_CHAT,
             "created_at": TimeUtilities.current_time_in_milliseconds(),
             "data": {}
         }
 
-        conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id)
+        conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id, 
+                                                                                              event_type)
         
         if not conversation_payload:
             return payload
         
-        created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events(conversation_payload['user_id'])
+        payload['data']['conversation'] = conversation_payload
+        
+        created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events([conversation_payload['user_id']])
 
         if not created_by_user:
             return payload
         
-        chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(conversation_payload['chatroom_id'])
-        tagged_users = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
-
-        payload['data']['conversation'] = conversation_payload
-        payload['data']['chatroom'] = chatroom_payload
         payload['data']['created_by_user'] = created_by_user
-        payload['data']['tagged_users'] = tagged_users
+
+        chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
+            conversation_payload['chatroom_id'])
+        
+        payload['data']['chatroom'] = chatroom_payload
+
+        if event_type == WebhookTypes.CHATROOM_USER_TAGGED.value:
+            tagged_users = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
+
+            payload['data']['tagged_users'] = tagged_users
 
         return payload
     
     @staticmethod
-    def trigger_webhook_for_conversation_event(community_id: int, conversation_id: int, users_list: list,
-                                               event_type: str, type_methoda: str):
+    @shared_task
+    def trigger_webhook_for_conversation_event(community_id: int, conversation_id: int, users_list: list, 
+                                               event_type: str):
         
         if not (community_id and conversation_id and event_type):
             return
@@ -2634,10 +2662,8 @@ class ConversationHelper:
 
             payload['id'] = str(uuid.uuid4())
 
-
             # Send webhook request
             WebhookUtilties.send_webhook_request_with_payload.delay(url=webhook.get('url'),
                                                                     payload=payload,
                                                                     webhook_type=event_type,
                                                                     secret=webhook.get('secret'))
-
