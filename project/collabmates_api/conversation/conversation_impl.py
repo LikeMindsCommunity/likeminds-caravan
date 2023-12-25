@@ -2200,7 +2200,7 @@ class ConversationHelper:
         )
 
         if not tagged_member_list:
-            return
+            return tagged_member_list, False
 
         is_tagged = True
         mute_status = True
@@ -2449,7 +2449,7 @@ class ConversationHelper:
             # Trigger webhook if user replies to a conversation in a chatroom
             ConversationHelper.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
                                                                             conversation_instance.id,
-                                                                            tagged_members_list,
+                                                                            [],
                                                                             WebhookTypes.CHATROOM_MESSAGE_REPLIED.value)
 
 
@@ -2580,9 +2580,7 @@ class ConversationHelper:
     @staticmethod
     def get_conversation_payload_for_webhook_events(conversation_id: int, event_type: str):
         
-        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, 
-                                                                          {'id': conversation_id}
-                                                                          ).first()
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
         
         if not conversation_instance:
             return {}
@@ -2614,16 +2612,16 @@ class ConversationHelper:
                                                                                               event_type)
         
         if not conversation_payload:
-            return payload
+            return {}
         
         payload['data']['conversation'] = conversation_payload
         
         created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events([conversation_payload['user_id']])
 
         if not created_by_user:
-            return payload
+            return {}
         
-        payload['data']['created_by_user'] = created_by_user
+        payload['data']['created_by_user'] = created_by_user[0]
 
         chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
             conversation_payload['chatroom_id'])
