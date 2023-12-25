@@ -1575,6 +1575,74 @@ class ConversationImpl(ConversationManager):
 
         return conversation_response
 
+    @staticmethod
+    def generate_payload_for_conversation_webhook_event(conversation_id: int, users_list: list, event_type: str):
+        
+        payload = {
+            "event": event_type,
+            "source": WEBHOOK_SOURCE_CHAT,
+            "created_at": TimeUtilities.current_time_in_milliseconds(),
+            "data": {}
+        }
+
+        conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id, 
+                                                                                              event_type)
+        
+        if not conversation_payload:
+            return {}
+        
+        payload['data']['conversation'] = conversation_payload
+        
+        created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events([conversation_payload['user_id']])
+
+        if not created_by_user:
+            return {}
+        
+        payload['data']['created_by_user'] = created_by_user[0]
+
+        chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
+            conversation_payload['chatroom_id'])
+        
+        payload['data']['chatroom'] = chatroom_payload
+
+        if event_type == WebhookTypes.CHATROOM_USER_TAGGED.value:
+            tagged_users = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
+
+            payload['data']['tagged_users'] = tagged_users
+
+        return payload
+    
+    @staticmethod
+    @shared_task
+    def trigger_webhook_for_conversation_event(community_id: int, conversation_id: int, users_list: list, 
+                                               event_type: str):
+        
+        if not (community_id and conversation_id and event_type):
+            return
+        
+        webhooks = WebhookUtilties.validate_and_fetch_all_webhook_url_and_secret(community_id, 
+                                                                                 event_type)
+        
+        if not webhooks:
+            return
+        
+        payload = ConversationImpl.generate_payload_for_conversation_webhook_event(conversation_id, 
+                                                                                   users_list, 
+                                                                                   event_type)
+        
+        if not payload:
+            return
+        
+        for webhook in webhooks:
+
+            payload['id'] = str(uuid.uuid4())
+
+            # Send webhook request
+            WebhookUtilties.send_webhook_request_with_payload.delay(url=webhook.get('url'),
+                                                                    payload=payload,
+                                                                    webhook_type=event_type,
+                                                                    secret=webhook.get('secret'))
+
 
 class ConversationHelper:
 
@@ -2447,10 +2515,10 @@ class ConversationHelper:
             
         if replied_conversation:
             # Trigger webhook if user replies to a conversation in a chatroom
-            ConversationHelper.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
-                                                                            conversation_instance.id,
-                                                                            [],
-                                                                            WebhookTypes.CHATROOM_MESSAGE_REPLIED.value)
+            ConversationImpl.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
+                                                                          conversation_instance.id,
+                                                                          [],
+                                                                          WebhookTypes.CHATROOM_MESSAGE_REPLIED.value)
 
 
         ConversationHelper._set_preview_for_conversation(conversation_instance, user_id, req_body)
@@ -2470,10 +2538,10 @@ class ConversationHelper:
                                                                         chatroom_instance)
             
             # Trigger webhook for user tagging in a chatroom
-            ConversationHelper.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
-                                                                            conversation_instance.id,
-                                                                            tagged_members_list,
-                                                                            WebhookTypes.CHATROOM_USER_TAGGED.value)
+            ConversationImpl.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
+                                                                          conversation_instance.id,
+                                                                          tagged_members_list,
+                                                                          WebhookTypes.CHATROOM_USER_TAGGED.value)
 
         # ConversationHelper._create_or_update_conversation_engage(chatroom_instance, user_instance,
         #                                                          conversation_instance, tagged_members_list)
@@ -2597,71 +2665,3 @@ class ConversationHelper:
             payload['replied_conversation_id'] = conversation_instance.reply_id
         
         return payload
-    
-    @staticmethod
-    def generate_payload_for_conversation_webhook_event(conversation_id: int, users_list: list, event_type: str):
-        
-        payload = {
-            "event": event_type,
-            "source": WEBHOOK_SOURCE_CHAT,
-            "created_at": TimeUtilities.current_time_in_milliseconds(),
-            "data": {}
-        }
-
-        conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id, 
-                                                                                              event_type)
-        
-        if not conversation_payload:
-            return {}
-        
-        payload['data']['conversation'] = conversation_payload
-        
-        created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events([conversation_payload['user_id']])
-
-        if not created_by_user:
-            return {}
-        
-        payload['data']['created_by_user'] = created_by_user[0]
-
-        chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
-            conversation_payload['chatroom_id'])
-        
-        payload['data']['chatroom'] = chatroom_payload
-
-        if event_type == WebhookTypes.CHATROOM_USER_TAGGED.value:
-            tagged_users = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
-
-            payload['data']['tagged_users'] = tagged_users
-
-        return payload
-    
-    @staticmethod
-    @shared_task
-    def trigger_webhook_for_conversation_event(community_id: int, conversation_id: int, users_list: list, 
-                                               event_type: str):
-        
-        if not (community_id and conversation_id and event_type):
-            return
-        
-        webhooks = WebhookUtilties.validate_and_fetch_all_webhook_url_and_secret(community_id, 
-                                                                                 event_type)
-        
-        if not webhooks:
-            return
-        
-        payload = ConversationHelper.generate_payload_for_conversation_webhook_event(conversation_id, 
-                                                                                     users_list, 
-                                                                                     event_type)
-        
-        if not payload:
-            return
-        
-        for webhook in webhooks:
-
-            payload['id'] = str(uuid.uuid4())
-
-            # Send webhook request
-            WebhookUtilties.send_webhook_request_with_payload.delay(url=webhook.get('url'),
-                                                                    payload=payload,
-                                                                    webhook_type=event_type,
-                                                                    secret=webhook.get('secret'))
