@@ -1596,7 +1596,7 @@ class ConversationImpl(ConversationManager):
         
         payload['data']['chatroom'] = chatroom_payload
 
-        # If event `user is tagged in a chatroom``
+        # If event `user is tagged in a chatroom`
         if event_type == WebhookTypes.CHATROOM_USER_TAGGED.value:
             payload['data']['conversation'] = conversation_payload
         
