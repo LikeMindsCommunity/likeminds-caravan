@@ -1576,15 +1576,10 @@ class ConversationImpl(ConversationManager):
         return conversation_response
 
     @staticmethod
-    def generate_payload_for_conversation_webhook_event(conversation_id: int, users_list: list, event_type: str):
-        
-        payload = {
-            "event": event_type,
-            "source": WEBHOOK_SOURCE_CHAT,
-            "created_at": TimeUtilities.current_time_in_milliseconds(),
-            "data": {}
-        }
+    def genereate_payload_data_for_chatroom_user_tagged_webhook(conversation_id: int, users_list: list, event_type: str):
 
+        payload_data = {}
+          
         conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id, 
                                                                                               event_type)
         
@@ -1594,44 +1589,88 @@ class ConversationImpl(ConversationManager):
         chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
             conversation_payload['chatroom_id'])
         
-        payload['data']['chatroom'] = chatroom_payload
+        payload_data['chatroom'] = chatroom_payload
+
+        payload_data['conversation'] = conversation_payload
+        
+        created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events([conversation_payload['user_id']])
+
+        if not created_by_user:
+            return {}
+    
+        payload_data['created_by_user'] = created_by_user[0]
+
+        tagged_users = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
+
+        payload_data['tagged_users'] = tagged_users
+
+        return payload_data
+    
+    @staticmethod
+    def genereate_payload_data_for_chatroom_conversation_replied_webhook(conversation_id: int, event_type: str):
+
+        payload_data = {}
+        
+        conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id, 
+                                                                                              event_type)
+        
+        if not conversation_payload:
+            return {}
+        
+        chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
+            conversation_payload['chatroom_id'])
+        
+        payload_data['chatroom'] = chatroom_payload
+        original_conversation = ConversationHelper.get_conversation_payload_for_webhook_events(
+                conversation_payload['replied_conversation_id'], "")
+            
+        if not original_conversation:
+            return {}
+        
+        payload_data['original_conversation'] = original_conversation
+        payload_data['replied_conversation'] = conversation_payload
+
+        original_conversation_user = MemberCommunityHelper.get_users_payload_for_webhook_events(
+            [conversation_payload['user_id']])
+        replied_conversation_user = MemberCommunityHelper.get_users_payload_for_webhook_events(
+            [original_conversation['user_id']])
+
+        if not (original_conversation_user and replied_conversation_user):
+            return {}
+        
+        payload_data['original_conversation_user'] = original_conversation_user[0]
+        payload_data['replied_conversation_user'] = replied_conversation_user[0]
+
+        return payload_data
+
+    @staticmethod
+    def generate_payload_for_conversation_webhook_event(conversation_id: int, users_list: list, event_type: str) -> dict:
+        
+        payload = {
+            "event": event_type,
+            "source": WEBHOOK_SOURCE_CHAT,
+            "created_at": TimeUtilities.current_time_in_milliseconds(),
+            "data": {}
+        }
 
         # If event `user is tagged in a chatroom`
         if event_type == WebhookTypes.CHATROOM_USER_TAGGED.value:
-            payload['data']['conversation'] = conversation_payload
-        
-            created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events([conversation_payload['user_id']])
-
-            if not created_by_user:
-                return {}
-        
-            payload['data']['created_by_user'] = created_by_user[0]
-
-            tagged_users = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
-
-            payload['data']['tagged_users'] = tagged_users
+            payload_data = ConversationImpl.genereate_payload_data_for_chatroom_user_tagged_webhook(conversation_id,
+                                                                                                    users_list,
+                                                                                                    event_type)
 
         # If event `user replied in a chatroom`
         elif event_type == WebhookTypes.CHATROOM_CONVERSATION_REPLIED.value:
-            original_conversation = ConversationHelper.get_conversation_payload_for_webhook_events(
-                conversation_payload['replied_conversation_id'], "")
+            payload_data = ConversationImpl.genereate_payload_data_for_chatroom_conversation_replied_webhook(
+                conversation_id, event_type)
             
-            if not original_conversation:
-                return {}
-            
-            payload['data']['original_conversation'] = original_conversation
-            payload['data']['replied_conversation'] = conversation_payload
-
-            original_conversation_user = MemberCommunityHelper.get_users_payload_for_webhook_events(
-                [conversation_payload['user_id']])
-            replied_conversation_user = MemberCommunityHelper.get_users_payload_for_webhook_events(
-                [original_conversation['user_id']])
-
-            if not (original_conversation_user and replied_conversation_user):
-                return {}
-            
-            payload['data']['original_conversation_user'] = original_conversation_user[0]
-            payload['data']['replied_conversation_user'] = replied_conversation_user[0]
+        else:
+            return {}
+        
+        if not payload_data:
+            return {}
+        
+        payload['data'] = payload_data
 
         return payload
     
