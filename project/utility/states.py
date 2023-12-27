@@ -655,7 +655,7 @@ class WebhookTypes(enum.Enum):
     CHATROOM_JOINED = "chatroom.joined"
     CHATROOM_LEFT = "chatroom.left"
     CHATROOM_USER_TAGGED = "chatroom.user.tagged"
-    CHATROOM_MESSAGE_REPLIED = "chatroom.message.replied"
+    CHATROOM_CONVERSATION_REPLIED = "chatroom.conversation.replied"
     PROFILE_CREATED = "profile.created"
 
     @classmethod

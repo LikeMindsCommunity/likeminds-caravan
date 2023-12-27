@@ -2541,7 +2541,7 @@ class ConversationHelper:
             ConversationImpl.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
                                                                           conversation_instance.id,
                                                                           [],
-                                                                          WebhookTypes.CHATROOM_MESSAGE_REPLIED.value)
+                                                                          WebhookTypes.CHATROOM_CONVERSATION_REPLIED.value)
 
 
         ConversationHelper._set_preview_for_conversation(conversation_instance, user_id, req_body)
@@ -2684,7 +2684,7 @@ class ConversationHelper:
             "user_id": conversation_instance.user_id,
         }
 
-        if event_type == WebhookTypes.CHATROOM_MESSAGE_REPLIED.value:
+        if event_type == WebhookTypes.CHATROOM_CONVERSATION_REPLIED.value:
             payload['replied_conversation_id'] = conversation_instance.reply_id
         
         return payload
