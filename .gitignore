@@ -1,12 +1,3 @@
-.vscode
-.idea
-project/togther/migrations
-project/utility/logs
-utility/logs
-project/cms/migrations
-project/collabmates_api/migrations
-*.env
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
