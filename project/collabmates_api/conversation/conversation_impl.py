@@ -1591,24 +1591,47 @@ class ConversationImpl(ConversationManager):
         if not conversation_payload:
             return {}
         
-        payload['data']['conversation'] = conversation_payload
-        
-        created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events([conversation_payload['user_id']])
-
-        if not created_by_user:
-            return {}
-        
-        payload['data']['created_by_user'] = created_by_user[0]
-
         chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
             conversation_payload['chatroom_id'])
         
         payload['data']['chatroom'] = chatroom_payload
 
+        # If event `user is tagged in a chatroom``
         if event_type == WebhookTypes.CHATROOM_USER_TAGGED.value:
+            payload['data']['conversation'] = conversation_payload
+        
+            created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events([conversation_payload['user_id']])
+
+            if not created_by_user:
+                return {}
+        
+            payload['data']['created_by_user'] = created_by_user[0]
+
             tagged_users = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
 
             payload['data']['tagged_users'] = tagged_users
+
+        # If event `user replied in a chatroom`
+        elif event_type == WebhookTypes.CHATROOM_MESSAGE_REPLIED.value:
+            original_conversation = ConversationHelper.get_conversation_payload_for_webhook_events(
+                conversation_payload['replied_conversation_id'], "")
+            
+            if not original_conversation:
+                return {}
+            
+            payload['data']['original_conversation'] = original_conversation
+            payload['data']['replied_conversation'] = conversation_payload
+
+            original_conversation_user = MemberCommunityHelper.get_users_payload_for_webhook_events(
+                [conversation_payload['user_id']])
+            replied_conversation_user = MemberCommunityHelper.get_users_payload_for_webhook_events(
+                [original_conversation['user_id']])
+
+            if not (original_conversation_user and replied_conversation_user):
+                return {}
+            
+            payload['data']['original_conversation_user'] = original_conversation_user[0]
+            payload['data']['replied_conversation_user'] = replied_conversation_user[0]
 
         return payload
     
