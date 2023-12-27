@@ -1612,7 +1612,7 @@ class ConversationImpl(ConversationManager):
             payload['data']['tagged_users'] = tagged_users
 
         # If event `user replied in a chatroom`
-        elif event_type == WebhookTypes.CHATROOM_MESSAGE_REPLIED.value:
+        elif event_type == WebhookTypes.CHATROOM_CONVERSATION_REPLIED.value:
             original_conversation = ConversationHelper.get_conversation_payload_for_webhook_events(
                 conversation_payload['replied_conversation_id'], "")
             
