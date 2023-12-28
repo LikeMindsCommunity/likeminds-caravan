@@ -1,11 +1,10 @@
 from __future__ import absolute_import, unicode_literals
 import os
 from celery import Celery
+from kombu import Queue, Exchange
 from celery.schedules import crontab
 from dotenv import load_dotenv
 load_dotenv()
-from django.conf import settings
-# from kombu import Exchange, Queue
 # set the default Django settings module for the 'celery' program.
 # set the default Django settings module for the 'celery' program.
 
@@ -19,7 +18,33 @@ app = Celery('project', backend='amqp', broker=os.getenv('BROKER_URL'))
 # the configuration object to child processes.
 # - namespace='CELERY' means all celery-related configuration keys
 #   should have a `CELERY_` prefix.
+
+# Prefetching the number of tasks from queue, default value is 4
+CELERYD_PREFETCH_MULTIPLIER = 1
+
 app.config_from_object('django.conf:settings', namespace='CELERY')
+
+celery_queues = tuple()
+
+queue_names = os.getenv('CELERY_QUEUES', app.conf.task_default_queue)
+queue_names_list = queue_names.split(',') if queue_names else []
+
+for queue_name in queue_names_list:
+
+    if queue_name:
+
+        if queue_name == app.conf.task_default_queue:
+            celery_queues += (
+                Queue(queue_name, Exchange(queue_name), routing_key=queue_name),
+            )
+
+        else:
+            celery_queues += (
+                Queue(queue_name, Exchange(queue_name), routing_key=queue_name, queue_arguments={'x-max-priority': 10}),
+            )
+
+if celery_queues:
+    app.conf.task_queues = celery_queues
 
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
@@ -78,7 +103,7 @@ app.conf.update(
 )
 
 app.conf.update(
-    task_acks_late = True
+    task_acks_late=True
 )
 
 app.conf.update(
