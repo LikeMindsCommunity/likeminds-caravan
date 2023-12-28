@@ -22,19 +22,29 @@ app = Celery('project', backend='amqp', broker=os.getenv('BROKER_URL'))
 # Prefetching the number of tasks from queue, default value is 4
 CELERYD_PREFETCH_MULTIPLIER = 1
 
-celery_queues = []
+app.config_from_object('django.conf:settings', namespace='CELERY')
 
-if os.getenv('ELASTIC_SEARCH_QUEUE_NAME'):
-    queue_name = os.getenv('ELASTIC_SEARCH_QUEUE_NAME')
-    celery_queues.append(Queue(queue_name,
-                               Exchange(queue_name),
-                               routing_key=queue_name,
-                               queue_arguments={'x-max-priority': 10}))
+celery_queues = tuple()
+
+queue_names = os.getenv('CELERY_QUEUES', '')
+queue_names_list = queue_names.split(',') if queue_names else []
+
+for queue_name in queue_names_list:
+
+    if queue_name:
+
+        if queue_name == app.conf.task_default_queue:
+            celery_queues += (
+                Queue(queue_name, Exchange(queue_name), routing_key=queue_name),
+            )
+
+        else:
+            celery_queues += (
+                Queue(queue_name, Exchange(queue_name), routing_key=queue_name, queue_arguments={'x-max-priority': 10}),
+            )
 
 if celery_queues:
     app.conf.task_queues = celery_queues
-
-app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
