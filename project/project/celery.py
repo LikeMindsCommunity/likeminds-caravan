@@ -21,9 +21,13 @@ app = Celery('project', backend='amqp', broker=os.getenv('BROKER_URL'))
 # - namespace='CELERY' means all celery-related configuration keys
 #   should have a `CELERY_` prefix.
 
+# After processing acknowledge the task
 CELERY_ACKS_LATE = True
+
+# Prefetching the number of tasks from queue, default value is 4
 CELERYD_PREFETCH_MULTIPLIER = 1
 
+# Queues to which celery workers should listen
 queue_names = os.getenv('CELERY_QUEUES', 'celery')
 queue_names_list = queue_names.split(',') if queue_names else []
 celery_queues = []
