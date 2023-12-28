@@ -28,7 +28,7 @@ CELERY_ACKS_LATE = True
 CELERYD_PREFETCH_MULTIPLIER = 1
 
 # Queues to which celery workers should listen
-queue_names = os.getenv('CELERY_QUEUES', 'celery')
+queue_names = os.getenv('CELERY_QUEUES', app.conf.task_default_queue)
 queue_names_list = queue_names.split(',') if queue_names else []
 celery_queues = []
 
