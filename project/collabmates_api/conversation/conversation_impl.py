@@ -1083,8 +1083,10 @@ class ConversationImpl(ConversationManager):
                     f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 14 - {time.time() - start}")
                 start = time.time()
 
-                ConversationHelper.auto_follow_for_tagged_members(chatroom_instance, user_instance,
-                                                                  conversation_instance)
+                ConversationHelper.auto_follow_for_tagged_members(chatroom_instance, conversation_instance)
+
+                tagged_members_list, is_group_tag = ConversationHelper.auto_follow_for_tagged_members(
+                    chatroom_instance, conversation_instance)
 
                 info_logger.info(
                     f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 15 - {time.time() - start}")
@@ -1103,7 +1105,9 @@ class ConversationImpl(ConversationManager):
                                                                            req_body=req_body,
                                                                            member_state=member_state,
                                                                            trigger_webhook=True,
-                                                                           attachments_data=attachments_data)
+                                                                           attachments_data=attachments_data,
+                                                                           tagged_members_list=tagged_members_list,
+                                                                           is_group_tag=is_group_tag)
 
             info_logger.info(f"[{req_body.get('temporary_id')}-{self.get_member_id()}], Step 17 -"
                              f" {time.time() - start}")
@@ -2410,7 +2414,7 @@ class ConversationHelper:
         conversation_instance.save()
 
     @staticmethod
-    def auto_follow_for_tagged_members(chatroom_instance, user_instance, conversation_instance):
+    def auto_follow_for_tagged_members(chatroom_instance, conversation_instance):
         conversation_text = conversation_instance.answer
         tagged_member_list, answer_text, tagged_user_names, should_unmute_members, is_group_tag = get_tagged_members_list(
             chatroom_instance.community_id,
@@ -2744,7 +2748,8 @@ class ConversationHelper:
     @shared_task
     def run_async_task_on_conversation_create(user_id: int, chatroom_id: int, conversation_id: int,
                                               req_body: dict = None, member_state: int = member_states.GUEST,
-                                              trigger_webhook: bool = False, attachments_data: list = []):
+                                              trigger_webhook: bool = False, attachments_data: list = [],
+                                              tagged_members_list: list = [], is_group_tag: bool = False):
 
         if req_body is None:
             req_body = dict()
@@ -2778,23 +2783,22 @@ class ConversationHelper:
                                                                           [],
                                                                           WebhookTypes.CHATROOM_CONVERSATION_REPLIED.value)
 
-
         ConversationHelper._set_preview_for_conversation(conversation_instance, user_id, req_body)
 
-        ConversationHelper._auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance,
-                                                 user_instance, member_state, trigger_webhook=trigger_webhook)
+        # ConversationHelper._auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance,
+        #                                          user_instance, member_state, trigger_webhook=trigger_webhook)
 
         # Auto follow for tagged members
-        tagged_members_list, is_group_tag = ConversationHelper._auto_follow_for_tagged_members(chatroom_instance,
-                                                                                               conversation_instance)
-        
+        # tagged_members_list, is_group_tag = ConversationHelper.auto_follow_for_tagged_members(chatroom_instance,
+        #                                                                                       conversation_instance)
+
         if tagged_members_list and (not is_group_tag):
 
             # Send engagement communication for tagged members
-            ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_members_list,
-                                                                        user_instance,
-                                                                        chatroom_instance)
-            
+            # ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_members_list,
+            #                                                             user_instance,
+            #                                                             chatroom_instance)
+
             # Trigger webhook for user tagging in a chatroom
             ConversationImpl.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
                                                                           conversation_instance.id,
