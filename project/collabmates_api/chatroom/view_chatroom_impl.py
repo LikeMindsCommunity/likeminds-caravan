@@ -34,12 +34,13 @@ class FetchChatroomView(APIView):
 
         chatroom_id = request.GET.get('chatroom_id')
         api_key = RequestUtilities.get_api_key_from_headers(request)
+        api_version = RequestUtilities.get_api_version_from_headers(request)
 
         excluded_conversation_states = request.GET.get('excluded_conversation_states')
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, device_id=device_id,
                                         request_platform=request_platform, version_code=version_code,
-                                        api_key=api_key)
+                                        api_key=api_key, api_version_code=api_version)
         chatroom_data = chatroom_manager.fetch_chatroom(is_internal=is_internal,
                                                         excluded_conversation_states=excluded_conversation_states)
 

@@ -533,6 +533,7 @@ class CommunitySettingTypes:
     SECRET_GROUP_INVITE = "secret_groups_invite"
     CREATE_INTRO_ROOMS = "create_intro_rooms"
     CREATE_POLL = "create_poll"
+    USER_CONNECTION = "user_connection"
 
 
 community_setting_types = CommunitySettingTypes()
@@ -653,7 +654,18 @@ class WebhookTypes(enum.Enum):
     COMMUNITY_JOINED = "community.joined"
     CHATROOM_JOINED = "chatroom.joined"
     CHATROOM_LEFT = "chatroom.left"
+    CHATROOM_USER_TAGGED = "chatroom.user.tagged"
+    CHATROOM_CONVERSATION_REPLIED = "chatroom.conversation.replied"
     PROFILE_CREATED = "profile.created"
+
+    @classmethod
+    def validate_webhook_type(cls, webhook_type) -> bool:
+        return webhook_type in cls._value2member_map_
+    
+    @classmethod
+    def get_webhooks_map(cls) -> dict:
+        return cls._value2member_map_
+
 
 class WenhookChatroomMethodTypes:
     SELF_JOINED = "self_joined"
@@ -939,6 +951,21 @@ class EventKinds:
 
 
 event_kinds = EventKinds()
+
+
+class ConnectionRequestActions(enum.Enum):
+    ACCEPT = "accept"
+    REJECT = "reject"
+
+
+class ConnectionRequestStatus(enum.Enum):
+    ACCEPTED = "accepted"
+    PENDING = "pending"
+
+
+class ConnectionStates(enum.Enum):
+    CONNECTED = "connected"
+    DISCONNECTED = "disconnected"
 
 
 class AttachmentTypes:
