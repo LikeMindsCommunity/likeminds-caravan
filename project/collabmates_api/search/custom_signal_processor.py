@@ -1,14 +1,20 @@
 from celery import shared_task
 from django.apps import apps
 from django.db import transaction
+from django.conf import settings
 from django_elasticsearch_dsl.registries import registry
 from django_elasticsearch_dsl.signals import RealTimeSignalProcessor
+
+from project.celery import app
+
+ELASTIC_SEARCH_QUEUE_NAME = settings.ELASTIC_SEARCH_QUEUE_NAME if settings.ELASTIC_SEARCH_QUEUE_NAME else \
+    app.conf.task_default_queue
 
 
 class AsyncElasticSearchIndexBuilder:
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def handle_save(pk, app_label, model_name):
         sender = apps.get_model(app_label, model_name)
         instance = sender.objects.get(pk=pk)
@@ -16,14 +22,14 @@ class AsyncElasticSearchIndexBuilder:
         registry.update_related(instance)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def handle_pre_delete(pk, app_label, model_name):
         sender = apps.get_model(app_label, model_name)
         instance = sender.objects.get(pk=pk)
         registry.delete_related(instance)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def handle_delete(pk, app_label, model_name):
         sender = apps.get_model(app_label, model_name)
         instance = sender.objects.get(pk=pk)
@@ -34,11 +40,6 @@ class CelerySignalProcessor(RealTimeSignalProcessor):
     """Celery signal processor.
     Allows automatic updates on the index as delayed background tasks using
     Celery.
-    NB: We cannot process deletes as background tasks.
-    By the time the Celery worker would pick up the delete job, the
-    model instance would already deleted. We can get around this by
-    setting Celery to use `pickle` and sending the object to the worker,
-    but using `pickle` opens the application up to security concerns.
     """
 
     def handle_save(self, sender, instance, **kwargs):

@@ -398,6 +398,10 @@ MAX_INDEX_LENGTH_ELASTICSEARCH = 32765
 
 # Indexing only settings
 ELASTICSEARCH_DSL_QUERYSET_PAGINATION = 10000
+ELASTICSEARCH_DSL_SIGNAL_PROCESSOR = "collabmates_api.search.custom_signal_processor.CelerySignalProcessor"
+
+# ASYNCHRONOUS QUEUE SETTINGS
+ELASTIC_SEARCH_QUEUE_NAME = os.getenv('ELASTIC_SEARCH_QUEUE_NAME')
 
 # Elastic search signal processor
 ELASTICSEARCH_DSL_SIGNAL_PROCESSOR = "collabmates_api.search.custom_signal_processor.CelerySignalProcessor"
