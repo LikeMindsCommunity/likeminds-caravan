@@ -35,11 +35,6 @@ class CelerySignalProcessor(RealTimeSignalProcessor):
     """Celery signal processor.
     Allows automatic updates on the index as delayed background tasks using
     Celery.
-    NB: We cannot process deletes as background tasks.
-    By the time the Celery worker would pick up the delete job, the
-    model instance would already deleted. We can get around this by
-    setting Celery to use `pickle` and sending the object to the worker,
-    but using `pickle` opens the application up to security concerns.
     """
 
     def handle_save(self, sender, instance, **kwargs):
