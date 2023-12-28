@@ -24,7 +24,7 @@ app = Celery('project', backend='amqp', broker=os.getenv('BROKER_URL'))
 CELERY_ACKS_LATE = True
 CELERYD_PREFETCH_MULTIPLIER = 1
 
-queue_names = os.getenv('CELERY_QUEUES', '')
+queue_names = os.getenv('CELERY_QUEUES', 'celery')
 queue_names_list = queue_names.split(',') if queue_names else []
 celery_queues = []
 
