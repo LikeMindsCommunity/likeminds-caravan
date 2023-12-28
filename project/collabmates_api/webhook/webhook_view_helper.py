@@ -38,7 +38,7 @@ class WebhookViewHelper:
         if 'webhook_type' not in request_body:
             return ResponseUtilities.get_inner_error_context('send webhook_type in body')
 
-        if request_body['webhook_type'] not in [webhook_type.value for webhook_type in WebhookTypes]:
+        if not WebhookTypes.validate_webhook_type(request_body['webhook_type']):
             return ResponseUtilities.get_inner_error_context('send valid webhook_type in body')
 
         if 'url' not in request_body:
