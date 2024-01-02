@@ -1,5 +1,7 @@
 from elasticsearch_dsl import Search, UpdateByQuery
 from elasticsearch import Elasticsearch
+from django.conf import settings
+from project.celery import app
 
 from celery import shared_task
 from utility.states import SearchIndexes, conversation_states
@@ -9,6 +11,9 @@ from togther.models import collabcardState, card_answers, Members, ModelUtilitie
 from django_elasticsearch_dsl.registries import registry
 
 client = Elasticsearch()
+
+ELASTIC_SEARCH_QUEUE_NAME = settings.ELASTIC_SEARCH_QUEUE_NAME if settings.ELASTIC_SEARCH_QUEUE_NAME else \
+    app.conf.task_default_queue
 
 
 class ElasticSearchSync:
@@ -46,7 +51,7 @@ class ElasticSearchSync:
             registry.update(instance)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_chatroom_for_user(chatroom_id: int, user_id: int):
         """
         @param chatroom_id: int
@@ -62,7 +67,7 @@ class ElasticSearchSync:
         ElasticSearchSync.update_document(instances)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_chatroom_for_users_list(chatroom_id: int, user_ids_list: list):
         """
         @param chatroom_id: int
@@ -78,7 +83,7 @@ class ElasticSearchSync:
         ElasticSearchSync.update_document(instances)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_all_community_chatrooms_for_user(community_id: int, user_id: int):
         """
         @param user_id: int
@@ -94,7 +99,7 @@ class ElasticSearchSync:
         ElasticSearchSync.update_document(instances)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_chatroom(chatroom_id: int):
         """
         @param chatroom_id: int
@@ -110,7 +115,7 @@ class ElasticSearchSync:
         ElasticSearchSync.update_document(instances)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_all_community_chatrooms(community_id: int):
         """
         @param community_id: int
@@ -125,7 +130,7 @@ class ElasticSearchSync:
         ElasticSearchSync.update_document(instances)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def delete_chatrooms_for_removed_member(community_id: int, user_id: int):
         """
         @param community_id: int
@@ -140,7 +145,7 @@ class ElasticSearchSync:
         ElasticSearchSync.delete_all_community_conversations(community_id)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_chatrooms_for_rejoined_member(community_id: int, user_id: int):
         """
         @param community_id: int
@@ -156,7 +161,7 @@ class ElasticSearchSync:
         ElasticSearchSync.update_document(instances)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def delete_chatroom(chatroom_id: int):
         """
         @param chatroom_id: int
@@ -170,7 +175,7 @@ class ElasticSearchSync:
         ElasticSearchSync.delete_chatroom_conversations(chatroom_id)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def delete_chatroom_for_user(chatroom_id: int, user_id: int):
         """
         @param chatroom_id: int
@@ -184,7 +189,7 @@ class ElasticSearchSync:
                                            query_dict=query_dict)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def delete_chatroom_conversations(chatroom_id: int):
         """
         @param chatroom_id: int
@@ -197,7 +202,7 @@ class ElasticSearchSync:
                                            query_dict=query_dict)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def delete_all_community_conversations(community_id: int):
         """
         @param community_id: int
@@ -210,7 +215,7 @@ class ElasticSearchSync:
                                            query_dict=query_dict)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def delete_conversations(conversation_id_list: list):
         """
         @param conversation_id_list: list
@@ -223,7 +228,7 @@ class ElasticSearchSync:
                                            query_dict=query_dict)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_all_conversations_of_community(community_id: int):
         """
         @param community_id: int
@@ -239,7 +244,7 @@ class ElasticSearchSync:
         ElasticSearchSync.update_document(instances)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_all_conversations_of_chatroom(chatroom_id: int):
         """
         @param chatroom_id: int
@@ -255,7 +260,7 @@ class ElasticSearchSync:
         ElasticSearchSync.update_document(instances)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_conversations(conversation_ids: list):
         """
         @param conversation_ids: list<int>
@@ -271,7 +276,7 @@ class ElasticSearchSync:
         ElasticSearchSync.update_document(instances)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_all_conversations_of_user(user_id: int):
         """
         @param user_id: int
@@ -287,7 +292,7 @@ class ElasticSearchSync:
         ElasticSearchSync.update_document(instances)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_chatroom_name(chatroom_id: int, chatroom_name: str):
         """
         @param chatroom_id: int
@@ -302,7 +307,7 @@ class ElasticSearchSync:
                                                 query_dict=query_dict)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_community_name(community_id: int, community_name: str):
         """
         @param community_id: int
@@ -317,7 +322,7 @@ class ElasticSearchSync:
                                                 query_dict=query_dict)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_user_name(user_id: int, user_name: str):
         """
         @param user_id: int
@@ -330,7 +335,7 @@ class ElasticSearchSync:
                                                 query_dict=query_dict)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_member(member_id: int, community_id: int):
         """
         @param member_id: int
@@ -343,7 +348,7 @@ class ElasticSearchSync:
         ElasticSearchSync.update_document(instances)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_member_name(user_id: int, user_name: str):
         """
         @param user_id: int
@@ -356,7 +361,7 @@ class ElasticSearchSync:
                                                 query_dict=query_dict)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def delete_member_from_community(member_id: int, community_id: int):
         """
         @param member_id: int
@@ -370,7 +375,7 @@ class ElasticSearchSync:
                                            query_dict=query_dict)
 
     @staticmethod
-    @shared_task
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def update_members(member_ids: list, community_id: int):
         """
         @param member_ids: list

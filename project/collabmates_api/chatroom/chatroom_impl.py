@@ -4949,7 +4949,7 @@ class ChatroomHelper:
         if is_intro_chatroom:
             ElasticSearchSync.update_all_community_chatrooms_for_user(community_instance.id, user_instance.id)
 
-        ElasticSearchSync.update_chatroom(card_instance.id)
+        ElasticSearchSync.update_chatroom.delay(card_instance.id)
 
     @staticmethod
     @shared_task
