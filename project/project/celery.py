@@ -27,10 +27,8 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 
 celery_queues = tuple()
 
-queue_names = os.getenv('CELERY_QUEUES', app.conf.task_default_queue)
+queue_names = os.getenv('CELERY_QUEUES', '')
 queue_names_list = queue_names.split(',') if queue_names else []
-
-print(f"QUEUES: {queue_names}")
 
 for queue_name in queue_names_list:
 
