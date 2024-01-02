@@ -137,7 +137,7 @@ class ElasticSearchSync:
         query_dict = ElasticSearchQueryHelper.get_delete_dict_for_removed_member(community_id, user_id)
         ElasticSearchSync.delete_documents(index=SearchIndexes.CHATROOM,
                                            query_dict=query_dict)
-        ElasticSearchSync.delete_all_community_conversations(community_id)
+        # ElasticSearchSync.delete_all_community_conversations(community_id)
 
     @staticmethod
     @shared_task
