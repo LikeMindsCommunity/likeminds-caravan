@@ -123,6 +123,7 @@ ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END = 212
 MEDIA_LIMITS_CONFIGURATION = "media_limits"
 FEED_METADATA_CONFIGURATION = "feed_metadata"
 PROFILE_METADATA_CONFIGURATION = "profile_metadata"
+NSFW_FILTERING_CONFIGURATION = "nsfw_filtering"
 
 # Community Configurations
 COMMUNITY_CONFIGURATIONS = {
@@ -152,6 +153,18 @@ COMMUNITY_CONFIGURATIONS = {
         "value":
         {
             "widgets_enabled": False
+        }
+    },
+    NSFW_FILTERING_CONFIGURATION:
+    {
+        "type": "nsfw_filtering",
+        "description": "NSFW filtering for feed posts in a community",
+        "value":
+        {
+            "enabled": False,
+            "inferdo_api_key": "",
+            "cutoff_score": 0.8,
+            "error_status": ""
         }
     }
 }

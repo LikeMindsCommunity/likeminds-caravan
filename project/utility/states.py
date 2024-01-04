@@ -534,6 +534,7 @@ class CommunitySettingTypes:
     CREATE_INTRO_ROOMS = "create_intro_rooms"
     CREATE_POLL = "create_poll"
     USER_CONNECTION = "user_connection"
+    NSFW_FILTERING = "nsfw_filtering"
 
 
 community_setting_types = CommunitySettingTypes()

@@ -59,6 +59,8 @@ from external_services.wa_notification.wa_notification_impl import NotificationI
 from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 
+from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS)
+
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -82,7 +84,7 @@ from utility.states import member_states, card_types, click_states, member_right
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
 from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDIA_LIMITS_CONFIGURATION, 
-                               FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION)
+                               FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -1390,6 +1392,14 @@ class CommunityImpl(CommunityManager):
             if community_setting["setting_type"] == community_setting_types.CREATE_POLL:
                 update_poll_rights_in_user_member_rights_table.delay(community_id=community_instance.id,
                                                                      is_enabled=community_setting['enabled'])
+                
+            if community_setting["setting_type"] == community_setting_types.NSFW_FILTERING:
+
+                # Update NSFW filtering configuration in community
+                CommunityHelper.update_configuration_of_community.delay(community_instance.id, 
+                                                                        user_instance.id,
+                                                                        NSFW_FILTERING_CONFIGURATION,
+                                                                        {'enabled': community_setting["enabled"]})
 
             if not community_setting['enabled']:
                 disabled_community_setting_context = {
@@ -2550,38 +2560,13 @@ class CommunityImpl(CommunityManager):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
         
-        configuration_type = req_body.get('type')
-        update_values = req_body.get('value')
-        record_updated = False
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        configuration_type = validated_request.get('configuration_type')
+        update_values = validated_request.get('update_values')
 
-        configuration_instance = validated_request.get('configuration_instance')
-        configuration_value = configuration_instance.value
-
-        if configuration_type == MEDIA_LIMITS_CONFIGURATION:
-
-            if update_values.get('max_image_size') and isinstance(update_values.get('max_image_size'), int):
-                configuration_value['max_image_size'] = update_values.get('max_image_size')
-                record_updated = True
-
-            if update_values.get('max_video_size') and isinstance(update_values.get('max_video_size'), int):
-                configuration_value['max_video_size'] = update_values.get('max_video_size')
-                record_updated = True
-
-        elif configuration_type == FEED_METADATA_CONFIGURATION:
-            
-            if update_values.get('post') and isinstance(update_values.get('post'), str):
-                configuration_value['post'] = update_values.get('post')
-                record_updated = True
-
-        elif configuration_type == PROFILE_METADATA_CONFIGURATION:
-            
-            if update_values.get('widgets_enabled') and isinstance(update_values.get('widgets_enabled'), bool):
-                configuration_value['widgets_enabled'] = update_values.get('widgets_enabled')
-                record_updated = True
-
-        if record_updated:
-            configuration_instance.value = configuration_value
-            configuration_instance.save()
+        CommunityHelper.update_configuration_of_community.delay(community_instance.id, user_instance.id, 
+                                                                configuration_type, update_values)
 
         return {'success': True}
     
@@ -5251,11 +5236,12 @@ class CommunityHelper:
             return ResponseUtilities.get_inner_error_context("Invalid request body")
         
         configuration_type = req_body.get('type')
+        update_values = req_body.get('value')
 
         if configuration_type not in COMMUNITY_CONFIGURATIONS.keys():
             return ResponseUtilities.get_inner_error_context("Invalid configuration type")
 
-        if not isinstance(req_body.get('value'), dict):
+        if not isinstance(update_values, dict):
             return ResponseUtilities.get_inner_error_context("Invalid value sent in request body")
 
         validation_params = {
@@ -5277,18 +5263,11 @@ class CommunityHelper:
         if not Members.is_member_community_promoter(community_instance, user_instance):
             return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
 
-        # Fetch configuration instance if present
-        configuration_instance = ModelUtilities.get_model_filter(CommunityConfigurations, 
-                                                                 {'community': community_instance,
-                                                                  'type': configuration_type}).first()
-        
-        # If configuration instance is not present, create instance with default values
-        if not configuration_instance:
-            configuration_instance = CommunityConfigurations(**COMMUNITY_CONFIGURATIONS[configuration_type], 
-                                                             community=community_instance)
-
         return {
-            'configuration_instance': configuration_instance
+            'community_instance': community_instance,
+            'user_instance': user_instance,
+            'configuration_type': configuration_type,
+            'update_values': update_values
         }
 
     @staticmethod
@@ -5683,3 +5662,114 @@ class CommunityHelper:
             configuration_instances_response.values(), many=True).data
 
         return serialised_community_configurations
+    
+    @staticmethod
+    @shared_task
+    def delete_cache_from_swarm_service(community_id: int, user_id: int, cache_key: str):
+        if not cache_key:
+            return
+        
+        try:    
+            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
+            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
+
+            if not (user_info_filter and sdk_client_instance):
+                return
+
+            cache_removal_endpoint = settings.SWARM_BASE_URL + SWARM_DELETE_CACHE_ENDPOINT
+
+            client = ApiClient()
+            client.update_request_url(cache_removal_endpoint)
+
+            # Add headers
+            client.update_headers({
+                'x-member-id': user_info_filter.user_unique_id,
+                'x-api-key': sdk_client_instance.api_key
+            })
+
+            # Add Delete request body
+            client.update_body({
+                "cache_key": cache_key
+            })
+
+            # Send delete request
+            response = client.delete().response
+
+            if response.status_code == 200:
+                info_logger.info(f"Successfully deleted cache for community: {community_id} for key: {cache_key}")
+
+            else:
+                error_logger.error(f"Error deleting cache for community: {community_id} for key: {cache_key} - status code: {response.status_code} | response: {response.json()}")
+
+            return 
+        
+        except Exception as e:
+            error_logger.error(f"Exception occurred while deleting cache from swarm - {e.args}")
+            return
+    
+    @staticmethod
+    @shared_task
+    def update_configuration_of_community(community_id: int, user_id: int, 
+                                          configuration_type: str, update_values: dict) -> bool:
+
+        record_updated = False
+
+        # Fetch configuration instance if present
+        configuration_instance = ModelUtilities.get_model_filter(CommunityConfigurations, 
+                                                                 {'community_id': community_id,
+                                                                  'type': configuration_type}).first()
+        
+        # If configuration instance is not present, create instance with default values
+        if not configuration_instance:
+            configuration_instance = CommunityConfigurations(**COMMUNITY_CONFIGURATIONS[configuration_type], 
+                                                             community_id=community_id)
+            
+        configuration_value = configuration_instance.value
+
+        if configuration_type == MEDIA_LIMITS_CONFIGURATION:
+
+            if update_values.get('max_image_size') and isinstance(update_values.get('max_image_size'), int):
+                configuration_value['max_image_size'] = update_values.get('max_image_size')
+                record_updated = True
+
+            if update_values.get('max_video_size') and isinstance(update_values.get('max_video_size'), int):
+                configuration_value['max_video_size'] = update_values.get('max_video_size')
+                record_updated = True
+
+        elif configuration_type == FEED_METADATA_CONFIGURATION:
+            
+            if update_values.get('post') and isinstance(update_values.get('post'), str):
+                configuration_value['post'] = update_values.get('post')
+                record_updated = True
+
+                # Call swarm api to delete cache key to update configurations
+                CommunityHelper.delete_cache_from_swarm_service(community_id=community_id, user_id=user_id, 
+                                                                cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
+
+        elif configuration_type == PROFILE_METADATA_CONFIGURATION:
+            
+            if update_values.get('widgets_enabled') and isinstance(update_values.get('widgets_enabled'), bool):
+                configuration_value['widgets_enabled'] = update_values.get('widgets_enabled')
+                record_updated = True
+
+        elif configuration_type == NSFW_FILTERING_CONFIGURATION:
+                
+                if update_values.get('enabled') and isinstance(update_values.get('enabled'), bool):
+
+                    # If NSFW Filtering is toggled, then update configurations and community settings
+                    if update_values.get('enabled') and not configuration_value.get('enabled'):
+                        configuration_value['enabled'] = update_values.get('enabled')
+                        record_updated = True
+
+                        # Call swarm api to delete cache key to update configurations
+                        CommunityHelper.delete_cache_from_swarm_service(community_id=community_id, user_id=user_id, 
+                                                                        cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
+
+                    configuration_value['enabled'] = update_values.get('enabled')
+                    record_updated = True
+
+        if record_updated:
+            configuration_instance.value = configuration_value
+            configuration_instance.save()
+        
+        return record_updated

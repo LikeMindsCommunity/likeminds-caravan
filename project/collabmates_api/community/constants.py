@@ -82,7 +82,8 @@ COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
     "secret_groups_invite": "Send invite for secret groups",
     "create_intro_rooms": "Create intro rooms",
     "create_poll": "Create Poll",
-    "user_connection": "User Connection"
+    "user_connection": "User Connection",
+    "nsfw_filter": "NSFW Filtering"
 }
 
 COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
@@ -102,7 +103,8 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
                             "will only become part of it once they accept it.",
     "create_intro_rooms": "",
     "create_poll": "",
-    "user_connection": "If enabled, the users will be able to send connection request to other members"
+    "user_connection": "If enabled, the users will be able to send connection request to other members",
+    "nsfw_filter": "To enable NSFW filtering for feed posts in a community"
 }
 
 DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED = "Community managers will be able to message all members and vice-versa."
@@ -219,6 +221,7 @@ COMMUNITY_MEMBER_REMOVAL_REPORTS_PATH = "member_removal_reports/{}/"
 COMMUNITYY_MEMBER_REMOVAL_S3_DOWNLOAD_URL = "https://{}.s3.{}.amazonaws.com/{}"
 
 SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT = "/user"
+SWARM_DELETE_CACHE_ENDPOINT = "/cache"
 
 # Report Types string consants
 REPORT_TYPE_MEMBER = "member"
