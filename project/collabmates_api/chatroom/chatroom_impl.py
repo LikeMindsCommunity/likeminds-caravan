@@ -4949,7 +4949,7 @@ class ChatroomHelper:
         if is_intro_chatroom:
             ElasticSearchSync.update_all_community_chatrooms_for_user(community_instance.id, user_instance.id)
 
-        ElasticSearchSync.update_chatroom(card_instance.id)
+        ElasticSearchSync.update_chatroom.delay(card_instance.id)
 
     @staticmethod
     @shared_task
@@ -5065,7 +5065,7 @@ class ChatroomHelper:
         ModelUtilities.model_update(collabcardState, {'card': card_id},
                                     {'updated_at': TimeUtilities.current_time_in_sec()})
 
-        ElasticSearchSync.update_chatroom(card_id)
+        ElasticSearchSync.update_chatroom.delay(card_id)
 
     @staticmethod
     def check_user_secret_room_creation_right(user_instance, community_instance) -> bool:
