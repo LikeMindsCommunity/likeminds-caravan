@@ -81,7 +81,8 @@ from utility.states import member_states, card_types, click_states, member_right
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
-from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS)
+from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDIA_LIMITS_CONFIGURATION, 
+                               FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -2539,6 +2540,50 @@ class CommunityImpl(CommunityManager):
         }
 
         return response
+
+    def update_community_configurations(self, req_body) -> dict:
+        validated_request = CommunityHelper.validate_update_community_configurations_request(self.get_member_id(),
+                                                                                             self.get_api_key(),
+                                                                                             req_body)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        configuration_type = req_body.get('type')
+        update_values = req_body.get('value')
+        record_updated = False
+
+        configuration_instance = validated_request.get('configuration_instance')
+        configuration_value = configuration_instance.value
+
+        if configuration_type == MEDIA_LIMITS_CONFIGURATION:
+
+            if update_values.get('max_image_size') and isinstance(update_values.get('max_image_size'), int):
+                configuration_value['max_image_size'] = update_values.get('max_image_size')
+                record_updated = True
+
+            if update_values.get('max_video_size') and isinstance(update_values.get('max_video_size'), int):
+                configuration_value['max_video_size'] = update_values.get('max_video_size')
+                record_updated = True
+
+        elif configuration_type == FEED_METADATA_CONFIGURATION:
+            
+            if update_values.get('post') and isinstance(update_values.get('post'), str):
+                configuration_value['post'] = update_values.get('post')
+                record_updated = True
+
+        elif configuration_type == PROFILE_METADATA_CONFIGURATION:
+            
+            if update_values.get('widgets_enabled') and isinstance(update_values.get('widgets_enabled'), bool):
+                configuration_value['widgets_enabled'] = update_values.get('widgets_enabled')
+                record_updated = True
+
+        if record_updated:
+            configuration_instance.value = configuration_value
+            configuration_instance.save()
+
+        return {'success': True}
     
     def remove_community_members(self, req_body: dict) -> dict:
 
@@ -5197,6 +5242,53 @@ class CommunityHelper:
             'user_instance': user_instance,
             'community_instance': community_instance,
             'community_configuration_types': community_configuration_types
+        }
+    
+    @staticmethod
+    def validate_update_community_configurations_request(user_id, api_key, req_body):
+
+        if not req_body:
+            return ResponseUtilities.get_inner_error_context("Invalid request body")
+        
+        configuration_type = req_body.get('type')
+
+        if configuration_type not in COMMUNITY_CONFIGURATIONS.keys():
+            return ResponseUtilities.get_inner_error_context("Invalid configuration type")
+
+        if not isinstance(req_body.get('value'), dict):
+            return ResponseUtilities.get_inner_error_context("Invalid value sent in request body")
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        community_instance = validated_dict.get('community_id')
+        user_instance = validated_dict.get('user_id')
+
+        # Check if user is an admin
+        if not Members.is_member_community_promoter(community_instance, user_instance):
+            return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
+
+        # Fetch configuration instance if present
+        configuration_instance = ModelUtilities.get_model_filter(CommunityConfigurations, 
+                                                                 {'community': community_instance,
+                                                                  'type': configuration_type}).first()
+        
+        # If configuration instance is not present, create instance with default values
+        if not configuration_instance:
+            configuration_instance = CommunityConfigurations(**COMMUNITY_CONFIGURATIONS[configuration_type], 
+                                                             community=community_instance)
+
+        return {
+            'configuration_instance': configuration_instance
         }
 
     @staticmethod
