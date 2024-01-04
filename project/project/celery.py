@@ -20,9 +20,6 @@ app = Celery('project', backend='amqp', broker=os.getenv('BROKER_URL'))
 # - namespace='CELERY' means all celery-related configuration keys
 #   should have a `CELERY_` prefix.
 
-# Prefetching the number of tasks from queue, default value is 4
-CELERYD_PREFETCH_MULTIPLIER = 1
-
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
 celery_queues = tuple()
