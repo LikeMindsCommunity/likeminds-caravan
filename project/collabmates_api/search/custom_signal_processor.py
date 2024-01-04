@@ -21,20 +21,6 @@ class AsyncElasticSearchIndexBuilder:
         registry.update(instance)
         registry.update_related(instance)
 
-    @staticmethod
-    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
-    def handle_pre_delete(pk, app_label, model_name):
-        sender = apps.get_model(app_label, model_name)
-        instance = sender.objects.get(pk=pk)
-        registry.delete_related(instance)
-
-    @staticmethod
-    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
-    def handle_delete(pk, app_label, model_name):
-        sender = apps.get_model(app_label, model_name)
-        instance = sender.objects.get(pk=pk)
-        registry.delete(instance, raise_on_error=False)
-
 
 class CelerySignalProcessor(RealTimeSignalProcessor):
     """Celery signal processor.
@@ -53,21 +39,3 @@ class CelerySignalProcessor(RealTimeSignalProcessor):
         transaction.on_commit(
             lambda: AsyncElasticSearchIndexBuilder.handle_save.delay(instance.pk, app_label, model_name)
         )
-
-    def handle_pre_delete(self, sender, instance, **kwargs):
-        """Handle removing of instance object from related models instance.
-        We need to do this before the real delete otherwise the relation
-        doesn't exists anymore and we can't get the related models instance.
-        """
-        app_label = instance._meta.app_label
-        model_name = instance._meta.model_name
-        AsyncElasticSearchIndexBuilder.handle_pre_delete.delay(instance.pk, app_label, model_name)
-
-    def handle_delete(self, sender, instance, **kwargs):
-        """Handle delete.
-
-        Given an individual model instance, delete the object from index.
-        """
-        app_label = instance._meta.app_label
-        model_name = instance._meta.model_name
-        AsyncElasticSearchIndexBuilder.handle_delete.delay(instance.pk, app_label, model_name)
