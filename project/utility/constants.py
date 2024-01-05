@@ -149,7 +149,7 @@ COMMUNITY_CONFIGURATIONS = {
     PROFILE_METADATA_CONFIGURATION:
     {
         "type": "profile_metadata",
-        "description": "User profiles metadata for a community",
+        "description": "User profiles metadata for the community",
         "value":
         {
             "widgets_enabled": False
@@ -158,7 +158,7 @@ COMMUNITY_CONFIGURATIONS = {
     NSFW_FILTERING_CONFIGURATION:
     {
         "type": "nsfw_filtering",
-        "description": "NSFW filtering for feed posts in a community",
+        "description": "NSFW filtering metadata for the community",
         "value":
         {
             "enabled": False,

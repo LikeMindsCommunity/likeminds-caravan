@@ -5699,7 +5699,8 @@ class CommunityHelper:
                 info_logger.info(f"Successfully deleted cache for community: {community_id} for key: {cache_key}")
 
             else:
-                error_logger.error(f"Error deleting cache for community: {community_id} for key: {cache_key} - status code: {response.status_code} | response: {response.json()}")
+                error_logger.error(f"Error deleting cache for community: {community_id} for key: {cache_key} - \
+                                   status code: {response.status_code} | response: {response.json()}")
 
             return 
         
@@ -5743,31 +5744,29 @@ class CommunityHelper:
                 record_updated = True
 
                 # Call swarm api to delete cache key to update configurations
-                CommunityHelper.delete_cache_from_swarm_service(community_id=community_id, user_id=user_id, 
-                                                                cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
+                CommunityHelper.delete_cache_from_swarm_service.delay(community_id=community_id, user_id=user_id, 
+                                                                      cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
 
         elif configuration_type == PROFILE_METADATA_CONFIGURATION:
             
-            if update_values.get('widgets_enabled') and isinstance(update_values.get('widgets_enabled'), bool):
+            if (update_values.get('widgets_enabled')is not None) and isinstance(update_values.get('widgets_enabled'), bool):
                 configuration_value['widgets_enabled'] = update_values.get('widgets_enabled')
                 record_updated = True
 
         elif configuration_type == NSFW_FILTERING_CONFIGURATION:
                 
-                if update_values.get('enabled') and isinstance(update_values.get('enabled'), bool):
+                if (update_values.get('enabled') is not None) and isinstance(update_values.get('enabled'), bool):
 
                     # If NSFW Filtering is toggled, then update configurations and community settings
-                    if update_values.get('enabled') and not configuration_value.get('enabled'):
+                    if update_values.get('enabled') != configuration_value.get('enabled'):
                         configuration_value['enabled'] = update_values.get('enabled')
                         record_updated = True
 
                         # Call swarm api to delete cache key to update configurations
-                        CommunityHelper.delete_cache_from_swarm_service(community_id=community_id, user_id=user_id, 
-                                                                        cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
+                        CommunityHelper.delete_cache_from_swarm_service.delay(community_id=community_id, user_id=user_id, 
+                                                                              cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
 
-                    configuration_value['enabled'] = update_values.get('enabled')
-                    record_updated = True
-
+        # Update configuration instance if record is updated
         if record_updated:
             configuration_instance.value = configuration_value
             configuration_instance.save()
