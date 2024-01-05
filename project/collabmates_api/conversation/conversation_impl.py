@@ -2742,17 +2742,11 @@ class ConversationHelper:
             if not user_instance:
                 return ResponseUtilities.get_inner_error_context('Invalid member id')
 
-        info_logger.info(f"[{temporary_id}-{user_id}], Step 1.1 - {time.time() - start}")
-        start = time.time()
-
         if chatroom_instance is None:
             chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
 
             if not chatroom_instance:
                 return ResponseUtilities.get_inner_error_context('Invalid chatroom id')
-
-        info_logger.info(f"[{temporary_id}-{user_id}], Step 1.2 - {time.time() - start}")
-        start = time.time()
 
         replied_conv_instance = None
 
@@ -2762,15 +2756,9 @@ class ConversationHelper:
             if not replied_conv_instance:
                 return ResponseUtilities.get_inner_error_context('Invalid replied conversation id')
 
-        info_logger.info(f"[{temporary_id}-{user_id}], Step 1.3 - {time.time() - start}")
-        start = time.time()
-
         community_instance = chatroom_instance.community
         member_state = Members.get_community_member_state(community_instance, user_instance)
         is_admin = (member_state == member_states.ADMIN)
-
-        info_logger.info(f"[{temporary_id}-{user_id}], Step 1.4 - {time.time() - start}")
-        start = time.time()
 
         is_tag_allowed = ConversationHelper._validate_group_tags(
             message,
@@ -2780,33 +2768,18 @@ class ConversationHelper:
             chatroom_instance.is_secret
         )
 
-        info_logger.info(f"[{temporary_id}-{user_id}], Step 1.5 - {time.time() - start}")
-        start = time.time()
-
         if not is_tag_allowed:
             return ResponseUtilities.get_inner_error_context('tag not allowed')
 
-        info_logger.info(f"[{temporary_id}-{user_id}], Step 1.6 - {time.time() - start}")
-        start = time.time()
-
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return ResponseUtilities.get_inner_error_context("Responding is disabled")
-
-        info_logger.info(f"[{temporary_id}-{user_id}], Step 1.7 - {time.time() - start}")
-        start = time.time()
 
         has_right = ModelUtilities.get_model_filter(userMemberRights,
                                                     {'user': user_instance, 'community': community_instance,
                                                      'right__state': member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM})
 
-        info_logger.info(f"[{temporary_id}-{user_id}], Step 1.8 - {time.time() - start}")
-        start = time.time()
-
         if not has_right:
             return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
-
-        info_logger.info(f"[{temporary_id}-{user_id}], Step 1.9 - {time.time() - start}")
-        start = time.time()
 
         # Get user specific chatroom settings
         user_chatroom_settings = chatroom_impl.ChatroomHelper.compute_user_chatroom_settings(user_instance, 
@@ -2814,14 +2787,9 @@ class ConversationHelper:
                                                                                              is_admin,
                                                                                              [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE])
 
-        info_logger.info(f"[{temporary_id}-{user_id}], Step 1.10 - {time.time() - start}")
-        start = time.time()
-
         # If user_chatroom_settings for 'member_can_message' is false, then return error
         if not user_chatroom_settings or not user_chatroom_settings[0].enabled :
             return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
-
-        info_logger.info(f"[{temporary_id}-{user_id}], Step 1.11 - {time.time() - start}")
 
         return {
             'user_instance': user_instance,
