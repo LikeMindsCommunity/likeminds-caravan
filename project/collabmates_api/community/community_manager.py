@@ -395,3 +395,17 @@ class CommunityManager(metaclass=abc.ABCMeta):
         Fetches community removal reports
         """
         raise NotImplementedError
+    
+    @abc.abstractmethod
+    def fetch_community_configurations(self, configuration_types=None) -> dict:
+        """
+        Fetches community configurations
+        """
+        raise NotImplementedError
+    
+    @abc.abstractmethod
+    def update_community_configurations(self, configuration_types=None, configuration_values=None) -> dict:
+        """
+        Updates community configurations
+        """
+        raise NotImplementedError

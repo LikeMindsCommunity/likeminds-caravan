@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+   
+    stages {
+        stage("Checkout code") {
+            steps {
+                checkout scm
+            }
+        }
+      
+        stage("Building Application Docker Image"){
+            steps{
+                script{
+                    sh 'gcloud auth configure-docker asia.gcr.io'
+                    sh 'docker build -f Dockerfile.caravan-celery-es-prod -t asia.gcr.io/${PROJECT_ID}/togther/caravan-celery-es-prod:${BUILD_NUMBER} . '
+                }
+            }
+        }
+
+        stage("Pushing Application Docker Image to Google Artifact Registry"){
+            steps{
+                script{
+                    sh 'gcloud auth configure-docker asia.gcr.io'
+                    sh 'docker push asia.gcr.io/${PROJECT_ID}/togther/caravan-celery-es-prod:${BUILD_NUMBER}'
+                }
+            }
+        }
+              
+        stage('Deploy to GKE') {
+            steps{
+                sh '''
+                sed -i 's/caravan-celery-es-prod:.*/caravan-celery-es-prod:'${BUILD_NUMBER}'"/g' deployment-caravan-celery-es-prod.yaml
+                gcloud container clusters get-credentials ${CLUSTER_NAME} --region ${LOCATION} --project ${PROJECT_ID} --internal-ip
+                kubectl apply -f /var/lib/jenkins/workspace/likeminds-caravan-celery-es-prod/deployment-caravan-celery-es-prod.yaml
+                '''
+            }
+        }
+    }  
+
+    post {
+        always { 
+            cleanWs()
+        }
+    }
+}

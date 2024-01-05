@@ -1,12 +1,11 @@
 from __future__ import absolute_import, unicode_literals
 import os
 from celery import Celery
+from django.conf import settings
 from kombu import Queue, Exchange
 from celery.schedules import crontab
 from dotenv import load_dotenv
 load_dotenv()
-from django.conf import settings
-# from kombu import Exchange, Queue
 # set the default Django settings module for the 'celery' program.
 # set the default Django settings module for the 'celery' program.
 
@@ -21,27 +20,29 @@ app = Celery('project', backend='amqp', broker=os.getenv('BROKER_URL'))
 # - namespace='CELERY' means all celery-related configuration keys
 #   should have a `CELERY_` prefix.
 
-# After processing acknowledge the task
-CELERY_ACKS_LATE = True
+app.config_from_object('django.conf:settings', namespace='CELERY')
 
-# Prefetching the number of tasks from queue, default value is 4
-CELERYD_PREFETCH_MULTIPLIER = 1
+celery_queues = tuple()
 
-# Queues to which celery workers should listen
 queue_names = os.getenv('CELERY_QUEUES', app.conf.task_default_queue)
 queue_names_list = queue_names.split(',') if queue_names else []
-celery_queues = []
 
 for queue_name in queue_names_list:
 
     if queue_name:
-        celery_queues.append(Queue(queue_name, Exchange(queue_name), routing_key=queue_name))
+
+        if queue_name == app.conf.task_default_queue:
+            celery_queues += (
+                Queue(queue_name, Exchange(queue_name), routing_key=queue_name),
+            )
+
+        else:
+            celery_queues += (
+                Queue(queue_name, Exchange(queue_name), routing_key=queue_name, queue_arguments={'x-max-priority': 10}),
+            )
 
 if celery_queues:
     app.conf.task_queues = celery_queues
-
-app.config_from_object('django.conf:settings', namespace='CELERY')
-app.conf.task_queue_max_priority = 10
 
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
@@ -100,7 +101,7 @@ app.conf.update(
 )
 
 app.conf.update(
-    task_acks_late = True
+    task_acks_late=True
 )
 
 app.conf.update(
