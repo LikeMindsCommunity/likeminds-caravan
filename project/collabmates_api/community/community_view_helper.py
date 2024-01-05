@@ -1,11 +1,20 @@
-from togther.models import (ModelUtilities, Community, Members, CommunitySettings, FeedNotificationSettings)
+import json
+
+from togther.models import (ModelUtilities, Community, Members, Userinfo, )
 from utility.response_utilities import ResponseUtilities
 from cms.cms_auth_utilities import CMSAuthUtilities
 from collabmates_api.sdk.models import (SdkClient)
-from collabmates_api.user_moderation_rights import (check_admin_moderate_feed_and_comments_right)
-from utility.states import noti_states, community_setting_types, feed_notification_states
-import json
+from collabmates_api.community.constants import (SWARM_DELETE_CACHE_ENDPOINT, INFERDO_NSFW_FILTER_ENDPOINT, 
+                                                 INFERDO_HEADER_API_HOST, INFERDO_SAMPLE_NSFW_IMAGE_URL)
+from celery import shared_task
+from django.conf import settings
 
+from utility.api_client import ApiClient
+
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+error_logger = LoggingWrapper.get_instance()
+info_logger = LoggingWrapper.get_instance()
 
 class CommunityViewHelper:
 
@@ -149,3 +158,84 @@ class CommunityViewHelper:
 
         return {'user_instance': user_instance, 'community_instance': community_instance,
                 'member_instance': member_instance}
+    
+    @staticmethod
+    @shared_task
+    def delete_cache_from_swarm_service(community_id: int, user_id: int, cache_key: str):
+        if not cache_key:
+            return
+        
+        try:    
+            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
+            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
+
+            if not (user_info_filter and sdk_client_instance):
+                return
+
+            cache_removal_endpoint = settings.SWARM_BASE_URL + SWARM_DELETE_CACHE_ENDPOINT
+
+            client = ApiClient()
+            client.update_request_url(cache_removal_endpoint)
+
+            # Add headers
+            client.update_headers({
+                'x-member-id': user_info_filter.user_unique_id,
+                'x-api-key': sdk_client_instance.api_key
+            })
+
+            # Add Delete request body
+            client.update_body({
+                "cache_key": cache_key
+            })
+
+            # Send delete request
+            response = client.delete().response
+
+            if response.status_code == 200:
+                info_logger.info(f"Successfully deleted cache for community: {community_id} for key: {cache_key}")
+
+            else:
+                error_logger.error(f"Error deleting cache for community: {community_id} for key: {cache_key} - \
+                                   status code: {response.status_code} | response: {response.json()}")
+
+            return 
+        
+        except Exception as e:
+            error_logger.error(f"Exception occurred while deleting cache from swarm - {e.args}")
+            return
+    
+    @staticmethod
+    def validate_inferdo_api_key_for_nsfw_filtering(api_key:str, community_instance, user_instance) -> dict:
+        
+        if not (api_key and community_instance and user_instance):
+            return ResponseUtilities.get_inner_error_context("Invalid request body")
+        
+        try:    
+
+            client = ApiClient()
+            client.update_request_url(INFERDO_NSFW_FILTER_ENDPOINT)
+
+            # Add headers
+            client.update_headers({
+                'X-RapidAPI-Key': api_key,
+                'x-RapidAPI-Host': INFERDO_HEADER_API_HOST
+            })
+
+            # Add request body
+            client.update_body({
+                "url": INFERDO_SAMPLE_NSFW_IMAGE_URL
+            })
+
+            # Send POST request
+            response = client.post().response
+
+            if response.status_code != 200:
+                error_logger.error(f"Error occured setting up Inferdo's API Key for community - {community_instance.id} \
+                                   -  {community_instance.name} | StatusCode: {response.status_code} , Response: {response.json()}")
+                return ResponseUtilities.get_inner_error_context(f"Error occured setting up Inferdo's API Key: {response.json()}")
+
+            return {'success': True}
+        
+        except Exception as e:
+            error_logger.error(f"Exception occurred while setting up Inferdo's API Key for community - {community_instance.id} -  {community_instance.name} | Error: {e.args}")
+            return ResponseUtilities.get_inner_error_context(f"Some error occured setting up Inferdo's API Key, please contact support")

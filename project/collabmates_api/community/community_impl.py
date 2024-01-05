@@ -5262,7 +5262,26 @@ class CommunityHelper:
         # Check if user is an admin
         if not Members.is_member_community_promoter(community_instance, user_instance):
             return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
+        
+        # validation for nsfw filtering configurations
+        if configuration_type == NSFW_FILTERING_CONFIGURATION:
 
+            if update_values.get('cutoff_score'):
+                if not isinstance(update_values.get('cutoff_score'), float):
+                    return ResponseUtilities.get_inner_error_context("Send cutoff_score in decimals")
+                
+                if update_values.get('cutoff_score') < 0 or update_values.get('cutoff_score') > 1:
+                    return ResponseUtilities.get_inner_error_context("Invalid cutoff_score sent in request body")
+                
+            if update_values.get('inferdo_api_key') and isinstance(update_values.get('inferdo_api_key'), str):
+                
+                # Validate inferdo_api_key
+                api_key_validation = CommunityViewHelper.validate_inferdo_api_key_for_nsfw_filtering(update_values.get('inferdo_api_key'),
+                                                                                                     community_instance,
+                                                                                                     user_instance)
+                if api_key_validation.get('error_message'):
+                    return api_key_validation
+                
         return {
             'community_instance': community_instance,
             'user_instance': user_instance,
@@ -5665,51 +5684,6 @@ class CommunityHelper:
     
     @staticmethod
     @shared_task
-    def delete_cache_from_swarm_service(community_id: int, user_id: int, cache_key: str):
-        if not cache_key:
-            return
-        
-        try:    
-            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
-            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
-
-            if not (user_info_filter and sdk_client_instance):
-                return
-
-            cache_removal_endpoint = settings.SWARM_BASE_URL + SWARM_DELETE_CACHE_ENDPOINT
-
-            client = ApiClient()
-            client.update_request_url(cache_removal_endpoint)
-
-            # Add headers
-            client.update_headers({
-                'x-member-id': user_info_filter.user_unique_id,
-                'x-api-key': sdk_client_instance.api_key
-            })
-
-            # Add Delete request body
-            client.update_body({
-                "cache_key": cache_key
-            })
-
-            # Send delete request
-            response = client.delete().response
-
-            if response.status_code == 200:
-                info_logger.info(f"Successfully deleted cache for community: {community_id} for key: {cache_key}")
-
-            else:
-                error_logger.error(f"Error deleting cache for community: {community_id} for key: {cache_key} - \
-                                   status code: {response.status_code} | response: {response.json()}")
-
-            return 
-        
-        except Exception as e:
-            error_logger.error(f"Exception occurred while deleting cache from swarm - {e.args}")
-            return
-    
-    @staticmethod
-    @shared_task
     def update_configuration_of_community(community_id: int, user_id: int, 
                                           configuration_type: str, update_values: dict) -> bool:
 
@@ -5743,10 +5717,6 @@ class CommunityHelper:
                 configuration_value['post'] = update_values.get('post')
                 record_updated = True
 
-                # Call swarm api to delete cache key to update configurations
-                CommunityHelper.delete_cache_from_swarm_service.delay(community_id=community_id, user_id=user_id, 
-                                                                      cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
-
         elif configuration_type == PROFILE_METADATA_CONFIGURATION:
             
             if (update_values.get('widgets_enabled')is not None) and isinstance(update_values.get('widgets_enabled'), bool):
@@ -5755,20 +5725,43 @@ class CommunityHelper:
 
         elif configuration_type == NSFW_FILTERING_CONFIGURATION:
                 
-                if (update_values.get('enabled') is not None) and isinstance(update_values.get('enabled'), bool):
+                # If NSFW Filtering is toggled, update configurations and community settings
+                if (update_values.get('enabled') is not None) and isinstance(update_values.get('enabled'), bool) and \
+                    update_values.get('enabled') != configuration_value.get('enabled'):
 
-                    # If NSFW Filtering is toggled, then update configurations and community settings
-                    if update_values.get('enabled') != configuration_value.get('enabled'):
                         configuration_value['enabled'] = update_values.get('enabled')
                         record_updated = True
 
-                        # Call swarm api to delete cache key to update configurations
-                        CommunityHelper.delete_cache_from_swarm_service.delay(community_id=community_id, user_id=user_id, 
-                                                                              cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
+                        # Update community settings to keep in sync with configurations
+                        community_settings_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                                    {'community_id': community_id,
+                                                                                     'setting_type': community_setting_types.NSFW_FILTERING}
+                                                                                     ).first()
+                        
+                        if community_settings_filter and community_settings_filter.enabled != update_values.get('enabled'):
+                            community_settings_filter.enabled = update_values.get('enabled')
+                            community_settings_filter.enabled_by_id = user_id if update_values.get('enabled') else None
+                            community_settings_filter.save()
+                        
+                if update_values.get('cutoff_score') and isinstance(update_values.get('cutoff_score'), float):
+
+                        configuration_value['cutoff_score'] = update_values.get('cutoff_score')
+                        record_updated = True
+                
+                if update_values.get('inferdo_api_key') and isinstance(update_values.get('inferdo_api_key'), str):
+
+                        configuration_value['inferdo_api_key'] = update_values.get('inferdo_api_key')
+                        record_updated = True
 
         # Update configuration instance if record is updated
         if record_updated:
             configuration_instance.value = configuration_value
             configuration_instance.save()
+
+            # Call SWARM api to delete cache key to update configurations
+            if configuration_type in [FEED_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION]:
+                CommunityViewHelper.delete_cache_from_swarm_service.delay(community_id=community_id, user_id=user_id, 
+                                                                          cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
+
         
         return record_updated

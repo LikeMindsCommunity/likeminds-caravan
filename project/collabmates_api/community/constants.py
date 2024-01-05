@@ -266,3 +266,8 @@ REPORT_TYPES_INT = {
     REPORT_TYPE_COMMENT_INT: REPORT_TYPE_COMMENT,
     REPORT_TYPE_REPLY_INT: REPORT_TYPE_REPLY
 }
+
+# Inferdo constants
+INFERDO_NSFW_FILTER_ENDPOINT = "https://nsfw-image-classification1.p.rapidapi.com/img/nsfw"
+INFERDO_HEADER_API_HOST = "nsfw-image-classification1.p.rapidapi.com"
+INFERDO_SAMPLE_NSFW_IMAGE_URL = "https://www.inferdo.com/img/nsfw-1-raw.jpg"
