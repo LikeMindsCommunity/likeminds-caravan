@@ -1,11 +1,13 @@
 import json
 
-from togther.models import (ModelUtilities, Community, Members, Userinfo, )
+from togther.models import (ModelUtilities, Community, Members, Userinfo, Report)
 from utility.response_utilities import ResponseUtilities
+from utility.states import ReportClosingStatus, report_action_types
 from cms.cms_auth_utilities import CMSAuthUtilities
 from collabmates_api.sdk.models import (SdkClient)
 from collabmates_api.community.constants import (SWARM_DELETE_CACHE_ENDPOINT, INFERDO_NSFW_FILTER_ENDPOINT, 
-                                                 INFERDO_HEADER_API_HOST, INFERDO_SAMPLE_NSFW_IMAGE_URL)
+                                                 INFERDO_HEADER_API_HOST, INFERDO_SAMPLE_NSFW_IMAGE_URL,
+                                                 SWARM_PENDING_POST_UPDATE_ENDPOINT)
 from celery import shared_task
 from django.conf import settings
 
@@ -239,3 +241,79 @@ class CommunityViewHelper:
         except Exception as e:
             error_logger.error(f"Exception occurred while setting up Inferdo's API Key for community - {community_instance.id} -  {community_instance.name} | Error: {e.args}")
             return ResponseUtilities.get_inner_error_context(f"Some error occured setting up Inferdo's API Key, please contact support")
+
+    @shared_task    
+    @staticmethod
+    def close_under_review_pending_post_reports(community_id: int, user_id: int, report_ids: list, status: str):
+
+        if not ReportClosingStatus.is_valid_status(status):
+            return
+        
+        action_taken = report_action_types.PENDING_POST_APPROVED if status == ReportClosingStatus.APPROVED else report_action_types.PENDING_POST_REJECTED
+        community_instance = ModelUtilities.get_model_instance_or_none(SdkClient, community_id)
+        user_instance = ModelUtilities.get_model_instance_or_none(Userinfo, user_id)
+        report_instances = ModelUtilities.get_model_filter(Report, {'id__in': report_ids})
+
+        if not (community_instance and user_instance and report_instances):
+            return
+        
+        # For each report, approve or reject the pending post in swarm service and close the report
+        for report in report_instances:
+
+            pending_post_id = report.entity_id
+            response = CommunityViewHelper.approve_or_reject_pending_post_in_swarm_service(community_instance.api_key, 
+                                                                                           user_instance.user_unique_id,
+                                                                                           pending_post_id, 
+                                                                                           status)
+            
+            # If there was an error from swarm service log the error and continue
+            if response.get('error_message'):
+                error_logger.error(f"Error occurred while approving/rejecting pending post: {pending_post_id} for report: {report.id} - {response.get('error_message')}")
+                continue
+            
+            # Close the report if the pending post was approved or rejected successfully
+            report.is_closed = True
+            report.closed_by = user_instance.user_id
+            report.action_taken = action_taken
+            report.save()
+
+            info_logger.info(f"Successfully approved {pending_post_id} pending post for report: {report.id}")
+
+        return
+        
+    @staticmethod
+    def approve_or_reject_pending_post_in_swarm_service(api_key: str, user_id: str, pending_post_id: str, 
+                                                        status: str) -> dict:
+        
+        try:
+
+            if not (api_key and user_id and pending_post_id and status):
+                return ResponseUtilities.get_inner_error_context("Invalid request body")
+
+            pending_post_update_endpoint = settings.SWARM_BASE_URL + SWARM_PENDING_POST_UPDATE_ENDPOINT.format(pending_post_id)
+
+            client = ApiClient()
+            client.update_request_url(pending_post_update_endpoint)
+
+            # Add headers
+            client.update_headers({
+                'x-member-id': user_id,
+                'x-api-key': api_key
+            })
+
+            # Add Delete request body
+            client.update_body({
+                "status": status
+            })
+
+            # Send delete request
+            response = client.patch().response
+
+            if response.status_code != 200:
+                error_response = response.json()
+                return {'error_message': error_response}
+
+            return {'success': True}
+        
+        except Exception as e:
+            return {'error_message': f"Exception occurred while approving/rejecting pending post in swarm - {e.args}"}

@@ -79,7 +79,7 @@ from utility.states import member_states, card_types, click_states, member_right
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
     api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
-    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes
+    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -2440,7 +2440,8 @@ class CommunityImpl(CommunityManager):
             subject = REPORT_MAIL_TO_TEAM_SUBJECT.format("Text")
 
         # If a feed entity (post,comment,reply) is reported
-        elif report_type in [REPORT_TYPE_POST_INT, REPORT_TYPE_COMMENT_INT, REPORT_TYPE_REPLY_INT]:
+        elif report_type in [REPORT_TYPE_POST_INT, REPORT_TYPE_COMMENT_INT, REPORT_TYPE_REPLY_INT, 
+                             REPORT_TYPE_PENDING_POST_INT]:
 
             feed_entity_id = entity_id
 
@@ -2495,11 +2496,12 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True}
     
-    def delete_community_reports(self, report_ids) -> dict:
+    def close_community_reports(self, report_ids, status) -> dict:
             
-            validated_request = CommunityHelper.validate_delete_community_reports_request(self.get_member_id(),
-                                                                                          self.get_api_key(),
-                                                                                          report_ids)
+            validated_request = CommunityHelper.validate_close_community_reports_request(self.get_member_id(),
+                                                                                         self.get_api_key(),
+                                                                                         report_ids,
+                                                                                         status)
     
             if validated_request.get('error_message'):
                 return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2507,20 +2509,20 @@ class CommunityImpl(CommunityManager):
             
             user_instance = validated_request.get('user_instance')
             community_instance = validated_request.get('community_instance')
+            report_instances = validated_request.get('report_instances')
 
-            filter_dict = {
-                'id__in': report_ids,
-                'community': community_instance
-            }
+            # If status is sent, then approve or reject under review pending posts
+            if status:
+                
+                report_ids = [report.id for report in report_instances]
 
-            update_dict = {
-                'is_closed': True,
-                'closed_by': user_instance,
-                'closed_time': TimeUtilities.current_time_in_sec()
-            }
+                CommunityViewHelper.close_under_review_pending_post_reports.delay(community_instance.id, user_instance.id,
+                                                                                  report_ids, status)
 
-            # Fetch and update report instances
-            ModelUtilities.model_update(Report, filter_dict, update_dict)
+            else:
+
+                # Update report instances
+                report_instances.update(is_closed=True, closed_by=user_instance, closed_time=TimeUtilities.current_time_in_sec())
 
             # Update report count for all admins in community
             update_report_count_for_all_promoters.delay(community_id=community_instance.id)
@@ -5075,11 +5077,11 @@ class CommunityHelper:
         }
     
     @staticmethod
-    def validate_delete_community_reports_request(user_id, api_key, report_ids):
+    def validate_close_community_reports_request(user_id, api_key, report_ids, status):
 
         if not report_ids or not isinstance(report_ids, list):
             return ResponseUtilities.get_inner_error_context("Invalid report_ids")
-
+        
         validation_params = {
             'community_id': {
                 'api_key': api_key
@@ -5101,10 +5103,26 @@ class CommunityHelper:
         if not member_instance or (member_instance.state != member_states.ADMIN):
             return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
         
+        report_instances = ModelUtilities.get_model_filter(Report, {'id__in': report_ids, 
+                                                                    'is_closed': False,
+                                                                    'community': community_instance})
+
+        if status: 
+            if not ReportClosingStatus.is_valid_status(status):
+                return ResponseUtilities.get_inner_error_context("Invalid status sent for pending post reports")
+            
+            report_instances.filter(type=REPORT_TYPE_PENDING_POST_INT)
+        
+        # Check if report ids are valid
+        if len(report_instances) != len(report_ids):
+            return ResponseUtilities.get_inner_error_context("Invalid report_id/s sent")
+
+        
         return {
             'user_instance': user_instance,
             'community_instance': community_instance,
-            'member_instance': member_instance
+            'member_instance': member_instance,
+            'report_instances': report_instances,
         }
 
     @staticmethod
