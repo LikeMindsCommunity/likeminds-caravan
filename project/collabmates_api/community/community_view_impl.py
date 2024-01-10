@@ -1078,7 +1078,7 @@ class CommunityReportView(APIView):
         api_key = RequestUtilities.get_api_key_from_headers(request)
         req_body = RequestUtilities.load_request_body(request)
 
-        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key, community_id=req_body.get('community_id'))
         res = community_manager.push_community_report(req_body)
 
         if 'error_message' in res:

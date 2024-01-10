@@ -2368,6 +2368,7 @@ class CommunityImpl(CommunityManager):
 
         validated_request = CommunityHelper.validate_push_community_report_request(self.get_member_id(),
                                                                                    self.get_api_key(), 
+                                                                                   req_body.get('community_id'),
                                                                                    req_body)
 
         if validated_request.get('error_message'):
@@ -2516,8 +2517,8 @@ class CommunityImpl(CommunityManager):
                 
                 report_ids = [report.id for report in report_instances]
 
-                CommunityViewHelper.close_under_review_pending_post_reports.delay(community_instance.id, user_instance.id,
-                                                                                  report_ids, status)
+                CommunityHelper.close_under_review_pending_post_reports.delay(community_instance.id, user_instance.id,
+                                                                              report_ids, status)
 
             else:
 
@@ -5025,7 +5026,7 @@ class CommunityHelper:
         }
     
     @staticmethod
-    def validate_push_community_report_request(user_id, api_key, req_body):
+    def validate_push_community_report_request(user_id, api_key, community_id, req_body):
 
         entity_type = req_body.get('entity_type')
         entity_id = req_body.get('entity_id')
@@ -5043,6 +5044,7 @@ class CommunityHelper:
         
         validation_params = {
             'community_id': {
+                'community_id': community_id,
                 'api_key': api_key
             },
             'user_id': user_id
@@ -5108,6 +5110,7 @@ class CommunityHelper:
                                                                     'community': community_instance})
 
         if status: 
+
             if not ReportClosingStatus.is_valid_status(status):
                 return ResponseUtilities.get_inner_error_context("Invalid status sent for pending post reports")
             
@@ -5285,6 +5288,7 @@ class CommunityHelper:
         if configuration_type == NSFW_FILTERING_CONFIGURATION:
 
             if update_values.get('cutoff_score'):
+                
                 if not isinstance(update_values.get('cutoff_score'), float):
                     return ResponseUtilities.get_inner_error_context("Send cutoff_score in decimals")
                 
@@ -5294,9 +5298,9 @@ class CommunityHelper:
             if update_values.get('inferdo_api_key') and isinstance(update_values.get('inferdo_api_key'), str):
                 
                 # Validate inferdo_api_key
-                api_key_validation = CommunityViewHelper.validate_inferdo_api_key_for_nsfw_filtering(update_values.get('inferdo_api_key'),
-                                                                                                     community_instance,
-                                                                                                     user_instance)
+                api_key_validation = CommunityHelper.validate_inferdo_api_key_for_nsfw_filtering(update_values.get('inferdo_api_key'),
+                                                                                                 community_instance,
+                                                                                                 user_instance)
                 if api_key_validation.get('error_message'):
                     return api_key_validation
                 
@@ -5746,7 +5750,6 @@ class CommunityHelper:
                 # If NSFW Filtering is toggled, update configurations and community settings
                 if (update_values.get('enabled') is not None) and isinstance(update_values.get('enabled'), bool) and \
                     update_values.get('enabled') != configuration_value.get('enabled'):
-
                         configuration_value['enabled'] = update_values.get('enabled')
                         record_updated = True
 
@@ -5762,12 +5765,10 @@ class CommunityHelper:
                             community_settings_filter.save()
                         
                 if update_values.get('cutoff_score') and isinstance(update_values.get('cutoff_score'), float):
-
                         configuration_value['cutoff_score'] = update_values.get('cutoff_score')
                         record_updated = True
                 
                 if update_values.get('inferdo_api_key') and isinstance(update_values.get('inferdo_api_key'), str):
-
                         configuration_value['inferdo_api_key'] = update_values.get('inferdo_api_key')
                         record_updated = True
 
@@ -5778,8 +5779,165 @@ class CommunityHelper:
 
             # Call SWARM api to delete cache key to update configurations
             if configuration_type in [FEED_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION]:
-                CommunityViewHelper.delete_cache_from_swarm_service.delay(community_id=community_id, user_id=user_id, 
-                                                                          cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
+                CommunityHelper.delete_cache_from_swarm_service.delay(community_id=community_id, user_id=user_id, 
+                                                                      cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
 
         
         return record_updated
+
+    @staticmethod
+    @shared_task
+    def delete_cache_from_swarm_service(community_id: int, user_id: int, cache_key: str):
+        if not cache_key:
+            return
+        
+        try:    
+            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
+            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
+
+            if not (user_info_filter and sdk_client_instance):
+                return
+
+            cache_removal_endpoint = settings.SWARM_BASE_URL + SWARM_DELETE_CACHE_ENDPOINT
+
+            client = ApiClient()
+            client.update_request_url(cache_removal_endpoint)
+
+            # Add headers
+            client.update_headers({
+                'x-member-id': user_info_filter.user_unique_id,
+                'x-api-key': sdk_client_instance.api_key
+            })
+
+            # Add Delete request body
+            client.update_body({
+                "cache_key": cache_key
+            })
+
+            # Send delete request
+            response = client.delete().response
+
+            if response.status_code == 200:
+                info_logger.info(f"Successfully deleted cache for community: {community_id} for key: {cache_key}")
+
+            else:
+                error_logger.error(f"Error deleting cache for community: {community_id} for key: {cache_key} - \
+                                   status code: {response.status_code} | response: {response.json()}")
+
+            return 
+        
+        except Exception as e:
+            error_logger.error(f"Exception occurred while deleting cache from swarm - {e.args}")
+            return
+    
+    @staticmethod
+    def validate_inferdo_api_key_for_nsfw_filtering(api_key:str, community_instance, user_instance) -> dict:
+        
+        if not (api_key and community_instance and user_instance):
+            return ResponseUtilities.get_inner_error_context("Invalid request body")
+        
+        try:    
+
+            client = ApiClient()
+            client.update_request_url(INFERDO_NSFW_FILTER_ENDPOINT)
+
+            # Add headers
+            client.update_headers({
+                'X-RapidAPI-Key': api_key,
+                'x-RapidAPI-Host': INFERDO_HEADER_API_HOST
+            })
+
+            # Add request body
+            client.update_body({
+                "url": INFERDO_SAMPLE_NSFW_IMAGE_URL
+            })
+
+            # Send POST request
+            response = client.post().response
+
+            if response.status_code != 200:
+                error_logger.error(f"Error occured setting up Inferdo's API Key for community - {community_instance.id} \
+                                   -  {community_instance.name} | StatusCode: {response.status_code} , Response: {response.json()}")
+                return ResponseUtilities.get_inner_error_context(f"Error occured setting up Inferdo's API Key: {response.json()}")
+
+            return {'success': True}
+        
+        except Exception as e:
+            error_logger.error(f"Exception occurred while setting up Inferdo's API Key for community - {community_instance.id} -  {community_instance.name} | Error: {e.args}")
+            return ResponseUtilities.get_inner_error_context(f"Some error occured setting up Inferdo's API Key, please contact support")
+
+    @staticmethod
+    @shared_task    
+    def close_under_review_pending_post_reports(community_id: int, user_id: int, report_ids: list, status: str):
+
+        if not ReportClosingStatus.is_valid_status(status):
+            return
+        
+        action_taken = report_action_types.PENDING_POST_APPROVED if status == ReportClosingStatus.APPROVED else report_action_types.PENDING_POST_REJECTED
+        community_instance = ModelUtilities.get_model_instance_or_none(SdkClient, community_id)
+        user_instance = ModelUtilities.get_model_instance_or_none(Userinfo, user_id)
+        report_instances = ModelUtilities.get_model_filter(Report, {'id__in': report_ids})
+
+        if not (community_instance and user_instance and report_instances):
+            return
+        
+        # For each report, approve or reject the pending post in swarm service and close the report
+        for report in report_instances:
+
+            pending_post_id = report.entity_id
+            response = CommunityHelper.approve_or_reject_pending_post_in_swarm_service(community_instance.api_key, 
+                                                                                       user_instance.user_unique_id,
+                                                                                       pending_post_id, 
+                                                                                       status)
+            
+            # If there was an error from swarm service log the error and continue
+            if response.get('error_message'):
+                error_logger.error(f"Error occurred while approving/rejecting pending post: {pending_post_id} for report: {report.id} - {response.get('error_message')}")
+                continue
+            
+            # Close the report if the pending post was approved or rejected successfully
+            report.is_closed = True
+            report.closed_by = user_instance.user_id
+            report.action_taken = action_taken
+            report.save()
+
+            info_logger.info(f"Successfully approved {pending_post_id} pending post for report: {report.id}")
+
+        return
+        
+    @staticmethod
+    def approve_or_reject_pending_post_in_swarm_service(api_key: str, user_id: str, pending_post_id: str, 
+                                                        status: str) -> dict:
+        
+        try:
+
+            if not (api_key and user_id and pending_post_id and status):
+                return ResponseUtilities.get_inner_error_context("Invalid request body")
+
+            pending_post_update_endpoint = settings.SWARM_BASE_URL + SWARM_PENDING_POST_UPDATE_ENDPOINT.format(pending_post_id)
+
+            client = ApiClient()
+            client.update_request_url(pending_post_update_endpoint)
+
+            # Add headers
+            client.update_headers({
+                'x-member-id': user_id,
+                'x-api-key': api_key
+            })
+
+            # Add request body
+            client.update_body({
+                "status": status
+            })
+
+            # Send patch request
+            response = client.patch().response
+
+            if response.status_code != 200:
+                error_response = response.json()
+                return {'error_message': error_response}
+
+            return {'success': True}
+        
+        except Exception as e:
+            return {'error_message': f"Exception occurred while approving/rejecting pending post in swarm - {e.args}"}

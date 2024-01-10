@@ -143,6 +143,7 @@ class ReportTypes:
     REPORT_POST = 5
     REPORT_COMMENT = 6
     REPORT_REPLY = 7
+    REPORT_PENDING_POST = 8
 
 
 report_Types = ReportTypes()

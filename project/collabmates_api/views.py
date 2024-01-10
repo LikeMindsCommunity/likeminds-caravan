@@ -10310,7 +10310,8 @@ def push_report_v1(request):
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
                     "invalid reported_member_id or uuid", status_codes.HTTP_400_BAD_REQUEST))
 
-            if entity_type not in [report_Types.REPORT_POST, report_Types.REPORT_COMMENT, report_Types.REPORT_REPLY]:
+            if entity_type not in [report_Types.REPORT_POST, report_Types.REPORT_COMMENT, report_Types.REPORT_REPLY, 
+                                   report_Types.REPORT_PENDING_POST]:
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
                     "invalid entity_type", status_codes.HTTP_400_BAD_REQUEST))
 
