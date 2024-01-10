@@ -10310,7 +10310,8 @@ def push_report_v1(request):
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
                     "invalid reported_member_id or uuid", status_codes.HTTP_400_BAD_REQUEST))
 
-            if entity_type not in [report_Types.REPORT_POST, report_Types.REPORT_COMMENT, report_Types.REPORT_REPLY]:
+            if entity_type not in [report_Types.REPORT_POST, report_Types.REPORT_COMMENT, report_Types.REPORT_REPLY, 
+                                   report_Types.REPORT_PENDING_POST]:
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
                     "invalid entity_type", status_codes.HTTP_400_BAD_REQUEST))
 
@@ -15440,7 +15441,8 @@ def add_community_settings_for_community(community_instance, user_instance):
                             community_setting_types.DIRECT_MSGS_GROUP_MSGS, community_setting_types.FEED,
                             community_setting_types.CHATROOMS, community_setting_types.SECRET_CHATROOMS_INVITE,
                             community_setting_types.POST_GROUPS, community_setting_types.SECRET_GROUP_INVITE,
-                            community_setting_types.CREATE_INTRO_ROOMS, community_setting_types.USER_CONNECTION]:
+                            community_setting_types.CREATE_INTRO_ROOMS, community_setting_types.USER_CONNECTION,
+                            community_setting_types.NSFW_FILTERING]:
             is_enabled = False
 
         community_settings_data = {

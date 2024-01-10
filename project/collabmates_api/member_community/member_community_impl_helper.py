@@ -1924,12 +1924,12 @@ class MemberCommunityHelper:
             'x-api-key': sdk_client_instance.api_key
         })
 
-        # Add Delete request body
+        # Add patch request body
         client.update_body({
             "status": connection_status
         })
 
-        # Send delete request
+        # Send patch request
         response = client.patch().response
 
         if response.status_code != 200:
