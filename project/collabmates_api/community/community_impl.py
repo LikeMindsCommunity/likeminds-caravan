@@ -5109,18 +5109,21 @@ class CommunityHelper:
                                                                     'is_closed': False,
                                                                     'community': community_instance})
 
+        # If status is passed for pending post reports, then filter only pending post reports else exclude 
         if status: 
 
             if not ReportClosingStatus.is_valid_status(status):
                 return ResponseUtilities.get_inner_error_context("Invalid status sent for pending post reports")
             
             report_instances.filter(type=REPORT_TYPE_PENDING_POST_INT)
+
+        else:
+            report_instances.exclude(type=REPORT_TYPE_PENDING_POST_INT)
         
         # Check if report ids are valid
         if len(report_instances) != len(report_ids):
             return ResponseUtilities.get_inner_error_context("Invalid report_id/s sent")
 
-        
         return {
             'user_instance': user_instance,
             'community_instance': community_instance,
@@ -5873,19 +5876,19 @@ class CommunityHelper:
         if not ReportClosingStatus.is_valid_status(status):
             return
         
-        action_taken = report_action_types.PENDING_POST_APPROVED if status == ReportClosingStatus.APPROVED else report_action_types.PENDING_POST_REJECTED
-        community_instance = ModelUtilities.get_model_instance_or_none(SdkClient, community_id)
+        action_taken = report_action_types.PENDING_POST_APPROVED if status == ReportClosingStatus.STATUS_APPROVED else report_action_types.PENDING_POST_REJECTED
+        sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
         user_instance = ModelUtilities.get_model_instance_or_none(Userinfo, user_id)
         report_instances = ModelUtilities.get_model_filter(Report, {'id__in': report_ids})
 
-        if not (community_instance and user_instance and report_instances):
+        if not (sdk_client_instance and user_instance and report_instances):
             return
         
         # For each report, approve or reject the pending post in swarm service and close the report
         for report in report_instances:
 
             pending_post_id = report.entity_id
-            response = CommunityHelper.approve_or_reject_pending_post_in_swarm_service(community_instance.api_key, 
+            response = CommunityHelper.approve_or_reject_pending_post_in_swarm_service(sdk_client_instance.api_key, 
                                                                                        user_instance.user_unique_id,
                                                                                        pending_post_id, 
                                                                                        status)
@@ -5901,7 +5904,7 @@ class CommunityHelper:
             report.action_taken = action_taken
             report.save()
 
-            info_logger.info(f"Successfully approved {pending_post_id} pending post for report: {report.id}")
+            info_logger.info(f"Successfully approved/rejected {pending_post_id} pending post for report: {report.id}")
 
         return
         
