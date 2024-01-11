@@ -1,6 +1,6 @@
 import time
 
-from togther.models import (ModelUtilities, CommunitySettings, Community)
+from togther.models import (ModelUtilities, CommunitySettings, Community, Members)
 
 # Update this dict to the default community setting you want to backfill
 # Refer 'COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING' CONSTANTs in Community Module
@@ -29,6 +29,12 @@ def backfill_community_settings():
     for community_instance in community_filter:
         DEFAULT_COMMUNITY_SETTINGS_DICT['community_instance'] = community_instance
 
+        if DEFAULT_COMMUNITY_SETTINGS_DICT.get('enabled'):
+            owner = ModelUtilities.get_model_filter(Members, {'community_id': community_instance.id, 
+                                                              'is_owner': True}).first()
+            if owner:
+                DEFAULT_COMMUNITY_SETTINGS_DICT['enabled_by'] = owner.member_id
+        
         community_settings_instance = CommunitySettings.create_instance(DEFAULT_COMMUNITY_SETTINGS_DICT)
         community_settings_list.append(community_settings_instance)
 

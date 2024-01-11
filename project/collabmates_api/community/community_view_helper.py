@@ -1,22 +1,11 @@
-import json
-
-from togther.models import (ModelUtilities, Community, Members, Userinfo, Report)
+from togther.models import (ModelUtilities, Community, Members, CommunitySettings, FeedNotificationSettings)
 from utility.response_utilities import ResponseUtilities
-from utility.states import ReportClosingStatus, report_action_types
 from cms.cms_auth_utilities import CMSAuthUtilities
 from collabmates_api.sdk.models import (SdkClient)
-from collabmates_api.community.constants import (SWARM_DELETE_CACHE_ENDPOINT, INFERDO_NSFW_FILTER_ENDPOINT, 
-                                                 INFERDO_HEADER_API_HOST, INFERDO_SAMPLE_NSFW_IMAGE_URL,
-                                                 SWARM_PENDING_POST_UPDATE_ENDPOINT)
-from celery import shared_task
-from django.conf import settings
+from collabmates_api.user_moderation_rights import (check_admin_moderate_feed_and_comments_right)
+from utility.states import noti_states, community_setting_types, feed_notification_states
+import json
 
-from utility.api_client import ApiClient
-
-from external_services.logging.logging_wrapper import LoggingWrapper
-
-error_logger = LoggingWrapper.get_instance()
-info_logger = LoggingWrapper.get_instance()
 
 class CommunityViewHelper:
 

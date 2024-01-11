@@ -83,7 +83,6 @@ COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
     "create_intro_rooms": "Create intro rooms",
     "create_poll": "Create Poll",
     "user_connection": "User Connection",
-    "nsfw_filtering": "NSFW Filtering for feed",
     "feed_repost": "Feed Repost"
 }
 
@@ -105,7 +104,6 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
     "create_intro_rooms": "",
     "create_poll": "",
     "user_connection": "If enabled, the users will be able to send connection request to other members",
-    "nsfw_filtering": "To enable NSFW filtering for feed posts in the community",
     "feed_repost": "If enabled, members can repost other other member posts"
 }
 
@@ -223,8 +221,6 @@ COMMUNITY_MEMBER_REMOVAL_REPORTS_PATH = "member_removal_reports/{}/"
 COMMUNITYY_MEMBER_REMOVAL_S3_DOWNLOAD_URL = "https://{}.s3.{}.amazonaws.com/{}"
 
 SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT = "/user"
-SWARM_DELETE_CACHE_ENDPOINT = "/cache"
-SWARM_PENDING_POST_UPDATE_ENDPOINT = "/post/pending/{}"
 
 # Report Types string consants
 REPORT_TYPE_MEMBER = "member"
@@ -235,7 +231,6 @@ REPORT_TYPE_LINK = "link"
 REPORT_TYPE_POST = "post"
 REPORT_TYPE_COMMENT = "comment"
 REPORT_TYPE_REPLY = "reply"
-REPORT_TYPE_PENDING_POST = "pending_post"
 
 # Report Types int constants
 REPORT_TYPE_MEMBER_INT = 0
@@ -246,7 +241,6 @@ REPORT_TYPE_LINK_INT = 4
 REPORT_TYPE_POST_INT = 5
 REPORT_TYPE_COMMENT_INT = 6
 REPORT_TYPE_REPLY_INT = 7
-REPORT_TYPE_PENDING_POST_INT = 8
 
 # Report Types Dictonary (String -> Int)
 REPORT_TYPES = {
@@ -257,8 +251,7 @@ REPORT_TYPES = {
     REPORT_TYPE_LINK: REPORT_TYPE_LINK_INT,
     REPORT_TYPE_POST: REPORT_TYPE_POST_INT,
     REPORT_TYPE_COMMENT: REPORT_TYPE_COMMENT_INT,
-    REPORT_TYPE_REPLY: REPORT_TYPE_REPLY_INT,
-    REPORT_TYPE_PENDING_POST: REPORT_TYPE_PENDING_POST_INT
+    REPORT_TYPE_REPLY: REPORT_TYPE_REPLY_INT
 }
 
 # Report Types Dictonary (Int -> String)
@@ -270,11 +263,5 @@ REPORT_TYPES_INT = {
     REPORT_TYPE_LINK_INT: REPORT_TYPE_LINK,
     REPORT_TYPE_POST_INT: REPORT_TYPE_POST,
     REPORT_TYPE_COMMENT_INT: REPORT_TYPE_COMMENT,
-    REPORT_TYPE_REPLY_INT: REPORT_TYPE_REPLY,
-    REPORT_TYPE_PENDING_POST_INT: REPORT_TYPE_PENDING_POST
+    REPORT_TYPE_REPLY_INT: REPORT_TYPE_REPLY
 }
-
-# Inferdo constants
-INFERDO_NSFW_FILTER_ENDPOINT = "https://nsfw-image-classification1.p.rapidapi.com/img/nsfw"
-INFERDO_HEADER_API_HOST = "nsfw-image-classification1.p.rapidapi.com"
-INFERDO_SAMPLE_NSFW_IMAGE_URL = "https://www.inferdo.com/img/nsfw-1-raw.jpg"
