@@ -83,7 +83,8 @@ COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
     "create_intro_rooms": "Create intro rooms",
     "create_poll": "Create Poll",
     "user_connection": "User Connection",
-    "nsfw_filtering": "NSFW Filtering for feed"
+    "nsfw_filtering": "NSFW Filtering for feed",
+    "feed_repost": "Feed Repost"
 }
 
 COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
@@ -104,7 +105,8 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
     "create_intro_rooms": "",
     "create_poll": "",
     "user_connection": "If enabled, the users will be able to send connection request to other members",
-    "nsfw_filtering": "To enable NSFW filtering for feed posts in the community"
+    "nsfw_filtering": "To enable NSFW filtering for feed posts in the community",
+    "feed_repost": "If enabled, members can repost other other member posts"
 }
 
 DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED = "Community managers will be able to message all members and vice-versa."

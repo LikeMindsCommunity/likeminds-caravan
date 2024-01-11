@@ -546,6 +546,7 @@ class CommunitySettingTypes:
     CREATE_POLL = "create_poll"
     USER_CONNECTION = "user_connection"
     NSFW_FILTERING = "nsfw_filtering"
+    FEED_REPOST = "feed_repost"
 
 
 community_setting_types = CommunitySettingTypes()
