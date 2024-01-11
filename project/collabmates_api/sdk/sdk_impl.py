@@ -265,7 +265,7 @@ class SdkImpl(SdkManager):
         response = {
             'success': True,
             'user': user_object,
-            'community': CommunitySerializerV1(sdk_client.community).data,
+            'community': CommunitySerializerV1(sdk_client.community, context={'send_community_settings': True}).data,
             'app_access': app_access,
             'has_answers': True
         }
