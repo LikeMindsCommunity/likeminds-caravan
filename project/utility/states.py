@@ -127,8 +127,6 @@ class ReportActionTypes:
     RESPONSE_DELETED_BY_CREATOR = 4
     CHATROOM_DELETED_BY_CM = 5
     CHATROOM_DELETED_BY_CREATOR = 6
-    PENDING_POST_APPROVED = 7
-    PENDING_POST_REJECTED = 8
 
 
 report_action_types = ReportActionTypes()
@@ -143,7 +141,6 @@ class ReportTypes:
     REPORT_POST = 5
     REPORT_COMMENT = 6
     REPORT_REPLY = 7
-    REPORT_PENDING_POST = 8
 
 
 report_Types = ReportTypes()
@@ -159,14 +156,6 @@ class ReportTagTypes:
 
 
 report_Tag_Types = ReportTagTypes()
-
-class ReportClosingStatus(enum.Enum):
-    STATUS_APPROVED = "approved"
-    STATUS_REJECTED = "rejected"
-
-    @classmethod
-    def is_valid_status(cls, status) -> bool:
-        return status in cls._value2member_map_
 
 
 # chatroom actions
@@ -545,7 +534,6 @@ class CommunitySettingTypes:
     CREATE_INTRO_ROOMS = "create_intro_rooms"
     CREATE_POLL = "create_poll"
     USER_CONNECTION = "user_connection"
-    NSFW_FILTERING = "nsfw_filtering"
     FEED_REPOST = "feed_repost"
 
 
