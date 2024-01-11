@@ -127,6 +127,8 @@ class ReportActionTypes:
     RESPONSE_DELETED_BY_CREATOR = 4
     CHATROOM_DELETED_BY_CM = 5
     CHATROOM_DELETED_BY_CREATOR = 6
+    PENDING_POST_APPROVED = 7
+    PENDING_POST_REJECTED = 8
 
 
 report_action_types = ReportActionTypes()
@@ -141,6 +143,7 @@ class ReportTypes:
     REPORT_POST = 5
     REPORT_COMMENT = 6
     REPORT_REPLY = 7
+    REPORT_PENDING_POST = 8
 
 
 report_Types = ReportTypes()
@@ -156,6 +159,14 @@ class ReportTagTypes:
 
 
 report_Tag_Types = ReportTagTypes()
+
+class ReportClosingStatus(enum.Enum):
+    STATUS_APPROVED = "approved"
+    STATUS_REJECTED = "rejected"
+
+    @classmethod
+    def is_valid_status(cls, status) -> bool:
+        return status in cls._value2member_map_
 
 
 # chatroom actions
@@ -533,6 +544,9 @@ class CommunitySettingTypes:
     SECRET_GROUP_INVITE = "secret_groups_invite"
     CREATE_INTRO_ROOMS = "create_intro_rooms"
     CREATE_POLL = "create_poll"
+    USER_CONNECTION = "user_connection"
+    NSFW_FILTERING = "nsfw_filtering"
+    FEED_REPOST = "feed_repost"
 
 
 community_setting_types = CommunitySettingTypes()
@@ -653,7 +667,18 @@ class WebhookTypes(enum.Enum):
     COMMUNITY_JOINED = "community.joined"
     CHATROOM_JOINED = "chatroom.joined"
     CHATROOM_LEFT = "chatroom.left"
+    CHATROOM_USER_TAGGED = "chatroom.user.tagged"
+    CHATROOM_CONVERSATION_REPLIED = "chatroom.conversation.replied"
     PROFILE_CREATED = "profile.created"
+
+    @classmethod
+    def validate_webhook_type(cls, webhook_type) -> bool:
+        return webhook_type in cls._value2member_map_
+    
+    @classmethod
+    def get_webhooks_map(cls) -> dict:
+        return cls._value2member_map_
+
 
 class WenhookChatroomMethodTypes:
     SELF_JOINED = "self_joined"
@@ -940,3 +965,18 @@ class EventKinds:
 
 
 event_kinds = EventKinds()
+
+
+class ConnectionRequestActions(enum.Enum):
+    ACCEPT = "accept"
+    REJECT = "reject"
+
+
+class ConnectionRequestStatus(enum.Enum):
+    ACCEPTED = "accepted"
+    PENDING = "pending"
+
+
+class ConnectionStates(enum.Enum):
+    CONNECTED = "connected"
+    DISCONNECTED = "disconnected"

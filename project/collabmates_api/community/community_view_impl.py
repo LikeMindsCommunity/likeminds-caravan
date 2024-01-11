@@ -404,6 +404,7 @@ class FetchCommunitySettings(APIView):
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
+        api_version = RequestUtilities.get_api_version_from_headers(request)
 
         if not member_id:
             raise InvalidHeaderException()
@@ -411,7 +412,7 @@ class FetchCommunitySettings(APIView):
         community_id = request.GET.get('community_id', None)
 
         community_manager = CommunityImpl(member_id=member_id, community_id=community_id, version_code=version_code,
-                                          request_platform=platform_code, api_key=api_key)
+                                          request_platform=platform_code, api_key=api_key, api_version_code=api_version)
 
         response = community_manager.fetch_community_settings()
 
@@ -925,9 +926,11 @@ class CommunityMemberView(APIView):
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         req_body = RequestUtilities.load_request_body(request)
+        api_version = RequestUtilities.get_api_version_from_headers(request)
 
         community_manager = CommunityImpl(member_id=member_id, api_key=api_key,
-                                          request_platform=platform_code, version_code=version_code)
+                                          request_platform=platform_code, version_code=version_code,
+                                          api_version_code=api_version)
         community_data = community_manager.add_community_member(req_body)
 
         if community_data.get('error_message'):
@@ -1075,7 +1078,7 @@ class CommunityReportView(APIView):
         api_key = RequestUtilities.get_api_key_from_headers(request)
         req_body = RequestUtilities.load_request_body(request)
 
-        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key, community_id=req_body.get('community_id'))
         res = community_manager.push_community_report(req_body)
 
         if 'error_message' in res:
@@ -1084,13 +1087,14 @@ class CommunityReportView(APIView):
         
         return JsonResponse(res)
     
-    def delete(self, request):
+    def patch(self, request):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
         req_body = RequestUtilities.load_request_body(request)
 
         community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
-        res = community_manager.delete_community_reports(report_ids=req_body.get('report_ids'))
+        res = community_manager.close_community_reports(report_ids=req_body.get('report_ids'), 
+                                                        status=req_body.get('status'))
 
         if 'error_message' in res:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
@@ -1110,6 +1114,20 @@ class CommunityConfigurationsView(APIView):
                                           community_id=req_params.get('community_id'),
                                           api_key=api_key)
         res = community_manager.fetch_community_configurations(req_params.get('configuration_types'))
+
+        if 'error_message' in res:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+        
+        return JsonResponse(res)
+    
+    def patch(self, request): 
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        res = community_manager.update_community_configurations(req_body)
 
         if 'error_message' in res:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),

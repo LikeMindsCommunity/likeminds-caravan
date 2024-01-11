@@ -142,7 +142,8 @@ class ChatroomImpl(ChatroomManager):
     request_platform = None
 
     def __init__(self, member_id: str, chatroom_id: str = None, source_id: str = None, aj: str = None,
-                 device_id: str = None, request_platform: str = None, version_code: int = 0, api_key: str = None, sdk_source: str = None):
+                 device_id: str = None, request_platform: str = None, version_code: int = 0, api_key: str = None,
+                 sdk_source: str = None, api_version_code: int = 0):
         self.member_id = member_id
         self.chatroom_id = chatroom_id
         self.source_id = source_id
@@ -152,6 +153,7 @@ class ChatroomImpl(ChatroomManager):
         self.version_code = version_code
         self.api_key = api_key
         self.sdk_source = sdk_source
+        self.api_version_code = api_version_code
 
     def get_member_id(self) -> Union[str, int]:
         return self.member_id
@@ -191,6 +193,9 @@ class ChatroomImpl(ChatroomManager):
 
     def get_api_key(self):
         return self.api_key
+
+    def get_api_version_code(self):
+        return self.api_version_code
 
     def _make_user_chatroom_guest(self, card_instance):
         guest_context = adding_guest_in_chatroom({}, card_instance, self.get_aj(), self.get_source_id(),
@@ -261,7 +266,8 @@ class ChatroomImpl(ChatroomManager):
                                                 current_user_instance=self.get_member_id(),
                                                 community_instance=card_instance.community, is_child=is_child,
                                                 parent_list=parent_list, platform_code=self.get_request_platform(),
-                                                version_code=self.get_version_code(), api_type=api_type)
+                                                version_code=self.get_version_code(), api_type=api_type,
+                                                api_version_code=self.get_api_version_code())
         return chatroom_actions
 
     def _save_external_seen_in_chatroom_state(self, card_instance, user_instance):
@@ -4242,7 +4248,7 @@ class ChatroomImpl(ChatroomManager):
     
     @staticmethod
     def generate_payload_for_chatroom_webhook_event(chatroom_id: int, users_list: list, 
-                                                   event_type: str, type_method: str) -> dict:
+                                                    event_type: str, type_method: str) -> dict:
 
         payload = {
             "id": str(uuid.uuid4()),
@@ -4262,7 +4268,7 @@ class ChatroomImpl(ChatroomManager):
         # Add chatroom data to payload
         payload['data']['chatroom'] = ChatroomHelper.get_chatroom_payload_for_webhook_events(chatroom_id=chatroom_id)
 
-        # Get users paylaod for webhook events
+        # Get users payload for webhook events
         users_data = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
 
         # Add user interaction data to payload if event is chatroom left
@@ -4943,7 +4949,7 @@ class ChatroomHelper:
         if is_intro_chatroom:
             ElasticSearchSync.update_all_community_chatrooms_for_user(community_instance.id, user_instance.id)
 
-        ElasticSearchSync.update_chatroom(card_instance.id)
+        ElasticSearchSync.update_chatroom.delay(card_instance.id)
 
     @staticmethod
     @shared_task
@@ -5059,7 +5065,7 @@ class ChatroomHelper:
         ModelUtilities.model_update(collabcardState, {'card': card_id},
                                     {'updated_at': TimeUtilities.current_time_in_sec()})
 
-        ElasticSearchSync.update_chatroom(card_id)
+        ElasticSearchSync.update_chatroom.delay(card_id)
 
     @staticmethod
     def check_user_secret_room_creation_right(user_instance, community_instance) -> bool:

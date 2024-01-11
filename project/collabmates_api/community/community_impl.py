@@ -59,6 +59,8 @@ from external_services.wa_notification.wa_notification_impl import NotificationI
 from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 
+from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS)
+
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -77,11 +79,12 @@ from utility.states import member_states, card_types, click_states, member_right
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
     api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
-    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes
+    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
-from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS)
+from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDIA_LIMITS_CONFIGURATION, 
+                               FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -118,7 +121,7 @@ class CommunityImpl(CommunityManager):
     version_code = None
 
     def __init__(self, member_id: str, community_id: str = None, version_code: str = None, device_id: str = None,
-                 request_platform: str = None, api_key: str = None, sdk_source: str = None):
+                 request_platform: str = None, api_key: str = None, sdk_source: str = None, api_version_code: int = 0):
 
         self.member_id = member_id
         self.community_id = community_id
@@ -127,6 +130,7 @@ class CommunityImpl(CommunityManager):
         self.request_platform = request_platform
         self.api_key = api_key
         self.sdk_source = sdk_source
+        self.api_version_code = api_version_code
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -151,6 +155,9 @@ class CommunityImpl(CommunityManager):
 
     def get_sdk_source(self):
         return self.sdk_source
+
+    def get_api_version_code(self):
+        return self.api_version_code
 
     def set_community_id(self, community_id) -> None:
         self.community_id = community_id
@@ -1180,7 +1187,10 @@ class CommunityImpl(CommunityManager):
 
         community_settings = json.loads(json.dumps(community_settings_serializer.data))
         filtered_community_settings_list = []
-        is_m2cm_v2 = m2cm_v2_version_check(self.get_request_platform(), self.get_version_code())
+        is_m2cm_v2 = m2cm_v2_version_check(self.get_request_platform(),
+                                           self.get_version_code(),
+                                           api_version_code=self.get_api_version_code())
+
         is_chatroom_invite = VersionUtilities.check_version(self.get_request_platform(), self.get_version_code(),
                                                             VersionUtilities.chatroom_invite)
         is_create_intro_room_check = VersionUtilities.check_version(self.get_request_platform(),
@@ -1382,6 +1392,14 @@ class CommunityImpl(CommunityManager):
             if community_setting["setting_type"] == community_setting_types.CREATE_POLL:
                 update_poll_rights_in_user_member_rights_table.delay(community_id=community_instance.id,
                                                                      is_enabled=community_setting['enabled'])
+                
+            if community_setting["setting_type"] == community_setting_types.NSFW_FILTERING:
+
+                # Update NSFW filtering configuration in community
+                CommunityHelper.update_configuration_of_community.delay(community_instance.id, 
+                                                                        user_instance.id,
+                                                                        NSFW_FILTERING_CONFIGURATION,
+                                                                        {'enabled': community_setting["enabled"]})
 
             if not community_setting['enabled']:
                 disabled_community_setting_context = {
@@ -2141,7 +2159,8 @@ class CommunityImpl(CommunityManager):
                                                        community_id=community_instance.id,
                                                        device_id=self.get_device_id(),
                                                        platform_code=self.get_request_platform(),
-                                                       version_code=self.get_version_code())
+                                                       version_code=self.get_version_code(),
+                                                       api_version_code=self.get_api_version_code())
 
         community_req_body = {
             "image_url": validated_req_body['user_body'].get('image_url')
@@ -2349,6 +2368,7 @@ class CommunityImpl(CommunityManager):
 
         validated_request = CommunityHelper.validate_push_community_report_request(self.get_member_id(),
                                                                                    self.get_api_key(), 
+                                                                                   req_body.get('community_id'),
                                                                                    req_body)
 
         if validated_request.get('error_message'):
@@ -2421,7 +2441,8 @@ class CommunityImpl(CommunityManager):
             subject = REPORT_MAIL_TO_TEAM_SUBJECT.format("Text")
 
         # If a feed entity (post,comment,reply) is reported
-        elif report_type in [REPORT_TYPE_POST_INT, REPORT_TYPE_COMMENT_INT, REPORT_TYPE_REPLY_INT]:
+        elif report_type in [REPORT_TYPE_POST_INT, REPORT_TYPE_COMMENT_INT, REPORT_TYPE_REPLY_INT, 
+                             REPORT_TYPE_PENDING_POST_INT]:
 
             feed_entity_id = entity_id
 
@@ -2476,11 +2497,12 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True}
     
-    def delete_community_reports(self, report_ids) -> dict:
+    def close_community_reports(self, report_ids, status) -> dict:
             
-            validated_request = CommunityHelper.validate_delete_community_reports_request(self.get_member_id(),
-                                                                                          self.get_api_key(),
-                                                                                          report_ids)
+            validated_request = CommunityHelper.validate_close_community_reports_request(self.get_member_id(),
+                                                                                         self.get_api_key(),
+                                                                                         report_ids,
+                                                                                         status)
     
             if validated_request.get('error_message'):
                 return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2488,20 +2510,20 @@ class CommunityImpl(CommunityManager):
             
             user_instance = validated_request.get('user_instance')
             community_instance = validated_request.get('community_instance')
+            report_instances = validated_request.get('report_instances')
 
-            filter_dict = {
-                'id__in': report_ids,
-                'community': community_instance
-            }
+            # If status is sent, then approve or reject under review pending posts
+            if status:
+                
+                report_ids = [report.id for report in report_instances]
 
-            update_dict = {
-                'is_closed': True,
-                'closed_by': user_instance,
-                'closed_time': TimeUtilities.current_time_in_sec()
-            }
+                CommunityHelper.close_under_review_pending_post_reports.delay(community_instance.id, user_instance.id,
+                                                                              report_ids, status)
 
-            # Fetch and update report instances
-            ModelUtilities.model_update(Report, filter_dict, update_dict)
+            else:
+
+                # Update report instances
+                report_instances.update(is_closed=True, closed_by=user_instance, closed_time=TimeUtilities.current_time_in_sec())
 
             # Update report count for all admins in community
             update_report_count_for_all_promoters.delay(community_id=community_instance.id)
@@ -2531,6 +2553,25 @@ class CommunityImpl(CommunityManager):
         }
 
         return response
+
+    def update_community_configurations(self, req_body) -> dict:
+        validated_request = CommunityHelper.validate_update_community_configurations_request(self.get_member_id(),
+                                                                                             self.get_api_key(),
+                                                                                             req_body)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+        configuration_type = validated_request.get('configuration_type')
+        update_values = validated_request.get('update_values')
+
+        CommunityHelper.update_configuration_of_community.delay(community_instance.id, user_instance.id, 
+                                                                configuration_type, update_values)
+
+        return {'success': True}
     
     def remove_community_members(self, req_body: dict) -> dict:
 
@@ -4985,7 +5026,7 @@ class CommunityHelper:
         }
     
     @staticmethod
-    def validate_push_community_report_request(user_id, api_key, req_body):
+    def validate_push_community_report_request(user_id, api_key, community_id, req_body):
 
         entity_type = req_body.get('entity_type')
         entity_id = req_body.get('entity_id')
@@ -5003,6 +5044,7 @@ class CommunityHelper:
         
         validation_params = {
             'community_id': {
+                'community_id': community_id,
                 'api_key': api_key
             },
             'user_id': user_id
@@ -5037,11 +5079,11 @@ class CommunityHelper:
         }
     
     @staticmethod
-    def validate_delete_community_reports_request(user_id, api_key, report_ids):
+    def validate_close_community_reports_request(user_id, api_key, report_ids, status):
 
         if not report_ids or not isinstance(report_ids, list):
             return ResponseUtilities.get_inner_error_context("Invalid report_ids")
-
+        
         validation_params = {
             'community_id': {
                 'api_key': api_key
@@ -5063,10 +5105,30 @@ class CommunityHelper:
         if not member_instance or (member_instance.state != member_states.ADMIN):
             return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
         
+        report_instances = ModelUtilities.get_model_filter(Report, {'id__in': report_ids, 
+                                                                    'is_closed': False,
+                                                                    'community': community_instance})
+
+        # If status is passed for pending post reports, then filter only pending post reports else exclude 
+        if status: 
+
+            if not ReportClosingStatus.is_valid_status(status):
+                return ResponseUtilities.get_inner_error_context("Invalid status sent for pending post reports")
+            
+            report_instances.filter(type=REPORT_TYPE_PENDING_POST_INT)
+
+        else:
+            report_instances.exclude(type=REPORT_TYPE_PENDING_POST_INT)
+        
+        # Check if report ids are valid
+        if len(report_instances) != len(report_ids):
+            return ResponseUtilities.get_inner_error_context("Invalid report_id/s sent")
+
         return {
             'user_instance': user_instance,
             'community_instance': community_instance,
-            'member_instance': member_instance
+            'member_instance': member_instance,
+            'report_instances': report_instances,
         }
 
     @staticmethod
@@ -5189,6 +5251,67 @@ class CommunityHelper:
             'user_instance': user_instance,
             'community_instance': community_instance,
             'community_configuration_types': community_configuration_types
+        }
+    
+    @staticmethod
+    def validate_update_community_configurations_request(user_id, api_key, req_body):
+
+        if not req_body:
+            return ResponseUtilities.get_inner_error_context("Invalid request body")
+        
+        configuration_type = req_body.get('type')
+        update_values = req_body.get('value')
+
+        if configuration_type not in COMMUNITY_CONFIGURATIONS.keys():
+            return ResponseUtilities.get_inner_error_context("Invalid configuration type")
+
+        if not isinstance(update_values, dict):
+            return ResponseUtilities.get_inner_error_context("Invalid value sent in request body")
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        community_instance = validated_dict.get('community_id')
+        user_instance = validated_dict.get('user_id')
+
+        # Check if user is an admin
+        if not Members.is_member_community_promoter(community_instance, user_instance):
+            return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
+        
+        # validation for nsfw filtering configurations
+        if configuration_type == NSFW_FILTERING_CONFIGURATION:
+
+            if update_values.get('cutoff_score'):
+                
+                if not isinstance(update_values.get('cutoff_score'), float):
+                    return ResponseUtilities.get_inner_error_context("Send cutoff_score in decimals")
+                
+                if update_values.get('cutoff_score') < 0 or update_values.get('cutoff_score') > 1:
+                    return ResponseUtilities.get_inner_error_context("Invalid cutoff_score sent in request body")
+                
+            if update_values.get('inferdo_api_key') and isinstance(update_values.get('inferdo_api_key'), str):
+                
+                # Validate inferdo_api_key
+                api_key_validation = CommunityHelper.validate_inferdo_api_key_for_nsfw_filtering(update_values.get('inferdo_api_key'),
+                                                                                                 community_instance,
+                                                                                                 user_instance)
+                if api_key_validation.get('error_message'):
+                    return api_key_validation
+                
+        return {
+            'community_instance': community_instance,
+            'user_instance': user_instance,
+            'configuration_type': configuration_type,
+            'update_values': update_values
         }
 
     @staticmethod
@@ -5583,3 +5706,241 @@ class CommunityHelper:
             configuration_instances_response.values(), many=True).data
 
         return serialised_community_configurations
+    
+    @staticmethod
+    @shared_task
+    def update_configuration_of_community(community_id: int, user_id: int, 
+                                          configuration_type: str, update_values: dict) -> bool:
+
+        record_updated = False
+
+        # Fetch configuration instance if present
+        configuration_instance = ModelUtilities.get_model_filter(CommunityConfigurations, 
+                                                                 {'community_id': community_id,
+                                                                  'type': configuration_type}).first()
+        
+        # If configuration instance is not present, create instance with default values
+        if not configuration_instance:
+            configuration_instance = CommunityConfigurations(**COMMUNITY_CONFIGURATIONS[configuration_type], 
+                                                             community_id=community_id)
+            
+        configuration_value = configuration_instance.value
+
+        if configuration_type == MEDIA_LIMITS_CONFIGURATION:
+
+            if update_values.get('max_image_size') and isinstance(update_values.get('max_image_size'), int):
+                configuration_value['max_image_size'] = update_values.get('max_image_size')
+                record_updated = True
+
+            if update_values.get('max_video_size') and isinstance(update_values.get('max_video_size'), int):
+                configuration_value['max_video_size'] = update_values.get('max_video_size')
+                record_updated = True
+
+        elif configuration_type == FEED_METADATA_CONFIGURATION:
+            
+            if update_values.get('post') and isinstance(update_values.get('post'), str):
+                configuration_value['post'] = update_values.get('post')
+                record_updated = True
+
+        elif configuration_type == PROFILE_METADATA_CONFIGURATION:
+            
+            if (update_values.get('widgets_enabled')is not None) and isinstance(update_values.get('widgets_enabled'), bool):
+                configuration_value['widgets_enabled'] = update_values.get('widgets_enabled')
+                record_updated = True
+
+        elif configuration_type == NSFW_FILTERING_CONFIGURATION:
+                
+                # If NSFW Filtering is toggled, update configurations and community settings
+                if (update_values.get('enabled') is not None) and isinstance(update_values.get('enabled'), bool) and \
+                    update_values.get('enabled') != configuration_value.get('enabled'):
+                        configuration_value['enabled'] = update_values.get('enabled')
+                        record_updated = True
+
+                        # Update community settings to keep in sync with configurations
+                        community_settings_filter = ModelUtilities.get_model_filter(CommunitySettings,
+                                                                                    {'community_id': community_id,
+                                                                                     'setting_type': community_setting_types.NSFW_FILTERING}
+                                                                                     ).first()
+                        
+                        if community_settings_filter and community_settings_filter.enabled != update_values.get('enabled'):
+                            community_settings_filter.enabled = update_values.get('enabled')
+                            community_settings_filter.enabled_by_id = user_id if update_values.get('enabled') else None
+                            community_settings_filter.save()
+                        
+                if update_values.get('cutoff_score') and isinstance(update_values.get('cutoff_score'), float):
+                        configuration_value['cutoff_score'] = update_values.get('cutoff_score')
+                        record_updated = True
+                
+                if update_values.get('inferdo_api_key') and isinstance(update_values.get('inferdo_api_key'), str):
+                        configuration_value['inferdo_api_key'] = update_values.get('inferdo_api_key')
+                        record_updated = True
+
+        # Update configuration instance if record is updated
+        if record_updated:
+            configuration_instance.value = configuration_value
+            configuration_instance.save()
+
+            # Call SWARM api to delete cache key to update configurations
+            if configuration_type in [FEED_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION]:
+                CommunityHelper.delete_cache_from_swarm_service.delay(community_id=community_id, user_id=user_id, 
+                                                                      cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
+
+        
+        return record_updated
+
+    @staticmethod
+    @shared_task
+    def delete_cache_from_swarm_service(community_id: int, user_id: int, cache_key: str):
+        if not cache_key:
+            return
+        
+        try:    
+            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
+            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
+
+            if not (user_info_filter and sdk_client_instance):
+                return
+
+            cache_removal_endpoint = settings.SWARM_BASE_URL + SWARM_DELETE_CACHE_ENDPOINT
+
+            client = ApiClient()
+            client.update_request_url(cache_removal_endpoint)
+
+            # Add headers
+            client.update_headers({
+                'x-member-id': user_info_filter.user_unique_id,
+                'x-api-key': sdk_client_instance.api_key
+            })
+
+            # Add Delete request body
+            client.update_body({
+                "cache_key": cache_key
+            })
+
+            # Send delete request
+            response = client.delete().response
+
+            if response.status_code == 200:
+                info_logger.info(f"Successfully deleted cache for community: {community_id} for key: {cache_key}")
+
+            else:
+                error_logger.error(f"Error deleting cache for community: {community_id} for key: {cache_key} - \
+                                   status code: {response.status_code} | response: {response.json()}")
+
+            return 
+        
+        except Exception as e:
+            error_logger.error(f"Exception occurred while deleting cache from swarm - {e.args}")
+            return
+    
+    @staticmethod
+    def validate_inferdo_api_key_for_nsfw_filtering(api_key:str, community_instance, user_instance) -> dict:
+        
+        if not (api_key and community_instance and user_instance):
+            return ResponseUtilities.get_inner_error_context("Invalid request body")
+        
+        try:    
+
+            client = ApiClient()
+            client.update_request_url(INFERDO_NSFW_FILTER_ENDPOINT)
+
+            # Add headers
+            client.update_headers({
+                'X-RapidAPI-Key': api_key,
+                'x-RapidAPI-Host': INFERDO_HEADER_API_HOST
+            })
+
+            # Add request body
+            client.update_body({
+                "url": INFERDO_SAMPLE_NSFW_IMAGE_URL
+            })
+
+            # Send POST request
+            response = client.post().response
+
+            if response.status_code != 200:
+                error_logger.error(f"Error occured setting up Inferdo's API Key for community - {community_instance.id} \
+                                   -  {community_instance.name} | StatusCode: {response.status_code} , Response: {response.json()}")
+                return ResponseUtilities.get_inner_error_context(f"Error occured setting up Inferdo's API Key: {response.json()}")
+
+            return {'success': True}
+        
+        except Exception as e:
+            error_logger.error(f"Exception occurred while setting up Inferdo's API Key for community - {community_instance.id} -  {community_instance.name} | Error: {e.args}")
+            return ResponseUtilities.get_inner_error_context(f"Some error occured setting up Inferdo's API Key, please contact support")
+
+    @staticmethod
+    @shared_task    
+    def close_under_review_pending_post_reports(community_id: int, user_id: int, report_ids: list, status: str):
+
+        if not ReportClosingStatus.is_valid_status(status):
+            return
+        
+        action_taken = report_action_types.PENDING_POST_APPROVED if status == ReportClosingStatus.STATUS_APPROVED else report_action_types.PENDING_POST_REJECTED
+        sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
+        user_instance = ModelUtilities.get_model_instance_or_none(Userinfo, user_id)
+        report_instances = ModelUtilities.get_model_filter(Report, {'id__in': report_ids})
+
+        if not (sdk_client_instance and user_instance and report_instances):
+            return
+        
+        # For each report, approve or reject the pending post in swarm service and close the report
+        for report in report_instances:
+
+            pending_post_id = report.entity_id
+            response = CommunityHelper.approve_or_reject_pending_post_in_swarm_service(sdk_client_instance.api_key, 
+                                                                                       user_instance.user_unique_id,
+                                                                                       pending_post_id, 
+                                                                                       status)
+            
+            # If there was an error from swarm service log the error and continue
+            if response.get('error_message'):
+                error_logger.error(f"Error occurred while approving/rejecting pending post: {pending_post_id} for report: {report.id} - {response.get('error_message')}")
+                continue
+            
+            # Close the report if the pending post was approved or rejected successfully
+            report.is_closed = True
+            report.closed_by = user_instance.user_id
+            report.action_taken = action_taken
+            report.save()
+
+            info_logger.info(f"Successfully approved/rejected {pending_post_id} pending post for report: {report.id}")
+
+        return
+        
+    @staticmethod
+    def approve_or_reject_pending_post_in_swarm_service(api_key: str, user_id: str, pending_post_id: str, 
+                                                        status: str) -> dict:
+        
+        try:
+
+            if not (api_key and user_id and pending_post_id and status):
+                return ResponseUtilities.get_inner_error_context("Invalid request body")
+
+            pending_post_update_endpoint = settings.SWARM_BASE_URL + SWARM_PENDING_POST_UPDATE_ENDPOINT.format(pending_post_id)
+
+            client = ApiClient()
+            client.update_request_url(pending_post_update_endpoint)
+
+            # Add headers
+            client.update_headers({
+                'x-member-id': user_id,
+                'x-api-key': api_key
+            })
+
+            # Add request body
+            client.update_body({
+                "status": status
+            })
+
+            # Send patch request
+            response = client.patch().response
+
+            if response.status_code != 200:
+                error_response = response.json()
+                return {'error_message': error_response}
+
+            return {'success': True}
+        
+        except Exception as e:
+            return {'error_message': f"Exception occurred while approving/rejecting pending post in swarm - {e.args}"}

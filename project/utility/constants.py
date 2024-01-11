@@ -120,9 +120,14 @@ Team CommunityHood
 ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_START = 200
 ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END = 212
 
+MEDIA_LIMITS_CONFIGURATION = "media_limits"
+FEED_METADATA_CONFIGURATION = "feed_metadata"
+PROFILE_METADATA_CONFIGURATION = "profile_metadata"
+NSFW_FILTERING_CONFIGURATION = "nsfw_filtering"
+
 # Community Configurations
 COMMUNITY_CONFIGURATIONS = {
-    "media_limits":
+    MEDIA_LIMITS_CONFIGURATION:
     {
         "type": "media_limits",
         "description": "Media size upload limit (in Kilobytes) for different file formats",
@@ -132,7 +137,7 @@ COMMUNITY_CONFIGURATIONS = {
             "max_video_size": 102400, # 100 MB
         }
     },
-    "feed_metadata":
+    FEED_METADATA_CONFIGURATION:
     {
         "type": "feed_metadata",
         "description": "Metadata related to feed and its entity",
@@ -141,13 +146,25 @@ COMMUNITY_CONFIGURATIONS = {
             "post": "post"
         }
     },
-    "profile_metadata":
+    PROFILE_METADATA_CONFIGURATION:
     {
         "type": "profile_metadata",
-        "description": "User profiles metadata for a community",
+        "description": "User profiles metadata for the community",
         "value":
         {
             "widgets_enabled": False
+        }
+    },
+    NSFW_FILTERING_CONFIGURATION:
+    {
+        "type": "nsfw_filtering",
+        "description": "NSFW filtering metadata for the community",
+        "value":
+        {
+            "enabled": False,
+            "inferdo_api_key": "",
+            "cutoff_score": 0.8,
+            "error_status": ""
         }
     }
 }

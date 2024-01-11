@@ -1,4 +1,6 @@
 from django.conf import settings
+
+
 class VersionUtilities:
 
     class PlatformCode:
@@ -14,6 +16,7 @@ class VersionUtilities:
         FLUTTER_SDK = 'fl-sdk'
         REACT_NATIVE_SDK = 'rn-sdk'
         REACT_SDK = 'rt-sdk'
+        API_VERSION_CODE = 'api-version-code'
 
         @staticmethod
         def convert_platform_code_to_sdk(platform_code):
@@ -100,6 +103,8 @@ class VersionUtilities:
             PlatformCode.REACT_SDK: 21,
             PlatformCode.REACT_NATIVE_SDK: 4,
             PlatformCode.WEB_SDK: 16,
+
+            PlatformCode.API_VERSION_CODE: 1
         },
         SdkSource.FEED: {
             PlatformCode.ANDROID_SDK: unreleased_version_code,
@@ -126,6 +131,8 @@ class VersionUtilities:
             PlatformCode.REACT_SDK: 15,
             PlatformCode.REACT_NATIVE_SDK: 7,
             PlatformCode.WEB_SDK: 15,
+
+            PlatformCode.API_VERSION_CODE: 1
         },
         SdkSource.FEED: {
             PlatformCode.ANDROID_SDK: unreleased_version_code,
@@ -529,19 +536,25 @@ class VersionUtilities:
 
     @staticmethod
     def check_version(platform_code: str, version_code: int, feature_version_dict: dict,
-                      sdk_source: str = None) -> bool:
+                      sdk_source: str = None, api_version_code: int = 0) -> bool:
         """
         returns True if,
-          version code >= feature_version_code for the given platform
+          version code >= feature_version_code for the given platform OR
+          api_version_code >= feature api_version_code for the given sdk_source
         returns False for all other cases
         """
 
-        if not type(version_code) == int:
+        if api_version_code and not type(api_version_code) == int:
             return False
 
-        if not type(platform_code) == str:
-            return False
-        
+        else:
+
+            if not type(version_code) == int:
+                return False
+
+            if not type(platform_code) == str:
+                return False
+
         if not sdk_source:
             if platform_code in [VersionUtilities.PlatformCode.FLUTTER_SDK, VersionUtilities.PlatformCode.FLUTTER]:
                 sdk_source = VersionUtilities.SdkSource.FEED   
@@ -553,6 +566,13 @@ class VersionUtilities:
 
         if not feature_version_dict.get(sdk_source, None):
             return False
+
+        if api_version_code:
+
+            if not feature_version_dict[sdk_source].get(VersionUtilities.PlatformCode.API_VERSION_CODE, None):
+                return False
+
+            return api_version_code >= feature_version_dict[sdk_source][VersionUtilities.PlatformCode.API_VERSION_CODE]
 
         if not feature_version_dict[sdk_source].get(platform_code, None):
             return False
