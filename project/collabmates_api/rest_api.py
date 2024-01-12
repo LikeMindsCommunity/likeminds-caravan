@@ -196,6 +196,7 @@ class CommunitySerializerV1(serializers.ModelSerializer):
         self.is_sdk = self.context.get('is_sdk', False)
         self.current_user_instance = self.context.get('current_user_instance', None)
         self.restrict_members_count = self.context.get('restrict_members_count', False)
+        self.send_community_settings = self.context.get('send_community_settings', False)
 
     def get_members_count(self, instance):
 
@@ -233,6 +234,11 @@ class CommunitySerializerV1(serializers.ModelSerializer):
 
             if field.field_name == "whitelabel_info":
                 data['whitelabel_info'] = json.loads(community.whitelabel_info) if community.whitelabel_info else None
+
+            if self.send_community_settings:
+                community_settings_list = ModelUtilities.get_model_filter(CommunitySettings, {"community": community})
+                community_settings_serializer = CommunitySettingsSerializer(community_settings_list, many=True)
+                data['community_settings'] = community_settings_serializer.data
 
             elif data[field.field_name] is None:
                 del data[field.field_name]

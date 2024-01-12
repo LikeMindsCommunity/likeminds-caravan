@@ -1,0 +1,29 @@
+pipeline {
+    agent any
+    stages {
+        stage("Checkout code") {
+            steps {
+                checkout scm
+            }
+         }
+        
+        stage ('Build Image') {
+            steps {
+                sh "sudo docker build -f Dockerfile.caravan-celery-beta -t 081371230266.dkr.ecr.ap-south-1.amazonaws.com/likeminds-togther-caravan-celery-repo:caravan-celery-V$BUILD_NUMBER ."
+            }
+        }
+        
+        stage ('Push Image') {
+            steps {
+                sh "aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 081371230266.dkr.ecr.ap-south-1.amazonaws.com"
+                sh "sudo docker push 081371230266.dkr.ecr.ap-south-1.amazonaws.com/likeminds-togther-caravan-celery-repo:caravan-celery-V$BUILD_NUMBER"
+            }
+        }
+        
+        stage ('Remove Image from jenkins') {
+            steps {
+                sh "sudo docker rmi 081371230266.dkr.ecr.ap-south-1.amazonaws.com/likeminds-togther-caravan-celery-repo:caravan-celery-V$BUILD_NUMBER"
+            }
+        }
+    }
+}
