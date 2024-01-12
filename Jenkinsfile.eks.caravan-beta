@@ -34,7 +34,7 @@ pipeline {
                   sh "git status"
                   sh 'git commit -m "CI/CD pipeline updated $IMAGE_TAG image to new image tag"'
                   sh 'git config --global credential.helper cache'
-		          sh "git push origin LM-10466-aws-migration"
+		  sh "git push origin LM-10466-aws-migration"
                 }
             }
           }   
