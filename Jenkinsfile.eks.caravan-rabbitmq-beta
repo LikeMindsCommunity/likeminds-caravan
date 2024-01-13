@@ -31,7 +31,7 @@ pipeline {
                   git branch: 'LM-10466-aws-migration', url: 'git@github.com:LikeMindsCommunity/LikeMinds-Infra-Config.git'
                   sh "ls"
                   sh 'sed -i "s/tag: caravan-rabbitmq-V[0-9]*/tag: caravan-rabbitmq-V${BUILD_NUMBER}/g" ./stag/caravan-rabbitmq-beta/values.yaml'
-                  sh "git add ./stag/caravan-rabbitmq-beta-beta/values.yaml"
+                  sh "git add ./stag/caravan-rabbitmq-beta/values.yaml"
                   sh "git status"
                   sh 'git commit -m "CI/CD pipeline updated $IMAGE_TAG image to new image tag"'
                   sh 'git config --global credential.helper cache'
