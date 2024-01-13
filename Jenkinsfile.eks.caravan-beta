@@ -23,6 +23,7 @@ pipeline {
         stage ('Remove Image from jenkins') {
             steps {
                 sh "sudo docker rmi 081371230266.dkr.ecr.ap-south-1.amazonaws.com/likeminds-togther-caravan-repo:caravan-V$BUILD_NUMBER"
+            }
         }
         stage ("update tag and push helm charts") {
           steps {
@@ -37,7 +38,6 @@ pipeline {
 		  sh "git push origin LM-10466-aws-migration"
                 }
             }
-          }   
         }
     }
 }
