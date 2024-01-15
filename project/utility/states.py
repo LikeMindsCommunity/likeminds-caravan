@@ -545,6 +545,7 @@ class CommunitySettingTypes:
     CREATE_INTRO_ROOMS = "create_intro_rooms"
     CREATE_POLL = "create_poll"
     USER_CONNECTION = "user_connection"
+    FEED_REPOST = "feed_repost"
     NSFW_FILTERING = "nsfw_filtering"
 
 
@@ -879,6 +880,7 @@ class AccessTypes:
     EDIT_POST = "edit_post"
     CREATE_TOPIC = "create_topic"
     EDIT_TOPIC = "edit_topic"
+    DELETE_TOPIC = "delete_topic"
     IS_MEMBER = "is_member"
     CHANGE_AUTHOR = "change_author"
     VIEW_USER_ACTIVITY = "view_user_activity"
