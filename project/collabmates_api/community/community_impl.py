@@ -2568,10 +2568,16 @@ class CommunityImpl(CommunityManager):
         configuration_type = validated_request.get('configuration_type')
         update_values = validated_request.get('update_values')
 
-        CommunityHelper.update_configuration_of_community.delay(community_instance.id, user_instance.id, 
-                                                                configuration_type, update_values)
+        record_updated, configuration_instance = CommunityHelper.update_configuration_of_community(community_instance.id, user_instance.id, 
+                                                                           configuration_type, update_values)
+        
+        response = {
+            'success': True,
+            'record_updated': record_updated,
+            'community_configuration': CommunityConfigurationsSerializer(configuration_instance).data
+        }
 
-        return {'success': True}
+        return response
     
     def remove_community_members(self, req_body: dict) -> dict:
 
@@ -5709,8 +5715,7 @@ class CommunityHelper:
     
     @staticmethod
     @shared_task
-    def update_configuration_of_community(community_id: int, user_id: int, 
-                                          configuration_type: str, update_values: dict) -> bool:
+    def update_configuration_of_community(community_id: int, user_id: int, configuration_type: str, update_values: dict):
 
         record_updated = False
 
@@ -5785,8 +5790,7 @@ class CommunityHelper:
                 CommunityHelper.delete_cache_from_swarm_service.delay(community_id=community_id, user_id=user_id, 
                                                                       cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
 
-        
-        return record_updated
+        return record_updated, configuration_instance
 
     @staticmethod
     @shared_task
