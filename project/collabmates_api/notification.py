@@ -1354,6 +1354,9 @@ def get_custom_data_for_new_conversation_created(user_id: str, community_id: str
 
     for card_id, unread_dict in ordered_unseen_dict.items():
 
+        if len(unread_conversation) >= page_size:
+            break
+
         if card_id in excluded_card_ids:
             continue
 
