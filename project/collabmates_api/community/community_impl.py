@@ -2568,8 +2568,10 @@ class CommunityImpl(CommunityManager):
         configuration_type = validated_request.get('configuration_type')
         update_values = validated_request.get('update_values')
 
-        record_updated, configuration_instance = CommunityHelper.update_configuration_of_community(community_instance.id, user_instance.id, 
-                                                                           configuration_type, update_values)
+        record_updated, configuration_instance = CommunityHelper.update_configuration_of_community(community_instance.id, 
+                                                                                                   user_instance.id, 
+                                                                                                   configuration_type, 
+                                                                                                   update_values)
         
         response = {
             'success': True,
