@@ -19,7 +19,7 @@ RUN pip3 install -r requirements.txt
 
 ADD . $WORKDIR
 
-ADD https://prod-likeminds-media.s3.ap-south-1.amazonaws.com/environment/caravan-prod-dot-env-public ./project/project/settings/.env
+ADD https://likeminds-configs-prod.s3.ap-south-1.amazonaws.com/application-dot-envs-prod/caravan-prod/caravan-prod-dot-env-public ./project/project/settings/.env
 
 RUN mkdir /usr/src/app/project/utility/logs && \
     touch /usr/src/app/project/utility/logs/collabmates.log && \
