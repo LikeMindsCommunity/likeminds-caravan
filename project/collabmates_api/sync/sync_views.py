@@ -24,6 +24,7 @@ class SyncChatrooms(APIView):
         is_local_db = params.get('is_local_db')
         included_conversation_states = StringUtilities.get_list_from_string(params.get('included_conversation_states'),
                                                                             default=None)
+        chatroom_id = params.get('chatroom_id')
 
         if (is_local_db is None) or (is_local_db == ''):
 
@@ -40,7 +41,8 @@ class SyncChatrooms(APIView):
                                 api_key=api_key, request_platform=platform, version_code=version_code)
         response_data = sync_manager.sync_chatrooms(page, page_size, min_timestamp, max_timestamp, chatroom_type,
                                                     is_local_db=is_local_db,
-                                                    included_conversation_states=included_conversation_states)
+                                                    included_conversation_states=included_conversation_states,
+                                                    chatroom_id=chatroom_id)
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data.get('error_message'),
