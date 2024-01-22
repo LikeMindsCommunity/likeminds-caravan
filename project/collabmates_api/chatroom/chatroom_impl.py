@@ -2766,7 +2766,7 @@ class ChatroomImpl(ChatroomManager):
         if not is_cm:
             return {'success': False, 'error_message': "User can’t enable/disable member messaging setting option"}
 
-        card_filter.update(member_can_message=value, updated_at=TimeUtilities.current_time_in_sec())
+        card_filter.update(member_can_message=value, updated_at=TimeUtilities.current_time_in_milliseconds())
 
         # toggle user chatroom settings with setting type as member_can_message for all the members of this chatroom
         toggle_user_chatroom_settings.delay(card_instance.id, CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE, value)
