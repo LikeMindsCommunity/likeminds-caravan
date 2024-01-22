@@ -9,20 +9,20 @@ pipeline {
         
         stage ('Build Image') {
             steps {
-                sh "sudo docker build -f Dockerfile.caravan-celery-beta -t 081371230266.dkr.ecr.ap-south-1.amazonaws.com/likeminds-togther-caravan-celery-repo:caravan-celery-V$BUILD_NUMBER ."
+                sh "sudo docker build -f Dockerfile.caravan-prod -t 523792672653.dkr.ecr.ap-south-1.amazonaws.com/likeminds-togther-caravan-repo:caravan-V$BUILD_NUMBER ."
             }
         }
         
         stage ('Push Image') {
             steps {
-                sh "aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 081371230266.dkr.ecr.ap-south-1.amazonaws.com"
-                sh "sudo docker push 081371230266.dkr.ecr.ap-south-1.amazonaws.com/likeminds-togther-caravan-celery-repo:caravan-celery-V$BUILD_NUMBER"
+                sh "aws ecr get-login-password --region ap-south-1 | sudo docker login --username AWS --password-stdin 523792672653.dkr.ecr.ap-south-1.amazonaws.com"
+                sh "sudo docker push 523792672653.dkr.ecr.ap-south-1.amazonaws.com/likeminds-togther-caravan-repo:caravan-V$BUILD_NUMBER"
             }
         }
         
         stage ('Remove Image from jenkins') {
             steps {
-                sh "sudo docker rmi 081371230266.dkr.ecr.ap-south-1.amazonaws.com/likeminds-togther-caravan-celery-repo:caravan-celery-V$BUILD_NUMBER"
+                sh "sudo docker rmi 523792672653.dkr.ecr.ap-south-1.amazonaws.com/likeminds-togther-caravan-repo:caravan-V$BUILD_NUMBER"
             }
         }
         stage ("update tag and push helm charts") {
@@ -30,8 +30,8 @@ pipeline {
              script{
                   git branch: 'LM-10466-aws-migration', url: 'git@github.com:LikeMindsCommunity/LikeMinds-Infra-Config.git'
                   sh "ls"
-                  sh 'sed -i "s/tag: caravan-celery-V[0-9]*/tag: caravan-celery-V${BUILD_NUMBER}/g" ./stag/caravan-celery-beta/values.yaml'
-                  sh "git add ./stag/caravan-celery-beta/values.yaml"
+                  sh 'sed -i "s/tag: caravan-V[0-9]*/tag: caravan-V${BUILD_NUMBER}/g" ./prod/caravan-prod/values.yaml'
+                  sh "git add ./prod/caravan-prod/values.yaml"
                   sh "git status"
                   sh 'git commit -m "CI/CD pipeline updated $IMAGE_TAG image to new image tag"'
                   sh 'git config --global credential.helper cache'
