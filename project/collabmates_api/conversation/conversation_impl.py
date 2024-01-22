@@ -2488,8 +2488,6 @@ class ConversationHelper:
     def auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance, user_instance,
                              member_state, trigger_webhook=False):
 
-        start = time.time()
-
         empty_conversation = (conversation_instance.attachment_count > 0 and not conversation_instance.attachments_uploaded)
 
         followed_chatroom = False
@@ -2637,13 +2635,6 @@ class ConversationHelper:
         chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
         conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
 
-        chatroom_state_instance = None
-        state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_instance,
-                                                                         'user': user_instance})
-
-        if state_filter:
-            chatroom_state_instance = state_filter[0]
-
         if 'share_link' in req_body:
             ConversationHelper.update_share_link_og_tags_in_conversation.delay(conversation_instance.id, 
                                                                                req_body['share_link'])
@@ -2657,31 +2648,12 @@ class ConversationHelper:
 
         ConversationHelper._set_preview_for_conversation(conversation_instance, user_id, req_body)
 
-        # ConversationHelper._auto_follow_chatroom(chatroom_instance, chatroom_state_instance, conversation_instance,
-        #                                          user_instance, member_state, trigger_webhook=trigger_webhook)
-
-        # Auto follow for tagged members
-        # tagged_members_list, is_group_tag = ConversationHelper.auto_follow_for_tagged_members(chatroom_instance,
-        #                                                                                       conversation_instance)
-
         if tagged_members_list and (not is_group_tag):
-
-            # Send engagement communication for tagged members
-            # ConversationHelper.run_async_tasks_for_conversation_tagging(tagged_members_list,
-            #                                                             user_instance,
-            #                                                             chatroom_instance)
-
             # Trigger webhook for user tagging in a chatroom
             ConversationImpl.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
                                                                           conversation_instance.id,
                                                                           tagged_members_list,
                                                                           WebhookTypes.CHATROOM_USER_TAGGED.value)
-
-        # ConversationHelper._create_or_update_conversation_engage(chatroom_instance, user_instance,
-        #                                                          conversation_instance, tagged_members_list)
-
-        # ConversationHelper.update_activity_in_chatroom_for_followed_users.delay(chatroom_instance.id,
-        #                                                                         user_instance.id)
 
         all_files_uploaded = False
 
@@ -2693,7 +2665,6 @@ class ConversationHelper:
                                                                                   conversation_instance.id,
                                                                                   chatroom_instance.community_id)
 
-        # ConversationHelper._handle_dm_chatroom_communication(chatroom_instance, user_instance)
         ConversationHelper.update_previews_on_conversation_creation(chatroom_instance)
         ConversationHelper._send_conversation_creation_notifications(user_instance, chatroom_instance,
                                                                      conversation_instance, has_files,
