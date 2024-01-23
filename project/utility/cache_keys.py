@@ -22,3 +22,5 @@ COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY = "pin_chatrooms_list_{}"
 CHATROOM_TYPE_CONVERSION = "chatroom_type_conversion_{}"
 
 SYNC_LJ_MIN_TIMESTAMP = "sync_data_{}_{}"
+
+SWARM_CACHE_KEY_CONFIGURATIONS = "%s_community_configurations"
