@@ -24,13 +24,15 @@ class SyncImpl(SyncManager):
     device_id = None
 
     def __init__(self, member_id: str = None, community_id: str = None, api_key: str = None,
-                 request_platform: str = None, version_code: int = None, device_id: str = None):
+                 request_platform: str = None, version_code: int = None, device_id: str = None,
+                 api_version_code: int = 0):
         self.member_id = member_id
         self.community_id = community_id
         self.api_key = api_key
         self.request_platform = request_platform
         self.version_code = version_code
         self.device_id = device_id
+        self.api_version_code = api_version_code
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -49,6 +51,9 @@ class SyncImpl(SyncManager):
 
     def get_device_id(self) -> str:
         return self.device_id
+
+    def get_api_version_code(self) -> int:
+        return self.api_version_code
 
     def set_community_id(self, community_id) -> None:
         self.community_id = community_id
@@ -113,7 +118,8 @@ class SyncImpl(SyncManager):
 
         # Chatroom data
         chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, SYNC_CHATROOMS_DATA_KEY,
-                                                                  extra_data=card_unseen_count_map)
+                                                                  extra_data=card_unseen_count_map,
+                                                                  api_version_code=self.get_api_version_code())
 
         # Card Attachments data
         attachments_data = get_attachments_data(chatroom_ids=chatroom_ids_list)

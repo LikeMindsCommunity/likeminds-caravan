@@ -980,3 +980,7 @@ class ConnectionRequestStatus(enum.Enum):
 class ConnectionStates(enum.Enum):
     CONNECTED = "connected"
     DISCONNECTED = "disconnected"
+
+
+class APIVersionCodes(enum.Enum):
+    V1 = 1
