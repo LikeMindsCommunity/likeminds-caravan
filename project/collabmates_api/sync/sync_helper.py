@@ -18,7 +18,7 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         SYNC_META_DICT_KEYS, SYNC_META_KEY_VALUE)
 from utility.states import (conversation_states, conversation_poll_types, APIVersionCodes)
 from utility.constants import (LITTLE_JOYS_ID)
-from togther.models import (ModelUtilities, card_answers, Collabcard)
+from togther.models import (ModelUtilities, card_answers, Collabcard, collabcardState)
 
 
 class SyncHelper:
@@ -63,6 +63,41 @@ class SyncHelper:
             'community_instance': community_instance,
             'max_timestamp': max_timestamp,
             'min_timestamp': min_timestamp
+        }
+
+    @staticmethod
+    def validate_sync_channel_detail_request(user_id, api_key: str = None, chatroom_id: str = None):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id,
+            'chatroom_id': chatroom_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+        chatroom_instance = validated_dict.get('chatroom_id')
+
+        if community_instance.id != chatroom_instance.community_id:
+            return ResponseUtilities.get_inner_error_context('Chatroom doesn\'t belongs to the community!')
+
+        state_instance = ModelUtilities.get_model_filter(collabcardState, {'user': user_instance,
+                                                                           'card': chatroom_instance}).first()
+
+        if not state_instance:
+            return ResponseUtilities.get_inner_error_context('No chatroom data exists!')
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'chatroom_instance': chatroom_instance,
+            'state_instance': state_instance
         }
 
     @staticmethod
@@ -188,7 +223,8 @@ class SyncHelper:
         return resulting_dict
 
     @staticmethod
-    def parse_sync_raw_query_response(data, sync_data_key: str, extra_data: dict = None, api_version_code: int = 0):
+    def parse_sync_raw_query_response(data, sync_data_key: str, extra_data: dict = None, api_version_code: int = 0,
+                                      add_sync_meta_dict: bool = False):
 
         parsed_data = list()
         sync_response = dict()
@@ -274,7 +310,7 @@ class SyncHelper:
             if extra_data and isinstance(extra_data, dict):
                 parsed_sync_data.update(extra_data.get(parsed_sync_data.get('id')))
 
-            if all([api_version_code >= APIVersionCodes.V1.value,
+            if all([add_sync_meta_dict, api_version_code >= APIVersionCodes.V1.value,
                     set(parsed_sync_data.keys()).intersection(SYNC_META_DICT_KEYS)]):
 
                 for sync_meta_key in SYNC_META_DICT_KEYS:
@@ -314,7 +350,9 @@ class SyncHelper:
                 secondary_key=CHATROOM_STATE_META_KEY_VALUE, secondary_data_merging_key='card_id')
 
         sync_response[sync_data_key] = parsed_data
-        sync_response[SYNC_META_KEY_VALUE] = sync_meta_dict
+
+        if add_sync_meta_dict:
+            sync_response[SYNC_META_KEY_VALUE] = sync_meta_dict
 
         return sync_response
 

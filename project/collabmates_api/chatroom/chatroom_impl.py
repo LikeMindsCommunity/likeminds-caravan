@@ -25,7 +25,7 @@ from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_P
     FIRST_EVENT_CM_REPLY_EMAIL, DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR, CHATROOM_URL_WITH_COMMUNITY_ID, \
     DM_CHATROOM_NAME, CHATROOM_NOTIFICATION_PAUSE_EVENT, CHATROOM_NOTIFICATION_SETTING_UPDATED_EVENT , \
     CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE, CHATROOM_USER_SETTINGS, \
-    PauseChatroomNotificationTime
+    PauseChatroomNotificationTime, INTRO_PLACEHOLDER_USER_PROFILE_ROUTE
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 from .chatroom_view_helper import ChatroomViewHelper
@@ -4570,12 +4570,19 @@ class ChatroomHelper:
         return False
 
     @staticmethod
-    def create_placeholder_for_introduction_card(community_instance, card_creator_userinfo_instance):
+    def create_placeholder_for_introduction_card(community_instance, card_creator_userinfo_instance,
+                                                 with_uuid_route: bool = False):
         """function to create introduction card placeholder"""
 
         placeholder = INTRO_PLACEHOLDER_TEXT % community_instance.name
         user_name = card_creator_userinfo_instance.name
-        user_route = INTRO_PLACEHOLDER_USER_ROUTE % str(card_creator_userinfo_instance.user_id_id)
+
+        if not with_uuid_route:
+            user_route = INTRO_PLACEHOLDER_USER_ROUTE % str(card_creator_userinfo_instance.user_id_id)
+
+        else:
+            user_route = INTRO_PLACEHOLDER_USER_PROFILE_ROUTE % str(card_creator_userinfo_instance.user_unique_id)
+
         user_name = "<<" + user_name + "|" + user_route + ">>"
         placeholder = placeholder + user_name
 
