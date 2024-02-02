@@ -5218,7 +5218,11 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                       version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
                      or (platform_code == VersionUtilities.PlatformCode.ANDROID and
                          version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)
-                     or platform_code == VersionUtilities.PlatformCode.WEB) \
+                     or platform_code in [VersionUtilities.PlatformCode.WEB,
+                                          VersionUtilities.PlatformCode.FLUTTER,
+                                          VersionUtilities.PlatformCode.REACT_NATIVE,
+                                          VersionUtilities.PlatformCode.ANDROID_SDK,
+                                          VersionUtilities.PlatformCode.IOS_SDK]) \
             and not master_intro_card and (not show_sdk_actions_only):
         actions.append(chatroom_settings)
 
