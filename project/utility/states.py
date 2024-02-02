@@ -982,6 +982,12 @@ class ConnectionStates(enum.Enum):
     DISCONNECTED = "disconnected"
 
 
+class AttachmentTypes:
+    GIF = "gif"
+
+
+attachment_types = AttachmentTypes()
+
 class APIVersionCodes(enum.Enum):
     V1 = 1
 
