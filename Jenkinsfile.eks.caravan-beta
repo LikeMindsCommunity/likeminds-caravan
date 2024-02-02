@@ -7,7 +7,7 @@ pipeline {
             }
          }
 
-         stage("Executing the Script Migration step for skulk-beta") {
+         stage("Executing the Script Migration step for caravan-beta") {
             steps {
                 script{
                     sh """ssh -tt -i "/var/lib/jenkins/.ssh/id_rsa" root@$migration_server_IP << EOF
