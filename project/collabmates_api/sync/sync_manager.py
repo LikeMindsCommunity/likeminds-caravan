@@ -20,7 +20,7 @@ class SyncManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def sync_channel_detail(self, channel_id: str) -> dict:
+    def sync_channel_detail(self, channel_id: str, channel_action_types: list) -> dict:
         """
         Get channel detail data corresponding to a user
         """

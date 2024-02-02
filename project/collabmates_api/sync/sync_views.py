@@ -63,10 +63,12 @@ class SyncChannelDetail(APIView):
         platform = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         channel_id = params.get('channel_id')
+        channel_action_types = StringUtilities.convert_string_to_list(params.get('channel_action_types', ''))
 
         sync_manager = SyncImpl(member_id=member_id, api_key=api_key, request_platform=platform,
                                 version_code=version_code)
-        response_data = sync_manager.sync_channel_detail(channel_id=channel_id)
+        response_data = sync_manager.sync_channel_detail(channel_id=channel_id,
+                                                         channel_action_types=channel_action_types)
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data.get('error_message'),
