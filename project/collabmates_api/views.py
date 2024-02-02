@@ -6217,7 +6217,7 @@ def community_collabcard_invite(request, community_id):
 
 @shared_task
 def update_chatroom_for_users_and_send_follow_notification(card_instance_id, user_id, conversation_id,
-                                                           has_files=False):
+                                                           has_files=False, all_files_uploaded=False):
     """ function to send follow notifications to users who are following the chatroom """
 
     update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance_id})
@@ -6225,7 +6225,7 @@ def update_chatroom_for_users_and_send_follow_notification(card_instance_id, use
     print(card_instance_id)
     print(conversation_id)
 
-    if not has_files:
+    if (not has_files) or all_files_uploaded:
         send_follow_notification(card_id=card_instance_id, user_id=user_id, conversation_id=conversation_id)
 
 
