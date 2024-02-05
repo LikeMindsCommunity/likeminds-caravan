@@ -254,6 +254,8 @@ class SyncImpl(SyncManager):
                                                                              'event_rec_url_meta',
                                                                              'chatroom_id_id')
 
+        channel_actions = {}
+
         if channel_action_types:
             is_channel_creator = chatroom_instance.user_id == user_instance.id
             is_dm_chat_requester = state_instance.chat_requested_by_id == user_instance.id
@@ -270,7 +272,7 @@ class SyncImpl(SyncManager):
                 is_secret_chatroom_participant=is_secret_chatroom_participant, member_state=member_instance.state,
                 is_chatroom_delete_right=is_chatroom_delete_right)
 
-            chatroom_detail_data['channel_actions'] = channel_actions
+        chatroom_detail_data['channel_actions'] = channel_actions
 
         return {**{'success': True}, **chatroom_detail_data}
 
