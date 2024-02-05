@@ -950,7 +950,7 @@ class ConversationImpl(ConversationManager):
         attachments_data = req_body.get('attachments')
         attachment_count = req_body.get('attachment_count', 0)
 
-        if (not attachment_count) and attachments_data and isinstance(attachments_data, list):
+        if attachments_data and isinstance(attachments_data, list):
             attachment_count = len(attachments_data)
 
         validated_request = ConversationHelper.validate_create_conversation_request(None,
