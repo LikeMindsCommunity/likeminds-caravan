@@ -980,3 +980,10 @@ class ConnectionRequestStatus(enum.Enum):
 class ConnectionStates(enum.Enum):
     CONNECTED = "connected"
     DISCONNECTED = "disconnected"
+
+
+class AttachmentTypes:
+    GIF = "gif"
+
+
+attachment_types = AttachmentTypes()

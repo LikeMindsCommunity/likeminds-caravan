@@ -6,6 +6,20 @@ pipeline {
                 checkout scm
             }
          }
+
+         stage("Executing the Script Migration step for caravan-beta") {
+            steps {
+                script{
+                    sh """ssh -tt -i "/var/lib/jenkins/.ssh/id_rsa" root@$migration_server_IP << EOF
+                    cd /home/apps/caravan-beta/Togther && git checkout development && git pull
+                    chmod +x /home/apps/caravan-beta/Togther/Migrationfile-caravan-beta.sh
+                    . /home/apps/caravan-beta/Togther/Migrationfile-caravan-beta.sh
+                    cd /home/apps/caravan-beta/Togther && git checkout /home/apps/caravan-beta/Togther/Migrationfile-caravan-beta.sh
+                    exit
+                    EOF"""
+                }
+            }
+        }
         
         stage ('Build Image') {
             steps {
