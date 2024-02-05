@@ -636,15 +636,6 @@ class SyncHelper:
                 else:
                     continue
 
-            elif channel_action_type == ChannelActionTypes.RENAME_CHANNEL.value:
-
-                if any([not is_channel_creator,
-                        channel_type in [card_types.CARD_PURPOSE, card_types.CARD_MASTER_INTRO,
-                                         card_types.CARD_DIRECT_MESSAGE]]):
-                    continue
-
-                channel_actions.append(rename_chatroom)
-
             elif channel_action_type == ChannelActionTypes.VIEW_PARTICIPANTS.value:
 
                 if channel_type == card_types.CARD_DIRECT_MESSAGE:
@@ -700,18 +691,6 @@ class SyncHelper:
                     continue
 
                 channel_actions.append(share_chatroom_link)
-
-            elif channel_action_type == ChannelActionTypes.DELETE_CHANNEL.value:
-
-                if any([not is_channel_creator,
-                        channel_type in [card_types.CARD_PURPOSE, card_types.CARD_MASTER_INTRO,
-                                         card_types.CARD_DIRECT_MESSAGE]]):
-                    continue
-
-                elif any([member_state != MemberRoles.ADMIN.value, not is_chatroom_delete_right]):
-                    continue
-
-                channel_actions.append(delete_chatroom)
 
             elif channel_action_type == ChannelActionTypes.REPORT_SPAM_ABUSE.value:
 
