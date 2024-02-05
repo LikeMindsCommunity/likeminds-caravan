@@ -714,8 +714,8 @@ class SyncHelper:
 
             elif channel_action_type == ChannelActionTypes.CHANNEL_SETTINGS.value:
 
-                if any([[member_state != MemberRoles.ADMIN.value, is_secret_channel,
-                         channel_type in [card_types.CARD_MASTER_INTRO, card_types.CARD_DIRECT_MESSAGE]]]):
+                if any([member_state != MemberRoles.ADMIN.value, is_secret_channel,
+                        channel_type in [card_types.CARD_MASTER_INTRO, card_types.CARD_DIRECT_MESSAGE]]):
                     continue
 
                 channel_actions.append(chatroom_settings)
