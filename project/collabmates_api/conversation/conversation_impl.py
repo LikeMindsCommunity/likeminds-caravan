@@ -1652,9 +1652,9 @@ class ConversationImpl(ConversationManager):
         payload_data['replied_conversation'] = conversation_payload
 
         original_conversation_user = MemberCommunityHelper.get_users_payload_for_webhook_events(
-            [conversation_payload['user_id']])
-        replied_conversation_user = MemberCommunityHelper.get_users_payload_for_webhook_events(
             [original_conversation['user_id']])
+        replied_conversation_user = MemberCommunityHelper.get_users_payload_for_webhook_events(
+            [conversation_payload['user_id']])
 
         if not (original_conversation_user and replied_conversation_user):
             return {}
