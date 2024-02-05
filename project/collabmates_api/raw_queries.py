@@ -247,7 +247,7 @@ def get_cohort_access_corresponding_to_card_ids(user_id, chatroom_ids: list):
         chatroom_access_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
         curr.close()
 
-        return {data[0]: {'cohort_access': data[1]} for data in chatroom_access_data}
+        return {data.get('chatroom_id'): {'cohort_access': data.get('cohort_access')} for data in chatroom_access_data}
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)

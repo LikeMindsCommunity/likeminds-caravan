@@ -222,8 +222,7 @@ class SyncImpl(SyncManager):
                                                                                   chatroom_ids=[channel_id])
 
         if chatroom_instance.id in chatroom_cohort_access_dict:
-            chatroom_cohort_access_dict[chatroom_instance.id].update(chatroom_cohort_access_dict.get(
-                chatroom_instance.id))
+            extra_data[chatroom_instance.id].update(chatroom_cohort_access_dict.get(chatroom_instance.id))
 
         chatroom_detail_data = SyncHelper.parse_sync_raw_query_response(chatroom_detail_data,
                                                                         SYNC_CHANNEL_DETAILS_DATA_KEY,
