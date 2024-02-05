@@ -948,6 +948,10 @@ class ConversationImpl(ConversationManager):
         has_files = req_body.get('has_files', False)
         replied_conversation_id = req_body.get('replied_conversation_id')
         attachments_data = req_body.get('attachments')
+        attachment_count = req_body.get('attachment_count', 0)
+
+        if (not attachment_count) and attachments_data and isinstance(attachments_data, list):
+            attachment_count = len(attachments_data)
 
         validated_request = ConversationHelper.validate_create_conversation_request(None,
                                                                                     self.get_member_id(),
@@ -1011,6 +1015,8 @@ class ConversationImpl(ConversationManager):
                                               chatroom_instance, user_instance, community_instance,
                                               has_files, chatroom_state_instance, is_guest=is_guest)
 
+        conversation_content['attachment_count'] = attachment_count
+
         conversation_content['reply'] = validated_request.get('replied_conv_instance')
         conversation_content['created_at'] = TimeUtilities.current_time_in_milliseconds()
 
@@ -1031,6 +1037,11 @@ class ConversationImpl(ConversationManager):
                 tagged_members_list, is_group_tag = ConversationHelper.auto_follow_for_tagged_members(
                     chatroom_instance, conversation_instance)
 
+                all_files_uploaded = False
+
+                if attachments_data:
+                    all_files_uploaded = ConversationHelper.save_attachments(conversation_instance, attachments_data)
+
                 # Updating the updated_at of Collabcard schema
                 chatroom_instance.save()
 
@@ -1042,7 +1053,8 @@ class ConversationImpl(ConversationManager):
                                                                            trigger_webhook=True,
                                                                            attachments_data=attachments_data,
                                                                            tagged_members_list=tagged_members_list,
-                                                                           is_group_tag=is_group_tag)
+                                                                           is_group_tag=is_group_tag,
+                                                                           all_files_uploaded=all_files_uploaded)
 
             context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
             conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
@@ -2561,7 +2573,7 @@ class ConversationHelper:
                                                                      all_files_uploaded=all_files_uploaded)
 
     @staticmethod
-    def _save_attachments(conversation_instance, attachments_data: list):
+    def save_attachments(conversation_instance, attachments_data: list):
 
         with transaction.atomic():
 
@@ -2619,7 +2631,8 @@ class ConversationHelper:
     def run_async_task_on_conversation_create(user_id: int, chatroom_id: int, conversation_id: int,
                                               req_body: dict = None, member_state: int = member_states.GUEST,
                                               trigger_webhook: bool = False, attachments_data: list = [],
-                                              tagged_members_list: list = [], is_group_tag: bool = False):
+                                              tagged_members_list: list = [], is_group_tag: bool = False,
+                                              all_files_uploaded: bool = False):
 
         if req_body is None:
             req_body = dict()
@@ -2654,11 +2667,6 @@ class ConversationHelper:
                                                                           conversation_instance.id,
                                                                           tagged_members_list,
                                                                           WebhookTypes.CHATROOM_USER_TAGGED.value)
-
-        all_files_uploaded = False
-
-        if attachments_data:
-            all_files_uploaded = ConversationHelper._save_attachments(conversation_instance, attachments_data)
 
         if (not has_files) or all_files_uploaded:
             ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(chatroom_instance.id,
