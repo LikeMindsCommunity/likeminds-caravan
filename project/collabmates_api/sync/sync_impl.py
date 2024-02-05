@@ -55,14 +55,15 @@ class SyncImpl(SyncManager):
 
     def sync_chatrooms(self, page: int = None, page_size: int = None, min_timestamp: int = None,
                        max_timestamp: int = None, chatroom_type: list = None, is_local_db: bool = True,
-                       included_conversation_states: list = None) -> dict:
+                       included_conversation_states: list = None, chatroom_id: str = None) -> dict:
 
         validated_request_body = SyncHelper.validate_sync_chatrooms_request(self.get_member_id(),
                                                                             self.get_community_id(),
                                                                             self.get_api_key(),
                                                                             chatroom_type,
                                                                             min_timestamp,
-                                                                            max_timestamp)
+                                                                            max_timestamp,
+                                                                            chatroom_id)
 
         if 'error_message' in validated_request_body:
             return ResponseUtilities.get_impl_error_context(validated_request_body.get('error_message'),
@@ -98,12 +99,12 @@ class SyncImpl(SyncManager):
             chatrooms_data, chatroom_ids_list = get_home_feed_chatrooms_against_non_local_db_user(
                 user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
                 included_chatroom_types=included_chatroom_types,
-                included_conversation_states=included_conversation_states)
+                included_conversation_states=included_conversation_states, chatroom_id=chatroom_id)
 
         else:
             chatrooms_data, chatroom_ids_list = get_home_feed_chatrooms_against_user(
                 user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
-                included_chatroom_types=included_chatroom_types)
+                included_chatroom_types=included_chatroom_types, chatroom_id=chatroom_id)
 
         card_unseen_count_map = None
 

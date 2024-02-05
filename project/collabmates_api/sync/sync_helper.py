@@ -17,14 +17,21 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         CHATROOM_DATE_EPOCH_KEY, SDK_CLIENT_META_KEY_VALUE, SDK_CLIENT_INFO_KEY_VALUE)
 from utility.states import (conversation_states, conversation_poll_types)
 from utility.constants import (LITTLE_JOYS_ID)
-from togther.models import (ModelUtilities, card_answers)
+from togther.models import (ModelUtilities, card_answers, Collabcard)
 
 
 class SyncHelper:
 
     @staticmethod
     def validate_sync_chatrooms_request(user_id, community_id, api_key: str = None, chatroom_type: list = None,
-                                        min_timestamp: int = None, max_timestamp: int = None):
+                                        min_timestamp: int = None, max_timestamp: int = None, chatroom_id: str = None):
+
+        if chatroom_id:
+            chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+            if not chatroom_instance:
+                return ResponseUtilities.get_inner_error_context('Invalid chatroom ID!')
+
         validation_params = {
             'community_id': {
                 'community_id': community_id,

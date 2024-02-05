@@ -4009,7 +4009,7 @@ def convert_sql_query_result_to_dict(cursor, result):
 
 def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: int = None, max_timestamp: int = None,
                                          page: int = 1, limit: int = 10, included_chatroom_types: list = None,
-                                         only_query: bool = False):
+                                         only_query: bool = False, chatroom_id: str = None):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -4070,6 +4070,11 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
             )
             """
 
+        chatroom_id_query = ""
+
+        if chatroom_id:
+            chatroom_id_query = f"AND togther_collabcard.id = {chatroom_id}"
+
         sql = """
                 SELECT chatrooms_data.*, {} FROM
                 (SELECT 
@@ -4122,7 +4127,7 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                               AND togther_collabcardstate.remove_id IS NULL 
                                               AND togther_collabcard.type IN {} 
                                               AND togther_collabcard.updated_at >= {} 
-                                              AND togther_collabcard.updated_at <= {}
+                                              AND togther_collabcard.updated_at <= {} {}
                                             ) 
                                           ORDER BY 
                                             togther_collabcard.updated_at DESC
@@ -4205,7 +4210,7 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                    chatroom_with_user_data_query, chat_requested_user_data_query, creator_data_query,
                    get_community_query_meta_for_sync_revamp(""), chatroom_query, dm_chatroom_message_query,
                    dm_chatroom_conversation_query, user_id, community_id, included_chatroom_types_query,
-                   min_timestamp, max_timestamp, dm_chatroom_message_filter_query, offset, limit)
+                   min_timestamp, max_timestamp, chatroom_id_query, dm_chatroom_message_filter_query, offset, limit)
 
         if only_query:
             return sql
@@ -4228,7 +4233,7 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
 def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min_timestamp: int = None,
                                                       max_timestamp: int = None, page: int = 1, limit: int = 10,
                                                       included_chatroom_types: list = None, only_query: bool = False,
-                                                      included_conversation_states: list = []):
+                                                      included_conversation_states: list = [], chatroom_id: str = None):
 
     try:
         page_number = int(page)
@@ -4250,6 +4255,11 @@ def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min
             included_chatroom_types_query = get_tuple_from_array(included_chatroom_types)
             chatroom_message_query = f"AND ((togther_collabcard.type IN {included_chatroom_types_query} AND " \
                                      f"togther_card_answers.state IN {included_conversation_states_query})"
+
+        chatroom_id_query = ""
+
+        if chatroom_id:
+            chatroom_id_query = f"AND togther_collabcard.id = {chatroom_id}"
 
         chatroom_query = ",".join([get_chatroom_query_meta_for_sync_revamp(),
                                    get_chatroom_state_query_meta_for_sync_revamp()])
@@ -4357,7 +4367,7 @@ def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min
                                                     togther_card_answers.attachment_count > 0
                                                     AND togther_card_answers.attachments_uploaded = False
                                                 ) {deleted_chatroom_query}
-                                              )
+                                              ) {chatroom_id_query}
                                         ) AS chatroom_data 
                                         INNER JOIN togther_community 
                                         ON chatroom_data.community_id = togther_community.id
