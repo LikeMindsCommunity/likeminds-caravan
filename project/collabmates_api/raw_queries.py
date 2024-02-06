@@ -4857,9 +4857,7 @@ def get_channel_detail_data(user_id, community_id, chatroom_id, is_secret_chatro
                          WHEN togther_collabcard.is_secret = false
                               AND NOT ( togther_collabcard.attachment_count > 0
                                         AND togther_collabcard.attachments_uploaded = false
-                                        AND ( togther_collabcard.user_id = {user_id}
-                                               OR togther_collabcard.device_id = 
-                                                    {'null' if not device_id else device_id} ) )
+                                      )
                        THEN
                          true
                          ELSE false
