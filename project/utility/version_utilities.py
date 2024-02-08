@@ -1,7 +1,12 @@
+import enum
+
 from django.conf import settings
 
 
 class VersionUtilities:
+
+    class APIVersionCodes(enum.Enum):
+        V1 = 1
 
     class PlatformCode:
         ANDROID = 'an'

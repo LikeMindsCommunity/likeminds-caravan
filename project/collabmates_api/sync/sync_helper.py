@@ -3,6 +3,7 @@ from utility.validation_utilities import ValidationUtilities
 from utility.json_utilities import JsonUtilities
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
+from utility.version_utilities import VersionUtilities
 from utility.cache_keys import (SYNC_LJ_MIN_TIMESTAMP)
 from external_services.caching.cache_impl import CacheImpl
 from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFIX, SYNC_RESPONSE_MAP_PRIMARY_KEYS,
@@ -16,8 +17,8 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         PUBLIC_VOTING_NAME_VALUE, CONVERSATION_SUBMIT_TYPE_TEXT_KEY, CHATROOM_DATE_KEY,
                         CHATROOM_DATE_EPOCH_KEY, SDK_CLIENT_META_KEY_VALUE, SDK_CLIENT_INFO_KEY_VALUE,
                         SYNC_META_DICT_KEYS, SYNC_META_KEY_VALUE)
-from utility.states import (conversation_states, conversation_poll_types, APIVersionCodes, ChannelActionTypes,
-                            card_types, chat_request_states, MemberRoles)
+from utility.states import (conversation_states, conversation_poll_types, ChannelActionTypes, card_types,
+                            chat_request_states, MemberRoles)
 from utility.constants import (LITTLE_JOYS_ID)
 from togther.models import (ModelUtilities, card_answers, Collabcard, collabcardState, Members)
 from collabmates_api.static_text import (unMute_notifications, mute_notifications, view_profile, block_member_chatroom,
@@ -322,7 +323,7 @@ class SyncHelper:
             if extra_data and isinstance(extra_data, dict):
                 parsed_sync_data.update(extra_data.get(parsed_sync_data.get('id')))
 
-            if all([add_sync_meta_dict, api_version_code >= APIVersionCodes.V1.value,
+            if all([add_sync_meta_dict, api_version_code >= VersionUtilities.APIVersionCodes.V1.value,
                     set(parsed_sync_data.keys()).intersection(SYNC_META_DICT_KEYS)]):
 
                 for sync_meta_key in SYNC_META_DICT_KEYS:

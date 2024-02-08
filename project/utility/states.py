@@ -989,10 +989,6 @@ class AttachmentTypes:
 attachment_types = AttachmentTypes()
 
 
-class APIVersionCodes(enum.Enum):
-    V1 = 1
-
-
 class ChannelActionTypes(enum.Enum):
     MUTE_UNMUTE = "mute_unmute"
     VIEW_PROFILE = "view_profile"
