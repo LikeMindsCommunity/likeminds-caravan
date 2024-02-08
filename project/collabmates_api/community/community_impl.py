@@ -59,7 +59,7 @@ from external_services.wa_notification.wa_notification_impl import NotificationI
 from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 
-from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS)
+from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY)
 
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
@@ -5801,6 +5801,11 @@ class CommunityHelper:
                 CommunityHelper.delete_cache_from_swarm_service.delay(
                     community_id=community_id, user_id=user_id, cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(
                         community_id)))
+
+            # Delete cache key for widget configurations
+            if configuration_type in [WIDGETS_METADATA_CONFIGURATION]:
+                cache_key = WIDGET_CONFIGURATIONS_CACHE_KEY.format(community_id)
+                CacheImpl.delete_key(cache_key)
 
         return record_updated, configuration_instance
 
