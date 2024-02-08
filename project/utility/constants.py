@@ -124,6 +124,7 @@ MEDIA_LIMITS_CONFIGURATION = "media_limits"
 FEED_METADATA_CONFIGURATION = "feed_metadata"
 PROFILE_METADATA_CONFIGURATION = "profile_metadata"
 NSFW_FILTERING_CONFIGURATION = "nsfw_filtering"
+WIDGETS_METADATA_CONFIGURATION = "widgets_metadata"
 
 # Community Configurations
 COMMUNITY_CONFIGURATIONS = {
@@ -165,6 +166,15 @@ COMMUNITY_CONFIGURATIONS = {
             "inferdo_api_key": "",
             "cutoff_score": 0.8,
             "error_status": ""
+        }
+    },
+    WIDGETS_METADATA_CONFIGURATION:
+    {
+        "type": WIDGETS_METADATA_CONFIGURATION,
+        "description": "Widgets metadata for the community",
+        "value":
+        {
+            "message": False
         }
     }
 }

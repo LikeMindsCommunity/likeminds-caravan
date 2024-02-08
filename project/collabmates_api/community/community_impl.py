@@ -84,7 +84,8 @@ from utility.states import member_states, card_types, click_states, member_right
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
 from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDIA_LIMITS_CONFIGURATION, 
-                               FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION)
+                               FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION,
+                               NSFW_FILTERING_CONFIGURATION, WIDGETS_METADATA_CONFIGURATION)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -2568,11 +2569,9 @@ class CommunityImpl(CommunityManager):
         configuration_type = validated_request.get('configuration_type')
         update_values = validated_request.get('update_values')
 
-        record_updated, configuration_instance = CommunityHelper.update_configuration_of_community(community_instance.id, 
-                                                                                                   user_instance.id, 
-                                                                                                   configuration_type, 
-                                                                                                   update_values)
-        
+        record_updated, configuration_instance = CommunityHelper.update_configuration_of_community(
+            community_instance.id, user_instance.id, configuration_type, update_values)
+
         response = {
             'success': True,
             'record_updated': record_updated,
@@ -5751,36 +5750,46 @@ class CommunityHelper:
 
         elif configuration_type == PROFILE_METADATA_CONFIGURATION:
             
-            if (update_values.get('widgets_enabled')is not None) and isinstance(update_values.get('widgets_enabled'), bool):
+            if (update_values.get('widgets_enabled') is not None) and isinstance(update_values.get(
+                    'widgets_enabled'), bool):
                 configuration_value['widgets_enabled'] = update_values.get('widgets_enabled')
                 record_updated = True
 
         elif configuration_type == NSFW_FILTERING_CONFIGURATION:
-                
-                # If NSFW Filtering is toggled, update configurations and community settings
-                if (update_values.get('enabled') is not None) and isinstance(update_values.get('enabled'), bool) and \
-                    update_values.get('enabled') != configuration_value.get('enabled'):
-                        configuration_value['enabled'] = update_values.get('enabled')
-                        record_updated = True
 
-                        # Update community settings to keep in sync with configurations
-                        community_settings_filter = ModelUtilities.get_model_filter(CommunitySettings,
-                                                                                    {'community_id': community_id,
-                                                                                     'setting_type': community_setting_types.NSFW_FILTERING}
-                                                                                     ).first()
+            # If NSFW Filtering is toggled, update configurations and community settings
+            if (update_values.get('enabled') is not None) and isinstance(update_values.get('enabled'), bool) and \
+                    update_values.get('enabled') != configuration_value.get('enabled'):
+                configuration_value['enabled'] = update_values.get('enabled')
+                record_updated = True
+
+                filter_dict = {
+                    'community_id': community_id,
+                    'setting_type': community_setting_types.NSFW_FILTERING
+                }
+
+                # Update community settings to keep in sync with configurations
+                community_settings_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
+
+                if community_settings_filter and community_settings_filter.enabled != update_values.get('enabled'):
+                    community_settings_filter.enabled = update_values.get('enabled')
+                    community_settings_filter.enabled_by_id = user_id if update_values.get('enabled') else None
+                    community_settings_filter.save()
                         
-                        if community_settings_filter and community_settings_filter.enabled != update_values.get('enabled'):
-                            community_settings_filter.enabled = update_values.get('enabled')
-                            community_settings_filter.enabled_by_id = user_id if update_values.get('enabled') else None
-                            community_settings_filter.save()
-                        
-                if update_values.get('cutoff_score') and isinstance(update_values.get('cutoff_score'), float):
-                        configuration_value['cutoff_score'] = update_values.get('cutoff_score')
-                        record_updated = True
-                
-                if update_values.get('inferdo_api_key') and isinstance(update_values.get('inferdo_api_key'), str):
-                        configuration_value['inferdo_api_key'] = update_values.get('inferdo_api_key')
-                        record_updated = True
+            if update_values.get('cutoff_score') and isinstance(update_values.get('cutoff_score'), float):
+                configuration_value['cutoff_score'] = update_values.get('cutoff_score')
+                record_updated = True
+
+            if update_values.get('inferdo_api_key') and isinstance(update_values.get('inferdo_api_key'), str):
+                configuration_value['inferdo_api_key'] = update_values.get('inferdo_api_key')
+                record_updated = True
+
+        elif configuration_type == WIDGETS_METADATA_CONFIGURATION:
+
+            if (update_values.get('message') is not None) and isinstance(update_values.get(
+                    'message'), bool):
+                configuration_value['message'] = update_values.get('message')
+                record_updated = True
 
         # Update configuration instance if record is updated
         if record_updated:
@@ -5789,8 +5798,9 @@ class CommunityHelper:
 
             # Call SWARM api to delete cache key to update configurations
             if configuration_type in [FEED_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION]:
-                CommunityHelper.delete_cache_from_swarm_service.delay(community_id=community_id, user_id=user_id, 
-                                                                      cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
+                CommunityHelper.delete_cache_from_swarm_service.delay(
+                    community_id=community_id, user_id=user_id, cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(
+                        community_id)))
 
         return record_updated, configuration_instance
 
