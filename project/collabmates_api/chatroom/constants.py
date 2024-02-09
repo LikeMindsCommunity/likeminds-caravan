@@ -1,6 +1,7 @@
 CHATROOM_EXPIRE_DURATION = 86400  # chatroom expire duration in seconds
 INTRO_PLACEHOLDER_TEXT = "Welcome to %s , "
 INTRO_PLACEHOLDER_USER_ROUTE = "route://member_profile/%s"
+INTRO_PLACEHOLDER_USER_PROFILE_ROUTE = "route://user_profile/%s"
 SUBSCRIPTION_VALIDATE_EVENT_ONLINE_LINK = "api/subscription/valid_event_transaction"
 
 EVENT_CARD_MAIL_DESCRIPTION = """You have been invited to an event %s happening in the %s community. Here is the link to the event %s
@@ -41,6 +42,7 @@ EMAIL_UNSUBSCRIBE_URL = "%s/email_unsubscribe?communityId=%s&memberId=%s"
 LIKEMINDS_WEB_URL = "https://likeminds.community/?utm_source=%s&utm_medium=email&utm_campaign=%s&utm_content=%s"
 
 CREATE_CONVERSATION_OG_TAGS_REQUEST_TIMEOUT = 30
+
 
 class PauseChatroomNotificationTime:
     EIGHT_HR = 8

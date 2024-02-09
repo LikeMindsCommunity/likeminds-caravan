@@ -223,6 +223,36 @@ def get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=None):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
+def get_cohort_access_corresponding_to_card_ids(user_id, chatroom_ids: list):
+
+    try:
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        chatroom_ids_tuple = get_tuple_from_array_v2(chatroom_ids)
+
+        sql = f"""
+                SELECT togther_chatroomcohort.chatroom_id,
+                       Max(togther_chatroomcohort.cohort_access) AS cohort_access
+                FROM   togther_cohortmember
+                       INNER JOIN togther_chatroomcohort
+                               ON ( togther_cohortmember.cohort_id =
+                                    togther_chatroomcohort.cohort_id
+                                    AND togther_chatroomcohort.chatroom_id IN {chatroom_ids_tuple}
+                                    AND togther_cohortmember.user_id = {user_id} )
+                GROUP  BY togther_chatroomcohort.chatroom_id;"""
+
+        curr.execute(sql)
+        chatroom_access_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return {data.get('chatroom_id'): {'cohort_access': data.get('cohort_access')} for data in chatroom_access_data}
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
 def get_chatrooms_of_user_with_follow_status(user_id, community_id: str = None, follow_status: str = True):
     community_based_filter = ""
 
@@ -3922,6 +3952,7 @@ def get_members_query_meta_for_sync_revamp(key_name_prefix: str = None):
 
     return ",".join(meta_query)
 
+
 def get_users_query_meta_for_sync_revamp(key_name_prefix: str = None):
     query_fields = ['user_id_id', 'name', 'image_link', 'user_unique_id', 'is_guest']
     meta_query = create_query_with_prefix(query_fields, 'togther_userinfo', 'user', key_name_prefix)
@@ -3930,6 +3961,7 @@ def get_users_query_meta_for_sync_revamp(key_name_prefix: str = None):
     userinfo_uuid = f'togther_userinfo.user_unique_id AS user___uuid___{key_name_prefix}'
 
     return ",".join(meta_query + [userinfo_uuid])
+
 
 def get_sdk_client_query_meta_for_sync_revamp(key_name_prefix: str = None):
     query_fields = ['user_unique_id', 'community_id', 'widget_id']
@@ -3999,6 +4031,34 @@ def get_query_fields_for_members_meta(key_name_prefix: str = None):
     user_meta_query = create_query_with_prefix(user_info_fields, 'togther_userinfo', 'user', key_name_prefix)
 
     return ",".join(members_meta_query + user_meta_query)
+
+
+def get_event_recordings_attachments_query_meta_for_channel_detail(key_name_prefix: str = None):
+    query_fields = ['id', 'url', 'type', 'index', 'width', 'height', 'thumbnail_url', 'name', 'meta', 'created_at',
+                    'updated_at', 'about', 'is_recording']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_event_recording_attachment',
+                                          'event_rec_attach', key_name_prefix)
+
+    # To add chatroom_id and conversation_id
+    chatroom_id = f'togther_event_recording_attachment.chatroom_id_id AS chatroom_id'
+    conversation_id = f'togther_event_recording_attachment.conversation_id_id AS conversation_id'
+
+    return ",".join(meta_query + [chatroom_id, conversation_id])
+
+
+def get_event_recordings_url_query_meta_for_channel_detail(key_name_prefix: str = None):
+    query_fields = ['id', 'recording_url_og_tags', 'is_recording', 'about_recording', 'created_at', 'updated_at',
+                    'chatroom_id_id', 'conversation_id_id']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_event_recording_url',
+                                          'event_rec_url', key_name_prefix)
+
+    # To add chatroom_id and conversation_id
+    chatroom_id = f'togther_event_recording_url.chatroom_id_id AS chatroom_id'
+    conversation_id = f'togther_event_recording_url.conversation_id_id AS conversation_id'
+
+    return ",".join(meta_query + [chatroom_id, conversation_id])
 
 
 def convert_sql_query_result_to_dict(cursor, result):
@@ -4747,6 +4807,147 @@ def get_attachments_data(attachment_type: int = SyncTypes.CHATROOM,
             conversation_ids_query = get_tuple_from_array(conversation_ids)
             sql = "SELECT {} FROM togther_answerattachment WHERE answer_id IN {}".format(
                 get_conversation_attachments_query_meta_for_sync_revamp(key_name_prefix), conversation_ids_query)
+
+        else:
+            return attachments_data
+
+        curr.execute(sql)
+        attachments_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return attachments_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_channel_detail_data(user_id, community_id, chatroom_id, is_secret_chatroom: bool = False,
+                            secret_chatroom_participants_list: list = None, device_id: str = None):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        can_access_secret_chatroom_query = ""
+
+        if is_secret_chatroom:
+            secret_chatroom_participants_query = ""
+
+            if secret_chatroom_participants_list:
+                secret_chatroom_participants_query = f"""{user_id} IN {get_tuple_from_array_v2(
+                    secret_chatroom_participants_list)} OR"""
+
+            can_access_secret_chatroom_query = f"""
+                                                WHEN togther_collabcard.is_secret = true AND
+                                                (
+                                                    {secret_chatroom_participants_query}
+                                                    togther_members.state = 1
+                                                ) THEN true"""
+
+        sql = f"""
+                SELECT togther_collabcard.id,
+                       CASE
+                         WHEN togther_collabcardstate.follow_status = false THEN true
+                         ELSE false
+                       END AS show_follow_telescope,
+                       CASE
+                         WHEN togther_collabcardstate.is_tagged = true THEN true
+                         ELSE false
+                       END AS show_follow_auto_tag,
+                       CASE {can_access_secret_chatroom_query}
+                         WHEN togther_collabcard.is_secret = false
+                              AND NOT ( togther_collabcard.attachment_count > 0
+                                        AND togther_collabcard.attachments_uploaded = false
+                                      )
+                       THEN
+                         true
+                         ELSE false
+                       END AS can_access_secret_chatroom,
+                       CASE
+                        WHEN togther_collabcard.has_event_recording = false AND 
+                            (
+                                togther_members.state = 1 OR 
+                                togther_collabcard.user_id = {user_id}
+                            ) THEN 0
+                        WHEN togther_collabcard.has_event_recording = false THEN 1
+                        WHEN togther_collabcard.has_event_recording = true AND
+                            (
+                                togther_members.state = 1 OR 
+                                togther_collabcard.user_id = {user_id}
+                            ) THEN 2
+                        ELSE 3
+                      END AS recordings_attachments_view
+                FROM   togther_collabcardstate
+                       INNER JOIN togther_collabcard
+                               ON togther_collabcardstate.card_id = togther_collabcard.id
+                       INNER JOIN togther_members ON (
+                               togther_members.community_id_id=togther_collabcard.community_id
+                               AND togther_members.member_id_id = {user_id}
+                       )
+                WHERE  ( togther_collabcardstate.user_id = {user_id}
+                         AND togther_collabcardstate.community_id = {community_id}
+                         AND togther_collabcardstate.card_id = {chatroom_id} ); 
+                 """
+
+        curr.execute(sql)
+        chatroom_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return chatroom_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_event_recordings_attachments_data(attachment_type: int = SyncTypes.CHATROOM,
+                                          chatroom_ids: list = None, key_name_prefix: str = None):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        attachments_data = []
+
+        if attachment_type == SyncTypes.CHATROOM:
+
+            if (not chatroom_ids) or (not isinstance(chatroom_ids, list)):
+                return attachments_data
+
+            chatroom_ids_query = get_tuple_from_array(chatroom_ids)
+            sql = f"""
+                    SELECT {get_event_recordings_attachments_query_meta_for_channel_detail(key_name_prefix)}
+                    FROM togther_event_recording_attachment 
+                    WHERE chatroom_id_id IN {chatroom_ids_query}"""
+
+        else:
+            return attachments_data
+
+        curr.execute(sql)
+        attachments_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return attachments_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_event_recordings_url_data(attachment_type: int = SyncTypes.CHATROOM, chatroom_ids: list = None,
+                                  key_name_prefix: str = None):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        attachments_data = []
+
+        if attachment_type == SyncTypes.CHATROOM:
+
+            if (not chatroom_ids) or (not isinstance(chatroom_ids, list)):
+                return attachments_data
+
+            chatroom_ids_query = get_tuple_from_array(chatroom_ids)
+            sql = f"""
+                    SELECT {get_event_recordings_url_query_meta_for_channel_detail(key_name_prefix)}
+                    FROM togther_event_recording_url 
+                    WHERE chatroom_id_id IN {chatroom_ids_query}"""
 
         else:
             return attachments_data

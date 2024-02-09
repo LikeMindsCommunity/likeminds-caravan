@@ -4,15 +4,22 @@ from .sync_manager import SyncManager
 from .sync_helper import SyncHelper
 from utility.states import (card_types, SyncTypes, conversation_states)
 from .constants import (CONVERSATIONS_META_KEY_VALUE, CONVERSATION_POLLS_META_KEY_VALUE, SYNC_CHATROOMS_DATA_KEY,
-                        SYNC_CONVERSATIONS_DATA_KEY)
+                        SYNC_CONVERSATIONS_DATA_KEY, SYNC_CHANNEL_DETAILS_DATA_KEY)
 from utility.response_utilities import ResponseUtilities
 from utility.number_utilities import NumberUtilities
+from utility.json_utilities import JsonUtilities
 from togther.models import (Members)
 
 from collabmates_api.raw_queries import (get_home_feed_chatrooms_against_user, get_chatroom_conversations_data,
                                          get_unseen_count_for_chatroom_ids,
                                          get_reactions_for_chatroom_or_conversations, get_attachments_data,
-                                         get_conversation_polls_data, get_home_feed_chatrooms_against_non_local_db_user)
+                                         get_conversation_polls_data,
+                                         get_home_feed_chatrooms_against_non_local_db_user,
+                                         get_channel_detail_data, get_cohort_access_corresponding_to_card_ids,
+                                         get_event_recordings_attachments_data,
+                                         get_event_recordings_url_data, get_chatroom_participants_count)
+
+from collabmates_api.user_moderation_rights import (check_admin_delete_right)
 
 
 class SyncImpl(SyncManager):
@@ -24,13 +31,15 @@ class SyncImpl(SyncManager):
     device_id = None
 
     def __init__(self, member_id: str = None, community_id: str = None, api_key: str = None,
-                 request_platform: str = None, version_code: int = None, device_id: str = None):
+                 request_platform: str = None, version_code: int = None, device_id: str = None,
+                 api_version_code: int = 0):
         self.member_id = member_id
         self.community_id = community_id
         self.api_key = api_key
         self.request_platform = request_platform
         self.version_code = version_code
         self.device_id = device_id
+        self.api_version_code = api_version_code
 
     def get_member_id(self) -> str:
         return self.member_id
@@ -49,6 +58,9 @@ class SyncImpl(SyncManager):
 
     def get_device_id(self) -> str:
         return self.device_id
+
+    def get_api_version_code(self) -> int:
+        return self.api_version_code
 
     def set_community_id(self, community_id) -> None:
         self.community_id = community_id
@@ -113,7 +125,9 @@ class SyncImpl(SyncManager):
 
         # Chatroom data
         chatrooms_data = SyncHelper.parse_sync_raw_query_response(chatrooms_data, SYNC_CHATROOMS_DATA_KEY,
-                                                                  extra_data=card_unseen_count_map)
+                                                                  extra_data=card_unseen_count_map,
+                                                                  api_version_code=self.get_api_version_code(),
+                                                                  add_sync_meta_dict=True)
 
         # Card Attachments data
         attachments_data = get_attachments_data(chatroom_ids=chatroom_ids_list)
@@ -156,6 +170,111 @@ class SyncImpl(SyncManager):
                                                             chatroom_data_key=SYNC_CHATROOMS_DATA_KEY)
 
         return {**{'success': True}, **chatrooms_data}
+
+    def sync_channel_detail(self, channel_id: str, channel_action_types: list):
+        validated_request_body = SyncHelper.validate_sync_channel_detail_request(self.get_member_id(),
+                                                                                 self.get_api_key(),
+                                                                                 channel_id)
+
+        if 'error_message' in validated_request_body:
+            return ResponseUtilities.get_impl_error_context(validated_request_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = validated_request_body.get('user_instance')
+        chatroom_instance = validated_request_body.get('chatroom_instance')
+        state_instance = validated_request_body.get('state_instance')
+        member_instance = validated_request_body.get('member_instance')
+
+        self.set_community_id(chatroom_instance.community_id)
+
+        secret_chatroom_participants = None
+        is_secret_chatroom = chatroom_instance.is_secret
+
+        if is_secret_chatroom:
+            secret_chatroom_participants = JsonUtilities.load_json_data(chatroom_instance.secret_chatroom_participants)
+
+        chatroom_detail_data = get_channel_detail_data(user_instance.id, self.get_community_id(), channel_id,
+                                                       is_secret_chatroom=is_secret_chatroom,
+                                                       secret_chatroom_participants_list=secret_chatroom_participants)
+
+        intro_room_placeholder = ""
+
+        if all([chatroom_instance.type == card_types.CARD_INTRO,
+                chatroom_instance.user_id != self.get_member_id(),
+                not state_instance.last_seen_conversation_id]):
+            from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
+
+            intro_room_placeholder = ChatroomHelper.create_placeholder_for_introduction_card(
+                chatroom_instance.community, chatroom_instance.user.userinfo)
+
+        participants_count = get_chatroom_participants_count(channel_id, self.get_community_id())
+
+        extra_data = {
+            chatroom_instance.id: {
+                'cohort_access': None,
+                'placeholder': intro_room_placeholder,
+                'participant_count': participants_count
+            }
+        }
+
+        # Add cohort access data
+        chatroom_cohort_access_dict = get_cohort_access_corresponding_to_card_ids(user_id=user_instance.id,
+                                                                                  chatroom_ids=[channel_id])
+
+        if chatroom_instance.id in chatroom_cohort_access_dict:
+            extra_data[chatroom_instance.id].update(chatroom_cohort_access_dict.get(chatroom_instance.id))
+
+        chatroom_detail_data = SyncHelper.parse_sync_raw_query_response(chatroom_detail_data,
+                                                                        SYNC_CHANNEL_DETAILS_DATA_KEY,
+                                                                        extra_data=extra_data)
+
+        chatroom_detail_data['event_rec_attach_meta'] = {}
+        chatroom_detail_data['event_rec_url_meta'] = {}
+
+        if chatroom_instance.type in [card_types.CARD_EVENT, card_types.CARD_PUBLIC_EVENT]:
+            event_rec_attach_data = get_event_recordings_attachments_data(
+                chatroom_ids=[chatroom_instance.id])
+
+            event_rec_attach_data = SyncHelper.parse_sync_raw_query_response(
+                event_rec_attach_data, 'event_rec_attach_meta')
+
+            chatroom_detail_data = SyncHelper.add_meta_info_to_sync_response(event_rec_attach_data,
+                                                                             chatroom_detail_data,
+                                                                             'event_rec_attach_meta',
+                                                                             'chatroom_id')
+
+            event_recordings_url_data = get_event_recordings_url_data(
+                chatroom_ids=[channel_id])
+
+            event_recordings_url_data = SyncHelper.parse_sync_raw_query_response(
+                event_recordings_url_data, 'event_rec_url_meta')
+
+            chatroom_detail_data = SyncHelper.add_meta_info_to_sync_response(event_recordings_url_data,
+                                                                             chatroom_detail_data,
+                                                                             'event_rec_url_meta',
+                                                                             'chatroom_id_id')
+
+        channel_actions = {}
+
+        if channel_action_types:
+            is_channel_creator = chatroom_instance.user_id == user_instance.id
+            is_dm_chat_requester = state_instance.chat_requested_by_id == user_instance.id
+            is_secret_chatroom_participant = user_instance.id in secret_chatroom_participants if \
+                secret_chatroom_participants else False
+            is_chatroom_delete_right = check_admin_delete_right(user_instance.id, self.get_community_id())
+
+            channel_actions = SyncHelper.compute_channel_actions_for_user(
+                channel_id=chatroom_instance.id, channel_action_types=channel_action_types,
+                is_channel_creator=is_channel_creator, channel_type=chatroom_instance.type,
+                is_channel_muted=state_instance.mute_status, dm_chat_request_state=state_instance.chat_request_state,
+                is_dm_chat_requester=is_dm_chat_requester, is_channel_followed=state_instance.follow_status,
+                is_secret_channel=chatroom_instance.is_secret,
+                is_secret_chatroom_participant=is_secret_chatroom_participant, member_state=member_instance.state,
+                is_chatroom_delete_right=is_chatroom_delete_right)
+
+        chatroom_detail_data['channel_actions'] = channel_actions
+
+        return {**{'success': True}, **chatroom_detail_data}
 
     def sync_conversations(self, chatroom_id: int = None, page: int = None, page_size: int = None,
                            min_timestamp: int = None, max_timestamp: int = None, is_local_db: bool = True,

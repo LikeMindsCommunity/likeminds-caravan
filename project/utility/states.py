@@ -989,5 +989,22 @@ class AttachmentTypes:
 attachment_types = AttachmentTypes()
 
 
+class ChannelActionTypes(enum.Enum):
+    MUTE_UNMUTE = "mute_unmute"
+    VIEW_PROFILE = "view_profile"
+    VIEW_COMMUNITY = "view_community"
+    BLOCK_UNBLOCK_MEMBER = "block_unblock_member"
+    RENAME_CHANNEL = "rename_channel"
+    VIEW_PARTICIPANTS = "view_participants"
+    INVITE_MEMBER = "invite_member"
+    SHARE = "share"
+    JOIN_CHANNEL = "join_channel"
+    LEAVE_CHANNEL = "leave_channel"
+    DELETE_CHANNEL = "delete_channel"
+    REPORT_SPAM_ABUSE = "report_spam_abuse"
+    ADD_ALL_MEMBERS = "add_all_members"
+    CHANNEL_SETTINGS = "channel_settings"
+
+
 class WidgetTypes(enum.Enum):
     MESSAGE = "message"
