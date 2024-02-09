@@ -987,3 +987,7 @@ class AttachmentTypes:
 
 
 attachment_types = AttachmentTypes()
+
+
+class WidgetTypes(enum.Enum):
+    MESSAGE = "message"

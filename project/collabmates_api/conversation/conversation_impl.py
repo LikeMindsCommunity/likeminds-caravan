@@ -6,6 +6,7 @@ from django.db import transaction
 from typing import Union
 
 from django.db.models import F, Q, Count
+from django.conf import settings
 from rest_framework import status as status_codes
 
 from external_services.caching.cache_impl import CacheImpl
@@ -13,7 +14,7 @@ from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.cache_keys import EVENT_ATTENDEES_CONVERSATION
 from utility.json_utilities import JsonUtilities
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT, MINUTES_5, \
-    MINUTES_30, MINUTES_60, PLATFORM_CODE_WEB
+    MINUTES_30, MINUTES_60, PLATFORM_CODE_WEB, SWARM_WIDGET_ENDPOINT
 from utility.response_utilities import ResponseUtilities
 
 from .conversation_manager import ConversationManager
@@ -33,7 +34,7 @@ from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, UserinfoSerializer
 from ..sync.model_update import update_models_for_syncing_apis
 # from ..tasks import send_chatroom_owner_mail
-from ..utility import (pagination, m2cm_v2_version_check)
+from ..utility import (pagination, m2cm_v2_version_check, is_community_widget_enabled)
 from ..user.user_impl import UserHelper
 from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
                      save_the_latest_conversation, update_activity_in_chatroom_for_conversation_creation,
@@ -59,9 +60,10 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.exception_utilities import CustomException, InvalidChatroomException
 from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
-from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
-    conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types, \
-    member_rights, unsubscribe_types, noti_states, chat_request_states, webhook_chatroom_methods, attachment_types
+from utility.states import (member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes,
+                            conversation_states, conversation_poll_types, chatroom_not_opened_types,
+                            user_email_send_status_types, member_rights, unsubscribe_types, noti_states,
+                            chat_request_states, webhook_chatroom_methods, attachment_types, WidgetTypes)
 
 from utility.webhook_utilities import (WebhookUtilties)
 from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, MAX_WEBHOOK_USERS_META_LIMIT)
@@ -86,6 +88,7 @@ from celery import shared_task
 from ..owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from collabmates_api.search.sync import ElasticSearchSync
 from collabmates_api.webhook.models import (WebhookTypes)
+from utility.api_client import ApiClient
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -949,6 +952,7 @@ class ConversationImpl(ConversationManager):
         replied_conversation_id = req_body.get('replied_conversation_id')
         attachments_data = req_body.get('attachments')
         attachment_count = req_body.get('attachment_count', 0)
+        widget_metadata = req_body.get('meta_data', {})
 
         if attachments_data and isinstance(attachments_data, list):
             attachment_count = len(attachments_data)
@@ -986,6 +990,7 @@ class ConversationImpl(ConversationManager):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
 
         is_guest = False
+        is_widgets_enabled = False
 
         chatroom_state_instance = None
         state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_instance,
@@ -1028,6 +1033,26 @@ class ConversationImpl(ConversationManager):
             with transaction.atomic():
                 conversation_instance = self._create_conversation_instance(conversation_content)
 
+                if widget_metadata:
+                    is_widgets_enabled = is_community_widget_enabled(community_instance, WidgetTypes.MESSAGE.value)
+
+                    if not is_widgets_enabled:
+                        return ResponseUtilities.get_impl_error_context("Widgets are disabled!",
+                                                                        status_codes.HTTP_400_BAD_REQUEST)
+
+                    widget_response = ConversationHelper.create_widget_in_swarm(
+                        user_instance.userinfo.user_unique_id, chatroom_instance.community_id,
+                        conversation_instance.id, widget_metadata)
+
+                    if "error_message" in widget_response:
+                        conversation_instance.delete()
+
+                        return ResponseUtilities.get_impl_error_context(widget_response.get('error_message'),
+                                                                        status_codes.HTTP_400_BAD_REQUEST)
+
+                    conversation_instance.widget_id = widget_response.get('_id')
+                    conversation_instance.save()
+
                 self._fill_poll_options(user_instance, conversation_instance, req_body)
 
                 ConversationHelper.auto_follow_chatroom(chatroom_instance, chatroom_state_instance,
@@ -1056,7 +1081,12 @@ class ConversationImpl(ConversationManager):
                                                                            is_group_tag=is_group_tag,
                                                                            all_files_uploaded=all_files_uploaded)
 
-            context = {"current_user_id": self.get_member_id(), "fetch_reply": True}
+            context = {
+                "current_user_id": self.get_member_id(),
+                "fetch_reply": True,
+                "is_widget_enabled": is_widgets_enabled
+            }
+
             conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
 
             conversation_response = {
@@ -2797,3 +2827,60 @@ class ConversationHelper:
             payload['replied_conversation_id'] = conversation_instance.reply_id
         
         return payload
+
+    @staticmethod
+    def create_widget_in_swarm(user_unique_id: str, community_id: int, conversation_id: int, metadata: dict):
+
+        if not (user_unique_id or community_id):
+            return ResponseUtilities.get_inner_error_context("Invalid user or API key!")
+
+        try:
+            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id,
+                                                                              'is_deleted': False}).first()
+
+            if not sdk_client_instance:
+                return ResponseUtilities.get_inner_error_context("Invalid community ID!")
+
+            api_key = sdk_client_instance.api_key
+
+            swarm_create_widget_url = settings.SWARM_BASE_URL + SWARM_WIDGET_ENDPOINT
+
+            client = ApiClient()
+            client.update_request_url(swarm_create_widget_url)
+
+            # Add headers
+            client.update_headers({
+                'x-member-id': user_unique_id,
+                'x-api-key': api_key
+            })
+
+            # Add Delete request body
+            client.update_body({
+                "parent_entity_id": str(conversation_id),
+                "parent_entity_type": WidgetTypes.MESSAGE.value,
+                "metadata": metadata
+            })
+
+            # Send delete request
+            response = client.post().response
+            response_data = response.json()
+
+            if response.status_code == 200:
+                info_logger.info(f"Successfully created widget for community: {api_key} & "
+                                 f"conversation: {conversation_id}")
+
+                if response_data.get('widget'):
+                    return response_data.get('widget')
+
+                return ResponseUtilities.get_inner_error_context("No widget data created!")
+
+            else:
+                error_logger.error(f"API failed while creating widget for community: {api_key}, conversation: "
+                                   f"{conversation_id}, metadata: {metadata}")
+
+                return response_data
+
+        except Exception as e:
+            error_logger.error(f"Exception occurred while creating widget for community: {api_key}, conversation: "
+                               f"{conversation_id}, metadata: {metadata}")
+            return ResponseUtilities.get_inner_error_context("Some error occurred!")
