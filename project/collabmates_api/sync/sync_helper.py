@@ -3,6 +3,7 @@ from utility.validation_utilities import ValidationUtilities
 from utility.json_utilities import JsonUtilities
 from utility.time_utilities import TimeUtilities
 from utility.number_utilities import NumberUtilities
+from utility.version_utilities import VersionUtilities
 from utility.cache_keys import (SYNC_LJ_MIN_TIMESTAMP)
 from external_services.caching.cache_impl import CacheImpl
 from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFIX, SYNC_RESPONSE_MAP_PRIMARY_KEYS,
@@ -14,10 +15,16 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         CONVERSATIONS_CREATED_EPOCH_KEY, CONVERSATIONS_CREATED_AT_KEY, CONVERSATION_POLL_TYPE_TEXT_KEY,
                         INSTANT_POLL_NAME_VALUE, DEFERRED_POLL_NAME_VALUE, SECRET_VOTING_NAME_VALUE,
                         PUBLIC_VOTING_NAME_VALUE, CONVERSATION_SUBMIT_TYPE_TEXT_KEY, CHATROOM_DATE_KEY,
-                        CHATROOM_DATE_EPOCH_KEY, SDK_CLIENT_META_KEY_VALUE, SDK_CLIENT_INFO_KEY_VALUE)
-from utility.states import (conversation_states, conversation_poll_types)
+                        CHATROOM_DATE_EPOCH_KEY, SDK_CLIENT_META_KEY_VALUE, SDK_CLIENT_INFO_KEY_VALUE,
+                        SYNC_META_DICT_KEYS, SYNC_META_KEY_VALUE)
+from utility.states import (conversation_states, conversation_poll_types, ChannelActionTypes, card_types,
+                            chat_request_states, MemberRoles)
 from utility.constants import (LITTLE_JOYS_ID)
-from togther.models import (ModelUtilities, card_answers, Collabcard)
+from togther.models import (ModelUtilities, card_answers, Collabcard, collabcardState, Members)
+from collabmates_api.static_text import (unMute_notifications, mute_notifications, view_profile, block_member_chatroom,
+                                         unblock_member, rename_chatroom, view_participants, join_chatroom,
+                                         unfollow_chatroom, leave_chatroom, invite, share_chatroom_link,
+                                         delete_chatroom, report, add_all_members, chatroom_settings)
 
 
 class SyncHelper:
@@ -62,6 +69,48 @@ class SyncHelper:
             'community_instance': community_instance,
             'max_timestamp': max_timestamp,
             'min_timestamp': min_timestamp
+        }
+
+    @staticmethod
+    def validate_sync_channel_detail_request(user_id, api_key: str = None, chatroom_id: str = None):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id,
+            'chatroom_id': chatroom_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+        chatroom_instance = validated_dict.get('chatroom_id')
+
+        if community_instance.id != chatroom_instance.community_id:
+            return ResponseUtilities.get_inner_error_context('Chatroom doesn\'t belongs to the community!')
+
+        member_instance = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                    'member_id': user_instance}).first()
+
+        if not member_instance:
+            return ResponseUtilities.get_inner_error_context('You are not part of community!')
+
+        state_instance = ModelUtilities.get_model_filter(collabcardState, {'user': user_instance,
+                                                                           'card': chatroom_instance}).first()
+
+        if not state_instance:
+            return ResponseUtilities.get_inner_error_context('No chatroom data exists!')
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'chatroom_instance': chatroom_instance,
+            'state_instance': state_instance,
+            'member_instance': member_instance
         }
 
     @staticmethod
@@ -187,10 +236,12 @@ class SyncHelper:
         return resulting_dict
 
     @staticmethod
-    def parse_sync_raw_query_response(data, sync_data_key: str, extra_data: dict = None):
+    def parse_sync_raw_query_response(data, sync_data_key: str, extra_data: dict = None, api_version_code: int = 0,
+                                      add_sync_meta_dict: bool = False):
 
         parsed_data = list()
         sync_response = dict()
+        sync_meta_dict = dict()
 
         if not data:
             sync_response[sync_data_key] = parsed_data
@@ -272,6 +323,21 @@ class SyncHelper:
             if extra_data and isinstance(extra_data, dict):
                 parsed_sync_data.update(extra_data.get(parsed_sync_data.get('id')))
 
+            if all([add_sync_meta_dict, api_version_code >= VersionUtilities.APIVersionCodes.V1.value,
+                    set(parsed_sync_data.keys()).intersection(SYNC_META_DICT_KEYS)]):
+
+                for sync_meta_key in SYNC_META_DICT_KEYS:
+
+                    if parsed_sync_data.get('id') in sync_meta_dict:
+                        sync_meta_dict[parsed_sync_data.get('id')][sync_meta_key] = parsed_sync_data[sync_meta_key]
+
+                    else:
+                        sync_meta_dict[parsed_sync_data.get('id')] = {
+                            sync_meta_key: parsed_sync_data[sync_meta_key]
+                        }
+
+                    del parsed_sync_data[sync_meta_key]
+
             parsed_data.append(parsed_sync_data)
 
             sync_response = SyncHelper.combine_and_convert_dicts_to_sync_meta_data(parsed_meta_data,
@@ -297,6 +363,9 @@ class SyncHelper:
                 secondary_key=CHATROOM_STATE_META_KEY_VALUE, secondary_data_merging_key='card_id')
 
         sync_response[sync_data_key] = parsed_data
+
+        if add_sync_meta_dict:
+            sync_response[SYNC_META_KEY_VALUE] = sync_meta_dict
 
         return sync_response
 
@@ -519,3 +588,140 @@ class SyncHelper:
             SyncHelper.update_min_timestamp_keys_for_sync_in_cache(user_id, community_id, min_timestamp)
 
         return updated_min_timestamp
+
+    @staticmethod
+    def compute_channel_actions_for_user(channel_id: int, channel_action_types: list, is_channel_creator: bool,
+                                         channel_type: int, is_channel_muted: bool, dm_chat_request_state: int,
+                                         is_dm_chat_requester: bool, is_channel_followed: bool,
+                                         is_secret_channel: bool, is_secret_chatroom_participant: bool,
+                                         member_state: int, is_chatroom_delete_right: bool) -> dict:
+        channel_actions = list()
+
+        if not channel_action_types:
+            return {}
+
+        for channel_action_type in channel_action_types:
+
+            if channel_action_type == ChannelActionTypes.MUTE_UNMUTE.value:
+
+                if any([not is_channel_followed,
+                        is_channel_creator and (channel_type == card_types.CARD_INTRO)]):
+                    continue
+
+                elif is_channel_muted:
+                    channel_actions.append(unMute_notifications)
+
+                else:
+                    channel_actions.append(mute_notifications)
+
+            elif channel_action_type == ChannelActionTypes.VIEW_PROFILE.value:
+
+                if channel_type != card_types.CARD_DIRECT_MESSAGE:
+                    continue
+
+                channel_actions.append(view_profile)
+
+            elif channel_action_type == ChannelActionTypes.BLOCK_UNBLOCK_MEMBER.value:
+
+                if any([channel_type != card_types.CARD_DIRECT_MESSAGE,
+                        dm_chat_request_state not in [chat_request_states.ACCEPTED, chat_request_states.REJECTED]]):
+                    continue
+
+                elif dm_chat_request_state != chat_request_states.REJECTED:
+                    channel_actions.append(block_member_chatroom)
+
+                elif all([dm_chat_request_state == chat_request_states.REJECTED,
+                          is_dm_chat_requester]):
+                    channel_actions.append(unblock_member)
+
+                else:
+                    continue
+
+            elif channel_action_type == ChannelActionTypes.VIEW_PARTICIPANTS.value:
+
+                if channel_type == card_types.CARD_DIRECT_MESSAGE:
+                    continue
+
+                channel_actions.append(view_participants)
+
+            elif channel_action_type == ChannelActionTypes.INVITE_MEMBER.value:
+
+                if any([channel_type in [card_types.CARD_PURPOSE, card_types.CARD_MASTER_INTRO,
+                                         card_types.CARD_DIRECT_MESSAGE],
+                        is_secret_channel]):
+                    continue
+
+                channel_actions.append(invite)
+
+            elif channel_action_type == ChannelActionTypes.JOIN_CHANNEL.value:
+
+                if any([is_channel_followed, is_secret_channel,
+                        channel_type in [card_types.CARD_PURPOSE, card_types.CARD_MASTER_INTRO,
+                                         card_types.CARD_DIRECT_MESSAGE],
+                        is_channel_creator and channel_type == card_types.CARD_INTRO]):
+                    continue
+
+                channel_actions.append(join_chatroom)
+
+            elif channel_action_type == ChannelActionTypes.LEAVE_CHANNEL.value:
+
+                if any([not is_channel_followed,
+                        channel_type in [card_types.CARD_PURPOSE, card_types.CARD_MASTER_INTRO,
+                                         card_types.CARD_DIRECT_MESSAGE]]):
+                    continue
+
+                if not is_secret_channel:
+
+                    if all([is_channel_creator, channel_type == card_types.CARD_INTRO]):
+                        continue
+
+                    else:
+                        channel_actions.append(unfollow_chatroom)
+
+                elif all([is_secret_channel, is_secret_chatroom_participant]):
+                    channel_actions.append(leave_chatroom)
+
+                else:
+                    continue
+
+            elif channel_action_type == ChannelActionTypes.SHARE.value:
+
+                if any([channel_type in [card_types.CARD_PURPOSE, card_types.CARD_MASTER_INTRO,
+                                         card_types.CARD_DIRECT_MESSAGE],
+                        is_secret_channel]):
+                    continue
+
+                channel_actions.append(share_chatroom_link)
+
+            elif channel_action_type == ChannelActionTypes.REPORT_SPAM_ABUSE.value:
+
+                if any([is_channel_creator,
+                        all([member_state == MemberRoles.ADMIN.value,
+                             not is_channel_creator,
+                             not is_chatroom_delete_right]),
+                        all([is_secret_channel, not is_secret_chatroom_participant]),
+                        channel_type == card_types.CARD_DIRECT_MESSAGE]):
+                    continue
+
+                channel_actions.append(report)
+
+            elif channel_action_type == ChannelActionTypes.ADD_ALL_MEMBERS.value:
+
+                if any([member_state != MemberRoles.ADMIN.value, is_secret_channel, not len(channel_actions),
+                        channel_type == card_types.CARD_DIRECT_MESSAGE]):
+                    continue
+
+                channel_actions.append(add_all_members)
+
+            elif channel_action_type == ChannelActionTypes.CHANNEL_SETTINGS.value:
+
+                if any([member_state != MemberRoles.ADMIN.value, is_secret_channel,
+                        channel_type in [card_types.CARD_MASTER_INTRO, card_types.CARD_DIRECT_MESSAGE]]):
+                    continue
+
+                channel_actions.append(chatroom_settings)
+
+        if not channel_actions:
+            return {}
+
+        return {channel_id: channel_actions}

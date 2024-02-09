@@ -216,6 +216,8 @@ view_participants = {'id': 2, 'title': 'View participants'}
 
 invite = {'id': 3, 'title': 'Invite'}
 
+share_chatroom_link = {'id': 3, 'title': 'Share'}
+
 join_chatroom = {'id': 4, 'title': 'Join chatroom'}
 
 view_community = {'id': 5, 'title': 'View community'}

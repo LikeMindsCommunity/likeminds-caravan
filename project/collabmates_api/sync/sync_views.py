@@ -16,6 +16,7 @@ class SyncChatrooms(APIView):
         api_key = RequestUtilities.get_api_key_from_headers(request)
         platform = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_version = RequestUtilities.get_api_version_from_headers(request)
         page = RequestUtilities.get_page_number(request)
         page_size = RequestUtilities.get_page_size(request)
         min_timestamp = params.get('min_timestamp')
@@ -38,11 +39,36 @@ class SyncChatrooms(APIView):
             is_local_db = StringUtilities.get_boolean_from_string(is_local_db, True)
 
         sync_manager = SyncImpl(member_id=member_id, community_id=params.get('community_id'),
-                                api_key=api_key, request_platform=platform, version_code=version_code)
+                                api_key=api_key, request_platform=platform, version_code=version_code,
+                                api_version_code=api_version)
         response_data = sync_manager.sync_chatrooms(page, page_size, min_timestamp, max_timestamp, chatroom_type,
                                                     is_local_db=is_local_db,
                                                     included_conversation_states=included_conversation_states,
                                                     chatroom_id=chatroom_id)
+
+        if 'error_message' in response_data:
+            context = ResponseUtilities.get_view_impl_error_context(response_data.get('error_message'),
+                                                                    response_data.get('status'))
+            return JsonResponse(**context)
+
+        return JsonResponse(response_data)
+
+
+class SyncChannelDetail(APIView):
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        params = RequestUtilities.fetch_request_query_params(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        platform = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        channel_id = params.get('channel_id')
+        channel_action_types = StringUtilities.convert_string_to_list(params.get('channel_action_types', ''))
+
+        sync_manager = SyncImpl(member_id=member_id, api_key=api_key, request_platform=platform,
+                                version_code=version_code)
+        response_data = sync_manager.sync_channel_detail(channel_id=channel_id,
+                                                         channel_action_types=channel_action_types)
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data.get('error_message'),

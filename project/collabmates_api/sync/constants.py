@@ -2,7 +2,9 @@ SYNC_KEY_SPLIT_VALUE = '___'
 IGNORED_KEYS_LIST = ['row_number']
 META_KEYS_SUFFIX = '_meta'
 SYNC_RESPONSE_MAP_PRIMARY_KEYS = ['id', 'user_id_id', 'member_id_id']
+SYNC_META_DICT_KEYS = ['unseen_count', 'last_conversation_id']
 SYNC_CHATROOMS_DATA_KEY = 'chatrooms_data'
+SYNC_CHANNEL_DETAILS_DATA_KEY = 'channel_details_data'
 SYNC_CONVERSATIONS_DATA_KEY = 'conversations_data'
 USERS_META_KEY_VALUE = 'user_meta'
 MEMBERS_META_KEY_VALUE = 'member_meta'
@@ -14,6 +16,7 @@ COMMUNITY_META_KEY_VALUE = 'community_meta'
 CHATROOM_META_KEY_VALUE = 'chatroom_meta'
 CHATROOM_STATE_META_KEY_VALUE = 'chatroom_state_meta'
 MESSAGE_REACTIONS_META_KEY_VALUE = 'message_reactions_meta'
+SYNC_META_KEY_VALUE = 'sync_meta'
 MAIN_PRIMARY_KEY_VALUE = 'id'
 CONVERSATION_STATE_KEY_VALUE = 'state'
 POLL_CONVERSATION_TO_SHOW_RESULTS_KEY = 'to_show_results'
@@ -30,7 +33,8 @@ SYNC_DATA_KEYS = {
 PARSE_JSON_KEYS_WITH_DEFAULT_VALUE = {
     'secret_chatroom_participants': None,
     'meta': None,
-    'og_tags': None
+    'og_tags': None,
+    'recording_url_og_tags': None
 }
 
 INSTANT_POLL_NAME_VALUE = "Instant poll"
