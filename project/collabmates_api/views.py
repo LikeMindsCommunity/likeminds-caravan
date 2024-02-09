@@ -10887,6 +10887,7 @@ def edit_conversation(request):
     edited_answer = request.POST.get('text', None)
     share_link = request.POST.get('share_link', None)
     og_tags = request.POST.get('og_tags', None)
+    widget_metadata = request.POST.get('meta_data', {})
 
     user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
@@ -10925,6 +10926,11 @@ def edit_conversation(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
 
+    community_instance = conversation.community
+    community_id = community_instance.id
+
+    is_widgets_enabled = is_community_widget_enabled(community_instance, WidgetTypes.MESSAGE.value)
+
     if conversation.is_deleted:
         context = ResponseUtilities.get_view_impl_error_context('Cannot edit deleted conversation',
                                                                 status_codes.HTTP_400_BAD_REQUEST)
@@ -10933,6 +10939,48 @@ def edit_conversation(request):
     elif int(conversation.user.id) == int(member_id):
 
         from collabmates_api.conversation.conversation_impl import ConversationHelper
+
+        if widget_metadata:
+
+            if isinstance(widget_metadata, str):
+                widget_metadata = JsonUtilities.load_json_data(widget_metadata, default={})
+
+                if not widget_metadata:
+                    context = ResponseUtilities.get_view_impl_error_context("Invalid widgets metadata!",
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(**context)
+
+            if not is_widgets_enabled:
+                context = ResponseUtilities.get_view_impl_error_context("Widgets are disabled!",
+                                                                        status_codes.HTTP_400_BAD_REQUEST)
+                return JsonResponse(**context)
+
+            widget_response = ConversationHelper.get_widget_data_from_swarm(
+                user_instance.userinfo.user_unique_id, community_id, conversation.id)
+
+            if "error_message" not in widget_response and widget_response.get('widgets'):
+                widget_response = widget_response.get('widgets')[0]
+                widget_id = widget_response.get('_id')
+
+                widget_response = ConversationHelper.update_widget_in_swarm(
+                    user_instance.userinfo.user_unique_id, community_id, widget_id, widget_metadata)
+
+                if "error_message" in widget_response:
+                    context = ResponseUtilities.get_view_impl_error_context(widget_response.get('error_message'),
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(**context)
+
+            else:
+                widget_response = ConversationHelper.create_widget_in_swarm(
+                    user_instance.userinfo.user_unique_id, community_id, conversation.id, widget_metadata)
+
+                if "error_message" in widget_response:
+                    context = ResponseUtilities.get_view_impl_error_context(widget_response.get('error_message'),
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(**context)
+
+                conversation.widget_id = widget_response.get('_id')
+                conversation.save()
 
         if 'og_tags' in og_tags_payload:
             og_tags = json.loads(og_tags_payload['og_tags'])
@@ -10958,7 +11006,12 @@ def edit_conversation(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
 
-    context = {"current_user_id": member_id, "fetch_reply": True}
+    context = {
+        "current_user_id": member_id,
+        "fetch_reply": True,
+        "is_widget_enabled": is_widgets_enabled
+    }
+
     conversation_dict = CardAnswersDBSyncSerializer(conversation, context=context, many=False).data
 
     send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
