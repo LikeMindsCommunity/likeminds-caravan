@@ -2,7 +2,7 @@ from rest_framework import status as status_codes
 
 from .sync_manager import SyncManager
 from .sync_helper import SyncHelper
-from utility.states import (card_types, SyncTypes, conversation_states)
+from utility.states import (card_types, SyncTypes, conversation_states, WidgetTypes)
 from .constants import (CONVERSATIONS_META_KEY_VALUE, CONVERSATION_POLLS_META_KEY_VALUE, SYNC_CHATROOMS_DATA_KEY,
                         SYNC_CONVERSATIONS_DATA_KEY, SYNC_CHANNEL_DETAILS_DATA_KEY)
 from utility.response_utilities import ResponseUtilities
@@ -20,6 +20,7 @@ from collabmates_api.raw_queries import (get_home_feed_chatrooms_against_user, g
                                          get_event_recordings_url_data, get_chatroom_participants_count)
 
 from collabmates_api.user_moderation_rights import (check_admin_delete_right)
+from collabmates_api.utility import (is_community_widget_enabled)
 
 
 class SyncImpl(SyncManager):
@@ -107,16 +108,20 @@ class SyncImpl(SyncManager):
                 conversation_states.CONVERSATION_HEADER, conversation_states.CHATROOM_DELETE
             ]
 
+        is_widget_enabled = is_community_widget_enabled(community_instance, WidgetTypes.MESSAGE.value)
+
         if not is_local_db:
             chatrooms_data, chatroom_ids_list = get_home_feed_chatrooms_against_non_local_db_user(
                 user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
                 included_chatroom_types=included_chatroom_types,
-                included_conversation_states=included_conversation_states, chatroom_id=chatroom_id)
+                included_conversation_states=included_conversation_states, chatroom_id=chatroom_id,
+                is_widget_enabled=is_widget_enabled)
 
         else:
             chatrooms_data, chatroom_ids_list = get_home_feed_chatrooms_against_user(
                 user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
-                included_chatroom_types=included_chatroom_types, chatroom_id=chatroom_id)
+                included_chatroom_types=included_chatroom_types, chatroom_id=chatroom_id,
+                is_widget_enabled=is_widget_enabled)
 
         card_unseen_count_map = None
 
@@ -300,10 +305,12 @@ class SyncImpl(SyncManager):
         min_timestamp = validated_request_body.get('min_timestamp')
         max_timestamp = validated_request_body.get('max_timestamp')
 
+        is_widget_enabled = is_community_widget_enabled(community_instance, WidgetTypes.MESSAGE.value)
+
         conversations_data, conversation_ids_list = get_chatroom_conversations_data(
             user_instance.id, community_instance.id, chatroom_instance.id, min_timestamp, max_timestamp, page=page,
             limit=page_size, is_local_db=is_local_db, conversation_id=conversation_id,
-            excluded_conversation_states=excluded_conversation_states)
+            excluded_conversation_states=excluded_conversation_states, is_widget_enabled=is_widget_enabled)
 
         # Conversation data
         conversations_data = SyncHelper.parse_sync_raw_query_response(conversations_data, SYNC_CONVERSATIONS_DATA_KEY)
