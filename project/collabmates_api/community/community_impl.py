@@ -59,7 +59,7 @@ from external_services.wa_notification.wa_notification_impl import NotificationI
 from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 
-from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS)
+from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY)
 
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
@@ -5749,6 +5749,15 @@ class CommunityHelper:
                 configuration_value['post'] = update_values.get('post')
                 record_updated = True
 
+            if update_values.get('universal_feed') and isinstance(update_values.get('universal_feed'), dict):
+                configuration_value['universal_feed'] = update_values.get('universal_feed')
+                record_updated = True
+
+                # Delete swarm cache corresponding to universal feed
+                CommunityHelper.delete_cache_from_swarm_service.delay(
+                    community_id=community_id, user_id=user_id,
+                    key_pattern=SWARM_TOP_LIKED_COMMENTS_CACHE_KEY.format(community_id))
+
         elif configuration_type == PROFILE_METADATA_CONFIGURATION:
             
             if (update_values.get('widgets_enabled')is not None) and isinstance(update_values.get('widgets_enabled'), bool):
@@ -5796,8 +5805,10 @@ class CommunityHelper:
 
     @staticmethod
     @shared_task
-    def delete_cache_from_swarm_service(community_id: int, user_id: int, cache_key: str):
-        if not cache_key:
+    def delete_cache_from_swarm_service(community_id: int, user_id: int, cache_key: str = None,
+                                        key_pattern: str = None):
+
+        if not (cache_key or key_pattern):
             return
         
         try:    
@@ -5819,9 +5830,16 @@ class CommunityHelper:
             })
 
             # Add Delete request body
-            client.update_body({
-                "cache_key": cache_key
-            })
+            req_body = {}
+
+            if cache_key:
+                req_body["cache_key"] = cache_key
+
+            if key_pattern:
+                req_body["key_pattern"] = key_pattern
+
+            if req_body:
+                client.update_body(req_body)
 
             # Send delete request
             response = client.delete().response

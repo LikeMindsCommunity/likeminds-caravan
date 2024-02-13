@@ -143,7 +143,8 @@ COMMUNITY_CONFIGURATIONS = {
         "description": "Metadata related to feed and its entity",
         "value":
         {
-            "post": "post"
+            "post": "post",
+            "universal_feed": {}
         }
     },
     PROFILE_METADATA_CONFIGURATION:
