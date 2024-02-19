@@ -5744,12 +5744,12 @@ class CommunityHelper:
                 record_updated = True
 
         elif configuration_type == FEED_METADATA_CONFIGURATION:
-            
+
             if update_values.get('post') and isinstance(update_values.get('post'), str):
                 configuration_value['post'] = update_values.get('post')
                 record_updated = True
 
-            if update_values.get('universal_feed') and isinstance(update_values.get('universal_feed'), dict):
+            if isinstance(update_values.get('universal_feed'), dict):
                 configuration_value['universal_feed'] = update_values.get('universal_feed')
                 record_updated = True
 
