@@ -77,7 +77,6 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             CommunityGetStarted, EventRecordingsURL, ChatroomSecretTypeConversion,
                             ScheduledChatroomFollow, CommunitySettings, ChatroomInvite, UserChannelSettings)
 
-from collabmates_api.webhook.models import (WebhookTypes, CommunityWebhook)
 from utility.webhook_utilities import (WebhookUtilties)
 from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, 
                                                MAX_WEBHOOK_USERS_META_LIMIT)
@@ -89,7 +88,7 @@ from utility.states import member_states, card_types, collabcard_states, SyncNot
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
     event_online_link_types, block_chatroom_states, chat_request_states, api_types, noti_states, \
     community_setting_types, chatroom_invite_status_types, chatroom_setting_states, webhook_chatroom_methods, \
-    event_kinds
+    event_kinds, WebhookTypes
 
 from utility.utils import check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities

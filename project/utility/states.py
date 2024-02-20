@@ -670,6 +670,13 @@ class WebhookTypes(enum.Enum):
     CHATROOM_USER_TAGGED = "chatroom.user.tagged"
     CHATROOM_CONVERSATION_REPLIED = "chatroom.conversation.replied"
     PROFILE_CREATED = "profile.created"
+    POST_CREATED = "post.created"
+    POST_PINNED = "post.pinned"
+    POST_LIKED = "post.liked"
+    POST_TAGGED = "post.tagged"
+    COMMENT_ADDED = "comment.added"
+    COMMENT_TAGGED = "comment.tagged"
+    COMMENT_REACT = "comment.react"
 
     @classmethod
     def validate_webhook_type(cls, webhook_type) -> bool:
