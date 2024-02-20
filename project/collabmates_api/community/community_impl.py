@@ -5751,6 +5751,23 @@ class CommunityHelper:
 
             if isinstance(update_values.get('universal_feed'), dict):
                 configuration_value['universal_feed'] = update_values.get('universal_feed')
+
+                if not isinstance(configuration_value['universal_feed'], dict):
+                    configuration_value['universal_feed'] = {}
+
+                comment_sort_order_on = update_values.get('universal_feed').get('comment_sort_order_key')
+                comment_sort_order = update_values.get('universal_feed').get('comment_sort_order')
+                comment_count = update_values.get('universal_feed').get('comment_count')
+
+                if isinstance(comment_sort_order_on, str):
+                    configuration_value['universal_feed']['comment_sort_order_key'] = comment_sort_order_on
+
+                if isinstance(comment_sort_order, str):
+                    configuration_value['universal_feed']['comment_sort_order'] = comment_sort_order
+
+                if isinstance(comment_count, int):
+                    configuration_value['universal_feed']['comment_count'] = comment_count
+
                 record_updated = True
 
                 # Delete swarm cache corresponding to universal feed

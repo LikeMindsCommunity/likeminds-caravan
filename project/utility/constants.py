@@ -144,7 +144,11 @@ COMMUNITY_CONFIGURATIONS = {
         "value":
         {
             "post": "post",
-            "universal_feed": {}
+            "universal_feed": {
+                "comment_sort_order_key": "",
+                "comment_sort_order": "",
+                "comment_count": 1
+            }
         }
     },
     PROFILE_METADATA_CONFIGURATION:
