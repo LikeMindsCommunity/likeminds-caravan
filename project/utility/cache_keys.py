@@ -25,4 +25,6 @@ SYNC_LJ_MIN_TIMESTAMP = "sync_data_{}_{}"
 
 SWARM_CACHE_KEY_CONFIGURATIONS = "%s_community_configurations"
 
+SWARM_CACHE_KEY_WEBHOOKS = "%s_webhooks"
+
 SWARM_TOP_LIKED_COMMENTS_CACHE_KEY = "{}_*_top_liked_comments"

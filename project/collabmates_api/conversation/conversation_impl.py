@@ -61,7 +61,7 @@ from utility.internal_link_preview_utilities import PreviewUtilities
 from utility.request_utilities import RequestUtilities
 from utility.states import member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes, \
     conversation_states, conversation_poll_types, chatroom_not_opened_types, user_email_send_status_types, \
-    member_rights, unsubscribe_types, noti_states, chat_request_states, webhook_chatroom_methods, attachment_types
+    member_rights, unsubscribe_types, noti_states, chat_request_states, webhook_chatroom_methods, attachment_types, WebhookTypes
 
 from utility.webhook_utilities import (WebhookUtilties)
 from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, MAX_WEBHOOK_USERS_META_LIMIT)
@@ -85,7 +85,6 @@ from utility.string_utilities import StringUtilities
 from celery import shared_task
 from ..owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from collabmates_api.search.sync import ElasticSearchSync
-from collabmates_api.webhook.models import (WebhookTypes)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
