@@ -143,7 +143,12 @@ COMMUNITY_CONFIGURATIONS = {
         "description": "Metadata related to feed and its entity",
         "value":
         {
-            "post": "post"
+            "post": "post",
+            "universal_feed": {
+                "comment_sort_order_key": "",
+                "comment_sort_order": "",
+                "comment_count": 1
+            }
         }
     },
     PROFILE_METADATA_CONFIGURATION:
