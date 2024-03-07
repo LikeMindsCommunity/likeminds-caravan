@@ -547,6 +547,7 @@ class CommunitySettingTypes:
     USER_CONNECTION = "user_connection"
     FEED_REPOST = "feed_repost"
     NSFW_FILTERING = "nsfw_filtering"
+    ENABLE_GUEST_FLOW = "enable_guest_flow"
 
 
 community_setting_types = CommunitySettingTypes()
@@ -1011,3 +1012,8 @@ class ChannelActionTypes(enum.Enum):
     REPORT_SPAM_ABUSE = "report_spam_abuse"
     ADD_ALL_MEMBERS = "add_all_members"
     CHANNEL_SETTINGS = "channel_settings"
+
+
+class GuestFlowUserTypes(enum.Enum):
+    SINGLE = "SINGLE"
+    MULTIPLE = "MULTIPLE"

@@ -404,7 +404,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
     
     @abc.abstractmethod
-    def update_community_configurations(self, configuration_types=None, configuration_values=None) -> dict:
+    def update_community_configurations(self, req_body: dict = None) -> dict:
         """
         Updates community configurations
         """
