@@ -34,7 +34,7 @@ from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import email_states, mobile_states, member_states, login_types, deleted_members, \
     conversation_states, member_rights, community_setting_types, chat_request_states, api_types, \
-    whatsapp_subscription_state_actions, OTPTypes
+    whatsapp_subscription_state_actions, OTPTypes, GuestFlowUserTypes, CommunityConfigurationTypes
 from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
@@ -323,6 +323,7 @@ class UserImpl(UserManager):
         existing_user = False
         app_access = True
         is_bot = user_context.get('is_bot', False)
+        is_guest_user = user_context.get('is_guest', False)
 
         if not (is_bot or api_key or not user_unique_id):
             return ResponseUtilities.get_inner_error_context("Invalid API key!")
@@ -338,7 +339,15 @@ class UserImpl(UserManager):
         should_create_user = True
         sdk_client_users_info_filter = None
 
-        if user_unique_id:
+        if is_guest_user:
+            sdk_client_users_info_filter = UserHelper.get_guest_user(community_instance, user_unique_id)
+
+            if sdk_client_users_info_filter.get('error_message'):
+                return ResponseUtilities.get_inner_error_context(**sdk_client_users_info_filter)
+
+            sdk_client_users_info_filter = sdk_client_users_info_filter.get('sdk_client_users_info_filter')
+
+        elif user_unique_id:
             sdk_client_users_info_filter = ModelUtilities.get_model_filter(
                 SDKClientUsersInfo, {'community': community_instance}).filter(
                 Q(user_unique_id=user_unique_id) | Q(user__userinfo__user_unique_id=user_unique_id))
@@ -378,6 +387,7 @@ class UserImpl(UserManager):
                     'app_access': app_access}
 
         if should_create_user:
+
             if not user_context.get('name'):
                 return ResponseUtilities.get_inner_error_context("Invalid user name!")
 
@@ -2518,3 +2528,58 @@ class UserHelper:
             'user_instance': validated_dict.get('user_id'),
             'community_instance': validated_dict.get('community_id')
         }
+
+    @staticmethod
+    def get_guest_user(community_instance: Community, user_unique_id: str = None):
+        sdk_client_users_info_filter = None
+
+        # Fetch guest flow community settings
+        filter_dict = {
+            'community': community_instance,
+            'setting_type': community_setting_types.ENABLE_GUEST_FLOW
+        }
+
+        community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
+
+        if not community_setting_instance.enabled:
+            return ResponseUtilities.get_inner_error_context('Guest flow is disabled!')
+
+        # Fetch guest flow community configurations
+        from collabmates_api.community.community_impl import CommunityHelper
+
+        guest_flow_configuration_metadata = {}
+
+        guest_flow_community_configuration = CommunityHelper.fetch_or_return_default_community_configurations(
+            community_instance, [CommunityConfigurationTypes.GUEST_FLOW_METADATA.value])
+
+        if len(guest_flow_community_configuration):
+            guest_flow_community_configuration = guest_flow_community_configuration[0]
+
+        if guest_flow_community_configuration and isinstance(guest_flow_community_configuration, dict):
+            guest_flow_configuration_metadata = guest_flow_community_configuration.get('value')
+
+        # Checks for guest user when user_unique_id is present
+        if user_unique_id:
+            sdk_client_users_info_filter = ModelUtilities.get_model_filter(
+                SDKClientUsersInfo, {'community': community_instance}).filter(
+                Q(user_unique_id=user_unique_id) | Q(user__userinfo__user_unique_id=user_unique_id))
+
+            if not sdk_client_users_info_filter:
+
+                if guest_flow_configuration_metadata.get('guest_users') == GuestFlowUserTypes.SINGLE.value:
+                    return ResponseUtilities.get_inner_error_context('Invalid user UUID!')
+
+                elif guest_flow_configuration_metadata.get('guest_users') != GuestFlowUserTypes.MULTIPLE.value:
+                    return ResponseUtilities.get_inner_error_context('Invalid guest flow configurations!')
+
+            else:
+                sdk_client_user_info_instance = sdk_client_users_info_filter[0]
+
+                if not sdk_client_user_info_instance.user.userinfo.is_guest:
+                    return ResponseUtilities.get_inner_error_context('User is not guest!')
+
+        elif guest_flow_configuration_metadata.get('guest_users') == GuestFlowUserTypes.SINGLE.value:
+            sdk_client_users_info_filter = ModelUtilities.get_model_filter(
+                SDKClientUsersInfo, {'community': community_instance, 'user__userinfo__is_guest': True})
+
+        return {'sdk_client_users_info_filter': sdk_client_users_info_filter}

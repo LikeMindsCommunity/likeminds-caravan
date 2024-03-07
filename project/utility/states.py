@@ -1017,3 +1017,11 @@ class ChannelActionTypes(enum.Enum):
 class GuestFlowUserTypes(enum.Enum):
     SINGLE = "SINGLE"
     MULTIPLE = "MULTIPLE"
+
+
+class CommunityConfigurationTypes(enum.Enum):
+    MEDIA_LIMITS = "media_limits"
+    FEED_METADATA = "feed_metadata"
+    PROFILE_METADATA = "profile_metadata"
+    NSFW_FILTERING = "nsfw_filtering"
+    GUEST_FLOW_METADATA = "guest_flow_metadata"
