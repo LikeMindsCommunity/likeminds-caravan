@@ -2541,7 +2541,7 @@ class UserHelper:
 
         community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
 
-        if not community_setting_instance.enabled:
+        if community_setting_instance and not community_setting_instance.enabled:
             return ResponseUtilities.get_inner_error_context('Guest flow is disabled!')
 
         # Fetch guest flow community configurations
