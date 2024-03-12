@@ -28,3 +28,5 @@ SWARM_CACHE_KEY_CONFIGURATIONS = "%s_community_configurations"
 SWARM_CACHE_KEY_WEBHOOKS = "%s_webhooks"
 
 SWARM_TOP_LIKED_COMMENTS_CACHE_KEY = "{}_*_top_liked_comments"
+
+KETTLE_CACHE_KEY_COMMUNITY_SETTINGS = "{}_community_settings"

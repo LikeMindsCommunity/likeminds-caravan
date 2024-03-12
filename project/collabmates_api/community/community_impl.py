@@ -59,7 +59,7 @@ from external_services.wa_notification.wa_notification_impl import NotificationI
 from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 
-from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY)
+from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY, KETTLE_CACHE_KEY_COMMUNITY_SETTINGS)
 
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
@@ -84,7 +84,8 @@ from utility.states import member_states, card_types, click_states, member_right
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
 from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDIA_LIMITS_CONFIGURATION, 
-                               FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION)
+                               FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION, 
+                               PLATFORM_TYPE_CARAVAN_SERVICE)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -1400,6 +1401,13 @@ class CommunityImpl(CommunityManager):
                                                                         user_instance.id,
                                                                         NSFW_FILTERING_CONFIGURATION,
                                                                         {'enabled': community_setting["enabled"]})
+                
+            if community_setting["setting_type"] == community_setting_types.USER_TOPICS_CONNECTION:
+
+                # Delete kettle community settings cache if user topics connection setting is updated
+                CommunityHelper.delete_cache_from_kettle_service.delay(community_instance.id,
+                                                                       user_instance.id,
+                                                                       [KETTLE_CACHE_KEY_COMMUNITY_SETTINGS.format(self.get_api_key())])
 
             if not community_setting['enabled']:
                 disabled_community_setting_context = {
@@ -5985,3 +5993,54 @@ class CommunityHelper:
         
         except Exception as e:
             return {'error_message': f"Exception occurred while approving/rejecting pending post in swarm - {e.args}"}
+
+    @staticmethod
+    @shared_task
+    def delete_cache_from_kettle_service(community_id: int, user_id: int, key_patterns: list = None):
+
+        if not (key_patterns):
+            return
+        
+        try:    
+            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
+            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
+
+            if not (user_info_filter and sdk_client_instance):
+                return
+
+            cache_removal_endpoint = settings.KETTLE_BASE_URL + KETTLE_DELETE_CACHE_ENDPOINT
+
+            client = ApiClient()
+            client.update_request_url(cache_removal_endpoint)
+
+            # Add headers
+            client.update_headers({
+                'x-member-id': user_info_filter.user_unique_id,
+                'x-api-key': sdk_client_instance.api_key,
+                'x-platform-type': PLATFORM_TYPE_CARAVAN_SERVICE
+            })
+
+            # Add Delete request body
+            req_body = {}
+
+            if key_patterns:
+                req_body["key_patterns"] = key_patterns
+
+            if req_body:
+                client.update_body(req_body)
+
+            # Send delete request
+            response = client.delete().response
+
+            if response.status_code == 200:
+                info_logger.info(f"Successfully sent Kettle cache deletion for community: {community_id} for keys: {key_patterns}")
+
+            else:
+                error_logger.error(f"Error deleting Kettle cache for community: {community_id} for keys: {key_patterns} - \
+                                   status code: {response.status_code} | response: {response.json()}")
+
+            return 
+        
+        except Exception as e:
+            error_logger.error(f"Exception occurred while deleting cache from kettle service - {e.args}")
+            return
