@@ -174,4 +174,13 @@ COMMUNITY_CONFIGURATIONS = {
     }
 }
 
+# Internal Platform types
 PLATFORM_TYPE_CARAVAN_SERVICE = "caravan-service"
+
+# Swarm endpoints
+SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT = "/user"
+SWARM_PENDING_POST_UPDATE_ENDPOINT = "/post/pending/{}"
+SWARM_DELETE_CACHE_ENDPOINT = "/cache"
+
+# Kettle endpoints
+KETTLE_DELETE_CACHE_ENDPOINT = "/cache"

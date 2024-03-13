@@ -29,6 +29,7 @@ from collabmates_api.notification import send_sync_notification, send_notificati
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.number_utilities import NumberUtilities
+from utility.internal_service_utilities import InternalServiceUtilities
 from external_services.email.email_wrapper import MailWrapper, MailHelper
 from external_services.airtable.airtable_wrapper import AirtableWrapper
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
@@ -1405,9 +1406,9 @@ class CommunityImpl(CommunityManager):
             if community_setting["setting_type"] == community_setting_types.USER_TOPICS_CONNECTION:
 
                 # Delete kettle community settings cache if user topics connection setting is updated
-                CommunityHelper.delete_cache_from_kettle_service.delay(community_instance.id,
-                                                                       user_instance.id,
-                                                                       [KETTLE_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id)])
+                InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                    community_instance.id, user_instance.id,
+                    [KETTLE_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id)])
 
             if not community_setting['enabled']:
                 disabled_community_setting_context = {
@@ -5443,8 +5444,8 @@ class CommunityHelper:
 
         # Call swarm service to remove users feed data
         if lm_uuids:
-            CommunityHelper.remove_users_feed_data.delay(community_id=community_id, user_id=current_user_id, 
-                                                         lm_uuids=lm_uuids, is_cm=True)
+            InternalServiceUtilities.remove_users_feed_data.delay(
+                community_id=community_id, user_id=current_user_id, lm_uuids=lm_uuids, is_cm=True)
 
         # If function call is Async, upload reports to s3
         if is_async:
@@ -5654,52 +5655,6 @@ class CommunityHelper:
             })
 
         return removal_reports
-    
-    @staticmethod
-    @shared_task
-    def remove_users_feed_data(community_id: int, user_id: int, lm_uuids: list, is_cm: bool):
-
-        if not lm_uuids:
-            return
-        
-        try:    
-            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
-            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
-
-            if not (user_info_filter and sdk_client_instance):
-                return
-
-            user_feed_removal_endpoint = settings.SWARM_BASE_URL + SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT
-
-            client = ApiClient()
-            client.update_request_url(user_feed_removal_endpoint)
-
-            # Add headers
-            client.update_headers({
-                'x-member-id': user_info_filter.user_unique_id,
-                'x-api-key': sdk_client_instance.api_key
-            })
-
-            # Add Delete request body
-            client.update_body({
-                "user_ids": lm_uuids,
-                "user_is_cm": is_cm
-            })
-
-            # Send delete request
-            response = client.delete().response
-
-            if response.status_code == 200:
-                info_logger.info(f"Successfully removed users feed data (if exists) for community: {community_id} for users: {lm_uuids}")
-
-            else:
-                error_logger.error(f"Failed to remove users feed data for community {community_id} for users: {lm_uuids} - status code: {response.status_code} | response: {response.json()}")
-
-            return 
-        
-        except Exception as e:
-            error_logger.error(f"Exception occurred while removing users feed data - {e.args}")
-            return
 
     @staticmethod
     def fetch_or_return_default_community_configurations(community_instance, community_configuration_types: list):
@@ -5779,7 +5734,7 @@ class CommunityHelper:
                 record_updated = True
 
                 # Delete swarm cache corresponding to universal feed
-                CommunityHelper.delete_cache_from_swarm_service.delay(
+                InternalServiceUtilities.delete_cache_from_swarm_service.delay(
                     community_id=community_id, user_id=user_id,
                     key_pattern=SWARM_TOP_LIKED_COMMENTS_CACHE_KEY.format(community_id))
 
@@ -5823,64 +5778,11 @@ class CommunityHelper:
 
             # Call SWARM api to delete cache key to update configurations
             if configuration_type in [FEED_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION]:
-                CommunityHelper.delete_cache_from_swarm_service.delay(community_id=community_id, user_id=user_id, 
-                                                                      cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
+                InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+                    community_id=community_id, user_id=user_id, 
+                    cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
 
         return record_updated, configuration_instance
-
-    @staticmethod
-    @shared_task
-    def delete_cache_from_swarm_service(community_id: int, user_id: int, cache_key: str = None,
-                                        key_pattern: str = None):
-
-        if not (cache_key or key_pattern):
-            return
-        
-        try:    
-            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
-            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
-
-            if not (user_info_filter and sdk_client_instance):
-                return
-
-            cache_removal_endpoint = settings.SWARM_BASE_URL + SWARM_DELETE_CACHE_ENDPOINT
-
-            client = ApiClient()
-            client.update_request_url(cache_removal_endpoint)
-
-            # Add headers
-            client.update_headers({
-                'x-member-id': user_info_filter.user_unique_id,
-                'x-api-key': sdk_client_instance.api_key
-            })
-
-            # Add Delete request body
-            req_body = {}
-
-            if cache_key:
-                req_body["cache_key"] = cache_key
-
-            if key_pattern:
-                req_body["key_pattern"] = key_pattern
-
-            if req_body:
-                client.update_body(req_body)
-
-            # Send delete request
-            response = client.delete().response
-
-            if response.status_code == 200:
-                info_logger.info(f"Successfully deleted cache for community: {community_id} for key: {cache_key}")
-
-            else:
-                error_logger.error(f"Error deleting cache for community: {community_id} for key: {cache_key} - \
-                                   status code: {response.status_code} | response: {response.json()}")
-
-            return 
-        
-        except Exception as e:
-            error_logger.error(f"Exception occurred while deleting cache from swarm - {e.args}")
-            return
     
     @staticmethod
     def validate_inferdo_api_key_for_nsfw_filtering(api_key:str, community_instance, user_instance) -> dict:
@@ -5937,10 +5839,8 @@ class CommunityHelper:
         for report in report_instances:
 
             pending_post_id = report.entity_id
-            response = CommunityHelper.approve_or_reject_pending_post_in_swarm_service(sdk_client_instance.api_key, 
-                                                                                       user_instance.user_unique_id,
-                                                                                       pending_post_id, 
-                                                                                       status)
+            response = InternalServiceUtilities.approve_or_reject_pending_post_in_swarm_service(
+                sdk_client_instance.api_key,user_instance.user_unique_id, pending_post_id, status)
             
             # If there was an error from swarm service log the error and continue
             if response.get('error_message'):
@@ -5956,91 +5856,3 @@ class CommunityHelper:
             info_logger.info(f"Successfully approved/rejected {pending_post_id} pending post for report: {report.id}")
 
         return
-        
-    @staticmethod
-    def approve_or_reject_pending_post_in_swarm_service(api_key: str, user_id: str, pending_post_id: str, 
-                                                        status: str) -> dict:
-        
-        try:
-
-            if not (api_key and user_id and pending_post_id and status):
-                return ResponseUtilities.get_inner_error_context("Invalid request body")
-
-            pending_post_update_endpoint = settings.SWARM_BASE_URL + SWARM_PENDING_POST_UPDATE_ENDPOINT.format(pending_post_id)
-
-            client = ApiClient()
-            client.update_request_url(pending_post_update_endpoint)
-
-            # Add headers
-            client.update_headers({
-                'x-member-id': user_id,
-                'x-api-key': api_key
-            })
-
-            # Add request body
-            client.update_body({
-                "status": status
-            })
-
-            # Send patch request
-            response = client.patch().response
-
-            if response.status_code != 200:
-                error_response = response.json()
-                return {'error_message': error_response}
-
-            return {'success': True}
-        
-        except Exception as e:
-            return {'error_message': f"Exception occurred while approving/rejecting pending post in swarm - {e.args}"}
-
-    @staticmethod
-    @shared_task
-    def delete_cache_from_kettle_service(community_id: int, user_id: int, key_patterns: list = None):
-
-        if not (key_patterns):
-            return
-        
-        try:    
-            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
-            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
-
-            if not (user_info_filter and sdk_client_instance):
-                return
-
-            cache_removal_endpoint = settings.KETTLE_BASE_URL + KETTLE_DELETE_CACHE_ENDPOINT
-
-            client = ApiClient()
-            client.update_request_url(cache_removal_endpoint)
-
-            # Add headers
-            client.update_headers({
-                'x-member-id': user_info_filter.user_unique_id,
-                'x-api-key': sdk_client_instance.api_key,
-                'x-platform-type': PLATFORM_TYPE_CARAVAN_SERVICE
-            })
-
-            # Add Delete request body
-            req_body = {}
-
-            if key_patterns:
-                req_body["key_patterns"] = key_patterns
-
-            if req_body:
-                client.update_body(req_body)
-
-            # Send delete request
-            response = client.delete().response
-
-            if response.status_code == 200:
-                info_logger.info(f"Successfully sent Kettle cache deletion for community: {community_id} for keys: {key_patterns}")
-
-            else:
-                error_logger.error(f"Error deleting Kettle cache for community: {community_id} for keys: {key_patterns} - \
-                                   status code: {response.status_code} | response: {response.json()}")
-
-            return 
-        
-        except Exception as e:
-            error_logger.error(f"Exception occurred while deleting cache from kettle service - {e.args}")
-            return

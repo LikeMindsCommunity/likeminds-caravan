@@ -224,12 +224,6 @@ COMMUNITY_REMOVE_MEMBER_S3_FILE_PATH = "member_removal_reports/{}/{}_removal_rep
 COMMUNITY_MEMBER_REMOVAL_REPORTS_PATH = "member_removal_reports/{}/"
 COMMUNITYY_MEMBER_REMOVAL_S3_DOWNLOAD_URL = "https://{}.s3.{}.amazonaws.com/{}"
 
-SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT = "/user"
-SWARM_DELETE_CACHE_ENDPOINT = "/cache"
-SWARM_PENDING_POST_UPDATE_ENDPOINT = "/post/pending/{}"
-
-KETTLE_DELETE_CACHE_ENDPOINT = "/cache"
-
 # Report Types string consants
 REPORT_TYPE_MEMBER = "member"
 REPORT_TYPE_CHATROOM = "chatroom"
