@@ -19,11 +19,12 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
+from utility.internal_service_utilities import InternalServiceUtilities
 from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods, MemberRoles, \
 update_priority, WebhookTypes
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
     EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
-    CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, INTERNATIONAL_OTP_GENERATE_CACHE_KEY
+    CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, INTERNATIONAL_OTP_GENERATE_CACHE_KEY, KETTLE_CACHE_KEY_USER_META
 from utility.celery_tasks import (
     update_last_unseen_in_engage_on_card_creation,
     update_last_unseen_in_engage, update_my_chatrooms_for_users,
@@ -2013,6 +2014,14 @@ def remove_from_member(request):
                         update_multiple_previews_in_community.delay({'community_id': community_id})
 
                         ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, member)
+
+                        # Delete user meta cache in kettle service
+                        cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+                        InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                            community_id=community_instance.id, user_id=user_instance.id,
+                            key_patterns=[cache_key] 
+                        )
 
                     else:
                         context = ResponseUtilities.get_view_impl_error_context(
@@ -11408,6 +11417,14 @@ def update_community_manager_rights(request):
                                                                  community_id=community_id,
                                                                  custom_title=custom_title)
 
+            # Delete user meta cache in kettle service
+            cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_instance.id, user_id=user_instance.id,
+                key_patterns=[cache_key] 
+            )
+
             if len(rights_added) > 0:
                 send_notification_for_right_given_to_manager.delay(user_id, community_id, list(rights_added))
 
@@ -11548,6 +11565,14 @@ def remove_community_manager(request):
 
         # Update Members Index
         ElasticSearchSync.update_member.delay(user_id, community_id)
+
+        # Delete user meta cache in kettle service
+        cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+        InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+            community_id=community_instance.id, user_id=user_instance.id,
+            key_patterns=[cache_key] 
+        )
 
         return JsonResponse({'success': True})
 
@@ -11924,6 +11949,13 @@ def update_community_member_rights(request):
             send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
                                                              community_id=community_id,
                                                              custom_title=custom_title)
+            
+            cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_instance.id, user_id=user_instance.id,
+                key_patterns=[cache_key] 
+            )
 
         update_member_rights_history.delay(rights_added, rights_removed, current_user_id, community_id, user_id)
 

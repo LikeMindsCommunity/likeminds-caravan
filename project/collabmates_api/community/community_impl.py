@@ -60,7 +60,8 @@ from external_services.wa_notification.wa_notification_impl import NotificationI
 from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 
-from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY, KETTLE_CACHE_KEY_COMMUNITY_SETTINGS)
+from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY, 
+                                KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META)
 
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
@@ -2193,7 +2194,9 @@ class CommunityImpl(CommunityManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         member_instance = validated_req_body.get('member_instance')
+        community_instance = validated_req_body.get('community_instance')
         userinfo_instance = member_instance.userinfo
+        user_meta_updated = False
 
         if req_body.get('user_name'):
             userinfo_instance.name = req_body.get('user_name')
@@ -2204,6 +2207,8 @@ class CommunityImpl(CommunityManager):
             ElasticSearchSync.update_user_name.delay(member_instance.id, userinfo_instance.name)
             ElasticSearchSync.update_member_name.delay(member_instance.id, userinfo_instance.name)
 
+            user_meta_updated = True
+
         if req_body.get('image_url'):
             previous_image_url = userinfo_instance.image_link
             userinfo_instance.image_link = req_body.get('image_url')
@@ -2213,6 +2218,17 @@ class CommunityImpl(CommunityManager):
             update_preview_for_account_image_change.delay({'user_id': member_instance.id,
                                                            'image_url': req_body.get('image_url'),
                                                            'previous_image_url': previous_image_url})
+            
+            user_meta_updated = True
+
+        # Delete user meta cache in kettle service
+        if user_meta_updated:
+            cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, userinfo_instance.user_unique_id)
+
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_instance.id, user_id=member_instance.id,
+                key_patterns=[cache_key] 
+            )
 
         return {'success': True}
 
@@ -5507,6 +5523,14 @@ class CommunityHelper:
             ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, user_id)
 
             CohortHelper.fetch_user_cohorts_having_filters_with_community_id(community_id, user_instance)
+
+            # Delete user meta cache in kettle service
+            cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_instance.id, user_id=user_instance.id,
+                key_patterns=[cache_key] 
+            )
 
             info_logger.info(f"Successfully removed user {user_id} from community {community_id} by {current_user_id}")
 
