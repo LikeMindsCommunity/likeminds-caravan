@@ -1407,7 +1407,7 @@ class CommunityImpl(CommunityManager):
                 # Delete kettle community settings cache if user topics connection setting is updated
                 CommunityHelper.delete_cache_from_kettle_service.delay(community_instance.id,
                                                                        user_instance.id,
-                                                                       [KETTLE_CACHE_KEY_COMMUNITY_SETTINGS.format(self.get_api_key())])
+                                                                       [KETTLE_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id)])
 
             if not community_setting['enabled']:
                 disabled_community_setting_context = {
