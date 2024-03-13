@@ -4324,6 +4324,10 @@ class CommunityHelper:
 
                 CommunityHelper.add_create_edit_question_analytics.delay(
                     question_instance.id, user_id, question_state=question_change_states.EDIT_QUESTION)
+                
+                # Delete user meta cache for users with this question
+                CommunityHelper.delete_user_meta_cache_for_users_with_question(question_instance.id, 
+                                                                               community_instance.id)
 
             else:
                 error_logger.error("UPDATE COMMUNITY QUESTIONS, Not valid: " + str(
@@ -4353,6 +4357,11 @@ class CommunityHelper:
                                                                          'questions_type':
                                                                              question_instance.question_state
                                                                      })
+            
+            # Delete user meta cache for users with this question
+            CommunityHelper.delete_user_meta_cache_for_users_with_question(question_instance.id, 
+                                                                           community_instance.id)
+
 
         ModelUtilities.get_model_filter(communityQuestions, {'id__in': delete_question_ids,
                                                              'community': community_instance}).delete()
@@ -5880,3 +5889,22 @@ class CommunityHelper:
             info_logger.info(f"Successfully approved/rejected {pending_post_id} pending post for report: {report.id}")
 
         return
+    
+    @staticmethod
+    def delete_user_meta_cache_for_users_with_question(question_id: int, community_id: int):
+
+        if not (question_id and community_id):
+            return
+
+        # Fetch question answers
+        user_answer_instances = ModelUtilities.get_model_filter(communityAnswers, 
+                                                   {'question_id': question_id, 
+                                                    'community_id': community_id}
+                                                    )
+
+        for user_answer_instance in user_answer_instances:
+            user_instance = user_answer_instance.member
+            cache_key = KETTLE_CACHE_KEY_USER_META.format(community_id, user_instance.userinfo.user_unique_id)
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_id, user_id=user_instance.id, key_patterns=[cache_key]
+            )
