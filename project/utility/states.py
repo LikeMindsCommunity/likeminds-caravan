@@ -547,6 +547,7 @@ class CommunitySettingTypes:
     USER_CONNECTION = "user_connection"
     FEED_REPOST = "feed_repost"
     NSFW_FILTERING = "nsfw_filtering"
+    USER_TOPICS_CONNECTION = "user_topics_connection"
 
 
 community_setting_types = CommunitySettingTypes()

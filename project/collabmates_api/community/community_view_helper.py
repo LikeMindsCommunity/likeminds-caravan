@@ -5,11 +5,6 @@ from utility.response_utilities import ResponseUtilities
 from utility.states import ReportClosingStatus, report_action_types
 from cms.cms_auth_utilities import CMSAuthUtilities
 from collabmates_api.sdk.models import (SdkClient)
-from collabmates_api.community.constants import (SWARM_DELETE_CACHE_ENDPOINT, INFERDO_NSFW_FILTER_ENDPOINT, 
-                                                 INFERDO_HEADER_API_HOST, INFERDO_SAMPLE_NSFW_IMAGE_URL,
-                                                 SWARM_PENDING_POST_UPDATE_ENDPOINT)
-from celery import shared_task
-from django.conf import settings
 
 from utility.api_client import ApiClient
 

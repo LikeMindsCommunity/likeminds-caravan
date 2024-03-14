@@ -24,7 +24,9 @@ CHATROOM_TYPE_CONVERSION = "chatroom_type_conversion_{}"
 SYNC_LJ_MIN_TIMESTAMP = "sync_data_{}_{}"
 
 SWARM_CACHE_KEY_CONFIGURATIONS = "%s_community_configurations"
-
 SWARM_CACHE_KEY_WEBHOOKS = "%s_webhooks"
-
 SWARM_TOP_LIKED_COMMENTS_CACHE_KEY = "{}_*_top_liked_comments"
+
+KETTLE_CACHE_KEY_COMMUNITY_SETTINGS = "{}_community_settings" # community_id
+KETTLE_CACHE_KEY_USER_META = "{}_{}_user_meta" # community_id, user_unique_id
+KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS = "{}_profile_meta_configurations" # community_id
