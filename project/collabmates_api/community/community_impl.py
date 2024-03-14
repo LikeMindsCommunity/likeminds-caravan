@@ -61,7 +61,8 @@ from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 
 from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY, 
-                                KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META)
+                                KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META, 
+                                KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS)
 
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
@@ -5814,6 +5815,13 @@ class CommunityHelper:
                 InternalServiceUtilities.delete_cache_from_swarm_service.delay(
                     community_id=community_id, user_id=user_id, 
                     cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
+
+            # Call Kettle api to delete cache key for profile metadata
+            if configuration_type in [PROFILE_METADATA_CONFIGURATION]:
+                InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                    community_id=community_id, user_id=user_id,
+                    key_patterns=[KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS.format(community_id)]
+                )
 
         return record_updated, configuration_instance
     
