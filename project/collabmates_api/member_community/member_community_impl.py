@@ -1635,9 +1635,6 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                               community_instance.id)
         CohortHelper.add_member_to_respective_question_based_cohorts(user_instance.id, community_instance.id)
 
-        if question_answers_data:
-            return {'success': True, 'question_answers': question_answers_data}
-        
         # If user_meta_updated is True, then delete user meta cache from kettle service
         if user_meta_updated:
 
@@ -1648,6 +1645,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                 key_patterns=[cache_key] 
             )
 
+        if question_answers_data:
+            return {'success': True, 'question_answers': question_answers_data}
+        
         return {'success': True}
 
     def _get_sorted_chatroom_queryset_based_on_order_type(self, intro_room_settings_enabled, pin_status,
