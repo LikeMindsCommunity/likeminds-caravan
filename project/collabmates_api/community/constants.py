@@ -85,7 +85,7 @@ COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
     "user_connection": "User Connection",
     "feed_repost": "Feed Repost",
     "nsfw_filtering": "NSFW Filtering for feed",
-    "user_topics_connection": "User Topics Connection"
+    "user_topics_connection": "User Topics Connection",
     "enable_guest_flow": "Enable guest flow"
 }
 
