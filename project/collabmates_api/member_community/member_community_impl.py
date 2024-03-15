@@ -1549,6 +1549,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             CommunityHelper.save_responses_of_member_in_community(user_instance.id, community_instance.id,
                                                                   question_answers, True)
+            
+            user_meta_updated = True
 
             for question in question_answers:
 
@@ -1579,7 +1581,6 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                     {'answer': question.get(DIRECTORY_QUESTIONS_V2_ANSWER_KEY),
                                                      'last_updated': TimeUtilities.current_time_in_milliseconds()})
                         update_preview = True
-                        user_meta_updated = True
 
         question_answers_data = MemberCommunityHelper.get_question_answer_data_in_member_profile(user_member_instance,
                                                                                                  user_member_instance,
