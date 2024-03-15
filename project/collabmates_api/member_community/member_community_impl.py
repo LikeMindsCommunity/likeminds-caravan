@@ -1549,6 +1549,8 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             CommunityHelper.save_responses_of_member_in_community(user_instance.id, community_instance.id,
                                                                   question_answers, True)
+            
+            user_meta_updated = True
 
             for question in question_answers:
 
@@ -1579,7 +1581,6 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                     {'answer': question.get(DIRECTORY_QUESTIONS_V2_ANSWER_KEY),
                                                      'last_updated': TimeUtilities.current_time_in_milliseconds()})
                         update_preview = True
-                        user_meta_updated = True
 
         question_answers_data = MemberCommunityHelper.get_question_answer_data_in_member_profile(user_member_instance,
                                                                                                  user_member_instance,
@@ -1635,9 +1636,6 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                               community_instance.id)
         CohortHelper.add_member_to_respective_question_based_cohorts(user_instance.id, community_instance.id)
 
-        if question_answers_data:
-            return {'success': True, 'question_answers': question_answers_data}
-        
         # If user_meta_updated is True, then delete user meta cache from kettle service
         if user_meta_updated:
 
@@ -1648,6 +1646,9 @@ class MemberCommunityImpl(MemberCommunityManager):
                 key_patterns=[cache_key] 
             )
 
+        if question_answers_data:
+            return {'success': True, 'question_answers': question_answers_data}
+        
         return {'success': True}
 
     def _get_sorted_chatroom_queryset_based_on_order_type(self, intro_room_settings_enabled, pin_status,
