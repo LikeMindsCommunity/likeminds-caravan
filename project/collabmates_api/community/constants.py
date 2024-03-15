@@ -86,6 +86,7 @@ COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
     "feed_repost": "Feed Repost",
     "nsfw_filtering": "NSFW Filtering for feed",
     "user_topics_connection": "User Topics Connection"
+    "enable_guest_flow": "Enable guest flow"
 }
 
 COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
@@ -108,6 +109,7 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
     "user_connection": "If enabled, the users will be able to send connection request to other members",
     "feed_repost": "If enabled, members can repost other other member posts",
     "nsfw_filtering": "To enable NSFW filtering for feed posts in the community",
+    "enable_guest_flow": "",
     "user_topics_connection": "Enable User topics connection (follow/unfollow topics) in the community"
 }
 
