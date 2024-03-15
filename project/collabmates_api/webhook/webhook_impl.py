@@ -9,7 +9,7 @@ from .models import CommunityWebhook
 from togther.models import ModelUtilities
 from collabmates_api.sdk.models import SdkClient 
 from utility.response_utilities import ResponseUtilities
-from collabmates_api.community.community_impl import CommunityHelper
+from utility.internal_service_utilities import InternalServiceUtilities
 from utility.cache_keys import SWARM_CACHE_KEY_WEBHOOKS
 
 
@@ -112,8 +112,9 @@ class WebhookImpl(WebhookManager):
                                                             create_webhook['status'])
         
         # Call swarm API to delete cache
-        CommunityHelper.delete_cache_from_swarm_service.delay(community_id=community_instance.id, user_id=self.get_member_id(), 
-                                                              cache_key=(SWARM_CACHE_KEY_WEBHOOKS % str(self.get_api_key())))
+        InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+            community_id=community_instance.id, user_id=self.get_member_id(), 
+            cache_key=(SWARM_CACHE_KEY_WEBHOOKS % str(self.get_api_key())))
 
         webhook_instance_data = create_webhook['webhook_instance']
 
@@ -156,8 +157,9 @@ class WebhookImpl(WebhookManager):
         webhook_instance.save()
 
         # Call swarm API to delete cache
-        CommunityHelper.delete_cache_from_swarm_service.delay(community_id=webhook_instance.community_id, user_id=self.get_member_id(), 
-                                                              cache_key=(SWARM_CACHE_KEY_WEBHOOKS % str(self.get_api_key())))
+        InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+            community_id=webhook_instance.community_id, user_id=self.get_member_id(), 
+            cache_key=(SWARM_CACHE_KEY_WEBHOOKS % str(self.get_api_key())))
 
         webhook_instance_data = WebhookSerializer(webhook_instance).data
 
@@ -178,7 +180,8 @@ class WebhookImpl(WebhookManager):
         webhook_instance.delete()
 
         # Call swarm API to delete cache
-        CommunityHelper.delete_cache_from_swarm_service.delay(community_id=webhook_instance.community_id, user_id=self.get_member_id(), 
-                                                              cache_key=(SWARM_CACHE_KEY_WEBHOOKS % str(self.get_api_key())))
+        InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+            community_id=webhook_instance.community_id, user_id=self.get_member_id(), 
+            cache_key=(SWARM_CACHE_KEY_WEBHOOKS % str(self.get_api_key())))
 
         return {'success': True}
