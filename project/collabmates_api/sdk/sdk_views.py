@@ -129,6 +129,24 @@ class InitiateSdkView(APIView):
 
         return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
 
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        params = RequestUtilities.fetch_request_query_params(request)
+        platform_code = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        sdk_manager = SdkImpl(member_id=member_id, api_key=api_key, request_platform=platform_code,
+                              version_code=version_code)
+        response_data = sdk_manager.fetch_initiated_user_info(params.get('uuid'))
+
+        if 'error_message' in response_data:
+            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
+                                                                    response_data['status'])
+            return JsonResponse(context['data'], status=context['status'])
+
+        return JsonResponse(response_data)
+
 
 class AuthenticateSdkView(APIView):
 
