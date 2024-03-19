@@ -86,7 +86,8 @@ COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
     "feed_repost": "Feed Repost",
     "nsfw_filtering": "NSFW Filtering for feed",
     "user_topics_connection": "User Topics Connection",
-    "enable_guest_flow": "Enable guest flow"
+    "enable_guest_flow": "Enable guest flow",
+    "user_notifications": "User Notifications",
 }
 
 COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
@@ -110,7 +111,8 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
     "feed_repost": "If enabled, members can repost other other member posts",
     "nsfw_filtering": "To enable NSFW filtering for feed posts in the community",
     "enable_guest_flow": "",
-    "user_topics_connection": "Enable User topics connection (follow/unfollow topics) in the community"
+    "user_topics_connection": "Enable User topics connection (follow/unfollow topics) in the community",
+    "user_notifications": "Enable/Disable User Notifications in the community",
 }
 
 DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED = "Community managers will be able to message all members and vice-versa."

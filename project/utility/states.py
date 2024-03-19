@@ -549,6 +549,7 @@ class CommunitySettingTypes:
     NSFW_FILTERING = "nsfw_filtering"
     ENABLE_GUEST_FLOW = "enable_guest_flow"
     USER_TOPICS_CONNECTION = "user_topics_connection"
+    USER_NOTIFICATIONS = "user_notifications"
 
 
 community_setting_types = CommunitySettingTypes()
