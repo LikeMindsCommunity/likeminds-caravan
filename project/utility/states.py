@@ -680,6 +680,8 @@ class WebhookTypes(enum.Enum):
     COMMENT_ADDED = "comment.added"
     COMMENT_TAGGED = "comment.tagged"
     COMMENT_REACT = "comment.react"
+    NOTIFICATIONS_CHAT = "notifications.chat"
+    NOTIFICATIONS_FEED = "notifications.feed"
 
     @classmethod
     def validate_webhook_type(cls, webhook_type) -> bool:

@@ -20,6 +20,7 @@ from togther.models import (Community_Rank, collabcardState,
                             userDevices, ModelUtilities, answerAttachment)
 from utility.list_utilities import ListUtilities
 from utility.string_utilities import StringUtilities
+from utility.webhook_utilities import WebhookUtilties
 
 from utility.utils import *
 from utility.time_utilities import TimeUtilities
@@ -29,8 +30,10 @@ from utility.constants import (INTRO_ROOM_LOOKBACK_PERIOD,
                                MINUTES_10, MINUTES_30, VALID_URLS_REGEX, 
                                ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_START,
                                ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END)
+from utility.version_utilities import VersionUtilities
 from project.celery import app
 from utility.states import *
+from webhook.constants import WEBHOOK_SOURCE_FEED, WEBHOOK_SOURCE_CHAT
 
 import json
 from django.shortcuts import get_object_or_404
@@ -396,6 +399,69 @@ def get_community_id_from_notification_message(message):
 def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dict, community_id, sdk_source):
     '''function to trigger webhooks for notifications'''
 
+    if not (user_ids and notification_payload and community_id):
+        return
+    
+    webhook_type, source = "", ""
+
+    # Set the webhook type and source
+    if sdk_source == VersionUtilities.SdkSource.CHAT:
+        webhook_type = WebhookTypes.NOTIFICATIONS_CHAT.value
+        source = WEBHOOK_SOURCE_CHAT
+    elif sdk_source == VersionUtilities.SdkSource.FEED:
+        webhook_type = WebhookTypes.NOTIFICATIONS_FEED.value
+        source = WEBHOOK_SOURCE_FEED
+    else:
+        return
+    
+    # Get active webhooks for the community
+    webhooks = WebhookUtilties.validate_and_fetch_all_webhook_url_and_secret(
+        community_id=community_id,
+        webhook_type=webhook_type
+    )
+
+    if not webhooks:
+        return
+    
+    # webhook payload
+    payload = {
+        "event": webhook_type,
+        "source": source,
+        "created_at": TimeUtilities.current_time_in_milliseconds(),
+        "data": {
+            "payload": notification_payload,
+            "uuids": []
+        }
+    }
+
+    # Fetch client uuids
+    client_uuids = ModelUtilities.get_model_filter(SDKClientUsersInfo,{
+        'user_id__in': user_ids
+    }).values_list('user_unique_id', flat=True)
+
+    if not client_uuids:
+        return 
+
+    # Trigger the webhooks in batches of 1000
+    for i in range(0, len(client_uuids), 1000):
+        start_index = i
+        end_index = i + 1000
+        client_uuids_batch = client_uuids[start_index:end_index]
+
+        for webhook in webhooks:
+
+            # Update the payload with client uuids
+            payload['id'] = str(uuid.uuid4())
+            payload['data']['uuids'] = client_uuids_batch
+
+            # send webhook request
+            WebhookUtilties.send_webhook_request_with_payload(
+                url=webhook.get('url'),
+                payload=payload,
+                webhook_type=webhook_type,
+                secret=webhook.get('secret')
+            )
+    
     return
 
 def notification_meta(notification_list, message, is_broadcast_notification: bool=False, sdk_source: str="chat"):
