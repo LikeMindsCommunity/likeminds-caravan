@@ -384,11 +384,50 @@ def pre_compute_user_devices_by_user_list(user_list, is_broadcast_notification=F
 
     return devices_dict
 
+def get_community_id_from_notification_message(message):
+    '''function to get community id from notification message payload'''
+
+    if message.get('payload'):
+        return message['payload'].get('community_id', None)
+
+    return None
+
+@shared_task
+def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dict, community_id, sdk_source):
+    '''function to trigger webhooks for notifications'''
+
+    return
 
 def notification_meta(notification_list, message, is_broadcast_notification: bool=False, sdk_source: str="chat"):
     """function to process notification to send"""
 
+    # Get the user ids from the notification list
     user_id_list = [user_dict['id'] for user_dict in notification_list]
+
+    # Get community id from the message payload
+    community_id = get_community_id_from_notification_message(message)
+
+    # Trigger webhooks for notifications
+    trigger_webhooks_for_notifications.delay(
+        user_ids=user_id_list,
+        notification_payload=message,
+        community_id=community_id,
+        sdk_source=sdk_source
+    )
+
+    # Check if user_notifications are enabled
+    user_notifications_disabled_filter = ModelUtilities.get_model_filter(CommunitySettings, {
+        'community_id': community_id,
+        'setting_type': community_setting_types.USER_NOTIFICATIONS,
+        'enabled': False
+    }).first()
+
+    # If user_notifications are disabled, then log and return 
+    if user_notifications_disabled_filter:
+        info_logger.info(f"User notifications are disabled for community: {community_id}, hence no notifications are triggered with message payload: {message} for users: {user_id_list} and")
+        return
+
+    # Pre compute user devices and their fcm tokens by user list
     user_device_dict = pre_compute_user_devices_by_user_list(user_list=user_id_list, 
                                                              is_broadcast_notification=is_broadcast_notification)
 
