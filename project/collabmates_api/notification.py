@@ -385,7 +385,7 @@ def pre_compute_user_devices_by_user_list(user_list, is_broadcast_notification=F
     return devices_dict
 
 
-def notification_meta(notification_list, message, is_broadcast_notification=False):
+def notification_meta(notification_list, message, is_broadcast_notification: bool=False, sdk_source: str="chat"):
     """function to process notification to send"""
 
     user_id_list = [user_dict['id'] for user_dict in notification_list]

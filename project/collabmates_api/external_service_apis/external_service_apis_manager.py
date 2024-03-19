@@ -26,7 +26,7 @@ class ExternalServiceApisManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def send_notifications(self, req_body) -> dict:
+    def send_notifications(self, req_body, sdk_source) -> dict:
         """
         Sends push notification
         """
