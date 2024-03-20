@@ -33,7 +33,7 @@ from utility.constants import (INTRO_ROOM_LOOKBACK_PERIOD,
 from utility.version_utilities import VersionUtilities
 from project.celery import app
 from utility.states import *
-from webhook.constants import WEBHOOK_SOURCE_FEED, WEBHOOK_SOURCE_CHAT
+from collabmates_api.webhook.constants import WEBHOOK_SOURCE_FEED, WEBHOOK_SOURCE_CHAT
 
 import json
 from django.shortcuts import get_object_or_404
@@ -408,9 +408,11 @@ def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dic
     if sdk_source == VersionUtilities.SdkSource.CHAT:
         webhook_type = WebhookTypes.NOTIFICATIONS_CHAT.value
         source = WEBHOOK_SOURCE_CHAT
+
     elif sdk_source == VersionUtilities.SdkSource.FEED:
         webhook_type = WebhookTypes.NOTIFICATIONS_FEED.value
         source = WEBHOOK_SOURCE_FEED
+
     else:
         return
     
@@ -429,21 +431,25 @@ def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dic
         "source": source,
         "created_at": TimeUtilities.current_time_in_milliseconds(),
         "data": {
-            "payload": notification_payload,
+            "notification_payload": notification_payload,
             "uuids": []
         }
     }
 
     # Fetch client uuids
-    client_uuids = ModelUtilities.get_model_filter(SDKClientUsersInfo,{
+    client_uuids = ModelUtilities.get_model_filter(SDKClientUsersInfo, {
         'user_id__in': user_ids
     }).values_list('user_unique_id', flat=True)
 
     if not client_uuids:
         return 
 
+    total_uuids = len(client_uuids)
+
+    payload['data']['tota_pages'] = (total_uuids // 1000) + 1
+
     # Trigger the webhooks in batches of 1000
-    for i in range(0, len(client_uuids), 1000):
+    for i in range(0, total_uuids, 1000):
         start_index = i
         end_index = i + 1000
         client_uuids_batch = client_uuids[start_index:end_index]
@@ -453,9 +459,10 @@ def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dic
             # Update the payload with client uuids
             payload['id'] = str(uuid.uuid4())
             payload['data']['uuids'] = client_uuids_batch
+            payload['data']['current_page'] = (i // 1000) + 1
 
             # send webhook request
-            WebhookUtilties.send_webhook_request_with_payload(
+            WebhookUtilties.send_webhook_request_with_payload.delay(
                 url=webhook.get('url'),
                 payload=payload,
                 webhook_type=webhook_type,
@@ -490,7 +497,7 @@ def notification_meta(notification_list, message, is_broadcast_notification: boo
 
     # If user_notifications are disabled, then log and return 
     if user_notifications_disabled_filter:
-        info_logger.info(f"User notifications are disabled for community: {community_id}, hence no notifications are triggered with message payload: {message} for users: {user_id_list} and")
+        info_logger.info(f"User notifications are disabled for community: {community_id}, hence no notifications are triggered with message payload: {message} and for users: {user_id_list}")
         return
 
     # Pre compute user devices and their fcm tokens by user list

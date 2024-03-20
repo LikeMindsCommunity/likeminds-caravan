@@ -112,7 +112,7 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
     "nsfw_filtering": "To enable NSFW filtering for feed posts in the community",
     "enable_guest_flow": "",
     "user_topics_connection": "Enable User topics connection (follow/unfollow topics) in the community",
-    "user_notifications": "Enable/Disable User Notifications in the community",
+    "user_notifications": "Enable/Disable user notifications in the community",
 }
 
 DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED = "Community managers will be able to message all members and vice-versa."
