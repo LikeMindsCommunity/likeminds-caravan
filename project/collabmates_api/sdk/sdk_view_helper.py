@@ -292,7 +292,7 @@ class SdkViewHelper:
                 'screen_instance': screen}
 
     @staticmethod
-    def validate_fetch_user_initiated_info_request(user_id: str, api_key: str, member_uuid: str):
+    def validate_fetch_sdk_user_info_request(user_id: str, api_key: str, member_uuid: str):
         validation_params = {
             'user_id': user_id,
             'community_id': {
