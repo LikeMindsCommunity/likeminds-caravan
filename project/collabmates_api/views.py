@@ -15478,7 +15478,8 @@ def add_community_settings_for_community(community_instance, user_instance):
                             community_setting_types.CHATROOMS, community_setting_types.SECRET_CHATROOMS_INVITE,
                             community_setting_types.POST_GROUPS, community_setting_types.SECRET_GROUP_INVITE,
                             community_setting_types.CREATE_INTRO_ROOMS, community_setting_types.USER_CONNECTION,
-                            community_setting_types.NSFW_FILTERING, community_setting_types.USER_TOPICS_CONNECTION]:
+                            community_setting_types.NSFW_FILTERING, community_setting_types.USER_TOPICS_CONNECTION, 
+                            community_setting_types.ENABLE_GUEST_FLOW]:
             is_enabled = False
 
         community_settings_data = {
@@ -15487,7 +15488,7 @@ def add_community_settings_for_community(community_instance, user_instance):
             'setting_title': setting_title,
             'setting_sub_title': COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING.get(setting_type),
             'enabled': is_enabled,
-            'enabled_by': user_instance if is_enabled else None,
+            'enabled_by': user_instance if is_enabled else None
         }
         community_settings_instance = CommunitySettings.create_instance(community_settings_data)
         community_settings_list.append(community_settings_instance)

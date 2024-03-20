@@ -134,7 +134,7 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
 
         return {'success': True}
 
-    def send_notifications(self, req_body) -> dict:
+    def send_notifications(self, req_body, sdk_source) -> dict:
 
         validated_notification_req_body = self._validate_notifications_body_params(req_body, self.get_api_key())
 
@@ -182,7 +182,7 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
             message = TasksHelper.add_community_info_to_notification_payload(message, community_id)
 
         if notification_allowed:
-            notification_meta(notification_details_list, message)
+            notification_meta(notification_details_list, message, sdk_source=sdk_source)
 
         return {'success': True}
 

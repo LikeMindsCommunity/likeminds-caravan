@@ -1,6 +1,8 @@
+from django.db.models import Q
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, communityQuestions)
+from togther.models import (ModelUtilities, communityQuestions, SDKClientUsersInfo, removedMembers)
 from utility.states import (login_types)
+from utility.validation_utilities import ValidationUtilities
 from .models import SdkClient, SdkOnboardingScreen
 
 
@@ -288,3 +290,44 @@ class SdkViewHelper:
 
         return {'user_instance': member_validator.get('user_instance'), 'community_instance': community_instance,
                 'screen_instance': screen}
+
+    @staticmethod
+    def validate_fetch_sdk_user_info_request(user_id: str, api_key: str, member_uuid: str):
+        validation_params = {
+            'user_id': user_id,
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        community_instance = validated_dict.get('community_id')
+
+        sdk_client_users_info_filter = ModelUtilities.get_model_filter(
+            SDKClientUsersInfo, {'community': community_instance}).filter(
+            Q(user_unique_id=member_uuid) | Q(user__userinfo__user_unique_id=member_uuid))
+
+        if not sdk_client_users_info_filter:
+            return ResponseUtilities.get_inner_error_context('Invalid uuid!')
+
+        app_access = True
+
+        sdk_client_users_info_filter = sdk_client_users_info_filter.first()
+
+        removed_member = ModelUtilities.get_model_filter(removedMembers,
+                                                         {'community': community_instance,
+                                                          'member': sdk_client_users_info_filter.user})
+
+        if len(removed_member):
+            app_access = False
+
+        return {
+            'user_instance': validated_dict.get('user_id'),
+            'community_instance': community_instance,
+            'uuid_sdk_client_instance': sdk_client_users_info_filter,
+            'app_access': app_access
+        }

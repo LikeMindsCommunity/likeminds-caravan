@@ -82,13 +82,13 @@ from utility.states import member_states, card_types, click_states, member_right
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
     api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
-    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus
+    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus, GuestFlowUserTypes
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
-from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDIA_LIMITS_CONFIGURATION, 
+from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDIA_LIMITS_CONFIGURATION,
                                FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION, 
-                               PLATFORM_TYPE_CARAVAN_SERVICE)
+                               PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -2580,7 +2580,7 @@ class CommunityImpl(CommunityManager):
 
         return response
 
-    def update_community_configurations(self, req_body) -> dict:
+    def update_community_configurations(self, req_body: dict = None) -> dict:
         validated_request = CommunityHelper.validate_update_community_configurations_request(self.get_member_id(),
                                                                                              self.get_api_key(),
                                                                                              req_body)
@@ -2594,10 +2594,8 @@ class CommunityImpl(CommunityManager):
         configuration_type = validated_request.get('configuration_type')
         update_values = validated_request.get('update_values')
 
-        record_updated, configuration_instance = CommunityHelper.update_configuration_of_community(community_instance.id, 
-                                                                                                   user_instance.id, 
-                                                                                                   configuration_type, 
-                                                                                                   update_values)
+        record_updated, configuration_instance = CommunityHelper.update_configuration_of_community(
+            community_instance.id, user_instance.id, configuration_type, update_values)
         
         response = {
             'success': True,
@@ -4052,7 +4050,8 @@ class CommunityHelper:
             project_creator_instance = ModelUtilities.get_user_instance_or_none(req_body.get('project_creator'))
 
         # send community created mail to the team
-        CommunityHelper.send_community_creation_email_to_team(member_instance, community_instance, project_creator_instance=project_creator_instance)
+        CommunityHelper.send_community_creation_email_to_team(member_instance, community_instance,
+                                                              project_creator_instance=project_creator_instance)
 
         # Create Content Download Settings
         CommunityHelper.create_content_download_settings_for_community(community_instance)
@@ -5714,7 +5713,8 @@ class CommunityHelper:
     
     @staticmethod
     @shared_task
-    def update_configuration_of_community(community_id: int, user_id: int, configuration_type: str, update_values: dict):
+    def update_configuration_of_community(community_id: int, user_id: int, configuration_type: str,
+                                          update_values: dict):
 
         record_updated = False
 
@@ -5774,36 +5774,55 @@ class CommunityHelper:
 
         elif configuration_type == PROFILE_METADATA_CONFIGURATION:
             
-            if (update_values.get('widgets_enabled')is not None) and isinstance(update_values.get('widgets_enabled'), bool):
+            if (update_values.get('widgets_enabled') is not None) and isinstance(
+                    update_values.get('widgets_enabled'), bool):
                 configuration_value['widgets_enabled'] = update_values.get('widgets_enabled')
                 record_updated = True
 
         elif configuration_type == NSFW_FILTERING_CONFIGURATION:
                 
-                # If NSFW Filtering is toggled, update configurations and community settings
-                if (update_values.get('enabled') is not None) and isinstance(update_values.get('enabled'), bool) and \
+            # If NSFW Filtering is toggled, update configurations and community settings
+            if (update_values.get('enabled') is not None) and isinstance(update_values.get('enabled'), bool) and \
                     update_values.get('enabled') != configuration_value.get('enabled'):
-                        configuration_value['enabled'] = update_values.get('enabled')
-                        record_updated = True
+                configuration_value['enabled'] = update_values.get('enabled')
+                record_updated = True
 
-                        # Update community settings to keep in sync with configurations
-                        community_settings_filter = ModelUtilities.get_model_filter(CommunitySettings,
-                                                                                    {'community_id': community_id,
-                                                                                     'setting_type': community_setting_types.NSFW_FILTERING}
-                                                                                     ).first()
-                        
-                        if community_settings_filter and community_settings_filter.enabled != update_values.get('enabled'):
-                            community_settings_filter.enabled = update_values.get('enabled')
-                            community_settings_filter.enabled_by_id = user_id if update_values.get('enabled') else None
-                            community_settings_filter.save()
-                        
-                if update_values.get('cutoff_score') and isinstance(update_values.get('cutoff_score'), float):
-                        configuration_value['cutoff_score'] = update_values.get('cutoff_score')
-                        record_updated = True
-                
-                if update_values.get('inferdo_api_key') and isinstance(update_values.get('inferdo_api_key'), str):
-                        configuration_value['inferdo_api_key'] = update_values.get('inferdo_api_key')
-                        record_updated = True
+                # Update community settings to keep in sync with configurations
+                filter_dict = {
+                    'community_id': community_id,
+                    'setting_type': community_setting_types.NSFW_FILTERING
+                }
+
+                community_settings_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
+
+                if community_settings_filter and community_settings_filter.enabled != update_values.get('enabled'):
+                    community_settings_filter.enabled = update_values.get('enabled')
+                    community_settings_filter.enabled_by_id = user_id if update_values.get('enabled') else None
+                    community_settings_filter.save()
+
+            if update_values.get('cutoff_score') and isinstance(update_values.get('cutoff_score'), float):
+                configuration_value['cutoff_score'] = update_values.get('cutoff_score')
+                record_updated = True
+
+            if update_values.get('inferdo_api_key') and isinstance(update_values.get('inferdo_api_key'), str):
+                configuration_value['inferdo_api_key'] = update_values.get('inferdo_api_key')
+                record_updated = True
+
+        if configuration_type == GUEST_FLOW_METADATA_CONFIGURATION:
+            filter_dict = {
+                'community': community_id,
+                'setting_type': community_setting_types.ENABLE_GUEST_FLOW
+            }
+
+            community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
+
+            if community_setting_instance and community_setting_instance.enabled:
+
+                if update_values.get('guest_users') and isinstance(update_values.get('guest_users'), str) and (
+                        update_values.get('guest_users') in [GuestFlowUserTypes.SINGLE.value,
+                                                             GuestFlowUserTypes.MULTIPLE.value]):
+                    configuration_value['guest_users'] = update_values.get('guest_users')
+                    record_updated = True
 
         # Update configuration instance if record is updated
         if record_updated:
