@@ -315,7 +315,7 @@ class SdkImpl(SdkManager):
 
         return response
 
-    def fetch_initiated_user_info(self, uuid: str) -> dict:
+    def fetch_sdk_user_info(self, uuid: str) -> dict:
         validated_request_body = SdkViewHelper.validate_fetch_user_initiated_info_request(self.member_id,
                                                                                           self.api_key,
                                                                                           uuid)

@@ -395,6 +395,56 @@ def get_community_id_from_notification_message(message):
 
     return None
 
+def send_notification_webhooks_in_chunks(payload: dict, uuids: list, webhooks, webhook_type, chunk_size: int=1000):
+    '''function to send webhook requests in chunks'''
+
+    total_uuids = len(uuids)
+    payload['data']['tota_pages'] = (total_uuids // chunk_size) + 1
+
+    # Trigger the webhooks in batches of chunk_size
+    for i in range(0, total_uuids, chunk_size):
+        start_index = i
+        end_index = i + chunk_size
+        uuids_batch = uuids[start_index:end_index]
+
+        for webhook in webhooks:
+
+            # Update the payload with client uuids
+            payload['id'] = str(uuid.uuid4())
+            payload['data']['uuids'] = uuids_batch
+            payload['data']['current_page'] = (i // chunk_size) + 1
+
+            # send webhook request
+            WebhookUtilties.send_webhook_request_with_payload.delay(
+                url=webhook.get('url'),
+                payload=payload,
+                webhook_type=webhook_type,
+                secret=webhook.get('secret')
+            )
+    
+def generate_payload_for_notification_webhooks(webhook_type, notification_payload):
+
+    source = ""
+
+    if webhook_type == WebhookTypes.NOTIFICATIONS_CHAT.value:
+        source = WEBHOOK_SOURCE_CHAT
+
+    elif webhook_type == WebhookTypes.NOTIFICATIONS_FEED.value:
+        source = WEBHOOK_SOURCE_FEED
+
+    # webhook payload
+    payload = {
+        "event": webhook_type,
+        "source": source,
+        "created_at": TimeUtilities.current_time_in_milliseconds(),
+        "data": {
+            "notification_payload": notification_payload,
+            "uuids": []
+        }
+    }
+
+    return payload
+
 @shared_task
 def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dict, community_id, sdk_source):
     '''function to trigger webhooks for notifications'''
@@ -402,16 +452,14 @@ def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dic
     if not (user_ids and notification_payload and community_id):
         return
     
-    webhook_type, source = "", ""
+    webhook_type = ""
 
-    # Set the webhook type and source
+    # Set the webhook type 
     if sdk_source == VersionUtilities.SdkSource.CHAT:
         webhook_type = WebhookTypes.NOTIFICATIONS_CHAT.value
-        source = WEBHOOK_SOURCE_CHAT
 
     elif sdk_source == VersionUtilities.SdkSource.FEED:
         webhook_type = WebhookTypes.NOTIFICATIONS_FEED.value
-        source = WEBHOOK_SOURCE_FEED
 
     else:
         return
@@ -425,18 +473,10 @@ def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dic
     if not webhooks:
         return
     
-    # webhook payload
-    payload = {
-        "event": webhook_type,
-        "source": source,
-        "created_at": TimeUtilities.current_time_in_milliseconds(),
-        "data": {
-            "notification_payload": notification_payload,
-            "uuids": []
-        }
-    }
+    # generate payload
+    payload =  generate_payload_for_notification_webhooks(webhook_type, notification_payload)
 
-    # Fetch client uuids
+     # Fetch client uuids
     client_uuids = ModelUtilities.get_model_filter(SDKClientUsersInfo, {
         'user_id__in': user_ids
     }).values_list('user_unique_id', flat=True)
@@ -444,31 +484,9 @@ def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dic
     if not client_uuids:
         return 
 
-    total_uuids = len(client_uuids)
+    # trigger webhooks in chunks 
+    send_notification_webhooks_in_chunks(payload, list(client_uuids), webhooks, webhook_type, 1000)
 
-    payload['data']['tota_pages'] = (total_uuids // 1000) + 1
-
-    # Trigger the webhooks in batches of 1000
-    for i in range(0, total_uuids, 1000):
-        start_index = i
-        end_index = i + 1000
-        client_uuids_batch = client_uuids[start_index:end_index]
-
-        for webhook in webhooks:
-
-            # Update the payload with client uuids
-            payload['id'] = str(uuid.uuid4())
-            payload['data']['uuids'] = client_uuids_batch
-            payload['data']['current_page'] = (i // 1000) + 1
-
-            # send webhook request
-            WebhookUtilties.send_webhook_request_with_payload.delay(
-                url=webhook.get('url'),
-                payload=payload,
-                webhook_type=webhook_type,
-                secret=webhook.get('secret')
-            )
-    
     return
 
 def notification_meta(notification_list, message, is_broadcast_notification: bool=False, sdk_source: str="chat"):

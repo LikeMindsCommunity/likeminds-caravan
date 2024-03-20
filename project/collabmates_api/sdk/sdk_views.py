@@ -138,7 +138,7 @@ class InitiateSdkView(APIView):
 
         sdk_manager = SdkImpl(member_id=member_id, api_key=api_key, request_platform=platform_code,
                               version_code=version_code)
-        response_data = sdk_manager.fetch_initiated_user_info(params.get('uuid'))
+        response_data = sdk_manager.fetch_sdk_user_info(params.get('uuid'))
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],

@@ -54,7 +54,7 @@ class SdkManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_initiated_user_info(self, uuid: str) -> dict:
+    def fetch_sdk_user_info(self, uuid: str) -> dict:
         """
         Get initiated user info
         """
