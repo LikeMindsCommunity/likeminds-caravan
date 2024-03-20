@@ -549,6 +549,7 @@ class CommunitySettingTypes:
     NSFW_FILTERING = "nsfw_filtering"
     ENABLE_GUEST_FLOW = "enable_guest_flow"
     USER_TOPICS_CONNECTION = "user_topics_connection"
+    USER_NOTIFICATIONS = "user_notifications"
 
 
 community_setting_types = CommunitySettingTypes()
@@ -679,6 +680,8 @@ class WebhookTypes(enum.Enum):
     COMMENT_ADDED = "comment.added"
     COMMENT_TAGGED = "comment.tagged"
     COMMENT_REACT = "comment.react"
+    NOTIFICATIONS_CHAT = "notifications.chat"
+    NOTIFICATIONS_FEED = "notifications.feed"
 
     @classmethod
     def validate_webhook_type(cls, webhook_type) -> bool:
