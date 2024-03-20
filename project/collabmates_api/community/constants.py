@@ -110,7 +110,7 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
     "user_connection": "If enabled, the users will be able to send connection request to other members",
     "feed_repost": "If enabled, members can repost other other member posts",
     "nsfw_filtering": "To enable NSFW filtering for feed posts in the community",
-    "enable_guest_flow": "",
+    "enable_guest_flow": "If enabled, the guest flow will be enabled for the community",
     "user_topics_connection": "Enable User topics connection (follow/unfollow topics) in the community",
     "user_notifications": "Enable/Disable user notifications in the community",
 }
