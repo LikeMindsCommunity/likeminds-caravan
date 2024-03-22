@@ -100,6 +100,9 @@ def getUserListFromCoralogixData(coralogixData):
 
                 request_entry = request_json.get('request')
 
+                if not request_entry:
+                    continue
+
                 if request_entry.get('headers') and request_entry['headers'].get('x_member_id'):
                     users_list.add(request_entry['headers']['x_member_id'])
 
