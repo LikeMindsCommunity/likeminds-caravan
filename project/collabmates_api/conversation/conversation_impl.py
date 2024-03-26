@@ -63,7 +63,7 @@ from utility.request_utilities import RequestUtilities
 from utility.states import (member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes,
                             conversation_states, conversation_poll_types, chatroom_not_opened_types,
                             user_email_send_status_types, member_rights, unsubscribe_types, noti_states,
-                            chat_request_states, webhook_chatroom_methods, attachment_types, WidgetTypes)
+                            chat_request_states, webhook_chatroom_methods, attachment_types, WidgetTypes, WebhookTypes)
 
 from utility.webhook_utilities import (WebhookUtilties)
 from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, MAX_WEBHOOK_USERS_META_LIMIT)
@@ -87,8 +87,7 @@ from utility.string_utilities import StringUtilities
 from celery import shared_task
 from ..owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from collabmates_api.search.sync import ElasticSearchSync
-from collabmates_api.webhook.models import (WebhookTypes)
-from utility.api_client import ApiClient
+from utility.internal_service_utilities import InternalServiceUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -1040,9 +1039,10 @@ class ConversationImpl(ConversationManager):
                         return ResponseUtilities.get_impl_error_context("Widgets are disabled!",
                                                                         status_codes.HTTP_400_BAD_REQUEST)
 
-                    widget_response = ConversationHelper.create_widget_in_swarm(
+                    widget_response = InternalServiceUtilities.create_widget_in_swarm(
                         user_instance.userinfo.user_unique_id, chatroom_instance.community_id,
-                        conversation_instance.id, widget_metadata)
+                        entity_id=str(conversation_instance.id), entity_type=WidgetTypes.MESSAGE.value,
+                        metadata=widget_metadata)
 
                     if "error_message" in widget_response:
                         conversation_instance.delete()
@@ -2827,172 +2827,3 @@ class ConversationHelper:
             payload['replied_conversation_id'] = conversation_instance.reply_id
         
         return payload
-
-    @staticmethod
-    def create_widget_in_swarm(user_unique_id: str, community_id: int, conversation_id: int, metadata: dict):
-
-        if not (user_unique_id or community_id):
-            return ResponseUtilities.get_inner_error_context("Invalid user or API key!")
-
-        try:
-            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id,
-                                                                              'is_deleted': False}).first()
-
-            if not sdk_client_instance:
-                return ResponseUtilities.get_inner_error_context("Invalid community ID!")
-
-            api_key = sdk_client_instance.api_key
-
-            swarm_create_widget_url = settings.SWARM_BASE_URL + SWARM_WIDGET_ENDPOINT
-
-            client = ApiClient()
-            client.update_request_url(swarm_create_widget_url)
-
-            # Add headers
-            client.update_headers({
-                'x-member-id': user_unique_id,
-                'x-api-key': api_key
-            })
-
-            # Add Delete request body
-            client.update_body({
-                "parent_entity_id": str(conversation_id),
-                "parent_entity_type": WidgetTypes.MESSAGE.value,
-                "metadata": metadata
-            })
-
-            # Send delete request
-            response = client.post().response
-            response_data = response.json()
-
-            if response.status_code == 200:
-                info_logger.info(f"Successfully created widget for community: {community_id} & "
-                                 f"conversation: {conversation_id}")
-
-                if response_data.get('widget'):
-                    return response_data.get('widget')
-
-                return ResponseUtilities.get_inner_error_context("No widget data created!")
-
-            else:
-                error_logger.error(f"API failed while creating widget for community: {community_id}, conversation: "
-                                   f"{conversation_id}, metadata: {metadata}")
-
-                return response_data
-
-        except Exception as e:
-            error_logger.error(f"Exception occurred while creating widget for community: {community_id}, conversation: "
-                               f"{conversation_id}, metadata: {metadata}")
-            return ResponseUtilities.get_inner_error_context("Some error occurred!")
-
-    @staticmethod
-    def get_widget_data_from_swarm(user_unique_id: str, community_id: int, conversation_id: int):
-
-        if not (user_unique_id or community_id):
-            return ResponseUtilities.get_inner_error_context("Invalid user or API key!")
-
-        try:
-            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id,
-                                                                              'is_deleted': False}).first()
-
-            if not sdk_client_instance:
-                return ResponseUtilities.get_inner_error_context("Invalid community ID!")
-
-            api_key = sdk_client_instance.api_key
-
-            swarm_get_widget_url = settings.SWARM_BASE_URL + SWARM_WIDGET_ENDPOINT
-
-            client = ApiClient()
-
-            # Add headers
-            client.update_headers({
-                'x-member-id': user_unique_id,
-                'x-api-key': api_key
-            })
-
-            # Add request params
-            client.update_url_params({
-                "parent_entity_id": str(conversation_id),
-                "parent_entity_type": WidgetTypes.MESSAGE.value
-            })
-
-            client.update_request_url(swarm_get_widget_url + client.get_url_params())
-
-            # Send delete request
-            response = client.get().response
-            response_data = response.json()
-
-            if response.status_code == 200:
-                info_logger.info(f"Successfully fetched widget for community: {community_id} & "
-                                 f"conversation: {conversation_id}")
-
-                if response_data.get('widgets') and len(response_data.get('widgets')):
-                    return response_data
-
-                return ResponseUtilities.get_inner_error_context("No widgets data!")
-
-            else:
-                error_logger.error(f"API failed while fetching widget for community: {community_id}, conversation: "
-                                   f"{conversation_id}")
-
-                return response_data
-
-        except Exception as e:
-            error_logger.error(f"Exception occurred while fetching widget for community: {community_id}, conversation: "
-                               f"{conversation_id}")
-            return ResponseUtilities.get_inner_error_context("Some error occurred!")
-
-    @staticmethod
-    def update_widget_in_swarm(user_unique_id: str, community_id: int, widget_id: str, metadata: dict):
-
-        if not (user_unique_id or community_id):
-            return ResponseUtilities.get_inner_error_context("Invalid user or API key!")
-
-        try:
-            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id,
-                                                                              'is_deleted': False}).first()
-
-            if not sdk_client_instance:
-                return ResponseUtilities.get_inner_error_context("Invalid community ID!")
-
-            api_key = sdk_client_instance.api_key
-
-            swarm_update_widget_url = settings.SWARM_BASE_URL + SWARM_WIDGET_ENDPOINT + f"/{widget_id}"
-
-            client = ApiClient()
-            client.update_request_url(swarm_update_widget_url)
-
-            # Add headers
-            client.update_headers({
-                'x-member-id': user_unique_id,
-                'x-api-key': api_key
-            })
-
-            # Add Delete request body
-            client.update_body({
-                "metadata": metadata
-            })
-
-            # Send delete request
-            response = client.put().response
-            response_data = response.json()
-
-            if response.status_code == 200:
-                info_logger.info(f"Successfully updated widget for community: {community_id} & "
-                                 f"widget_id: {widget_id}")
-
-                if response_data.get('widget'):
-                    return response_data.get('widget')
-
-                return ResponseUtilities.get_inner_error_context("No widget data created!")
-
-            else:
-                error_logger.error(f"API failed while creating widget for community: {community_id}, widget_id: "
-                                   f"{widget_id}, metadata: {metadata}")
-
-                return response_data
-
-        except Exception as e:
-            error_logger.error(f"Exception occurred while creating widget for community: {community_id}, widget_id: "
-                               f"{widget_id}, metadata: {metadata}")
-            return ResponseUtilities.get_inner_error_context("Some error occurred!")

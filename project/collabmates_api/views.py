@@ -10964,14 +10964,15 @@ def edit_conversation(request):
                                                                         status_codes.HTTP_400_BAD_REQUEST)
                 return JsonResponse(**context)
 
-            widget_response = ConversationHelper.get_widget_data_from_swarm(
-                user_instance.userinfo.user_unique_id, community_id, conversation.id)
+            widget_response = InternalServiceUtilities.get_widget_data_from_swarm(
+                user_instance.userinfo.user_unique_id, community_id, entity_id=str(conversation.id),
+                entity_type=WidgetTypes.MESSAGE.value)
 
             if "error_message" not in widget_response and widget_response.get('widgets'):
                 widget_response = widget_response.get('widgets')[0]
                 widget_id = widget_response.get('_id')
 
-                widget_response = ConversationHelper.update_widget_in_swarm(
+                widget_response = InternalServiceUtilities.update_widget_in_swarm(
                     user_instance.userinfo.user_unique_id, community_id, widget_id, widget_metadata)
 
                 if "error_message" in widget_response:
@@ -10980,8 +10981,9 @@ def edit_conversation(request):
                     return JsonResponse(**context)
 
             else:
-                widget_response = ConversationHelper.create_widget_in_swarm(
-                    user_instance.userinfo.user_unique_id, community_id, conversation.id, widget_metadata)
+                widget_response = InternalServiceUtilities.create_widget_in_swarm(
+                    user_instance.userinfo.user_unique_id, community_id, entity_id=conversation.id,
+                    entity_type=WidgetTypes.MESSAGE.value, metadata=widget_metadata)
 
                 if "error_message" in widget_response:
                     context = ResponseUtilities.get_view_impl_error_context(widget_response.get('error_message'),
