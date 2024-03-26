@@ -9,7 +9,9 @@ from utility.string_utilities import StringUtilities
 from utility.time_utilities import TimeUtilities
 from utility.exception_utilities import CustomException
 from utility.response_utilities import ResponseUtilities
+from utility.internal_service_utilities import InternalServiceUtilities
 from utility.constants import (CONVERSATIONS_DISTINCT_CREATORS_KEY)
+from utility.cache_keys import (KETTLE_CACHE_KEY_USER_META)
 from utility.celery_tasks import (update_chatroom_conversation_creators_in_cache, set_levels_on_ctc_celery,
                                   update_multiple_previews_in_chatroom, set_level_click_state)
 from utility.states import (member_states, card_types, deleted_members, question_states, conversation_states,
@@ -1539,12 +1541,16 @@ class MemberCommunityImpl(MemberCommunityManager):
         name = req_body.get('name')
         widget_id = req_body.get('widget_id')
 
+        user_meta_updated = False
+
         if question_answers:
 
             from ..community.community_impl import CommunityHelper
 
             CommunityHelper.save_responses_of_member_in_community(user_instance.id, community_instance.id,
                                                                   question_answers, True)
+            
+            user_meta_updated = True
 
             for question in question_answers:
 
@@ -1589,12 +1595,13 @@ class MemberCommunityImpl(MemberCommunityManager):
             CommunityHelper.update_user_alias_name(user_instance.id, community_instance.id, name, question_states.NAME)
 
             update_preview = True
-
+            user_meta_updated = True
 
         if image_url:
             MemberCommunityHelper.update_users_image_url_in_community(user_member_filter, image_url,
                                                                       user_intro_card_instance)
             update_preview = True
+            user_meta_updated = True
 
             community = ModelUtilities.get_model_filter(SdkClient,
                                                         {"community": community_instance, "is_deleted": False})
@@ -1605,6 +1612,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         if widget_id:
             MemberCommunityHelper.update_widget_id_for_user(user_id=user_instance.id,
                                                             widget_id=widget_id)
+            
+            user_meta_updated = True
 
         if (not user_intro_card_instance) and (user_member_instance.state in [member_states.ADMIN,
                                                                               member_states.MEMBER,
@@ -1627,9 +1636,19 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                                               community_instance.id)
         CohortHelper.add_member_to_respective_question_based_cohorts(user_instance.id, community_instance.id)
 
+        # If user_meta_updated is True, then delete user meta cache from kettle service
+        if user_meta_updated:
+
+            cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_instance.id, user_id=user_instance.id,
+                key_patterns=[cache_key] 
+            )
+
         if question_answers_data:
             return {'success': True, 'question_answers': question_answers_data}
-
+        
         return {'success': True}
 
     def _get_sorted_chatroom_queryset_based_on_order_type(self, intro_room_settings_enabled, pin_status,

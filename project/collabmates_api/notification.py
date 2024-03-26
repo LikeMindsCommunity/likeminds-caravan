@@ -20,6 +20,7 @@ from togther.models import (Community_Rank, collabcardState,
                             userDevices, ModelUtilities, answerAttachment)
 from utility.list_utilities import ListUtilities
 from utility.string_utilities import StringUtilities
+from utility.webhook_utilities import WebhookUtilties
 
 from utility.utils import *
 from utility.time_utilities import TimeUtilities
@@ -29,8 +30,10 @@ from utility.constants import (INTRO_ROOM_LOOKBACK_PERIOD,
                                MINUTES_10, MINUTES_30, VALID_URLS_REGEX, 
                                ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_START,
                                ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END)
+from utility.version_utilities import VersionUtilities
 from project.celery import app
 from utility.states import *
+from collabmates_api.webhook.constants import WEBHOOK_SOURCE_FEED, WEBHOOK_SOURCE_CHAT
 
 import json
 from django.shortcuts import get_object_or_404
@@ -384,11 +387,138 @@ def pre_compute_user_devices_by_user_list(user_list, is_broadcast_notification=F
 
     return devices_dict
 
+def get_community_id_from_notification_message(message):
+    '''function to get community id from notification message payload'''
 
-def notification_meta(notification_list, message, is_broadcast_notification=False):
+    if message.get('payload'):
+        return message['payload'].get('community_id', None)
+
+    return None
+
+def send_notification_webhooks_in_chunks(payload: dict, uuids: list, webhooks, webhook_type, chunk_size: int=1000):
+    '''function to send webhook requests in chunks'''
+
+    total_uuids = len(uuids)
+    payload['data']['tota_pages'] = (total_uuids // chunk_size) + 1
+
+    # Trigger the webhooks in batches of chunk_size
+    for i in range(0, total_uuids, chunk_size):
+        start_index = i
+        end_index = i + chunk_size
+        uuids_batch = uuids[start_index:end_index]
+
+        for webhook in webhooks:
+
+            # Update the payload with client uuids
+            payload['id'] = str(uuid.uuid4())
+            payload['data']['uuids'] = uuids_batch
+            payload['data']['current_page'] = (i // chunk_size) + 1
+
+            # send webhook request
+            WebhookUtilties.send_webhook_request_with_payload.delay(
+                url=webhook.get('url'),
+                payload=payload,
+                webhook_type=webhook_type,
+                secret=webhook.get('secret')
+            )
+    
+def generate_payload_for_notification_webhooks(webhook_type, notification_payload):
+
+    source = ""
+
+    if webhook_type == WebhookTypes.NOTIFICATIONS_CHAT.value:
+        source = WEBHOOK_SOURCE_CHAT
+
+    elif webhook_type == WebhookTypes.NOTIFICATIONS_FEED.value:
+        source = WEBHOOK_SOURCE_FEED
+
+    # webhook payload
+    payload = {
+        "event": webhook_type,
+        "source": source,
+        "created_at": TimeUtilities.current_time_in_milliseconds(),
+        "data": {
+            "notification_payload": notification_payload,
+            "uuids": []
+        }
+    }
+
+    return payload
+
+@shared_task
+def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dict, community_id, sdk_source):
+    '''function to trigger webhooks for notifications'''
+
+    if not (user_ids and notification_payload and community_id):
+        return
+    
+    webhook_type = ""
+
+    # Set the webhook type 
+    if sdk_source == VersionUtilities.SdkSource.CHAT:
+        webhook_type = WebhookTypes.NOTIFICATIONS_CHAT.value
+
+    elif sdk_source == VersionUtilities.SdkSource.FEED:
+        webhook_type = WebhookTypes.NOTIFICATIONS_FEED.value
+
+    else:
+        return
+    
+    # Get active webhooks for the community
+    webhooks = WebhookUtilties.validate_and_fetch_all_webhook_url_and_secret(
+        community_id=community_id,
+        webhook_type=webhook_type
+    )
+
+    if not webhooks:
+        return
+    
+    # generate payload
+    payload =  generate_payload_for_notification_webhooks(webhook_type, notification_payload)
+
+     # Fetch client uuids
+    client_uuids = ModelUtilities.get_model_filter(SDKClientUsersInfo, {
+        'user_id__in': user_ids
+    }).values_list('user_unique_id', flat=True)
+
+    if not client_uuids:
+        return 
+
+    # trigger webhooks in chunks 
+    send_notification_webhooks_in_chunks(payload, list(client_uuids), webhooks, webhook_type, 1000)
+
+    return
+
+def notification_meta(notification_list, message, is_broadcast_notification: bool=False, sdk_source: str="chat"):
     """function to process notification to send"""
 
+    # Get the user ids from the notification list
     user_id_list = [user_dict['id'] for user_dict in notification_list]
+
+    # Get community id from the message payload
+    community_id = get_community_id_from_notification_message(message)
+
+    # Trigger webhooks for notifications
+    trigger_webhooks_for_notifications.delay(
+        user_ids=user_id_list,
+        notification_payload=message,
+        community_id=community_id,
+        sdk_source=sdk_source
+    )
+
+    # Check if user_notifications are enabled
+    user_notifications_disabled_filter = ModelUtilities.get_model_filter(CommunitySettings, {
+        'community_id': community_id,
+        'setting_type': community_setting_types.USER_NOTIFICATIONS,
+        'enabled': False
+    }).first()
+
+    # If user_notifications are disabled, then log and return 
+    if user_notifications_disabled_filter:
+        info_logger.info(f"User notifications are disabled for community: {community_id}, hence no notifications are triggered with message payload: {message} and for users: {user_id_list}")
+        return
+
+    # Pre compute user devices and their fcm tokens by user list
     user_device_dict = pre_compute_user_devices_by_user_list(user_list=user_id_list, 
                                                              is_broadcast_notification=is_broadcast_notification)
 

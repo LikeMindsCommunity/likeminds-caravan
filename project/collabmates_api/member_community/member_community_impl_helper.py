@@ -14,7 +14,7 @@ from utility.validation_utilities import ValidationUtilities
 from utility.json_utilities import JsonUtilities
 from utility.api_client import ApiClient
 from utility.constants import (CREATE_INTRO_TEXT_ADMIN)
-from utility.cache_keys import (COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY)
+from utility.cache_keys import (COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY, KETTLE_CACHE_KEY_USER_META)
 from utility.states import (card_types, community_setting_types, member_states, question_states, SyncTypes,
                             member_rights, community_dm_settings_state_types, community_dm_settings_duration_types,
                             conversation_states, DMFabShowList, api_types, get_started_types, click_states,
@@ -1690,6 +1690,16 @@ class MemberCommunityHelper:
 
             update_multiple_previews_in_community.delay({'community_id': community_instance.id})
 
+            from utility.internal_service_utilities import InternalServiceUtilities
+
+            # Delete user meta cache in kettle service
+            cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_instance.id, user_id=user_instance.id,
+                key_patterns=[cache_key] 
+            )
+
             return True
 
         except Exception as e:
@@ -1734,11 +1744,19 @@ class MemberCommunityHelper:
             ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, user_id)
             MixpanelEvents.leave_community.delay(user_id, community_id)
 
-            # Send delete request to swarm service to delete feed data
-            from collabmates_api.community.community_impl import CommunityHelper
+            from utility.internal_service_utilities import InternalServiceUtilities
 
-            CommunityHelper.remove_users_feed_data.delay(community_instance.id, user_instance.id,
-                                                         [user_instance.userinfo.user_unique_id], False)
+            # Delete user meta cache in kettle service
+            cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_instance.id, user_id=user_instance.id,
+                key_patterns=[cache_key] 
+            )
+
+            # Send delete request to swarm service to delete feed data
+            InternalServiceUtilities.remove_users_feed_data.delay(community_instance.id, user_instance.id,
+                                                                  [user_instance.userinfo.user_unique_id], False)
 
             return True
 

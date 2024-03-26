@@ -84,7 +84,10 @@ COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
     "create_poll": "Create Poll",
     "user_connection": "User Connection",
     "feed_repost": "Feed Repost",
-    "nsfw_filtering": "NSFW Filtering for feed"
+    "nsfw_filtering": "NSFW Filtering for feed",
+    "user_topics_connection": "User Topics Connection",
+    "enable_guest_flow": "Enable guest flow",
+    "user_notifications": "User Notifications",
 }
 
 COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
@@ -106,7 +109,10 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
     "create_poll": "",
     "user_connection": "If enabled, the users will be able to send connection request to other members",
     "feed_repost": "If enabled, members can repost other other member posts",
-    "nsfw_filtering": "To enable NSFW filtering for feed posts in the community"
+    "nsfw_filtering": "To enable NSFW filtering for feed posts in the community",
+    "enable_guest_flow": "If enabled, the guest flow will be enabled for the community",
+    "user_topics_connection": "Enable User topics connection (follow/unfollow topics) in the community",
+    "user_notifications": "Enable/Disable user notifications in the community",
 }
 
 DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED = "Community managers will be able to message all members and vice-versa."
@@ -221,10 +227,6 @@ COMMUNITY_REMOVE_MEMBER_S3_BUCKET = "media_bucket"
 COMMUNITY_REMOVE_MEMBER_S3_FILE_PATH = "member_removal_reports/{}/{}_removal_report_{}.csv"
 COMMUNITY_MEMBER_REMOVAL_REPORTS_PATH = "member_removal_reports/{}/"
 COMMUNITYY_MEMBER_REMOVAL_S3_DOWNLOAD_URL = "https://{}.s3.{}.amazonaws.com/{}"
-
-SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT = "/user"
-SWARM_DELETE_CACHE_ENDPOINT = "/cache"
-SWARM_PENDING_POST_UPDATE_ENDPOINT = "/post/pending/{}"
 
 # Report Types string consants
 REPORT_TYPE_MEMBER = "member"

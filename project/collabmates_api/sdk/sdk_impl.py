@@ -315,6 +315,29 @@ class SdkImpl(SdkManager):
 
         return response
 
+    def fetch_sdk_user_info(self, uuid: str) -> dict:
+        validated_request_body = SdkViewHelper.validate_fetch_sdk_user_info_request(self.member_id,
+                                                                                          self.api_key,
+                                                                                          uuid)
+
+        if 'error_message' in validated_request_body:
+            return ResponseUtilities.get_impl_error_context(validated_request_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request_body.get('community_instance')
+        uuid_sdk_client_instance = validated_request_body.get('uuid_sdk_client_instance')
+
+        user_impl = UserImpl(user_id="", mobile_no="")
+        user_object = user_impl.compute_logged_in_user(uuid_sdk_client_instance.user.userinfo,
+                                                       sdk_client_user_info_instance=uuid_sdk_client_instance)
+
+        return {
+            'success': True,
+            'user': user_object,
+            'community': CommunitySerializerV1(community_instance, context={'send_community_settings': True}).data,
+            'app_access': validated_request_body.get('app_access', True)
+        }
+
     def authenticate_sdk(self) -> dict:
 
         api_key_validation = AuthUtilities.validate_api_key(self.get_api_key())

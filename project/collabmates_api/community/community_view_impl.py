@@ -328,6 +328,7 @@ class FetchMembersMeta(APIView):
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+        api_version = RequestUtilities.get_api_version_from_headers(request)
 
         community_id = request.GET.get('community_id')
         member_ids = request.GET.get('member_ids')
@@ -340,7 +341,7 @@ class FetchMembersMeta(APIView):
         try:
             # Pagination & search support for newer versions
             if VersionUtilities.check_version(platform_code, version_code,
-                                              VersionUtilities.members_meta_pagination_and_search, sdk_source):
+                                              VersionUtilities.members_meta_pagination_and_search, sdk_source, api_version):
                 community_data = community_manager.fetch_members_meta_v2(member_ids, page, page_size, search_name)
 
             else:

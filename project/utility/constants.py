@@ -125,6 +125,7 @@ FEED_METADATA_CONFIGURATION = "feed_metadata"
 PROFILE_METADATA_CONFIGURATION = "profile_metadata"
 NSFW_FILTERING_CONFIGURATION = "nsfw_filtering"
 WIDGETS_METADATA_CONFIGURATION = "widgets_metadata"
+GUEST_FLOW_METADATA_CONFIGURATION = "guest_flow_metadata"
 
 # Community Configurations
 COMMUNITY_CONFIGURATIONS = {
@@ -144,7 +145,12 @@ COMMUNITY_CONFIGURATIONS = {
         "description": "Metadata related to feed and its entity",
         "value":
         {
-            "post": "post"
+            "post": "post",
+            "universal_feed": {
+                "comment_sort_order_key": "",
+                "comment_sort_order": "",
+                "comment_count": 1
+            }
         }
     },
     PROFILE_METADATA_CONFIGURATION:
@@ -176,7 +182,27 @@ COMMUNITY_CONFIGURATIONS = {
         {
             "message": False
         }
+    },
+    GUEST_FLOW_METADATA_CONFIGURATION:
+    {
+        "type": "guest_flow_metadata",
+        "description": "Community configurations for guest flow",
+        "value":
+        {
+            "guest_users": "SINGLE"
+        }
     }
 }
 
 SWARM_WIDGET_ENDPOINT = "/widget"
+
+# Internal Platform types
+PLATFORM_TYPE_CARAVAN_SERVICE = "caravan-service"
+
+# Swarm endpoints
+SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT = "/user"
+SWARM_PENDING_POST_UPDATE_ENDPOINT = "/post/pending/{}"
+SWARM_DELETE_CACHE_ENDPOINT = "/cache"
+
+# Kettle endpoints
+KETTLE_DELETE_CACHE_ENDPOINT = "/cache"

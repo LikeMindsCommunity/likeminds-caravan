@@ -29,6 +29,7 @@ from collabmates_api.notification import send_sync_notification, send_notificati
 from collabmates_api.sync.model_update import update_models_for_syncing_apis
 from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.number_utilities import NumberUtilities
+from utility.internal_service_utilities import InternalServiceUtilities
 from external_services.email.email_wrapper import MailWrapper, MailHelper
 from external_services.airtable.airtable_wrapper import AirtableWrapper
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
@@ -59,8 +60,9 @@ from external_services.wa_notification.wa_notification_impl import NotificationI
 from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 
-from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY)
-
+from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY, 
+                                KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META, 
+                                KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY)
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -79,13 +81,13 @@ from utility.states import member_states, card_types, click_states, member_right
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
     api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
-    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus
+    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus, GuestFlowUserTypes
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
-from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDIA_LIMITS_CONFIGURATION, 
-                               FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION,
-                               NSFW_FILTERING_CONFIGURATION, WIDGETS_METADATA_CONFIGURATION)
+from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDIA_LIMITS_CONFIGURATION,
+                               FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION, 
+                               PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION, WIDGETS_METADATA_CONFIGURATION)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -1401,6 +1403,13 @@ class CommunityImpl(CommunityManager):
                                                                         user_instance.id,
                                                                         NSFW_FILTERING_CONFIGURATION,
                                                                         {'enabled': community_setting["enabled"]})
+                
+            if community_setting["setting_type"] == community_setting_types.USER_TOPICS_CONNECTION:
+
+                # Delete kettle community settings cache if user topics connection setting is updated
+                InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                    community_instance.id, user_instance.id,
+                    [KETTLE_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id)])
 
             if not community_setting['enabled']:
                 disabled_community_setting_context = {
@@ -2185,7 +2194,9 @@ class CommunityImpl(CommunityManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         member_instance = validated_req_body.get('member_instance')
+        community_instance = validated_req_body.get('community_instance')
         userinfo_instance = member_instance.userinfo
+        user_meta_updated = False
 
         if req_body.get('user_name'):
             userinfo_instance.name = req_body.get('user_name')
@@ -2196,6 +2207,8 @@ class CommunityImpl(CommunityManager):
             ElasticSearchSync.update_user_name.delay(member_instance.id, userinfo_instance.name)
             ElasticSearchSync.update_member_name.delay(member_instance.id, userinfo_instance.name)
 
+            user_meta_updated = True
+
         if req_body.get('image_url'):
             previous_image_url = userinfo_instance.image_link
             userinfo_instance.image_link = req_body.get('image_url')
@@ -2205,6 +2218,17 @@ class CommunityImpl(CommunityManager):
             update_preview_for_account_image_change.delay({'user_id': member_instance.id,
                                                            'image_url': req_body.get('image_url'),
                                                            'previous_image_url': previous_image_url})
+            
+            user_meta_updated = True
+
+        # Delete user meta cache in kettle service
+        if user_meta_updated:
+            cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, userinfo_instance.user_unique_id)
+
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_instance.id, user_id=member_instance.id,
+                key_patterns=[cache_key] 
+            )
 
         return {'success': True}
 
@@ -2555,7 +2579,7 @@ class CommunityImpl(CommunityManager):
 
         return response
 
-    def update_community_configurations(self, req_body) -> dict:
+    def update_community_configurations(self, req_body: dict = None) -> dict:
         validated_request = CommunityHelper.validate_update_community_configurations_request(self.get_member_id(),
                                                                                              self.get_api_key(),
                                                                                              req_body)
@@ -4025,7 +4049,8 @@ class CommunityHelper:
             project_creator_instance = ModelUtilities.get_user_instance_or_none(req_body.get('project_creator'))
 
         # send community created mail to the team
-        CommunityHelper.send_community_creation_email_to_team(member_instance, community_instance, project_creator_instance=project_creator_instance)
+        CommunityHelper.send_community_creation_email_to_team(member_instance, community_instance,
+                                                              project_creator_instance=project_creator_instance)
 
         # Create Content Download Settings
         CommunityHelper.create_content_download_settings_for_community(community_instance)
@@ -4298,6 +4323,10 @@ class CommunityHelper:
 
                 CommunityHelper.add_create_edit_question_analytics.delay(
                     question_instance.id, user_id, question_state=question_change_states.EDIT_QUESTION)
+                
+                # Delete user meta cache for users with this question
+                CommunityHelper.delete_user_meta_cache_for_users_with_question(question_instance.id, 
+                                                                               community_instance.id)
 
             else:
                 error_logger.error("UPDATE COMMUNITY QUESTIONS, Not valid: " + str(
@@ -4327,6 +4356,11 @@ class CommunityHelper:
                                                                          'questions_type':
                                                                              question_instance.question_state
                                                                      })
+            
+            # Delete user meta cache for users with this question
+            CommunityHelper.delete_user_meta_cache_for_users_with_question(question_instance.id, 
+                                                                           community_instance.id)
+
 
         ModelUtilities.get_model_filter(communityQuestions, {'id__in': delete_question_ids,
                                                              'community': community_instance}).delete()
@@ -5434,8 +5468,8 @@ class CommunityHelper:
 
         # Call swarm service to remove users feed data
         if lm_uuids:
-            CommunityHelper.remove_users_feed_data.delay(community_id=community_id, user_id=current_user_id, 
-                                                         lm_uuids=lm_uuids, is_cm=True)
+            InternalServiceUtilities.remove_users_feed_data.delay(
+                community_id=community_id, user_id=current_user_id, lm_uuids=lm_uuids, is_cm=True)
 
         # If function call is Async, upload reports to s3
         if is_async:
@@ -5497,6 +5531,14 @@ class CommunityHelper:
             ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, user_id)
 
             CohortHelper.fetch_user_cohorts_having_filters_with_community_id(community_id, user_instance)
+
+            # Delete user meta cache in kettle service
+            cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_instance.id, user_id=user_instance.id,
+                key_patterns=[cache_key] 
+            )
 
             info_logger.info(f"Successfully removed user {user_id} from community {community_id} by {current_user_id}")
 
@@ -5645,52 +5687,6 @@ class CommunityHelper:
             })
 
         return removal_reports
-    
-    @staticmethod
-    @shared_task
-    def remove_users_feed_data(community_id: int, user_id: int, lm_uuids: list, is_cm: bool):
-
-        if not lm_uuids:
-            return
-        
-        try:    
-            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
-            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
-
-            if not (user_info_filter and sdk_client_instance):
-                return
-
-            user_feed_removal_endpoint = settings.SWARM_BASE_URL + SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT
-
-            client = ApiClient()
-            client.update_request_url(user_feed_removal_endpoint)
-
-            # Add headers
-            client.update_headers({
-                'x-member-id': user_info_filter.user_unique_id,
-                'x-api-key': sdk_client_instance.api_key
-            })
-
-            # Add Delete request body
-            client.update_body({
-                "user_ids": lm_uuids,
-                "user_is_cm": is_cm
-            })
-
-            # Send delete request
-            response = client.delete().response
-
-            if response.status_code == 200:
-                info_logger.info(f"Successfully removed users feed data (if exists) for community: {community_id} for users: {lm_uuids}")
-
-            else:
-                error_logger.error(f"Failed to remove users feed data for community {community_id} for users: {lm_uuids} - status code: {response.status_code} | response: {response.json()}")
-
-            return 
-        
-        except Exception as e:
-            error_logger.error(f"Exception occurred while removing users feed data - {e.args}")
-            return
 
     @staticmethod
     def fetch_or_return_default_community_configurations(community_instance, community_configuration_types: list):
@@ -5716,7 +5712,8 @@ class CommunityHelper:
     
     @staticmethod
     @shared_task
-    def update_configuration_of_community(community_id: int, user_id: int, configuration_type: str, update_values: dict):
+    def update_configuration_of_community(community_id: int, user_id: int, configuration_type: str,
+                                          update_values: dict):
 
         record_updated = False
 
@@ -5743,20 +5740,45 @@ class CommunityHelper:
                 record_updated = True
 
         elif configuration_type == FEED_METADATA_CONFIGURATION:
-            
+
             if update_values.get('post') and isinstance(update_values.get('post'), str):
                 configuration_value['post'] = update_values.get('post')
                 record_updated = True
 
+            if isinstance(update_values.get('universal_feed'), dict):
+                configuration_value['universal_feed'] = update_values.get('universal_feed')
+
+                if not isinstance(configuration_value['universal_feed'], dict):
+                    configuration_value['universal_feed'] = {}
+
+                comment_sort_order_on = update_values.get('universal_feed').get('comment_sort_order_key')
+                comment_sort_order = update_values.get('universal_feed').get('comment_sort_order')
+                comment_count = update_values.get('universal_feed').get('comment_count')
+
+                if isinstance(comment_sort_order_on, str):
+                    configuration_value['universal_feed']['comment_sort_order_key'] = comment_sort_order_on
+
+                if isinstance(comment_sort_order, str):
+                    configuration_value['universal_feed']['comment_sort_order'] = comment_sort_order
+
+                if isinstance(comment_count, int):
+                    configuration_value['universal_feed']['comment_count'] = comment_count
+
+                record_updated = True
+
+                # Delete swarm cache corresponding to universal feed
+                InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+                    community_id=community_id, user_id=user_id,
+                    key_pattern=SWARM_TOP_LIKED_COMMENTS_CACHE_KEY.format(community_id))
+
         elif configuration_type == PROFILE_METADATA_CONFIGURATION:
             
-            if (update_values.get('widgets_enabled') is not None) and isinstance(update_values.get(
-                    'widgets_enabled'), bool):
+            if (update_values.get('widgets_enabled') is not None) and isinstance(
+                    update_values.get('widgets_enabled'), bool):
                 configuration_value['widgets_enabled'] = update_values.get('widgets_enabled')
                 record_updated = True
 
         elif configuration_type == NSFW_FILTERING_CONFIGURATION:
-
             # If NSFW Filtering is toggled, update configurations and community settings
             if (update_values.get('enabled') is not None) and isinstance(update_values.get('enabled'), bool) and \
                     update_values.get('enabled') != configuration_value.get('enabled'):
@@ -5791,6 +5813,22 @@ class CommunityHelper:
                 configuration_value['message'] = update_values.get('message')
                 record_updated = True
 
+        elif configuration_type == GUEST_FLOW_METADATA_CONFIGURATION:
+            filter_dict = {
+                'community': community_id,
+                'setting_type': community_setting_types.ENABLE_GUEST_FLOW
+            }
+
+            community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
+
+            if community_setting_instance and community_setting_instance.enabled:
+
+                if update_values.get('guest_users') and isinstance(update_values.get('guest_users'), str) and (
+                        update_values.get('guest_users') in [GuestFlowUserTypes.SINGLE.value,
+                                                             GuestFlowUserTypes.MULTIPLE.value]):
+                    configuration_value['guest_users'] = update_values.get('guest_users')
+                    record_updated = True
+
         # Update configuration instance if record is updated
         if record_updated:
             configuration_instance.value = configuration_value
@@ -5798,9 +5836,16 @@ class CommunityHelper:
 
             # Call SWARM api to delete cache key to update configurations
             if configuration_type in [FEED_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION]:
-                CommunityHelper.delete_cache_from_swarm_service.delay(
-                    community_id=community_id, user_id=user_id, cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(
-                        community_id)))
+                InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+                    community_id=community_id, user_id=user_id, 
+                    cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
+
+            # Call Kettle api to delete cache key for profile metadata
+            if configuration_type in [PROFILE_METADATA_CONFIGURATION]:
+                InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                    community_id=community_id, user_id=user_id,
+                    key_patterns=[KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS.format(community_id)]
+                )
 
             # Delete cache key for widget configurations
             if configuration_type in [WIDGETS_METADATA_CONFIGURATION]:
@@ -5808,51 +5853,6 @@ class CommunityHelper:
                 CacheImpl.delete_key(cache_key)
 
         return record_updated, configuration_instance
-
-    @staticmethod
-    @shared_task
-    def delete_cache_from_swarm_service(community_id: int, user_id: int, cache_key: str):
-        if not cache_key:
-            return
-        
-        try:    
-            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
-            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
-
-            if not (user_info_filter and sdk_client_instance):
-                return
-
-            cache_removal_endpoint = settings.SWARM_BASE_URL + SWARM_DELETE_CACHE_ENDPOINT
-
-            client = ApiClient()
-            client.update_request_url(cache_removal_endpoint)
-
-            # Add headers
-            client.update_headers({
-                'x-member-id': user_info_filter.user_unique_id,
-                'x-api-key': sdk_client_instance.api_key
-            })
-
-            # Add Delete request body
-            client.update_body({
-                "cache_key": cache_key
-            })
-
-            # Send delete request
-            response = client.delete().response
-
-            if response.status_code == 200:
-                info_logger.info(f"Successfully deleted cache for community: {community_id} for key: {cache_key}")
-
-            else:
-                error_logger.error(f"Error deleting cache for community: {community_id} for key: {cache_key} - \
-                                   status code: {response.status_code} | response: {response.json()}")
-
-            return 
-        
-        except Exception as e:
-            error_logger.error(f"Exception occurred while deleting cache from swarm - {e.args}")
-            return
     
     @staticmethod
     def validate_inferdo_api_key_for_nsfw_filtering(api_key:str, community_instance, user_instance) -> dict:
@@ -5909,10 +5909,8 @@ class CommunityHelper:
         for report in report_instances:
 
             pending_post_id = report.entity_id
-            response = CommunityHelper.approve_or_reject_pending_post_in_swarm_service(sdk_client_instance.api_key, 
-                                                                                       user_instance.user_unique_id,
-                                                                                       pending_post_id, 
-                                                                                       status)
+            response = InternalServiceUtilities.approve_or_reject_pending_post_in_swarm_service(
+                sdk_client_instance.api_key,user_instance.user_unique_id, pending_post_id, status)
             
             # If there was an error from swarm service log the error and continue
             if response.get('error_message'):
@@ -5928,40 +5926,22 @@ class CommunityHelper:
             info_logger.info(f"Successfully approved/rejected {pending_post_id} pending post for report: {report.id}")
 
         return
-        
+    
     @staticmethod
-    def approve_or_reject_pending_post_in_swarm_service(api_key: str, user_id: str, pending_post_id: str, 
-                                                        status: str) -> dict:
-        
-        try:
+    def delete_user_meta_cache_for_users_with_question(question_id: int, community_id: int):
 
-            if not (api_key and user_id and pending_post_id and status):
-                return ResponseUtilities.get_inner_error_context("Invalid request body")
+        if not (question_id and community_id):
+            return
 
-            pending_post_update_endpoint = settings.SWARM_BASE_URL + SWARM_PENDING_POST_UPDATE_ENDPOINT.format(pending_post_id)
+        # Fetch question answers
+        user_answer_instances = ModelUtilities.get_model_filter(communityAnswers, 
+                                                   {'question_id': question_id, 
+                                                    'community_id': community_id}
+                                                    )
 
-            client = ApiClient()
-            client.update_request_url(pending_post_update_endpoint)
-
-            # Add headers
-            client.update_headers({
-                'x-member-id': user_id,
-                'x-api-key': api_key
-            })
-
-            # Add request body
-            client.update_body({
-                "status": status
-            })
-
-            # Send patch request
-            response = client.patch().response
-
-            if response.status_code != 200:
-                error_response = response.json()
-                return {'error_message': error_response}
-
-            return {'success': True}
-        
-        except Exception as e:
-            return {'error_message': f"Exception occurred while approving/rejecting pending post in swarm - {e.args}"}
+        for user_answer_instance in user_answer_instances:
+            user_instance = user_answer_instance.member
+            cache_key = KETTLE_CACHE_KEY_USER_META.format(community_id, user_instance.userinfo.user_unique_id)
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_id, user_id=user_instance.id, key_patterns=[cache_key]
+            )

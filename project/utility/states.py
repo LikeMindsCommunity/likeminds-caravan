@@ -547,6 +547,9 @@ class CommunitySettingTypes:
     USER_CONNECTION = "user_connection"
     FEED_REPOST = "feed_repost"
     NSFW_FILTERING = "nsfw_filtering"
+    ENABLE_GUEST_FLOW = "enable_guest_flow"
+    USER_TOPICS_CONNECTION = "user_topics_connection"
+    USER_NOTIFICATIONS = "user_notifications"
 
 
 community_setting_types = CommunitySettingTypes()
@@ -670,6 +673,15 @@ class WebhookTypes(enum.Enum):
     CHATROOM_USER_TAGGED = "chatroom.user.tagged"
     CHATROOM_CONVERSATION_REPLIED = "chatroom.conversation.replied"
     PROFILE_CREATED = "profile.created"
+    POST_CREATED = "post.created"
+    POST_PINNED = "post.pinned"
+    POST_LIKED = "post.liked"
+    POST_TAGGED = "post.tagged"
+    COMMENT_ADDED = "comment.added"
+    COMMENT_TAGGED = "comment.tagged"
+    COMMENT_REACT = "comment.react"
+    NOTIFICATIONS_CHAT = "notifications.chat"
+    NOTIFICATIONS_FEED = "notifications.feed"
 
     @classmethod
     def validate_webhook_type(cls, webhook_type) -> bool:
@@ -1008,3 +1020,16 @@ class ChannelActionTypes(enum.Enum):
 
 class WidgetTypes(enum.Enum):
     MESSAGE = "message"
+
+
+class GuestFlowUserTypes(enum.Enum):
+    SINGLE = "SINGLE"
+    MULTIPLE = "MULTIPLE"
+
+
+class CommunityConfigurationTypes(enum.Enum):
+    MEDIA_LIMITS = "media_limits"
+    FEED_METADATA = "feed_metadata"
+    PROFILE_METADATA = "profile_metadata"
+    NSFW_FILTERING = "nsfw_filtering"
+    GUEST_FLOW_METADATA = "guest_flow_metadata"
