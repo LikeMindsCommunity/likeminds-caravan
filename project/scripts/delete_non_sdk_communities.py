@@ -42,21 +42,23 @@ def delete_table_rows(community_id: int, match_string, model):
     
     rows_count_before_delete = model.objects.count()
     
-    ModelUtilities.delete_record_in_model(
+    rows_to_delete = ModelUtilities.get_model_filter(
         model,
         {
             match_string: community_id
         }
     )
+
+    rows_to_delete_count = rows_to_delete.count()
     
+    rows_to_delete.delete()
+
     rows_count_after_delete = model.objects.count()
-    delete_count = rows_count_before_delete - rows_count_after_delete
+    
+    if (rows_count_before_delete - rows_to_delete_count) != rows_count_after_delete:
+        raise Exception(f'delete operation for {model._meta.db_table} FAILED')
 
-    if delete_count == 0:
-        print(f'{model._meta.db_table} : no rows found, FAILED')
-        return
-
-    print(f'{model._meta.db_table} : {delete_count} rows deleted, {rows_count_after_delete} rows remaining, PASSED')
+    print(f'{model._meta.db_table} : {rows_to_delete_count} rows deleted, {rows_count_after_delete} rows remaining, PASSED')
 
 
 
