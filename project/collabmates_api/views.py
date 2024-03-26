@@ -10982,7 +10982,7 @@ def edit_conversation(request):
 
             else:
                 widget_response = InternalServiceUtilities.create_widget_in_swarm(
-                    user_instance.userinfo.user_unique_id, community_id, entity_id=conversation.id,
+                    user_instance.userinfo.user_unique_id, community_id, entity_id=str(conversation.id),
                     entity_type=WidgetTypes.MESSAGE.value, metadata=widget_metadata)
 
                 if "error_message" in widget_response:

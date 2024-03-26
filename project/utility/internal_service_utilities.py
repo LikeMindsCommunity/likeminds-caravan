@@ -241,7 +241,7 @@ class InternalServiceUtilities:
 
             if response.status_code == 200:
                 info_logger.info(f"Successfully created widget for community: {community_id} & "
-                                 f"conversation: {conversation_id}")
+                                 f"entity_id: {entity_id}, entity_type: {entity_type}")
 
                 if response_data.get('widget'):
                     return response_data.get('widget')
@@ -249,14 +249,14 @@ class InternalServiceUtilities:
                 return ResponseUtilities.get_inner_error_context("No widget data created!")
 
             else:
-                error_logger.error(f"API failed while creating widget for community: {community_id}, conversation: "
-                                   f"{conversation_id}, metadata: {metadata}")
+                error_logger.error(f"API failed while creating widget for community: {community_id}, "
+                                   f"entity_id: {entity_id}, entity_type: {entity_type}, metadata: {metadata}")
 
                 return response_data
 
         except Exception as e:
-            error_logger.error(f"Exception occurred while creating widget for community: {community_id}, conversation: "
-                               f"{conversation_id}, metadata: {metadata}")
+            error_logger.error(f"Exception occurred while creating widget for community: {community_id}, "
+                               f"entity_id: {entity_id}, entity_type: {entity_type}, metadata: {metadata}")
             return ResponseUtilities.get_inner_error_context("Some error occurred!")
 
     @staticmethod
