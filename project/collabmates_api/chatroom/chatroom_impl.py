@@ -1162,7 +1162,8 @@ class ChatroomImpl(ChatroomManager):
             error_logger.error(f"[process_chatroom] chatroom/fetch_all_old")
 
             chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
-            chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
+            chatroom_context_list = chatroom_member_impl.process_chatroom_list(
+                chatroom_list, community_instance, sdk_client_info_flag=True)
 
         return {'success': True, 'chatrooms': chatroom_context_list, 'total_chatroom_count': total_chatroom_count}
 
