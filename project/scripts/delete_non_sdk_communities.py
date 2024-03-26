@@ -73,7 +73,7 @@ def delete_community_cache(community_id: int) -> None:
         'id',
         flat=True
     )
-    print('preview_conversation_ids: ', list(set(community_preview_conversation_ids)))
+    print('preview_conversation_ids: ', list(community_preview_conversation_ids))
 
     for community_preview_conversation_id in community_preview_conversation_ids:
         # "COMMUNITY_PREVIEW_%s_%s"
@@ -92,8 +92,7 @@ def delete_community_cache(community_id: int) -> None:
         'id',
         flat=True
     )
-    # .exclude(id__in=community_preview_conversation_ids)
-    print('conversation_ids: ', list(set(conversation_ids)))
+    print('conversation_ids: ', list(conversation_ids))
     
     for conversation_id in conversation_ids:
         # # "conversation_poll_options_%s"
@@ -126,7 +125,7 @@ def delete_community_cache(community_id: int) -> None:
         'id',
         flat=True
     )
-    print('chatroom_ids: ', list(set(chatroom_ids)))
+    print('chatroom_ids: ', list(chatroom_ids))
 
     for chatroom_id in chatroom_ids:
         chatroom_reactions_cache_key: str = CHATROOM_REACTIONS_CACHE_KEY % str(chatroom_id)
@@ -141,7 +140,7 @@ def delete_community_cache(community_id: int) -> None:
         chatroom_type_conversion_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_type_conversion_cache_key)
         print(f'deleting key: {chatroom_type_conversion_cache_key}, status: {chatroom_type_conversion_cache_key_delete_status}')
 
-        chatroom_list_cache_key: str = COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY.format(chatroom_id)
+        chatroom_list_cache_key: str = COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY.format(community_id)
         chatroom_list_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_list_cache_key)
         print(f'deleting key: {chatroom_list_cache_key}, status: {chatroom_list_cache_key_delete_status}')
 
