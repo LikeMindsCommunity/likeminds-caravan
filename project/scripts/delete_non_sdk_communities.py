@@ -56,7 +56,7 @@ def delete_table_rows(community_id: int, match_string, model):
         print(f'{model._meta.db_table} : no rows found, FAILED')
         return
 
-    print(f'{model._meta.db_table} : {delete_count} rows deleted, PASSED')
+    print(f'{model._meta.db_table} : {delete_count} rows deleted, {rows_count_after_delete} rows remaining, PASSED')
 
 
 
@@ -95,24 +95,21 @@ def delete_community_cache(community_id: int) -> None:
     print('conversation_ids: ', list(conversation_ids))
     
     for conversation_id in conversation_ids:
-        # # "conversation_poll_options_%s"
         poll_options_cache_key: str = CONVERSATION_POLL_OPTIONS_CONVERSATION_ID % str(conversation_id)
         poll_options_cache_key_delete_status: bool = CacheImpl.delete_key(poll_options_cache_key)
-        print(f'deleting key: {poll_options_cache_key}, status: {poll_options_cache_key_delete_status}')
+        print(f'deleting cache key: {poll_options_cache_key}, status: {poll_options_cache_key_delete_status}')
     
-        # "conversation_poll_voters_%s"
         poll_voters_cache_key: str = CONVERSATION_POLL_VOTERS_CONVERSATION_ID % str(conversation_id)
         poll_voters_cache_key_delete_status: bool = CacheImpl.delete_key(poll_voters_cache_key)
-        print(f'deleting key: {poll_voters_cache_key}, status: {poll_voters_cache_key_delete_status}')
+        print(f'deleting cache key: {poll_voters_cache_key}, status: {poll_voters_cache_key_delete_status}')
 
-        # "conversation_reaction_%s"
         reaction_cache_key: str = CONVERSATION_REACTIONS_CACHE_KEY % str(conversation_id)
         reaction_cache_key_delete_status: bool = CacheImpl.delete_key(reaction_cache_key)
-        print(f'deleting key: {reaction_cache_key}, status: {reaction_cache_key_delete_status}')
+        print(f'deleting cache key: {reaction_cache_key}, status: {reaction_cache_key_delete_status}')
 
         conversation_event_attendees_cache_key = EVENT_ATTENDEES_CONVERSATION % str(conversation_id)
         conversation_event_attendees_cache_key_delete_status: bool = CacheImpl.delete_key(conversation_event_attendees_cache_key)
-        print(f'deleting key: {conversation_event_attendees_cache_key}, status: {conversation_event_attendees_cache_key_delete_status}')
+        print(f'deleting cache key: {conversation_event_attendees_cache_key}, status: {conversation_event_attendees_cache_key_delete_status}')
         
 
     # chatroom cache
@@ -130,39 +127,39 @@ def delete_community_cache(community_id: int) -> None:
     for chatroom_id in chatroom_ids:
         chatroom_reactions_cache_key: str = CHATROOM_REACTIONS_CACHE_KEY % str(chatroom_id)
         chatroom_reactions_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_reactions_cache_key)
-        print(f'deleting key: {chatroom_reactions_cache_key}, status: {chatroom_reactions_cache_key_delete_status}')
+        print(f'deleting cache key: {chatroom_reactions_cache_key}, status: {chatroom_reactions_cache_key_delete_status}')
 
         chatroom_participants_cache_key: str = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(chatroom_id)
         chatroom_participants_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_participants_cache_key)
-        print(f'deleting key: {chatroom_participants_cache_key}, status: {chatroom_participants_cache_key_delete_status}')
+        print(f'deleting cache key: {chatroom_participants_cache_key}, status: {chatroom_participants_cache_key_delete_status}')
 
         chatroom_type_conversion_cache_key: str = CHATROOM_TYPE_CONVERSION.format(chatroom_id)
         chatroom_type_conversion_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_type_conversion_cache_key)
-        print(f'deleting key: {chatroom_type_conversion_cache_key}, status: {chatroom_type_conversion_cache_key_delete_status}')
+        print(f'deleting cache key: {chatroom_type_conversion_cache_key}, status: {chatroom_type_conversion_cache_key_delete_status}')
 
         chatroom_list_cache_key: str = COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY.format(community_id)
         chatroom_list_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_list_cache_key)
-        print(f'deleting key: {chatroom_list_cache_key}, status: {chatroom_list_cache_key_delete_status}')
+        print(f'deleting cache key: {chatroom_list_cache_key}, status: {chatroom_list_cache_key_delete_status}')
 
         event_instructors_cache_key = EVENT_INSTRUCTORS_CHATROOM % str(chatroom_id)
         event_instructors_cache_key_delete_status: bool = CacheImpl.delete_key(event_instructors_cache_key)
-        print(f'deleting key: {event_instructors_cache_key}, status: {event_instructors_cache_key_delete_status}')
+        print(f'deleting cache key: {event_instructors_cache_key}, status: {event_instructors_cache_key_delete_status}')
 
         event_highlights_cache_key = EVENT_HIGHLIGHTS_CHATROOM % str(chatroom_id)
         event_highlights_cache_key_delete_status: bool = CacheImpl.delete_key(event_highlights_cache_key)
-        print(f'deleting key: {event_highlights_cache_key}, status: {event_highlights_cache_key_delete_status}')
+        print(f'deleting cache key: {event_highlights_cache_key}, status: {event_highlights_cache_key_delete_status}')
 
         event_membertestimonials_cache_key = EVENT_MEMBERTESTIMONIALS_CHATROOM % str(chatroom_id)
         event_membertestimonials_cache_key_delete_status: bool = CacheImpl.delete_key(event_membertestimonials_cache_key)
-        print(f'deleting key: {event_membertestimonials_cache_key}, status: {event_membertestimonials_cache_key_delete_status}')
+        print(f'deleting cache key: {event_membertestimonials_cache_key}, status: {event_membertestimonials_cache_key_delete_status}')
 
         event_faq_cache_key = EVENT_FAQ_CHATROOM % str(chatroom_id)
         event_faq_cache_key_delete_status: bool = CacheImpl.delete_key(event_faq_cache_key)
-        print(f'deleting key: {event_faq_cache_key}, status: {event_faq_cache_key_delete_status}')
+        print(f'deleting cache key: {event_faq_cache_key}, status: {event_faq_cache_key_delete_status}')
 
         event_attendees_cache_key = EVENT_ATTENDEES_CHATROOM % str(chatroom_id)
         event_attendees_cache_key_delete_status: bool = CacheImpl.delete_key(event_attendees_cache_key)
-        print(f'deleting key: {event_attendees_cache_key}, status: {event_attendees_cache_key_delete_status}')
+        print(f'deleting cache key: {event_attendees_cache_key}, status: {event_attendees_cache_key_delete_status}')
         
     print(f'deleted cache keys for community_id : {community_id} ...')
 
