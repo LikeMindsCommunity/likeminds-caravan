@@ -22,9 +22,11 @@ from utility.string_utilities import StringUtilities
 from utility.internal_service_utilities import InternalServiceUtilities
 from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods, MemberRoles, \
 update_priority, WebhookTypes
-from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
-    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
-    CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, INTERNATIONAL_OTP_GENERATE_CACHE_KEY, KETTLE_CACHE_KEY_USER_META
+from utility.cache_keys import (CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM,
+                                EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM,
+                                EVENT_ATTENDEES_CONVERSATION, CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY,
+                                INTERNATIONAL_OTP_GENERATE_CACHE_KEY, KETTLE_CACHE_KEY_USER_META,
+                                KETTLE_CACHE_KEY_WIDGET_META)
 from utility.celery_tasks import (
     update_last_unseen_in_engage_on_card_creation,
     update_last_unseen_in_engage, update_my_chatrooms_for_users,
@@ -10979,6 +10981,14 @@ def edit_conversation(request):
                     context = ResponseUtilities.get_view_impl_error_context(widget_response.get('error_message'),
                                                                             status_codes.HTTP_400_BAD_REQUEST)
                     return JsonResponse(**context)
+
+                # Delete cache key of widget meta from kettle
+                cache_key = KETTLE_CACHE_KEY_WIDGET_META.format(community_instance.id, widget_id)
+
+                InternalServiceUtilities.delete_cache_from_kettle_service(
+                    community_id=community_instance.id, user_id=user_instance.id,
+                    key_patterns=[cache_key]
+                )
 
             else:
                 widget_response = InternalServiceUtilities.create_widget_in_swarm(

@@ -353,8 +353,7 @@ class ConversationImpl(ConversationManager):
 
         return event_conversation
 
-    def _create_conversation_list(self, conversations, last_conversation_id=None, 
-                                  sdk_client_info_flag:bool=False):
+    def _create_conversation_list(self, conversations, last_conversation_id=None, sdk_client_info_flag: bool = False):
 
         conversation_list = []
 
