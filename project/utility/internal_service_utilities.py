@@ -225,7 +225,8 @@ class InternalServiceUtilities:
             # Add headers
             client.update_headers({
                 'x-member-id': user_unique_id,
-                'x-api-key': api_key
+                'x-api-key': api_key,
+                'x-platform-type': PLATFORM_TYPE_CARAVAN_SERVICE
             })
 
             # Add Delete request body
@@ -281,7 +282,8 @@ class InternalServiceUtilities:
             # Add headers
             client.update_headers({
                 'x-member-id': user_unique_id,
-                'x-api-key': api_key
+                'x-api-key': api_key,
+                'x-platform-type': PLATFORM_TYPE_CARAVAN_SERVICE
             })
 
             # Add request params
@@ -339,7 +341,8 @@ class InternalServiceUtilities:
             # Add headers
             client.update_headers({
                 'x-member-id': user_unique_id,
-                'x-api-key': api_key
+                'x-api-key': api_key,
+                'x-platform-type': PLATFORM_TYPE_CARAVAN_SERVICE
             })
 
             # Add Delete request body
