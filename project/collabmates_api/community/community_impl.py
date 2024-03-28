@@ -62,8 +62,7 @@ from external_services.caching.cache_impl import CacheImpl
 
 from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY, 
                                 KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META, 
-                                KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS)
-
+                                KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY)
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -88,7 +87,7 @@ from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
 from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDIA_LIMITS_CONFIGURATION,
                                FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION, 
-                               PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION)
+                               PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION, WIDGETS_METADATA_CONFIGURATION)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -2596,7 +2595,7 @@ class CommunityImpl(CommunityManager):
 
         record_updated, configuration_instance = CommunityHelper.update_configuration_of_community(
             community_instance.id, user_instance.id, configuration_type, update_values)
-        
+
         response = {
             'success': True,
             'record_updated': record_updated,
@@ -5780,26 +5779,25 @@ class CommunityHelper:
                 record_updated = True
 
         elif configuration_type == NSFW_FILTERING_CONFIGURATION:
-                
             # If NSFW Filtering is toggled, update configurations and community settings
             if (update_values.get('enabled') is not None) and isinstance(update_values.get('enabled'), bool) and \
                     update_values.get('enabled') != configuration_value.get('enabled'):
                 configuration_value['enabled'] = update_values.get('enabled')
                 record_updated = True
 
-                # Update community settings to keep in sync with configurations
                 filter_dict = {
                     'community_id': community_id,
                     'setting_type': community_setting_types.NSFW_FILTERING
                 }
 
+                # Update community settings to keep in sync with configurations
                 community_settings_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
 
                 if community_settings_filter and community_settings_filter.enabled != update_values.get('enabled'):
                     community_settings_filter.enabled = update_values.get('enabled')
                     community_settings_filter.enabled_by_id = user_id if update_values.get('enabled') else None
                     community_settings_filter.save()
-
+                        
             if update_values.get('cutoff_score') and isinstance(update_values.get('cutoff_score'), float):
                 configuration_value['cutoff_score'] = update_values.get('cutoff_score')
                 record_updated = True
@@ -5808,7 +5806,14 @@ class CommunityHelper:
                 configuration_value['inferdo_api_key'] = update_values.get('inferdo_api_key')
                 record_updated = True
 
-        if configuration_type == GUEST_FLOW_METADATA_CONFIGURATION:
+        elif configuration_type == WIDGETS_METADATA_CONFIGURATION:
+
+            if (update_values.get('message') is not None) and isinstance(update_values.get(
+                    'message'), bool):
+                configuration_value['message'] = update_values.get('message')
+                record_updated = True
+
+        elif configuration_type == GUEST_FLOW_METADATA_CONFIGURATION:
             filter_dict = {
                 'community': community_id,
                 'setting_type': community_setting_types.ENABLE_GUEST_FLOW
@@ -5841,6 +5846,11 @@ class CommunityHelper:
                     community_id=community_id, user_id=user_id,
                     key_patterns=[KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS.format(community_id)]
                 )
+
+            # Delete cache key for widget configurations
+            if configuration_type in [WIDGETS_METADATA_CONFIGURATION]:
+                cache_key = WIDGET_CONFIGURATIONS_CACHE_KEY.format(community_id)
+                CacheImpl.delete_key(cache_key)
 
         return record_updated, configuration_instance
     

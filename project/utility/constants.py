@@ -124,6 +124,7 @@ MEDIA_LIMITS_CONFIGURATION = "media_limits"
 FEED_METADATA_CONFIGURATION = "feed_metadata"
 PROFILE_METADATA_CONFIGURATION = "profile_metadata"
 NSFW_FILTERING_CONFIGURATION = "nsfw_filtering"
+WIDGETS_METADATA_CONFIGURATION = "widgets_metadata"
 GUEST_FLOW_METADATA_CONFIGURATION = "guest_flow_metadata"
 
 # Community Configurations
@@ -173,6 +174,15 @@ COMMUNITY_CONFIGURATIONS = {
             "error_status": ""
         }
     },
+    WIDGETS_METADATA_CONFIGURATION:
+    {
+        "type": WIDGETS_METADATA_CONFIGURATION,
+        "description": "Widgets metadata for the community",
+        "value":
+        {
+            "message": False
+        }
+    },
     GUEST_FLOW_METADATA_CONFIGURATION:
     {
         "type": "guest_flow_metadata",
@@ -183,6 +193,8 @@ COMMUNITY_CONFIGURATIONS = {
         }
     }
 }
+
+SWARM_WIDGET_ENDPOINT = "/widget"
 
 # Internal Platform types
 PLATFORM_TYPE_CARAVAN_SERVICE = "caravan-service"

@@ -22,9 +22,11 @@ from utility.string_utilities import StringUtilities
 from utility.internal_service_utilities import InternalServiceUtilities
 from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods, MemberRoles, \
 update_priority, WebhookTypes
-from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
-    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
-    CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, INTERNATIONAL_OTP_GENERATE_CACHE_KEY, KETTLE_CACHE_KEY_USER_META
+from utility.cache_keys import (CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM,
+                                EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM,
+                                EVENT_ATTENDEES_CONVERSATION, CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY,
+                                INTERNATIONAL_OTP_GENERATE_CACHE_KEY, KETTLE_CACHE_KEY_USER_META,
+                                KETTLE_CACHE_KEY_WIDGET_META)
 from utility.celery_tasks import (
     update_last_unseen_in_engage_on_card_creation,
     update_last_unseen_in_engage, update_my_chatrooms_for_users,
@@ -10896,6 +10898,7 @@ def edit_conversation(request):
     edited_answer = request.POST.get('text', None)
     share_link = request.POST.get('share_link', None)
     og_tags = request.POST.get('og_tags', None)
+    widget_metadata = request.POST.get('meta_data', {})
 
     user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
@@ -10934,6 +10937,11 @@ def edit_conversation(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
 
+    community_instance = conversation.community
+    community_id = community_instance.id
+
+    is_widgets_enabled = is_community_widget_enabled(community_instance, WidgetTypes.MESSAGE.value)
+
     if conversation.is_deleted:
         context = ResponseUtilities.get_view_impl_error_context('Cannot edit deleted conversation',
                                                                 status_codes.HTTP_400_BAD_REQUEST)
@@ -10942,6 +10950,58 @@ def edit_conversation(request):
     elif int(conversation.user.id) == int(member_id):
 
         from collabmates_api.conversation.conversation_impl import ConversationHelper
+
+        if widget_metadata:
+
+            if isinstance(widget_metadata, str):
+                widget_metadata = JsonUtilities.load_json_data(widget_metadata, default={})
+
+                if not widget_metadata:
+                    context = ResponseUtilities.get_view_impl_error_context("Invalid widgets metadata!",
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(**context)
+
+            if not is_widgets_enabled:
+                context = ResponseUtilities.get_view_impl_error_context("Widgets are disabled!",
+                                                                        status_codes.HTTP_400_BAD_REQUEST)
+                return JsonResponse(**context)
+
+            widget_response = InternalServiceUtilities.get_widget_data_from_swarm(
+                user_instance.userinfo.user_unique_id, community_id, entity_id=str(conversation.id),
+                entity_type=WidgetTypes.MESSAGE.value)
+
+            if "error_message" not in widget_response and widget_response.get('widgets'):
+                widget_response = widget_response.get('widgets')[0]
+                widget_id = widget_response.get('_id')
+
+                widget_response = InternalServiceUtilities.update_widget_in_swarm(
+                    user_instance.userinfo.user_unique_id, community_id, widget_id, widget_metadata)
+
+                if "error_message" in widget_response:
+                    context = ResponseUtilities.get_view_impl_error_context(widget_response.get('error_message'),
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(**context)
+
+                # Delete cache key of widget meta from kettle
+                cache_key = KETTLE_CACHE_KEY_WIDGET_META.format(community_instance.id, widget_id)
+
+                InternalServiceUtilities.delete_cache_from_kettle_service(
+                    community_id=community_instance.id, user_id=user_instance.id,
+                    key_patterns=[cache_key]
+                )
+
+            else:
+                widget_response = InternalServiceUtilities.create_widget_in_swarm(
+                    user_instance.userinfo.user_unique_id, community_id, entity_id=str(conversation.id),
+                    entity_type=WidgetTypes.MESSAGE.value, metadata=widget_metadata)
+
+                if "error_message" in widget_response:
+                    context = ResponseUtilities.get_view_impl_error_context(widget_response.get('error_message'),
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(**context)
+
+                conversation.widget_id = widget_response.get('_id')
+                conversation.save()
 
         if 'og_tags' in og_tags_payload:
             og_tags = json.loads(og_tags_payload['og_tags'])
@@ -10967,7 +11027,12 @@ def edit_conversation(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
 
-    context = {"current_user_id": member_id, "fetch_reply": True}
+    context = {
+        "current_user_id": member_id,
+        "fetch_reply": True,
+        "is_widget_enabled": is_widgets_enabled
+    }
+
     conversation_dict = CardAnswersDBSyncSerializer(conversation, context=context, many=False).data
 
     send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,

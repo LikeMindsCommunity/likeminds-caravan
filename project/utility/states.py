@@ -1018,6 +1018,10 @@ class ChannelActionTypes(enum.Enum):
     CHANNEL_SETTINGS = "channel_settings"
 
 
+class WidgetTypes(enum.Enum):
+    MESSAGE = "message"
+
+
 class GuestFlowUserTypes(enum.Enum):
     SINGLE = "SINGLE"
     MULTIPLE = "MULTIPLE"

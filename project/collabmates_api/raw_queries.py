@@ -3925,7 +3925,7 @@ def create_query_with_prefix(query_fields, table_name, key_name_prefix: str = No
     return meta_query
 
 
-def get_conversation_query_meta_for_sync_revamp(key_name_prefix: str = None):
+def get_conversation_query_meta_for_sync_revamp(key_name_prefix: str = None, should_send_widget_id: bool = False):
     query_fields = ['id', 'answer', 'created_at', 'state', 'is_edited', 'has_files', 'attachment_count',
                     'attachments_uploaded', 'card_id', 'user_id', 'community_id', 'og_tags', 'deleted_by_user_id',
                     'internal_link', 'reply_id', 'last_updated', 'preview_chatroom_id', 'preview_type', 'api_version',
@@ -3936,7 +3936,18 @@ def get_conversation_query_meta_for_sync_revamp(key_name_prefix: str = None):
 
     meta_query = create_query_with_prefix(query_fields, 'togther_card_answers', 'conversation', key_name_prefix)
 
-    return ",".join(meta_query)
+    widget_output_key_name = "widget_id"
+
+    if key_name_prefix is not None:
+        widget_output_key_name = "conversation___widget_id"
+
+    if key_name_prefix:
+        widget_output_key_name += f"___{key_name_prefix}"
+
+    send_widget_query = f"""CASE WHEN {should_send_widget_id} THEN togther_card_answers.widget_id ELSE '' END AS {
+    widget_output_key_name}"""
+
+    return ",".join(meta_query + [send_widget_query])
 
 
 def get_community_query_meta_for_sync_revamp(key_name_prefix: str = None):
@@ -4069,7 +4080,8 @@ def convert_sql_query_result_to_dict(cursor, result):
 
 def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: int = None, max_timestamp: int = None,
                                          page: int = 1, limit: int = 10, included_chatroom_types: list = None,
-                                         only_query: bool = False, chatroom_id: str = None):
+                                         only_query: bool = False, chatroom_id: str = None,
+                                         is_widget_enabled: bool = False):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -4099,7 +4111,8 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
         topic_conversation_data_query = ",".join([get_users_query_meta_for_sync_revamp("last_conv"),
                                                   get_members_query_meta_for_sync_revamp("last_conv"),
                                                   get_sdk_client_query_meta_for_sync_revamp("last_conv"),
-                                                  get_conversation_query_meta_for_sync_revamp("topic")])
+                                                  get_conversation_query_meta_for_sync_revamp(
+                                                      "topic", is_widget_enabled)])
 
         topic_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("topic"),
                                           get_members_query_meta_for_sync_revamp("topic"),
@@ -4266,7 +4279,7 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
 
                   ORDER BY chatrooms_data.updated_at DESC offset {} limit {};
         """.format(topic_user_data_query, topic_conversation_data_query,
-                   get_conversation_query_meta_for_sync_revamp("last"),
+                   get_conversation_query_meta_for_sync_revamp("last", is_widget_enabled),
                    chatroom_with_user_data_query, chat_requested_user_data_query, creator_data_query,
                    get_community_query_meta_for_sync_revamp(""), chatroom_query, dm_chatroom_message_query,
                    dm_chatroom_conversation_query, user_id, community_id, included_chatroom_types_query,
@@ -4293,7 +4306,8 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
 def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min_timestamp: int = None,
                                                       max_timestamp: int = None, page: int = 1, limit: int = 10,
                                                       included_chatroom_types: list = None, only_query: bool = False,
-                                                      included_conversation_states: list = [], chatroom_id: str = None):
+                                                      included_conversation_states: list = [], chatroom_id: str = None,
+                                                      is_widget_enabled: bool = False):
 
     try:
         page_number = int(page)
@@ -4339,7 +4353,8 @@ def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min
         topic_conversation_data_query = ",".join([get_users_query_meta_for_sync_revamp("last_conv"),
                                                   get_members_query_meta_for_sync_revamp("last_conv"),
                                                   get_sdk_client_query_meta_for_sync_revamp("last_conv"),
-                                                  get_conversation_query_meta_for_sync_revamp("topic")])
+                                                  get_conversation_query_meta_for_sync_revamp(
+                                                      "topic", is_widget_enabled)])
 
         topic_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("topic"),
                                           get_members_query_meta_for_sync_revamp("topic"),
@@ -4402,7 +4417,7 @@ def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min
                                         (
                                           SELECT 
                                             {chatroom_query}, 
-                                            {get_conversation_query_meta_for_sync_revamp("last")},
+                                            {get_conversation_query_meta_for_sync_revamp("last", is_widget_enabled)},
                                             Row_number() OVER(
                                                 partition BY togther_card_answers.card_id 
                                                 ORDER BY 
@@ -4519,7 +4534,7 @@ def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min
 def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_timestamp: int = None,
                                     max_timestamp: int = None, page: int = 1, limit: int = 10,
                                     only_query: bool = False, is_local_db: bool = True, conversation_id: str = None,
-                                    excluded_conversation_states: list = None):
+                                    excluded_conversation_states: list = None, is_widget_enabled: bool = False):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -4549,7 +4564,7 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                         get_users_query_meta_for_sync_revamp("creator"),
                                         get_members_query_meta_for_sync_revamp("creator"),
                                         get_sdk_client_query_meta_for_sync_revamp("creator"),
-                                        get_conversation_query_meta_for_sync_revamp("reply")])
+                                        get_conversation_query_meta_for_sync_revamp("reply", is_widget_enabled)])
 
         room_creator = ",".join([get_users_query_meta_for_sync_revamp("room_creator"),
                                  get_members_query_meta_for_sync_revamp("room_creator"),
@@ -4656,9 +4671,10 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                 ON         conv_reply_user_meta.conversation___user_id___reply = togther_sdkclientusersinfo.user_id 
                 ORDER BY conv_reply_user_meta.{};
         """.format(conv_reply_user, dm_other_user, get_chatroom_query_meta_for_sync_revamp("reply"), room_creator,
-                   chatroom_meta_query, chatroom_data_query, get_conversation_query_meta_for_sync_revamp(),
-                   conversation_id_query, excluded_conversation_states_query, chatroom_id, community_id,
-                   min_timestamp, max_timestamp, order_by_query, offset, limit, user_id, order_by_query)
+                   chatroom_meta_query, chatroom_data_query, get_conversation_query_meta_for_sync_revamp(
+                should_send_widget_id=is_widget_enabled), conversation_id_query, excluded_conversation_states_query,
+                   chatroom_id, community_id, min_timestamp, max_timestamp, order_by_query, offset, limit, user_id,
+                   order_by_query)
 
         if only_query:
             return sql
