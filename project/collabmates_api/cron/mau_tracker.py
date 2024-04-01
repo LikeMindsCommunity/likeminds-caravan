@@ -473,8 +473,6 @@ def track():
     billingRecords = ModelUtilities.get_model_filter(CommunityBillingDates, {})
     today = date.today()
 
-    today = today.replace(day=2)
-
     for billingRecord in billingRecords:
         # Logging process stage
         info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
