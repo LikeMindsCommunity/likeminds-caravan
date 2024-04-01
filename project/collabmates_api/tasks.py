@@ -13,7 +13,6 @@ from django.db.models import Q
 from togther.models import *
 from cms.models import MessageTemplate
 from project.celery import app
-from collabmates_api.cron.mau_tracker import track
 
 from utility.constants import INTERNATIONAL_OTP_LIMIT_MAIL_SUBJECT, INTERNATIONAL_OTP_LIMIT_MAIL_TEMPLATE, \
     INTERNATIONAL_OTP_LIMIT_MAIL_RECEIVERS, INTERNATIONAL_OTP_LIMIT_API_PATH
