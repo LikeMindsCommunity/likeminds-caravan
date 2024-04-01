@@ -196,7 +196,7 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
                 return ResponseUtilities.get_impl_error_context("Invalid time_range",
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-            track(time_range)
+            track.delay(time_range)
 
         else:
             return ResponseUtilities.get_impl_error_context("Invalid task_name",
