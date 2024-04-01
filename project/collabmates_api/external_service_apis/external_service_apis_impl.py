@@ -186,17 +186,10 @@ class ExternalServiceApisImpl(ExternalServiceApisManager):
 
         return {'success': True}
 
-    def run_cron_jobs(self, task_name, req_body: dict) -> dict:
+    def run_cron_jobs(self, task_name) -> dict:
 
         if task_name and task_name == 'mau_tracker':
-
-            time_range = req_body.get('time_range', '1d')
-
-            if time_range not in ['1d', '7d']:
-                return ResponseUtilities.get_impl_error_context("Invalid time_range",
-                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
-
-            track.delay(time_range)
+            track.delay()
 
         else:
             return ResponseUtilities.get_impl_error_context("Invalid task_name",

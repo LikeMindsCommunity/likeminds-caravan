@@ -33,7 +33,7 @@ class ExternalServiceApisManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def run_cron_jobs(self, task_name, req_body: dict) -> dict:
+    def run_cron_jobs(self, task_name) -> dict:
         """
         Runs cron jobs
         """

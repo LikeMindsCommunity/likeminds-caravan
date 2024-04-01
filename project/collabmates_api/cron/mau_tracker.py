@@ -259,7 +259,7 @@ def create_coralogix_filter(api_key: str, sdk_source: str):
         return filters
 
 
-def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str, time_range: str = '1d'):
+def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
     additional_filters = {}
 
     # Filter to fetch data based on applicationName, api_key and timestamp
@@ -279,7 +279,7 @@ def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str, time
                 {
                     'range': {
                         'coralogix.timestamp': {
-                            'gte': 'now-' + time_range,
+                            'gte': 'now-24h',
                             'lt': 'now'
                         }
                     }
@@ -406,7 +406,7 @@ def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str, time
     return filters
 
 
-def updateUniqueUsersOfACommunityBillingEntry(billingRecord, time_range:str):
+def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     # Fetch sdk client record to fetch api key
     sdk_client = SdkClient.objects.get(community=billingRecord.community)
 
@@ -414,7 +414,7 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord, time_range:str):
     if not sdk_client:
         return
 
-    filters = create_full_text_search_coralogix_filter(sdk_client.api_key, billingRecord.sdk, time_range)
+    filters = create_full_text_search_coralogix_filter(sdk_client.api_key, billingRecord.sdk)
 
     # Fetch coralogix data for above generated filters
     coralogixData = getCoralogixData(filters)
@@ -465,7 +465,7 @@ def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
 
 
 @shared_task
-def track(time_range: str= '1d'):
+def track():
     # Logging process stage
     info_logger.info("""MAU Tracker Log: - {}""".format("MAU Tracking Started"))
 
@@ -473,14 +473,29 @@ def track(time_range: str= '1d'):
     billingRecords = ModelUtilities.get_model_filter(CommunityBillingDates, {})
     today = date.today()
 
+    today = today.replace(day=2)
+
     for billingRecord in billingRecords:
         # Logging process stage
         info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
                                                                    billingRecord.sdk,
                                                                    "Tracking Process Started"))
+        
+        # If record exists for the current date in MonthlyActiveUsers
+        monthlyDataRecord = ModelUtilities.get_model_filter(ActiveUserMonthlyData,
+                                                            {'billing': billingRecord,
+                                                             'start_date': (today-relativedelta.relativedelta(months=1)).strftime("%s"),
+                                                             'end_date': today.strftime("%s")})
+        if monthlyDataRecord:
+            # Alrready data exists do nothing and continue
+            info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                       billingRecord.sdk,
+                                                                       "ActiveUserMonthlyData Already Exists with this start date, end date - Skipping Process"))
+            
+            continue
 
         # Update Unique Active Users of a Billing record for the day
-        updateUniqueUsersOfACommunityBillingEntry(billingRecord, time_range)
+        updateUniqueUsersOfACommunityBillingEntry(billingRecord)
 
         # Logging process stage
         info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
