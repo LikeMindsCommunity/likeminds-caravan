@@ -32,7 +32,8 @@ class SearchManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def search_member_directory(self, member_state: list = None, order_by: str = None, question_answers_version: str = ''):
+    def search_member_directory(self, member_state_lists: list = None, order_by: str = None,
+                                question_answers_version: str = '', exclude_self_user: bool = False):
         """
         Search in member directory by member name or tag with elastic search
         """

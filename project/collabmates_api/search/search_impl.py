@@ -11,7 +11,8 @@ from utility.time_utilities import TimeUtilities
 from utility.response_utilities import ResponseUtilities
 from utility.json_utilities import JsonUtilities
 from .constants import CUSTOM_INTRO_TEXT_FOR_ADMIN, CUSTOM_INTRO_TEXT_FOR_MEMBERS, CUSTOM_CLICK_TEXT_FOR_MEMBERS
-from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING,CHATROOM_FIELD_TITLE, MEMBER_DIRECTORY_ORDER_BY_NAME
+from .constants import MEMBER_DIRECTORY_INDEX_FIELDS_DICTIONARY_MAPPING, CHATROOM_FIELD_TITLE, \
+    MEMBER_DIRECTORY_ORDER_BY_NAME
 from collabmates_api.sdk.models import SdkClient
 from ..raw_queries import (get_card_ids_to_exclude_based_on_cohort_access,
                            get_chatrooms_of_user_with_follow_status, get_users_sdk_meta_dict)
@@ -21,6 +22,7 @@ from collabmates_api.community.community_impl import CommunityHelper
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 error_logger = LoggingWrapper.get_instance()
+
 
 class SearchImpl(SearchManager):
 
@@ -225,7 +227,8 @@ class SearchImpl(SearchManager):
             }
         }
     
-    def _get_member_directory_search_ngram_query_dict(self, search_field, member_states, order_by):
+    def _get_member_directory_search_ngram_query_dict(self, search_field, member_states, order_by,
+                                                      exclude_self_user: bool = False):
         """
         @param search_field: Field of member index
         @return: dict
@@ -278,8 +281,13 @@ class SearchImpl(SearchManager):
             }
 
         # If member state is provided, then filter by member state
-        if member_states :
+        if member_states:
             query_dict['query']['bool']['must'].append({"terms": {"state": member_states}})
+
+        if exclude_self_user:
+            query_dict['query']['bool'] = {
+                **query_dict['query']['bool'], **{'must_not': {"term": {"member.id": self.get_member_id()}}}
+            }
 
         return query_dict
 
@@ -480,7 +488,8 @@ class SearchImpl(SearchManager):
 
         return member_img
 
-    def search_member_directory(self, member_states: list = None, order_by: str = None, question_answers_version: str = ''):
+    def search_member_directory(self, member_state_lists: list = None, order_by: str = None,
+                                question_answers_version: str = '', exclude_self_user: bool = False):
 
         community_instance = SdkClient.get_community_instance_or_none(community_id=self.get_community_id(),
                                                                       api_key=self.get_api_key())
@@ -488,8 +497,13 @@ class SearchImpl(SearchManager):
         if community_instance:
             self.set_community_id(community_instance.id)
 
-        res = Search.from_dict(self._get_member_directory_search_ngram_query_dict(
-            self.get_search_field(), member_states, order_by)).execute()
+        member_es_search_instance = Search.from_dict(self._get_member_directory_search_ngram_query_dict(
+            self.get_search_field(), [member_states.MEMBER], order_by, exclude_self_user))
+
+        es_search_instance = Search.from_dict(self._get_member_directory_search_ngram_query_dict(
+            self.get_search_field(), member_state_lists, order_by, exclude_self_user))
+
+        res = es_search_instance.execute()
 
         members_list = []
 
@@ -590,7 +604,8 @@ class SearchImpl(SearchManager):
 
         context = {
             'success': True,
-            'members': members_list
+            'members': members_list,
+            'total_members': member_es_search_instance.count()
         }
 
         return context
