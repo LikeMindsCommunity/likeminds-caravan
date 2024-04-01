@@ -40,7 +40,7 @@ def getCoralogixData(filters):
 
         # Fetch hits value from response
         if response.json()['hits'] and response.json()['hits']['hits']:
-            hits.append(response.json()['hits']['hits'])
+            hits.extend(response.json()['hits']['hits'])
         else:
             fetch_again = False
 
@@ -51,8 +51,6 @@ def getCoralogixData(filters):
                                       json={
                                           'scroll': '5m',
                                           'scroll_id': scroll_id,
-                                          'size': 10000,
-                                          'query': filters
                                       },
                                       headers={
                                           'token': settings.CORALOGIX_QUERY_API_KEY,
@@ -88,7 +86,7 @@ def getUserListFromCoralogixData(coralogixData):
     # Fetch user ids from the coralogix hits data
     if coralogixData:
 
-        for entry in coralogixData[0]:
+        for entry in coralogixData:
 
             if entry['_source'] and isinstance(entry['_source'], dict):
 
@@ -261,7 +259,7 @@ def create_coralogix_filter(api_key: str, sdk_source: str):
         return filters
 
 
-def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
+def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str, time_range: str = '1d'):
     additional_filters = {}
 
     # Filter to fetch data based on applicationName, api_key and timestamp
@@ -281,7 +279,7 @@ def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
                 {
                     'range': {
                         'coralogix.timestamp': {
-                            'gte': 'now-24h',
+                            'gte': 'now-' + time_range,
                             'lt': 'now'
                         }
                     }
@@ -301,7 +299,7 @@ def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
                 },
                 {
                     'match_phrase': {
-                        'request.method': 'POST'
+                        'text': 'POST'
                     }
                 },
                 {
@@ -402,13 +400,13 @@ def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
             ]
         }
 
-        # Update major filters with additional filters
-        filters['bool']['must'].extend(additional_filters.get('must'))
+    # Update major filters with additional filters
+    filters['bool']['must'].extend(additional_filters.get('must'))
 
-        return filters
+    return filters
 
 
-def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
+def updateUniqueUsersOfACommunityBillingEntry(billingRecord, time_range:str):
     # Fetch sdk client record to fetch api key
     sdk_client = SdkClient.objects.get(community=billingRecord.community)
 
@@ -416,7 +414,7 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     if not sdk_client:
         return
 
-    filters = create_full_text_search_coralogix_filter(sdk_client.api_key, billingRecord.sdk)
+    filters = create_full_text_search_coralogix_filter(sdk_client.api_key, billingRecord.sdk, time_range)
 
     # Fetch coralogix data for above generated filters
     coralogixData = getCoralogixData(filters)
@@ -467,7 +465,7 @@ def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
 
 
 @shared_task
-def track():
+def track(time_range: str= '1d'):
     # Logging process stage
     info_logger.info("""MAU Tracker Log: - {}""".format("MAU Tracking Started"))
 
@@ -482,7 +480,7 @@ def track():
                                                                    "Tracking Process Started"))
 
         # Update Unique Active Users of a Billing record for the day
-        updateUniqueUsersOfACommunityBillingEntry(billingRecord)
+        updateUniqueUsersOfACommunityBillingEntry(billingRecord, time_range)
 
         # Logging process stage
         info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,

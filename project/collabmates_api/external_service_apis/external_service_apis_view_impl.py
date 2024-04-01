@@ -9,7 +9,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 from ..external_service_apis.external_service_apis_impl import ExternalServiceApisImpl
-from collabmates_api.cron.mau_tracker import track
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 error_logger = LoggingWrapper.get_instance()
@@ -124,8 +123,11 @@ class RunCronJobView(APIView):
         return super(RunCronJobView, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, task_name, *args, **kwargs):
+
+        req_body = RequestUtilities.load_request_body(request)
+
         external_service_manager = ExternalServiceApisImpl(None)
-        external_service_context = external_service_manager.run_cron_jobs(task_name)
+        external_service_context = external_service_manager.run_cron_jobs(task_name, req_body)
 
         if external_service_context.get('error_message'):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
