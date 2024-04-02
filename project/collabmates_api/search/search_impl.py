@@ -602,7 +602,7 @@ class SearchImpl(SearchManager):
         context = {
             'success': True,
             'members': members_list,
-            'total_members': member_es_search_instance.count()
+            'records_count': es_search_instance.count()
         }
 
         return context
