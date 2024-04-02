@@ -3820,7 +3820,8 @@ class ChatroomImpl(ChatroomManager):
                                                                 card_instance.chatroom_with_user,
                                                                 card_instance.community, user_instances_list,
                                                                 answer, user_member_state, member_state,
-                                                                conversation_state=conv_state)
+                                                                conversation_state=conv_state,
+                                                                update_chatroom_updated_at=True)
 
             from collabmates_api.conversation.conversation_impl import ConversationHelper
             ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(card_instance.id,
