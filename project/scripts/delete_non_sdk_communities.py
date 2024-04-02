@@ -1,6 +1,8 @@
 import datetime
 from external_services.caching.cache_impl import CacheImpl
 from collabmates_api.sdk.models import SdkClient
+from collabmates_api.webhook.models import CommunityWebhook
+from cms.models import PerDayRecordOverview, PerWeekRecordOverview, NewAnswer, userAcquition, MessageTemplate
 from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, CONVERSATION_POLL_OPTIONS_CONVERSATION_ID, \
     CONVERSATION_POLL_VOTERS_CONVERSATION_ID, CONVERSATION_REACTIONS_CACHE_KEY, CHATROOM_REACTIONS_CACHE_KEY, \
     CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, CHATROOM_TYPE_CONVERSION, COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY, \
@@ -223,6 +225,12 @@ def delete_community(community_id: int):
     delete_table_rows(community_id, 'community_id', FeedNotificationSettings)
     delete_table_rows(community_id, 'community_id', CommunityBillingDates)
     delete_table_rows(community_id, 'community_id', CommunityConfigurations)
+    delete_table_rows(community_id, 'community_id', CommunityWebhook)
+    delete_table_rows(community_id, 'community_id', PerDayRecordOverview)
+    delete_table_rows(community_id, 'community_id', PerWeekRecordOverview)
+    delete_table_rows(community_id, 'community_id', NewAnswer)
+    delete_table_rows(community_id, 'community_id', userAcquition)
+    delete_table_rows(community_id, 'community_id', MessageTemplate)
     delete_table_rows(community_id, 'id', Community)
     print(f'community with id : {community_id} deleted along with related data at {datetime.datetime.now()}.')
 
@@ -231,5 +239,10 @@ def delete_community(community_id: int):
 def run():
     communities_to_delete = find_non_sdk_communities()
 
+    start_time = datetime.datetime.now()  # Record start time
+
     for community in communities_to_delete:
         delete_community(community.id)
+
+    end_time = datetime.datetime.now()  # Record end time
+    print("Total time taken by script: ", end_time - start_time)
