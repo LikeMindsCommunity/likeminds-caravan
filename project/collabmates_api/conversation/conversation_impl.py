@@ -950,7 +950,7 @@ class ConversationImpl(ConversationManager):
         replied_conversation_id = req_body.get('replied_conversation_id')
         attachments_data = req_body.get('attachments')
         attachment_count = req_body.get('attachment_count', 0)
-        widget_metadata = req_body.get('meta_data', {})
+        widget_metadata = req_body.get('metadata', {})
 
         if attachments_data and isinstance(attachments_data, list):
             attachment_count = len(attachments_data)
