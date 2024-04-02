@@ -9,7 +9,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 from ..external_service_apis.external_service_apis_impl import ExternalServiceApisImpl
-from collabmates_api.cron.mau_tracker import track
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 error_logger = LoggingWrapper.get_instance()
