@@ -497,9 +497,6 @@ class SearchImpl(SearchManager):
         if community_instance:
             self.set_community_id(community_instance.id)
 
-        member_es_search_instance = Search.from_dict(self._get_member_directory_search_ngram_query_dict(
-            self.get_search_field(), [member_states.MEMBER], order_by, exclude_self_user))
-
         es_search_instance = Search.from_dict(self._get_member_directory_search_ngram_query_dict(
             self.get_search_field(), member_state_lists, order_by, exclude_self_user))
 
@@ -605,7 +602,7 @@ class SearchImpl(SearchManager):
         context = {
             'success': True,
             'members': members_list,
-            'total_members': member_es_search_instance.count()
+            'records_count': es_search_instance.count()
         }
 
         return context
