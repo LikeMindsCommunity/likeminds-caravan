@@ -10897,7 +10897,7 @@ def edit_conversation(request):
     edited_answer = request.POST.get('text', None)
     share_link = request.POST.get('share_link', None)
     og_tags = request.POST.get('og_tags', None)
-    widget_metadata = request.POST.get('meta_data', {})
+    widget_metadata = request.POST.get('metadata', {})
 
     user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
