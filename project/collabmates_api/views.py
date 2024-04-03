@@ -11213,6 +11213,9 @@ def fetch_community_manager_rights(request):
 
     rights_context = []
 
+    # Fetch feed metadata
+    feed_community_configurations = get_feed_metadata_from_community_configurations(community_instance)
+
     if admin.exists():
         admin_rights = userAdminRights.objects.filter(community=community_instance,
                                                       user=current_user_instance).order_by('-right__rank')
@@ -11230,7 +11233,9 @@ def fetch_community_manager_rights(request):
                         right.state == moderate_dm_settings.get('state')]):
                     continue
 
-                right_dict = get_right_dict(right)
+                right_dict = get_right_dict(right,
+                                            post_variable_name=feed_community_configurations.get('post', ''),
+                                            comment_variable_name=feed_community_configurations.get('comment', ''))
                 if is_member:
                     right_dict["is_selected"] = True if right.id in manager_rights.DEFAULT_MANAGER_RIGHTS else False
                 else:
@@ -11868,7 +11873,13 @@ def fetch_community_member_rights(request):
         admin_rights = check_all_manager_rights(current_user_instance, community_instance)
         user_rights = check_all_member_rights(user_instance, community_instance, is_feed_enabled=is_feed_enabled)
 
-        rights_context = get_saved_member_rights_list(user_rights, admin_rights, is_feed_enabled=is_feed_enabled)
+        # Fetch feed metadata
+        feed_community_configurations = get_feed_metadata_from_community_configurations(community_instance)
+
+        rights_context = get_saved_member_rights_list(
+            user_rights, admin_rights, is_feed_enabled=is_feed_enabled,
+            post_variable_name=feed_community_configurations.get('post', ''),
+            comment_variable_name=feed_community_configurations.get('comment', ''))
 
         rights_context = update_member_rights_for_sdk(rights_context, community_instance)
 
@@ -11884,7 +11895,6 @@ def fetch_community_member_rights(request):
         
         for right in rights_context:
             right.pop('state')
-
 
     return JsonResponse({"success": True, "member": member_profile[0], "rights": rights_context})
 

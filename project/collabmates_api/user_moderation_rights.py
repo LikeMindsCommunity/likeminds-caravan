@@ -15,6 +15,7 @@ import time
 import json
 from utility.time_utilities import TimeUtilities
 from utility.string_utilities import StringUtilities
+from collabmates_api.utility import (replace_substring_with_new_words)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -136,7 +137,7 @@ def update_member_rights_for_sdk(rights_context, community_instance):
 
 
 def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=False, is_m2cm_v2=False,
-                                 is_feed_enabled=False):
+                                 is_feed_enabled=False, post_variable_name="", comment_variable_name=""):
     """ function to return the selected and disabled rights of a member or community settings """
     all_member_rights = memberRights.objects.all().exclude(state=4).order_by("state")
     rights_list = []
@@ -206,9 +207,19 @@ def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=F
             right_dict["is_selected"] = user_rights["create_posts"]
             right_dict["is_locked"] = False
 
+            if post_variable_name:
+                right_dict["title"] = replace_substring_with_new_words(right_dict["title"], "post", post_variable_name)
+
         elif right.state == comment_and_reply_right['state']:
             right_dict["is_selected"] = user_rights["comment_and_reply"]
             right_dict["is_locked"] = False
+
+            if post_variable_name:
+                right_dict["title"] = replace_substring_with_new_words(right_dict["title"], "post", post_variable_name)
+
+            if comment_variable_name:
+                right_dict["title"] = replace_substring_with_new_words(right_dict["title"], "comment",
+                                                                       comment_variable_name)
 
         if right.sub_title is None:
             del right_dict["sub_title"]
@@ -688,11 +699,20 @@ def get_related_reports_for_user(user_id, community_id, **kwargs):
     return reports
 
 
-def get_right_dict(right):
+def get_right_dict(right, post_variable_name="", comment_variable_name=""):
     right_dict = {"id": right.id, "state": right.state, "title": right.title}
 
     if right.sub_title:
         right_dict["sub_title"] = right.sub_title
+
+    if right.state == moderate_feed_and_comments_right['state']:
+
+        if post_variable_name:
+            right_dict['title'] = replace_substring_with_new_words(right_dict['title'], "post", post_variable_name)
+
+        if comment_variable_name:
+            right_dict['title'] = replace_substring_with_new_words(right_dict['title'], "comment",
+                                                                   comment_variable_name)
 
     return right_dict
 
