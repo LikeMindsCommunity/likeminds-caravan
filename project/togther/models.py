@@ -841,6 +841,7 @@ class card_answers(models.Model):
     about_recording = models.TextField(null=True)
     recording_url_og_tags = models.TextField(null=True)
     has_event_recording = models.BooleanField(default=False)
+    widget_id = models.CharField(max_length=255, default="")
 
     # saving the last updated in milliseconds
     def save(self, *args, **kwargs):

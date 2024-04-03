@@ -992,7 +992,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = card_answers
-        fields = ("id", 'answer', 'card', 'user', 'created_at', 'community', 'state',
+        fields = ('id', 'answer', 'card', 'user', 'created_at', 'community', 'state',
                   'og_tags', 'deleted_by', 'is_edited', 'reply', 'internal_link',
                   'has_files', 'date', 'images', 'pdf', 'audios', 'videos',
                   'attachment_count', 'attachments_uploaded', 'location', 'reply_conversation',
@@ -1001,12 +1001,13 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                   'multiple_select_no', 'polls', 'reactions', 'poll_type_text', 'submit_type_text',
                   'poll_answer_text', 'reply_chatroom_id', 'header', 'location',
                   'location_lat', 'location_long', 'start_time', 'end_time', 'co_hosts_ids',
-                  'attendees_ids', 'has_event_recording', 'about_recording', 'recording_url_og_tags')
+                  'attendees_ids', 'has_event_recording', 'about_recording', 'recording_url_og_tags', 'widget_id')
 
     def __init__(self, *args, **kwargs):
         super(CardAnswersDBSyncSerializer, self).__init__(*args, **kwargs)
         self.fetch_reply = self.context.get('fetch_reply', True)
         self.current_user_id = self.context.get('current_user_id', None)
+        self.is_widget_enabled = self.context.get('is_widget_enabled', False)
 
     def get_reactions(self, obj):
 
@@ -1195,6 +1196,9 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
 
             elif field.field_name == 'deleted_by' and data['deleted_by']:
                 data['deleted_by_member'] = self.get_serialised_userinfo(data['deleted_by'])
+
+            elif field.field_name == 'widget_id' and not self.is_widget_enabled:
+                data[field.field_name] = ""
 
         return data
 
