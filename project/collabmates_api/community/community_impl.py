@@ -5745,6 +5745,10 @@ class CommunityHelper:
                 configuration_value['post'] = update_values.get('post')
                 record_updated = True
 
+            if update_values.get('comment') and isinstance(update_values.get('comment'), str):
+                configuration_value['comment'] = update_values.get('comment')
+                record_updated = True
+
             if isinstance(update_values.get('universal_feed'), dict):
                 configuration_value['universal_feed'] = update_values.get('universal_feed')
 

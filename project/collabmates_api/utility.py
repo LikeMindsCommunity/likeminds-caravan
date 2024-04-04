@@ -1,5 +1,5 @@
 # file to use utility functions
-
+import re
 from django.core.paginator import Paginator
 
 from .static_text import SINGLE_COMMUNITY_VIEW_VERSION_CODE, LM_PLATFORM_CODES, FREE_LINK_VERSION_CODE, \
@@ -9,7 +9,7 @@ from external_services.caching.cache_impl import CacheImpl
 from utility.cache_keys import (WIDGET_CONFIGURATIONS_CACHE_KEY)
 
 from utility.version_utilities import VersionUtilities
-from utility.constants import (WIDGETS_METADATA_CONFIGURATION)
+from utility.constants import (WIDGETS_METADATA_CONFIGURATION, FEED_METADATA_CONFIGURATION)
 
 
 def get_member_id_from_headers(request):
@@ -182,3 +182,40 @@ def is_community_widget_enabled(community_instance, widget_type):
         return widget_configurations.get(widget_type)
 
     return False
+
+
+def get_feed_metadata_from_community_configurations(community_instance):
+    from collabmates_api.community.community_impl import CommunityHelper
+
+    feed_configurations_data_list = CommunityHelper.fetch_or_return_default_community_configurations(
+        community_instance, [FEED_METADATA_CONFIGURATION])
+
+    feed_configurations_data = feed_configurations_data_list[0] if len(feed_configurations_data_list) else {}
+
+    if feed_configurations_data.get('value'):
+        return feed_configurations_data.get('value')
+
+    return {}
+
+
+def replace_substring_with_new_words(text, keyword, new_word):
+    # Find all occurrences of the old word with re.IGNORECASE flag
+    matches = re.finditer(re.escape(keyword), text, re.IGNORECASE)
+
+    # Iterate through matches
+    replaced_str = text
+
+    for match in matches:
+        # Get the matched word
+        matched_word = match.group(0)
+
+        # Determine if the matched word is capitalized
+        is_capitalized = matched_word[0].isupper()
+
+        # Replace the matched word with the new word while maintaining capitalization
+        if is_capitalized:
+            new_word = new_word.capitalize()
+
+        replaced_str = replaced_str[:match.start()] + new_word + replaced_str[match.end():]
+
+    return replaced_str
