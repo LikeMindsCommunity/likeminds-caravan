@@ -5741,11 +5741,13 @@ class CommunityHelper:
 
         elif configuration_type == FEED_METADATA_CONFIGURATION:
 
-            if update_values.get('post') and isinstance(update_values.get('post'), str):
+            if update_values.get('post') and isinstance(update_values.get('post'), str) and \
+                    update_values.get('post').strip():
                 configuration_value['post'] = update_values.get('post')
                 record_updated = True
 
-            if update_values.get('comment') and isinstance(update_values.get('comment'), str):
+            if update_values.get('comment') and isinstance(update_values.get('comment'), str) and \
+                    update_values.get('comment').strip():
                 configuration_value['comment'] = update_values.get('comment')
                 record_updated = True
 
