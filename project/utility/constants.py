@@ -146,6 +146,7 @@ COMMUNITY_CONFIGURATIONS = {
         "value":
         {
             "post": "post",
+            "comment": "comment",
             "universal_feed": {
                 "comment_sort_order_key": "",
                 "comment_sort_order": "",
