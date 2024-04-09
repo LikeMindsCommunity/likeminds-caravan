@@ -5347,6 +5347,18 @@ class CommunityHelper:
                                                                                                  user_instance)
                 if api_key_validation.get('error_message'):
                     return api_key_validation
+
+        elif configuration_type == FEED_METADATA_CONFIGURATION:
+
+            if update_values.get('post') and not (
+                    isinstance(update_values.get('post'), str) and update_values.get('post').strip() and
+                    len(update_values.get('post').strip()) <= MAX_POST_COMMENT_VARIABLE_LENGTH):
+                return ResponseUtilities.get_inner_error_context("Invalid post value!")
+
+            if update_values.get('comment') and not (
+                    isinstance(update_values.get('comment'), str) and update_values.get('comment').strip() and
+                    len(update_values.get('comment').strip()) <= MAX_POST_COMMENT_VARIABLE_LENGTH):
+                return ResponseUtilities.get_inner_error_context("Invalid comment value!")
                 
         return {
             'community_instance': community_instance,
@@ -5741,12 +5753,12 @@ class CommunityHelper:
 
         elif configuration_type == FEED_METADATA_CONFIGURATION:
 
-            if update_values.get('post') and isinstance(update_values.get('post'), str):
-                configuration_value['post'] = update_values.get('post')
+            if update_values.get('post'):
+                configuration_value['post'] = update_values.get('post').strip()
                 record_updated = True
 
-            if update_values.get('comment') and isinstance(update_values.get('comment'), str):
-                configuration_value['comment'] = update_values.get('comment')
+            if update_values.get('comment'):
+                configuration_value['comment'] = update_values.get('comment').strip()
                 record_updated = True
 
             if isinstance(update_values.get('universal_feed'), dict):
