@@ -1193,10 +1193,10 @@ class BlockMemberView(APIView):
         chatroom_manager = ChatroomImpl(member_id=header_member_id, chatroom_id=request_body.get('chatroom_id'))
         response_context = chatroom_manager.block_member(req_body=request_body)
 
-        if response_context.get('success'):
-            return JsonResponse(response_context, status=status_codes.HTTP_200_OK)
-
-        return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+        if response_context.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
+        return JsonResponse(response_context)
 
 
 class RequestDMView(APIView):
@@ -1229,10 +1229,10 @@ class RequestDMView(APIView):
                                         device_id=device_id, request_platform=platform_code)
         response_context = chatroom_manager.request_dm(req_body=request_body)
 
-        if response_context.get('success'):
-            return JsonResponse(response_context, status=status_codes.HTTP_200_OK)
-
-        return JsonResponse(response_context, status=status_codes.HTTP_400_BAD_REQUEST)
+        if response_context.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
+                                                                                response_context.get('status')))
+        return JsonResponse(response_context)
 
 
 class ScheduledChatroomFollow(APIView):
