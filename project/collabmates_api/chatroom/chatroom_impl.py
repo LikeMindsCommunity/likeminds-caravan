@@ -5763,7 +5763,7 @@ class ChatroomHelper:
         filter_dict = {
             'setting_type': community_setting_types.ENABLE_DM_WITHOUT_CONNECTION_REQUEST,
             'community': card_instance.community,
-            'enabled': True
+            'enabled': False
         }
 
         dm_without_connection_setting = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
