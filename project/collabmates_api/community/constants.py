@@ -114,8 +114,7 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
     "enable_guest_flow": "If enabled, the guest flow will be enabled for the community",
     "user_topics_connection": "Enable User topics connection (follow/unfollow topics) in the community",
     "user_notifications": "Enable/Disable user notifications in the community",
-    "enable_dm_without_connection_request": "Receiver of DM request will have the option to approve or reject the "
-                                            "request"
+    "enable_dm_without_connection_request": "Receiver of DM request will have the option to approve or reject the request"
 }
 
 DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED = "Community managers will be able to message all members and vice-versa."
