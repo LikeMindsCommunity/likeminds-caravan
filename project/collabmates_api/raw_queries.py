@@ -4086,9 +4086,6 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
         page_number = int(page)
         offset = (page_number - 1) * limit
 
-        min_timestamp = TimeUtilities.convert_sec_to_milliseconds(int(min_timestamp))
-        max_timestamp = TimeUtilities.convert_sec_to_milliseconds(int(max_timestamp))
-
         is_dm_chatroom = card_types.CARD_DIRECT_MESSAGE in included_chatroom_types
 
         included_chatroom_types_query = get_tuple_from_array(included_chatroom_types)
@@ -4314,9 +4311,6 @@ def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min
         offset = (page_number - 1) * limit
 
         included_conversation_states_query = get_tuple_from_array_v2(included_conversation_states)
-
-        min_timestamp = TimeUtilities.convert_sec_to_milliseconds(int(min_timestamp))
-        max_timestamp = TimeUtilities.convert_sec_to_milliseconds(int(max_timestamp))
 
         is_dm_chatroom = card_types.CARD_DIRECT_MESSAGE in included_chatroom_types
 
