@@ -550,6 +550,7 @@ class CommunitySettingTypes:
     ENABLE_GUEST_FLOW = "enable_guest_flow"
     USER_TOPICS_CONNECTION = "user_topics_connection"
     USER_NOTIFICATIONS = "user_notifications"
+    ENABLE_DM_WITHOUT_CONNECTION_REQUEST = "enable_dm_without_connection_request"
 
 
 community_setting_types = CommunitySettingTypes()

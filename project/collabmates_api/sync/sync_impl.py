@@ -8,6 +8,8 @@ from .constants import (CONVERSATIONS_META_KEY_VALUE, CONVERSATION_POLLS_META_KE
 from utility.response_utilities import ResponseUtilities
 from utility.number_utilities import NumberUtilities
 from utility.json_utilities import JsonUtilities
+from utility.version_utilities import VersionUtilities
+from utility.time_utilities import TimeUtilities
 from togther.models import (Members)
 
 from collabmates_api.raw_queries import (get_home_feed_chatrooms_against_user, get_chatroom_conversations_data,
@@ -94,6 +96,10 @@ class SyncImpl(SyncManager):
         min_timestamp = SyncHelper.get_min_timestamp_keys_for_sync_in_cache(user_instance.id,
                                                                             self.get_community_id(),
                                                                             min_timestamp)
+
+        if self.get_api_version_code() < VersionUtilities.APIVersionCodes.V2.value:
+            min_timestamp = TimeUtilities.convert_sec_to_milliseconds(int(min_timestamp))
+            max_timestamp = TimeUtilities.convert_sec_to_milliseconds(int(max_timestamp))
 
         included_chatroom_types = [card_types.CARD_NORMAL, card_types.CARD_INTRO, card_types.CARD_EVENT,
                                    card_types.CARD_POLL, card_types.CARD_FEEDBACK, card_types.CARD_HIDDEN,
