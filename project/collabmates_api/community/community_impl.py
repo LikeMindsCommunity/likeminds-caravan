@@ -1404,7 +1404,8 @@ class CommunityImpl(CommunityManager):
                                                                         NSFW_FILTERING_CONFIGURATION,
                                                                         {'enabled': community_setting["enabled"]})
                 
-            if community_setting["setting_type"] == community_setting_types.USER_TOPICS_CONNECTION:
+            if community_setting["setting_type"] in [community_setting_types.USER_TOPICS_CONNECTION,
+                                                     community_setting_types.FEED_REPOST]:
 
                 # Delete kettle community settings cache if user topics connection setting is updated
                 InternalServiceUtilities.delete_cache_from_kettle_service.delay(
