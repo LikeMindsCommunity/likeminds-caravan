@@ -177,3 +177,9 @@ class CommunityEmailConfiguration(models.Model):
             }
 
         return email_sender_data
+
+
+class TestingVersionPSQL(models.Model):
+    sdk_client = models.ForeignKey(SdkClient, on_delete=models.CASCADE)
+    name = models.TextField(null=True)
+    from_email = models.TextField(null=True)
