@@ -18,8 +18,7 @@ def backfill_client_user_unique_id(community_id: int = None):
     sdk_communities = ModelUtilities.get_model_filter(SdkClient, filter_dict)
     community_ids_list = list(sdk_communities.values_list('community_id', flat=True))
 
-    members_filter = ModelUtilities.get_model_filter(Members, {'community_id__in': community_ids_list,
-                                                               'member_id__userinfo__is_bot': False})
+    members_filter = ModelUtilities.get_model_filter(Members, {'community_id__in': community_ids_list})
 
     sdk_client_records = []
     community_members_dict = {}
