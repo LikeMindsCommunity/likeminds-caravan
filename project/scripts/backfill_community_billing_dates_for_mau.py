@@ -12,7 +12,7 @@ def backfill_community_billing_dates_for_mau_tracking(community_id):
     if not community_instance:
         return
         
-    for sdk_source in VersionUtilities.SdkSource.get_sdk_source_list():
+    for sdk_source in VersionUtilities.SdkSource.get_all_sdk_source_list():
 
         ModelUtilities.update_or_create_model(CommunityBillingDates, {'community': community_instance, 
                                                                         'sdk': sdk_source, 

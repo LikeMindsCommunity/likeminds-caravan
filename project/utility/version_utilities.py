@@ -41,7 +41,7 @@ class VersionUtilities:
         FEED = 'feed'
 
         @classmethod
-        def get_sdk_source_list(cls):
+        def get_all_sdk_source_list(cls):
             return [cls.CHAT, cls.FEED]
 
     unreleased_version_code: int = 9999

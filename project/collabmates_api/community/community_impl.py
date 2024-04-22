@@ -1735,9 +1735,6 @@ class CommunityImpl(CommunityManager):
 
         CommunityHelper.create_community_noti_settings_instance_on_community_creation.delay(community_instance.id)
 
-        # Set Community Billing date for MAU
-        CommunityHelper.create_community_billing_date_for_mau_tracking(community_instance.id)
-
         community_serializer = CommunitySerializerV1(community_instance,
                                                      context={"current_user_id": self.get_member_id(),
                                                               "is_sdk": is_sdk},
@@ -4087,6 +4084,9 @@ class CommunityHelper:
         }
 
         update_community_pin_chatrooms_list_in_cache.delay(pin_chatroom_cache)
+        
+        # Set Community Billing date for MAU
+        CommunityHelper.create_community_billing_date_for_mau_tracking(community_instance.id)
 
     @staticmethod
     @shared_task
@@ -5977,7 +5977,7 @@ class CommunityHelper:
         if not community_instance:
             return
         
-        for sdk_source in VersionUtilities.SdkSource.get_sdk_source_list():
+        for sdk_source in VersionUtilities.SdkSource.get_all_sdk_source_list():
 
             ModelUtilities.update_or_create_model(CommunityBillingDates, {'community': community_instance, 
                                                                           'sdk': sdk_source, 
