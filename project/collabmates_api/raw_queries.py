@@ -1974,6 +1974,7 @@ def get_members_meta_list(community_id: int, member_ids: list = None, page=1, pa
                 togther_userinfo.user_id_id as "id", 
                 togther_userinfo.image_link as "image_url", 
                 CASE when (togther_members.custom_title = 'Member') then Null else togther_members.custom_title END as "custom_title", 
+                togther_members.state as "state",
                 CASE when (togther_members.community_id_id = {community_id}) then false else true END as "is_deleted",
                 togther_sdkclientusersinfo.user_unique_id as "sdk_client_info___user_unique_id",
                 togther_sdkclientusersinfo.user_unique_id as "sdk_client_info___uuid",
