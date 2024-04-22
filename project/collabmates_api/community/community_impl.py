@@ -38,7 +38,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, userEmails,\
     ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
     communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings, FeedNotificationSettings, \
-    Report_Tags, Report, CommunityConfigurations
+    Report_Tags, Report, CommunityConfigurations, CommunityBillingDates
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST, IMAGE_URLS_FOR_QUESTION_TITLES, SENDER_NAME_FOR_EMAIL_COMMS, \
@@ -4084,6 +4084,9 @@ class CommunityHelper:
         }
 
         update_community_pin_chatrooms_list_in_cache.delay(pin_chatroom_cache)
+        
+        # Set Community Billing date for MAU
+        CommunityHelper.create_community_billing_date_for_mau_tracking(community_instance.id)
 
     @staticmethod
     @shared_task
@@ -5962,3 +5965,25 @@ class CommunityHelper:
             InternalServiceUtilities.delete_cache_from_kettle_service.delay(
                 community_id=community_id, user_id=user_instance.id, key_patterns=[cache_key]
             )
+    
+    @staticmethod
+    def create_community_billing_date_for_mau_tracking(community_id: int):
+        """
+        Create a billing date for the community for MAU tracking for chat and feed
+        """
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        if not community_instance:
+            return
+        
+        for sdk_source in VersionUtilities.SdkSource.get_all_sdk_source_list():
+
+            ModelUtilities.update_or_create_model(CommunityBillingDates, {'community': community_instance, 
+                                                                          'sdk': sdk_source, 
+                                                                          'start_date': 1
+                                                                          }, {})
+        
+            info_logger.info(f"Successfully added billing date for community {community_id} for MAU tracking for {sdk_source}")
+
+        return

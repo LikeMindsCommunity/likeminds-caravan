@@ -40,6 +40,10 @@ class VersionUtilities:
         CHAT = 'chat'
         FEED = 'feed'
 
+        @classmethod
+        def get_all_sdk_source_list(cls):
+            return [cls.CHAT, cls.FEED]
+
     unreleased_version_code: int = 9999
 
     group_tags: dict = {

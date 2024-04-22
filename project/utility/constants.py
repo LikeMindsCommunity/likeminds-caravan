@@ -148,8 +148,8 @@ COMMUNITY_CONFIGURATIONS = {
             "post": "post",
             "comment": "comment",
             "universal_feed": {
-                "comment_sort_order_key": "",
-                "comment_sort_order": "",
+                "comment_sort_order_key": "", # likes
+                "comment_sort_order": "", # asc or desc
                 "comment_count": 1
             }
         }
