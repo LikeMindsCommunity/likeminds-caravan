@@ -20,6 +20,7 @@ from togther.models import Card_Attachment, EventRecordingsAttachments, ModelUti
     SDKClientUsersInfo, CommunityNotificationSettings, FeedNotificationSettings, CommunityBillingDates, CommunityConfigurations
 
 
+CSV_FILENAME = "s3_url_list.csv"
 
 def find_non_sdk_communities():
     # Get a list of community IDs present in the SdkClient model
@@ -41,6 +42,7 @@ def find_non_sdk_communities():
 
 
 def store_links_to_csv(community_id):
+
     print(f'saving s3 links related to community with id: {community_id} in s3_url_list.csv')
     data = []
     
@@ -57,6 +59,7 @@ def store_links_to_csv(community_id):
     # print('collabcard_ids: ', list(collabcard_ids))
 
     for collabcard_id in collabcard_ids:
+
         card_attachment = ModelUtilities.get_model_filter(
             Card_Attachment,
             {
@@ -68,23 +71,29 @@ def store_links_to_csv(community_id):
             # print(f'community_id: {community_id} collabcard_id: {collabcard_id}', card_attachment.file_url)
             data.append({'community_id': community_id, 'collabcard_id': collabcard_id, 'url': card_attachment.file_url})
     
-    # events recordings attachments
-        event_recordings_attachment = ModelUtilities.get_model_filter(
+        # events recordings attachments
+        event_recordings_attachments = ModelUtilities.get_model_filter(
             EventRecordingsAttachments,
             {
                 'chatroom_id': collabcard_id
             }
-        ).first()
+        ).values_list('url', 'thumbnail_url')
 
-        if event_recordings_attachment:
-            if event_recordings_attachment.url:
-                # print(f'community_id: {community_id} collabcard_id: {collabcard_id} url: {event_recordings_attachment.url}')
-                data.append({'community_id': community_id, 'collabcard_id': collabcard_id,'url': event_recordings_attachment.url})
+        
+        if event_recordings_attachments:
+            print("event_recordings_attachments: ", event_recordings_attachments)
 
+            for attachment in event_recordings_attachments:
+                url, thumbnail_url = attachment  # Unpack the tuple into variables
+                print("attachment: ", attachment)
+                
+                if url:
+                    # print(f'community_id: {community_id} collabcard_id: {collabcard_id} url: {url}')
+                    data.append({'community_id': community_id, 'collabcard_id': collabcard_id,'url': url})
 
-            if event_recordings_attachment.thumbnail_url:
-                # print(f'community_id: {community_id} collabcard_id: {collabcard_id} thumbnail_url: {event_recordings_attachment.thumbnail_url}')
-                data.append({'community_id': community_id, 'collabcard_id': collabcard_id, 'url': event_recordings_attachment.thumbnail_url})
+                if thumbnail_url:
+                    # print(f'community_id: {community_id} collabcard_id: {collabcard_id} thumbnail_url: {thumbnail_url}')
+                    data.append({'community_id': community_id, 'collabcard_id': collabcard_id, 'url': thumbnail_url})
 
     # answer attachment links
     card_answers_ids: list = ModelUtilities.get_model_filter(
@@ -99,6 +108,7 @@ def store_links_to_csv(community_id):
     # print('card_answers_ids: ', list(card_answers_ids))
 
     for card_answers_id in card_answers_ids:
+
         answer_attachment = ModelUtilities.get_model_filter(
             answerAttachment,
             {
@@ -112,7 +122,7 @@ def store_links_to_csv(community_id):
     
     # print('csv input: ', data)
     fields = ['community_id', 'collabcard_id', 'card_answers_id', 'url']
-    filename = "s3_url_list.csv"
+    filename = CSV_FILENAME
 
     with open(filename, 'a') as csvfile:
         # creating a csv dict writer object
@@ -152,6 +162,7 @@ def delete_table_rows(community_id: int, match_string, model):
 
 
 def delete_community_cache(community_id: int) -> None:
+
     print(f'deleting cache keys for community_id : {community_id} ...')
     
     # preview cache
