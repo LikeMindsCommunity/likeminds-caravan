@@ -81,7 +81,6 @@ def store_links_to_csv(community_id):
 
         
         if event_recordings_attachments:
-            print("event_recordings_attachments: ", event_recordings_attachments)
 
             for attachment in event_recordings_attachments:
                 url, thumbnail_url = attachment  # Unpack the tuple into variables
