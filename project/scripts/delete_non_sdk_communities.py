@@ -56,7 +56,6 @@ def store_links_to_csv(community_id):
         'id',
         flat=True
     )
-    # print('collabcard_ids: ', list(collabcard_ids))
 
     for collabcard_id in collabcard_ids:
 
@@ -84,7 +83,6 @@ def store_links_to_csv(community_id):
 
             for attachment in event_recordings_attachments:
                 url, thumbnail_url = attachment  # Unpack the tuple into variables
-                print("attachment: ", attachment)
                 
                 if url:
                     # print(f'community_id: {community_id} collabcard_id: {collabcard_id} url: {url}')
@@ -104,7 +102,6 @@ def store_links_to_csv(community_id):
         'id',
         flat=True
     )
-    # print('card_answers_ids: ', list(card_answers_ids))
 
     for card_answers_id in card_answers_ids:
 
