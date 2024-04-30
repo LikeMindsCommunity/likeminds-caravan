@@ -265,6 +265,7 @@ def delete_community_cache(community_id: int) -> None:
 def delete_community(community_id: int):
     # store s3 links to a csv file
     store_links_to_csv(community_id)
+    print(f'Upload the file: {CSV_FILENAME} to s3')
     # start delete operation
     print(f'starting delete operation for community with id : {community_id} at {datetime.datetime.now()}')
     # delete cache keys
