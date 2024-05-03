@@ -26,8 +26,7 @@ class SearchHelper:
                              if data.get('chatroom')]
 
         # Get chatroom instances with user objects
-        card_instances = ModelUtilities.get_model_filter(Collabcard, 
-                                                           {'id__in': chatroom_ids_list})
+        card_instances = ModelUtilities.get_model_filter(Collabcard, {'id__in': chatroom_ids_list})
         
         user_ids = [card.user_id for card in card_instances]
 
@@ -42,7 +41,7 @@ class SearchHelper:
 
         # Serialize chatrooms creator with UserInfoSeralizer with sdk_client_info 
         for card in card_instances:
-            chatroom_creators_meta[card.id]  = serialised_usersinfo_dict.get(card.user_id)
+            chatroom_creators_meta[card.id] = serialised_usersinfo_dict.get(card.user_id)
         
         for card_data in chatroom_data:
 
@@ -58,11 +57,16 @@ class SearchHelper:
 
             card_data['member'] = creator
             card_data['chatroom']['member'] = creator
-            card_data['chatroom']['date'] = TimeUtilities.convert_epoch_time_in_date(card_data['chatroom']['created_at'])
+            card_data['chatroom']['date'] = TimeUtilities.convert_epoch_time_in_date(
+                card_data['chatroom']['created_at'])
 
             error_logger.error(f"search/chatroom fetching chatroom participants count for chatroom_id: {chatroom_id} ")
 
-            card_data['chatroom']['participants_count'] = get_chatroom_participants_count(card_data['chatroom']['id'], card_data['community']['id'])
+            card_data['chatroom']['participants_count'] = get_chatroom_participants_count(card_data['chatroom']['id'],
+                                                                                          card_data['community']['id'])
+
+            if 'chatroom_with_user' in card_data['chatroom'] and not card_data['chatroom']['chatroom_with_user']:
+                card_data['chatroom']['chatroom_with_user'] = None
 
             error_logger.error(f"search/chatroom done fetching chatroom participants count for chatroom_id: {chatroom_id} ")
 
