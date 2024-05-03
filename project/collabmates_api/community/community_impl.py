@@ -1405,7 +1405,8 @@ class CommunityImpl(CommunityManager):
                                                                         {'enabled': community_setting["enabled"]})
                 
             if community_setting["setting_type"] in [community_setting_types.USER_TOPICS_CONNECTION,
-                                                     community_setting_types.FEED_REPOST]:
+                                                     community_setting_types.FEED_REPOST,
+                                                     community_setting_types.POST_APPROVAL_NEEDED]:
 
                 # Delete kettle community settings cache if user topics connection setting is updated
                 InternalServiceUtilities.delete_cache_from_kettle_service.delay(
@@ -2521,7 +2522,7 @@ class CommunityImpl(CommunityManager):
         # Update report count for all admins in community 
         update_report_count_for_all_promoters.delay(community_id=community_instance.id)
 
-        return {'success': True}
+        return {'success': True, 'report_id': report_instance.id}
     
     def close_community_reports(self, report_ids, status) -> dict:
             

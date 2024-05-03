@@ -551,6 +551,7 @@ class CommunitySettingTypes:
     USER_TOPICS_CONNECTION = "user_topics_connection"
     USER_NOTIFICATIONS = "user_notifications"
     ENABLE_DM_WITHOUT_CONNECTION_REQUEST = "enable_dm_without_connection_request"
+    POST_APPROVAL_NEEDED = "post_approval_needed"
 
 
 community_setting_types = CommunitySettingTypes()

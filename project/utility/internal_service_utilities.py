@@ -75,7 +75,7 @@ class InternalServiceUtilities:
     @shared_task
     def delete_cache_from_kettle_service(community_id: int, user_id: int, key_patterns: list = None):
 
-        if not (key_patterns):
+        if not key_patterns:
             return
         
         try:    
