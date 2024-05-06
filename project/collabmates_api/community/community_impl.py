@@ -5918,7 +5918,8 @@ class CommunityHelper:
         if not ReportClosingStatus.is_valid_status(status):
             return
         
-        action_taken = report_action_types.PENDING_POST_APPROVED if status == ReportClosingStatus.STATUS_APPROVED else report_action_types.PENDING_POST_REJECTED
+        action_taken = report_action_types.PENDING_POST_APPROVED \
+            if status == ReportClosingStatus.STATUS_APPROVED.value else report_action_types.PENDING_POST_REJECTED
         sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
         user_instance = ModelUtilities.get_model_instance_or_none(Userinfo, user_id)
         report_instances = ModelUtilities.get_model_filter(Report, {'id__in': report_ids})
