@@ -1,4 +1,5 @@
 import datetime
+import csv
 from external_services.caching.cache_impl import CacheImpl
 from collabmates_api.sdk.models import SdkClient
 from collabmates_api.webhook.models import CommunityWebhook
@@ -8,7 +9,7 @@ from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, CONVERSATION_POLL
     CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, CHATROOM_TYPE_CONVERSION, COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY, \
     EVENT_INSTRUCTORS_CHATROOM, EVENT_HIGHLIGHTS_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_FAQ_CHATROOM, \
     EVENT_ATTENDEES_CHATROOM, EVENT_ATTENDEES_CONVERSATION
-from togther.models import ModelUtilities, Community, communityToast, Members, Collabcard, collabcardState, \
+from togther.models import Card_Attachment, EventRecordingsAttachments, ModelUtilities, Community, answerAttachment, communityToast, Members, Collabcard, collabcardState, \
     draftChatroom, deletedChatrooms, card_answers, conversationEngage, temp_admin, Community_LPIG, Community_Rank, \
     Member_Engage, Community_Legacy, Community_Profession, Community_Interest, Community_Geography, Referal, Report, \
     CollabcardStateBackup, collabcardTemp, communityQuestions, communityAnswers, communityExpire, questionFilters, \
@@ -19,6 +20,7 @@ from togther.models import ModelUtilities, Community, communityToast, Members, C
     SDKClientUsersInfo, CommunityNotificationSettings, FeedNotificationSettings, CommunityBillingDates, CommunityConfigurations
 
 
+CSV_FILENAME = "s3_url_list.csv"
 
 def find_non_sdk_communities():
     # Get a list of community IDs present in the SdkClient model
@@ -37,6 +39,97 @@ def find_non_sdk_communities():
     print(f'communitites that should be left in togther_community table after delete operation: {communities_left_after_delete}')
     
     return non_sdk_communities
+
+
+def store_links_to_csv(community_id):
+
+    print(f'saving s3 links related to community with id: {community_id} in s3_url_list.csv')
+    data = []
+    
+    # card attachment links
+    collabcard_ids = ModelUtilities.get_model_filter(
+        Collabcard,
+        {
+            'community': community_id
+        }
+    ).values_list(
+        'id',
+        flat=True
+    )
+
+    for collabcard_id in collabcard_ids:
+
+        card_attachment = ModelUtilities.get_model_filter(
+            Card_Attachment,
+            {
+                'collabcard_id': collabcard_id
+            }
+        ).first()
+
+        if card_attachment:
+            # print(f'community_id: {community_id} collabcard_id: {collabcard_id}', card_attachment.file_url)
+            data.append({'community_id': community_id, 'collabcard_id': collabcard_id, 'url': card_attachment.file_url})
+    
+        # events recordings attachments
+        event_recordings_attachments = ModelUtilities.get_model_filter(
+            EventRecordingsAttachments,
+            {
+                'chatroom_id': collabcard_id
+            }
+        ).values_list('url', 'thumbnail_url')
+
+        
+        if event_recordings_attachments:
+
+            for attachment in event_recordings_attachments:
+                url, thumbnail_url = attachment  # Unpack the tuple into variables
+                
+                if url:
+                    # print(f'community_id: {community_id} collabcard_id: {collabcard_id} url: {url}')
+                    data.append({'community_id': community_id, 'collabcard_id': collabcard_id,'url': url})
+
+                if thumbnail_url:
+                    # print(f'community_id: {community_id} collabcard_id: {collabcard_id} thumbnail_url: {thumbnail_url}')
+                    data.append({'community_id': community_id, 'collabcard_id': collabcard_id, 'url': thumbnail_url})
+
+    # answer attachment links
+    card_answers_ids: list = ModelUtilities.get_model_filter(
+        card_answers,
+        {
+            'community': community_id
+        }
+    ).values_list(
+        'id',
+        flat=True
+    )
+
+    for card_answers_id in card_answers_ids:
+
+        answer_attachment = ModelUtilities.get_model_filter(
+            answerAttachment,
+            {
+                'answer_id': card_answers_id
+            }
+        ).first()
+
+        if answer_attachment:
+            # print(f'community_id: {community_id} card_answers_id: {card_answers_id}', answer_attachment.file_url)
+            data.append({'community_id': community_id, 'card_answers_id': card_answers_id, 'url': answer_attachment.file_url})
+    
+    # print('csv input: ', data)
+    fields = ['community_id', 'collabcard_id', 'card_answers_id', 'url']
+    filename = CSV_FILENAME
+
+    with open(filename, 'a') as csvfile:
+        # creating a csv dict writer object
+        writer = csv.DictWriter(csvfile, fieldnames=fields)
+    
+         # If the file is empty, write headers (field names)
+        if csvfile.tell() == 0:
+            writer.writeheader()
+    
+        # writing data rows
+        writer.writerows(data)
 
 
 
@@ -65,6 +158,7 @@ def delete_table_rows(community_id: int, match_string, model):
 
 
 def delete_community_cache(community_id: int) -> None:
+
     print(f'deleting cache keys for community_id : {community_id} ...')
     
     # preview cache
@@ -80,7 +174,6 @@ def delete_community_cache(community_id: int) -> None:
     print('preview_conversation_ids: ', list(community_preview_conversation_ids))
 
     for community_preview_conversation_id in community_preview_conversation_ids:
-        # "COMMUNITY_PREVIEW_%s_%s"
         community_preview_cache_key: str = CONVERSATION_COMMUNITY_PREVIEW % (str(community_preview_conversation_id), str(community_id))
         cache_key_delete_status: bool = CacheImpl.delete_key(community_preview_cache_key)
         print(f'deleting key: {community_preview_cache_key}, status: {cache_key_delete_status}')
@@ -170,6 +263,10 @@ def delete_community_cache(community_id: int) -> None:
 
 
 def delete_community(community_id: int):
+    # store s3 links to a csv file
+    store_links_to_csv(community_id)
+    print(f'Upload the file: {CSV_FILENAME} to s3')
+    # start delete operation
     print(f'starting delete operation for community with id : {community_id} at {datetime.datetime.now()}')
     # delete cache keys
     delete_community_cache(community_id)
