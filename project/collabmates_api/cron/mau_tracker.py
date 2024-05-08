@@ -293,19 +293,36 @@ def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
         additional_filters: dict = {
             'must': [
                 {
-                    'match_phrase': {
-                        'text': '\"api/sdk/initiate\"',
-                    }
-                },
-                {
-                    'match_phrase': {
-                        'text': 'POST'
-                    }
-                },
-                {
-                    'match_phrase': {
-                        'text': '\"' + sdk_source + '\"'
-                    }
+                    'bool': {
+                        'should' : [
+                            {
+                                'bool': {
+                                    'must': 
+                                    [
+                                        {
+                                            'match_phrase': { 'text': '\"' + sdk_source + '\"' }
+                                        },
+                                        {
+                                            'match_phrase': { 'text': 'api/sdk/initiate' },
+                                        }
+                                    ]
+                                }
+                            },
+                           {
+                                'bool': {
+                                    'must': 
+                                    [
+                                        {
+                                            'match_phrase': { 'text': '\"' + sdk_source + '\"' }
+                                        },
+                                        {
+                                            'match_phrase': { 'text': 'api/sdk/initiate?uuid' },
+                                        }
+                                    ]
+                                }
+                            },
+                        ]
+                    }   
                 }
             ]
         }
@@ -407,6 +424,7 @@ def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
 
 
 def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
+    
     # Fetch sdk client record to fetch api key
     sdk_client = SdkClient.objects.get(community=billingRecord.community)
 
