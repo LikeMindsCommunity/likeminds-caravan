@@ -147,6 +147,10 @@ COMMUNITY_CONFIGURATIONS = {
         {
             "post": "post",
             "comment": "comment",
+            "like_variable": {
+                "present": "like",
+                "past": "liked"
+            },
             "universal_feed": {
                 "comment_sort_order_key": "", # likes
                 "comment_sort_order": "", # asc or desc

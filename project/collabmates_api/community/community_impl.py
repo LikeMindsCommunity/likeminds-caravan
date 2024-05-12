@@ -5357,13 +5357,22 @@ class CommunityHelper:
 
             if update_values.get('post') and not (
                     isinstance(update_values.get('post'), str) and update_values.get('post').strip() and
-                    len(update_values.get('post').strip()) <= MAX_POST_COMMENT_VARIABLE_LENGTH):
+                    len(update_values.get('post').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH):
                 return ResponseUtilities.get_inner_error_context("Invalid post value!")
 
             if update_values.get('comment') and not (
                     isinstance(update_values.get('comment'), str) and update_values.get('comment').strip() and
-                    len(update_values.get('comment').strip()) <= MAX_POST_COMMENT_VARIABLE_LENGTH):
+                    len(update_values.get('comment').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH):
                 return ResponseUtilities.get_inner_error_context("Invalid comment value!")
+            
+            if update_values.get('like_variable') and not (
+                isinstance(update_values.get('like_variable'), dict)) and not (
+                    isinstance(update_values.get('like_variable').get('present'), str) and update_values.get('like_variable').get('present').strip() and
+                len(update_values.get('like_variable').get('present').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH) and not (
+                    isinstance(update_values.get('like_variable').get('past'), str) and update_values.get('like_variable').get('past').strip() and
+                len(update_values.get('like_variable').get('past').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH):
+
+                return ResponseUtilities.get_inner_error_context("Invalid like_variable value!")
                 
         return {
             'community_instance': community_instance,
@@ -5765,6 +5774,16 @@ class CommunityHelper:
             if update_values.get('comment'):
                 configuration_value['comment'] = update_values.get('comment').strip()
                 record_updated = True
+
+            if update_values.get('like_variable') and isinstance(update_values.get('like_variable'), dict):
+
+                if update_values.get('like_variable').get('present'):
+                    configuration_value['like_variable']['present'] = update_values.get('like_variable').get('present').strip()
+                    record_updated = True
+
+                if update_values.get('like_variable').get('past'):
+                    configuration_value['like_variable']['past'] = update_values.get('like_variable').get('past').strip()
+                    record_updated = True
 
             if isinstance(update_values.get('universal_feed'), dict):
                 configuration_value['universal_feed'] = update_values.get('universal_feed')
