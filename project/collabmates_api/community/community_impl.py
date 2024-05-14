@@ -5365,14 +5365,16 @@ class CommunityHelper:
                     len(update_values.get('comment').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH):
                 return ResponseUtilities.get_inner_error_context("Invalid comment value!")
             
-            if update_values.get('like_variable') and not (
-                isinstance(update_values.get('like_variable'), dict)) and not (
-                    isinstance(update_values.get('like_variable').get('present'), str) and update_values.get('like_variable').get('present').strip() and
-                len(update_values.get('like_variable').get('present').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH) and not (
-                    isinstance(update_values.get('like_variable').get('past'), str) and update_values.get('like_variable').get('past').strip() and
-                len(update_values.get('like_variable').get('past').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH):
+            if update_values.get('like_variable'):
 
-                return ResponseUtilities.get_inner_error_context("Invalid like_variable value!")
+                # Validate like_variable value
+                if not (isinstance(update_values.get('like_variable'), dict)) or not (
+                            isinstance(update_values.get('like_variable').get('present'), str) and update_values.get('like_variable').get('present').strip() and
+                            len(update_values.get('like_variable').get('present').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH) or not (
+                                isinstance(update_values.get('like_variable').get('past'), str) and update_values.get('like_variable').get('past').strip() and
+                                len(update_values.get('like_variable').get('past').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH
+                        ):
+                    return ResponseUtilities.get_inner_error_context("Invalid like_variable value!")
                 
         return {
             'community_instance': community_instance,
@@ -5776,6 +5778,9 @@ class CommunityHelper:
                 record_updated = True
 
             if update_values.get('like_variable') and isinstance(update_values.get('like_variable'), dict):
+
+                if not (configuration_value.get('like_variable') or isinstance(configuration_value.get('like_variable'), dict)):
+                    configuration_value['like_variable'] = {}
 
                 if update_values.get('like_variable').get('present'):
                     configuration_value['like_variable']['present'] = update_values.get('like_variable').get('present').strip()
