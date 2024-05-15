@@ -285,4 +285,4 @@ INFERDO_NSFW_FILTER_ENDPOINT = "https://nsfw-image-classification1.p.rapidapi.co
 INFERDO_HEADER_API_HOST = "nsfw-image-classification1.p.rapidapi.com"
 INFERDO_SAMPLE_NSFW_IMAGE_URL = "https://www.inferdo.com/img/nsfw-1-raw.jpg"
 
-MAX_POST_COMMENT_VARIABLE_LENGTH = 30
+MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH = 30
