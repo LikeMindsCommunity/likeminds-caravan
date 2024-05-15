@@ -31,6 +31,8 @@ ALLOWED_HOSTS = [os.getenv("DEVELOPMENT_ALLOWED_HOST_2"), os.getenv("DEVELOPMENT
 
 FCM_SERVER_KEY = os.getenv('DEVELOPMENT_FCM_SERVER_KEY')
 
+FIREBASE_SERVICE_ACCOUNT_JSON = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
+
 # variable for google sign in oauth client ID
 # GOOGLE_OAUTH_CLIENT_ID=os.getenv('BETA_GOOGLE_OAUTH_CLIENT_ID')
 # hard coding here for prod unless key it is moved to beta env as above
