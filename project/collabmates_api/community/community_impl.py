@@ -5365,14 +5365,13 @@ class CommunityHelper:
                     len(update_values.get('comment').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH):
                 return ResponseUtilities.get_inner_error_context("Invalid comment value!")
             
-            if update_values.get('like_variable'):
-
-                # Validate like_variable value
-                if not (isinstance(update_values.get('like_variable'), dict)) or not (
-                            isinstance(update_values.get('like_variable').get('present'), str) and update_values.get('like_variable').get('present').strip() and
-                            len(update_values.get('like_variable').get('present').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH) or not (
-                                isinstance(update_values.get('like_variable').get('past'), str) and update_values.get('like_variable').get('past').strip() and
-                                len(update_values.get('like_variable').get('past').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH
+            # Validate like_variable value
+            if update_values.get('like_variable') and not (
+                isinstance(update_values.get('like_variable'), dict)) or not (
+                    isinstance(update_values.get('like_variable').get('present'), str) and update_values.get('like_variable').get('present').strip() and
+                    len(update_values.get('like_variable').get('present').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH) or not (
+                        isinstance(update_values.get('like_variable').get('past'), str) and update_values.get('like_variable').get('past').strip() and
+                        len(update_values.get('like_variable').get('past').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH
                         ):
                     return ResponseUtilities.get_inner_error_context("Invalid like_variable value!")
                 
