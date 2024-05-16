@@ -5357,23 +5357,23 @@ class CommunityHelper:
 
             if update_values.get('post') and not (
                     isinstance(update_values.get('post'), str) and update_values.get('post').strip() and
-                    len(update_values.get('post').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH):
+                    len(update_values.get('post').strip()) <= FEED_POST_VARIABLE_MAX_LENGTH):
                 return ResponseUtilities.get_inner_error_context("Invalid post value!")
 
             if update_values.get('comment') and not (
                     isinstance(update_values.get('comment'), str) and update_values.get('comment').strip() and
-                    len(update_values.get('comment').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH):
+                    len(update_values.get('comment').strip()) <= FEED_COMMENT_VARIABLE_MAX_LENGTH):
                 return ResponseUtilities.get_inner_error_context("Invalid comment value!")
             
-            # Validate like_variable value
-            if update_values.get('like_variable') and not (
-                isinstance(update_values.get('like_variable'), dict)) or not (
-                    isinstance(update_values.get('like_variable').get('present'), str) and update_values.get('like_variable').get('present').strip() and
-                    len(update_values.get('like_variable').get('present').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH) or not (
-                        isinstance(update_values.get('like_variable').get('past'), str) and update_values.get('like_variable').get('past').strip() and
-                        len(update_values.get('like_variable').get('past').strip()) <= MAX_POST_COMMENT_LIKE_VARIABLE_LENGTH
+            # Validate like_entity_variable values
+            if update_values.get('like_entity_variable') and not (
+                isinstance(update_values.get('like_entity_variable'), dict)) or not (
+                    isinstance(update_values.get('like_entity_variable').get('entity_name'), str) and update_values.get('like_entity_variable').get('entity_name').strip() and
+                    len(update_values.get('like_entity_variable').get('entity_name').strip()) <= FEED_LIKE_VARIABLE_MAX_LENGTH) or not (
+                        isinstance(update_values.get('like_entity_variable').get('past_tense_verb'), str) and update_values.get('like_entity_variable').get('past_tense_verb').strip() and
+                        len(update_values.get('like_entity_variable').get('past_tense_verb').strip()) <= FEED_LIKE_VARIABLE_MAX_LENGTH
                         ):
-                    return ResponseUtilities.get_inner_error_context("Invalid like_variable value!")
+                    return ResponseUtilities.get_inner_error_context("Invalid like_entity_variable value!")
                 
         return {
             'community_instance': community_instance,
@@ -5776,17 +5776,17 @@ class CommunityHelper:
                 configuration_value['comment'] = update_values.get('comment').strip()
                 record_updated = True
 
-            if update_values.get('like_variable') and isinstance(update_values.get('like_variable'), dict):
+            if update_values.get('like_entity_variable') and isinstance(update_values.get('like_entity_variable'), dict):
 
-                if not (configuration_value.get('like_variable') or isinstance(configuration_value.get('like_variable'), dict)):
-                    configuration_value['like_variable'] = {}
+                if not (configuration_value.get('like_entity_variable') or isinstance(configuration_value.get('like_entity_variable'), dict)):
+                    configuration_value['like_entity_variable'] = {}
 
-                if update_values.get('like_variable').get('present'):
-                    configuration_value['like_variable']['present'] = update_values.get('like_variable').get('present').strip()
+                if update_values.get('like_entity_variable').get('entity_name'):
+                    configuration_value['like_entity_variable']['entity_name'] = update_values.get('like_entity_variable').get('entity_name').strip()
                     record_updated = True
 
-                if update_values.get('like_variable').get('past'):
-                    configuration_value['like_variable']['past'] = update_values.get('like_variable').get('past').strip()
+                if update_values.get('like_entity_variable').get('past_tense_verb'):
+                    configuration_value['like_entity_variable']['past_tense_verb'] = update_values.get('like_entity_variable').get('past_tense_verb').strip()
                     record_updated = True
 
             if isinstance(update_values.get('universal_feed'), dict):
