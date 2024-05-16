@@ -147,6 +147,10 @@ COMMUNITY_CONFIGURATIONS = {
         {
             "post": "post",
             "comment": "comment",
+            "like_entity_variable": {
+                "entity_name": "like",
+                "past_tense_verb": "liked"
+            },
             "universal_feed": {
                 "comment_sort_order_key": "", # likes
                 "comment_sort_order": "", # asc or desc
