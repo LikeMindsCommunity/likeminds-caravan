@@ -5366,12 +5366,12 @@ class CommunityHelper:
                 return ResponseUtilities.get_inner_error_context("Invalid comment value!")
             
             # Validate like_entity_variable values
-            if update_values.get('like_entity_variable') and not (
-                isinstance(update_values.get('like_entity_variable'), dict)) or not (
+            if update_values.get('like_entity_variable') is not None and (
+                not isinstance(update_values.get('like_entity_variable'), dict) or not (
                     isinstance(update_values.get('like_entity_variable').get('entity_name'), str) and update_values.get('like_entity_variable').get('entity_name').strip() and
                     len(update_values.get('like_entity_variable').get('entity_name').strip()) <= FEED_LIKE_VARIABLE_MAX_LENGTH) or not (
                         isinstance(update_values.get('like_entity_variable').get('past_tense_verb'), str) and update_values.get('like_entity_variable').get('past_tense_verb').strip() and
-                        len(update_values.get('like_entity_variable').get('past_tense_verb').strip()) <= FEED_LIKE_VARIABLE_MAX_LENGTH
+                        len(update_values.get('like_entity_variable').get('past_tense_verb').strip()) <= FEED_LIKE_VARIABLE_MAX_LENGTH)
                         ):
                     return ResponseUtilities.get_inner_error_context("Invalid like_entity_variable value!")
                 
