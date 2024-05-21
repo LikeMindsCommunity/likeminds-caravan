@@ -4591,9 +4591,12 @@ def fetch_chatroom_version_2(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
 
-    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
+    card_filter = Collabcard.objects.filter(id=card_id)
 
-    if not card_instance:
+    if card_filter.exists():
+        card_instance = card_filter[0]
+
+    else:
         context = ResponseUtilities.get_view_impl_error_context('Chat_room does not exist. Might have been deleted',
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
