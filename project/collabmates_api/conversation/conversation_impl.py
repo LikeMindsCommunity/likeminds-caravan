@@ -758,7 +758,7 @@ class ConversationImpl(ConversationManager):
 
             if not conversation:
                 return ResponseUtilities.get_impl_error_context('Invalid conversation ID provided',
-                                                                status_code=status_codes.HTTP_404_NOT_FOUND)
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
             
             conversations = [conversation]
             conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
