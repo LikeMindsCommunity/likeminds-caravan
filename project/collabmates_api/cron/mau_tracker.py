@@ -352,6 +352,16 @@ def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
                             },
                             {
                                 'bool': {
+                                    'must': 
+                                    [
+                                        {
+                                            'match_phrase': { 'text': 'api/sdk/initiate?uuid' },
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                'bool': {
                                     'must': [
                                         {
                                             'match_phrase': {
