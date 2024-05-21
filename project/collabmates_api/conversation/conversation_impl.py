@@ -755,6 +755,11 @@ class ConversationImpl(ConversationManager):
         # Client is not sending scroll direction and only sending conversation id
         if self.get_conversation_id() and not self.get_scroll_direction():
             conversation = ModelUtilities.get_model_instance_or_none(card_answers, self.get_conversation_id())
+
+            if not conversation:
+                return ResponseUtilities.get_impl_error_context('Invalid conversation ID provided',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+            
             conversations = [conversation]
             conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
             return {'success': True, 'conversations': conversations}
