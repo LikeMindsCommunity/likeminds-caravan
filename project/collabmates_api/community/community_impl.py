@@ -2544,8 +2544,8 @@ class CommunityImpl(CommunityManager):
                 
                 report_ids = [report.id for report in report_instances]
 
-                CommunityHelper.close_under_review_pending_post_reports(community_instance.id, user_instance.id,
-                                                                        report_ids, status)
+                CommunityHelper.close_under_review_pending_post_reports.delay(community_instance.id, user_instance.id,
+                                                                              report_ids, status)
 
             else:
 
