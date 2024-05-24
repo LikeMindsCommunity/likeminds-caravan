@@ -5948,6 +5948,8 @@ class CommunityHelper:
         report_instances = ModelUtilities.get_model_filter(Report, {'id__in': report_ids})
 
         if not (sdk_client_instance and user_instance and report_instances):
+            info_logger.info(f"Missing params: sdk_client_instance: {sdk_client_instance}, "
+                             f"user_instance: {user_instance}, report_instances: {report_instances}")
             return
         
         # For each report, approve or reject the pending post in swarm service and close the report
