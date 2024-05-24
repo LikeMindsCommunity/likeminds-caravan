@@ -5944,7 +5944,7 @@ class CommunityHelper:
         action_taken = report_action_types.PENDING_POST_APPROVED \
             if status == ReportClosingStatus.STATUS_APPROVED.value else report_action_types.PENDING_POST_REJECTED
         sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
-        user_instance = ModelUtilities.get_model_instance_or_none(Userinfo, user_id)
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
         report_instances = ModelUtilities.get_model_filter(Report, {'id__in': report_ids})
 
         if not (sdk_client_instance and user_instance and report_instances):
@@ -5955,7 +5955,7 @@ class CommunityHelper:
 
             pending_post_id = report.entity_id
             response = InternalServiceUtilities.approve_or_reject_pending_post_in_swarm_service(
-                sdk_client_instance.api_key,user_instance.user_unique_id, pending_post_id, status)
+                sdk_client_instance.api_key, user_instance.user_unique_id, pending_post_id, status)
             
             # If there was an error from swarm service log the error and continue
             if response.get('error_message'):
