@@ -5957,16 +5957,16 @@ class CommunityHelper:
 
             pending_post_id = report.entity_id
             response = InternalServiceUtilities.approve_or_reject_pending_post_in_swarm_service(
-                sdk_client_instance.api_key, user_instance.user_unique_id, pending_post_id, status)
+                sdk_client_instance.api_key, user_instance.userinfo.user_unique_id, pending_post_id, status)
             
             # If there was an error from swarm service log the error and continue
             if response.get('error_message'):
                 error_logger.error(f"Error occurred while approving/rejecting pending post: {pending_post_id} for report: {report.id} - {response.get('error_message')}")
                 continue
-            
+
             # Close the report if the pending post was approved or rejected successfully
             report.is_closed = True
-            report.closed_by = user_instance.user_id
+            report.closed_by = user_instance
             report.action_taken = action_taken
             report.save()
 
