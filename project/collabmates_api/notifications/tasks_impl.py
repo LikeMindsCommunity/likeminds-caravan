@@ -1205,7 +1205,7 @@ class TasksHelper:
         community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
 
         if community_instance:
-            message['payload']['community_id'] = community_instance.id
+            message['payload']['community_id'] = str(community_instance.id)
             message['payload']['community_name'] = community_instance.name
             message['payload']['community_logo'] = community_instance.thumbnail
 
