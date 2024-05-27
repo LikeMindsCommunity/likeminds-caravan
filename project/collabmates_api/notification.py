@@ -169,7 +169,9 @@ def send_notification_for_android(token_list, message, service_account_file_dict
             time.sleep(2)
         
         final_result.append(result)
-        
+        log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("ANDROID", len(token_list), (result.get('success')), (result.get('failure')), message.get('payload'))
+    
     else:
         push_service = FCMNotification(api_key=firebase_key)
 
@@ -188,7 +190,11 @@ def send_notification_for_android(token_list, message, service_account_file_dict
         notification_success.append(result.get('success'))
         notification_failures.append(result.get('failure'))
         final_result.append(result)
-            
+
+        log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("ANDROID", len(token_list), len(notification_success), len(notification_failures), message.get('payload'))
+    
+    info_logger.info(f"{log_statement} \nFinal Result: {final_result}")
     return final_result
 
 
@@ -224,7 +230,9 @@ def send_notification_for_ios(token_list, message, service_account_file_dict=Non
                                     data_message=message['payload'],
                                     extra_kwargs_ios=extra_kwargs_ios)
         
-        final_result.append(result)    
+        final_result.append(result)
+        log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("ANDROID", len(token_list), (result.get('success')), (result.get('failure')), message.get('payload'))
         time.sleep(2)
     
     else:
@@ -245,7 +253,11 @@ def send_notification_for_ios(token_list, message, service_account_file_dict=Non
         notification_success.append(result.get('success'))
         notification_failures.append(result.get('failure'))
         final_result.append(result)
+
+        log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("IOS", len(token_list), len(notification_success), len(notification_failures), message.get('payload'))
     
+    info_logger.info(f"{log_statement} \nFinal Result: {final_result}")
     return final_result
 
 
@@ -270,7 +282,9 @@ def send_notification_for_web(token_list, message, service_account_file_dict=Non
                                 message_icon=message['payload']['community_logo'],
                                 data_message=message['payload'])
 
-        final_result.append(result)    
+        final_result.append(result)
+        log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("ANDROID", len(token_list), (result.get('success')), (result.get('failure')), message.get('payload'))
         time.sleep(2)
     
     else:
@@ -284,6 +298,10 @@ def send_notification_for_web(token_list, message, service_account_file_dict=Non
         notification_failures.append(result.get('failure'))
         final_result.append(result)
 
+        log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("IOS", len(token_list), len(notification_success), len(notification_failures), message.get('payload'))
+
+    info_logger.info(f"{log_statement} \nFinal Result: {final_result}")
     return final_result
 
 
@@ -309,6 +327,8 @@ def send_notification_for_react(token_list, message, service_account_file_dict=N
                                 data_message=message['payload'])
 
         final_result.append(result)
+        log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("ANDROID", len(token_list), (result.get('success')), (result.get('failure')), message.get('payload'))
         time.sleep(2)
     
     else:
@@ -322,6 +342,10 @@ def send_notification_for_react(token_list, message, service_account_file_dict=N
         notification_failures.append(result.get('failure'))
         final_result.append(result)
 
+        log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("IOS", len(token_list), len(notification_success), len(notification_failures), message.get('payload'))
+
+    info_logger.info(f"{log_statement} \nFinal Result: {final_result}")
     return final_result
 
 
@@ -368,6 +392,8 @@ def send_notification_for_flutter(token_list, message, service_account_file_dict
 
 
         final_result.append(result)
+        log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("ANDROID", len(token_list), (result.get('success')), (result.get('failure')), message.get('payload'))
         time.sleep(2)
 
     else:
@@ -394,7 +420,11 @@ def send_notification_for_flutter(token_list, message, service_account_file_dict
         notification_success.append(result.get('success'))
         notification_failures.append(result.get('failure'))
         final_result.append(result)
-       
+
+        log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("IOS", len(token_list), len(notification_success), len(notification_failures), message.get('payload'))
+
+    info_logger.info(f"{log_statement} \nFinal Result: {final_result}")
     return final_result
 
 
@@ -436,6 +466,8 @@ def send_notification_for_react_native(token_list, message, service_account_file
                                     extra_kwargs_ios=extra_kwargs_ios)
 
         final_result.append(result)
+        log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("ANDROID", len(token_list), (result.get('success')), (result.get('failure')), message.get('payload'))
         time.sleep(2)
     
     else:
@@ -461,6 +493,10 @@ def send_notification_for_react_native(token_list, message, service_account_file
         notification_failures.append(result.get('failure'))
         final_result.append(result)
 
+        log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
+            """.format("IOS", len(token_list), len(notification_success), len(notification_failures), message.get('payload'))
+
+    info_logger.info(f"{log_statement} \nFinal Result: {final_result}")
     return final_result
 
 
