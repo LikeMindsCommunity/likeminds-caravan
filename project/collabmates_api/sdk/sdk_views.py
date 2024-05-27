@@ -58,7 +58,7 @@ class SdkProjectView(APIView):
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
         sdk_manager = SdkImpl(member_id=member_id, request_platform=request_platform, version_code=version_code,
-                              api_key=api_key)
+                            api_key=api_key)
         response_data = sdk_manager.edit_sdk_project(request_body)
 
         if 'error_message' in response_data:

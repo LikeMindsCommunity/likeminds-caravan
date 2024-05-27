@@ -1,5 +1,7 @@
 from rest_framework import status as status_codes
 
+from utility.constants import UPLOADED_FILE_NAME
+
 from .sdk_manager import SdkManager
 from utility.response_utilities import ResponseUtilities
 from utility.states import (api_types, login_types, question_states)
@@ -164,8 +166,8 @@ class SdkImpl(SdkManager):
         if 'error_message' in is_cm:
             return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
 
-        if req_body.get('firebase_server_key'):
-            sdk_client.firebase_server_key = req_body.get('firebase_server_key')
+        if req_body.get(UPLOADED_FILE_NAME):
+            sdk_client.firebase_service_account_file = req_body.get(UPLOADED_FILE_NAME)
 
         sdk_client.is_join_form_enabled = req_body.get('is_join_form_enabled')
         sdk_client.save()
