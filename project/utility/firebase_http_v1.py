@@ -5,6 +5,9 @@ from google.auth.transport.requests import Request as GoogleRequest
 import requests
 from urllib3 import Retry
 from requests.adapters import HTTPAdapter
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+error_logger = LoggingWrapper.get_instance()
 
 
 class FCM_HTTP_V1_Notification():
@@ -51,12 +54,14 @@ class FCM_HTTP_V1_Notification():
         self.FCM_END_POINT = "https://fcm.googleapis.com/v1/projects/" + self.service_account_file_dict['project_id'] + "/messages:send"
 
         if not isinstance(registration_ids, list):
-            raise InvalidDataError('Invalid registration IDs (should be list)')
+            error_logger.info('Invalid registration IDs (should be list)')
 
         payloads = []
 
         registration_id_chunks = self.registration_id_chunks(registration_ids)
+        
         for registration_ids in registration_id_chunks:
+            
             for registration_id in registration_ids:
             # appends a payload with each registration id here
                 payloads.append(self.parse_payload(
@@ -72,6 +77,7 @@ class FCM_HTTP_V1_Notification():
                     **extra_kwargs_ios
                     **extra_kwargs_web
                 ))
+        
         self.send_request(payloads, timeout)
         return self.parse_responses()
 
@@ -226,7 +232,8 @@ class FCM_HTTP_V1_Notification():
             # if len(registration_ids) > 1: 
             #     fcm_payload['registration_ids'] = registration_ids                    #list not supported
             # else:
-                fcm_payload['message']['token'] = registration_id
+            fcm_payload['message']['token'] = registration_id
+        
         if condition:
             fcm_payload['message']['condition'] = condition
         else:
@@ -237,14 +244,16 @@ class FCM_HTTP_V1_Notification():
             if isinstance(data_message, dict):
                 fcm_payload['message']['data'] = data_message
             else:
-                raise InvalidDataError("Provided data_message is in the wrong format")
+                error_logger.info("Provided data_message is in the wrong format")
         
         fcm_payload['message']['notification'] = {}
+        
         if message_icon:
             fcm_payload['message']['notification']['image'] = message_icon
-        # If body is present, use it
+        
         if message_body:
             fcm_payload['message']['notification']['body'] = message_body
+        
         if message_title:
             fcm_payload['message']['notification']['title'] = message_title             # most of the v1 notification body is made till here
 
@@ -311,15 +320,18 @@ class FCM_HTTP_V1_Notification():
 
     def do_request(self, payload, timeout):
         response = self.requests_session.post(self.FCM_END_POINT, data=payload, timeout=timeout)
+        
         if 'Retry-After' in response.headers and int(response.headers['Retry-After']) > 0:
             sleep_time = int(response.headers['Retry-After'])
             time.sleep(sleep_time)
             return self.do_request(payload, timeout)
+        
         return response
 
 
     def send_request(self, payloads=None, timeout=None):
         self.send_request_responses = []
+        
         for payload in payloads:
             response = self.do_request(payload, timeout)
             self.send_request_responses.append(response)
@@ -347,9 +359,12 @@ class FCM_HTTP_V1_Notification():
         }
 
         for response in self.send_request_responses:
+            
             if response.status_code == 200:
+                
                 if 'content-length' in response.headers and int(response.headers['content-length']) <= 0:
-                    raise FCMServerError("FCM server connection error, the response is empty")
+                    error_logger.info("FCM server connection error, the response is empty")
+                
                 else:
                     parsed_response = response.json()
 
@@ -362,54 +377,12 @@ class FCM_HTTP_V1_Notification():
                     response_dict['results'].append(parsed_response)
 
             elif response.status_code == 401:
-                raise AuthenticationError("There was an error authenticating the sender account")
+                error_logger.info("There was an error authenticating the sender account")
+            
             elif response.status_code == 400:
-                raise InvalidDataError(response.text)
+                error_logger.info(response.text)
+            
             else:
-                raise FCMServerError("FCM server is temporarily unavailable")
+                error_logger.info("FCM server is temporarily unavailable")
+        
         return response_dict
-
-
-
-
-# error classes
-class FCMError(Exception):
-    """
-    PyFCM Error
-    """
-    pass
-
-class AuthenticationError(FCMError):
-    """
-    API key not found or there was an error authenticating the sender
-    """
-    pass
-
-
-class FCMServerError(FCMError):
-    """
-    Internal server error or timeout error on Firebase cloud messaging server
-    """
-    pass
-
-
-class InvalidDataError(FCMError):
-    """
-    Invalid input
-    """
-    pass
-
-
-class InternalPackageError(FCMError):
-    """
-    JSON parsing error, please create a new github issue describing what you're doing
-    """
-    pass
-
-
-class RetryAfterException(Exception):
-    """
-    Retry-After must be handled by external logic.
-    """
-    def __init__(self, delay):
-        self.delay = delay
