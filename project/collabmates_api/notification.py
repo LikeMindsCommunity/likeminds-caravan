@@ -506,26 +506,19 @@ def send_notification_for_react_native(token_list, message, service_account_file
     return final_result
 
 
-def send_silent_notification(token_list):
-    push_service = FCM_HTTP_V1_Notification()
-
-    final_result = []
+def send_silent_notification(token_list, service_account_file_dict):
     
-    for token in token_list:
-        data = {
-            "message": {
-                "token": token,
-                "notification": {
-                    "title": '',
-                    "body": ''
-                }
-            }
-        }
-        result = push_service.send_notification(data)
-        
-        final_result.append(result)
-
-    return final_result
+    if service_account_file_dict:
+        push_service = FCM_HTTP_V1_Notification(service_account_file_dict)
+        result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                        message_title='',
+                                                        message_body='')
+    else:
+        push_service = FCMNotification(api_key=server_key)
+        result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                    timeout=fcm_timeout_seconds)
+    
+    return result
 
 
 def get_title_from_collabcard(card):
@@ -786,17 +779,17 @@ def notification_meta(notification_list, message, is_broadcast_notification: boo
 
     send_notification_for_android(tokens['Android'], message, firebase_service_account_file_dict, firebase_key)
 
-    # send_notification_for_ios(tokens['iOS'], message, firebase_service_account_file_dict, firebase_key)
+    send_notification_for_ios(tokens['iOS'], message, firebase_service_account_file_dict, firebase_key)
 
-    # send_notification_for_web(tokens['web'], message, firebase_service_account_file_dict, firebase_key)
+    send_notification_for_web(tokens['web'], message, firebase_service_account_file_dict, firebase_key)
 
-    # send_notification_for_flutter(tokens['Flutter'], message, firebase_service_account_file_dict, firebase_key)
+    send_notification_for_flutter(tokens['Flutter'], message, firebase_service_account_file_dict, firebase_key)
 
-    # send_notification_for_react_native(tokens['React Native'], message, firebase_service_account_file_dict, firebase_key)
+    send_notification_for_react_native(tokens['React Native'], message, firebase_service_account_file_dict, firebase_key)
 
-    # send_notification_for_react(tokens['React'], message, firebase_service_account_file_dict, firebase_key)
+    send_notification_for_react(tokens['React'], message, firebase_service_account_file_dict, firebase_key)
 
-    # track_notification_with_notification_payload_list(notification_payload_list)
+    track_notification_with_notification_payload_list(notification_payload_list)
 
 
 def get_connection():
@@ -889,49 +882,48 @@ def is_mobile_os_android(fcm_token):
         print("Error while connecting to PostgreSQL  ", error)
 
 
-def send_notification_to_multiple_devices(token_list, message):
+def send_notification_to_multiple_devices(token_list, message, service_account_file_dict):
     '''This function is used to send notifications by checking whether the request is android or ios'''
 
     for token in token_list:
 
         mobile_os = is_mobile_os_android(token)
         if mobile_os:
-            send_notification(token, message, True)  # if request is android
+            send_notification(token, message, True, service_account_file_dict)  # if request is android
         else:
-            send_notification(token, message, False)  # if request is iOS
+            send_notification(token, message, False, service_account_file_dict)  # if request is iOS
 
 
-def send_notification(fcm_token, message, is_android):
+def send_notification(fcm_token, message, is_android, service_account_file_dict):
     '''function to send notification for android as well as iOS'''
-    push_service = FCM_HTTP_V1_Notification()
-    
-    result = []
-    
-    if not is_android:
-        data = {
-            "message": {
-                "token": fcm_token,
-                "notification": {
-                    "title": message['payload']['title'],
-                    "body": message['payload']['sub_title']
-                },
-                "data": message['payload']
-            }
-        }
-        result.append(push_service.send_notification(data))
-    else:
-        data = {
-            "message": {
-                "token": fcm_token,
-                "notification": {
-                    "title": '',
-                    "body": ''
-                },
-                "data": message['payload']
-            }
-        }
-        result.append(push_service.send_notification(data))
 
+    token_list = []
+    token_list.append(fcm_token)
+
+    if not is_android:
+        if service_account_file_dict:
+            push_service = FCM_HTTP_V1_Notification(service_account_file_dict)
+            result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                        message_title=message['payload']['title'],
+                                                        message_body=message['payload']['sub_title'],
+                                                        data_message=message['payload'])
+        else:
+            push_service = FCMNotification(api_key=server_key)
+            result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                        message_title=message['payload']['title'],
+                                                        message_body=message['payload']['sub_title'],
+                                                        data_message=message['payload'],
+                                                        timeout=fcm_timeout_seconds)
+    else:
+        if service_account_file_dict:
+            push_service = FCM_HTTP_V1_Notification(service_account_file_dict)
+            result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                        data_message=message['payload'])
+        else:
+            push_service = FCMNotification(api_key=server_key)
+            result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                            data_message=message['payload'],
+                                                            timeout=fcm_timeout_seconds)
     print(result)
 
 

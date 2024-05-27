@@ -3,7 +3,7 @@ from rest_framework import status as status_codes
 
 from .exception_utilities import JsonDecodeException
 from .number_utilities import NumberUtilities
-from .constants import INVALID_PLATFORM
+from .constants import INVALID_PLATFORM, UPLOADED_FILE_NAME
 
 
 class RequestUtilities:
@@ -140,8 +140,8 @@ class RequestUtilities:
         return request_body
     
     @staticmethod
-    def load_uploaded_json_file(request):
-        uploaded_file = request.FILES.get('gcp_sevice_account_file')
+    def load_data_from_uploaded_json_file(request):
+        uploaded_file = request.FILES.get(UPLOADED_FILE_NAME)
         
         if not uploaded_file:
             print("no json file uploaded")
