@@ -39,7 +39,6 @@ class FCM_HTTP_V1_Notification():
                             message_icon=None,
                             data_message=None,
                             condition=None,
-                            timeout=None,
                             extra_notification_kwargs=None,
                             extra_kwargs_android={},
                             extra_kwargs_ios={},
@@ -78,7 +77,7 @@ class FCM_HTTP_V1_Notification():
                     **extra_kwargs_web
                 ))
         
-        self.send_request(payloads, timeout)
+        self.send_request(payloads)
         return self.parse_responses()
 
     def parse_payload(self,
@@ -91,7 +90,6 @@ class FCM_HTTP_V1_Notification():
                       condition=None,
                       data_message=None,
                       remove_notification=False,
-                      extra_notification_kwargs={},
                       extra_kwargs_android=None,
                       extra_kwargs_ios=None,
                       extra_kwargs_web=None):
@@ -229,9 +227,6 @@ class FCM_HTTP_V1_Notification():
         fcm_payload['message'] = {}             # entire payload has to contructed inside messsage
 
         if registration_id:
-            # if len(registration_ids) > 1: 
-            #     fcm_payload['registration_ids'] = registration_ids                    #list not supported
-            # else:
             fcm_payload['message']['token'] = registration_id
         
         if condition:
@@ -269,9 +264,6 @@ class FCM_HTTP_V1_Notification():
             if 'web' in stacks:
                 fcm_payload['message']['webpush'] = {}
                 fcm_payload['message']['webpush'] = extra_kwargs_web      # stack specific options will now have to be explicitly loaded acc v1 format
-
-        # if extra_notification_kwargs:
-        #     fcm_payload.update(extra_notification_kwargs)
 
         # Do this if you only want to send a data message.
         if remove_notification:
@@ -318,22 +310,22 @@ class FCM_HTTP_V1_Notification():
         ).encode('utf8')
     
 
-    def do_request(self, payload, timeout):
-        response = self.requests_session.post(self.FCM_END_POINT, data=payload, timeout=timeout)
+    def do_request(self, payload):
+        response = self.requests_session.post(self.FCM_END_POINT, data=payload)
         
         if 'Retry-After' in response.headers and int(response.headers['Retry-After']) > 0:
             sleep_time = int(response.headers['Retry-After'])
             time.sleep(sleep_time)
-            return self.do_request(payload, timeout)
+            return self.do_request(payload)
         
         return response
 
 
-    def send_request(self, payloads=None, timeout=None):
+    def send_request(self, payloads=None):
         self.send_request_responses = []
         
         for payload in payloads:
-            response = self.do_request(payload, timeout)
+            response = self.do_request(payload)
             self.send_request_responses.append(response)
 
     def parse_responses(self):

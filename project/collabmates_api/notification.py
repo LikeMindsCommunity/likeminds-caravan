@@ -222,7 +222,6 @@ def send_notification_for_ios(token_list, message, service_account_file_dict=Non
                                     message_body=message['payload']['sub_title'],
                                     message_icon=message['payload']['community_logo'],
                                     data_message=message['payload'],
-                                    # timeout=fcm_timeout_seconds,
                                     extra_kwargs_ios=extra_kwargs_ios)
         
         final_result.append(result)    
@@ -270,7 +269,6 @@ def send_notification_for_web(token_list, message, service_account_file_dict=Non
                                 message_body=message['payload']['sub_title'],
                                 message_icon=message['payload']['community_logo'],
                                 data_message=message['payload'])
-                                # timeout=fcm_timeout_seconds)
 
         final_result.append(result)    
         time.sleep(2)
@@ -309,7 +307,6 @@ def send_notification_for_react(token_list, message, service_account_file_dict=N
                                 message_body=message['payload']['sub_title'],
                                 message_icon=message['payload']['community_logo'],
                                 data_message=message['payload'])
-                                # timeout=fcm_timeout_seconds)
 
         final_result.append(result)
         time.sleep(2)
@@ -366,7 +363,6 @@ def send_notification_for_flutter(token_list, message, service_account_file_dict
                                     message_body=message['payload']['sub_title'],
                                     message_icon=message['payload']['community_logo'],
                                     data_message=message['payload'],
-                                    # timeout=fcm_timeout_seconds)
                                     extra_kwargs_android=extra_kwargs_android,
                                     extra_kwargs_ios=extra_kwargs_ios)
 
@@ -436,7 +432,6 @@ def send_notification_for_react_native(token_list, message, service_account_file
                                     message_body=message['payload']['sub_title'],
                                     message_icon=message['payload']['community_logo'],
                                     data_message=message['payload'],
-                                    # timeout=fcm_timeout_seconds)
                                     extra_kwargs_android=extra_kwargs_android,
                                     extra_kwargs_ios=extra_kwargs_ios)
 
