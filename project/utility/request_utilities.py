@@ -138,6 +138,19 @@ class RequestUtilities:
             request_body = {}
 
         return request_body
+    
+    @staticmethod
+    def load_uploaded_json_file(request):
+        uploaded_file = request.FILES.get('gcp_sevice_account_file')
+        
+        if not uploaded_file:
+            print("no json file uploaded")
+            return
+        
+        try:
+            return json.dumps(json.load(uploaded_file))
+        except Exception as e:
+            print("Error parsing the uploaded json file: ", e)
 
     @staticmethod
     def fetch_body_or_raise_exception(request):

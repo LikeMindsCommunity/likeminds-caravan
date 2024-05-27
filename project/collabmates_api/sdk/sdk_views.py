@@ -56,10 +56,11 @@ class SdkProjectView(APIView):
         request_platform = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
+        uploaded_json_file = RequestUtilities.load_uploaded_json_file(request)
 
         sdk_manager = SdkImpl(member_id=member_id, request_platform=request_platform, version_code=version_code,
-                              api_key=api_key)
-        response_data = sdk_manager.edit_sdk_project(request_body)
+                            api_key=api_key)
+        response_data = sdk_manager.edit_sdk_project(request_body, uploaded_json_file)
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
