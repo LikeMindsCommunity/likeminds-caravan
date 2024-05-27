@@ -39,7 +39,6 @@ class FCM_HTTP_V1_Notification():
                             message_icon=None,
                             data_message=None,
                             condition=None,
-                            extra_notification_kwargs=None,
                             extra_kwargs_android={},
                             extra_kwargs_ios={},
                             extra_kwargs_web={}):
@@ -71,10 +70,9 @@ class FCM_HTTP_V1_Notification():
                     message_icon=message_icon,
                     data_message=data_message,
                     condition=condition,
-                    extra_notification_kwargs=extra_notification_kwargs,
-                    **extra_kwargs_android
-                    **extra_kwargs_ios
-                    **extra_kwargs_web
+                    extra_kwargs_android=extra_kwargs_android,
+                    extra_kwargs_ios=extra_kwargs_ios,
+                    extra_kwargs_web=extra_kwargs_web
                 ))
         
         self.send_request(payloads)
@@ -224,7 +222,7 @@ class FCM_HTTP_V1_Notification():
         """
         fcm_payload = dict()
         
-        fcm_payload['message'] = {}             # entire payload has to contructed inside messsage
+        fcm_payload['message'] = {}             # entire payload has to be contructed inside messsage
 
         if registration_id:
             fcm_payload['message']['token'] = registration_id

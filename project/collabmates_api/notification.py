@@ -125,7 +125,7 @@ def get_firebase_server_key_or_service_file_from_message_payload(message):
 
         if sdk_client_filter:
             if sdk_client_filter[0].firebase_service_account_file:
-                service_account_file_dict = json.loads(sdk_client_filter[0].firebase_service_account_file)
+                service_account_file_dict = sdk_client_filter[0].firebase_service_account_file
         
             if sdk_client_filter[0].firebase_server_key:
                 server_key = sdk_client_filter[0].firebase_server_key
@@ -163,7 +163,6 @@ def send_notification_for_android(token_list, message, service_account_file_dict
                                                     message_body=message['payload']['sub_title'],
                                                     message_icon=message['payload']['community_logo'],
                                                     data_message=message['payload'],
-                                                    # timeout=fcm_timeout_seconds,
                                                     extra_kwargs_android=extra_kwargs_android)
 
             time.sleep(2)
@@ -194,7 +193,7 @@ def send_notification_for_android(token_list, message, service_account_file_dict
         log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
             """.format("ANDROID", len(token_list), len(notification_success), len(notification_failures), message.get('payload'))
     
-    info_logger.info(f"{log_statement} \nFinal Result: {final_result}")
+    print(f"{log_statement} \nFinal Result: {final_result}")
     return final_result
 
 

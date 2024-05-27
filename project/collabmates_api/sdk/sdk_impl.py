@@ -1,5 +1,7 @@
 from rest_framework import status as status_codes
 
+from utility.constants import UPLOADED_FILE_NAME
+
 from .sdk_manager import SdkManager
 from utility.response_utilities import ResponseUtilities
 from utility.states import (api_types, login_types, question_states)
@@ -142,7 +144,7 @@ class SdkImpl(SdkManager):
 
         return {'success': True, 'api_key': unique_id}
 
-    def edit_sdk_project(self, req_body, uploaded_file) -> dict:
+    def edit_sdk_project(self, req_body) -> dict:
 
         validated_request_body = SdkViewHelper.edit_sdk_project_body_validator(req_body, self.get_member_id(),
                                                                                self.get_api_key())
@@ -164,8 +166,8 @@ class SdkImpl(SdkManager):
         if 'error_message' in is_cm:
             return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
 
-        if uploaded_file:
-            sdk_client.firebase_service_account_file = uploaded_file
+        if req_body.get(UPLOADED_FILE_NAME):
+            sdk_client.firebase_service_account_file = req_body.get(UPLOADED_FILE_NAME)
 
         sdk_client.is_join_form_enabled = req_body.get('is_join_form_enabled')
         sdk_client.save()

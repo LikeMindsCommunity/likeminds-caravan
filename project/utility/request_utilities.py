@@ -140,19 +140,6 @@ class RequestUtilities:
         return request_body
     
     @staticmethod
-    def load_data_from_uploaded_json_file(request):
-        uploaded_file = request.FILES.get(UPLOADED_FILE_NAME)
-        
-        if not uploaded_file:
-            print("no json file uploaded")
-            return
-        
-        try:
-            return json.dumps(json.load(uploaded_file))
-        except Exception as e:
-            print("Error parsing the uploaded json file: ", e)
-
-    @staticmethod
     def fetch_body_or_raise_exception(request):
         try:
             return RequestUtilities.fetch_request_body(request)
