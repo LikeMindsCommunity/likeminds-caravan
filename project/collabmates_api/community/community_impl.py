@@ -62,7 +62,8 @@ from external_services.caching.cache_impl import CacheImpl
 
 from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY, 
                                 KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META, 
-                                KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY)
+                                KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY,
+                                SWARM_CACHE_KEY_COMMUNITY_SETTINGS)
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -1408,10 +1409,17 @@ class CommunityImpl(CommunityManager):
                                                      community_setting_types.FEED_REPOST,
                                                      community_setting_types.POST_APPROVAL_NEEDED]:
 
-                # Delete kettle community settings cache if user topics connection setting is updated
+                # Delete kettle community settings cache if user topics connection, feed repost, post approval needed
+                # setting is updated
                 InternalServiceUtilities.delete_cache_from_kettle_service.delay(
                     community_instance.id, user_instance.id,
                     [KETTLE_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id)])
+
+                if community_setting["setting_type"] in [community_setting_types.POST_APPROVAL_NEEDED]:
+                    # Delete swarm community settings cache if post apporval needed setting is updated
+                    InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+                        community_instance.id, user_instance.id,
+                        [SWARM_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id)])
 
             if not community_setting['enabled']:
                 disabled_community_setting_context = {
