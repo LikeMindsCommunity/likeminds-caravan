@@ -3,7 +3,7 @@ from rest_framework import status as status_codes
 
 from .exception_utilities import JsonDecodeException
 from .number_utilities import NumberUtilities
-from .constants import INVALID_PLATFORM
+from .constants import INVALID_PLATFORM, UPLOADED_FILE_NAME
 
 
 class RequestUtilities:
@@ -138,7 +138,7 @@ class RequestUtilities:
             request_body = {}
 
         return request_body
-
+    
     @staticmethod
     def fetch_body_or_raise_exception(request):
         try:
