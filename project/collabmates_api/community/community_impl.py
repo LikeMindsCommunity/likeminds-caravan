@@ -1419,7 +1419,7 @@ class CommunityImpl(CommunityManager):
                     # Delete swarm community settings cache if post apporval needed setting is updated
                     InternalServiceUtilities.delete_cache_from_swarm_service.delay(
                         community_instance.id, user_instance.id,
-                        [SWARM_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id)])
+                        SWARM_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id))
 
             if not community_setting['enabled']:
                 disabled_community_setting_context = {
