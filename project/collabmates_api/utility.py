@@ -146,7 +146,7 @@ def m2cm_v2_version_check(platform_code, version_code, is_sdk=False, api_version
         platform_code = VersionUtilities.PlatformCode.convert_platform_code_to_sdk(platform_code)
 
     return VersionUtilities.check_version(platform_code, version_code, VersionUtilities.m2cm_v2,
-                                          api_version_code=api_version_code)
+                                          api_version_code=api_version_code, sdk_source=VersionUtilities.SdkSource.CHAT)
 
 
 def m2cm_v1_version_check(platform_code, version_code):

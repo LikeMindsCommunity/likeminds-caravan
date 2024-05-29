@@ -790,13 +790,8 @@ class UserImpl(UserManager):
         return data
 
     def fetch_dm_home(self) -> dict:
-
-        is_m2cm_v1 = m2cm_v1_version_check(self.get_platform_code(), self.get_version_code())
         is_m2cm_v2 = m2cm_v2_version_check(self.get_platform_code(), self.get_version_code(), is_sdk=True,
                                            api_version_code=self.get_api_version_code())
-
-        if not is_m2cm_v1:
-            return {'success': True}
 
         user_instance = ModelUtilities.get_model_instance_or_none(User, self.get_user_id())
 
