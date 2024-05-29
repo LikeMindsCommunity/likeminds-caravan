@@ -62,7 +62,8 @@ from external_services.caching.cache_impl import CacheImpl
 
 from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY, 
                                 KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META, 
-                                KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY)
+                                KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY,
+                                SWARM_CACHE_KEY_COMMUNITY_SETTINGS)
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -1408,10 +1409,17 @@ class CommunityImpl(CommunityManager):
                                                      community_setting_types.FEED_REPOST,
                                                      community_setting_types.POST_APPROVAL_NEEDED]:
 
-                # Delete kettle community settings cache if user topics connection setting is updated
+                # Delete kettle community settings cache if user topics connection, feed repost, post approval needed
+                # setting is updated
                 InternalServiceUtilities.delete_cache_from_kettle_service.delay(
                     community_instance.id, user_instance.id,
                     [KETTLE_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id)])
+
+                if community_setting["setting_type"] in [community_setting_types.POST_APPROVAL_NEEDED]:
+                    # Delete swarm community settings cache if post apporval needed setting is updated
+                    InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+                        community_instance.id, user_instance.id,
+                        SWARM_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id))
 
             if not community_setting['enabled']:
                 disabled_community_setting_context = {
@@ -5944,10 +5952,12 @@ class CommunityHelper:
         action_taken = report_action_types.PENDING_POST_APPROVED \
             if status == ReportClosingStatus.STATUS_APPROVED.value else report_action_types.PENDING_POST_REJECTED
         sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
-        user_instance = ModelUtilities.get_model_instance_or_none(Userinfo, user_id)
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
         report_instances = ModelUtilities.get_model_filter(Report, {'id__in': report_ids})
 
         if not (sdk_client_instance and user_instance and report_instances):
+            info_logger.info(f"Missing params: sdk_client_instance: {sdk_client_instance}, "
+                             f"user_instance: {user_instance}, report_instances: {report_instances}")
             return
         
         # For each report, approve or reject the pending post in swarm service and close the report
@@ -5955,16 +5965,16 @@ class CommunityHelper:
 
             pending_post_id = report.entity_id
             response = InternalServiceUtilities.approve_or_reject_pending_post_in_swarm_service(
-                sdk_client_instance.api_key,user_instance.user_unique_id, pending_post_id, status)
+                sdk_client_instance.api_key, user_instance.userinfo.user_unique_id, pending_post_id, status)
             
             # If there was an error from swarm service log the error and continue
             if response.get('error_message'):
                 error_logger.error(f"Error occurred while approving/rejecting pending post: {pending_post_id} for report: {report.id} - {response.get('error_message')}")
                 continue
-            
+
             # Close the report if the pending post was approved or rejected successfully
             report.is_closed = True
-            report.closed_by = user_instance.user_id
+            report.closed_by = user_instance
             report.action_taken = action_taken
             report.save()
 
