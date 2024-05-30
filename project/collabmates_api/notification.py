@@ -158,12 +158,12 @@ def send_notification_for_android(token_list, message, service_account_file_dict
 
         for token_chunk in token_chunks_list:
             result = push_service.notify_multiple_devices(registration_ids=token_chunk,
-                                                    stacks = ['android'],
-                                                    message_title=message['payload']['title'],
-                                                    message_body=message['payload']['sub_title'],
-                                                    message_icon=message['payload']['community_logo'],
-                                                    data_message=message['payload'],
-                                                    extra_kwargs_android=extra_kwargs_android)
+                                                          stacks=['android'],
+                                                          message_title=message['payload']['title'],
+                                                          message_body=message['payload']['sub_title'],
+                                                          message_icon=message['payload']['community_logo'],
+                                                          data_message=message['payload'],
+                                                          extra_kwargs_android=extra_kwargs_android)
 
             time.sleep(2)
         

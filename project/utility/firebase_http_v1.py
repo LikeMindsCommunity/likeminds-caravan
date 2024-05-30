@@ -10,8 +10,8 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 error_logger = LoggingWrapper.get_instance()
 
 
-class FCM_HTTP_V1_Notification():
-    
+class FCMHTTPV1Notification:
+
     FCM_MAX_RECIPIENTS = 1000
 
     def __init__(self, service_account_file_dict):
@@ -22,6 +22,7 @@ class FCM_HTTP_V1_Notification():
                         method_whitelist=(Retry.DEFAULT_METHOD_WHITELIST | frozenset(['POST'])))
         self.requests_session.mount('http://', HTTPAdapter(max_retries=retries))
         self.requests_session.mount('https://', HTTPAdapter(max_retries=retries))
+        self.send_request_responses = []
 
     def generate_access_token(self):
         # Load the service account credentials from the JSON key file
@@ -32,16 +33,16 @@ class FCM_HTTP_V1_Notification():
         return credentials.token
     
     def notify_multiple_devices(self,
-                            registration_ids=None,
-                            stacks=None,
-                            message_body=None,
-                            message_title=None,
-                            message_icon=None,
-                            data_message=None,
-                            condition=None,
-                            extra_kwargs_android={},
-                            extra_kwargs_ios={},
-                            extra_kwargs_web={}):
+                                registration_ids=None,
+                                stacks=None,
+                                message_body=None,
+                                message_title=None,
+                                message_icon=None,
+                                data_message=None,
+                                condition=None,
+                                extra_kwargs_android={},
+                                extra_kwargs_ios={},
+                                extra_kwargs_web={}):
         
         # Set up headers and endpoint
         fcm_headers = {
@@ -229,6 +230,7 @@ class FCM_HTTP_V1_Notification():
         
         if condition:
             fcm_payload['message']['condition'] = condition
+
         else:
             if topic_name:
                 fcm_payload['message']['topic'] = '%s' % topic_name        # topic format changed
@@ -236,6 +238,7 @@ class FCM_HTTP_V1_Notification():
         if data_message:                                   
             if isinstance(data_message, dict):
                 fcm_payload['message']['data'] = data_message
+
             else:
                 error_logger.info("Provided data_message is in the wrong format")
         
@@ -252,15 +255,12 @@ class FCM_HTTP_V1_Notification():
 
         if stacks:
             if 'android' in stacks:
-                fcm_payload['message']['android'] = {}
                 fcm_payload['message']['android'] = extra_kwargs_android      # stack specific options will now have to be explicitly loaded acc v1 format
             
             if 'ios' in stacks:
-                fcm_payload['message']['apns'] = {}
                 fcm_payload['message']['apns'] = extra_kwargs_ios      # stack specific options will now have to be explicitly loaded acc v1 format
 
             if 'web' in stacks:
-                fcm_payload['message']['webpush'] = {}
                 fcm_payload['message']['webpush'] = extra_kwargs_web      # stack specific options will now have to be explicitly loaded acc v1 format
 
         # Do this if you only want to send a data message.
@@ -268,7 +268,6 @@ class FCM_HTTP_V1_Notification():
             del fcm_payload['message']['notification']
 
         return self.json_dumps(fcm_payload)
-
 
     def registration_id_chunks(self, registration_ids):
         """
@@ -280,15 +279,9 @@ class FCM_HTTP_V1_Notification():
         Yields:
             generator: list including lists with registration ids
         """
-        try:
-            xrange
-        except NameError:
-            xrange = range
-
         # Yield successive 1000-sized (max fcm recipients per request) chunks from registration_ids
-        for i in xrange(0, len(registration_ids), self.FCM_MAX_RECIPIENTS):
+        for i in range(0, len(registration_ids), self.FCM_MAX_RECIPIENTS):
             yield registration_ids[i:i + self.FCM_MAX_RECIPIENTS]
-
 
     def json_dumps(self, data):
         """
@@ -306,7 +299,6 @@ class FCM_HTTP_V1_Notification():
             sort_keys=True,
             ensure_ascii=False
         ).encode('utf8')
-    
 
     def do_request(self, payload):
         response = self.requests_session.post(self.FCM_END_POINT, data=payload)
@@ -318,12 +310,13 @@ class FCM_HTTP_V1_Notification():
         
         return response
 
-
     def send_request(self, payloads=None):
         self.send_request_responses = []
-        
+
         for payload in payloads:
+            print(f"PAYLOAD: {payload}, {self.FCM_END_POINT}, {self.requests_session.headers}")
             response = self.do_request(payload)
+            print(f"RESPONSE: {response.status_code}, {response.text}")
             self.send_request_responses.append(response)
 
     def parse_responses(self):
