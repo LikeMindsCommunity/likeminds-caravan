@@ -80,7 +80,7 @@ ONE_DAY_HOURS = 24
 VALID_URLS_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 
 INVALID_PLATFORM = 'Invalid request'
-UPLOADED_FILE_NAME = 'gcp_service_account_file'
+
 
 CONVERSATIONS_COUNT_CACHE_KEY = "conversations_count_%s"
 CONVERSATIONS_DISTINCT_CREATORS_KEY = "conversations_distinct_creators_%s"
