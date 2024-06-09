@@ -38,7 +38,8 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     communityExpiryCodes, CommunitySettings, CommunityToastV1, CommunityJoinEmail, userEmails,\
     ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
     communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings, FeedNotificationSettings, \
-    Report_Tags, Report, CommunityConfigurations, CommunityBillingDates
+    Report_Tags, Report, CommunityConfigurations, CommunityBillingDates, communityRightsSettings, userAdminRights, \
+    memberRights, adminRights
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST, IMAGE_URLS_FOR_QUESTION_TITLES, SENDER_NAME_FOR_EMAIL_COMMS, \
@@ -76,7 +77,7 @@ from collabmates_api.cohort.cohort_impl import CohortHelper, CohortImpl
 from external_services.amazon_s3.s3_client_impl import S3ClientImpl
 
 from external_services.logging.logging_wrapper import LoggingWrapper
-from utility.states import member_states, card_types, click_states, member_rights, mobile_states, \
+from utility.states import member_states, card_types, click_states, member_rights, manager_rights, mobile_states, \
     community_level_states, moderation_history_types, question_states, level_click_states, community_setting_types, \
     SyncTypes, cohort_types, get_started_types, send_invite_types, user_email_send_status_types, \
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
@@ -88,7 +89,8 @@ from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
 from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDIA_LIMITS_CONFIGURATION,
                                FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION, 
-                               PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION, WIDGETS_METADATA_CONFIGURATION)
+                               PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION, WIDGETS_METADATA_CONFIGURATION,
+                               FEED_SETTINGS_CONFIGURATION, CREATE_FEED_POLL_COMMUNITY_VALUES)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -5382,6 +5384,22 @@ class CommunityHelper:
                         len(update_values.get('like_entity_variable').get('past_tense_verb').strip()) <= FEED_LIKE_VARIABLE_MAX_LENGTH)
                         ):
                     return ResponseUtilities.get_inner_error_context("Invalid like_entity_variable value!")
+
+        elif configuration_type == FEED_SETTINGS_CONFIGURATION:
+
+            # Fetch community settings
+            community_settings_instance = ModelUtilities.get_model_filter(CommunitySettings, 
+                                                                          {'community': community_instance,
+                                                                           'setting_type': community_setting_types.FEED}
+                                                                           ).first()
+            
+            if not community_settings_instance and not community_settings_instance.enabled:
+                return ResponseUtilities.get_inner_error_context("Please enable feed settings first")
+
+            if update_values.get('create_feed_poll') and not isinstance(update_values.get('create_feed_poll'), str) or (
+                update_values.get('create_feed_poll') not in CREATE_FEED_POLL_COMMUNITY_VALUES):
+                return ResponseUtilities.get_inner_error_context(
+                    "Please send valid value for create_feed_poll (possible values - 'everyone', 'only_cm', 'no_one')")            
                 
         return {
             'community_instance': community_instance,
@@ -5881,6 +5899,18 @@ class CommunityHelper:
                     configuration_value['guest_users'] = update_values.get('guest_users')
                     record_updated = True
 
+        elif configuration_type == FEED_SETTINGS_CONFIGURATION:
+
+            if update_values.get('create_feed_poll') and isinstance(update_values.get('create_feed_poll'), str) and (
+                update_values.get('create_feed_poll') in CREATE_FEED_POLL_COMMUNITY_VALUES):
+
+                configuration_value['create_feed_poll'] = update_values.get('create_feed_poll')
+                record_updated = True
+
+                # Update rights for all members & managers in the community
+                CommunityHelper.update_create_feed_poll_settings_for_community.delay(community_id, user_id,
+                                                                                     update_values.get('create_feed_poll'))
+
         # Update configuration instance if record is updated
         if record_updated:
             configuration_instance.value = configuration_value
@@ -6022,3 +6052,127 @@ class CommunityHelper:
             info_logger.info(f"Successfully added billing date for community {community_id} for MAU tracking for {sdk_source}")
 
         return
+    
+    @staticmethod
+    @shared_task
+    def update_create_feed_poll_settings_for_community(community_id: int, user_id: int, create_feed_poll: str):
+
+        if not (community_id and user_id and create_feed_poll):
+            info_logger.info(f"Missing params: community_id: {community_id}, user_id: {user_id}, create_feed_poll: {create_feed_poll}")
+            return
+        
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+
+        if not (community_instance and user_instance):
+            info_logger.info(f"Community/User instance not found: community_id: {community_id}, user_id: {user_id}")
+            return
+        
+        member_right = ModelUtilities.get_model_filter(memberRights, {'state': member_rights.CREATE_FEED_POLL}).first()
+        admin_right = ModelUtilities.get_model_filter(adminRights, {'state': manager_rights.CREATE_FEED_POLL}).first()
+        
+        if not (member_right and admin_right):
+            info_logger.info(f"Member/Manager right not found: community_id: {community_id}")
+            return
+
+        configurations = CommunityHelper.fetch_or_return_default_community_configurations(community_instance, 
+                                                                                          [FEED_SETTINGS_CONFIGURATION])
+        # if create_feed_poll value is same as current value, return
+        if configurations and configurations[0].get('value') and configurations[0].get('value').get('create_feed_poll') == create_feed_poll:
+            return
+
+        if create_feed_poll == 'everyone':
+            CommunityHelper.update_create_feed_poll_settings_to_everyone(community_instance, member_right, admin_right)
+
+        elif create_feed_poll == 'only_cm':
+            CommunityHelper.update_create_feed_poll_settings_to_only_cm(community_instance, member_right, admin_right)
+
+        elif create_feed_poll == 'no_one':
+            CommunityHelper.update_create_feed_poll_settings_to_no_one(community_instance, member_right, admin_right)
+
+        else:
+            info_logger.info(f"Invalid create_feed_poll value: {create_feed_poll}")
+        
+        return
+
+    @staticmethod
+    def update_create_feed_poll_settings_to_everyone(community_instance, member_right, admin_right):
+
+        
+        # Add create_feed_poll right to default community rights settings
+        ModelUtilities.update_or_create_model(communityRightsSettings, {'community': community_instance,
+                                                                        'right': member_right}, {})
+        
+        # For each member in the community, add create_feed_poll right
+        member_instances = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                     'state': member_states.MEMBER})
+        
+        for member_instance in member_instances:
+            ModelUtilities.update_or_create_model(userMemberRights, {'user': member_instance.member_id,
+                                                                     'community': community_instance,
+                                                                     'right': member_right}, {})
+            
+        # For each manager in the community, add create_feed_poll right
+        manager_instances = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                      'state': member_states.ADMIN})
+        
+        for manager_instance in manager_instances:
+            ModelUtilities.update_or_create_model(userAdminRights, {'user': manager_instance.member_id,
+                                                                    'community': community_instance,
+                                                                    'right': admin_right}, {})
+            
+        info_logger.info(f"Successfully updated create_feed_poll to 'everyone' for community {community_instance.id}")
+
+    @staticmethod
+    def update_create_feed_poll_settings_to_only_cm(community_instance, member_right, admin_right):
+
+        # Remove create_feed_poll right from default community rights settings
+        ModelUtilities.delete_record_in_model(communityRightsSettings, {'community': community_instance,
+                                                                        'right': member_right})
+
+        # For each member in the community, remove create_feed_poll right
+        member_instances = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                     'state': member_states.MEMBER})
+        
+        for member_instance in member_instances:
+            ModelUtilities.delete_record_in_model(userMemberRights, {'user': member_instance.member_id,
+                                                                     'community': community_instance,
+                                                                     'right': member_right})
+            
+        # For each manager in the community, add create_feed_poll right
+        manager_instances = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                      'state': member_states.ADMIN})
+        
+        for manager_instance in manager_instances:
+            ModelUtilities.update_or_create_model(userAdminRights, {'user': manager_instance.member_id,
+                                                                    'community': community_instance,
+                                                                    'right': admin_right}, {})
+            
+        info_logger.info(f"Successfully updated create_feed_poll to 'only_cm' for community {community_instance.id}")
+
+    @staticmethod
+    def update_create_feed_poll_settings_to_no_one(community_instance, member_right, admin_right): 
+        
+        # Remove create_feed_poll right from default community rights settings
+        ModelUtilities.delete_record_in_model(communityRightsSettings, {'community': community_instance,
+                                                                        'right': member_right})
+        
+        # For each member in the community, remove create_feed_poll right
+        member_instances = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                     'state': member_states.MEMBER})
+        
+        for member_instance in member_instances:
+            ModelUtilities.delete_record_in_model(userMemberRights, {'user': member_instance.member_id,
+                                                                     'community': community_instance,
+                                                                     'right': member_right})
+            
+        # For each manager in the community, remove create_feed_poll right
+        manager_instances = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
+                                                                     'state': member_states.ADMIN})
+        
+        for manager_instance in manager_instances:
+            ModelUtilities.delete_record_in_model(userAdminRights, {'user': manager_instance.member_id,
+                                                                    'community': community_instance,
+                                                                    'right': admin_right})
+            
+        info_logger.info(f"Successfully updated create_feed_poll to 'no_one' for community {community_instance.id}")

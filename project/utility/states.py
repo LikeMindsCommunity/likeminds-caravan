@@ -31,7 +31,7 @@ class ManagerRights:
     MANAGER_RIGHT_ADD_MANAGERS_TITLE = "Add community managers"
     MODERATE_DM_SETTINGS_TITLE = "Moderate DM settings"
     MODERATE_FEED_AND_COMMENTS_TITLE = "Moderate feed and comments"
-    CREATE_FEED_POLL = "Create feed poll"
+    CREATE_FEED_POLL_TITLE = "Create feed poll"
 
     DEFAULT_MANAGER_RIGHTS = [MANAGER_RIGHT_DELETE_ROOMS, MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS,
                               MANAGER_RIGHT_EDIT_COMMUNITY]
@@ -69,7 +69,7 @@ class MemberRights:
     MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM_TITLE = "Members who can initiate DMs"
     MEMBER_RIGHT_CREATE_POSTS_TITLE = "Create posts"
     MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS_TITLE = "Comment and reply on posts"
-    CREATE_FEED_POLL = "Create feed poll"
+    CREATE_FEED_POLL_TITLE = "Create feed poll"
 
     DEFAULT_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_ROOMS, MEMBER_RIGHT_CREATE_POLL,
                              MEMBER_RIGHT_CREATE_EVENT, MEMBER_RIGHT_RESPOND_IN_ROOM,
