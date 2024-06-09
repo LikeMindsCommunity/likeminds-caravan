@@ -1380,6 +1380,10 @@ class CommunityImpl(CommunityManager):
                                                                      is_enabled=community_setting['enabled'])
                 CommunityHelper.update_feed_notification_settings_based_on_feed_setting.delay(
                     community_id=community_instance.id, is_enabled=community_setting['enabled'])
+                
+                CommunityHelper.update_feed_create_poll_settings_based_on_feed_setting.delay(
+                    community_id=community_instance.id, user_id=user_instance.id ,is_enabled=community_setting['enabled']
+                    )
 
             if all([community_setting["setting_type"] == community_setting_types.MEMBERS_CAN_DM,
                     community_setting['enabled']]):
@@ -4802,6 +4806,35 @@ class CommunityHelper:
             ModelUtilities.delete_record_in_model(FeedNotificationSettings, {'community': community_instance})
 
     @staticmethod
+    @shared_task
+    def update_feed_create_poll_settings_based_on_feed_setting(community_id: int, user_id: int, is_enabled: bool):
+
+        community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+        if not community_instance:
+            return
+        
+        # Fetch community configurations
+        configurations = CommunityHelper.fetch_or_return_default_community_configurations(community_id, [FEED_SETTINGS_CONFIGURATION])
+        if not configurations:
+            return
+        
+        if is_enabled:
+
+            if configurations[0].get('value').get('create_feed_poll') != "everyone":
+                update_values = {
+                    'create_feed_poll': 'everyone'
+                }
+
+                CommunityHelper.update_configuration_of_community(community_id, user_id, FEED_SETTINGS_CONFIGURATION, update_values)
+
+        else:
+            update_values = {
+                'create_feed_poll': 'no_one'
+            }
+
+            CommunityHelper.update_configuration_of_community(community_id, user_id, FEED_SETTINGS_CONFIGURATION, update_values)
+
+    @staticmethod
     def validate_fetch_community_noti_settings(user_id, community_id, api_key):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
         if not user_instance:
@@ -5393,7 +5426,7 @@ class CommunityHelper:
                                                                            'setting_type': community_setting_types.FEED}
                                                                            ).first()
             
-            if not community_settings_instance and not community_settings_instance.enabled:
+            if community_settings_instance and not community_settings_instance.enabled:
                 return ResponseUtilities.get_inner_error_context("Please enable feed settings first")
 
             if update_values.get('create_feed_poll') and not isinstance(update_values.get('create_feed_poll'), str) or (
