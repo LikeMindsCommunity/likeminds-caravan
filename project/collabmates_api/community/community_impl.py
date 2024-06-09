@@ -6105,7 +6105,7 @@ class CommunityHelper:
             info_logger.info(f"Community/User instance not found: community_id: {community_id}, user_id: {user_id}")
             return
         
-        member_right = ModelUtilities.get_model_filter(memberRights, {'state': member_rights.CREATE_FEED_POLL}).first()
+        member_right = ModelUtilities.get_model_filter(memberRights, {'state': member_rights.MEMBER_RIGHT_CREATE_FEED_POLL}).first()
         admin_right = ModelUtilities.get_model_filter(adminRights, {'state': manager_rights.CREATE_FEED_POLL}).first()
         
         if not (member_right and admin_right):

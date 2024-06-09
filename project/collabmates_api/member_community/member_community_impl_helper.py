@@ -1213,7 +1213,7 @@ class MemberCommunityHelper:
                               access_types.DELETE_COMMENT, access_types.EDIT_COMMENT, access_types.LIKE_COMMENT,
                               access_types.CREATE_ACTIVITY, access_types.VIEW_ACTIVITY, access_types.CREATE_TOPIC,
                               access_types.EDIT_TOPIC, access_types.DELETE_TOPIC, access_types.IS_MEMBER,
-                              access_types.CHANGE_AUTHOR, access_types.VIEW_USER_ACTIVITY]
+                              access_types.CHANGE_AUTHOR, access_types.VIEW_USER_ACTIVITY, access_types.CREATE_FEED_POLL,]
 
         access_type = access_type_value
 

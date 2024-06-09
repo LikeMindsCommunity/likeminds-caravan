@@ -455,6 +455,9 @@ def check_admin_moderate_dm_settings_right(user, community):
 def check_admin_moderate_feed_and_comments_right(user, community):
     return check_user_admin_right(user, community, manager_rights.MODERATE_FEED_AND_COMMENTS)
 
+def check_admin_create_feed_poll_right(user, community):
+    return check_user_admin_right(user, community, manager_rights.CREATE_FEED_POLL)
+
 
 def get_moderation_history_title(moderation_history):
     if moderation_history.moderation_by:
@@ -552,6 +555,12 @@ def check_member_create_post_right(user, community):
 
 def check_member_comment_and_reply_right(user, community):
     return check_user_member_right(user, community, member_rights.MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS)
+
+def check_member_create_feed_poll_right(user, community):
+    user_rights = userMemberRights.objects.filter(user=user, community=community, 
+                                                  right__state__in=[member_rights.MEMBER_RIGHT_CREATE_FEED_POLL, 
+                                                                    member_rights.MEMBER_RIGHT_CREATE_POSTS])
+    return len(user_rights) == 2
 
 
 def give_member_auto_approve_right(user, community, current_user_instance):
