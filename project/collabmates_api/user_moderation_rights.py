@@ -718,7 +718,7 @@ def get_right_dict(right, post_variable_name="", comment_variable_name=""):
 
 
 def give_all_community_setting_rights(community):
-    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8, 9, 10]).order_by("state")
+    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8, 9, 10, 11]).order_by("state")
     save_community_setting_rights(community, member_rights)
 
 
