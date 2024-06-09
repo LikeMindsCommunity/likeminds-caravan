@@ -5798,8 +5798,7 @@ class CommunityHelper:
     
     @staticmethod
     @shared_task
-    def update_configuration_of_community(community_id: int, user_id: int, configuration_type: str,
-                                          update_values: dict):
+    def update_configuration_of_community(community_id: int, user_id: int, configuration_type: str, update_values: dict):
 
         record_updated = False
 
@@ -5937,12 +5936,15 @@ class CommunityHelper:
             if update_values.get('create_feed_poll') and isinstance(update_values.get('create_feed_poll'), str) and (
                 update_values.get('create_feed_poll') in CREATE_FEED_POLL_COMMUNITY_VALUES):
 
-                configuration_value['create_feed_poll'] = update_values.get('create_feed_poll')
-                record_updated = True
+                # if create_feed_poll value is updated, update rights for all members & managers in the community
+                if configuration_value['create_feed_poll'] != update_values.get('create_feed_poll'):
 
-                # Update rights for all members & managers in the community
-                CommunityHelper.update_create_feed_poll_settings_for_community.delay(community_id, user_id,
-                                                                                     update_values.get('create_feed_poll'))
+                    configuration_value['create_feed_poll'] = update_values.get('create_feed_poll')
+
+                    # Update rights for all members & managers in the community
+                    CommunityHelper.update_create_feed_poll_settings_for_community.delay(community_id, user_id, update_values.get('create_feed_poll'))
+
+                    record_updated = True
 
         # Update configuration instance if record is updated
         if record_updated:
@@ -6090,6 +6092,8 @@ class CommunityHelper:
     @shared_task
     def update_create_feed_poll_settings_for_community(community_id: int, user_id: int, create_feed_poll: str):
 
+        info_logger.info(f"Updating create_feed_poll settings for community {community_id} to {create_feed_poll}")
+
         if not (community_id and user_id and create_feed_poll):
             info_logger.info(f"Missing params: community_id: {community_id}, user_id: {user_id}, create_feed_poll: {create_feed_poll}")
             return
@@ -6106,12 +6110,6 @@ class CommunityHelper:
         
         if not (member_right and admin_right):
             info_logger.info(f"Member/Manager right not found: community_id: {community_id}")
-            return
-
-        configurations = CommunityHelper.fetch_or_return_default_community_configurations(community_instance, 
-                                                                                          [FEED_SETTINGS_CONFIGURATION])
-        # if create_feed_poll value is same as current value, return
-        if configurations and configurations[0].get('value') and configurations[0].get('value').get('create_feed_poll') == create_feed_poll:
             return
 
         if create_feed_poll == 'everyone':
