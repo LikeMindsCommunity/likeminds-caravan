@@ -11,36 +11,36 @@ from utility.states import manager_rights, member_rights, member_states, communi
 def create_member_create_feed_poll_rights():
 
     member_right = ModelUtilities.get_model_filter(
-        memberRights, {'state': member_rights.MEMBER_RIGHT_CREATE_FEED_POLL})
+        memberRights, {'state': member_rights.MEMBER_RIGHT_CREATE_FEED_POLL}).first()
     
     if not member_right:
-        right = memberRights(
+        member_right = memberRights(
             title=member_rights.MEMBER_RIGHT_CREATE_FEED_POLL_TITLE,
             sub_title="If member can create feed poll",
             state=member_rights.MEMBER_RIGHT_CREATE_FEED_POLL
         )
-        right.save()
+        member_right.save()
 
-        print(f"Created member right: {right}")
+        print(f"Created member right: {member_right}")
 
-    return right
+    return member_right
 
 def create_manager_create_feed_poll_rights():
 
     manager_right = ModelUtilities.get_model_filter(
-        adminRights, {'state': manager_rights.MANAGER_RIGHT_CREATE_FEED_POLL})
+        adminRights, {'state': manager_rights.MANAGER_RIGHT_CREATE_FEED_POLL}).first()
     
     if not manager_right:
-        right = adminRights(
+        manager_right = adminRights(
             title=manager_rights.MANAGER_RIGHT_CREATE_FEED_POLL_TITLE,
             sub_title="If manager can create feed poll",
             state=manager_rights.MANAGER_RIGHT_CREATE_FEED_POLL,
             rank=7)
-        right.save()
+        manager_right.save()
 
-        print(f"Created manager right: {right}")
+        print(f"Created manager right: {manager_right}")
 
-    return right
+    return manager_right
 
 def get_all_sdk_communities_where_feed_is_enabled():
 
@@ -51,9 +51,11 @@ def get_all_sdk_communities_where_feed_is_enabled():
     for sdk_client in sdk_client_filter:
         feed_settings = ModelUtilities.get_model_filter(CommunitySettings, 
                                                         {'community': sdk_client.community, 
-                                                         'setting_type': community_setting_types.FEED})
+                                                         'setting_type': community_setting_types.FEED,
+                                                         'enabled': True}
+                                                         ).first()
         
-        if feed_settings and feed_settings.enabled:
+        if feed_settings:
             community_ids.append(sdk_client.community_id)
 
     print(f"Communities where feed is enabled: {community_ids}")
@@ -70,15 +72,12 @@ def add_create_feed_poll_right_to_community_right_settings(community_ids):
     count = len(community_ids)
 
     for community_id in community_ids:
-
-        print(f"Communities left for member right assignment ---> {count}")
-
         ModelUtilities.update_or_create_model(communityRightsSettings,
                                                 {'community_id': community_id, 'right': member_right},
                                                 {'community_id': community_id, 'right': member_right})
         
-        print(f"Added member right to community: {community_id}")
         count -= 1
+        print(f"Added member right to community: {community_id}, count left: {count}")
 
     print("Added create_feed_poll right to communityRightSettingsm for all communities")
 
@@ -101,19 +100,32 @@ def add_create_feed_poll_right_for_each_member(community_ids):
             'state': member_states.MEMBER
         })
 
-        memberCount = len(community_members_filter)
+        # fetch all the members with right not already assigned
+        members_with_right = ModelUtilities.get_model_filter(userMemberRights, {
+            'community_id': community_id,
+            'right': member_right
+        }).values_list('user', flat=True)
 
-        for member in community_members_filter:
+        members_with_no_right = community_members_filter.exclude(member_id__in=members_with_right)
 
-            print(f"Members left for member right assignment ---> {memberCount}")
-            user_instance = member.member_id
+        memberCount = len(members_with_no_right)
 
-            # Add member right
-            ModelUtilities.update_or_create_model(userMemberRights,
-                                                {'community_id': community_id, 'user_id': user_instance, 'right': member_right},
-                                                {'community_id': community_id, 'user_id': user_instance, 'right': member_right})
-            
-            memberCount -= 1
+        print(f"Total Members left for member right assignment ---> {memberCount}")
+
+        bulk_instances = []
+
+        for member in members_with_no_right:
+
+            # Create userMemberRight Instance
+            userMemberRight_instance = userMemberRights(
+                community_id=community_id,
+                user=member.member_id,
+                right=member_right
+            )
+
+            bulk_instances.append(userMemberRight_instance)
+
+        ModelUtilities.bulk_create_instances(userMemberRights, bulk_instances)
             
         communityCount -= 1
 
@@ -132,25 +144,38 @@ def add_create_feed_poll_right_for_each_manager(community_ids):
     
             print(f"Communities left for manager right assignment ---> {communityCount}")
     
-            # Add manager right to all managers
+            # All managers of the community
             community_managers = ModelUtilities.get_model_filter(Members, {
                 'community_id': community_id,
                 'state': member_states.ADMIN
             })
 
-            managerCount = len(community_managers)
+            # fetch all the managers with right already assigned
+            managers_with_right = ModelUtilities.get_model_filter(userAdminRights, {
+                'community_id': community_id,
+                'right': manager_right
+            }).values_list('user', flat=True)
 
-            for manager in community_managers:
-    
-                print(f"managers left for manager right assignment ---> {managerCount}")
-                user_instance = manager.member_id
-    
-                # Add manager right
-                ModelUtilities.update_or_create_model(userAdminRights,
-                                                    {'community_id': community_id, 'user_id': user_instance, 'right': manager_right},
-                                                    {'community_id': community_id, 'user_id': user_instance, 'right': manager_right})
-                
-                managerCount -= 1
+            managers_with_no_right = community_managers.exclude(member_id__in=managers_with_right)
+
+            managerCount = len(managers_with_no_right)
+
+            print(f"Total Managers left for manager right assignment ---> {managerCount}")
+
+            bulk_instance = []
+
+            for manager in managers_with_no_right:
+
+                # Create userAdminRight Instance
+                userAdminRight_instance = userAdminRights(
+                    community_id=community_id,
+                    user=manager.member_id,
+                    right=manager_right
+                )
+
+                bulk_instance.append(userAdminRight_instance)                
+
+            ModelUtilities.bulk_create_instances(userAdminRights, bulk_instance)
 
             communityCount -= 1
 
