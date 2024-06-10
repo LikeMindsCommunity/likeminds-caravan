@@ -6137,20 +6137,40 @@ class CommunityHelper:
         # For each member in the community, add create_feed_poll right
         member_instances = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
                                                                      'state': member_states.MEMBER})
+
+        existing_member_rights = ModelUtilities.get_model_filter(userMemberRights, {'community': community_instance,
+                                                                                    'right': member_right}
+                                                                                    ).values('user')
+
+        remaining_member_rights = member_instances.exclude(member_id__in=existing_member_rights)
         
-        for member_instance in member_instances:
-            ModelUtilities.update_or_create_model(userMemberRights, {'user': member_instance.member_id,
-                                                                     'community': community_instance,
-                                                                     'right': member_right}, {})
+        bulk_user_member_right_instances =[]
+        
+        for member_instance in remaining_member_rights:
+            bulk_user_member_right_instances.append(userMemberRights(user=member_instance.member_id,
+                                                                     community=community_instance,
+                                                                     right=member_right))
+
+        ModelUtilities.bulk_create_instances(userMemberRights, bulk_user_member_right_instances)
             
         # For each manager in the community, add create_feed_poll right
         manager_instances = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
                                                                       'state': member_states.ADMIN})
+
+        existing_manager_rights = ModelUtilities.get_model_filter(userAdminRights, {'community': community_instance,
+                                                                                    'right': admin_right}
+                                                                                    ).values('user')
         
-        for manager_instance in manager_instances:
-            ModelUtilities.update_or_create_model(userAdminRights, {'user': manager_instance.member_id,
-                                                                    'community': community_instance,
-                                                                    'right': admin_right}, {})
+        remaining_manager_rights = manager_instances.exclude(member_id__in=existing_manager_rights)
+        
+        bulk_user_admin_right_instances = []
+        
+        for manager_instance in remaining_manager_rights:
+            bulk_user_admin_right_instances.append(userAdminRights(user=manager_instance.member_id,
+                                                                   community=community_instance,
+                                                                   right=admin_right))
+
+        ModelUtilities.bulk_create_instances(userAdminRights, bulk_user_admin_right_instances)
             
         info_logger.info(f"Successfully updated create_feed_poll to 'everyone' for community {community_instance.id}")
 
@@ -6163,21 +6183,31 @@ class CommunityHelper:
 
         # For each member in the community, remove create_feed_poll right
         member_instances = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
-                                                                     'state': member_states.MEMBER})
-        
-        for member_instance in member_instances:
-            ModelUtilities.delete_record_in_model(userMemberRights, {'user': member_instance.member_id,
-                                                                     'community': community_instance,
-                                                                     'right': member_right})
+                                                                     'state': member_states.MEMBER}
+                                                                     ).values('member_id')
+
+        ModelUtilities.delete_record_in_model(userMemberRights, {'community': community_instance,
+                                                                 'right': member_right,
+                                                                 'user__in': member_instances})
             
         # For each manager in the community, add create_feed_poll right
         manager_instances = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
                                                                       'state': member_states.ADMIN})
+
+        existing_manager_rights = ModelUtilities.get_model_filter(userAdminRights, {'community': community_instance,
+                                                                                    'right': admin_right}
+                                                                                    ).values('user')
         
-        for manager_instance in manager_instances:
-            ModelUtilities.update_or_create_model(userAdminRights, {'user': manager_instance.member_id,
-                                                                    'community': community_instance,
-                                                                    'right': admin_right}, {})
+        remaining_manager_rights = manager_instances.exclude(member_id__in=existing_manager_rights)
+        
+        bulk_user_admin_right_instances = []
+        
+        for manager_instance in remaining_manager_rights:
+            bulk_user_admin_right_instances.append(userAdminRights(user=manager_instance.member_id,
+                                                                   community=community_instance,
+                                                                   right=admin_right))
+        
+        ModelUtilities.bulk_create_instances(userAdminRights, bulk_user_admin_right_instances)
             
         info_logger.info(f"Successfully updated create_feed_poll to 'only_cm' for community {community_instance.id}")
 
@@ -6190,20 +6220,21 @@ class CommunityHelper:
         
         # For each member in the community, remove create_feed_poll right
         member_instances = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
-                                                                     'state': member_states.MEMBER})
-        
-        for member_instance in member_instances:
-            ModelUtilities.delete_record_in_model(userMemberRights, {'user': member_instance.member_id,
-                                                                     'community': community_instance,
-                                                                     'right': member_right})
-            
+                                                                     'state': member_states.MEMBER}
+                                                                     ).values('member_id')
+
+        ModelUtilities.delete_record_in_model(userMemberRights, {'community': community_instance,
+                                                                 'right': member_right,
+                                                                 'user__in': member_instances})
+
         # For each manager in the community, remove create_feed_poll right
         manager_instances = ModelUtilities.get_model_filter(Members, {'community_id': community_instance,
-                                                                     'state': member_states.ADMIN})
-        
-        for manager_instance in manager_instances:
-            ModelUtilities.delete_record_in_model(userAdminRights, {'user': manager_instance.member_id,
-                                                                    'community': community_instance,
-                                                                    'right': admin_right})
+                                                                     'state': member_states.ADMIN,
+                                                                     'is_owner': False}
+                                                                     ).values('member_id')
+
+        ModelUtilities.delete_record_in_model(userAdminRights, {'community': community_instance,
+                                                                'right': admin_right,
+                                                                'user__in': manager_instances})
             
         info_logger.info(f"Successfully updated create_feed_poll to 'no_one' for community {community_instance.id}")
