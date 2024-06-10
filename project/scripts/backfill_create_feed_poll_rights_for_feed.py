@@ -125,7 +125,12 @@ def add_create_feed_poll_right_for_each_member(community_ids):
 
             bulk_instances.append(userMemberRight_instance)
 
-        ModelUtilities.bulk_create_instances(userMemberRights, bulk_instances)
+        try:
+            ModelUtilities.bulk_create_instances(userMemberRights, bulk_instances)
+
+        except Exception as e:
+            print(f"Error adding member right to community: {community_id} --> {e}")
+
             
         communityCount -= 1
 
