@@ -456,7 +456,7 @@ def check_admin_moderate_feed_and_comments_right(user, community):
     return check_user_admin_right(user, community, manager_rights.MODERATE_FEED_AND_COMMENTS)
 
 def check_admin_create_feed_poll_right(user, community):
-    return check_user_admin_right(user, community, manager_rights.CREATE_FEED_POLL)
+    return check_user_admin_right(user, community, manager_rights.MANAGER_RIGHT_CREATE_FEED_POLL)
 
 
 def get_moderation_history_title(moderation_history):
