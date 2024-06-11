@@ -126,6 +126,7 @@ PROFILE_METADATA_CONFIGURATION = "profile_metadata"
 NSFW_FILTERING_CONFIGURATION = "nsfw_filtering"
 WIDGETS_METADATA_CONFIGURATION = "widgets_metadata"
 GUEST_FLOW_METADATA_CONFIGURATION = "guest_flow_metadata"
+FEED_SETTINGS_CONFIGURATION = "feed_settings"
 
 # Community Configurations
 COMMUNITY_CONFIGURATIONS = {
@@ -196,8 +197,19 @@ COMMUNITY_CONFIGURATIONS = {
         {
             "guest_users": "SINGLE"
         }
+    },
+    FEED_SETTINGS_CONFIGURATION:
+    {
+        "type": FEED_SETTINGS_CONFIGURATION,
+        "description": "Additional Feed settings for the community",
+        "value":
+        {
+            "create_feed_poll": "everyone", # everyone, only_cm, no_one
+        }
     }
 }
+
+CREATE_FEED_POLL_COMMUNITY_VALUES = ["everyone", "only_cm", "no_one"]
 
 SWARM_WIDGET_ENDPOINT = "/widget"
 
