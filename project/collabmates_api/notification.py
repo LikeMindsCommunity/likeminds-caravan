@@ -124,8 +124,8 @@ def get_firebase_server_key_or_service_file_from_message_payload(message):
         sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
 
         if sdk_client_filter:
-            if sdk_client_filter[0].firebase_service_account_file:
-                service_account_file_dict = sdk_client_filter[0].firebase_service_account_file
+            if sdk_client_filter[0].gcp_service_account_file:
+                service_account_file_dict = sdk_client_filter[0].gcp_service_account_file
         
             if sdk_client_filter[0].firebase_server_key:
                 server_key = sdk_client_filter[0].firebase_server_key
@@ -619,19 +619,19 @@ def notification_meta(notification_list, message, is_broadcast_notification: boo
 
             notification_payload_list.append(notification_payload_dict)
 
-    firebase_key, firebase_service_account_file_dict = get_firebase_server_key_or_service_file_from_message_payload(message)
+    firebase_key, gcp_service_account_file_dict = get_firebase_server_key_or_service_file_from_message_payload(message)
 
-    send_notification_for_android(tokens['Android'], message, firebase_service_account_file_dict, firebase_key)
+    send_notification_for_android(tokens['Android'], message, gcp_service_account_file_dict, firebase_key)
 
-    send_notification_for_ios(tokens['iOS'], message, firebase_service_account_file_dict, firebase_key)
+    send_notification_for_ios(tokens['iOS'], message, gcp_service_account_file_dict, firebase_key)
 
-    send_notification_for_web(tokens['web'], message, firebase_service_account_file_dict, firebase_key)
+    send_notification_for_web(tokens['web'], message, gcp_service_account_file_dict, firebase_key)
 
-    send_notification_for_flutter(tokens['Flutter'], message, firebase_service_account_file_dict, firebase_key)
+    send_notification_for_flutter(tokens['Flutter'], message, gcp_service_account_file_dict, firebase_key)
 
-    send_notification_for_react_native(tokens['React Native'], message, firebase_service_account_file_dict, firebase_key)
+    send_notification_for_react_native(tokens['React Native'], message, gcp_service_account_file_dict, firebase_key)
 
-    send_notification_for_react(tokens['React'], message, firebase_service_account_file_dict, firebase_key)
+    send_notification_for_react(tokens['React'], message, gcp_service_account_file_dict, firebase_key)
 
     track_notification_with_notification_payload_list(notification_payload_list)
 
