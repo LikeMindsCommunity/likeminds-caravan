@@ -9,7 +9,8 @@ class SdkProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SdkClient
-        fields = ('api_key', 'community', 'firebase_server_key', 'is_join_form_enabled')
+        fields = ('api_key', 'community', 'firebase_server_key', 'is_join_form_enabled', 
+                  'firebase_service_account_file')
 
 
 class OnboardingScreenSerializer(serializers.ModelSerializer):
