@@ -119,6 +119,7 @@ def get_firebase_server_key_or_service_file_from_message_payload(message):
     community_id = message_payload.get('community_id', None)
     
     service_account_file_dict = None
+    server_key = settings.FCM_SERVER_KEY
     
     if community_id:
         sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
