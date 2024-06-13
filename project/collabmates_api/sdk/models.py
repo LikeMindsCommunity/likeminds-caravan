@@ -12,7 +12,7 @@ class SdkClient(models.Model):
     project_creator = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     is_deleted = models.BooleanField(default=False)
     firebase_server_key = models.TextField(null=True)
-    firebase_service_account_file = JSONField(null=True)
+    gcp_service_account_file = JSONField(null=True)
     is_join_form_enabled = models.BooleanField(default=False)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
