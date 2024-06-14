@@ -216,6 +216,8 @@ view_participants = {'id': 2, 'title': 'View participants'}
 
 invite = {'id': 3, 'title': 'Invite'}
 
+share_chatroom_link = {'id': 3, 'title': 'Share'}
+
 join_chatroom = {'id': 4, 'title': 'Join chatroom'}
 
 view_community = {'id': 5, 'title': 'View community'}
@@ -409,6 +411,8 @@ members_can_dm_right = {'id': 9, 'title': "Members who can initiate DMs", 'sub_t
 create_post_right = {'id': 10, 'title': "Create posts", 'sub_title': None, "state": 9}
 
 comment_and_reply_right = {'id': 11, 'title': "Comment and reply on posts", 'sub_title': None, "state": 10}
+
+create_feed_poll_right = {'id': 12, 'title': "Create feed poll", 'sub_title': 'If user can create feed poll', "state": 11}
 
 member_rights_list = [create_room_member_right, create_poll_member_right,
                       create_event_member_right, respond_in_rooms_member_right,

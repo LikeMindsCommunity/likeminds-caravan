@@ -1,7 +1,13 @@
+import enum
+
 from django.conf import settings
 
 
 class VersionUtilities:
+
+    class APIVersionCodes(enum.Enum):
+        V1 = 1
+        V2 = 2
 
     class PlatformCode:
         ANDROID = 'an'
@@ -33,6 +39,10 @@ class VersionUtilities:
     class SdkSource:
         CHAT = 'chat'
         FEED = 'feed'
+
+        @classmethod
+        def get_all_sdk_source_list(cls):
+            return [cls.CHAT, cls.FEED]
 
     unreleased_version_code: int = 9999
 
@@ -193,6 +203,8 @@ class VersionUtilities:
             PlatformCode.REACT_SDK: 1,
             PlatformCode.REACT_NATIVE_SDK: 1,
             PlatformCode.WEB_SDK: unreleased_version_code,
+
+            PlatformCode.API_VERSION_CODE: APIVersionCodes.V2.value
         }
     }
 

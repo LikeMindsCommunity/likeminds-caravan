@@ -498,7 +498,7 @@ class ChatroomManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def block_member(self, req_body) -> dict:
+    def block_member(self, req_body, is_internal: bool = False) -> dict:
         """
         Block/Unblock member in chatroom
         """

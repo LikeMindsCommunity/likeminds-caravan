@@ -6,6 +6,20 @@ pipeline {
                 checkout scm
             }
          }
+
+         stage("Executing the Script Migration step for caravan-beta") {
+            steps {
+                script{
+                    sh """ssh -tt -i "/var/lib/jenkins/.ssh/id_rsa" root@$migration_server_IP << EOF
+                    cd /home/apps/caravan-beta/Togther && git checkout development && git pull
+                    chmod +x /home/apps/caravan-beta/Togther/Migrationfile-caravan-beta.sh
+                    . /home/apps/caravan-beta/Togther/Migrationfile-caravan-beta.sh
+                    cd /home/apps/caravan-beta/Togther && git checkout /home/apps/caravan-beta/Togther/Migrationfile-caravan-beta.sh
+                    exit
+                    EOF"""
+                }
+            }
+        }
         
         stage ('Build Image') {
             steps {
@@ -23,6 +37,20 @@ pipeline {
         stage ('Remove Image from jenkins') {
             steps {
                 sh "sudo docker rmi 081371230266.dkr.ecr.ap-south-1.amazonaws.com/likeminds-togther-caravan-repo:caravan-V$BUILD_NUMBER"
+            }
+        }
+        stage ("update tag and push helm charts") {
+          steps {
+             script{
+                  git branch: 'LM-10466-aws-migration', url: 'git@github.com:LikeMindsCommunity/LikeMinds-Infra-Config.git'
+                  sh "ls"
+                  sh 'sed -i "s/tag: caravan-V[0-9]*/tag: caravan-V${BUILD_NUMBER}/g" ./stag/caravan-beta/values.yaml'
+                  sh "git add ./stag/caravan-beta/values.yaml"
+                  sh "git status"
+                  sh 'git commit -m "CI/CD pipeline updated $IMAGE_TAG image to new image tag"'
+                  sh 'git config --global credential.helper cache'
+		  sh "git push origin LM-10466-aws-migration"
+                }
             }
         }
     }

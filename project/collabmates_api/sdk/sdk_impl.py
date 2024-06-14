@@ -9,6 +9,7 @@ from togther.models import (ModelUtilities, communityAnswers, Community, SDKClie
 from .models import SdkClient, SdkPlatform, SdkOnboardingScreen
 from .sdk_view_helper import SdkViewHelper
 from .serializers import SdkProjectSerializer, OnboardingScreenSerializer
+from .constants import (GCP_SERVICE_ACCOUNT_PARAM)
 from collabmates_api.community.community_impl import (CommunityImpl, CommunityHelper)
 from collabmates_api.user.view_impl import UserImpl
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -164,6 +165,9 @@ class SdkImpl(SdkManager):
         if 'error_message' in is_cm:
             return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
 
+        if req_body.get(GCP_SERVICE_ACCOUNT_PARAM):
+            sdk_client.gcp_service_account_file = req_body.get(GCP_SERVICE_ACCOUNT_PARAM)
+
         if req_body.get('firebase_server_key'):
             sdk_client.firebase_server_key = req_body.get('firebase_server_key')
 
@@ -314,6 +318,29 @@ class SdkImpl(SdkManager):
                 response['user']['image_url'] = user_instance.userinfo.image_link
 
         return response
+
+    def fetch_sdk_user_info(self, uuid: str) -> dict:
+        validated_request_body = SdkViewHelper.validate_fetch_sdk_user_info_request(self.member_id,
+                                                                                          self.api_key,
+                                                                                          uuid)
+
+        if 'error_message' in validated_request_body:
+            return ResponseUtilities.get_impl_error_context(validated_request_body.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request_body.get('community_instance')
+        uuid_sdk_client_instance = validated_request_body.get('uuid_sdk_client_instance')
+
+        user_impl = UserImpl(user_id="", mobile_no="")
+        user_object = user_impl.compute_logged_in_user(uuid_sdk_client_instance.user.userinfo,
+                                                       sdk_client_user_info_instance=uuid_sdk_client_instance)
+
+        return {
+            'success': True,
+            'user': user_object,
+            'community': CommunitySerializerV1(community_instance, context={'send_community_settings': True}).data,
+            'app_access': validated_request_body.get('app_access', True)
+        }
 
     def authenticate_sdk(self) -> dict:
 

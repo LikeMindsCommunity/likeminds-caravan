@@ -22,6 +22,8 @@ class ManagerRights:
     MANAGER_RIGHT_ADD_MANAGERS = 4
     MODERATE_DM_SETTINGS = 5
     MODERATE_FEED_AND_COMMENTS = 6
+    MANAGER_RIGHT_CREATE_FEED_POLL = 7
+
     MANAGER_RIGHT_DELETE_ROOMS_TITLE = "Moderate chatrooms"
     MANAGER_RIGHT_APPROVE_MEMBERS_TITLE = "Moderate members"
     MANAGER_RIGHT_EDIT_COMMUNITY_TITLE = "Edit community details"
@@ -29,12 +31,14 @@ class ManagerRights:
     MANAGER_RIGHT_ADD_MANAGERS_TITLE = "Add community managers"
     MODERATE_DM_SETTINGS_TITLE = "Moderate DM settings"
     MODERATE_FEED_AND_COMMENTS_TITLE = "Moderate feed and comments"
+    MANAGER_RIGHT_CREATE_FEED_POLL_TITLE = "Create feed poll"
 
     DEFAULT_MANAGER_RIGHTS = [MANAGER_RIGHT_DELETE_ROOMS, MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS,
                               MANAGER_RIGHT_EDIT_COMMUNITY]
     ALL_MANAGER_RIGHTS = [MANAGER_RIGHT_DELETE_ROOMS, MANAGER_RIGHT_APPROVE_REMOVE_MEMBERS,
                           MANAGER_RIGHT_EDIT_COMMUNITY, MANAGER_RIGHT_VIEW_CONTACT_INFO,
-                          MANAGER_RIGHT_ADD_MANAGERS, MODERATE_DM_SETTINGS, MODERATE_FEED_AND_COMMENTS]
+                          MANAGER_RIGHT_ADD_MANAGERS, MODERATE_DM_SETTINGS, MODERATE_FEED_AND_COMMENTS, 
+                          MANAGER_RIGHT_CREATE_FEED_POLL]
 
 
 manager_rights = ManagerRights()
@@ -52,6 +56,7 @@ class MemberRights:
     MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM = 8
     MEMBER_RIGHT_CREATE_POSTS = 9
     MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS = 10
+    MEMBER_RIGHT_CREATE_FEED_POLL = 11
 
     MEMBER_RIGHT_CREATE_ROOMS_TITLE = "Create chat rooms"
     MEMBER_RIGHT_CREATE_POLL_TITLE = "Create polls"
@@ -64,6 +69,7 @@ class MemberRights:
     MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM_TITLE = "Members who can initiate DMs"
     MEMBER_RIGHT_CREATE_POSTS_TITLE = "Create posts"
     MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS_TITLE = "Comment and reply on posts"
+    MEMBER_RIGHT_CREATE_FEED_POLL_TITLE = "Create feed poll"
 
     DEFAULT_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_ROOMS, MEMBER_RIGHT_CREATE_POLL,
                              MEMBER_RIGHT_CREATE_EVENT, MEMBER_RIGHT_RESPOND_IN_ROOM,
@@ -74,7 +80,7 @@ class MemberRights:
                          MEMBER_RIGHT_INVITE_PRIVATE_LINK, MEMBER_RIGHT_AUTO_APPROVE,
                          MEMBER_RIGHT_CREATE_SECRET_ROOM]
     
-    FEED_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_POSTS, MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS]
+    FEED_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_POSTS, MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS, MEMBER_RIGHT_CREATE_FEED_POLL]
 
 
 member_rights = MemberRights()
@@ -127,6 +133,8 @@ class ReportActionTypes:
     RESPONSE_DELETED_BY_CREATOR = 4
     CHATROOM_DELETED_BY_CM = 5
     CHATROOM_DELETED_BY_CREATOR = 6
+    PENDING_POST_APPROVED = 7
+    PENDING_POST_REJECTED = 8
 
 
 report_action_types = ReportActionTypes()
@@ -141,6 +149,7 @@ class ReportTypes:
     REPORT_POST = 5
     REPORT_COMMENT = 6
     REPORT_REPLY = 7
+    REPORT_PENDING_POST = 8
 
 
 report_Types = ReportTypes()
@@ -156,6 +165,14 @@ class ReportTagTypes:
 
 
 report_Tag_Types = ReportTagTypes()
+
+class ReportClosingStatus(enum.Enum):
+    STATUS_APPROVED = "approved"
+    STATUS_REJECTED = "rejected"
+
+    @classmethod
+    def is_valid_status(cls, status) -> bool:
+        return status in cls._value2member_map_
 
 
 # chatroom actions
@@ -535,6 +552,12 @@ class CommunitySettingTypes:
     CREATE_POLL = "create_poll"
     USER_CONNECTION = "user_connection"
     FEED_REPOST = "feed_repost"
+    NSFW_FILTERING = "nsfw_filtering"
+    ENABLE_GUEST_FLOW = "enable_guest_flow"
+    USER_TOPICS_CONNECTION = "user_topics_connection"
+    USER_NOTIFICATIONS = "user_notifications"
+    ENABLE_DM_WITHOUT_CONNECTION_REQUEST = "enable_dm_without_connection_request"
+    POST_APPROVAL_NEEDED = "post_approval_needed"
 
 
 community_setting_types = CommunitySettingTypes()
@@ -658,6 +681,15 @@ class WebhookTypes(enum.Enum):
     CHATROOM_USER_TAGGED = "chatroom.user.tagged"
     CHATROOM_CONVERSATION_REPLIED = "chatroom.conversation.replied"
     PROFILE_CREATED = "profile.created"
+    POST_CREATED = "post.created"
+    POST_PINNED = "post.pinned"
+    POST_LIKED = "post.liked"
+    POST_TAGGED = "post.tagged"
+    COMMENT_ADDED = "comment.added"
+    COMMENT_TAGGED = "comment.tagged"
+    COMMENT_REACT = "comment.react"
+    NOTIFICATIONS_CHAT = "notifications.chat"
+    NOTIFICATIONS_FEED = "notifications.feed"
 
     @classmethod
     def validate_webhook_type(cls, webhook_type) -> bool:
@@ -872,6 +904,7 @@ class AccessTypes:
     IS_MEMBER = "is_member"
     CHANGE_AUTHOR = "change_author"
     VIEW_USER_ACTIVITY = "view_user_activity"
+    CREATE_FEED_POLL = "create_feed_poll"
 
 
 access_types = AccessTypes()
@@ -968,3 +1001,44 @@ class ConnectionRequestStatus(enum.Enum):
 class ConnectionStates(enum.Enum):
     CONNECTED = "connected"
     DISCONNECTED = "disconnected"
+
+
+class AttachmentTypes:
+    GIF = "gif"
+
+
+attachment_types = AttachmentTypes()
+
+
+class ChannelActionTypes(enum.Enum):
+    MUTE_UNMUTE = "mute_unmute"
+    VIEW_PROFILE = "view_profile"
+    VIEW_COMMUNITY = "view_community"
+    BLOCK_UNBLOCK_MEMBER = "block_unblock_member"
+    RENAME_CHANNEL = "rename_channel"
+    VIEW_PARTICIPANTS = "view_participants"
+    INVITE_MEMBER = "invite_member"
+    SHARE = "share"
+    JOIN_CHANNEL = "join_channel"
+    LEAVE_CHANNEL = "leave_channel"
+    DELETE_CHANNEL = "delete_channel"
+    REPORT_SPAM_ABUSE = "report_spam_abuse"
+    ADD_ALL_MEMBERS = "add_all_members"
+    CHANNEL_SETTINGS = "channel_settings"
+
+
+class WidgetTypes(enum.Enum):
+    MESSAGE = "message"
+
+
+class GuestFlowUserTypes(enum.Enum):
+    SINGLE = "SINGLE"
+    MULTIPLE = "MULTIPLE"
+
+
+class CommunityConfigurationTypes(enum.Enum):
+    MEDIA_LIMITS = "media_limits"
+    FEED_METADATA = "feed_metadata"
+    PROFILE_METADATA = "profile_metadata"
+    NSFW_FILTERING = "nsfw_filtering"
+    GUEST_FLOW_METADATA = "guest_flow_metadata"

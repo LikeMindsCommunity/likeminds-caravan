@@ -83,7 +83,13 @@ COMMUNITY_SETTING_TYPE_TITLE_MAPPING = {
     "create_intro_rooms": "Create intro rooms",
     "create_poll": "Create Poll",
     "user_connection": "User Connection",
-    "feed_repost": "Feed Repost"
+    "feed_repost": "Feed Repost",
+    "nsfw_filtering": "NSFW Filtering for feed",
+    "user_topics_connection": "User Topics Connection",
+    "enable_guest_flow": "Enable guest flow",
+    "user_notifications": "User Notifications",
+    "enable_dm_without_connection_request": "DM requests need approval",
+    "post_approval_needed": "Post Approval needed"
 }
 
 COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
@@ -104,7 +110,13 @@ COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING = {
     "create_intro_rooms": "",
     "create_poll": "",
     "user_connection": "If enabled, the users will be able to send connection request to other members",
-    "feed_repost": "If enabled, members can repost other other member posts"
+    "feed_repost": "If enabled, members can repost other other member posts",
+    "nsfw_filtering": "To enable NSFW filtering for feed posts in the community",
+    "enable_guest_flow": "If enabled, the guest flow will be enabled for the community",
+    "user_topics_connection": "Enable User topics connection (follow/unfollow topics) in the community",
+    "user_notifications": "Enable/Disable user notifications in the community",
+    "enable_dm_without_connection_request": "Receiver of DM request will have the option to approve or reject the request",
+    "post_approval_needed": "Member's posts would need admin's approval to appear publicly"
 }
 
 DM_COMMUNITY_SETTING_SUB_TITLE_WHEN_ENABLED = "Community managers will be able to message all members and vice-versa."
@@ -220,8 +232,6 @@ COMMUNITY_REMOVE_MEMBER_S3_FILE_PATH = "member_removal_reports/{}/{}_removal_rep
 COMMUNITY_MEMBER_REMOVAL_REPORTS_PATH = "member_removal_reports/{}/"
 COMMUNITYY_MEMBER_REMOVAL_S3_DOWNLOAD_URL = "https://{}.s3.{}.amazonaws.com/{}"
 
-SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT = "/user"
-
 # Report Types string consants
 REPORT_TYPE_MEMBER = "member"
 REPORT_TYPE_CHATROOM = "chatroom"
@@ -231,6 +241,7 @@ REPORT_TYPE_LINK = "link"
 REPORT_TYPE_POST = "post"
 REPORT_TYPE_COMMENT = "comment"
 REPORT_TYPE_REPLY = "reply"
+REPORT_TYPE_PENDING_POST = "pending_post"
 
 # Report Types int constants
 REPORT_TYPE_MEMBER_INT = 0
@@ -241,6 +252,7 @@ REPORT_TYPE_LINK_INT = 4
 REPORT_TYPE_POST_INT = 5
 REPORT_TYPE_COMMENT_INT = 6
 REPORT_TYPE_REPLY_INT = 7
+REPORT_TYPE_PENDING_POST_INT = 8
 
 # Report Types Dictonary (String -> Int)
 REPORT_TYPES = {
@@ -251,7 +263,8 @@ REPORT_TYPES = {
     REPORT_TYPE_LINK: REPORT_TYPE_LINK_INT,
     REPORT_TYPE_POST: REPORT_TYPE_POST_INT,
     REPORT_TYPE_COMMENT: REPORT_TYPE_COMMENT_INT,
-    REPORT_TYPE_REPLY: REPORT_TYPE_REPLY_INT
+    REPORT_TYPE_REPLY: REPORT_TYPE_REPLY_INT,
+    REPORT_TYPE_PENDING_POST: REPORT_TYPE_PENDING_POST_INT
 }
 
 # Report Types Dictonary (Int -> String)
@@ -263,5 +276,15 @@ REPORT_TYPES_INT = {
     REPORT_TYPE_LINK_INT: REPORT_TYPE_LINK,
     REPORT_TYPE_POST_INT: REPORT_TYPE_POST,
     REPORT_TYPE_COMMENT_INT: REPORT_TYPE_COMMENT,
-    REPORT_TYPE_REPLY_INT: REPORT_TYPE_REPLY
+    REPORT_TYPE_REPLY_INT: REPORT_TYPE_REPLY,
+    REPORT_TYPE_PENDING_POST_INT: REPORT_TYPE_PENDING_POST
 }
+
+# Inferdo constants
+INFERDO_NSFW_FILTER_ENDPOINT = "https://nsfw-image-classification1.p.rapidapi.com/img/nsfw"
+INFERDO_HEADER_API_HOST = "nsfw-image-classification1.p.rapidapi.com"
+INFERDO_SAMPLE_NSFW_IMAGE_URL = "https://www.inferdo.com/img/nsfw-1-raw.jpg"
+
+FEED_POST_VARIABLE_MAX_LENGTH = 30
+FEED_COMMENT_VARIABLE_MAX_LENGTH = 30
+FEED_LIKE_VARIABLE_MAX_LENGTH = 30

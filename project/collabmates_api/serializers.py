@@ -7,7 +7,7 @@ from utility.utils import (generate_private_link, get_time_text, eligibility_cou
                            get_date_time_from_timestamp, get_community_members_count_for_preview)
 
 from utility.states import (card_types, question_states, poll_types, deleted_members, conversation_states, api_types,
-                            conversation_poll_types)
+                            conversation_poll_types, WidgetTypes)
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .member_community.constants import CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED, CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED, \
     CUSTOM_CLICK_TEXT_DELETED, CUSTOM_INTRO_TEXT_DELETED, CUSTOM_CLICK_TEXT_LEFT, CUSTOM_INTRO_TEXT_LEFT
@@ -23,6 +23,7 @@ from .branch import create_community_branch_links
 from utility.constants import *
 from .community.constants import REPORT_TYPES_INT
 from utility.number_utilities import NumberUtilities
+from .utility import (is_community_widget_enabled)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -1937,7 +1938,10 @@ def is_draft_conversation(conversation, current_user_id, device_id=''):
 
 
 def conversationSerializer(conversation, current_user_id=None, fetch_reply=True, device_id='',
-                           fetch_poll_conversation=False, sdk_client_info_flag:bool=False):
+                           fetch_poll_conversation=False, sdk_client_info_flag: bool = False):
+
+    is_widgets_enabled = is_community_widget_enabled(conversation.community, WidgetTypes.MESSAGE.value)
+
     temp = {
         "id": conversation.id,
         "answer": conversation.answer,
@@ -1949,7 +1953,8 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
         'attachments_uploaded': conversation.attachments_uploaded,
         'chatroom_id': conversation.card_id,
         'community_id': conversation.community_id,
-        'created_epoch': int(conversation.created_at)
+        'created_epoch': int(conversation.created_at),
+        'widget_id': conversation.widget_id if is_widgets_enabled else ''
     }
 
     if conversation.attachments_uploaded is None:

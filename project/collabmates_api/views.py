@@ -19,11 +19,13 @@ from external_services.caching.cache_impl import CacheImpl
 from togther.models import *
 from utility.file_utilities import FileUtilities
 from utility.string_utilities import StringUtilities
-from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods, MemberRoles, update_priority
-from random import randint
-from utility.cache_keys import CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM, \
-    EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM, EVENT_ATTENDEES_CONVERSATION, \
-    CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, INTERNATIONAL_OTP_GENERATE_CACHE_KEY
+from utility.internal_service_utilities import InternalServiceUtilities
+from utility.states import report_Tag_Types, member_states, card_types, webhook_chatroom_methods, MemberRoles, \
+update_priority, WebhookTypes
+from utility.cache_keys import (CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM,
+                                EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM,
+                                EVENT_ATTENDEES_CONVERSATION, CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY,
+                                INTERNATIONAL_OTP_GENERATE_CACHE_KEY, KETTLE_CACHE_KEY_USER_META)
 from utility.celery_tasks import (
     update_last_unseen_in_engage_on_card_creation,
     update_last_unseen_in_engage, update_my_chatrooms_for_users,
@@ -96,7 +98,7 @@ from .branch import create_community_feed_url_for_cm_onboarding
 from .search.sync import ElasticSearchSync
 from .community.constants import *
 from .chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE
-from collabmates_api.webhook.models import (WebhookTypes)
+
 
 from urllib import parse
 
@@ -2013,6 +2015,14 @@ def remove_from_member(request):
                         update_multiple_previews_in_community.delay({'community_id': community_id})
 
                         ElasticSearchSync.delete_chatrooms_for_removed_member.delay(community_id, member)
+
+                        # Delete user meta cache in kettle service
+                        cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+                        InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                            community_id=community_instance.id, user_id=user_instance.id,
+                            key_patterns=[cache_key] 
+                        )
 
                     else:
                         context = ResponseUtilities.get_view_impl_error_context(
@@ -4581,12 +4591,9 @@ def fetch_chatroom_version_2(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
 
-    card_filter = Collabcard.objects.filter(id=card_id)
+    card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
 
-    if card_filter.exists():
-        card_instance = card_filter[0]
-
-    else:
+    if not card_instance:
         context = ResponseUtilities.get_view_impl_error_context('Chat_room does not exist. Might have been deleted',
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
@@ -5218,7 +5225,11 @@ def get_chatroom_actions(card_status, creator, card_instance, promoter=False, cu
                       version_code >= CHATROOM_SETTINGS_VERSION_CODE_IOS)
                      or (platform_code == VersionUtilities.PlatformCode.ANDROID and
                          version_code >= CHATROOM_SETTINGS_VERSION_CODE_AN)
-                     or platform_code == VersionUtilities.PlatformCode.WEB) \
+                     or platform_code in [VersionUtilities.PlatformCode.WEB,
+                                          VersionUtilities.PlatformCode.FLUTTER,
+                                          VersionUtilities.PlatformCode.REACT_NATIVE,
+                                          VersionUtilities.PlatformCode.ANDROID_SDK,
+                                          VersionUtilities.PlatformCode.IOS_SDK]) \
             and not master_intro_card and (not show_sdk_actions_only):
         actions.append(chatroom_settings)
 
@@ -6217,7 +6228,7 @@ def community_collabcard_invite(request, community_id):
 
 @shared_task
 def update_chatroom_for_users_and_send_follow_notification(card_instance_id, user_id, conversation_id,
-                                                           has_files=False):
+                                                           has_files=False, all_files_uploaded=False):
     """ function to send follow notifications to users who are following the chatroom """
 
     update_chatroom_conversation_count_in_cache({'chatroom_id': card_instance_id})
@@ -6225,7 +6236,7 @@ def update_chatroom_for_users_and_send_follow_notification(card_instance_id, use
     print(card_instance_id)
     print(conversation_id)
 
-    if not has_files:
+    if (not has_files) or all_files_uploaded:
         send_follow_notification(card_id=card_instance_id, user_id=user_id, conversation_id=conversation_id)
 
 
@@ -10310,7 +10321,8 @@ def push_report_v1(request):
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
                     "invalid reported_member_id or uuid", status_codes.HTTP_400_BAD_REQUEST))
 
-            if entity_type not in [report_Types.REPORT_POST, report_Types.REPORT_COMMENT, report_Types.REPORT_REPLY]:
+            if entity_type not in [report_Types.REPORT_POST, report_Types.REPORT_COMMENT, report_Types.REPORT_REPLY, 
+                                   report_Types.REPORT_PENDING_POST]:
                 return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
                     "invalid entity_type", status_codes.HTTP_400_BAD_REQUEST))
 
@@ -10882,6 +10894,7 @@ def edit_conversation(request):
     edited_answer = request.POST.get('text', None)
     share_link = request.POST.get('share_link', None)
     og_tags = request.POST.get('og_tags', None)
+    widget_metadata = request.POST.get('metadata', {})
 
     user_instance = ModelUtilities.get_user_instance_or_none(member_id)
 
@@ -10920,6 +10933,11 @@ def edit_conversation(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
 
+    community_instance = conversation.community
+    community_id = community_instance.id
+
+    is_widgets_enabled = is_community_widget_enabled(community_instance, WidgetTypes.MESSAGE.value)
+
     if conversation.is_deleted:
         context = ResponseUtilities.get_view_impl_error_context('Cannot edit deleted conversation',
                                                                 status_codes.HTTP_400_BAD_REQUEST)
@@ -10928,6 +10946,50 @@ def edit_conversation(request):
     elif int(conversation.user.id) == int(member_id):
 
         from collabmates_api.conversation.conversation_impl import ConversationHelper
+
+        if widget_metadata:
+
+            if isinstance(widget_metadata, str):
+                widget_metadata = JsonUtilities.load_json_data(widget_metadata, default={})
+
+                if not widget_metadata:
+                    context = ResponseUtilities.get_view_impl_error_context("Invalid widgets metadata!",
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(**context)
+
+            if not is_widgets_enabled:
+                context = ResponseUtilities.get_view_impl_error_context("Widgets are disabled!",
+                                                                        status_codes.HTTP_400_BAD_REQUEST)
+                return JsonResponse(**context)
+
+            widget_response = InternalServiceUtilities.get_widget_data_from_swarm(
+                user_instance.userinfo.user_unique_id, community_id, entity_id=str(conversation.id),
+                entity_type=WidgetTypes.MESSAGE.value)
+
+            if "error_message" not in widget_response and widget_response.get('widgets'):
+                widget_response = widget_response.get('widgets')[0]
+                widget_id = widget_response.get('_id')
+
+                widget_response = InternalServiceUtilities.update_widget_in_swarm(
+                    user_instance.userinfo.user_unique_id, community_id, widget_id, widget_metadata)
+
+                if "error_message" in widget_response:
+                    context = ResponseUtilities.get_view_impl_error_context(widget_response.get('error_message'),
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(**context)
+
+            else:
+                widget_response = InternalServiceUtilities.create_widget_in_swarm(
+                    user_instance.userinfo.user_unique_id, community_id, entity_id=str(conversation.id),
+                    entity_type=WidgetTypes.MESSAGE.value, metadata=widget_metadata)
+
+                if "error_message" in widget_response:
+                    context = ResponseUtilities.get_view_impl_error_context(widget_response.get('error_message'),
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(**context)
+
+                conversation.widget_id = widget_response.get('_id')
+                conversation.save()
 
         if 'og_tags' in og_tags_payload:
             og_tags = json.loads(og_tags_payload['og_tags'])
@@ -10953,7 +11015,12 @@ def edit_conversation(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(**context)
 
-    context = {"current_user_id": member_id, "fetch_reply": True}
+    context = {
+        "current_user_id": member_id,
+        "fetch_reply": True,
+        "is_widget_enabled": is_widgets_enabled
+    }
+
     conversation_dict = CardAnswersDBSyncSerializer(conversation, context=context, many=False).data
 
     send_sync_notification.delay({'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value,
@@ -11143,6 +11210,9 @@ def fetch_community_manager_rights(request):
 
     rights_context = []
 
+    # Fetch feed metadata
+    feed_community_configurations = get_feed_metadata_from_community_configurations(community_instance)
+
     if admin.exists():
         admin_rights = userAdminRights.objects.filter(community=community_instance,
                                                       user=current_user_instance).order_by('-right__rank')
@@ -11160,7 +11230,9 @@ def fetch_community_manager_rights(request):
                         right.state == moderate_dm_settings.get('state')]):
                     continue
 
-                right_dict = get_right_dict(right)
+                right_dict = get_right_dict(right,
+                                            post_variable_name=feed_community_configurations.get('post', ''),
+                                            comment_variable_name=feed_community_configurations.get('comment', ''))
                 if is_member:
                     right_dict["is_selected"] = True if right.id in manager_rights.DEFAULT_MANAGER_RIGHTS else False
                 else:
@@ -11403,6 +11475,14 @@ def update_community_manager_rights(request):
                                                                  community_id=community_id,
                                                                  custom_title=custom_title)
 
+            # Delete user meta cache in kettle service
+            cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_instance.id, user_id=user_instance.id,
+                key_patterns=[cache_key] 
+            )
+
             if len(rights_added) > 0:
                 send_notification_for_right_given_to_manager.delay(user_id, community_id, list(rights_added))
 
@@ -11543,6 +11623,14 @@ def remove_community_manager(request):
 
         # Update Members Index
         ElasticSearchSync.update_member.delay(user_id, community_id)
+
+        # Delete user meta cache in kettle service
+        cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+        InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+            community_id=community_instance.id, user_id=user_instance.id,
+            key_patterns=[cache_key] 
+        )
 
         return JsonResponse({'success': True})
 
@@ -11782,7 +11870,13 @@ def fetch_community_member_rights(request):
         admin_rights = check_all_manager_rights(current_user_instance, community_instance)
         user_rights = check_all_member_rights(user_instance, community_instance, is_feed_enabled=is_feed_enabled)
 
-        rights_context = get_saved_member_rights_list(user_rights, admin_rights, is_feed_enabled=is_feed_enabled)
+        # Fetch feed metadata
+        feed_community_configurations = get_feed_metadata_from_community_configurations(community_instance)
+
+        rights_context = get_saved_member_rights_list(
+            user_rights, admin_rights, is_feed_enabled=is_feed_enabled,
+            post_variable_name=feed_community_configurations.get('post', ''),
+            comment_variable_name=feed_community_configurations.get('comment', ''))
 
         rights_context = update_member_rights_for_sdk(rights_context, community_instance)
 
@@ -11798,7 +11892,6 @@ def fetch_community_member_rights(request):
         
         for right in rights_context:
             right.pop('state')
-
 
     return JsonResponse({"success": True, "member": member_profile[0], "rights": rights_context})
 
@@ -11919,6 +12012,13 @@ def update_community_member_rights(request):
             send_notification_for_custom_title_changed.delay(promoter_id=current_user_id, member_id=user_id,
                                                              community_id=community_id,
                                                              custom_title=custom_title)
+            
+            cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_instance.id, user_id=user_instance.id,
+                key_patterns=[cache_key] 
+            )
 
         update_member_rights_history.delay(rights_added, rights_removed, current_user_id, community_id, user_id)
 
@@ -15440,7 +15540,9 @@ def add_community_settings_for_community(community_instance, user_instance):
                             community_setting_types.DIRECT_MSGS_GROUP_MSGS, community_setting_types.FEED,
                             community_setting_types.CHATROOMS, community_setting_types.SECRET_CHATROOMS_INVITE,
                             community_setting_types.POST_GROUPS, community_setting_types.SECRET_GROUP_INVITE,
-                            community_setting_types.CREATE_INTRO_ROOMS, community_setting_types.USER_CONNECTION]:
+                            community_setting_types.CREATE_INTRO_ROOMS, community_setting_types.USER_CONNECTION,
+                            community_setting_types.NSFW_FILTERING, community_setting_types.USER_TOPICS_CONNECTION, 
+                            community_setting_types.ENABLE_GUEST_FLOW, community_setting_types.POST_APPROVAL_NEEDED]:
             is_enabled = False
 
         community_settings_data = {
@@ -15449,7 +15551,7 @@ def add_community_settings_for_community(community_instance, user_instance):
             'setting_title': setting_title,
             'setting_sub_title': COMMUNITY_SETTING_TYPE_SUB_TITLE_MAPPING.get(setting_type),
             'enabled': is_enabled,
-            'enabled_by': user_instance if is_enabled else None,
+            'enabled_by': user_instance if is_enabled else None
         }
         community_settings_instance = CommunitySettings.create_instance(community_settings_data)
         community_settings_list.append(community_settings_instance)

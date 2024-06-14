@@ -25,7 +25,7 @@ from .constants import CHATROOM_EXPIRE_DURATION, INTRO_PLACEHOLDER_TEXT, INTRO_P
     FIRST_EVENT_CM_REPLY_EMAIL, DEFAULT_CM_ONBOARDING_EMAIL_BUTTON_COLOR, CHATROOM_URL_WITH_COMMUNITY_ID, \
     DM_CHATROOM_NAME, CHATROOM_NOTIFICATION_PAUSE_EVENT, CHATROOM_NOTIFICATION_SETTING_UPDATED_EVENT , \
     CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE, CHATROOM_USER_SETTINGS, \
-    PauseChatroomNotificationTime
+    PauseChatroomNotificationTime, INTRO_PLACEHOLDER_USER_PROFILE_ROUTE
 from ..chatroom.chatroom_manager import ChatroomManager
 from ..chatroom_member.chatroom_member_impl import ChatroomMemberImpl
 from .chatroom_view_helper import ChatroomViewHelper
@@ -77,7 +77,6 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             CommunityGetStarted, EventRecordingsURL, ChatroomSecretTypeConversion,
                             ScheduledChatroomFollow, CommunitySettings, ChatroomInvite, UserChannelSettings)
 
-from collabmates_api.webhook.models import (WebhookTypes, CommunityWebhook)
 from utility.webhook_utilities import (WebhookUtilties)
 from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, 
                                                MAX_WEBHOOK_USERS_META_LIMIT)
@@ -89,7 +88,7 @@ from utility.states import member_states, card_types, collabcard_states, SyncNot
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
     event_online_link_types, block_chatroom_states, chat_request_states, api_types, noti_states, \
     community_setting_types, chatroom_invite_status_types, chatroom_setting_states, webhook_chatroom_methods, \
-    event_kinds
+    event_kinds, WebhookTypes
 
 from utility.utils import check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -1163,7 +1162,8 @@ class ChatroomImpl(ChatroomManager):
             error_logger.error(f"[process_chatroom] chatroom/fetch_all_old")
 
             chatroom_member_impl = ChatroomMemberImpl(member_id=self.get_member_id(), device_id=self.device_id)
-            chatroom_context_list = chatroom_member_impl.process_chatroom_list(chatroom_list, community_instance)
+            chatroom_context_list = chatroom_member_impl.process_chatroom_list(
+                chatroom_list, community_instance, sdk_client_info_flag=True)
 
         return {'success': True, 'chatrooms': chatroom_context_list, 'total_chatroom_count': total_chatroom_count}
 
@@ -2766,7 +2766,7 @@ class ChatroomImpl(ChatroomManager):
         if not is_cm:
             return {'success': False, 'error_message': "User can’t enable/disable member messaging setting option"}
 
-        card_filter.update(member_can_message=value, updated_at=TimeUtilities.current_time_in_sec())
+        card_filter.update(member_can_message=value, updated_at=TimeUtilities.current_time_in_milliseconds())
 
         # toggle user chatroom settings with setting type as member_can_message for all the members of this chatroom
         toggle_user_chatroom_settings.delay(card_instance.id, CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE, value)
@@ -3761,39 +3761,52 @@ class ChatroomImpl(ChatroomManager):
 
         return context
 
-    def block_member(self, req_body) -> dict:
+    def block_member(self, req_body, is_internal: bool = False) -> dict:
         validated_request = ChatroomHelper.validate_block_member_request(self.get_member_id(),
                                                                          self.get_chatroom_id(),
                                                                          req_body)
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = validated_request.get('user_instance')
         card_instance = validated_request.get('chatroom_instance')
+        block_status = validated_request.get('status')
         user_instances_list = [card_instance.user, card_instance.chatroom_with_user]
         user_member_state = Members.get_community_member_state(card_instance.community, card_instance.user)
         member_state = Members.get_community_member_state(card_instance.community, card_instance.chatroom_with_user)
-        last_conversation_state = None
-        last_cconversation = ModelUtilities.get_model_filter(card_answers,
-                                                             {'card': card_instance}).order_by('-created_at')
+        card_state_instance = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
+                                                                                'user': user_instance,
+                                                                                'follow_status': True}).first()
 
-        if last_cconversation:
-            last_conversation_state = last_cconversation[0].state
+        if not card_state_instance:
+            return ResponseUtilities.get_impl_error_context('You are not part of the chatroom.',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if validated_request.get('user_instance') not in user_instances_list:
-            return get_error_context(False, 'You are not part of chatroom!')
+        if all([block_status == block_chatroom_states.BLOCK,
+                card_state_instance.chat_request_state == chat_request_states.REJECTED,
+                not is_internal]):
+            return ResponseUtilities.get_impl_error_context('Messaging is already blocked.',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if any([(last_conversation_state == conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT)
-                and (validated_request.get('status') == block_chatroom_states.BLOCK),
-                (last_conversation_state == conversation_states.CONVERSATION_DIRECT_MESSAGE_UNBLOCK_MEMBER_ENABLE_CHAT)
-                and (validated_request.get('status') == block_chatroom_states.UNBLOCK)]):
-            return get_error_context(False, 'You cannot block/unblock twice!')
+        elif all([block_status == block_chatroom_states.UNBLOCK,
+                  card_state_instance.chat_request_state == chat_request_states.ACCEPTED,
+                  not is_internal]):
+            return ResponseUtilities.get_impl_error_context('Messaging is already unblocked.',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        elif all([block_status == block_chatroom_states.UNBLOCK,
+                  card_state_instance.chat_request_state == chat_request_states.REJECTED,
+                  card_state_instance.chat_requested_by != user_instance,
+                  not is_internal]):
+            return ResponseUtilities.get_impl_error_context('You cannot unblock.',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         if all([card_instance.is_private, card_instance.type == card_types.CARD_DIRECT_MESSAGE,
                 card_instance.user, card_instance.chatroom_with_user]):
 
-            if validated_request.get('status') == block_chatroom_states.BLOCK:
+            if block_status == block_chatroom_states.BLOCK:
                 answer = BLOCK_MEMBER_DM_CHATROOM_MESSAGE
                 conv_state = conversation_states.CONVERSATION_DIRECT_MESSAGE_BLOCK_MEMBER_DISABLE_CHAT
 
@@ -3820,7 +3833,8 @@ class ChatroomImpl(ChatroomManager):
                                                                 card_instance.chatroom_with_user,
                                                                 card_instance.community, user_instances_list,
                                                                 answer, user_member_state, member_state,
-                                                                conversation_state=conv_state)
+                                                                conversation_state=conv_state,
+                                                                update_chatroom_updated_at=True)
 
             from collabmates_api.conversation.conversation_impl import ConversationHelper
             ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(card_instance.id,
@@ -3834,15 +3848,17 @@ class ChatroomImpl(ChatroomManager):
             return {'success': True, 'conversation': conversation}
 
         else:
-            return get_error_context(False, 'Not a DM chatroom!')
+            return ResponseUtilities.get_impl_error_context('Not a DM chatroom!',
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
     def request_dm(self, req_body) -> dict:
         validated_request = ChatroomHelper.validate_request_dm_request(self.get_member_id(),
                                                                        self.get_chatroom_id(),
                                                                        req_body)
 
-        if not validated_request.get('success'):
-            return validated_request
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = validated_request.get('user_instance')
         card_instance = validated_request.get('chatroom_instance')
@@ -3854,7 +3870,8 @@ class ChatroomImpl(ChatroomManager):
         member_state = Members.get_community_member_state(card_instance.community, card_instance.chatroom_with_user)
 
         if user_instance not in user_instances_list:
-            return get_error_context(False, 'Cannot access DM chatroom!')
+            return ResponseUtilities.get_impl_error_context('Cannot access DM chatroom!',
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         card_state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
                                                                               'follow_status': True,
@@ -3872,7 +3889,8 @@ class ChatroomImpl(ChatroomManager):
                                                                      card_state_filter)
 
             if not response.get('success'):
-                return response
+                return ResponseUtilities.get_impl_error_context(response.get('error_message'),
+                                                                status_codes.HTTP_400_BAD_REQUEST)
 
         elif chat_request_state == chat_request_states.ACCEPTED:
             response = ChatroomHelper.accept_dm_connection_request(user_instance, card_instance, user_member_state,
@@ -3880,29 +3898,33 @@ class ChatroomImpl(ChatroomManager):
                                                                    message, user_instances_list)
 
             if not response.get('success'):
-                return response
+                return ResponseUtilities.get_impl_error_context(response.get('error_message'),
+                                                                status_codes.HTTP_400_BAD_REQUEST)
 
             if response.get('should_call_block_unblock', False):
-                response = self.block_member({'status': block_chatroom_states.UNBLOCK})
+                response = self.block_member({'status': block_chatroom_states.UNBLOCK}, is_internal=True)
 
         elif chat_request_state == chat_request_states.REJECTED:
             response = ChatroomHelper.reject_dm_connection_request(user_instance, card_instance, user_member_state,
                                                                    member_state, chat_request_state, card_state_filter)
 
             if not response.get('success'):
-                return response
+                return ResponseUtilities.get_impl_error_context(response.get('error_message'),
+                                                                status_codes.HTTP_400_BAD_REQUEST)
 
             if response.get('should_call_block_unblock', False):
-                response = self.block_member({'status': block_chatroom_states.BLOCK})
+                response = self.block_member({'status': block_chatroom_states.BLOCK}, is_internal=True)
 
         else:
-            return get_error_context(False, 'Invalid chat request state')
+            return ResponseUtilities.get_impl_error_context('Invalid chat request state',
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
         if response.get('success'):
             return {'success': True, 'conversation': response.get('conversation')}
 
         else:
-            return response
+            return ResponseUtilities.get_impl_error_context(response.get('error_message'),
+                                                            status_codes.HTTP_400_BAD_REQUEST)
 
     def scheduled_chatroom_follow(self):
 
@@ -4570,12 +4592,19 @@ class ChatroomHelper:
         return False
 
     @staticmethod
-    def create_placeholder_for_introduction_card(community_instance, card_creator_userinfo_instance):
+    def create_placeholder_for_introduction_card(community_instance, card_creator_userinfo_instance,
+                                                 with_uuid_route: bool = False):
         """function to create introduction card placeholder"""
 
         placeholder = INTRO_PLACEHOLDER_TEXT % community_instance.name
         user_name = card_creator_userinfo_instance.name
-        user_route = INTRO_PLACEHOLDER_USER_ROUTE % str(card_creator_userinfo_instance.user_id_id)
+
+        if not with_uuid_route:
+            user_route = INTRO_PLACEHOLDER_USER_ROUTE % str(card_creator_userinfo_instance.user_id_id)
+
+        else:
+            user_route = INTRO_PLACEHOLDER_USER_PROFILE_ROUTE % str(card_creator_userinfo_instance.user_unique_id)
+
         user_name = "<<" + user_name + "|" + user_route + ">>"
         placeholder = placeholder + user_name
 
@@ -5606,43 +5635,57 @@ class ChatroomHelper:
 
     @staticmethod
     def validate_block_member_request(user_id, chatroom_id, req_body):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+        validation_params = {
+            'chatroom_id': chatroom_id,
+            'user_id': user_id
+        }
 
-        if not user_instance:
-            return get_error_context(False, "Invalid user id")
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
 
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+        if validated_dict.get('error_message'):
+            return validated_dict
 
-        if not card_instance:
-            return get_error_context(False, "Invalid chatroom id")
+        card_instance = validated_dict.get('chatroom_id')
+        user_instance = validated_dict.get('user_id')
 
         if req_body.get('status') not in [block_chatroom_states.BLOCK, block_chatroom_states.UNBLOCK]:
-            return get_error_context(False, "Invalid status")
+            return ResponseUtilities.get_inner_error_context("Invalid status")
 
-        return {'success': True, 'user_instance': user_instance, 'chatroom_instance': card_instance,
-                'status': req_body.get('status')}
+        return {
+            'success': True,
+            'user_instance': user_instance,
+            'chatroom_instance': card_instance,
+            'status': req_body.get('status')
+        }
 
     @staticmethod
     def validate_request_dm_request(user_id, chatroom_id, req_body):
-        user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+        validation_params = {
+            'chatroom_id': chatroom_id,
+            'user_id': user_id
+        }
 
-        if not user_instance:
-            return get_error_context(False, "Invalid user id")
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
 
-        card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+        if validated_dict.get('error_message'):
+            return validated_dict
 
-        if not card_instance:
-            return get_error_context(False, "Invalid chatroom id")
+        card_instance = validated_dict.get('chatroom_id')
+        user_instance = validated_dict.get('user_id')
 
         if any([not card_instance.is_private, card_instance.type != card_types.CARD_DIRECT_MESSAGE]):
-            return get_error_context(False, "Not a DM chatroom")
+            return ResponseUtilities.get_inner_error_context("Not a DM chatroom")
 
         if req_body.get('chat_request_state') not in [chat_request_states.INITIATED, chat_request_states.ACCEPTED,
                                                       chat_request_states.REJECTED]:
-            return get_error_context(False, "Invalid chat request state")
+            return ResponseUtilities.get_inner_error_context("Invalid chat request state")
 
-        return {'success': True, 'user_instance': user_instance, 'chatroom_instance': card_instance,
-                'chat_request_state': req_body.get('chat_request_state')}
+        return {
+            'success': True,
+            'user_instance': user_instance,
+            'chatroom_instance': card_instance,
+            'chat_request_state': req_body.get('chat_request_state')
+        }
 
     @staticmethod
     def get_dm_chatroom_from_members(community_id, user_id, chatroom_with_user_id):
@@ -5717,7 +5760,32 @@ class ChatroomHelper:
     def accept_dm_connection_request(user_instance, card_instance, user_member_state, member_state,
                                      chat_request_state, card_state_filter, message=None, user_instances_list=None):
 
-        if any([user_member_state == member_states.ADMIN, member_state == member_states.ADMIN]):
+        filter_dict = {
+            'setting_type': community_setting_types.ENABLE_DM_WITHOUT_CONNECTION_REQUEST,
+            'community': card_instance.community,
+            'enabled': False
+        }
+
+        dm_without_connection_setting = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
+
+        if any([user_member_state == member_states.ADMIN, member_state == member_states.ADMIN,
+                all([user_member_state == member_states.MEMBER, member_state == member_states.MEMBER,
+                     dm_without_connection_setting])]):
+
+            user_card_state_instance = card_state_filter.filter(user=user_instance).first()
+
+            if not user_card_state_instance:
+                return ResponseUtilities.get_impl_error_context('You are not part of the chatroom.',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+
+            if user_card_state_instance.chat_request_state:
+                return ResponseUtilities.get_impl_error_context('Connection request either initiated or is rejected!',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+
+            if not message:
+                return ResponseUtilities.get_impl_error_context('Empty text!',
+                                                                status_codes.HTTP_400_BAD_REQUEST)
+
             ModelUtilities.model_update(collabcardState, {'card': card_instance},
                                         {'chat_request_state': chat_request_state,
                                          'chat_requested_by': user_instance,

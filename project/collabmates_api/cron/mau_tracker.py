@@ -40,7 +40,7 @@ def getCoralogixData(filters):
 
         # Fetch hits value from response
         if response.json()['hits'] and response.json()['hits']['hits']:
-            hits.append(response.json()['hits']['hits'])
+            hits.extend(response.json()['hits']['hits'])
         else:
             fetch_again = False
 
@@ -51,8 +51,6 @@ def getCoralogixData(filters):
                                       json={
                                           'scroll': '5m',
                                           'scroll_id': scroll_id,
-                                          'size': 10000,
-                                          'query': filters
                                       },
                                       headers={
                                           'token': settings.CORALOGIX_QUERY_API_KEY,
@@ -87,27 +85,34 @@ def getUserListFromCoralogixData(coralogixData):
 
     # Fetch user ids from the coralogix hits data
     if coralogixData:
-        for entry in coralogixData[0]:
-            if entry['_source'] and entry['_source']['request']:
-                request_entry = entry['_source']['request']
+
+        for entry in coralogixData:
+
+            if entry['_source'] and isinstance(entry['_source'], dict):
+
+                if entry['_source'].get('text') and not entry['_source'].get('request'):
+                    request_json = json.loads(entry['_source']['text'])
+
+                else:
+                    request_json = entry['_source']
+
+                request_entry = request_json.get('request')
+
+                if not request_entry:
+                    continue
+
                 if request_entry.get('headers') and request_entry['headers'].get('x_member_id'):
                     users_list.add(request_entry['headers']['x_member_id'])
 
                 if request_entry['body']:
+
                     if request_entry['body'].get('user_unique_id'):
                         users_list.add(request_entry['body']['user_unique_id'])
 
     return users_list
 
 
-def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
-    # Fetch sdk client record to fetch api key
-    sdk_client = SdkClient.objects.get(community=billingRecord.community)
-
-    # If no record exists for given community, break the flow
-    if not sdk_client:
-        return
-
+def create_coralogix_filter(api_key: str, sdk_source: str):
     additional_filters = {}
 
     # Filter to fetch data based on applicationName, api_key and timestamp
@@ -121,7 +126,7 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
                 },
                 {
                     'match_phrase': {
-                        'request.headers.api_key': sdk_client.api_key
+                        'request.headers.api_key': api_key
                     }
                 },
                 {
@@ -137,7 +142,7 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     }
 
     # Filter update if sdk is for 'feed'
-    if billingRecord.sdk == 'feed':
+    if sdk_source == 'feed':
         additional_filters: dict = {
             'must': [
                 {
@@ -152,14 +157,14 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
                 },
                 {
                     'match_phrase': {
-                        'request.headers.sdk_source': billingRecord.sdk
+                        'request.headers.sdk_source': sdk_source
                     }
                 }
             ]
         }
 
     # Filter update if sdk is for 'chat'
-    if billingRecord.sdk == 'chat':
+    if sdk_source == 'chat':
         additional_filters: dict = {
             'must': [
                 {
@@ -218,31 +223,205 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
                 },
                 {
                     'bool': {
-                       'should': [
+                        'should': [
+                            {
+                                'bool': {
+                                    'must': [
+                                        {
+                                            'match_phrase': {
+                                                'request.headers.sdk_source.keyword': ''
+                                            }
+                                        },
+                                    ],
+                                    'must_not': [
+                                        {
+                                            'match_phrase': {
+                                                'request.headers.platform_code': 'fl'
+                                            }
+                                        },
+                                    ]
+                                }
+                            },
+                            {
+                                'match_phrase': {
+                                    'request.headers.sdk_source': sdk_source
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+
+        # Update major filters with additional filters
+        filters['bool']['must'].extend(additional_filters.get('must'))
+
+        return filters
+
+
+def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
+    additional_filters = {}
+
+    # Filter to fetch data based on applicationName, api_key and timestamp
+    filters = {
+        'bool': {
+            'must': [
+                {
+                    'match_phrase': {
+                        'coralogix.metadata.applicationName': settings.CORALOGIX_LOGGER.get('APPLICATION_NAME')
+                    }
+                },
+                {
+                    'match_phrase': {
+                        'text': '\"' + api_key + '\"'
+                    }
+                },
+                {
+                    'range': {
+                        'coralogix.timestamp': {
+                            'gte': 'now-24h',
+                            'lt': 'now'
+                        }
+                    }
+                }
+            ]
+        }
+    }
+
+    # Filter update if sdk is for 'feed'
+    if sdk_source == 'feed':
+        additional_filters: dict = {
+            'must': [
+                {
+                    'bool': {
+                        'should' : [
+                            {
+                                'bool': {
+                                    'must': 
+                                    [
+                                        {
+                                            'match_phrase': { 'text': '\"' + sdk_source + '\"' }
+                                        },
+                                        {
+                                            'match_phrase': { 'text': 'api/sdk/initiate' },
+                                        }
+                                    ]
+                                }
+                            },
                            {
-                               'bool': {
-                                   'must': [
-                                       {
-                                           'match_phrase': {
-                                               'request.headers.sdk_source.keyword': ''
-                                           }
-                                       },
-                                   ],
-                                   'must_not': [
-                                       {
-                                           'match_phrase': {
-                                               'request.headers.platform_code': 'fl'
-                                           }
-                                       },
-                                   ]
-                               }
-                           },
-                           {
-                               'match_phrase': {
-                                   'request.headers.sdk_source': billingRecord.sdk
-                               }
-                           }
-                       ]
+                                'bool': {
+                                    'must': 
+                                    [
+                                        {
+                                            'match_phrase': { 'text': '\"' + sdk_source + '\"' }
+                                        },
+                                        {
+                                            'match_phrase': { 'text': 'api/sdk/initiate?uuid' },
+                                        }
+                                    ]
+                                }
+                            },
+                        ]
+                    }   
+                }
+            ]
+        }
+
+    # Filter update if sdk is for 'chat'
+    if sdk_source == 'chat':
+        additional_filters: dict = {
+            'must': [
+                {
+                    'bool': {
+                        'should': [
+                            {
+                                'bool': {
+                                    'must': [
+                                        {
+                                            'match_phrase': {
+                                                'text': '\"api/sdk/initiate\"',
+                                            }
+                                        },
+                                        {
+                                            'match_phrase': {
+                                                'text': 'POST'
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                'bool': {
+                                    'must': 
+                                    [
+                                        {
+                                            'match_phrase': { 'text': 'api/sdk/initiate?uuid' },
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                'bool': {
+                                    'must': [
+                                        {
+                                            'match_phrase': {
+                                                'text': '\"api/v2/fetch_chatroom\"',
+                                            }
+                                        },
+                                        {
+                                            'match_phrase': {
+                                                'text': 'GET'
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                'bool': {
+                                    'must': [
+                                        {
+                                            'match_phrase': {
+                                                'text': '\"api/chatroom/fetch\"',
+                                            }
+                                        },
+                                        {
+                                            'match_phrase': {
+                                                'text': 'GET'
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                        ]
+                    }
+                },
+                {
+                    'bool': {
+                        'should': [
+                            {
+                                'bool': {
+                                    'must': [
+                                        {
+                                            'match_phrase': {
+                                                'request.headers.sdk_source.keyword': ''
+                                            }
+                                        },
+                                    ],
+                                    'must_not': [
+                                        {
+                                            'match_phrase': {
+                                                'request.headers.platform_code': 'fl'
+                                            }
+                                        },
+                                    ]
+                                }
+                            },
+                            {
+                                'match_phrase': {
+                                    'text': '\"' + sdk_source + '\"'
+                                }
+                            }
+                        ]
                     }
                 }
             ]
@@ -250,6 +429,20 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
 
     # Update major filters with additional filters
     filters['bool']['must'].extend(additional_filters.get('must'))
+
+    return filters
+
+
+def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
+    
+    # Fetch sdk client record to fetch api key
+    sdk_client = SdkClient.objects.get(community=billingRecord.community)
+
+    # If no record exists for given community, break the flow
+    if not sdk_client:
+        return
+
+    filters = create_full_text_search_coralogix_filter(sdk_client.api_key, billingRecord.sdk)
 
     # Fetch coralogix data for above generated filters
     coralogixData = getCoralogixData(filters)
@@ -313,6 +506,19 @@ def track():
         info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
                                                                    billingRecord.sdk,
                                                                    "Tracking Process Started"))
+        
+        # If record exists for the current date in MonthlyActiveUsers
+        monthlyDataRecord = ModelUtilities.get_model_filter(ActiveUserMonthlyData,
+                                                            {'billing': billingRecord,
+                                                             'start_date': (today-relativedelta.relativedelta(months=1)).strftime("%s"),
+                                                             'end_date': today.strftime("%s")})
+        if monthlyDataRecord:
+            # Alrready data exists do nothing and continue
+            info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
+                                                                       billingRecord.sdk,
+                                                                       "ActiveUserMonthlyData Already Exists with this start date, end date - Skipping Process"))
+            
+            continue
 
         # Update Unique Active Users of a Billing record for the day
         updateUniqueUsersOfACommunityBillingEntry(billingRecord)

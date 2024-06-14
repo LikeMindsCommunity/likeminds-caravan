@@ -223,6 +223,36 @@ def get_card_ids_to_exclude_based_on_cohort_access(user_id, community_id=None):
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
 
+def get_cohort_access_corresponding_to_card_ids(user_id, chatroom_ids: list):
+
+    try:
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        chatroom_ids_tuple = get_tuple_from_array_v2(chatroom_ids)
+
+        sql = f"""
+                SELECT togther_chatroomcohort.chatroom_id,
+                       Max(togther_chatroomcohort.cohort_access) AS cohort_access
+                FROM   togther_cohortmember
+                       INNER JOIN togther_chatroomcohort
+                               ON ( togther_cohortmember.cohort_id =
+                                    togther_chatroomcohort.cohort_id
+                                    AND togther_chatroomcohort.chatroom_id IN {chatroom_ids_tuple}
+                                    AND togther_cohortmember.user_id = {user_id} )
+                GROUP  BY togther_chatroomcohort.chatroom_id;"""
+
+        curr.execute(sql)
+        chatroom_access_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return {data.get('chatroom_id'): {'cohort_access': data.get('cohort_access')} for data in chatroom_access_data}
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
 def get_chatrooms_of_user_with_follow_status(user_id, community_id: str = None, follow_status: str = True):
     community_based_filter = ""
 
@@ -1944,6 +1974,7 @@ def get_members_meta_list(community_id: int, member_ids: list = None, page=1, pa
                 togther_userinfo.user_id_id as "id", 
                 togther_userinfo.image_link as "image_url", 
                 CASE when (togther_members.custom_title = 'Member') then Null else togther_members.custom_title END as "custom_title", 
+                togther_members.state as "state",
                 CASE when (togther_members.community_id_id = {community_id}) then false else true END as "is_deleted",
                 togther_sdkclientusersinfo.user_unique_id as "sdk_client_info___user_unique_id",
                 togther_sdkclientusersinfo.user_unique_id as "sdk_client_info___uuid",
@@ -3895,7 +3926,7 @@ def create_query_with_prefix(query_fields, table_name, key_name_prefix: str = No
     return meta_query
 
 
-def get_conversation_query_meta_for_sync_revamp(key_name_prefix: str = None):
+def get_conversation_query_meta_for_sync_revamp(key_name_prefix: str = None, should_send_widget_id: bool = False):
     query_fields = ['id', 'answer', 'created_at', 'state', 'is_edited', 'has_files', 'attachment_count',
                     'attachments_uploaded', 'card_id', 'user_id', 'community_id', 'og_tags', 'deleted_by_user_id',
                     'internal_link', 'reply_id', 'last_updated', 'preview_chatroom_id', 'preview_type', 'api_version',
@@ -3906,7 +3937,18 @@ def get_conversation_query_meta_for_sync_revamp(key_name_prefix: str = None):
 
     meta_query = create_query_with_prefix(query_fields, 'togther_card_answers', 'conversation', key_name_prefix)
 
-    return ",".join(meta_query)
+    widget_output_key_name = "widget_id"
+
+    if key_name_prefix is not None:
+        widget_output_key_name = "conversation___widget_id"
+
+    if key_name_prefix:
+        widget_output_key_name += f"___{key_name_prefix}"
+
+    send_widget_query = f"""CASE WHEN {should_send_widget_id} THEN togther_card_answers.widget_id ELSE '' END AS {
+    widget_output_key_name}"""
+
+    return ",".join(meta_query + [send_widget_query])
 
 
 def get_community_query_meta_for_sync_revamp(key_name_prefix: str = None):
@@ -3922,6 +3964,7 @@ def get_members_query_meta_for_sync_revamp(key_name_prefix: str = None):
 
     return ",".join(meta_query)
 
+
 def get_users_query_meta_for_sync_revamp(key_name_prefix: str = None):
     query_fields = ['user_id_id', 'name', 'image_link', 'user_unique_id', 'is_guest']
     meta_query = create_query_with_prefix(query_fields, 'togther_userinfo', 'user', key_name_prefix)
@@ -3930,6 +3973,7 @@ def get_users_query_meta_for_sync_revamp(key_name_prefix: str = None):
     userinfo_uuid = f'togther_userinfo.user_unique_id AS user___uuid___{key_name_prefix}'
 
     return ",".join(meta_query + [userinfo_uuid])
+
 
 def get_sdk_client_query_meta_for_sync_revamp(key_name_prefix: str = None):
     query_fields = ['user_unique_id', 'community_id', 'widget_id']
@@ -4001,6 +4045,34 @@ def get_query_fields_for_members_meta(key_name_prefix: str = None):
     return ",".join(members_meta_query + user_meta_query)
 
 
+def get_event_recordings_attachments_query_meta_for_channel_detail(key_name_prefix: str = None):
+    query_fields = ['id', 'url', 'type', 'index', 'width', 'height', 'thumbnail_url', 'name', 'meta', 'created_at',
+                    'updated_at', 'about', 'is_recording']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_event_recording_attachment',
+                                          'event_rec_attach', key_name_prefix)
+
+    # To add chatroom_id and conversation_id
+    chatroom_id = f'togther_event_recording_attachment.chatroom_id_id AS chatroom_id'
+    conversation_id = f'togther_event_recording_attachment.conversation_id_id AS conversation_id'
+
+    return ",".join(meta_query + [chatroom_id, conversation_id])
+
+
+def get_event_recordings_url_query_meta_for_channel_detail(key_name_prefix: str = None):
+    query_fields = ['id', 'recording_url_og_tags', 'is_recording', 'about_recording', 'created_at', 'updated_at',
+                    'chatroom_id_id', 'conversation_id_id']
+
+    meta_query = create_query_with_prefix(query_fields, 'togther_event_recording_url',
+                                          'event_rec_url', key_name_prefix)
+
+    # To add chatroom_id and conversation_id
+    chatroom_id = f'togther_event_recording_url.chatroom_id_id AS chatroom_id'
+    conversation_id = f'togther_event_recording_url.conversation_id_id AS conversation_id'
+
+    return ",".join(meta_query + [chatroom_id, conversation_id])
+
+
 def convert_sql_query_result_to_dict(cursor, result):
     """Return all rows from a cursor as a dict"""
     columns = [col[0] for col in cursor.description]
@@ -4009,13 +4081,11 @@ def convert_sql_query_result_to_dict(cursor, result):
 
 def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: int = None, max_timestamp: int = None,
                                          page: int = 1, limit: int = 10, included_chatroom_types: list = None,
-                                         only_query: bool = False):
+                                         only_query: bool = False, chatroom_id: str = None,
+                                         is_widget_enabled: bool = False):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
-
-        min_timestamp = TimeUtilities.convert_sec_to_milliseconds(int(min_timestamp))
-        max_timestamp = TimeUtilities.convert_sec_to_milliseconds(int(max_timestamp))
 
         is_dm_chatroom = card_types.CARD_DIRECT_MESSAGE in included_chatroom_types
 
@@ -4039,7 +4109,8 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
         topic_conversation_data_query = ",".join([get_users_query_meta_for_sync_revamp("last_conv"),
                                                   get_members_query_meta_for_sync_revamp("last_conv"),
                                                   get_sdk_client_query_meta_for_sync_revamp("last_conv"),
-                                                  get_conversation_query_meta_for_sync_revamp("topic")])
+                                                  get_conversation_query_meta_for_sync_revamp(
+                                                      "topic", is_widget_enabled)])
 
         topic_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("topic"),
                                           get_members_query_meta_for_sync_revamp("topic"),
@@ -4069,6 +4140,11 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                 chatroom_data.dm_message = 1
             )
             """
+
+        chatroom_id_query = ""
+
+        if chatroom_id:
+            chatroom_id_query = f"AND togther_collabcard.id = {chatroom_id}"
 
         sql = """
                 SELECT chatrooms_data.*, {} FROM
@@ -4122,7 +4198,7 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                               AND togther_collabcardstate.remove_id IS NULL 
                                               AND togther_collabcard.type IN {} 
                                               AND togther_collabcard.updated_at >= {} 
-                                              AND togther_collabcard.updated_at <= {}
+                                              AND togther_collabcard.updated_at <= {} {}
                                             ) 
                                           ORDER BY 
                                             togther_collabcard.updated_at DESC
@@ -4201,11 +4277,11 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
 
                   ORDER BY chatrooms_data.updated_at DESC offset {} limit {};
         """.format(topic_user_data_query, topic_conversation_data_query,
-                   get_conversation_query_meta_for_sync_revamp("last"),
+                   get_conversation_query_meta_for_sync_revamp("last", is_widget_enabled),
                    chatroom_with_user_data_query, chat_requested_user_data_query, creator_data_query,
                    get_community_query_meta_for_sync_revamp(""), chatroom_query, dm_chatroom_message_query,
                    dm_chatroom_conversation_query, user_id, community_id, included_chatroom_types_query,
-                   min_timestamp, max_timestamp, dm_chatroom_message_filter_query, offset, limit)
+                   min_timestamp, max_timestamp, chatroom_id_query, dm_chatroom_message_filter_query, offset, limit)
 
         if only_query:
             return sql
@@ -4228,16 +4304,14 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
 def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min_timestamp: int = None,
                                                       max_timestamp: int = None, page: int = 1, limit: int = 10,
                                                       included_chatroom_types: list = None, only_query: bool = False,
-                                                      included_conversation_states: list = []):
+                                                      included_conversation_states: list = [], chatroom_id: str = None,
+                                                      is_widget_enabled: bool = False):
 
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
 
         included_conversation_states_query = get_tuple_from_array_v2(included_conversation_states)
-
-        min_timestamp = TimeUtilities.convert_sec_to_milliseconds(int(min_timestamp))
-        max_timestamp = TimeUtilities.convert_sec_to_milliseconds(int(max_timestamp))
 
         is_dm_chatroom = card_types.CARD_DIRECT_MESSAGE in included_chatroom_types
 
@@ -4250,6 +4324,11 @@ def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min
             included_chatroom_types_query = get_tuple_from_array(included_chatroom_types)
             chatroom_message_query = f"AND ((togther_collabcard.type IN {included_chatroom_types_query} AND " \
                                      f"togther_card_answers.state IN {included_conversation_states_query})"
+
+        chatroom_id_query = ""
+
+        if chatroom_id:
+            chatroom_id_query = f"AND togther_collabcard.id = {chatroom_id}"
 
         chatroom_query = ",".join([get_chatroom_query_meta_for_sync_revamp(),
                                    get_chatroom_state_query_meta_for_sync_revamp()])
@@ -4269,7 +4348,8 @@ def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min
         topic_conversation_data_query = ",".join([get_users_query_meta_for_sync_revamp("last_conv"),
                                                   get_members_query_meta_for_sync_revamp("last_conv"),
                                                   get_sdk_client_query_meta_for_sync_revamp("last_conv"),
-                                                  get_conversation_query_meta_for_sync_revamp("topic")])
+                                                  get_conversation_query_meta_for_sync_revamp(
+                                                      "topic", is_widget_enabled)])
 
         topic_user_data_query = ",".join([get_users_query_meta_for_sync_revamp("topic"),
                                           get_members_query_meta_for_sync_revamp("topic"),
@@ -4332,7 +4412,7 @@ def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min
                                         (
                                           SELECT 
                                             {chatroom_query}, 
-                                            {get_conversation_query_meta_for_sync_revamp("last")},
+                                            {get_conversation_query_meta_for_sync_revamp("last", is_widget_enabled)},
                                             Row_number() OVER(
                                                 partition BY togther_card_answers.card_id 
                                                 ORDER BY 
@@ -4357,7 +4437,7 @@ def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min
                                                     togther_card_answers.attachment_count > 0
                                                     AND togther_card_answers.attachments_uploaded = False
                                                 ) {deleted_chatroom_query}
-                                              )
+                                              ) {chatroom_id_query}
                                         ) AS chatroom_data 
                                         INNER JOIN togther_community 
                                         ON chatroom_data.community_id = togther_community.id
@@ -4449,7 +4529,7 @@ def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min
 def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_timestamp: int = None,
                                     max_timestamp: int = None, page: int = 1, limit: int = 10,
                                     only_query: bool = False, is_local_db: bool = True, conversation_id: str = None,
-                                    excluded_conversation_states: list = None):
+                                    excluded_conversation_states: list = None, is_widget_enabled: bool = False):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -4479,7 +4559,7 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                                         get_users_query_meta_for_sync_revamp("creator"),
                                         get_members_query_meta_for_sync_revamp("creator"),
                                         get_sdk_client_query_meta_for_sync_revamp("creator"),
-                                        get_conversation_query_meta_for_sync_revamp("reply")])
+                                        get_conversation_query_meta_for_sync_revamp("reply", is_widget_enabled)])
 
         room_creator = ",".join([get_users_query_meta_for_sync_revamp("room_creator"),
                                  get_members_query_meta_for_sync_revamp("room_creator"),
@@ -4586,9 +4666,10 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
                 ON         conv_reply_user_meta.conversation___user_id___reply = togther_sdkclientusersinfo.user_id 
                 ORDER BY conv_reply_user_meta.{};
         """.format(conv_reply_user, dm_other_user, get_chatroom_query_meta_for_sync_revamp("reply"), room_creator,
-                   chatroom_meta_query, chatroom_data_query, get_conversation_query_meta_for_sync_revamp(),
-                   conversation_id_query, excluded_conversation_states_query, chatroom_id, community_id,
-                   min_timestamp, max_timestamp, order_by_query, offset, limit, user_id, order_by_query)
+                   chatroom_meta_query, chatroom_data_query, get_conversation_query_meta_for_sync_revamp(
+                should_send_widget_id=is_widget_enabled), conversation_id_query, excluded_conversation_states_query,
+                   chatroom_id, community_id, min_timestamp, max_timestamp, order_by_query, offset, limit, user_id,
+                   order_by_query)
 
         if only_query:
             return sql
@@ -4737,6 +4818,147 @@ def get_attachments_data(attachment_type: int = SyncTypes.CHATROOM,
             conversation_ids_query = get_tuple_from_array(conversation_ids)
             sql = "SELECT {} FROM togther_answerattachment WHERE answer_id IN {}".format(
                 get_conversation_attachments_query_meta_for_sync_revamp(key_name_prefix), conversation_ids_query)
+
+        else:
+            return attachments_data
+
+        curr.execute(sql)
+        attachments_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return attachments_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_channel_detail_data(user_id, community_id, chatroom_id, is_secret_chatroom: bool = False,
+                            secret_chatroom_participants_list: list = None, device_id: str = None):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        can_access_secret_chatroom_query = ""
+
+        if is_secret_chatroom:
+            secret_chatroom_participants_query = ""
+
+            if secret_chatroom_participants_list:
+                secret_chatroom_participants_query = f"""{user_id} IN {get_tuple_from_array_v2(
+                    secret_chatroom_participants_list)} OR"""
+
+            can_access_secret_chatroom_query = f"""
+                                                WHEN togther_collabcard.is_secret = true AND
+                                                (
+                                                    {secret_chatroom_participants_query}
+                                                    togther_members.state = 1
+                                                ) THEN true"""
+
+        sql = f"""
+                SELECT togther_collabcard.id,
+                       CASE
+                         WHEN togther_collabcardstate.follow_status = false THEN true
+                         ELSE false
+                       END AS show_follow_telescope,
+                       CASE
+                         WHEN togther_collabcardstate.is_tagged = true THEN true
+                         ELSE false
+                       END AS show_follow_auto_tag,
+                       CASE {can_access_secret_chatroom_query}
+                         WHEN togther_collabcard.is_secret = false
+                              AND NOT ( togther_collabcard.attachment_count > 0
+                                        AND togther_collabcard.attachments_uploaded = false
+                                      )
+                       THEN
+                         true
+                         ELSE false
+                       END AS can_access_secret_chatroom,
+                       CASE
+                        WHEN togther_collabcard.has_event_recording = false AND 
+                            (
+                                togther_members.state = 1 OR 
+                                togther_collabcard.user_id = {user_id}
+                            ) THEN 0
+                        WHEN togther_collabcard.has_event_recording = false THEN 1
+                        WHEN togther_collabcard.has_event_recording = true AND
+                            (
+                                togther_members.state = 1 OR 
+                                togther_collabcard.user_id = {user_id}
+                            ) THEN 2
+                        ELSE 3
+                      END AS recordings_attachments_view
+                FROM   togther_collabcardstate
+                       INNER JOIN togther_collabcard
+                               ON togther_collabcardstate.card_id = togther_collabcard.id
+                       INNER JOIN togther_members ON (
+                               togther_members.community_id_id=togther_collabcard.community_id
+                               AND togther_members.member_id_id = {user_id}
+                       )
+                WHERE  ( togther_collabcardstate.user_id = {user_id}
+                         AND togther_collabcardstate.community_id = {community_id}
+                         AND togther_collabcardstate.card_id = {chatroom_id} ); 
+                 """
+
+        curr.execute(sql)
+        chatroom_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return chatroom_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_event_recordings_attachments_data(attachment_type: int = SyncTypes.CHATROOM,
+                                          chatroom_ids: list = None, key_name_prefix: str = None):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        attachments_data = []
+
+        if attachment_type == SyncTypes.CHATROOM:
+
+            if (not chatroom_ids) or (not isinstance(chatroom_ids, list)):
+                return attachments_data
+
+            chatroom_ids_query = get_tuple_from_array(chatroom_ids)
+            sql = f"""
+                    SELECT {get_event_recordings_attachments_query_meta_for_channel_detail(key_name_prefix)}
+                    FROM togther_event_recording_attachment 
+                    WHERE chatroom_id_id IN {chatroom_ids_query}"""
+
+        else:
+            return attachments_data
+
+        curr.execute(sql)
+        attachments_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+        curr.close()
+
+        return attachments_data
+
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+
+def get_event_recordings_url_data(attachment_type: int = SyncTypes.CHATROOM, chatroom_ids: list = None,
+                                  key_name_prefix: str = None):
+    try:
+        conn = get_connection()
+        curr = conn.cursor()
+
+        attachments_data = []
+
+        if attachment_type == SyncTypes.CHATROOM:
+
+            if (not chatroom_ids) or (not isinstance(chatroom_ids, list)):
+                return attachments_data
+
+            chatroom_ids_query = get_tuple_from_array(chatroom_ids)
+            sql = f"""
+                    SELECT {get_event_recordings_url_query_meta_for_channel_detail(key_name_prefix)}
+                    FROM togther_event_recording_url 
+                    WHERE chatroom_id_id IN {chatroom_ids_query}"""
 
         else:
             return attachments_data

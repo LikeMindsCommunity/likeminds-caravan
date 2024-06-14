@@ -10,6 +10,7 @@ class SdkManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'edit_sdk_project') and callable(subclass.edit_sdk_project)) and
                 (hasattr(subclass, 'delete_sdk_project') and callable(subclass.delete_sdk_project)) and
                 (hasattr(subclass, 'initiate_sdk') and callable(subclass.initiate_sdk)) and
+                (hasattr(subclass, 'fetch_sdk_user_info') and callable(subclass.fetch_sdk_user_info)) and
                 (hasattr(subclass, 'authenticate_sdk') and callable(subclass.authenticate_sdk)) and
                 (hasattr(subclass, 'fetch_onboarding_screens') and callable(subclass.fetch_onboarding_screens)) and
                 (hasattr(subclass, 'create_onboarding_screen') and callable(subclass.create_onboarding_screen)) and
@@ -49,6 +50,13 @@ class SdkManager(metaclass=abc.ABCMeta):
     def initiate_sdk(self, req_body) -> dict:
         """
         initiate a sdk project
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_sdk_user_info(self, uuid: str) -> dict:
+        """
+        Get initiated user info
         """
         raise NotImplementedError
 

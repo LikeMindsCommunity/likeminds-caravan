@@ -123,6 +123,10 @@ ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END = 212
 MEDIA_LIMITS_CONFIGURATION = "media_limits"
 FEED_METADATA_CONFIGURATION = "feed_metadata"
 PROFILE_METADATA_CONFIGURATION = "profile_metadata"
+NSFW_FILTERING_CONFIGURATION = "nsfw_filtering"
+WIDGETS_METADATA_CONFIGURATION = "widgets_metadata"
+GUEST_FLOW_METADATA_CONFIGURATION = "guest_flow_metadata"
+FEED_SETTINGS_CONFIGURATION = "feed_settings"
 
 # Community Configurations
 COMMUNITY_CONFIGURATIONS = {
@@ -142,17 +146,80 @@ COMMUNITY_CONFIGURATIONS = {
         "description": "Metadata related to feed and its entity",
         "value":
         {
-            "post": "post"
+            "post": "post",
+            "comment": "comment",
+            "like_entity_variable": {
+                "entity_name": "like",
+                "past_tense_verb": "liked"
+            },
+            "universal_feed": {
+                "comment_sort_order_key": "", # likes
+                "comment_sort_order": "", # asc or desc
+                "comment_count": 1
+            }
         }
     },
     PROFILE_METADATA_CONFIGURATION:
     {
         "type": "profile_metadata",
-        "description": "User profiles metadata for a community",
+        "description": "User profiles metadata for the community",
         "value":
         {
             "widgets_enabled": False
         }
+    },
+    NSFW_FILTERING_CONFIGURATION:
+    {
+        "type": "nsfw_filtering",
+        "description": "NSFW filtering metadata for the community",
+        "value":
+        {
+            "enabled": False,
+            "inferdo_api_key": "",
+            "cutoff_score": 0.8,
+            "error_status": ""
+        }
+    },
+    WIDGETS_METADATA_CONFIGURATION:
+    {
+        "type": WIDGETS_METADATA_CONFIGURATION,
+        "description": "Widgets metadata for the community",
+        "value":
+        {
+            "message": False
+        }
+    },
+    GUEST_FLOW_METADATA_CONFIGURATION:
+    {
+        "type": "guest_flow_metadata",
+        "description": "Community configurations for guest flow",
+        "value":
+        {
+            "guest_users": "SINGLE"
+        }
+    },
+    FEED_SETTINGS_CONFIGURATION:
+    {
+        "type": FEED_SETTINGS_CONFIGURATION,
+        "description": "Additional Feed settings for the community",
+        "value":
+        {
+            "create_feed_poll": "everyone", # everyone, only_cm, no_one
+        }
     }
 }
 
+CREATE_FEED_POLL_COMMUNITY_VALUES = ["everyone", "only_cm", "no_one"]
+
+SWARM_WIDGET_ENDPOINT = "/widget"
+
+# Internal Platform types
+PLATFORM_TYPE_CARAVAN_SERVICE = "caravan-service"
+
+# Swarm endpoints
+SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT = "/user"
+SWARM_PENDING_POST_UPDATE_ENDPOINT = "/post/pending/{}"
+SWARM_DELETE_CACHE_ENDPOINT = "/cache"
+
+# Kettle endpoints
+KETTLE_DELETE_CACHE_ENDPOINT = "/cache"

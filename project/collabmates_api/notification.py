@@ -20,6 +20,7 @@ from togther.models import (Community_Rank, collabcardState,
                             userDevices, ModelUtilities, answerAttachment)
 from utility.list_utilities import ListUtilities
 from utility.string_utilities import StringUtilities
+from utility.webhook_utilities import WebhookUtilties
 
 from utility.utils import *
 from utility.time_utilities import TimeUtilities
@@ -29,8 +30,11 @@ from utility.constants import (INTRO_ROOM_LOOKBACK_PERIOD,
                                MINUTES_10, MINUTES_30, VALID_URLS_REGEX, 
                                ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_START,
                                ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END)
+from utility.version_utilities import VersionUtilities
+from utility.firebase_http_v1 import FCMHTTPV1Notification
 from project.celery import app
 from utility.states import *
+from collabmates_api.webhook.constants import WEBHOOK_SOURCE_FEED, WEBHOOK_SOURCE_CHAT
 
 import json
 from django.shortcuts import get_object_or_404
@@ -110,22 +114,78 @@ def send_test_notification(request):
     return JsonResponse(context)
 
 
-def get_firebase_server_key_from_message_payload(message):
+def get_firebase_server_key_or_service_file_from_message_payload(message):
     message_payload = message.get('payload', {})
     community_id = message_payload.get('community_id', None)
-
+    
+    service_account_file_dict = None
+    server_key = settings.FCM_SERVER_KEY
+    
     if community_id:
         sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
 
-        if sdk_client_filter and sdk_client_filter[0].firebase_server_key:
-            return sdk_client_filter[0].firebase_server_key
-
+        if sdk_client_filter:
+            if sdk_client_filter[0].gcp_service_account_file:
+                service_account_file_dict = sdk_client_filter[0].gcp_service_account_file
+        
+            if sdk_client_filter[0].firebase_server_key:
+                server_key = sdk_client_filter[0].firebase_server_key
+        
         del message['payload']['community_id']
+    
+    return server_key, service_account_file_dict
 
-    return server_key
+
+def send_notifications(service_account_file_dict: dict, firebase_key: str, token_chunks_list: list, message: dict,
+                       stacks: list = None, legacy_version_extra_kwargs: dict = {},
+                       http_v1_extra_kwargs_android: dict = {}, http_v1_extra_kwargs_ios: dict = {},
+                       notification_os: str = ""):
+    final_result = []
+    total_notifications_count = 0
+    total_success_count = 0
+    total_failures_count = 0
+
+    if service_account_file_dict:
+        push_service = FCMHTTPV1Notification(service_account_file_dict)
+
+        for token_chunk in token_chunks_list:
+            result = push_service.notify_multiple_devices(registration_ids=token_chunk,
+                                                          stacks=stacks,
+                                                          message_title=message['payload']['title'],
+                                                          message_body=message['payload']['sub_title'],
+                                                          message_icon=message['payload']['community_logo'],
+                                                          data_message=message['payload'],
+                                                          extra_kwargs_android=http_v1_extra_kwargs_android,
+                                                          extra_kwargs_ios=http_v1_extra_kwargs_ios)
+
+            final_result.append(result)
+            total_notifications_count += len(token_chunk)
+            total_success_count += result.get('success')
+            total_failures_count += result.get('failure')
+
+    else:
+        push_service = FCMNotification(api_key=firebase_key)
+
+        for token_chunk in token_chunks_list:
+            result = push_service.notify_multiple_devices(registration_ids=token_chunk,
+                                                          data_message=message['payload'],
+                                                          timeout=fcm_timeout_seconds,
+                                                          extra_kwargs=legacy_version_extra_kwargs)
+
+            final_result.append(result)
+            total_notifications_count += len(token_chunk)
+            total_success_count += result.get('success')
+            total_failures_count += result.get('failure')
+
+    log_statement = """The {} devices should have total {} notifications out of which {} success & {} failures. 
+                    Payload is {} """.format(notification_os, total_notifications_count, total_success_count,
+                                             total_failures_count, message.get('payload'))
+    print(f"{log_statement} \nFinal Result: {final_result}")
+
+    return final_result
 
 
-def send_notification_for_android(token_list, message, firebase_key=None):
+def send_notification_for_android(token_list, message, service_account_file_dict=None, firebase_key=None):
     """function to send notification to android"""
 
     if not token_list:
@@ -135,38 +195,23 @@ def send_notification_for_android(token_list, message, firebase_key=None):
 
     firebase_key = firebase_key if firebase_key else server_key
 
-    extra_kwargs = {
+    http_v1_extra_kwargs = {
+        "priority": "HIGH"
+    }
+
+    legacy_extra_kwargs = {
         "android": {
             "priority": "high"
         }
     }
-    push_service = FCMNotification(api_key=firebase_key)
 
-    notification_success = []
-    notification_failures = []
-    final_result = []
+    final_result = send_notifications(service_account_file_dict, firebase_key, token_chunks_list, message, ['android'],
+                                      legacy_extra_kwargs, http_v1_extra_kwargs, {},  "ANDROID")
 
-    for token_chunk_list in token_chunks_list:
-        result = push_service.notify_multiple_devices(registration_ids=token_chunk_list,
-                                                      data_message=message['payload'],
-                                                      timeout=fcm_timeout_seconds,
-                                                      extra_kwargs=extra_kwargs)
-
-        notification_success.append(result.get('success'))
-        notification_failures.append(result.get('failure'))
-        final_result.append(result)
-        print(f"RESULTS: {result}")
-        time.sleep(2)
-
-    log_statement = """
-        The {} devices should have total {} notifications out of which {} success {} & {} failures {}. Payload is {}
-    """.format("ANDROID", len(token_list), sum(notification_success), notification_success, sum(notification_failures),
-               notification_failures, message.get('payload'))
-    print(log_statement)
     return final_result
 
 
-def send_notification_for_ios(token_list, message, firebase_key=None):
+def send_notification_for_ios(token_list, message, service_account_file_dict=None, firebase_key=None):
     """function to send notification to android"""
 
     if not token_list:
@@ -174,29 +219,26 @@ def send_notification_for_ios(token_list, message, firebase_key=None):
 
     firebase_key = firebase_key if firebase_key else server_key
 
-    push_service = FCMNotification(api_key=firebase_key)
+    http_v1_extra_kwargs = {        # refer FCMHTTPV1Notification.parse_payload to construct kwargs
+        "payload": {
+            "aps": {
+                "mutable_content": 'true',
+                "sound": message['payload'].get('sound')
+            }
+        }
+    }
 
-    extra_kwargs = {
+    legacy_extra_kwargs = {
         "mutable_content": True
     }
 
-    result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  message_title=message['payload']['title'],
-                                                  message_body=message['payload']['sub_title'],
-                                                  data_message=message['payload'],
-                                                  sound=message['payload'].get('sound'),
-                                                  timeout=fcm_timeout_seconds,
-                                                  extra_kwargs=extra_kwargs)
+    final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message, ['ios'],
+                                      legacy_extra_kwargs, http_v1_extra_kwargs, {}, "IOS")
 
-    # print(result)
-    log_statement = """
-            The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
-        """.format("IOS", len(token_list), result.get('success'), result.get('failure'), message.get('payload'))
-    print(log_statement)
-    return result
+    return final_result
 
 
-def send_notification_for_web(token_list, message, firebase_key=None):
+def send_notification_for_web(token_list, message, service_account_file_dict=None, firebase_key=None):
     """function to send notification to web"""
 
     if not token_list:
@@ -204,21 +246,16 @@ def send_notification_for_web(token_list, message, firebase_key=None):
 
     firebase_key = firebase_key if firebase_key else server_key
 
-    push_service = FCMNotification(api_key=firebase_key)
+    http_v1_extra_kwargs = {}
+    legacy_extra_kwargs = {}
 
-    result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'],
-                                                  timeout=fcm_timeout_seconds)
+    final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message, None,
+                                      legacy_extra_kwargs, http_v1_extra_kwargs, {}, "WEB")
 
-    log_statement = """
-                The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
-            """.format("WEB", len(token_list), result.get('success'), result.get('failure'), message.get('payload'))
-    print(log_statement)
-
-    return result
+    return final_result
 
 
-def send_notification_for_react(token_list, message, firebase_key=None):
+def send_notification_for_react(token_list, message, service_account_file_dict=None, firebase_key=None):
     """function to send notification to web"""
 
     if not token_list:
@@ -226,21 +263,16 @@ def send_notification_for_react(token_list, message, firebase_key=None):
 
     firebase_key = firebase_key if firebase_key else server_key
 
-    push_service = FCMNotification(api_key=firebase_key)
+    http_v1_extra_kwargs = {}
+    legacy_extra_kwargs = {}
 
-    result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  data_message=message['payload'],
-                                                  timeout=fcm_timeout_seconds)
+    final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message, None,
+                                      legacy_extra_kwargs, http_v1_extra_kwargs, {}, "REACT")
 
-    log_statement = """
-                The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
-            """.format("REACT", len(token_list), result.get('success'), result.get('failure'), message.get('payload'))
-    print(log_statement)
-
-    return result
+    return final_result
 
 
-def send_notification_for_flutter(token_list, message, firebase_key=None):
+def send_notification_for_flutter(token_list, message, service_account_file_dict=None, firebase_key=None):
     """function to send notification to flutter"""
 
     if not token_list:
@@ -248,9 +280,23 @@ def send_notification_for_flutter(token_list, message, firebase_key=None):
 
     firebase_key = firebase_key if firebase_key else server_key
 
-    push_service = FCMNotification(api_key=firebase_key)
+    http_v1_extra_kwargs_android = {
+        "priority": "HIGH",
+        "notification": {
+            "channel_id": "likeminds_flutter_channel",
+        },
+    }
 
-    extra_notification_kwargs = {
+    http_v1_extra_kwargs_ios = {
+        "payload": {
+            "aps": {
+                "content_available": 'true',
+                "mutable_content": 'true',
+            }
+        }
+    }
+
+    legacy_extra_kwargs = {
         "android": {
             "priority": "high",
             "channel_id": "likeminds_flutter_channel"
@@ -261,22 +307,14 @@ def send_notification_for_flutter(token_list, message, firebase_key=None):
         }
     }
 
-    result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  message_title=message['payload']['title'],
-                                                  message_body=message['payload']['sub_title'],
-                                                  data_message=message['payload'],
-                                                  timeout=fcm_timeout_seconds,
-                                                  extra_notification_kwargs=extra_notification_kwargs)
+    final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message,
+                                      ['android', 'ios'], legacy_extra_kwargs, http_v1_extra_kwargs_android,
+                                      http_v1_extra_kwargs_ios, "FLUTTER")
 
-    log_statement = """
-                The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
-            """.format("FLUTTER", len(token_list), result.get('success'), result.get('failure'), message.get('payload'))
-    print(log_statement)
-
-    return result
+    return final_result
 
 
-def send_notification_for_react_native(token_list, message, firebase_key=None):
+def send_notification_for_react_native(token_list, message, service_account_file_dict=None, firebase_key=None):
     """function to send notification to react native"""
 
     if not token_list:
@@ -284,9 +322,19 @@ def send_notification_for_react_native(token_list, message, firebase_key=None):
 
     firebase_key = firebase_key if firebase_key else server_key
 
-    push_service = FCMNotification(api_key=firebase_key)
+    http_v1_extra_kwargs_android = {
+        "priority": "HIGH",
+    }
 
-    extra_kwargs = {
+    http_v1_extra_kwargs_ios = {
+        "payload": {
+            "aps": {
+                "content_available": 'true',
+            }
+        }
+    }
+
+    legacy_extra_kwargs = {
         "android": {
             "priority": "high",
         },
@@ -295,27 +343,25 @@ def send_notification_for_react_native(token_list, message, firebase_key=None):
         }
     }
 
-    result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  message_title=message['payload']['title'],
-                                                  message_body=message['payload']['sub_title'],
-                                                  data_message=message['payload'],
-                                                  timeout=fcm_timeout_seconds,
-                                                  extra_kwargs=extra_kwargs)
+    final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message,
+                                      ['android', 'ios'], legacy_extra_kwargs, http_v1_extra_kwargs_android,
+                                      http_v1_extra_kwargs_ios, "REACT-NATIVE")
 
-    log_statement = """
-                The {} devices should have total {} notifications out of which {} success & {} failures. Payload is {}
-            """.format("REACT NATIVE", len(token_list), result.get('success'), result.get('failure'),
-                       message.get('payload'))
-    print(log_statement)
-
-    return result
+    return final_result
 
 
-def send_silent_notification(token_list):
-    push_service = FCMNotification(api_key=server_key)
-    result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                  timeout=fcm_timeout_seconds)
-
+def send_silent_notification(token_list, service_account_file_dict=None):
+    
+    if service_account_file_dict:
+        push_service = FCMHTTPV1Notification(service_account_file_dict)
+        result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                      message_title='',
+                                                      message_body='')
+    else:
+        push_service = FCMNotification(api_key=server_key)
+        result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                      timeout=fcm_timeout_seconds)
+    
     return result
 
 
@@ -384,11 +430,139 @@ def pre_compute_user_devices_by_user_list(user_list, is_broadcast_notification=F
 
     return devices_dict
 
+def get_community_id_from_notification_message(message):
+    '''function to get community id from notification message payload'''
 
-def notification_meta(notification_list, message, is_broadcast_notification=False):
+    if message.get('payload'):
+        return message['payload'].get('community_id', None)
+
+    return None
+
+def send_notification_webhooks_in_chunks(payload: dict, uuids: list, webhooks, webhook_type, chunk_size: int=1000):
+    '''function to send webhook requests in chunks'''
+
+    total_uuids = len(uuids)
+    payload['data']['tota_pages'] = (total_uuids // chunk_size) + 1
+
+    # Trigger the webhooks in batches of chunk_size
+    for i in range(0, total_uuids, chunk_size):
+        start_index = i
+        end_index = i + chunk_size
+        uuids_batch = uuids[start_index:end_index]
+
+        for webhook in webhooks:
+
+            # Update the payload with client uuids
+            payload['id'] = str(uuid.uuid4())
+            payload['data']['uuids'] = uuids_batch
+            payload['data']['current_page'] = (i // chunk_size) + 1
+
+            # send webhook request
+            WebhookUtilties.send_webhook_request_with_payload.delay(
+                url=webhook.get('url'),
+                payload=payload,
+                webhook_type=webhook_type,
+                secret=webhook.get('secret')
+            )
+    
+def generate_payload_for_notification_webhooks(webhook_type, notification_payload):
+
+    source = ""
+
+    if webhook_type == WebhookTypes.NOTIFICATIONS_CHAT.value:
+        source = WEBHOOK_SOURCE_CHAT
+
+    elif webhook_type == WebhookTypes.NOTIFICATIONS_FEED.value:
+        source = WEBHOOK_SOURCE_FEED
+
+    # webhook payload
+    payload = {
+        "event": webhook_type,
+        "source": source,
+        "created_at": TimeUtilities.current_time_in_milliseconds(),
+        "data": {
+            "notification_payload": notification_payload,
+            "uuids": []
+        }
+    }
+
+    return payload
+
+@shared_task
+def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dict, community_id, sdk_source):
+    '''function to trigger webhooks for notifications'''
+
+    if not (user_ids and notification_payload and community_id):
+        return
+    
+    webhook_type = ""
+
+    # Set the webhook type 
+    if sdk_source == VersionUtilities.SdkSource.CHAT:
+        webhook_type = WebhookTypes.NOTIFICATIONS_CHAT.value
+
+    elif sdk_source == VersionUtilities.SdkSource.FEED:
+        webhook_type = WebhookTypes.NOTIFICATIONS_FEED.value
+
+    else:
+        return
+    
+    # Get active webhooks for the community
+    webhooks = WebhookUtilties.validate_and_fetch_all_webhook_url_and_secret(
+        community_id=community_id,
+        webhook_type=webhook_type
+    )
+
+    if not webhooks:
+        return
+    
+    # generate payload
+    payload =  generate_payload_for_notification_webhooks(webhook_type, notification_payload)
+
+     # Fetch client uuids
+    client_uuids = ModelUtilities.get_model_filter(SDKClientUsersInfo, {
+        'user_id__in': user_ids
+    }).values_list('user_unique_id', flat=True)
+
+    if not client_uuids:
+        return 
+
+    # trigger webhooks in chunks 
+    send_notification_webhooks_in_chunks(payload, list(client_uuids), webhooks, webhook_type, 1000)
+
+    return
+
+
+def notification_meta(notification_list, message, is_broadcast_notification: bool=False, sdk_source: str="chat"):
     """function to process notification to send"""
 
+    # Get the user ids from the notification list
     user_id_list = [user_dict['id'] for user_dict in notification_list]
+
+    # Get community id from the message payload
+    community_id = get_community_id_from_notification_message(message)
+
+    # Trigger webhooks for notifications
+    trigger_webhooks_for_notifications.delay(
+        user_ids=user_id_list,
+        notification_payload=message,
+        community_id=community_id,
+        sdk_source=sdk_source
+    )
+
+    # Check if user_notifications are enabled
+    user_notifications_disabled_filter = ModelUtilities.get_model_filter(CommunitySettings, {
+        'community_id': community_id,
+        'setting_type': community_setting_types.USER_NOTIFICATIONS,
+        'enabled': False
+    }).first()
+
+    # If user_notifications are disabled, then log and return 
+    if user_notifications_disabled_filter:
+        info_logger.info(f"User notifications are disabled for community: {community_id}, hence no notifications are triggered with message payload: {message} and for users: {user_id_list}")
+        return
+
+    # Pre compute user devices and their fcm tokens by user list
     user_device_dict = pre_compute_user_devices_by_user_list(user_list=user_id_list, 
                                                              is_broadcast_notification=is_broadcast_notification)
 
@@ -446,19 +620,19 @@ def notification_meta(notification_list, message, is_broadcast_notification=Fals
 
             notification_payload_list.append(notification_payload_dict)
 
-    firebase_key = get_firebase_server_key_from_message_payload(message)
+    firebase_key, gcp_service_account_file_dict = get_firebase_server_key_or_service_file_from_message_payload(message)
 
-    send_notification_for_android(tokens['Android'], message, firebase_key)
+    send_notification_for_android(tokens['Android'], message, gcp_service_account_file_dict, firebase_key)
 
-    send_notification_for_ios(tokens['iOS'], message, firebase_key)
+    send_notification_for_ios(tokens['iOS'], message, gcp_service_account_file_dict, firebase_key)
 
-    send_notification_for_web(tokens['web'], message, firebase_key)
+    send_notification_for_web(tokens['web'], message, gcp_service_account_file_dict, firebase_key)
 
-    send_notification_for_flutter(tokens['Flutter'], message, firebase_key)
+    send_notification_for_flutter(tokens['Flutter'], message, gcp_service_account_file_dict, firebase_key)
 
-    send_notification_for_react_native(tokens['React Native'], message, firebase_key)
+    send_notification_for_react_native(tokens['React Native'], message, gcp_service_account_file_dict, firebase_key)
 
-    send_notification_for_react(tokens['React'], message, firebase_key)
+    send_notification_for_react(tokens['React'], message, gcp_service_account_file_dict, firebase_key)
 
     track_notification_with_notification_payload_list(notification_payload_list)
 
@@ -553,35 +727,51 @@ def is_mobile_os_android(fcm_token):
         print("Error while connecting to PostgreSQL  ", error)
 
 
-def send_notification_to_multiple_devices(token_list, message):
+def send_notification_to_multiple_devices(token_list, message, service_account_file_dict):
     '''This function is used to send notifications by checking whether the request is android or ios'''
 
     for token in token_list:
 
         mobile_os = is_mobile_os_android(token)
         if mobile_os:
-            send_notification(token, message, True)  # if request is android
+            send_notification(token, message, True, service_account_file_dict)  # if request is android
         else:
-            send_notification(token, message, False)  # if request is iOS
+            send_notification(token, message, False, service_account_file_dict)  # if request is iOS
 
 
-def send_notification(fcm_token, message, is_android):
+def send_notification(fcm_token, message, is_android, service_account_file_dict=None):
     '''function to send notification for android as well as iOS'''
 
     token_list = []
     token_list.append(fcm_token)
+
     if not is_android:
-        push_service = FCMNotification(api_key=server_key)
-        result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                      message_title=message['payload']['title'],
-                                                      message_body=message['payload']['sub_title'],
-                                                      data_message=message['payload'],
-                                                      timeout=fcm_timeout_seconds)
+        if service_account_file_dict:
+            push_service = FCMHTTPV1Notification(service_account_file_dict)
+            result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                        message_title=message['payload']['title'],
+                                                        message_body=message['payload']['sub_title'],
+                                                        data_message=message['payload'])
+        
+        else:
+            push_service = FCMNotification(api_key=server_key)
+            result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                        message_title=message['payload']['title'],
+                                                        message_body=message['payload']['sub_title'],
+                                                        data_message=message['payload'],
+                                                        timeout=fcm_timeout_seconds)
+    
     else:
-        push_service = FCMNotification(api_key=server_key)
-        result = push_service.notify_multiple_devices(registration_ids=token_list,
-                                                      data_message=message['payload'],
-                                                      timeout=fcm_timeout_seconds)
+        if service_account_file_dict:
+            push_service = FCMHTTPV1Notification(service_account_file_dict)
+            result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                        data_message=message['payload'])
+        
+        else:
+            push_service = FCMNotification(api_key=server_key)
+            result = push_service.notify_multiple_devices(registration_ids=token_list,
+                                                            data_message=message['payload'],
+                                                            timeout=fcm_timeout_seconds)
     print(result)
 
 
@@ -1092,7 +1282,7 @@ def get_custom_data_for_new_chatroom_created(card, set_default_unread_count=Fals
 
     print(">>>>>>>>>   ", unread_conversation)
 
-    return unread_conversation
+    return json.dumps(unread_conversation)
 
 
 def get_ios_users_from_user_list(user_list):
@@ -1141,7 +1331,7 @@ def get_notification_payload_metadata_for_conversation_creation(community_instan
         payload['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s""" % (
             str(card_instance.id), str(conversation_instance.id))
 
-    return payload
+    return json.dumps(payload)
 
 
 def send_notification_to_tagged_users_on_conversation_creation(tagged_users_list, answer_text, userinfo_instance,
@@ -1503,7 +1693,7 @@ def get_custom_data_for_new_conversation_created_ios(user_id):
             temp['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s""" % (
                 str(conversation.card.id), str(last_instance.id))
 
-    return temp
+    return json.dumps(temp)
 
 
 def get_last_conversation_unique_names(card_instance, user_id):
