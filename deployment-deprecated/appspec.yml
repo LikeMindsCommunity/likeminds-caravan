@@ -1,0 +1,12 @@
+# Deployment spec file for AWS CodeDeploy with EC2 ASG
+# We have moved service to container based deployment with docker and EKS
+# File is deprecated and moved to deployment-deprecated directory
+
+version: 0.0
+os: linux
+hooks:
+  ApplicationStart:
+    - location: project/deployment/deploy-caravan.sh
+      timeout: 300
+      runas: ec2-user
+
