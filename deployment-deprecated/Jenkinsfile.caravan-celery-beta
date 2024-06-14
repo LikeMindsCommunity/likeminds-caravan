@@ -1,3 +1,7 @@
+// Deployment jenkins script file for GCP GKE caravan-celery-beta deployment
+// We have moved deployment to AWS jenkins deploying service on AWS EKS
+// File is deprecated and moved to deployment-deprecated directory
+
 pipeline {
     agent any
     // environment {
