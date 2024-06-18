@@ -117,22 +117,22 @@ def send_test_notification(request):
 def get_firebase_server_key_or_service_file_from_message_payload(message):
     message_payload = message.get('payload', {})
     community_id = message_payload.get('community_id', None)
-    
+
     service_account_file_dict = None
     server_key = settings.FCM_SERVER_KEY
-    
+
     if community_id:
         sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
 
         if sdk_client_filter:
             if sdk_client_filter[0].gcp_service_account_file:
                 service_account_file_dict = sdk_client_filter[0].gcp_service_account_file
-        
+
             if sdk_client_filter[0].firebase_server_key:
                 server_key = sdk_client_filter[0].firebase_server_key
-        
+
         del message['payload']['community_id']
-    
+
     return server_key, service_account_file_dict
 
 
@@ -153,7 +153,7 @@ def send_notifications(service_account_file_dict: dict, firebase_key: str, token
                                                           stacks=stacks,
                                                           message_title=message['payload']['title'],
                                                           message_body=message['payload']['sub_title'],
-                                                          message_icon=message['payload']['community_logo'],
+                                                          message_icon=None,
                                                           data_message=message['payload'],
                                                           extra_kwargs_android=http_v1_extra_kwargs_android,
                                                           extra_kwargs_ios=http_v1_extra_kwargs_ios)
@@ -351,7 +351,7 @@ def send_notification_for_react_native(token_list, message, service_account_file
 
 
 def send_silent_notification(token_list, service_account_file_dict=None):
-    
+
     if service_account_file_dict:
         push_service = FCMHTTPV1Notification(service_account_file_dict)
         result = push_service.notify_multiple_devices(registration_ids=token_list,
@@ -361,7 +361,7 @@ def send_silent_notification(token_list, service_account_file_dict=None):
         push_service = FCMNotification(api_key=server_key)
         result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                       timeout=fcm_timeout_seconds)
-    
+
     return result
 
 
@@ -752,7 +752,7 @@ def send_notification(fcm_token, message, is_android, service_account_file_dict=
                                                         message_title=message['payload']['title'],
                                                         message_body=message['payload']['sub_title'],
                                                         data_message=message['payload'])
-        
+
         else:
             push_service = FCMNotification(api_key=server_key)
             result = push_service.notify_multiple_devices(registration_ids=token_list,
@@ -760,13 +760,13 @@ def send_notification(fcm_token, message, is_android, service_account_file_dict=
                                                         message_body=message['payload']['sub_title'],
                                                         data_message=message['payload'],
                                                         timeout=fcm_timeout_seconds)
-    
+
     else:
         if service_account_file_dict:
             push_service = FCMHTTPV1Notification(service_account_file_dict)
             result = push_service.notify_multiple_devices(registration_ids=token_list,
                                                         data_message=message['payload'])
-        
+
         else:
             push_service = FCMNotification(api_key=server_key)
             result = push_service.notify_multiple_devices(registration_ids=token_list,
