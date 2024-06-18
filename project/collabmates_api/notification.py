@@ -153,7 +153,7 @@ def send_notifications(service_account_file_dict: dict, firebase_key: str, token
                                                           stacks=stacks,
                                                           message_title=message['payload']['title'],
                                                           message_body=message['payload']['sub_title'],
-                                                          message_icon=message['payload']['community_logo'],
+                                                          message_icon=None,
                                                           data_message=message['payload'],
                                                           extra_kwargs_android=http_v1_extra_kwargs_android,
                                                           extra_kwargs_ios=http_v1_extra_kwargs_ios)
