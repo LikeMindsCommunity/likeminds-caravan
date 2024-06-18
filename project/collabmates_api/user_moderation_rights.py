@@ -130,7 +130,8 @@ def update_member_rights_for_sdk(rights_context, community_instance):
 
     for right_item in rights_context:
         if right_item['state'] in [respond_in_rooms_member_right['state'], create_poll_member_right['state'],
-                                   create_post_right['state'], comment_and_reply_right['state']]:
+                                   create_post_right['state'], comment_and_reply_right['state'], 
+                                   create_feed_poll_right['state']]:
             updated_rights.append(right_item)
 
     return updated_rights
@@ -153,6 +154,9 @@ def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=F
             continue
 
         if right.state == comment_and_reply_right['state'] and (not is_feed_enabled):
+            continue
+
+        if right.state == create_feed_poll_right['state'] and (not is_feed_enabled):
             continue
 
         right_dict = {"id": right.id, "title": right.title, "sub_title": right.sub_title, "state": right.state,
@@ -220,6 +224,10 @@ def get_saved_member_rights_list(user_rights, admin_rights=None, show_dm_right=F
             if comment_variable_name:
                 right_dict["title"] = replace_substring_with_new_words(right_dict["title"], "comment",
                                                                        comment_variable_name)
+                
+        elif right.state == create_feed_poll_right['state']:
+            right_dict["is_selected"] = user_rights["create_feed_poll"]
+            right_dict["is_locked"] = False
 
         if right.sub_title is None:
             del right_dict["sub_title"]
@@ -340,6 +348,7 @@ def check_all_member_rights(user=None, community=None, is_m2cm_v2=False, is_feed
     members_can_dm = False
     create_posts = False
     comment_and_reply = False
+    create_feed_poll = False
 
     if user is None and community is not None:
         member_rights = communityRightsSettings.objects.select_related('right').exclude(right__state=4).filter(
@@ -381,6 +390,8 @@ def check_all_member_rights(user=None, community=None, is_m2cm_v2=False, is_feed
             create_posts = True
         elif right.state == comment_and_reply_right['state']:
             comment_and_reply = True
+        elif right.state == create_feed_poll_right['state']:
+            create_feed_poll = True
 
     rights = {"create_room": create_room, "create_poll": create_poll, "create_event": create_event,
               "respond_in_rooms": respond_in_rooms, "auto_approve": auto_approve,
@@ -389,6 +400,7 @@ def check_all_member_rights(user=None, community=None, is_m2cm_v2=False, is_feed
     if is_feed_enabled:
         rights["create_posts"] = create_posts
         rights["comment_and_reply"] = comment_and_reply
+        rights["create_feed_poll"] = create_feed_poll
 
     if is_m2cm_v2:
         rights["members_can_dm"] = members_can_dm
@@ -442,6 +454,9 @@ def check_admin_moderate_dm_settings_right(user, community):
 
 def check_admin_moderate_feed_and_comments_right(user, community):
     return check_user_admin_right(user, community, manager_rights.MODERATE_FEED_AND_COMMENTS)
+
+def check_admin_create_feed_poll_right(user, community):
+    return check_user_admin_right(user, community, manager_rights.MANAGER_RIGHT_CREATE_FEED_POLL)
 
 
 def get_moderation_history_title(moderation_history):
@@ -540,6 +555,12 @@ def check_member_create_post_right(user, community):
 
 def check_member_comment_and_reply_right(user, community):
     return check_user_member_right(user, community, member_rights.MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS)
+
+def check_member_create_feed_poll_right(user, community):
+    user_rights = userMemberRights.objects.filter(user=user, community=community, 
+                                                  right__state__in=[member_rights.MEMBER_RIGHT_CREATE_FEED_POLL, 
+                                                                    member_rights.MEMBER_RIGHT_CREATE_POSTS])
+    return len(user_rights) == 2
 
 
 def give_member_auto_approve_right(user, community, current_user_instance):
@@ -718,7 +739,7 @@ def get_right_dict(right, post_variable_name="", comment_variable_name=""):
 
 
 def give_all_community_setting_rights(community):
-    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8, 9, 10]).order_by("state")
+    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8, 9, 10, 11]).order_by("state")
     save_community_setting_rights(community, member_rights)
 
 

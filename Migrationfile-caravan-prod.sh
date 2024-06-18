@@ -2,7 +2,7 @@
 
 APPLICATION_ENVIRONMENT="PRODUCTION"
 APPLICATION_DOT_ENV_LOCATION="/home/apps/caravan-prod/Togther/project/project/settings/.env"
-APPLICATION_DOT_ENV_REMOTE_LOCATION="https://likeminds-configs-prod.s3.ap-south-1.amazonaws.com/application-dot-envs-prod/caravan-prod/caravan-prod-dot-env-public"
+APPLICATION_DOT_ENV_REMOTE_LOCATION="s3://likeminds-configs-prod/application-dot-envs-prod/caravan-prod/caravan-prod-dot-env-private"
 APPLICATION_LOCATION="/home/apps/caravan-prod/Togther/project/"
 APPLICATION_MANAGE_SCRIPT_LOCATION="/home/apps/caravan-prod/Togther/project/manage.py"
 APPLICATION_NAME="CARAVAN"
@@ -20,7 +20,7 @@ get_project_dot_env() {
   print_internal "get and write dot env into project folder"
   print_internal "writing file at $APPLICATION_DOT_ENV_LOCATION"
 
-  wget -O $APPLICATION_DOT_ENV_LOCATION $APPLICATION_DOT_ENV_REMOTE_LOCATION
+  aws s3 cp $APPLICATION_DOT_ENV_REMOTE_LOCATION $APPLICATION_DOT_ENV_LOCATION --profile S3EnvDownloadUser
 
   print_internal "wrote dot env into project"
 }

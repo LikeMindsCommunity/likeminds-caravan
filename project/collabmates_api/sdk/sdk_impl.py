@@ -166,7 +166,7 @@ class SdkImpl(SdkManager):
             return ResponseUtilities.get_impl_error_context(is_cm.get('error_message'), is_cm.get('status'))
 
         if req_body.get(GCP_SERVICE_ACCOUNT_PARAM):
-            sdk_client.firebase_service_account_file = req_body.get(GCP_SERVICE_ACCOUNT_PARAM)
+            sdk_client.gcp_service_account_file = req_body.get(GCP_SERVICE_ACCOUNT_PARAM)
 
         if req_body.get('firebase_server_key'):
             sdk_client.firebase_server_key = req_body.get('firebase_server_key')

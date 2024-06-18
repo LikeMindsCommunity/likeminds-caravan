@@ -6,6 +6,14 @@ pipeline {
                 checkout scm
             }
          }
+
+        stage ("Download .env file from s3") {
+            steps{
+                withAWS(region:"ap-south-1", credentials:"AWS-S3-ENV"){
+                    s3Download(file:'./project/project/settings/.env', bucket:'likeminds-configs-beta', path:'application-dot-envs-beta/caravan-beta/caravan-beta-dot-env-private', force: true)
+                }
+            }
+        }
         
         stage ('Build Image') {
             steps {
