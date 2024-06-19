@@ -6,7 +6,7 @@ import requests
 from urllib3 import Retry
 from requests.adapters import HTTPAdapter
 from external_services.logging.logging_wrapper import LoggingWrapper
-from project.utility.constants import FCM_INITIAL_URL, FCM_PAYLOAD_FORMAT, GOOGLE_AUTH_SCOPE
+from utility.constants import FCM_INITIAL_URL, FCM_PAYLOAD_FORMAT, GOOGLE_AUTH_SCOPE
 
 error_logger = LoggingWrapper.get_instance()
 
