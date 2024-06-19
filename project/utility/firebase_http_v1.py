@@ -6,6 +6,7 @@ import requests
 from urllib3 import Retry
 from requests.adapters import HTTPAdapter
 from external_services.logging.logging_wrapper import LoggingWrapper
+from project.utility.constants import FCM_INITIAL_URL, FCM_PAYLOAD_FORMAT, GOOGLE_AUTH_SCOPE
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -26,7 +27,7 @@ class FCMHTTPV1Notification:
 
     def generate_access_token(self):
         # Load the service account credentials from the JSON key file
-        credentials = service_account.Credentials.from_service_account_info(self.service_account_file_dict, scopes=['https://www.googleapis.com/auth/cloud-platform'])
+        credentials = service_account.Credentials.from_service_account_info(self.service_account_file_dict, scopes=[GOOGLE_AUTH_SCOPE])
         request = GoogleRequest()
         credentials.refresh(request)
 
@@ -50,7 +51,7 @@ class FCMHTTPV1Notification:
             "Content-Type": "application/json"
         }
         self.requests_session.headers.update(fcm_headers)
-        self.FCM_END_POINT = "https://fcm.googleapis.com/v1/projects/" + self.service_account_file_dict['project_id'] + "/messages:send"
+        self.FCM_END_POINT = FCM_INITIAL_URL + self.service_account_file_dict['project_id'] + "/messages:send"
 
         if not isinstance(registration_ids, list):
             error_logger.info('Invalid registration IDs (should be list)')
@@ -92,129 +93,11 @@ class FCMHTTPV1Notification:
                       extra_kwargs_android=None,
                       extra_kwargs_ios=None,
                       extra_kwargs_web=None):
-        """
+        f"""
         Parses parameters of FCMNotification's methods to FCM nested json
 
-        v1 notification format acc. to https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages
-        {
-            "message": {    
-                {
-                    "name": string,
-                    "data": {
-                        string: string,
-                        ...
-                    },
-                    "notification": {
-                        {
-                            "title": string,
-                            "body": string,
-                            "image": string
-                        }
-                    },
-                    "android": {
-                        {
-                            "collapse_key": string,
-                            "priority": enum (AndroidMessagePriority),
-                            "ttl": string,
-                            "restricted_package_name": string,
-                            "data": {
-                                string: string,
-                                ...
-                            },
-                            "notification": {
-                                {
-                                    "title": string,
-                                    "body": string,
-                                    "icon": string,
-                                    "color": string,
-                                    "sound": string,
-                                    "tag": string,
-                                    "click_action": string,
-                                    "body_loc_key": string,
-                                    "body_loc_args": [
-                                        string
-                                    ],
-                                    "title_loc_key": string,
-                                    "title_loc_args": [
-                                        string
-                                    ],
-                                    "channel_id": string,
-                                    "ticker": string,
-                                    "sticky": boolean,
-                                    "event_time": string,
-                                    "local_only": boolean,
-                                    "notification_priority": enum (NotificationPriority),
-                                    "default_sound": boolean,
-                                    "default_vibrate_timings": boolean,
-                                    "default_light_settings": boolean,
-                                    "vibrate_timings": [
-                                        string
-                                    ],
-                                    "visibility": enum (Visibility),
-                                    "notification_count": integer,
-                                    "light_settings": {
-                                        object (LightSettings)
-                                    },
-                                    "image": string,
-                                }
-                            },
-                            "fcm_options": {
-                                object (AndroidFcmOptions)
-                            },
-                            "direct_boot_ok": boolean
-                        }
-                    },
-                    "webpush": {
-                        {
-                            "headers": {
-                                string: string,
-                                ...
-                            },
-                            "data": {
-                                string: string,
-                                ...
-                            },
-                            "notification": {
-                                object
-                            },
-                            "fcm_options": {
-                                "link": string,
-                                "analytics_label": string
-                                }
-                            }
-                        }
-                    },
-                    "apns": {
-                        {
-                            "headers": {
-                                string: string,
-                                ...
-                            },
-                            "payload": {
-                                object
-                            },
-                            "fcm_options": {
-                                {
-                                    "analytics_label": string,
-                                    "image": string
-                                }
-                            }
-                        }
-                    },
-                    "fcm_options": {
-                        {
-                            "analytics_label": string
-                        }
-                    },
-
-                    // Union field target can be only one of the following:
-                    "token": string,
-                    "topic": string,
-                    "condition": string
-                    // End of list of possible types for union field target.
-                }
-            }
-        }
+        For payload format refer to {FCM_PAYLOAD_FORMAT}
+        
         Returns:
             string: json
 
