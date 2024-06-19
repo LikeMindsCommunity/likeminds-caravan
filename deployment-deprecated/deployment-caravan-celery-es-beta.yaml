@@ -1,3 +1,7 @@
+# Deployment spec file for GCP GKE caravan-celery-es-beta deployment
+# We have moved service to container based deployment with docker and AWS EKS
+# File is deprecated and moved to deployment-deprecated directory
+
 apiVersion: "apps/v1"
 kind: "Deployment"
 metadata:

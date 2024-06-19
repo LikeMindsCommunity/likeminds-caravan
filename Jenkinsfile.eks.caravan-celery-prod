@@ -7,6 +7,14 @@ pipeline {
             }
          }
         
+        stage ("Download .env file from s3") {
+            steps{
+                withAWS(region:"ap-south-1", credentials:"AWS-S3-ENV"){
+                    s3Download(file:'./project/project/settings/.env', bucket:'likeminds-configs-prod', path:'application-dot-envs-prod/caravan-prod/caravan-prod-dot-env-private', force: true)
+                }
+            }
+        }
+
         stage ('Build Image') {
             steps {
                 sh "sudo docker build -f Dockerfile.caravan-celery-prod -t 523792672653.dkr.ecr.ap-south-1.amazonaws.com/likeminds-togther-caravan-celery-repo:caravan-celery-V$BUILD_NUMBER ."

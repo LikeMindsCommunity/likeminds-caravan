@@ -223,3 +223,130 @@ SWARM_DELETE_CACHE_ENDPOINT = "/cache"
 
 # Kettle endpoints
 KETTLE_DELETE_CACHE_ENDPOINT = "/cache"
+
+# FCM HTTP v1
+FCM_INITIAL_URL = "https://fcm.googleapis.com/v1/projects/"
+GOOGLE_AUTH_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
+FCM_PAYLOAD_FORMAT = """
+        v1 notification format acc. to https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages
+
+        {
+            "message": {    
+                {
+                    "name": string,
+                    "data": {
+                        string: string,
+                        ...
+                    },
+                    "notification": {
+                        {
+                            "title": string,
+                            "body": string,
+                            "image": string
+                        }
+                    },
+                    "android": {
+                        {
+                            "collapse_key": string,
+                            "priority": enum (AndroidMessagePriority),
+                            "ttl": string,
+                            "restricted_package_name": string,
+                            "data": {
+                                string: string,
+                                ...
+                            },
+                            "notification": {
+                                {
+                                    "title": string,
+                                    "body": string,
+                                    "icon": string,
+                                    "color": string,
+                                    "sound": string,
+                                    "tag": string,
+                                    "click_action": string,
+                                    "body_loc_key": string,
+                                    "body_loc_args": [
+                                        string
+                                    ],
+                                    "title_loc_key": string,
+                                    "title_loc_args": [
+                                        string
+                                    ],
+                                    "channel_id": string,
+                                    "ticker": string,
+                                    "sticky": boolean,
+                                    "event_time": string,
+                                    "local_only": boolean,
+                                    "notification_priority": enum (NotificationPriority),
+                                    "default_sound": boolean,
+                                    "default_vibrate_timings": boolean,
+                                    "default_light_settings": boolean,
+                                    "vibrate_timings": [
+                                        string
+                                    ],
+                                    "visibility": enum (Visibility),
+                                    "notification_count": integer,
+                                    "light_settings": {
+                                        object (LightSettings)
+                                    },
+                                    "image": string,
+                                }
+                            },
+                            "fcm_options": {
+                                object (AndroidFcmOptions)
+                            },
+                            "direct_boot_ok": boolean
+                        }
+                    },
+                    "webpush": {
+                        {
+                            "headers": {
+                                string: string,
+                                ...
+                            },
+                            "data": {
+                                string: string,
+                                ...
+                            },
+                            "notification": {
+                                object
+                            },
+                            "fcm_options": {
+                                "link": string,
+                                "analytics_label": string
+                                }
+                            }
+                        }
+                    },
+                    "apns": {
+                        {
+                            "headers": {
+                                string: string,
+                                ...
+                            },
+                            "payload": {
+                                object
+                            },
+                            "fcm_options": {
+                                {
+                                    "analytics_label": string,
+                                    "image": string
+                                }
+                            }
+                        }
+                    },
+                    "fcm_options": {
+                        {
+                            "analytics_label": string
+                        }
+                    },
+
+                    // Union field target can be only one of the following:
+                    "token": string,
+                    "topic": string,
+                    "condition": string
+                    // End of list of possible types for union field target.
+                }
+            }
+        }
+"""

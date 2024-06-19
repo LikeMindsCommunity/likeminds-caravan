@@ -1,15 +1,19 @@
+# Deployment spec file for GCP GKE caravan-beta deployment
+# We have moved service to container based deployment with docker and AWS EKS
+# File is deprecated and moved to deployment-deprecated directory
+
 apiVersion: "apps/v1"
 kind: "Deployment"
 metadata:
-  name: "caravan-prod"
+  name: "caravan-beta"
   namespace: "app-deploy"
   labels:
-    app: "caravan-prod"
+    app: "caravan-beta"
 spec:
-  replicas: 5
+  replicas: 1
   selector:
     matchLabels:
-      app: "caravan-prod"
+      app: "caravan-beta"
   minReadySeconds: 5
   strategy:
     type: RollingUpdate
@@ -19,35 +23,35 @@ spec:
   template:
     metadata:
       labels:
-        app: "caravan-prod"
+        app: "caravan-beta"
     spec:
       containers:
-      - name: "likeminds-caravan-prod-1"
-        image: "asia.gcr.io/likeminds-prod-prj-5464/togther/caravan-prod:dfbb1da"
+      - name: "likeminds-caravan-beta-1"
+        image: "asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/togther/caravan-beta:93ce10d"
         resources:
           requests:
-            memory: "8000Mi"
-            cpu: "4000m"
+            memory: "1000Mi"
+            cpu: "1000m"
           limits:
-            memory: "9000Mi"
-            cpu: "5000m"
-
+            memory: "1500Mi"
+            cpu: "1500m"
+  
 ---
 
 apiVersion: "autoscaling/v2"
 kind: "HorizontalPodAutoscaler"
 metadata:
-  name: "caravan-prod"
+  name: "caravan-beta"
   namespace: "app-deploy"
   labels:
-    app: "caravan-prod"
+    app: "caravan-beta"
 spec:
   scaleTargetRef:
     kind: "Deployment"
-    name: "caravan-prod"
+    name: "caravan-beta"
     apiVersion: "apps/v1"
-  minReplicas: 5
-  maxReplicas: 10
+  minReplicas: 1
+  maxReplicas: 3
   metrics:
   - type: "Resource"
     resource:
