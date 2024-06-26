@@ -350,3 +350,5 @@ FCM_PAYLOAD_FORMAT = """
             }
         }
 """
+
+NOTIFICATION_PAYLOAD_SENDER = "LM"
