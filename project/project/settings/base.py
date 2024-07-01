@@ -402,8 +402,11 @@ ELASTICSEARCH_DSL_QUERYSET_PAGINATION = 10000
 # ASYNCHRONOUS QUEUE SETTINGS
 ELASTIC_SEARCH_QUEUE_NAME = os.getenv('ELASTIC_SEARCH_QUEUE_NAME')
 
-# Elastic search signal processor
-ELASTICSEARCH_DSL_SIGNAL_PROCESSOR = "collabmates_api.search.custom_signal_processor.CelerySignalProcessor"
+SERVER_TYPE = os.getenv('SERVER_TYPE', 'API-SERVER')
+
+if SERVER_TYPE != "MIGRATION":
+    # Elastic search signal processor
+    ELASTICSEARCH_DSL_SIGNAL_PROCESSOR = "collabmates_api.search.custom_signal_processor.CelerySignalProcessor"
 
 OG_TAGS_URL_REQUEST_TIMEOUT_IN_SECONDS = os.getenv('OG_TAGS_URL_REQUEST_TIMEOUT_IN_SECONDS')
 
