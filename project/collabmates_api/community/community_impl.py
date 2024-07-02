@@ -5940,7 +5940,7 @@ class CommunityHelper:
 
             community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
 
-            if community_setting_instance and not community_setting_instance.enabled:
+            if community_setting_instance and community_setting_instance.enabled:
 
                 if update_values.get('recency_metrics') and isinstance(update_values.get('recency_metrics'), dict) and \
                         update_values.get('recency_metrics').get('weight') and \
