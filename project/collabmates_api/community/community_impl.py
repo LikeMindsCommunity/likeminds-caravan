@@ -89,8 +89,8 @@ from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
 from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDIA_LIMITS_CONFIGURATION,
                                FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION, 
-                               PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION, WIDGETS_METADATA_CONFIGURATION,
-                               FEED_SETTINGS_CONFIGURATION, CREATE_FEED_POLL_COMMUNITY_VALUES)
+                               PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION,
+                               WIDGETS_METADATA_CONFIGURATION, PERSONALISED_FEED_WEIGHTS)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -1413,7 +1413,8 @@ class CommunityImpl(CommunityManager):
                 
             if community_setting["setting_type"] in [community_setting_types.USER_TOPICS_CONNECTION,
                                                      community_setting_types.FEED_REPOST,
-                                                     community_setting_types.POST_APPROVAL_NEEDED]:
+                                                     community_setting_types.POST_APPROVAL_NEEDED,
+                                                     community_setting_types.ENABLE_PERSONALISED_FEED]:
 
                 # Delete kettle community settings cache if user topics connection, feed repost, post approval needed
                 # setting is updated
@@ -5931,19 +5932,97 @@ class CommunityHelper:
                     configuration_value['guest_users'] = update_values.get('guest_users')
                     record_updated = True
 
-        elif configuration_type == FEED_SETTINGS_CONFIGURATION:
+        elif configuration_type == PERSONALISED_FEED_WEIGHTS:
+            filter_dict = {
+                'community': community_id,
+                'setting_type': community_setting_types.ENABLE_PERSONALISED_FEED
+            }
 
-            if update_values.get('create_feed_poll') and isinstance(update_values.get('create_feed_poll'), str) and (
-                update_values.get('create_feed_poll') in CREATE_FEED_POLL_COMMUNITY_VALUES):
+            community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
 
-                # if create_feed_poll value is updated, update rights for all members & managers in the community
-                if configuration_value['create_feed_poll'] != update_values.get('create_feed_poll'):
+            if community_setting_instance and not community_setting_instance.enabled:
 
-                    configuration_value['create_feed_poll'] = update_values.get('create_feed_poll')
+                if update_values.get('recency_metrics') and isinstance(update_values.get('recency_metrics'), dict) and \
+                        update_values.get('recency_metrics').get('weight') and \
+                        type(update_values.get('recency_metrics').get('weight')) in [int, float]:
+                    configuration_value['recency_metrics']['weight'] = update_values.get('recency_metrics').get('weight')
+                    record_updated = True
 
-                    # Update rights for all members & managers in the community
-                    CommunityHelper.update_create_feed_poll_settings_for_community.delay(community_id, user_id, update_values.get('create_feed_poll'))
+                if update_values.get('recency_metrics') and isinstance(update_values.get('recency_metrics'), dict) and \
+                        update_values.get('recency_metrics').get('max_threshold') and \
+                        type(update_values.get('recency_metrics').get('max_threshold')) in [int, float]:
+                    configuration_value['recency_metrics']['max_threshold'] = \
+                        update_values.get('recency_metrics').get('max_threshold')
+                    record_updated = True
 
+                if update_values.get('likes_metrics') and isinstance(update_values.get('likes_metrics'), dict) and \
+                        update_values.get('likes_metrics').get('weight') and \
+                        type(update_values.get('likes_metrics').get('weight')) in [int, float]:
+                    configuration_value['likes_metrics']['weight'] = update_values.get('likes_metrics').get('weight')
+                    record_updated = True
+
+                if update_values.get('likes_metrics') and isinstance(update_values.get('likes_metrics'), dict) and \
+                        update_values.get('likes_metrics').get('max_threshold') and \
+                        type(update_values.get('likes_metrics').get('max_threshold')) in [int, float]:
+                    configuration_value['likes_metrics']['max_threshold'] = \
+                        update_values.get('likes_metrics').get('max_threshold')
+                    record_updated = True
+
+                if update_values.get('comments_metrics') and isinstance(update_values.get('comments_metrics'), dict) and \
+                        update_values.get('comments_metrics').get('weight') and \
+                        type(update_values.get('comments_metrics').get('weight')) in [int, float]:
+                    configuration_value['comments_metrics']['weight'] = update_values.get('comments_metrics').get('weight')
+                    record_updated = True
+
+                if update_values.get('comments_metrics') and isinstance(update_values.get('comments_metrics'), dict) and \
+                        update_values.get('comments_metrics').get('max_threshold') and \
+                        type(update_values.get('comments_metrics').get('max_threshold')) in [int, float]:
+                    configuration_value['comments_metrics']['max_threshold'] = \
+                        update_values.get('comments_metrics').get('max_threshold')
+                    record_updated = True
+
+                if update_values.get('user_groups_metrics') and isinstance(update_values.get('user_groups_metrics'), dict) \
+                        and update_values.get('user_groups_metrics').get('weight') and \
+                        type(update_values.get('user_groups_metrics').get('weight')) in [int, float]:
+                    configuration_value['user_groups_metrics']['weight'] = \
+                        update_values.get('user_groups_metrics').get('weight')
+                    record_updated = True
+
+                if update_values.get('user_groups_metrics') and isinstance(update_values.get('user_groups_metrics'), dict) \
+                        and update_values.get('user_groups_metrics').get('max_threshold') and \
+                        type(update_values.get('user_groups_metrics').get('max_threshold')) in [int, float]:
+                    configuration_value['user_groups_metrics']['max_threshold'] = \
+                        update_values.get('user_groups_metrics').get('max_threshold')
+                    record_updated = True
+
+                if update_values.get('user_topics_metrics') and isinstance(update_values.get('user_topics_metrics'), dict) \
+                        and update_values.get('user_topics_metrics').get('weight') and \
+                        type(update_values.get('user_topics_metrics').get('weight')) in [int, float]:
+                    configuration_value['user_topics_metrics']['weight'] = \
+                        update_values.get('user_topics_metrics').get('weight')
+                    record_updated = True
+
+                if update_values.get('user_topics_metrics') and isinstance(update_values.get('user_topics_metrics'), dict) \
+                        and update_values.get('user_topics_metrics').get('max_threshold') and \
+                        type(update_values.get('user_topics_metrics').get('max_threshold')) in [int, float]:
+                    configuration_value['user_topics_metrics']['max_threshold'] = \
+                        update_values.get('user_topics_metrics').get('max_threshold')
+                    record_updated = True
+
+                if update_values.get('post_dampening_metrics') and isinstance(
+                        update_values.get('post_dampening_metrics'), dict) and \
+                        update_values.get('post_dampening_metrics').get('weight') and \
+                        type(update_values.get('post_dampening_metrics').get('weight')) in [int, float]:
+                    configuration_value['post_dampening_metrics']['weight'] = \
+                        update_values.get('post_dampening_metrics').get('weight')
+                    record_updated = True
+
+                if update_values.get('post_dampening_metrics') and isinstance(
+                        update_values.get('post_dampening_metrics'), dict) and \
+                        update_values.get('post_dampening_metrics').get('max_threshold') and \
+                        type(update_values.get('post_dampening_metrics').get('max_threshold')) in [int, float]:
+                    configuration_value['post_dampening_metrics']['max_threshold'] = \
+                        update_values.get('post_dampening_metrics').get('max_threshold')
                     record_updated = True
 
         # Update configuration instance if record is updated
@@ -5952,7 +6031,8 @@ class CommunityHelper:
             configuration_instance.save()
 
             # Call SWARM api to delete cache key to update configurations
-            if configuration_type in [FEED_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION]:
+            if configuration_type in [FEED_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION,
+                                      PERSONALISED_FEED_WEIGHTS]:
                 InternalServiceUtilities.delete_cache_from_swarm_service.delay(
                     community_id=community_id, user_id=user_id, 
                     cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))

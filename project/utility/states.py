@@ -558,6 +558,7 @@ class CommunitySettingTypes:
     USER_NOTIFICATIONS = "user_notifications"
     ENABLE_DM_WITHOUT_CONNECTION_REQUEST = "enable_dm_without_connection_request"
     POST_APPROVAL_NEEDED = "post_approval_needed"
+    ENABLE_PERSONALISED_FEED = "enable_personalised_feed"
 
 
 community_setting_types = CommunitySettingTypes()

@@ -15542,7 +15542,8 @@ def add_community_settings_for_community(community_instance, user_instance):
                             community_setting_types.POST_GROUPS, community_setting_types.SECRET_GROUP_INVITE,
                             community_setting_types.CREATE_INTRO_ROOMS, community_setting_types.USER_CONNECTION,
                             community_setting_types.NSFW_FILTERING, community_setting_types.USER_TOPICS_CONNECTION, 
-                            community_setting_types.ENABLE_GUEST_FLOW, community_setting_types.POST_APPROVAL_NEEDED]:
+                            community_setting_types.ENABLE_GUEST_FLOW, community_setting_types.POST_APPROVAL_NEEDED,
+                            community_setting_types.ENABLE_PERSONALISED_FEED]:
             is_enabled = False
 
         community_settings_data = {

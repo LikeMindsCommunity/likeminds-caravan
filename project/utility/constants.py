@@ -127,6 +127,7 @@ NSFW_FILTERING_CONFIGURATION = "nsfw_filtering"
 WIDGETS_METADATA_CONFIGURATION = "widgets_metadata"
 GUEST_FLOW_METADATA_CONFIGURATION = "guest_flow_metadata"
 FEED_SETTINGS_CONFIGURATION = "feed_settings"
+PERSONALISED_FEED_WEIGHTS = "personalised_feed_weights"
 
 # Community Configurations
 COMMUNITY_CONFIGURATIONS = {
@@ -198,13 +199,35 @@ COMMUNITY_CONFIGURATIONS = {
             "guest_users": "SINGLE"
         }
     },
-    FEED_SETTINGS_CONFIGURATION:
+    PERSONALISED_FEED_WEIGHTS:
     {
-        "type": FEED_SETTINGS_CONFIGURATION,
-        "description": "Additional Feed settings for the community",
-        "value":
-        {
-            "create_feed_poll": "everyone", # everyone, only_cm, no_one
+        "type": PERSONALISED_FEED_WEIGHTS,
+        "description": "Personalised feed weights metadata for the community",
+        "value": {
+            "recency_metrics": {
+                "weight": 0,
+                "max_threshold": 0
+            },
+            "likes_metrics": {
+                "weight": 0,
+                "max_threshold": 0
+            },
+            "comments_metrics": {
+                "weight": 0,
+                "max_threshold": 0
+            },
+            "user_groups_metrics": {
+                "weight": 0,
+                "max_threshold": 0
+            },
+            "user_topics_metrics": {
+                "weight": 0,
+                "max_threshold": 0
+            },
+            "post_dampening_metrics": {
+                "weight": 0,
+                "max_threshold": 0
+            }
         }
     }
 }
