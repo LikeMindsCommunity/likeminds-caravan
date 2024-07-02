@@ -29,7 +29,8 @@ from utility.constants import (INTRO_ROOM_LOOKBACK_PERIOD,
                                MINUTES_2, HOURS_24, MINUTES_5,
                                MINUTES_10, MINUTES_30, VALID_URLS_REGEX, 
                                ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_START,
-                               ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END)
+                               ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END,
+                               NOTIFICATION_PAYLOAD_SENDER)
 from utility.version_utilities import VersionUtilities
 from utility.firebase_http_v1 import FCMHTTPV1Notification
 from project.celery import app
@@ -617,6 +618,8 @@ def notification_meta(notification_list, message, is_broadcast_notification: boo
 
             if message.get('subcategory'):
                 message['payload']['subcategory'] = message.get('subcategory')
+
+            message['payload']['sender'] = NOTIFICATION_PAYLOAD_SENDER
 
             notification_payload_list.append(notification_payload_dict)
 

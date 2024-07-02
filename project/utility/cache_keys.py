@@ -35,3 +35,4 @@ KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS = "{}_profile_meta_configurations" 
 KETTLE_CACHE_KEY_WIDGET_META = "{}_{}_widget_meta" # community_id, widget_id
 
 SWARM_CACHE_KEY_COMMUNITY_SETTINGS = "{}_community_settings" # community_id
+SWARM_CACHE_KEY_USER_COMMUNITY_CHANNELS = "{}_{}_user_community_channels" # community_id, user_unique_id
