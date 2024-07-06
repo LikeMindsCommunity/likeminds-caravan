@@ -25,7 +25,8 @@ update_priority, WebhookTypes
 from utility.cache_keys import (CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM,
                                 EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM,
                                 EVENT_ATTENDEES_CONVERSATION, CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY,
-                                INTERNATIONAL_OTP_GENERATE_CACHE_KEY, KETTLE_CACHE_KEY_USER_META)
+                                INTERNATIONAL_OTP_GENERATE_CACHE_KEY, KETTLE_CACHE_KEY_USER_META, 
+                                SWARM_CACHE_KEY_USER_COMMUNITY_CHANNELS)
 from utility.celery_tasks import (
     update_last_unseen_in_engage_on_card_creation,
     update_last_unseen_in_engage, update_my_chatrooms_for_users,
@@ -6448,6 +6449,14 @@ def follow_chatroom_async(collabcard_id,
                                                               users_list=[user_instance.id],
                                                               event_type=WebhookTypes.CHATROOM_JOINED.value, 
                                                               type_method=webhook_chatroom_methods.SELF_JOINED)
+
+    # If feedroom, delete cache in swarm for user community channels
+    if card_instance.type == card_types.CARD_FEED_GROUP:
+        InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                    community_id=community_instance.id, user_id=user_instance.id,
+                    key_patterns=[SWARM_CACHE_KEY_USER_COMMUNITY_CHANNELS.format(community_instance.id, 
+                                                                       user_instance.userinfo.user_unique_id)]
+                )
         
 
     send_sync_notification.delay({'chatroom_id': card_instance.id,
@@ -15542,7 +15551,8 @@ def add_community_settings_for_community(community_instance, user_instance):
                             community_setting_types.POST_GROUPS, community_setting_types.SECRET_GROUP_INVITE,
                             community_setting_types.CREATE_INTRO_ROOMS, community_setting_types.USER_CONNECTION,
                             community_setting_types.NSFW_FILTERING, community_setting_types.USER_TOPICS_CONNECTION, 
-                            community_setting_types.ENABLE_GUEST_FLOW, community_setting_types.POST_APPROVAL_NEEDED]:
+                            community_setting_types.ENABLE_GUEST_FLOW, community_setting_types.POST_APPROVAL_NEEDED,
+                            community_setting_types.ENABLE_PERSONALISED_FEED]:
             is_enabled = False
 
         community_settings_data = {

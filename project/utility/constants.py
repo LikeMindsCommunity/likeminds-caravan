@@ -126,6 +126,8 @@ PROFILE_METADATA_CONFIGURATION = "profile_metadata"
 NSFW_FILTERING_CONFIGURATION = "nsfw_filtering"
 WIDGETS_METADATA_CONFIGURATION = "widgets_metadata"
 GUEST_FLOW_METADATA_CONFIGURATION = "guest_flow_metadata"
+FEED_SETTINGS_CONFIGURATION = "feed_settings"
+PERSONALISED_FEED_WEIGHTS = "personalised_feed_weights"
 
 # Community Configurations
 COMMUNITY_CONFIGURATIONS = {
@@ -196,8 +198,41 @@ COMMUNITY_CONFIGURATIONS = {
         {
             "guest_users": "SINGLE"
         }
+    },
+    PERSONALISED_FEED_WEIGHTS:
+    {
+        "type": PERSONALISED_FEED_WEIGHTS,
+        "description": "Personalised feed weights metadata for the community",
+        "value": {
+            "recency_metrics": {
+                "weight": 0,
+                "max_threshold": 0
+            },
+            "likes_metrics": {
+                "weight": 0,
+                "max_threshold": 0
+            },
+            "comments_metrics": {
+                "weight": 0,
+                "max_threshold": 0
+            },
+            "user_groups_metrics": {
+                "weight": 0,
+                "max_threshold": 0
+            },
+            "user_topics_metrics": {
+                "weight": 0,
+                "max_threshold": 0
+            },
+            "post_dampening_metrics": {
+                "weight": 0,
+                "max_threshold": 0
+            }
+        }
     }
 }
+
+CREATE_FEED_POLL_COMMUNITY_VALUES = ["everyone", "only_cm", "no_one"]
 
 SWARM_WIDGET_ENDPOINT = "/widget"
 
@@ -211,3 +246,132 @@ SWARM_DELETE_CACHE_ENDPOINT = "/cache"
 
 # Kettle endpoints
 KETTLE_DELETE_CACHE_ENDPOINT = "/cache"
+
+# FCM HTTP v1
+FCM_INITIAL_URL = "https://fcm.googleapis.com/v1/projects/"
+GOOGLE_AUTH_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
+FCM_PAYLOAD_FORMAT = """
+        v1 notification format acc. to https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages
+
+        {
+            "message": {    
+                {
+                    "name": string,
+                    "data": {
+                        string: string,
+                        ...
+                    },
+                    "notification": {
+                        {
+                            "title": string,
+                            "body": string,
+                            "image": string
+                        }
+                    },
+                    "android": {
+                        {
+                            "collapse_key": string,
+                            "priority": enum (AndroidMessagePriority),
+                            "ttl": string,
+                            "restricted_package_name": string,
+                            "data": {
+                                string: string,
+                                ...
+                            },
+                            "notification": {
+                                {
+                                    "title": string,
+                                    "body": string,
+                                    "icon": string,
+                                    "color": string,
+                                    "sound": string,
+                                    "tag": string,
+                                    "click_action": string,
+                                    "body_loc_key": string,
+                                    "body_loc_args": [
+                                        string
+                                    ],
+                                    "title_loc_key": string,
+                                    "title_loc_args": [
+                                        string
+                                    ],
+                                    "channel_id": string,
+                                    "ticker": string,
+                                    "sticky": boolean,
+                                    "event_time": string,
+                                    "local_only": boolean,
+                                    "notification_priority": enum (NotificationPriority),
+                                    "default_sound": boolean,
+                                    "default_vibrate_timings": boolean,
+                                    "default_light_settings": boolean,
+                                    "vibrate_timings": [
+                                        string
+                                    ],
+                                    "visibility": enum (Visibility),
+                                    "notification_count": integer,
+                                    "light_settings": {
+                                        object (LightSettings)
+                                    },
+                                    "image": string,
+                                }
+                            },
+                            "fcm_options": {
+                                object (AndroidFcmOptions)
+                            },
+                            "direct_boot_ok": boolean
+                        }
+                    },
+                    "webpush": {
+                        {
+                            "headers": {
+                                string: string,
+                                ...
+                            },
+                            "data": {
+                                string: string,
+                                ...
+                            },
+                            "notification": {
+                                object
+                            },
+                            "fcm_options": {
+                                "link": string,
+                                "analytics_label": string
+                                }
+                            }
+                        }
+                    },
+                    "apns": {
+                        {
+                            "headers": {
+                                string: string,
+                                ...
+                            },
+                            "payload": {
+                                object
+                            },
+                            "fcm_options": {
+                                {
+                                    "analytics_label": string,
+                                    "image": string
+                                }
+                            }
+                        }
+                    },
+                    "fcm_options": {
+                        {
+                            "analytics_label": string
+                        }
+                    },
+
+                    // Union field target can be only one of the following:
+                    "token": string,
+                    "topic": string,
+                    "condition": string
+                    // End of list of possible types for union field target.
+                }
+            }
+        }
+"""
+
+NOTIFICATION_PAYLOAD_SENDER = "likeminds"

@@ -60,7 +60,8 @@ from ..user.user_impl import UserImpl
 from ..user_moderation_rights import (check_admin_approve_right, check_admin_delete_right,
                                       check_admin_edit_community_right, check_all_member_rights,
                                       check_admin_moderate_feed_and_comments_right, check_member_create_post_right,
-                                      check_member_comment_and_reply_right)
+                                      check_member_comment_and_reply_right, check_admin_create_feed_poll_right, 
+                                      check_member_create_feed_poll_right)
 from ..utility import (pagination, single_community_view_version_check, create_chatroom_revamp_version_check)
 from ..views import (get_home_screen_community_actions, generate_internal_link_preview_for_conversation,
                      post_introduction_card_for_community)
@@ -2026,6 +2027,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                                access_types.IS_MEMBER, access_types.VIEW_USER_ACTIVITY]:
                 output_context['access'] = True
 
+            if access_type == access_types.CREATE_FEED_POLL and check_admin_create_feed_poll_right(user_instance,
+                                                                                                   community_instance):
+                output_context['access'] = True
+
         if member_state == member_states.MEMBER:
             if access_type == access_types.CREATE_POST and check_member_create_post_right(user_instance,
                                                                                           community_instance):
@@ -2033,6 +2038,10 @@ class MemberCommunityImpl(MemberCommunityManager):
 
             if access_type == access_types.CREATE_COMMENT and check_member_comment_and_reply_right(user_instance,
                                                                                                    community_instance):
+                output_context['access'] = True
+
+            if access_type == access_types.CREATE_FEED_POLL and check_member_create_feed_poll_right(user_instance,
+                                                                                                    community_instance):
                 output_context['access'] = True
 
             if access_type in [access_types.VIEW_POST, access_types.DELETE_POST, access_types.LIKE_POST,

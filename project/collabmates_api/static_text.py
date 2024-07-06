@@ -412,6 +412,8 @@ create_post_right = {'id': 10, 'title': "Create posts", 'sub_title': None, "stat
 
 comment_and_reply_right = {'id': 11, 'title': "Comment and reply on posts", 'sub_title': None, "state": 10}
 
+create_feed_poll_right = {'id': 12, 'title': "Create feed poll", 'sub_title': 'If user can create feed poll', "state": 11}
+
 member_rights_list = [create_room_member_right, create_poll_member_right,
                       create_event_member_right, respond_in_rooms_member_right,
                       invite_private_member_right, auto_approve_member_right]
