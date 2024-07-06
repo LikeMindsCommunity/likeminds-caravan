@@ -1087,11 +1087,9 @@ class MemberCommunityHelper:
             CommunityHelper.update_community_level_actions(community_instance,
                                                            action_required_by_promoter, members_count)
 
-        is_m2cm_v2 = m2cm_v2_version_check(platform, version_code, api_version_code=api_version_code)
-
         create_member_dm_chatroom.delay(community_impl.get_member_id(), community_impl.get_community_id(),
                                         device_id=device_id, request_platform=platform, is_joining=True,
-                                        is_m2cm_v2=is_m2cm_v2)
+                                        is_m2cm_v2=True)
 
         from collabmates_api.cohort.cohort_impl import CohortHelper
         CohortHelper.add_all_member_to_cohort(community_impl.get_community_id(), [community_impl.get_member_id()])
