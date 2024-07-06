@@ -1,0 +1,61 @@
+# Deployment spec file for GCP GKE caravan-prod deployment
+# We have moved service to container based deployment with docker and AWS EKS
+# File is deprecated and moved to deployment-deprecated directory
+
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  name: "caravan-prod"
+  namespace: "app-deploy"
+  labels:
+    app: "caravan-prod"
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: "caravan-prod"
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: "caravan-prod"
+    spec:
+      containers:
+      - name: "likeminds-caravan-prod-1"
+        image: "asia.gcr.io/likeminds-prod-prj-5464/togther/caravan-prod:dfbb1da"
+        resources:
+          requests:
+            memory: "8000Mi"
+            cpu: "4000m"
+          limits:
+            memory: "9000Mi"
+            cpu: "5000m"
+
+---
+
+apiVersion: "autoscaling/v2"
+kind: "HorizontalPodAutoscaler"
+metadata:
+  name: "caravan-prod"
+  namespace: "app-deploy"
+  labels:
+    app: "caravan-prod"
+spec:
+  scaleTargetRef:
+    kind: "Deployment"
+    name: "caravan-prod"
+    apiVersion: "apps/v1"
+  minReplicas: 5
+  maxReplicas: 10
+  metrics:
+  - type: "Resource"
+    resource:
+      name: "cpu"
+      target:
+        type: "Utilization"
+        averageUtilization: 75

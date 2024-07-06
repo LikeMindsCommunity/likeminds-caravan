@@ -1,0 +1,67 @@
+# Deployment spec file for GCP GKE caravan-celery-beta deployment
+# We have moved service to container based deployment with docker and AWS EKS
+# File is deprecated and moved to deployment-deprecated directory
+
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  name: "caravan-celery"
+  namespace: "app-deploy"
+  labels:
+    app: "caravan-celery"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "caravan-celery"
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: "caravan-celery"
+    spec:
+      containers:
+      - name: "likeminds-caravan-celery-1"
+        image: "asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/togther/caravan-celery:93ce10d"
+        resources:
+          requests:
+            memory: "1000Mi"
+            cpu: "500m"
+          limits:
+            memory: "1500Mi"
+            cpu: "1000m"
+        env:
+        - name: CELERY_BROKER_URL
+          valueFrom:
+            secretKeyRef:
+              name: caravan-celery-secret
+              key: CELERY_BROKER_URL
+  
+---
+
+apiVersion: "autoscaling/v2"
+kind: "HorizontalPodAutoscaler"
+metadata:
+  name: "caravan-celery"
+  namespace: "app-deploy"
+  labels:
+    app: "caravan-celery"
+spec:
+  scaleTargetRef:
+    kind: "Deployment"
+    name: "caravan-celery"
+    apiVersion: "apps/v1"
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: "Resource"
+    resource:
+      name: "cpu"
+      target:
+        type: "Utilization"
+        averageUtilization: 75

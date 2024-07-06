@@ -1,0 +1,49 @@
+// Deployment jenkins script file for GCP GKE caravan-celery-es-beta deployment
+// We have moved deployment to AWS jenkins deploying service on AWS EKS
+// File is deprecated and moved to deployment-deprecated directory
+
+pipeline {
+    agent any
+
+    stages {
+        stage("Checkout code") {
+            steps {
+                checkout scm
+            }
+        }
+      
+        stage("Building Application Docker Image"){
+            steps{
+                script{
+                    sh 'gcloud auth configure-docker asia.gcr.io'
+                    sh 'docker build -f Dockerfile.caravan-celery-es-beta -t asia.gcr.io/${PROJECT_ID}/github.com/nateshr/togther/caravan-celery-es:${BUILD_NUMBER} . '
+                }
+            }
+        }
+
+        stage("Pushing Application Docker Image to Google Artifact Registry"){
+            steps{
+                script{
+                    sh 'gcloud auth configure-docker asia.gcr.io'
+                    sh 'docker push asia.gcr.io/${PROJECT_ID}/github.com/nateshr/togther/caravan-celery-es:${BUILD_NUMBER}'
+                }
+            }
+        }
+              
+        stage('Deploy to GKE') {
+            steps{
+                sh '''
+                sed -i 's/caravan-celery-es:.*/caravan-celery-es:'${BUILD_NUMBER}'"/g' deployment-caravan-celery-es-beta.yaml
+                gcloud container clusters get-credentials ${CLUSTER_NAME} --region ${LOCATION} --project ${PROJECT_ID} --internal-ip
+                kubectl apply -f /var/lib/jenkins/workspace/likeminds-caravan-celery-es-beta/deployment-caravan-celery-es-beta.yaml
+                '''
+            }
+        }
+    }
+
+    post {
+        always { 
+            cleanWs()
+        }
+    }
+}

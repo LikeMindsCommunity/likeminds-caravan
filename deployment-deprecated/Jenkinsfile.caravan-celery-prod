@@ -1,0 +1,55 @@
+// Deployment jenkins script file for GCP GKE caravan-celery-prod deployment
+// We have moved deployment to AWS jenkins deploying service on AWS EKS
+// File is deprecated and moved to deployment-deprecated directory
+
+pipeline {
+    agent any
+    // environment {
+    //     PROJECT_ID = 'likeminds-prod-prj-5464'
+    //     CLUSTER_NAME = 'likeminds-prod-autopilot-cluster'
+    //     LOCATION = 'asia-south1'
+    //     CREDENTIALS_ID = 'likeminds-prod-prj-5464'
+    // }
+   
+    stages {
+        stage("Checkout code") {
+            steps {
+                checkout scm
+            }
+        }
+      
+        stage("Building Application Docker Image"){
+            steps{
+                script{
+                    sh 'gcloud auth configure-docker asia.gcr.io'
+                    sh 'docker build -f Dockerfile.caravan-celery-prod -t asia.gcr.io/likeminds-prod-prj-5464/togther/caravan-celery-prod:${BUILD_NUMBER} . '
+                }
+            }
+        }
+
+        stage("Pushing Application Docker Image to Google Artifact Registry"){
+            steps{
+                script{
+                    sh 'gcloud auth configure-docker asia.gcr.io'
+                    sh 'docker push asia.gcr.io/likeminds-prod-prj-5464/togther/caravan-celery-prod:${BUILD_NUMBER}'
+                }
+            }
+        }
+              
+        stage('Deploy to GKE') {
+            steps{
+                sh '''
+                sed -i 's/caravan-celery-prod:.*/caravan-celery-prod:'${BUILD_NUMBER}'"/g' deployment-caravan-celery-prod.yaml
+                gcloud container clusters get-credentials ${CLUSTER_NAME} --region ${LOCATION} --project ${PROJECT_ID} --internal-ip
+                kubectl apply -f /var/lib/jenkins/workspace/likeminds-caravan-celery-prod/deployment-caravan-celery-prod.yaml
+                '''
+            }
+        }
+    }  
+
+    post {
+        always { 
+            cleanWs()
+        }
+    }
+}
