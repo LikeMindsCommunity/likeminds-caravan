@@ -3710,12 +3710,19 @@ class CommunityHelper:
             project_creator_email_instance = ModelUtilities.get_model_filter(userEmails,
                                                                              {'user': project_creator_instance,
                                                                               'email_state': email_states.PRIMARY}).first()
-
             if project_creator_email_instance:
                 email_context['member_email'] = project_creator_email_instance.email
 
             else:
                 email_context['member_email'] = project_creator_instance.userinfo.email
+
+            project_creator_mobile_instance = ModelUtilities.get_model_filter(userMobiles, {
+                'user': project_creator_instance,
+            }).first()
+
+            if project_creator_mobile_instance:
+                email_context['member_mobile'] =  "+" + str(project_creator_mobile_instance.country_code) + " " + str(project_creator_mobile_instance.mobile_no)
+
 
         send_created_community_email_to_team.delay(email_context)
 

@@ -232,7 +232,8 @@ SOCIAL_AUTH_PIPELINE = (
 
 )
 
-TEAM = ['growth@likeminds.community']
+GROWTH_TEAM_MAILS = ['growth@likeminds.community']
+BACKEND_TEAM_MAILS = ['backend@likeminds.community']
 
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
 EMAIL_HOST = os.getenv('EMAIL_HOST')
