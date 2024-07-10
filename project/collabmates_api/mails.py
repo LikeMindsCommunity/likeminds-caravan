@@ -75,7 +75,7 @@ def send_feedback_mail_to_webmaster(feedback_id):
     if is_beta:
         to = ['himanshu@likeminds.community']
     else:
-        to = settings.TEAM
+        to = settings.GROWTH_TEAM_MAILS
 
     categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.APP_LEVEL,
                                                                                EmailSubCategories.FEEDBACK)
@@ -92,7 +92,7 @@ def send_created_community_email_to_team(context):
     if is_beta:
         to = settings.BACKEND_TEAM_MAILS
     else:
-        to = settings.TEAM
+        to = settings.GROWTH_TEAM_MAILS
 
     categories = MailHelper.get_email_category_list_using_category_subcategory(EmailCategories.APP_LEVEL,
                                                                                EmailSubCategories.NEW_COMMUNITY)
@@ -116,7 +116,7 @@ def send_report_mail_to_team(subject, report_instance_id):
               "nipun@likeminds.community",
               'mahesh@likeminds.community']
     else:
-        to = settings.TEAM
+        to = settings.GROWTH_TEAM_MAILS
 
     print(subject, context, to)
 
