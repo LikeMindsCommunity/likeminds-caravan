@@ -5,7 +5,8 @@ from .search_manager import SearchManager
 from .search_helper import SearchHelper
 from togther.models import (collabcardState, userMemberRights, Members, communityAnswers, ModelUtilities)
 
-from utility.states import member_rights, card_types, member_states, question_states, question_answers_versions
+from utility.states import (member_rights, card_types, member_states, question_states, question_answers_versions,
+                            conversation_states)
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
 from utility.response_utilities import ResponseUtilities
@@ -207,6 +208,9 @@ class SearchImpl(SearchManager):
                     "must": [
                         {
                             "terms": {"chatroom.id": chatroom_id_list}
+                        },
+                        {
+                            "terms": {"state": [conversation_states.ANSWER, conversation_states.CONVERSATION_POLL]}
                         },
                         {
                             "bool": {
