@@ -3724,7 +3724,7 @@ class CommunityHelper:
                 email_context['member_mobile'] =  "+" + str(project_creator_mobile_instance.country_code) + " " + str(project_creator_mobile_instance.mobile_no)
 
 
-        send_created_community_email_to_team(email_context)
+        send_created_community_email_to_team.delay(email_context)
 
     @staticmethod
     def create_content_download_settings_for_community(community_instance):
