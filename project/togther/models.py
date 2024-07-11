@@ -3699,6 +3699,7 @@ class CommunityConfigurations(models.Model):
     type = models.CharField(max_length=255)
     description = models.TextField()
     value = JSONField()
+    NewKey = models.CharField(max_length=255, null=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
