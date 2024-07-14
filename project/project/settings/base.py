@@ -232,7 +232,8 @@ SOCIAL_AUTH_PIPELINE = (
 
 )
 
-TEAM = ['growth@likeminds.community']
+GROWTH_TEAM_MAILS = ['growth@likeminds.community']
+BACKEND_TEAM_MAILS = ['backend@likeminds.community']
 
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
 EMAIL_HOST = os.getenv('EMAIL_HOST')
@@ -412,4 +413,4 @@ OG_TAGS_URL_REQUEST_TIMEOUT_IN_SECONDS = os.getenv('OG_TAGS_URL_REQUEST_TIMEOUT_
 
 CORALOGIX_QUERY_API_KEY = os.getenv('CORALOGIX_QUERY_API_KEY')
 
-APP_VERSION = '2.41.0'
+APP_VERSION = '2.42.0'
