@@ -90,7 +90,8 @@ from utility.url_utilities import UrlUtilities
 from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDIA_LIMITS_CONFIGURATION,
                                FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION, 
                                PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION,
-                               WIDGETS_METADATA_CONFIGURATION, PERSONALISED_FEED_WEIGHTS)
+                               WIDGETS_METADATA_CONFIGURATION, PERSONALISED_FEED_WEIGHTS, FEED_SETTINGS_CONFIGURATION,
+                               CREATE_FEED_POLL_COMMUNITY_VALUES)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
