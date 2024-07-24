@@ -1404,11 +1404,12 @@ class ChatroomInvites(APIView):
         member_id = RequestUtilities.get_member_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
         req_body = RequestUtilities.fetch_request_query_params(request)
+        api_version = RequestUtilities.get_api_version_from_headers(request)
         page = RequestUtilities.get_page_number(request)
         page_size = RequestUtilities.get_page_size(request, default=10)
         chatroom_types = StringUtilities.get_list_from_string(req_body.get('chatroom_types'), default=[])
 
-        community_manager = ChatroomImpl(member_id=member_id, api_key=api_key)
+        community_manager = ChatroomImpl(member_id=member_id, api_key=api_key, api_version_code=api_version)
         res = community_manager.get_chatroom_invites(chatroom_types, page, page_size)
 
         if res.get('error_message'):
