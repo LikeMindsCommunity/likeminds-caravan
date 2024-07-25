@@ -4130,14 +4130,14 @@ class ChatroomImpl(ChatroomManager):
                                                                  page_size)
 
         chatroom_invites_data = []
-        should_created_at_long = False
+        should_convert_timestamps_to_long = False
 
         if self.get_api_version_code() >= VersionUtilities.APIVersionCodes.V1.value:
-            should_created_at_long = True
+            should_convert_timestamps_to_long = True
 
         serializer_context = {
             'user_id': user_instance.id,
-            'should_created_at_long': should_created_at_long
+            'should_convert_timestamps_to_long': should_convert_timestamps_to_long
         }
 
         if chatroom_invite_ids_list:

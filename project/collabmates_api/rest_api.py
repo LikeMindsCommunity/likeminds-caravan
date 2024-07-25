@@ -1581,7 +1581,7 @@ class ChatroomInviteSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super(ChatroomInviteSerializer, self).__init__(*args, **kwargs)
         self.user_id = self.context.get('user_id', None)
-        self.should_created_at_long = self.context.get('should_created_at_long', None)
+        self.should_convert_timestamps_to_long = self.context.get('should_convert_timestamps_to_long', None)
 
     def to_representation(self, instance):
         data = super(ChatroomInviteSerializer, self).to_representation(instance)
@@ -1591,7 +1591,7 @@ class ChatroomInviteSerializer(serializers.ModelSerializer):
             if field.field_name == 'chatroom':
                 data['chatroom'] = CollabcardSerializer(instance.chatroom, user=self.user_id, 
                                                         sdk_client_info_flag=True,
-                                                        should_created_at_long=self.should_created_at_long)
+                                                        should_convert_timestamps_to_long=self.should_convert_timestamps_to_long)
 
             if field.field_name == 'invite_sender':
                 data['invite_sender'] = UserShortSerializer(instance.invite_sender.userinfo, many=False).data
