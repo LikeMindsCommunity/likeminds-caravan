@@ -1524,7 +1524,8 @@ class SDKClientUsersInfoSerializer(serializers.ModelSerializer):
         data['uuid'] = data['user_unique_id']
 
         return data
-    
+
+
 class CommunityNotificationSettingsSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -1580,16 +1581,17 @@ class ChatroomInviteSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super(ChatroomInviteSerializer, self).__init__(*args, **kwargs)
         self.user_id = self.context.get('user_id', None)
+        self.should_convert_timestamps_to_long = self.context.get('should_convert_timestamps_to_long', None)
 
     def to_representation(self, instance):
         data = super(ChatroomInviteSerializer, self).to_representation(instance)
-
         fields = self._readable_fields
 
         for field in fields:
             if field.field_name == 'chatroom':
                 data['chatroom'] = CollabcardSerializer(instance.chatroom, user=self.user_id, 
-                                                        sdk_client_info_flag=True)
+                                                        sdk_client_info_flag=True,
+                                                        should_convert_timestamps_to_long=self.should_convert_timestamps_to_long)
 
             if field.field_name == 'invite_sender':
                 data['invite_sender'] = UserShortSerializer(instance.invite_sender.userinfo, many=False).data
@@ -1598,6 +1600,7 @@ class ChatroomInviteSerializer(serializers.ModelSerializer):
                 data['invite_receiver'] = UserShortSerializer(instance.invite_receiver.userinfo, many=False).data
 
         return data
+
 
 class UserChannelSettingsSerializer(serializers.ModelSerializer):
 
