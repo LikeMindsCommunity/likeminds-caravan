@@ -11,7 +11,7 @@ class SearchManager(metaclass=abc.ABCMeta):
                 NotImplemented)
 
     @abc.abstractmethod
-    def search_chatroom(self, chatroom_types: list, order_by: str):
+    def search_chatroom(self, chatroom_types: list = [], order_by: str = ""):
         """
         Search chatrooms by title and header with elastic search
         """

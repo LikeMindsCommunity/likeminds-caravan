@@ -114,7 +114,7 @@ class SearchImpl(SearchManager):
             "_score": {
                 "order": "desc"
             },
-            "updated_at": {
+            "last_message_timestamp": {
                 "order": "desc"
             }
         }
@@ -360,7 +360,7 @@ class SearchImpl(SearchManager):
 
         return is_disabled
 
-    def search_chatroom(self, chatroom_types: list, order_by: str):
+    def search_chatroom(self, chatroom_types: list = [], order_by: str = ""):
 
         if self.get_api_key() and not self.get_community_id():
             community_instance = SdkClient.get_community_instance_or_none(self.get_community_id(), self.get_api_key())
