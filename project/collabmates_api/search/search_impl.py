@@ -6,7 +6,7 @@ from .search_helper import SearchHelper
 from togther.models import (collabcardState, userMemberRights, Members, communityAnswers, ModelUtilities)
 
 from utility.states import (member_rights, card_types, member_states, question_states, question_answers_versions,
-                            conversation_states)
+                            conversation_states, ChatroomSearchOrderBy)
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
 from utility.response_utilities import ResponseUtilities
@@ -104,22 +104,35 @@ class SearchImpl(SearchManager):
             }
         }
 
-    def _get_chatroom_search_ngram_query_dict(self, excluded_chatroom_id_list):
+    def _get_chatroom_search_ngram_query_dict(self, excluded_chatroom_id_list, included_chatroom_types, order_by):
         """
         @param excluded_chatroom_id_list: list of excluded chatroom ids on the basis of cohort access
         @return: dict
         """
+
+        sort_order_dict = {
+            "_score": {
+                "order": "desc"
+            },
+            "updated_at": {
+                "order": "desc"
+            }
+        }
+
+        if order_by == ChatroomSearchOrderBy.RECENT_CONVERSATION.value:
+            sort_order_dict = {
+                "updated_at": {
+                    "order": "desc"
+                },
+                "_score": {
+                    "order": "desc"
+                }
+            }
+
         return {
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
-            "sort": {
-                "_score": {
-                    "order": "desc"
-                },
-                "updated_at": {
-                    "order": "desc"
-                }
-            },
+            "sort": sort_order_dict,
             "query": {
                 "bool": {
                     "must": [
@@ -142,12 +155,12 @@ class SearchImpl(SearchManager):
                                     }
                                 ]
                             }
+                        },
+                        {
+                            "terms": {"chatroom.type": included_chatroom_types}
                         }
                     ],
                     "must_not": [
-                        {
-                            "term": {"chatroom.type": card_types.CARD_DIRECT_MESSAGE}
-                        },
                         {
                             "terms": {"chatroom.id": excluded_chatroom_id_list}
                         }
@@ -347,7 +360,7 @@ class SearchImpl(SearchManager):
 
         return is_disabled
 
-    def search_chatroom(self):
+    def search_chatroom(self, chatroom_types: list, order_by: str):
 
         if self.get_api_key() and not self.get_community_id():
             community_instance = SdkClient.get_community_instance_or_none(self.get_community_id(), self.get_api_key())
@@ -365,7 +378,18 @@ class SearchImpl(SearchManager):
 
         excluded_card_ids = list(set(excluded_card_ids) - set(followed_card_ids))
 
-        search_query_dict = self._get_chatroom_search_ngram_query_dict(excluded_card_ids)
+        if not (chatroom_types and isinstance(chatroom_types, list)):
+            chatroom_types = [
+                card_types.CARD_NORMAL,
+                card_types.CARD_INTRO,
+                card_types.CARD_EVENT,
+                card_types.CARD_PURPOSE,
+                card_types.CARD_MASTER_INTRO
+            ]
+
+        search_query_dict = self._get_chatroom_search_ngram_query_dict(excluded_card_ids,
+                                                                       chatroom_types,
+                                                                       order_by)
 
         if self.get_community_id():
             self._append_community_id(search_query_dict, self.get_community_id())
