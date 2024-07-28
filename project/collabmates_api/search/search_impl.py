@@ -114,14 +114,14 @@ class SearchImpl(SearchManager):
             "_score": {
                 "order": "desc"
             },
-            "last_message_timestamp": {
+            "updated_at": {
                 "order": "desc"
             }
         }
 
         if order_by == ChatroomSearchOrderBy.RECENT_CONVERSATION.value:
             sort_order_dict = {
-                "updated_at": {
+                "last_message_timestamp": {
                     "order": "desc"
                 },
                 "_score": {
