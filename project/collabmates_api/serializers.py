@@ -214,7 +214,7 @@ def get_logged_in_user(user_instance, sdk_client_info_flag: bool = False):
 
 
 def CollabcardSerializer(card, user, community=None, current_user_id=None, preview=False, return_topic=False, 
-                         sdk_client_info_flag:bool=False):
+                         sdk_client_info_flag: bool = False, should_convert_timestamps_to_long: bool = False):
     # function to serialize a community object
     collabcard = {
         'id': card.id,
@@ -253,6 +253,9 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         'include_members_later': card.include_members_later,
         'custom_tag': card.custom_tag,
     }
+
+    if should_convert_timestamps_to_long:
+        collabcard['created_at'] = card.created_at
 
     if card.chatroom_image_url:
         collabcard['chatroom_image_url'] = card.chatroom_image_url
