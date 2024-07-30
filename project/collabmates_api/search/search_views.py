@@ -48,6 +48,8 @@ class ChatroomSearchView(APIView):
         page_size = RequestUtilities.get_page_size(request, default=300)
 
         follow_status = request.GET.get('follow_status', True)
+        chatroom_types = StringUtilities.get_list_from_string(request.GET.get('chatroom_types', ""), [])
+        order_by = request.GET.get('order_by', "")
 
         if isinstance(follow_status, str):
             follow_status = follow_status.lower() == 'true'
@@ -56,7 +58,8 @@ class ChatroomSearchView(APIView):
                                     follow_status=follow_status, page=page, page_size=page_size, api_key=api_key,
                                     community_id=community_id)
 
-        chatrooms_data = search_manager.search_chatroom()
+        chatrooms_data = search_manager.search_chatroom(chatroom_types=chatroom_types,
+                                                        order_by=order_by)
 
         if 'error_message' in chatrooms_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatrooms_data.get('error_message'),

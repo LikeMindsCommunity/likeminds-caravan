@@ -4,7 +4,8 @@ from django_elasticsearch_dsl import Document, Index, fields, KeywordField, Bool
 from django_elasticsearch_dsl_drf.compat import StringField
 from elasticsearch_dsl import analyzer, token_filter
 
-from togther.models import collabcardState
+from togther.models import collabcardState, ModelUtilities, card_answers
+from utility.states import (conversation_states)
 from .index_utilities import IndexUtilities
 
 # Max index length
@@ -129,8 +130,22 @@ class ChatroomDocument(Document):
 
     attachments = fields.ObjectField()
 
+    last_message_timestamp = fields.IntegerField()
+
     def prepare_attachments(self, instance):
         return IndexUtilities(instance.card).get_attachments()
+
+    @staticmethod
+    def prepare_last_message_timestamp(instance):
+        filter_dict = {
+            'card': instance.card,
+            'state__in': [conversation_states.ANSWER, conversation_states.CONVERSATION_POLL]
+        }
+
+        card_answer_filter = ModelUtilities.get_model_filter(card_answers, filter_dict)
+
+        if card_answer_filter:
+            return card_answer_filter.last().last_updated
 
     def get_queryset(self):
         return super().get_queryset()\

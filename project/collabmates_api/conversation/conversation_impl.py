@@ -2715,6 +2715,9 @@ class ConversationHelper:
         ConversationHelper.update_last_seen_conversation_in_collabcard_state(conversation_instance,
                                                                              user_instance, chatroom_instance)
 
+        # Updating the chatroom index for updated at
+        ElasticSearchSync.update_chatroom.delay(chatroom_id)
+
         args = [conversation_instance.id]
 
         if conversation_instance.state == conversation_states.CONVERSATION_POLL:
