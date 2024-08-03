@@ -227,6 +227,10 @@ COMMUNITY_CONFIGURATIONS = {
             "post_dampening_metrics": {
                 "weight": 0,
                 "max_threshold": 0
+            },
+            "user_connection_metrics": {
+                "weight": 0,
+                "max_threshold": 0
             }
         }
     }
