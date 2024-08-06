@@ -18,6 +18,8 @@ ENV SERVER_TYPE="LOAD-SERVER"
 
 RUN pip3 install -r requirements.txt
 
+# Make sure to import .env file to project/project/settings/.env
+
 ADD . $WORKDIR
 RUN mkdir /usr/src/app/project/utility/logs && \
     touch /usr/src/app/project/utility/logs/collabmates.log && \
