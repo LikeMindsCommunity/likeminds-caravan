@@ -45,7 +45,7 @@ class CacheImpl(CacheManager):
             'port': settings.CACHE_CREDENTIALS['port']
         }
 
-        if settings.CACHE_CREDENTIALS.get('password'):
+        if settings.IS_LOAD_ENV:
             redis_params['password'] = settings.CACHE_CREDENTIALS['password']
             redis_params['ssl'] = True
 
