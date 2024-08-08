@@ -160,106 +160,113 @@ def delete_table_rows_in_batches(community_id: int, match_string, model, batch_s
     print(f"{model._meta.db_table} : {total_deleted} rows deleted, {rows_count_after_delete} rows remaining, PASSED")
 
 
-def delete_community_cache(community_id: int) -> None:
+def delete_community_cache(community_id: int, batch_size: int = 100) -> None:
+    def delete_keys_in_batches(keys, delete_func, key_format):
+        for i in range(0, len(keys), batch_size):
+            batch = keys[i:i+batch_size]
+            for key in batch:
+                formatted_key = key_format % str(key)
+                status = delete_func(formatted_key)
+                print(f'deleting key: {formatted_key}, status: {status}')
 
     print(f'deleting cache keys for community_id : {community_id} ...')
 
     # preview cache
-    community_preview_conversation_ids: list = ModelUtilities.get_model_filter(
+    community_preview_conversation_ids = list(ModelUtilities.get_model_filter(
         card_answers,
-        {
-            'preview_community': community_id
-        }
-    ).values_list(
-        'id',
-        flat=True
+        {'preview_community': community_id}
+    ).values_list('id', flat=True))
+    
+    print('preview_conversation_ids: ', community_preview_conversation_ids)
+
+    delete_keys_in_batches(
+        community_preview_conversation_ids, 
+        CacheImpl.delete_key, 
+        CONVERSATION_COMMUNITY_PREVIEW % ('%s', str(community_id))
     )
-    print('preview_conversation_ids: ', list(community_preview_conversation_ids))
-
-    for community_preview_conversation_id in community_preview_conversation_ids:
-        community_preview_cache_key: str = CONVERSATION_COMMUNITY_PREVIEW % (str(community_preview_conversation_id), str(community_id))
-        cache_key_delete_status: bool = CacheImpl.delete_key(community_preview_cache_key)
-        print(f'deleting key: {community_preview_cache_key}, status: {cache_key_delete_status}')
-
 
     # conversation cache
-    conversation_ids = ModelUtilities.get_model_filter(
+    conversation_ids = list(ModelUtilities.get_model_filter(
         card_answers,
-        {
-            'community': community_id
-        }
-    ).values_list(
-        'id',
-        flat=True
+        {'community': community_id}
+    ).values_list('id', flat=True))
+    
+    print('conversation_ids: ', conversation_ids)
+
+    delete_keys_in_batches(
+        conversation_ids,
+        CacheImpl.delete_key,
+        CONVERSATION_POLL_OPTIONS_CONVERSATION_ID % '%s'
     )
-    print('conversation_ids: ', list(conversation_ids))
-
-    for conversation_id in conversation_ids:
-        poll_options_cache_key: str = CONVERSATION_POLL_OPTIONS_CONVERSATION_ID % str(conversation_id)
-        poll_options_cache_key_delete_status: bool = CacheImpl.delete_key(poll_options_cache_key)
-        print(f'deleting cache key: {poll_options_cache_key}, status: {poll_options_cache_key_delete_status}')
-
-        poll_voters_cache_key: str = CONVERSATION_POLL_VOTERS_CONVERSATION_ID % str(conversation_id)
-        poll_voters_cache_key_delete_status: bool = CacheImpl.delete_key(poll_voters_cache_key)
-        print(f'deleting cache key: {poll_voters_cache_key}, status: {poll_voters_cache_key_delete_status}')
-
-        reaction_cache_key: str = CONVERSATION_REACTIONS_CACHE_KEY % str(conversation_id)
-        reaction_cache_key_delete_status: bool = CacheImpl.delete_key(reaction_cache_key)
-        print(f'deleting cache key: {reaction_cache_key}, status: {reaction_cache_key_delete_status}')
-
-        conversation_event_attendees_cache_key = EVENT_ATTENDEES_CONVERSATION % str(conversation_id)
-        conversation_event_attendees_cache_key_delete_status: bool = CacheImpl.delete_key(conversation_event_attendees_cache_key)
-        print(f'deleting cache key: {conversation_event_attendees_cache_key}, status: {conversation_event_attendees_cache_key_delete_status}')
-
+    delete_keys_in_batches(
+        conversation_ids,
+        CacheImpl.delete_key,
+        CONVERSATION_POLL_VOTERS_CONVERSATION_ID % '%s'
+    )
+    delete_keys_in_batches(
+        conversation_ids,
+        CacheImpl.delete_key,
+        CONVERSATION_REACTIONS_CACHE_KEY % '%s'
+    )
+    delete_keys_in_batches(
+        conversation_ids,
+        CacheImpl.delete_key,
+        EVENT_ATTENDEES_CONVERSATION % '%s'
+    )
 
     # chatroom cache
-    chatroom_ids = ModelUtilities.get_model_filter(
+    chatroom_ids = list(ModelUtilities.get_model_filter(
         Collabcard,
-        {
-            'community': community_id
-        }
-    ).values_list(
-        'id',
-        flat=True
+        {'community': community_id}
+    ).values_list('id', flat=True))
+    
+    print('chatroom_ids: ', chatroom_ids)
+
+    delete_keys_in_batches(
+        chatroom_ids,
+        CacheImpl.delete_key,
+        CHATROOM_REACTIONS_CACHE_KEY % '%s'
     )
-    print('chatroom_ids: ', list(chatroom_ids))
-
-    for chatroom_id in chatroom_ids:
-        chatroom_reactions_cache_key: str = CHATROOM_REACTIONS_CACHE_KEY % str(chatroom_id)
-        chatroom_reactions_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_reactions_cache_key)
-        print(f'deleting cache key: {chatroom_reactions_cache_key}, status: {chatroom_reactions_cache_key_delete_status}')
-
-        chatroom_participants_cache_key: str = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(chatroom_id)
-        chatroom_participants_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_participants_cache_key)
-        print(f'deleting cache key: {chatroom_participants_cache_key}, status: {chatroom_participants_cache_key_delete_status}')
-
-        chatroom_type_conversion_cache_key: str = CHATROOM_TYPE_CONVERSION.format(chatroom_id)
-        chatroom_type_conversion_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_type_conversion_cache_key)
-        print(f'deleting cache key: {chatroom_type_conversion_cache_key}, status: {chatroom_type_conversion_cache_key_delete_status}')
-
-        chatroom_list_cache_key: str = COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY.format(community_id)
-        chatroom_list_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_list_cache_key)
-        print(f'deleting cache key: {chatroom_list_cache_key}, status: {chatroom_list_cache_key_delete_status}')
-
-        event_instructors_cache_key = EVENT_INSTRUCTORS_CHATROOM % str(chatroom_id)
-        event_instructors_cache_key_delete_status: bool = CacheImpl.delete_key(event_instructors_cache_key)
-        print(f'deleting cache key: {event_instructors_cache_key}, status: {event_instructors_cache_key_delete_status}')
-
-        event_highlights_cache_key = EVENT_HIGHLIGHTS_CHATROOM % str(chatroom_id)
-        event_highlights_cache_key_delete_status: bool = CacheImpl.delete_key(event_highlights_cache_key)
-        print(f'deleting cache key: {event_highlights_cache_key}, status: {event_highlights_cache_key_delete_status}')
-
-        event_membertestimonials_cache_key = EVENT_MEMBERTESTIMONIALS_CHATROOM % str(chatroom_id)
-        event_membertestimonials_cache_key_delete_status: bool = CacheImpl.delete_key(event_membertestimonials_cache_key)
-        print(f'deleting cache key: {event_membertestimonials_cache_key}, status: {event_membertestimonials_cache_key_delete_status}')
-
-        event_faq_cache_key = EVENT_FAQ_CHATROOM % str(chatroom_id)
-        event_faq_cache_key_delete_status: bool = CacheImpl.delete_key(event_faq_cache_key)
-        print(f'deleting cache key: {event_faq_cache_key}, status: {event_faq_cache_key_delete_status}')
-
-        event_attendees_cache_key = EVENT_ATTENDEES_CHATROOM % str(chatroom_id)
-        event_attendees_cache_key_delete_status: bool = CacheImpl.delete_key(event_attendees_cache_key)
-        print(f'deleting cache key: {event_attendees_cache_key}, status: {event_attendees_cache_key_delete_status}')
+    delete_keys_in_batches(
+        chatroom_ids,
+        CacheImpl.delete_key,
+        CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format('%s')
+    )
+    delete_keys_in_batches(
+        chatroom_ids,
+        CacheImpl.delete_key,
+        CHATROOM_TYPE_CONVERSION.format('%s')
+    )
+    delete_keys_in_batches(
+        [community_id],
+        CacheImpl.delete_key,
+        COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY.format('%s')
+    )
+    delete_keys_in_batches(
+        chatroom_ids,
+        CacheImpl.delete_key,
+        EVENT_INSTRUCTORS_CHATROOM % '%s'
+    )
+    delete_keys_in_batches(
+        chatroom_ids,
+        CacheImpl.delete_key,
+        EVENT_HIGHLIGHTS_CHATROOM % '%s'
+    )
+    delete_keys_in_batches(
+        chatroom_ids,
+        CacheImpl.delete_key,
+        EVENT_MEMBERTESTIMONIALS_CHATROOM % '%s'
+    )
+    delete_keys_in_batches(
+        chatroom_ids,
+        CacheImpl.delete_key,
+        EVENT_FAQ_CHATROOM % '%s'
+    )
+    delete_keys_in_batches(
+        chatroom_ids,
+        CacheImpl.delete_key,
+        EVENT_ATTENDEES_CHATROOM % '%s'
+    )
 
     print(f'deleted cache keys for community_id : {community_id} ...')
 
