@@ -27,9 +27,8 @@ CSV_FILENAME = "s3_url_list.csv"
 
 def find_non_sdk_communities():
     sdk_client_community_ids = set(SdkClient.objects.values_list('community_id', flat=True))
-    non_sdk_communities = Community.objects.exclude(id__in=sdk_client_community_ids).only('id').iterator()
-
-    non_sdk_community_ids = [community.id for community in non_sdk_communities]
+    
+    non_sdk_community_ids = list(Community.objects.exclude(id__in=sdk_client_community_ids).values_list('id', flat=True))
 
     print(f'non-sdk communities found: {len(non_sdk_community_ids)}, {non_sdk_community_ids}')
 
@@ -155,9 +154,6 @@ def delete_table_rows_in_batches(community_id: int, match_string, model, batch_s
                 break
             model.objects.filter(pk__in=[obj.pk for obj in batch]).delete()
             total_deleted += len(batch)
-
-            # Explicitly run garbage collection to free up memory
-            # gc.collect()
 
     rows_count_after_delete = model.objects.count()
 
