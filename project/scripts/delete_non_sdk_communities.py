@@ -1,5 +1,8 @@
 import datetime
 import csv
+import gc
+from django.db import transaction
+from itertools import islice
 from external_services.caching.cache_impl import CacheImpl
 from collabmates_api.sdk.models import SdkClient
 from collabmates_api.webhook.models import CommunityWebhook
@@ -23,29 +26,21 @@ from togther.models import Card_Attachment, EventRecordingsAttachments, ModelUti
 CSV_FILENAME = "s3_url_list.csv"
 
 def find_non_sdk_communities():
-    # Get a list of community IDs present in the SdkClient model
-    sdk_client_community_ids = SdkClient.objects.values_list('community_id', flat=True)
+    sdk_client_community_ids = set(SdkClient.objects.values_list('community_id', flat=True))
+    non_sdk_communities = Community.objects.exclude(id__in=sdk_client_community_ids).only('id').iterator()
 
-    total_communities_count = len(Community.objects.values_list('id', flat=True))
-    
-    # Exclude communities whose IDs match any community_id in SdkClient
-    non_sdk_communities = list(set(Community.objects.exclude(id__in=sdk_client_community_ids)))
-    
-    non_sdk_communities_count = len(non_sdk_communities)
+    non_sdk_community_ids = [community.id for community in non_sdk_communities]
 
-    communities_left_after_delete = total_communities_count - non_sdk_communities_count
-    
-    print(f'non-sdk communities found: {non_sdk_communities_count}')
-    print(f'communitites that should be left in togther_community table after delete operation: {communities_left_after_delete}')
-    
-    return non_sdk_communities
+    print(f'non-sdk communities found: {len(non_sdk_community_ids)}, {non_sdk_community_ids}')
+
+    return non_sdk_community_ids
 
 
 def store_links_to_csv(community_id):
 
     print(f'saving s3 links related to community with id: {community_id} in s3_url_list.csv')
     data = []
-    
+
     # card attachment links
     collabcard_ids = ModelUtilities.get_model_filter(
         Collabcard,
@@ -69,7 +64,7 @@ def store_links_to_csv(community_id):
         if card_attachment:
             # print(f'community_id: {community_id} collabcard_id: {collabcard_id}', card_attachment.file_url)
             data.append({'community_id': community_id, 'collabcard_id': collabcard_id, 'url': card_attachment.file_url})
-    
+
         # events recordings attachments
         event_recordings_attachments = ModelUtilities.get_model_filter(
             EventRecordingsAttachments,
@@ -78,12 +73,12 @@ def store_links_to_csv(community_id):
             }
         ).values_list('url', 'thumbnail_url')
 
-        
+
         if event_recordings_attachments:
 
             for attachment in event_recordings_attachments:
                 url, thumbnail_url = attachment  # Unpack the tuple into variables
-                
+
                 if url:
                     # print(f'community_id: {community_id} collabcard_id: {collabcard_id} url: {url}')
                     data.append({'community_id': community_id, 'collabcard_id': collabcard_id,'url': url})
@@ -115,7 +110,7 @@ def store_links_to_csv(community_id):
         if answer_attachment:
             # print(f'community_id: {community_id} card_answers_id: {card_answers_id}', answer_attachment.file_url)
             data.append({'community_id': community_id, 'card_answers_id': card_answers_id, 'url': answer_attachment.file_url})
-    
+
     # print('csv input: ', data)
     fields = ['community_id', 'collabcard_id', 'card_answers_id', 'url']
     filename = CSV_FILENAME
@@ -123,44 +118,52 @@ def store_links_to_csv(community_id):
     with open(filename, 'a') as csvfile:
         # creating a csv dict writer object
         writer = csv.DictWriter(csvfile, fieldnames=fields)
-    
+
          # If the file is empty, write headers (field names)
         if csvfile.tell() == 0:
             writer.writeheader()
-    
+
         # writing data rows
         writer.writerows(data)
 
 
 
-def delete_table_rows(community_id: int, match_string, model):
-    
+def delete_table_rows_in_batches(community_id: int, match_string, model, batch_size=500):
     rows_count_before_delete = model.objects.count()
-    
+
+    # Get all rows to delete in batches
     rows_to_delete = ModelUtilities.get_model_filter(
         model,
         {
             match_string: community_id
         }
-    )
+    ).iterator()
 
-    rows_to_delete_count = rows_to_delete.count()
-    
-    rows_to_delete.delete()
+    total_deleted = 0
+
+    with transaction.atomic():
+        while True:
+            batch = list(islice(rows_to_delete, batch_size))
+            if not batch:
+                break
+            model.objects.filter(pk__in=[obj.pk for obj in batch]).delete()
+            total_deleted += len(batch)
+
+            # Explicitly run garbage collection to free up memory
+            # gc.collect()
 
     rows_count_after_delete = model.objects.count()
-    
-    if (rows_count_before_delete - rows_to_delete_count) != rows_count_after_delete:
-        raise Exception(f'delete operation for {model._meta.db_table} FAILED')
 
-    print(f'{model._meta.db_table} : {rows_to_delete_count} rows deleted, {rows_count_after_delete} rows remaining, PASSED')
+    if (rows_count_before_delete - total_deleted) != rows_count_after_delete:
+        raise Exception(f"Delete operation for {model._meta.db_table} FAILED")
 
+    print(f"{model._meta.db_table} : {total_deleted} rows deleted, {rows_count_after_delete} rows remaining, PASSED")
 
 
 def delete_community_cache(community_id: int) -> None:
 
     print(f'deleting cache keys for community_id : {community_id} ...')
-    
+
     # preview cache
     community_preview_conversation_ids: list = ModelUtilities.get_model_filter(
         card_answers,
@@ -190,12 +193,12 @@ def delete_community_cache(community_id: int) -> None:
         flat=True
     )
     print('conversation_ids: ', list(conversation_ids))
-    
+
     for conversation_id in conversation_ids:
         poll_options_cache_key: str = CONVERSATION_POLL_OPTIONS_CONVERSATION_ID % str(conversation_id)
         poll_options_cache_key_delete_status: bool = CacheImpl.delete_key(poll_options_cache_key)
         print(f'deleting cache key: {poll_options_cache_key}, status: {poll_options_cache_key_delete_status}')
-    
+
         poll_voters_cache_key: str = CONVERSATION_POLL_VOTERS_CONVERSATION_ID % str(conversation_id)
         poll_voters_cache_key_delete_status: bool = CacheImpl.delete_key(poll_voters_cache_key)
         print(f'deleting cache key: {poll_voters_cache_key}, status: {poll_voters_cache_key_delete_status}')
@@ -207,7 +210,7 @@ def delete_community_cache(community_id: int) -> None:
         conversation_event_attendees_cache_key = EVENT_ATTENDEES_CONVERSATION % str(conversation_id)
         conversation_event_attendees_cache_key_delete_status: bool = CacheImpl.delete_key(conversation_event_attendees_cache_key)
         print(f'deleting cache key: {conversation_event_attendees_cache_key}, status: {conversation_event_attendees_cache_key_delete_status}')
-        
+
 
     # chatroom cache
     chatroom_ids = ModelUtilities.get_model_filter(
@@ -257,7 +260,7 @@ def delete_community_cache(community_id: int) -> None:
         event_attendees_cache_key = EVENT_ATTENDEES_CHATROOM % str(chatroom_id)
         event_attendees_cache_key_delete_status: bool = CacheImpl.delete_key(event_attendees_cache_key)
         print(f'deleting cache key: {event_attendees_cache_key}, status: {event_attendees_cache_key_delete_status}')
-        
+
     print(f'deleted cache keys for community_id : {community_id} ...')
 
 
@@ -271,75 +274,84 @@ def delete_community(community_id: int):
     # delete cache keys
     delete_community_cache(community_id)
     # delete all tables
-    delete_table_rows(community_id, 'community_id', communityToast)
-    delete_table_rows(community_id, 'community_id_id', Members)
-    delete_table_rows(community_id, 'community_id', Collabcard)
-    delete_table_rows(community_id, 'community_id', collabcardState)
-    delete_table_rows(community_id, 'community_id', draftChatroom)
-    delete_table_rows(community_id, 'community_id', deletedChatrooms)
-    delete_table_rows(community_id, 'community_id', conversationEngage)
-    delete_table_rows(community_id, 'community_id', temp_admin)
-    delete_table_rows(community_id, 'community_id_id', Community_LPIG)
-    delete_table_rows(community_id, 'community_id_id', Member_Engage)
-    delete_table_rows(community_id, 'community_id_id', Community_Rank)
-    delete_table_rows(community_id, 'community_id_id', Community_Legacy)
-    delete_table_rows(community_id, 'community_id_id', Community_Profession)
-    delete_table_rows(community_id, 'community_id_id', Community_Interest)
-    delete_table_rows(community_id, 'community_id_id', Community_Geography)
-    delete_table_rows(community_id, 'community_id', Referal)
-    delete_table_rows(community_id, 'community_id', Report)
-    delete_table_rows(community_id, 'community_id', CollabcardStateBackup)
-    delete_table_rows(community_id, 'community_id', collabcardTemp)
-    delete_table_rows(community_id, 'community_id', communityQuestions)
-    delete_table_rows(community_id, 'community_id', communityAnswers)
-    delete_table_rows(community_id, 'community_id', communityExpire)
-    delete_table_rows(community_id, 'community_id', questionFilters)
-    delete_table_rows(community_id, 'community_id', communityExpiryCodes)
-    delete_table_rows(community_id, 'community_id', createCommunityAction)
-    delete_table_rows(community_id, 'community_id', communityLevels)
-    delete_table_rows(community_id, 'community_id', communityUpdate)
-    delete_table_rows(community_id, 'community_id', membersEngagePilot)
-    delete_table_rows(community_id, 'community_id_id', membersPilot)
-    delete_table_rows(community_id, 'community_id', memberNotificationFlag)
-    delete_table_rows(community_id, 'community_id', userAdminRights)
-    delete_table_rows(community_id, 'community_id', userMemberRights)
-    delete_table_rows(community_id, 'community_id', moderationHistory)
-    delete_table_rows(community_id, 'community_id', communityRightsSettings)
-    delete_table_rows(community_id, 'community_id', blockedMembers)
-    delete_table_rows(community_id, 'community_id', userMemberRightsHistory)
-    delete_table_rows(community_id, 'community_id', SubscriptionExpiredMembers)
-    delete_table_rows(community_id, 'community_id', EventNudge)
-    delete_table_rows(community_id, 'community_id_id', ContentDownloadSettings)
-    delete_table_rows(community_id, 'community_id', Cohort)
-    delete_table_rows(community_id, 'community_id', CommunitySettings)
-    delete_table_rows(community_id, 'community_id', CommunityToastV1)
-    delete_table_rows(community_id, 'community_id_id', CommunityJoinEmail)
-    delete_table_rows(community_id, 'community_id', CommunityGetStarted)
-    delete_table_rows(community_id, 'community_id', UserEmailsSendStatus)
-    delete_table_rows(community_id, 'community_id', CommunityDirectMessageSettings)
-    delete_table_rows(community_id, 'community_id', SDKClientUsersInfo)
-    delete_table_rows(community_id, 'community_id', CommunityNotificationSettings)
-    delete_table_rows(community_id, 'community_id', FeedNotificationSettings)
-    delete_table_rows(community_id, 'community_id', CommunityBillingDates)
-    delete_table_rows(community_id, 'community_id', CommunityConfigurations)
-    delete_table_rows(community_id, 'community_id', CommunityWebhook)
-    delete_table_rows(community_id, 'community_id', PerDayRecordOverview)
-    delete_table_rows(community_id, 'community_id', PerWeekRecordOverview)
-    delete_table_rows(community_id, 'community_id', NewAnswer)
-    delete_table_rows(community_id, 'community_id', userAcquition)
-    delete_table_rows(community_id, 'community_id', MessageTemplate)
-    delete_table_rows(community_id, 'id', Community)
+    delete_table_rows_in_batches(community_id, 'community_id', communityToast)
+    delete_table_rows_in_batches(community_id, 'community_id_id', Members)
+    delete_table_rows_in_batches(community_id, 'community_id', Collabcard)
+    delete_table_rows_in_batches(community_id, 'community_id', collabcardState)
+    delete_table_rows_in_batches(community_id, 'community_id', draftChatroom)
+    delete_table_rows_in_batches(community_id, 'community_id', deletedChatrooms)
+    delete_table_rows_in_batches(community_id, 'community_id', conversationEngage)
+    delete_table_rows_in_batches(community_id, 'community_id', temp_admin)
+    delete_table_rows_in_batches(community_id, 'community_id_id', Community_LPIG)
+    delete_table_rows_in_batches(community_id, 'community_id_id', Member_Engage)
+    delete_table_rows_in_batches(community_id, 'community_id_id', Community_Rank)
+    delete_table_rows_in_batches(community_id, 'community_id_id', Community_Legacy)
+    delete_table_rows_in_batches(community_id, 'community_id_id', Community_Profession)
+    delete_table_rows_in_batches(community_id, 'community_id_id', Community_Interest)
+    delete_table_rows_in_batches(community_id, 'community_id_id', Community_Geography)
+    delete_table_rows_in_batches(community_id, 'community_id', Referal)
+    delete_table_rows_in_batches(community_id, 'community_id', Report)
+    delete_table_rows_in_batches(community_id, 'community_id', CollabcardStateBackup)
+    delete_table_rows_in_batches(community_id, 'community_id', collabcardTemp)
+    delete_table_rows_in_batches(community_id, 'community_id', communityQuestions)
+    delete_table_rows_in_batches(community_id, 'community_id', communityAnswers)
+    delete_table_rows_in_batches(community_id, 'community_id', communityExpire)
+    delete_table_rows_in_batches(community_id, 'community_id', questionFilters)
+    delete_table_rows_in_batches(community_id, 'community_id', communityExpiryCodes)
+    delete_table_rows_in_batches(community_id, 'community_id', createCommunityAction)
+    delete_table_rows_in_batches(community_id, 'community_id', communityLevels)
+    delete_table_rows_in_batches(community_id, 'community_id', communityUpdate)
+    delete_table_rows_in_batches(community_id, 'community_id', membersEngagePilot)
+    delete_table_rows_in_batches(community_id, 'community_id_id', membersPilot)
+    delete_table_rows_in_batches(community_id, 'community_id', memberNotificationFlag)
+    delete_table_rows_in_batches(community_id, 'community_id', userAdminRights)
+    delete_table_rows_in_batches(community_id, 'community_id', userMemberRights)
+    delete_table_rows_in_batches(community_id, 'community_id', moderationHistory)
+    delete_table_rows_in_batches(community_id, 'community_id', communityRightsSettings)
+    delete_table_rows_in_batches(community_id, 'community_id', blockedMembers)
+    delete_table_rows_in_batches(community_id, 'community_id', userMemberRightsHistory)
+    delete_table_rows_in_batches(community_id, 'community_id', SubscriptionExpiredMembers)
+    delete_table_rows_in_batches(community_id, 'community_id', EventNudge)
+    delete_table_rows_in_batches(community_id, 'community_id_id', ContentDownloadSettings)
+    delete_table_rows_in_batches(community_id, 'community_id', Cohort)
+    delete_table_rows_in_batches(community_id, 'community_id', CommunitySettings)
+    delete_table_rows_in_batches(community_id, 'community_id', CommunityToastV1)
+    delete_table_rows_in_batches(community_id, 'community_id_id', CommunityJoinEmail)
+    delete_table_rows_in_batches(community_id, 'community_id', CommunityGetStarted)
+    delete_table_rows_in_batches(community_id, 'community_id', UserEmailsSendStatus)
+    delete_table_rows_in_batches(community_id, 'community_id', CommunityDirectMessageSettings)
+    delete_table_rows_in_batches(community_id, 'community_id', SDKClientUsersInfo)
+    delete_table_rows_in_batches(community_id, 'community_id', CommunityNotificationSettings)
+    delete_table_rows_in_batches(community_id, 'community_id', FeedNotificationSettings)
+    delete_table_rows_in_batches(community_id, 'community_id', CommunityBillingDates)
+    delete_table_rows_in_batches(community_id, 'community_id', CommunityConfigurations)
+    delete_table_rows_in_batches(community_id, 'community_id', CommunityWebhook)
+    delete_table_rows_in_batches(community_id, 'community_id', PerDayRecordOverview)
+    delete_table_rows_in_batches(community_id, 'community_id', PerWeekRecordOverview)
+    delete_table_rows_in_batches(community_id, 'community_id', NewAnswer)
+    delete_table_rows_in_batches(community_id, 'community_id', userAcquition)
+    delete_table_rows_in_batches(community_id, 'community_id', MessageTemplate)
+    ModelUtilities.get_model_filter(
+        Community,
+        {
+            'id': community_id
+        }
+    ).delete()
+
+    gc.collect()
     print(f'community with id : {community_id} deleted along with related data at {datetime.datetime.now()}.')
 
 
 
-def run():
+def run(batch_size):
     communities_to_delete = find_non_sdk_communities()
 
     start_time = datetime.datetime.now()  # Record start time
 
-    for community in communities_to_delete:
-        delete_community(community.id)
+    for i, community_id in enumerate(communities_to_delete):
+        if i >= batch_size:
+            break
+        delete_community(community_id)
 
     end_time = datetime.datetime.now()  # Record end time
     print("Total time taken by script: ", end_time - start_time)
