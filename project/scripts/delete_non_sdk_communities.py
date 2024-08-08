@@ -36,7 +36,7 @@ def find_non_sdk_communities():
     return non_sdk_community_ids
 
 
-def store_links_to_csv(community_id):
+def store_links_to_csv(community_id: int, batch_size=100):
 
     print(f'saving s3 links related to community with id: {community_id} in s3_url_list.csv')
     data = []
@@ -47,45 +47,49 @@ def store_links_to_csv(community_id):
         {
             'community': community_id
         }
-    ).values_list(
-        'id',
-        flat=True
-    )
+    ).values_list('id', flat=True).iterator()
 
-    for collabcard_id in collabcard_ids:
+    while True:
+        batch = list(islice(collabcard_ids, batch_size))
+        print('preview_conversation_ids: ', batch)
 
-        card_attachment = ModelUtilities.get_model_filter(
-            Card_Attachment,
-            {
-                'collabcard_id': collabcard_id
-            }
-        ).first()
+        if not batch:
+            break
 
-        if card_attachment:
-            # print(f'community_id: {community_id} collabcard_id: {collabcard_id}', card_attachment.file_url)
-            data.append({'community_id': community_id, 'collabcard_id': collabcard_id, 'url': card_attachment.file_url})
+        for collabcard_id in batch:
 
-        # events recordings attachments
-        event_recordings_attachments = ModelUtilities.get_model_filter(
-            EventRecordingsAttachments,
-            {
-                'chatroom_id': collabcard_id
-            }
-        ).values_list('url', 'thumbnail_url')
+            card_attachment = ModelUtilities.get_model_filter(
+                Card_Attachment,
+                {
+                    'collabcard_id': collabcard_id
+                }
+            ).first()
+
+            if card_attachment:
+                # print(f'community_id: {community_id} collabcard_id: {collabcard_id}', card_attachment.file_url)
+                data.append({'community_id': community_id, 'collabcard_id': collabcard_id, 'url': card_attachment.file_url})
+
+            # events recordings attachments
+            event_recordings_attachments = ModelUtilities.get_model_filter(
+                EventRecordingsAttachments,
+                {
+                    'chatroom_id': collabcard_id
+                }
+            ).values_list('url', 'thumbnail_url')
 
 
-        if event_recordings_attachments:
+            if event_recordings_attachments:
 
-            for attachment in event_recordings_attachments:
-                url, thumbnail_url = attachment  # Unpack the tuple into variables
+                for attachment in event_recordings_attachments:
+                    url, thumbnail_url = attachment  # Unpack the tuple into variables
 
-                if url:
-                    # print(f'community_id: {community_id} collabcard_id: {collabcard_id} url: {url}')
-                    data.append({'community_id': community_id, 'collabcard_id': collabcard_id,'url': url})
+                    if url:
+                        # print(f'community_id: {community_id} collabcard_id: {collabcard_id} url: {url}')
+                        data.append({'community_id': community_id, 'collabcard_id': collabcard_id,'url': url})
 
-                if thumbnail_url:
-                    # print(f'community_id: {community_id} collabcard_id: {collabcard_id} thumbnail_url: {thumbnail_url}')
-                    data.append({'community_id': community_id, 'collabcard_id': collabcard_id, 'url': thumbnail_url})
+                    if thumbnail_url:
+                        # print(f'community_id: {community_id} collabcard_id: {collabcard_id} thumbnail_url: {thumbnail_url}')
+                        data.append({'community_id': community_id, 'collabcard_id': collabcard_id, 'url': thumbnail_url})
 
     # answer attachment links
     card_answers_ids: list = ModelUtilities.get_model_filter(
@@ -93,23 +97,26 @@ def store_links_to_csv(community_id):
         {
             'community': community_id
         }
-    ).values_list(
-        'id',
-        flat=True
-    )
+    ).values_list('id', flat=True).iterator()
 
-    for card_answers_id in card_answers_ids:
+    while True:
+        batch = list(islice(card_answers_ids, batch_size))
 
-        answer_attachment = ModelUtilities.get_model_filter(
-            answerAttachment,
-            {
-                'answer_id': card_answers_id
-            }
-        ).first()
+        if not batch:
+            break
 
-        if answer_attachment:
-            # print(f'community_id: {community_id} card_answers_id: {card_answers_id}', answer_attachment.file_url)
-            data.append({'community_id': community_id, 'card_answers_id': card_answers_id, 'url': answer_attachment.file_url})
+        for card_answers_id in batch:
+
+            answer_attachment = ModelUtilities.get_model_filter(
+                answerAttachment,
+                {
+                    'answer_id': card_answers_id
+                }
+            ).first()
+
+            if answer_attachment:
+                # print(f'community_id: {community_id} card_answers_id: {card_answers_id}', answer_attachment.file_url)
+                data.append({'community_id': community_id, 'card_answers_id': card_answers_id, 'url': answer_attachment.file_url})
 
     # print('csv input: ', data)
     fields = ['community_id', 'collabcard_id', 'card_answers_id', 'url']
@@ -160,126 +167,133 @@ def delete_table_rows_in_batches(community_id: int, match_string, model, batch_s
     print(f"{model._meta.db_table} : {total_deleted} rows deleted, {rows_count_after_delete} rows remaining, PASSED")
 
 
-def delete_community_cache(community_id: int, batch_size: int = 100) -> None:
-    def delete_keys_in_batches(keys, delete_func, key_format):
-        for i in range(0, len(keys), batch_size):
-            batch = keys[i:i+batch_size]
-            for key in batch:
-                formatted_key = key_format % str(key)
-                status = delete_func(formatted_key)
-                print(f'deleting key: {formatted_key}, status: {status}')
+
+def delete_community_cache_in_batches(community_id: int, batch_size=100) -> None:
 
     print(f'deleting cache keys for community_id : {community_id} ...')
 
     # preview cache
-    community_preview_conversation_ids = list(ModelUtilities.get_model_filter(
+    community_preview_conversation_ids: list = ModelUtilities.get_model_filter(
         card_answers,
-        {'preview_community': community_id}
-    ).values_list('id', flat=True))
-    
-    print('preview_conversation_ids: ', community_preview_conversation_ids)
+        {
+            'preview_community': community_id
+        }
+    ).values_list('id', flat=True).iterator()
 
-    delete_keys_in_batches(
-        community_preview_conversation_ids, 
-        CacheImpl.delete_key, 
-        CONVERSATION_COMMUNITY_PREVIEW % ('%s', str(community_id))
-    )
+    while True:
+        batch = list(islice(community_preview_conversation_ids, batch_size))
+        print('preview_conversation_ids: ', batch)
+
+        if not batch:
+            break
+
+        for community_preview_conversation_id in batch:
+            community_preview_cache_key: str = CONVERSATION_COMMUNITY_PREVIEW % (str(community_preview_conversation_id), str(community_id))
+            cache_key_delete_status: bool = CacheImpl.delete_key(community_preview_cache_key)
+            print(f'deleting key: {community_preview_cache_key}, status: {cache_key_delete_status}')
+
 
     # conversation cache
-    conversation_ids = list(ModelUtilities.get_model_filter(
+    conversation_ids = ModelUtilities.get_model_filter(
         card_answers,
-        {'community': community_id}
-    ).values_list('id', flat=True))
-    
-    print('conversation_ids: ', conversation_ids)
+        {
+            'community': community_id
+        }
+    ).values_list('id', flat=True).iterator()
 
-    delete_keys_in_batches(
-        conversation_ids,
-        CacheImpl.delete_key,
-        CONVERSATION_POLL_OPTIONS_CONVERSATION_ID % '%s'
-    )
-    delete_keys_in_batches(
-        conversation_ids,
-        CacheImpl.delete_key,
-        CONVERSATION_POLL_VOTERS_CONVERSATION_ID % '%s'
-    )
-    delete_keys_in_batches(
-        conversation_ids,
-        CacheImpl.delete_key,
-        CONVERSATION_REACTIONS_CACHE_KEY % '%s'
-    )
-    delete_keys_in_batches(
-        conversation_ids,
-        CacheImpl.delete_key,
-        EVENT_ATTENDEES_CONVERSATION % '%s'
-    )
+    while True:
+        batch = list(islice(conversation_ids, batch_size))
+        print('conversation_ids: ', batch)
+
+        if not batch:
+            break
+
+        for conversation_id in batch:
+            poll_options_cache_key: str = CONVERSATION_POLL_OPTIONS_CONVERSATION_ID % str(conversation_id)
+            poll_options_cache_key_delete_status: bool = CacheImpl.delete_key(poll_options_cache_key)
+            print(f'deleting cache key: {poll_options_cache_key}, status: {poll_options_cache_key_delete_status}')
+
+            poll_voters_cache_key: str = CONVERSATION_POLL_VOTERS_CONVERSATION_ID % str(conversation_id)
+            poll_voters_cache_key_delete_status: bool = CacheImpl.delete_key(poll_voters_cache_key)
+            print(f'deleting cache key: {poll_voters_cache_key}, status: {poll_voters_cache_key_delete_status}')
+
+            reaction_cache_key: str = CONVERSATION_REACTIONS_CACHE_KEY % str(conversation_id)
+            reaction_cache_key_delete_status: bool = CacheImpl.delete_key(reaction_cache_key)
+            print(f'deleting cache key: {reaction_cache_key}, status: {reaction_cache_key_delete_status}')
+
+            conversation_event_attendees_cache_key = EVENT_ATTENDEES_CONVERSATION % str(conversation_id)
+            conversation_event_attendees_cache_key_delete_status: bool = CacheImpl.delete_key(conversation_event_attendees_cache_key)
+            print(f'deleting cache key: {conversation_event_attendees_cache_key}, status: {conversation_event_attendees_cache_key_delete_status}')
+
 
     # chatroom cache
-    chatroom_ids = list(ModelUtilities.get_model_filter(
+    chatroom_ids = ModelUtilities.get_model_filter(
         Collabcard,
-        {'community': community_id}
-    ).values_list('id', flat=True))
-    
-    print('chatroom_ids: ', chatroom_ids)
+        {
+            'community': community_id
+        }
+    ).values_list('id', flat=True).iterator()
 
-    delete_keys_in_batches(
-        chatroom_ids,
-        CacheImpl.delete_key,
-        CHATROOM_REACTIONS_CACHE_KEY % '%s'
-    )
-    delete_keys_in_batches(
-        chatroom_ids,
-        CacheImpl.delete_key,
-        CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format('%s')
-    )
-    delete_keys_in_batches(
-        chatroom_ids,
-        CacheImpl.delete_key,
-        CHATROOM_TYPE_CONVERSION.format('%s')
-    )
-    delete_keys_in_batches(
-        [community_id],
-        CacheImpl.delete_key,
-        COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY.format('%s')
-    )
-    delete_keys_in_batches(
-        chatroom_ids,
-        CacheImpl.delete_key,
-        EVENT_INSTRUCTORS_CHATROOM % '%s'
-    )
-    delete_keys_in_batches(
-        chatroom_ids,
-        CacheImpl.delete_key,
-        EVENT_HIGHLIGHTS_CHATROOM % '%s'
-    )
-    delete_keys_in_batches(
-        chatroom_ids,
-        CacheImpl.delete_key,
-        EVENT_MEMBERTESTIMONIALS_CHATROOM % '%s'
-    )
-    delete_keys_in_batches(
-        chatroom_ids,
-        CacheImpl.delete_key,
-        EVENT_FAQ_CHATROOM % '%s'
-    )
-    delete_keys_in_batches(
-        chatroom_ids,
-        CacheImpl.delete_key,
-        EVENT_ATTENDEES_CHATROOM % '%s'
-    )
+    while True:
+        batch = list(islice(chatroom_ids, batch_size))
+        print('chatroom_ids: ', batch)
+
+        if not batch:
+            break
+
+        for chatroom_id in batch:
+            chatroom_reactions_cache_key: str = CHATROOM_REACTIONS_CACHE_KEY % str(chatroom_id)
+            chatroom_reactions_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_reactions_cache_key)
+            print(f'deleting cache key: {chatroom_reactions_cache_key}, status: {chatroom_reactions_cache_key_delete_status}')
+
+            chatroom_participants_cache_key: str = CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY.format(chatroom_id)
+            chatroom_participants_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_participants_cache_key)
+            print(f'deleting cache key: {chatroom_participants_cache_key}, status: {chatroom_participants_cache_key_delete_status}')
+
+            chatroom_type_conversion_cache_key: str = CHATROOM_TYPE_CONVERSION.format(chatroom_id)
+            chatroom_type_conversion_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_type_conversion_cache_key)
+            print(f'deleting cache key: {chatroom_type_conversion_cache_key}, status: {chatroom_type_conversion_cache_key_delete_status}')
+
+            chatroom_list_cache_key: str = COMMUNITY_PINNED_CHATROOMS_LIST_CACHE_KEY.format(community_id)
+            chatroom_list_cache_key_delete_status: bool = CacheImpl.delete_key(chatroom_list_cache_key)
+            print(f'deleting cache key: {chatroom_list_cache_key}, status: {chatroom_list_cache_key_delete_status}')
+
+            event_instructors_cache_key = EVENT_INSTRUCTORS_CHATROOM % str(chatroom_id)
+            event_instructors_cache_key_delete_status: bool = CacheImpl.delete_key(event_instructors_cache_key)
+            print(f'deleting cache key: {event_instructors_cache_key}, status: {event_instructors_cache_key_delete_status}')
+
+            event_highlights_cache_key = EVENT_HIGHLIGHTS_CHATROOM % str(chatroom_id)
+            event_highlights_cache_key_delete_status: bool = CacheImpl.delete_key(event_highlights_cache_key)
+            print(f'deleting cache key: {event_highlights_cache_key}, status: {event_highlights_cache_key_delete_status}')
+
+            event_membertestimonials_cache_key = EVENT_MEMBERTESTIMONIALS_CHATROOM % str(chatroom_id)
+            event_membertestimonials_cache_key_delete_status: bool = CacheImpl.delete_key(event_membertestimonials_cache_key)
+            print(f'deleting cache key: {event_membertestimonials_cache_key}, status: {event_membertestimonials_cache_key_delete_status}')
+
+            event_faq_cache_key = EVENT_FAQ_CHATROOM % str(chatroom_id)
+            event_faq_cache_key_delete_status: bool = CacheImpl.delete_key(event_faq_cache_key)
+            print(f'deleting cache key: {event_faq_cache_key}, status: {event_faq_cache_key_delete_status}')
+
+            event_attendees_cache_key = EVENT_ATTENDEES_CHATROOM % str(chatroom_id)
+            event_attendees_cache_key_delete_status: bool = CacheImpl.delete_key(event_attendees_cache_key)
+            print(f'deleting cache key: {event_attendees_cache_key}, status: {event_attendees_cache_key_delete_status}')
 
     print(f'deleted cache keys for community_id : {community_id} ...')
 
 
 
 def delete_community(community_id: int):
+
     # store s3 links to a csv file
     store_links_to_csv(community_id)
     print(f'Upload the file: {CSV_FILENAME} to s3')
+
     # start delete operation
     print(f'starting delete operation for community with id : {community_id} at {datetime.datetime.now()}')
+
     # delete cache keys
-    delete_community_cache(community_id)
+    delete_community_cache_in_batches(community_id)
+
     # delete all tables
     delete_table_rows_in_batches(community_id, 'community_id', communityToast)
     delete_table_rows_in_batches(community_id, 'community_id_id', Members)
