@@ -40,7 +40,16 @@ class CacheImpl(CacheManager):
 
     @staticmethod
     def ping_cache():
-        redis_connection = redis.Redis(host=settings.CACHE_CREDENTIALS['host'], port=settings.CACHE_CREDENTIALS['port'])
+        redis_params = {
+            'host': settings.CACHE_CREDENTIALS['host'],
+            'port': settings.CACHE_CREDENTIALS['port']
+        }
+
+        if settings.IS_LOAD_ENV:
+            redis_params['password'] = settings.CACHE_CREDENTIALS['password']
+            redis_params['ssl'] = True
+
+        redis_connection = redis.Redis(**redis_params)
         redis_connection.ping()
 
     @staticmethod
