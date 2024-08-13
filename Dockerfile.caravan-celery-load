@@ -14,12 +14,11 @@ COPY ./project/requirements.txt requirements.txt
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENV SERVER_TYPE="CELERY"
 
 RUN pip3 install -r requirements.txt
 
 ADD . $WORKDIR
-
-ADD https://beta-likeminds-media.s3.ap-south-1.amazonaws.com/environment/load-test/caravan-load-test-dot-env ./project/project/settings/.env
 
 RUN mkdir /usr/src/app/project/utility/logs && \
     touch /usr/src/app/project/utility/logs/collabmates.log && \

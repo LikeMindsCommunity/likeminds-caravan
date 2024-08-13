@@ -37,6 +37,7 @@ FIREBASE_CONFIG = {
 # variable to check if ther server is beta server
 
 IS_BETA = False
+IS_LOAD_ENV = False
 
 TIME_ZONE = 'Asia/Kolkata'
 

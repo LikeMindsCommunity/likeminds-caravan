@@ -14,7 +14,7 @@ DATABASES = {
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
-        'PORT': '5432',
+        'PORT': os.getenv('DB_PORT'),
         'CONN_MAX_AGE': 600,
         'TEST': {
             'NAME': "db_test"
@@ -26,8 +26,9 @@ TIME_ZONE = 'Asia/Kolkata'
 
 # variable to check for beta server
 IS_BETA = True
+IS_LOAD_ENV = True
 
-ALLOWED_HOSTS = [os.getenv("ALLOWED_HOST_2"), os.getenv("ALLOWED_HOST_3"), os.getenv("ALLOWED_HOST_ELB")]
+ALLOWED_HOSTS = [os.getenv("ALLOWED_HOST_1"), os.getenv("ALLOWED_HOST_2"),os.getenv("ALLOWED_HOST_3"), os.getenv("ALLOWED_HOST_ELB")]
 
 FCM_SERVER_KEY = os.getenv('FCM_SERVER_KEY')
 
@@ -94,7 +95,8 @@ CACHES = {
 
 CACHE_CREDENTIALS = {
     'host': os.getenv('CACHE_HOST'),
-    'port': os.getenv('CACHE_PORT')
+    'port': os.getenv('CACHE_PORT'),
+    'password': os.getenv('CACHE_PASSWORD')
 }
 
 CALENDAR_CREDENTIALS = {
