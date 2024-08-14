@@ -83,7 +83,8 @@ from utility.states import member_states, card_types, click_states, member_right
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
     api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
-    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus, GuestFlowUserTypes
+    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus, GuestFlowUserTypes, \
+    ConnectionTypes
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -91,7 +92,7 @@ from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDI
                                FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION, 
                                PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION,
                                WIDGETS_METADATA_CONFIGURATION, PERSONALISED_FEED_WEIGHTS, FEED_SETTINGS_CONFIGURATION,
-                               CREATE_FEED_POLL_COMMUNITY_VALUES)
+                               CREATE_FEED_POLL_COMMUNITY_VALUES, CONNECTION_FEED_CONFIGURATION)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -5882,6 +5883,20 @@ class CommunityHelper:
                     community_id=community_id, user_id=user_id,
                     key_pattern=SWARM_TOP_LIKED_COMMENTS_CACHE_KEY.format(community_id))
 
+        elif configuration_type == CONNECTION_FEED_CONFIGURATION:
+
+            if update_values.get('connection_type') and isinstance(update_values.get('connection_type'), str) and \
+                    update_values.get('connection_type') in [ConnectionTypes.ONE_WAY.value,
+                                                             ConnectionTypes.TWO_WAY.value]:
+                configuration_value['connection_type'] = update_values.get('connection_type')
+                record_updated = True
+
+            if (update_values.get('connection_request_auto_accepted') is not None) and isinstance(
+                    update_values.get('connection_request_auto_accepted'), bool):
+                configuration_value['connection_request_auto_accepted'] = \
+                    update_values.get('connection_request_auto_accepted')
+                record_updated = True
+
         elif configuration_type == PROFILE_METADATA_CONFIGURATION:
             
             if (update_values.get('widgets_enabled') is not None) and isinstance(
@@ -6059,7 +6074,7 @@ class CommunityHelper:
 
             # Call SWARM api to delete cache key to update configurations
             if configuration_type in [FEED_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION,
-                                      PERSONALISED_FEED_WEIGHTS]:
+                                      PERSONALISED_FEED_WEIGHTS, CONNECTION_FEED_CONFIGURATION]:
                 InternalServiceUtilities.delete_cache_from_swarm_service.delay(
                     community_id=community_id, user_id=user_id, 
                     cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))

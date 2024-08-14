@@ -1004,6 +1004,11 @@ class ConnectionStates(enum.Enum):
     DISCONNECTED = "disconnected"
 
 
+class ConnectionTypes(enum.Enum):
+    ONE_WAY = "one_way"
+    TWO_WAY = "two_way"
+
+
 class AttachmentTypes:
     GIF = "gif"
 
@@ -1043,3 +1048,4 @@ class CommunityConfigurationTypes(enum.Enum):
     PROFILE_METADATA = "profile_metadata"
     NSFW_FILTERING = "nsfw_filtering"
     GUEST_FLOW_METADATA = "guest_flow_metadata"
+    CONNECTION_FEED_CONFIGURATIONS = "connection_feed_metadata"

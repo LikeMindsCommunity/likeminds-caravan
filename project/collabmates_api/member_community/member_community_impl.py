@@ -17,7 +17,7 @@ from utility.celery_tasks import (update_chatroom_conversation_creators_in_cache
 from utility.states import (member_states, card_types, deleted_members, question_states, conversation_states,
                             member_rights, community_setting_types, SyncTypes, api_version_headers, dm_icon_from_states,
                             access_types, feed_order_types, ConnectionRequestActions, ConnectionRequestStatus, 
-                            ConnectionStates)
+                            ConnectionStates, ConnectionTypes, CommunityConfigurationTypes)
 from utility.utils import (get_time_text_for_my_chatrooms, is_version_code_supported_for_intro_room,
                            create_notification_flag, fetch_notification_flag)
 from togther.models import (Member_Engage, Community, Members, collabcardState, ModelUtilities, removedMembers,
@@ -2287,11 +2287,23 @@ class MemberCommunityImpl(MemberCommunityManager):
         return {'success': True}
 
     @staticmethod
-    def get_connection_request(community_instance, user1_id, user2_id):
+    def get_connection_request(community_instance, user1_id, user2_id,
+                               connection_type: str = ConnectionTypes.TWO_WAY.value):
+        request_by_ids_list = []
+        request_with_ids_list = []
+
+        if connection_type == ConnectionTypes.ONE_WAY.value:
+            request_by_ids_list = [user1_id]
+            request_with_ids_list = [user2_id]
+
+        elif connection_type == ConnectionTypes.TWO_WAY.value:
+            request_by_ids_list = [user1_id, user2_id]
+            request_with_ids_list = [user1_id, user2_id]
+
         connection_request = ModelUtilities.get_model_filter(ConnectionRequest, {
             'community': community_instance,
-            'request_by_id__in': [user1_id, user2_id],
-            'request_to_id__in': [user2_id, user1_id]
+            'request_by_id__in': request_by_ids_list,
+            'request_to_id__in': request_with_ids_list
         })
 
         return connection_request
@@ -2316,7 +2328,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         return list(user_ids)
 
     @staticmethod
-    def create_new_connection_request(community_instance, request_by_id, request_to_id):
+    def create_new_connection_request(community_instance, request_by_id, request_to_id,
+                                      connection_type: str = ConnectionTypes.TWO_WAY.value):
         new_connection_request = ModelUtilities.update_or_create_model(ConnectionRequest, {
             'community': community_instance,
             'request_by_id': request_by_id,
@@ -2328,26 +2341,50 @@ class MemberCommunityImpl(MemberCommunityManager):
             data = {
                 "request_by": request_by_id,
                 "request_to": request_to_id,
-                "community_id": community_instance.id
+                "community_id": community_instance.id,
+                "connection_type": connection_type
             }
             info_logger.info(f"Event Name: Connection Request Created, Data: {data}")
 
         return new_connection_request
 
     @staticmethod
-    def delete_connection_requests(community_instance, user1_id, user2_id):
+    def delete_connection_requests(community_instance, user1_id, user2_id,
+                                   connection_type: str = ConnectionTypes.TWO_WAY.value):
+        request_by_ids_list = []
+        request_with_ids_list = []
+
+        if connection_type == ConnectionTypes.ONE_WAY.value:
+            request_by_ids_list = [user1_id]
+            request_with_ids_list = [user2_id]
+
+        elif connection_type == ConnectionTypes.TWO_WAY.value:
+            request_by_ids_list = [user1_id, user2_id]
+            request_with_ids_list = [user1_id, user2_id]
+
         ModelUtilities.delete_record_in_model(ConnectionRequest, {
             'community': community_instance,
-            'request_by_id__in': [user1_id, user2_id],
-            'request_to_id__in': [user2_id, user1_id]
+            'request_by_id__in': request_by_ids_list,
+            'request_to_id__in': request_with_ids_list
         })
 
     @staticmethod
-    def get_connections(community_instance, user1_id, user2_id):
+    def get_connections(community_instance, user1_id, user2_id, connection_type: str = ConnectionTypes.TWO_WAY.value):
+        connection_by_ids_list = []
+        connection_with_ids_list = []
+
+        if connection_type == ConnectionTypes.ONE_WAY.value:
+            connection_by_ids_list = [user1_id]
+            connection_with_ids_list = [user2_id]
+
+        elif connection_type == ConnectionTypes.TWO_WAY.value:
+            connection_by_ids_list = [user1_id, user2_id]
+            connection_with_ids_list = [user1_id, user2_id]
+
         connection = ModelUtilities.get_model_filter(Connection, {
             'community': community_instance,
-            'connection_by_id__in': [user1_id, user2_id],
-            'connection_with_id__in': [user2_id, user1_id]
+            'connection_by_id__in': connection_by_ids_list,
+            'connection_with_id__in': connection_with_ids_list
         })
 
         return connection
@@ -2372,21 +2409,31 @@ class MemberCommunityImpl(MemberCommunityManager):
         return list(user_ids)
 
     @staticmethod
-    def create_new_connection(community_instance, user1_id, user2_id):
-        new_first_connection = ModelUtilities.update_or_create_model(Connection, {
-            'community': community_instance,
-            'connection_by_id': user1_id,
-            'connection_with_id': user2_id
-        }, {})
+    def create_new_connection(community_instance, user1_id, user2_id,
+                              connection_type: str = ConnectionTypes.TWO_WAY.value):
 
-        new_second_connection = ModelUtilities.update_or_create_model(Connection, {
-            'community': community_instance,
-            'connection_by_id': user2_id,
-            'connection_with_id': user1_id
-        }, {})
+        should_delete_connection_request = False
 
-        if new_first_connection and new_second_connection:
-            MemberCommunityImpl.delete_connection_requests(community_instance, user1_id, user2_id)
+        if connection_type in [ConnectionTypes.ONE_WAY.value, ConnectionTypes.TWO_WAY.value]:
+            ModelUtilities.update_or_create_model(Connection, {
+                'community': community_instance,
+                'connection_by_id': user1_id,
+                'connection_with_id': user2_id
+            }, {})
+
+            should_delete_connection_request = True
+
+        if connection_type in [ConnectionTypes.TWO_WAY.value]:
+            ModelUtilities.update_or_create_model(Connection, {
+                'community': community_instance,
+                'connection_by_id': user2_id,
+                'connection_with_id': user1_id
+            }, {})
+
+            should_delete_connection_request = True
+
+        if should_delete_connection_request:
+            MemberCommunityImpl.delete_connection_requests(community_instance, user1_id, user2_id, connection_type)
 
             # log the event
             data = {
@@ -2400,23 +2447,51 @@ class MemberCommunityImpl(MemberCommunityManager):
                 community_instance.id, user1_id, user2_id, ConnectionStates.CONNECTED.value)
 
     @staticmethod
-    def delete_connection(community_instance, user1_id, user2_id):
+    def delete_connection(community_instance, user1_id, user2_id, connection_type: str = ConnectionTypes.TWO_WAY.value):
+        connection_by_ids_list = []
+        connection_with_ids_list = []
+
+        if connection_type == ConnectionTypes.ONE_WAY.value:
+            connection_by_ids_list = [user1_id]
+            connection_with_ids_list = [user2_id]
+
+        elif connection_type == ConnectionTypes.TWO_WAY.value:
+            connection_by_ids_list = [user1_id, user2_id]
+            connection_with_ids_list = [user1_id, user2_id]
+
         ModelUtilities.delete_record_in_model(Connection, {
             'community': community_instance,
-            'connection_by_id__in': [user1_id, user2_id],
-            'connection_with_id__in': [user2_id, user1_id]
+            'connection_by_id__in': connection_by_ids_list,
+            'connection_with_id__in': connection_with_ids_list
         })
 
         # log the event
         data = {
             "disconnected_by": user1_id,
             "disconnected_with": user2_id,
-            "community_id": community_instance.id
+            "community_id": community_instance.id,
+            "connection_type": connection_type
         }
         info_logger.info(f"Event Name: Connection Disconnected, Data: {data}")
 
         MemberCommunityHelper.update_connection_data_cache_in_swarm_service.delay(
             community_instance.id, user1_id, user2_id, ConnectionStates.DISCONNECTED.value)
+
+    @staticmethod
+    def get_connection_feed_configurations(community_instance) -> dict:
+        connection_feed_configuration_metadata = {}
+
+        from collabmates_api.community.community_impl import CommunityHelper
+        connection_feed_community_configuration = CommunityHelper.fetch_or_return_default_community_configurations(
+            community_instance, [CommunityConfigurationTypes.CONNECTION_FEED_CONFIGURATIONS.value])
+
+        if len(connection_feed_community_configuration):
+            connection_feed_community_configuration = connection_feed_community_configuration[0]
+
+        if connection_feed_community_configuration and isinstance(connection_feed_community_configuration, dict):
+            connection_feed_configuration_metadata = connection_feed_community_configuration.get('value')
+
+        return connection_feed_configuration_metadata
 
     def create_connection_request(self, user_uuid) -> dict:
         validated_request = MemberCommunityHelper.validate_create_connection_request(self.get_member_id(),
@@ -2431,61 +2506,82 @@ class MemberCommunityImpl(MemberCommunityManager):
         requesting_user_instance = validated_request.get('requesting_user_instance')
         requested_user_instance = validated_request.get('requested_user_instance')
 
+        # Get connection feed configurations
+        connection_feed_configuration_metadata = self.get_connection_feed_configurations(community_instance)
+        connection_type = connection_feed_configuration_metadata.get('connection_type')
+        should_auto_accept_connection_request = connection_feed_configuration_metadata.get(
+            'connection_request_auto_accepted')
+
         if MemberCommunityImpl.get_connections(community_instance,
                                                requesting_user_instance.id,
-                                               requested_user_instance.id):
+                                               requested_user_instance.id,
+                                               connection_type):
             return ResponseUtilities.get_impl_error_context("Connection already exists",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         if MemberCommunityImpl.get_connection_request(community_instance,
                                                       requesting_user_instance.id,
-                                                      requested_user_instance.id):
+                                                      requested_user_instance.id,
+                                                      connection_type):
             return ResponseUtilities.get_impl_error_context("Connection request already exists",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         MemberCommunityImpl.create_new_connection_request(community_instance,
                                                           requesting_user_instance.id,
-                                                          requested_user_instance.id)
+                                                          requested_user_instance.id,
+                                                          connection_type)
+
+        if should_auto_accept_connection_request:
+            self.update_connection_request(user_uuid,
+                                           action=ConnectionRequestActions.ACCEPT.value,
+                                           auto_approve=should_auto_accept_connection_request)
 
         return {'success': True}
 
     @staticmethod
-    def accept_connection_request(community_instance, member_id, user_id):
-        connection = MemberCommunityImpl.get_connections(community_instance, member_id, user_id)
+    def accept_connection_request(community_instance, member_id, user_id,
+                                  connection_type: str = ConnectionTypes.TWO_WAY.value,
+                                  auto_approve: bool = False):
+        connection = MemberCommunityImpl.get_connections(community_instance, member_id, user_id, connection_type)
 
         if connection:
             return ResponseUtilities.get_inner_error_context("Connection already exists")
 
-        connection_requests = MemberCommunityImpl.get_connection_request(community_instance, member_id, user_id)
+        connection_requests = MemberCommunityImpl.get_connection_request(community_instance, member_id, user_id,
+                                                                         connection_type)
 
         if not connection_requests:
             return ResponseUtilities.get_inner_error_context("Connection request doesn't exist")
 
-        connection_request = connection_requests[0]
+        connection_request = connection_requests.first()
 
-        if connection_request.request_by_id == member_id and connection_request.request_to_id == user_id:
+        if all([connection_request.request_by_id == member_id,
+                connection_request.request_to_id == user_id,
+                not auto_approve]):
             return ResponseUtilities.get_inner_error_context("You can't approve your request")
 
-        MemberCommunityImpl.create_new_connection(community_instance, member_id, user_id)
+        MemberCommunityImpl.create_new_connection(community_instance, member_id, user_id, connection_type)
 
         return {'success': True}
 
     @staticmethod
-    def reject_connection_request(community_instance, member_id, user_id):
-        connection = MemberCommunityImpl.get_connections(community_instance, member_id, user_id)
+    def reject_connection_request(community_instance, member_id, user_id,
+                                  connection_type: str = ConnectionTypes.TWO_WAY.value):
+        connection = MemberCommunityImpl.get_connections(community_instance, member_id, user_id, connection_type)
 
         if connection:
-            MemberCommunityImpl.delete_connection(community_instance, member_id, user_id)
+            MemberCommunityImpl.delete_connection(community_instance, member_id, user_id, connection_type)
             return {'success': True}
 
-        connection_requests = MemberCommunityImpl.get_connection_request(community_instance, member_id, user_id)
+        connection_requests = MemberCommunityImpl.get_connection_request(community_instance, member_id, user_id,
+                                                                         connection_type)
 
         if not connection_requests:
             return ResponseUtilities.get_inner_error_context("Connection request doesn't exist")
 
         connection_request = connection_requests[0]
 
-        MemberCommunityImpl.delete_connection_requests(community_instance, member_id, user_id)
+        MemberCommunityImpl.delete_connection_requests(community_instance, member_id, user_id, connection_type)
 
         event_name = "Connection Request Rejected"
 
@@ -2496,13 +2592,14 @@ class MemberCommunityImpl(MemberCommunityManager):
         data = {
             "request_by": connection_request.request_by_id,
             "request_to": connection_request.request_to_id,
-            "community_id": community_instance.id
+            "community_id": community_instance.id,
+            "connection_type": connection_type
         }
         info_logger.info(f"Event Name: {event_name}, Data: {data}")
 
         return {'success': True}
 
-    def update_connection_request(self, user_uuid, action) -> dict:
+    def update_connection_request(self, user_uuid, action, auto_approve: bool = False) -> dict:
         validated_request = MemberCommunityHelper.validate_update_connection_request(self.get_member_id(),
                                                                                      self.get_api_key(),
                                                                                      user_uuid, action)
@@ -2515,10 +2612,16 @@ class MemberCommunityImpl(MemberCommunityManager):
         requesting_user_instance = validated_request.get('requesting_user_instance')
         requested_user_instance = validated_request.get('requested_user_instance')
 
+        # Get connection feed configurations
+        connection_feed_configuration_metadata = self.get_connection_feed_configurations(community_instance)
+        connection_type = connection_feed_configuration_metadata.get('connection_type')
+
         if action == ConnectionRequestActions.ACCEPT.value:
             accept_connection = MemberCommunityImpl.accept_connection_request(community_instance,
                                                                               requesting_user_instance.id,
-                                                                              requested_user_instance.id)
+                                                                              requested_user_instance.id,
+                                                                              connection_type,
+                                                                              auto_approve)
 
             if accept_connection.get('error_message'):
                 return ResponseUtilities.get_impl_error_context(accept_connection.get('error_message'),
@@ -2527,7 +2630,8 @@ class MemberCommunityImpl(MemberCommunityManager):
         elif action == ConnectionRequestActions.REJECT.value:
             reject_connection = MemberCommunityImpl.reject_connection_request(community_instance,
                                                                               requesting_user_instance.id,
-                                                                              requested_user_instance.id )
+                                                                              requested_user_instance.id,
+                                                                              connection_type)
 
             if reject_connection.get('error_message'):
                 return ResponseUtilities.get_impl_error_context(reject_connection.get('error_message'),

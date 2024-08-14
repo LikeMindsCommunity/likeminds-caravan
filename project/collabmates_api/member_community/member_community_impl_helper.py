@@ -20,7 +20,7 @@ from utility.states import (card_types, community_setting_types, member_states, 
                             conversation_states, DMFabShowList, api_types, get_started_types, click_states,
                             moderation_history_types, access_types, feed_order_types, WebhookTypes,
                             webhook_profile_methods, deleted_members, report_action_types, SyncNotificationTypes,
-                            ConnectionRequestActions, ConnectionRequestStatus)
+                            ConnectionRequestActions, ConnectionRequestStatus, ConnectionTypes)
 from utility.utils import (get_time_text_for_my_chatrooms)
 from utility.celery_tasks import (create_member_dm_chatroom, update_community_pin_chatrooms_list_in_cache,
                                   update_preview_for_account_image_change, update_multiple_previews_in_community)
