@@ -2673,3 +2673,46 @@ class MemberCommunityImpl(MemberCommunityManager):
         users_data = MemberCommunityHelper.parse_users_dict_for_lm_id_mapping(users_data)
 
         return {'success': True, 'connections': serialized_data, 'users': users_data}
+
+    def fetch_connection_meta(self, user_uuid: str) -> dict:
+        validated_request = MemberCommunityHelper.validate_fetch_connection_meta_request(self.get_member_id(),
+                                                                                         self.get_api_key(),
+                                                                                         self.get_community_id(),
+                                                                                         user_uuid)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        requesting_user_instance = validated_request.get('requesting_user_instance')
+        requested_user_instance = validated_request.get('requested_user_instance')
+
+        # Get followers count
+        followers_count_filter = {
+            'community': community_instance,
+            'connection_with': requested_user_instance
+        }
+        followers_count = ModelUtilities.get_model_filter(Connection, followers_count_filter).count()
+
+        # Get followings count
+        followings_count_filter = {
+            'community': community_instance,
+            'connection_by': requested_user_instance
+        }
+        followings_count = ModelUtilities.get_model_filter(Connection, followings_count_filter).count()
+
+        # Get follow status
+        follow_status_filter = {
+            'community': community_instance,
+            'connection_by': requesting_user_instance,
+            'connection_with': requested_user_instance
+        }
+        is_following = True if ModelUtilities.get_model_filter(Connection, follow_status_filter).first() else False
+
+        return {
+            'success': True,
+            'followers_count': followers_count,
+            'followings_count': followings_count,
+            'follow_status': is_following,
+        }

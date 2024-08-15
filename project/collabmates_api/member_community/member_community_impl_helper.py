@@ -1911,6 +1911,26 @@ class MemberCommunityHelper:
         return validated_request
 
     @staticmethod
+    def validate_fetch_connection_meta_request(requesting_user_id, api_key, community_id, requested_user_id):
+        validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key,
+                                                                            requested_user_id, community_id)
+
+        if validated_request.get('error_message'):
+            return validated_request
+
+        community_instance = validated_request.get('community_instance')
+
+        community_setting = ModelUtilities.get_model_filter(CommunitySettings,
+                                                            {'community': community_instance,
+                                                             'setting_type': community_setting_types.USER_CONNECTION,
+                                                             'enabled': True})
+
+        if not community_setting:
+            return ResponseUtilities.get_inner_error_context("Enable User Connection Setting to use this api")
+
+        return validated_request
+
+    @staticmethod
     def parse_users_dict_for_lm_id_mapping(users):
         output = {}
 

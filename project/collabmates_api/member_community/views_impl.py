@@ -903,3 +903,26 @@ class ConnectionView(APIView):
             return JsonResponse(context['data'], status=context['status'])
 
         return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
+
+
+class ConnectionMetaView(APIView):
+
+    def get(self, request, user_uuid):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        request_platform = RequestUtilities.get_platform_code_with_sdk(request)
+        version_code = RequestUtilities.get_version_code_from_headers(request)
+        request_params = RequestUtilities.fetch_request_query_params(request)
+
+        member_community_manager = MemberCommunityImpl(member_id=member_id, platform_code=request_platform,
+                                                       version_code=version_code, api_key=api_key,
+                                                       community_id=request_params.get('community_id'))
+
+        response_data = member_community_manager.fetch_connection_meta(user_uuid)
+
+        if 'error_message' in response_data:
+            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
+                                                                    response_data['status'])
+            return JsonResponse(context['data'], status=context['status'])
+
+        return JsonResponse(response_data, status=status_codes.HTTP_200_OK)

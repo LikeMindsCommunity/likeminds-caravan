@@ -219,3 +219,8 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
         """Method to fetch the connections data"""
 
         raise NotImplementedError
+
+    def fetch_connection_meta(self, user_uuid: str) -> dict:
+        """Method to fetch the connection meta data"""
+
+        raise NotImplementedError
