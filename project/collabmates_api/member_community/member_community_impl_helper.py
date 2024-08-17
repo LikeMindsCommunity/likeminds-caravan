@@ -1948,7 +1948,8 @@ class MemberCommunityHelper:
 
     @staticmethod
     @shared_task
-    def update_connection_data_cache_in_swarm_service(community_id, member_id, user_id, connection_status):
+    def update_connection_data_cache_in_swarm_service(community_id, member_id, user_id, connection_status,
+                                                      connection_type):
         user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
         member_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': member_id}).first()
         sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id,
@@ -1971,7 +1972,8 @@ class MemberCommunityHelper:
 
         # Add patch request body
         client.update_body({
-            "status": connection_status
+            "status": connection_status,
+            "connection_type": connection_type
         })
 
         # Send patch request

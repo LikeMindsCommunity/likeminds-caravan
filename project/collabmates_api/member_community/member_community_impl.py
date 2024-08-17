@@ -2444,7 +2444,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             info_logger.info(f"Event Name: Connection Connected, Data: {data}")
 
             MemberCommunityHelper.update_connection_data_cache_in_swarm_service.delay(
-                community_instance.id, user1_id, user2_id, ConnectionStates.CONNECTED.value)
+                community_instance.id, user1_id, user2_id, ConnectionStates.CONNECTED.value, connection_type)
 
     @staticmethod
     def delete_connection(community_instance, user1_id, user2_id, connection_type: str = ConnectionTypes.TWO_WAY.value):
@@ -2475,7 +2475,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         info_logger.info(f"Event Name: Connection Disconnected, Data: {data}")
 
         MemberCommunityHelper.update_connection_data_cache_in_swarm_service.delay(
-            community_instance.id, user1_id, user2_id, ConnectionStates.DISCONNECTED.value)
+            community_instance.id, user1_id, user2_id, ConnectionStates.DISCONNECTED.value, connection_type)
 
     def create_connection_request(self, user_uuid, connection_type: str,
                                   connection_request_auto_accepted: bool) -> dict:
@@ -2528,7 +2528,15 @@ class MemberCommunityImpl(MemberCommunityManager):
         if connection:
             return ResponseUtilities.get_inner_error_context("Connection already exists")
 
-        connection_requests = MemberCommunityImpl.get_connection_request(community_instance, user_id, member_id,
+        if auto_approve:
+            user1_id = member_id
+            user2_id = user_id
+
+        else:
+            user1_id = user_id
+            user2_id = member_id
+
+        connection_requests = MemberCommunityImpl.get_connection_request(community_instance, user1_id, user2_id,
                                                                          connection_type)
 
         if not connection_requests:
