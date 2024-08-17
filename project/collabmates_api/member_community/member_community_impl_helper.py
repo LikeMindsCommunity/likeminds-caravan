@@ -1825,7 +1825,7 @@ class MemberCommunityHelper:
         }
 
     @staticmethod
-    def validate_create_connection_request(requesting_user_id, api_key, requested_user_id):
+    def validate_create_connection_request(requesting_user_id, api_key, requested_user_id, connection_type):
         validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key,
                                                                             requested_user_id)
 
@@ -1847,10 +1847,13 @@ class MemberCommunityHelper:
         if requesting_user.id == requested_user.id:
             return ResponseUtilities.get_inner_error_context("You can't request a connection to yourself")
 
+        if connection_type not in [ConnectionTypes.ONE_WAY.value, ConnectionTypes.TWO_WAY.value]:
+            return ResponseUtilities.get_inner_error_context("Invalid connection type sent")
+
         return validated_request
 
     @staticmethod
-    def validate_update_connection_request(requesting_user_id, api_key, requested_user_id, action):
+    def validate_update_connection_request(requesting_user_id, api_key, requested_user_id, action, connection_type):
         validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key,
                                                                             requested_user_id)
 
@@ -1874,6 +1877,9 @@ class MemberCommunityHelper:
 
         if action not in [ConnectionRequestActions.ACCEPT.value, ConnectionRequestActions.REJECT.value]:
             return ResponseUtilities.get_inner_error_context("Invalid connection action sent")
+
+        if connection_type not in [ConnectionTypes.ONE_WAY.value, ConnectionTypes.TWO_WAY.value]:
+            return ResponseUtilities.get_inner_error_context("Invalid connection type sent")
 
         return validated_request
 

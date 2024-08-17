@@ -1048,7 +1048,6 @@ class CommunityConfigurationTypes(enum.Enum):
     PROFILE_METADATA = "profile_metadata"
     NSFW_FILTERING = "nsfw_filtering"
     GUEST_FLOW_METADATA = "guest_flow_metadata"
-    CONNECTION_FEED_CONFIGURATIONS = "connection_feed_metadata"
 
 
 class ChatroomSearchOrderBy(enum.Enum):

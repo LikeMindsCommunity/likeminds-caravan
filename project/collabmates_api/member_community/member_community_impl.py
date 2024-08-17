@@ -2477,26 +2477,12 @@ class MemberCommunityImpl(MemberCommunityManager):
         MemberCommunityHelper.update_connection_data_cache_in_swarm_service.delay(
             community_instance.id, user1_id, user2_id, ConnectionStates.DISCONNECTED.value)
 
-    @staticmethod
-    def get_connection_feed_configurations(community_instance) -> dict:
-        connection_feed_configuration_metadata = {}
-
-        from collabmates_api.community.community_impl import CommunityHelper
-        connection_feed_community_configuration = CommunityHelper.fetch_or_return_default_community_configurations(
-            community_instance, [CommunityConfigurationTypes.CONNECTION_FEED_CONFIGURATIONS.value])
-
-        if len(connection_feed_community_configuration):
-            connection_feed_community_configuration = connection_feed_community_configuration[0]
-
-        if connection_feed_community_configuration and isinstance(connection_feed_community_configuration, dict):
-            connection_feed_configuration_metadata = connection_feed_community_configuration.get('value')
-
-        return connection_feed_configuration_metadata
-
-    def create_connection_request(self, user_uuid) -> dict:
+    def create_connection_request(self, user_uuid, connection_type: str,
+                                  connection_request_auto_accepted: bool) -> dict:
         validated_request = MemberCommunityHelper.validate_create_connection_request(self.get_member_id(),
                                                                                      self.get_api_key(),
-                                                                                     user_uuid)
+                                                                                     user_uuid,
+                                                                                     connection_type)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2505,12 +2491,6 @@ class MemberCommunityImpl(MemberCommunityManager):
         community_instance = validated_request.get('community_instance')
         requesting_user_instance = validated_request.get('requesting_user_instance')
         requested_user_instance = validated_request.get('requested_user_instance')
-
-        # Get connection feed configurations
-        connection_feed_configuration_metadata = self.get_connection_feed_configurations(community_instance)
-        connection_type = connection_feed_configuration_metadata.get('connection_type')
-        should_auto_accept_connection_request = connection_feed_configuration_metadata.get(
-            'connection_request_auto_accepted')
 
         if MemberCommunityImpl.get_connections(community_instance,
                                                requesting_user_instance.id,
@@ -2531,10 +2511,10 @@ class MemberCommunityImpl(MemberCommunityManager):
                                                           requested_user_instance.id,
                                                           connection_type)
 
-        if should_auto_accept_connection_request:
+        if connection_request_auto_accepted:
             self.update_connection_request(user_uuid,
                                            action=ConnectionRequestActions.ACCEPT.value,
-                                           auto_approve=should_auto_accept_connection_request)
+                                           auto_approve=connection_request_auto_accepted)
 
         return {'success': True}
 
@@ -2599,10 +2579,10 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return {'success': True}
 
-    def update_connection_request(self, user_uuid, action, auto_approve: bool = False) -> dict:
+    def update_connection_request(self, user_uuid, action, connection_type: str, auto_approve: bool = False) -> dict:
         validated_request = MemberCommunityHelper.validate_update_connection_request(self.get_member_id(),
                                                                                      self.get_api_key(),
-                                                                                     user_uuid, action)
+                                                                                     user_uuid, action, connection_type)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -2611,10 +2591,6 @@ class MemberCommunityImpl(MemberCommunityManager):
         community_instance = validated_request.get('community_instance')
         requesting_user_instance = validated_request.get('requesting_user_instance')
         requested_user_instance = validated_request.get('requested_user_instance')
-
-        # Get connection feed configurations
-        connection_feed_configuration_metadata = self.get_connection_feed_configurations(community_instance)
-        connection_type = connection_feed_configuration_metadata.get('connection_type')
 
         if action == ConnectionRequestActions.ACCEPT.value:
             accept_connection = MemberCommunityImpl.accept_connection_request(community_instance,

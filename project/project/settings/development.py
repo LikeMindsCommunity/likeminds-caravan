@@ -26,6 +26,7 @@ TIME_ZONE = 'Asia/Kolkata'
 
 # variable to check for beta server
 IS_BETA = True
+IS_LOAD_ENV = False
 
 ALLOWED_HOSTS = [os.getenv("DEVELOPMENT_ALLOWED_HOST_2"), os.getenv("DEVELOPMENT_ALLOWED_HOST_3")]
 

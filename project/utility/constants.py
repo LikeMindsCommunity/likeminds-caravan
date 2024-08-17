@@ -128,7 +128,6 @@ WIDGETS_METADATA_CONFIGURATION = "widgets_metadata"
 GUEST_FLOW_METADATA_CONFIGURATION = "guest_flow_metadata"
 FEED_SETTINGS_CONFIGURATION = "feed_settings"
 PERSONALISED_FEED_WEIGHTS = "personalised_feed_weights"
-CONNECTION_FEED_CONFIGURATION = "connection_feed_metadata"
 
 # Community Configurations
 COMMUNITY_CONFIGURATIONS = {
@@ -233,16 +232,6 @@ COMMUNITY_CONFIGURATIONS = {
                 "weight": 0,
                 "max_threshold": 0
             }
-        }
-    },
-    CONNECTION_FEED_CONFIGURATION:
-    {
-        "type": "connection_feed_metadata",
-        "description": "Connection feed configuration in the community",
-        "value":
-        {
-            "connection_type": "two_way",
-            "connection_request_auto_accepted": False
         }
     }
 }
