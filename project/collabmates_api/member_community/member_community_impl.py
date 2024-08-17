@@ -2514,6 +2514,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         if connection_request_auto_accepted:
             self.update_connection_request(user_uuid,
                                            action=ConnectionRequestActions.ACCEPT.value,
+                                           connection_type=connection_type,
                                            auto_approve=connection_request_auto_accepted)
 
         return {'success': True}
@@ -2527,7 +2528,7 @@ class MemberCommunityImpl(MemberCommunityManager):
         if connection:
             return ResponseUtilities.get_inner_error_context("Connection already exists")
 
-        connection_requests = MemberCommunityImpl.get_connection_request(community_instance, member_id, user_id,
+        connection_requests = MemberCommunityImpl.get_connection_request(community_instance, user_id, member_id,
                                                                          connection_type)
 
         if not connection_requests:

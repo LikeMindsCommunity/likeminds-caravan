@@ -898,8 +898,8 @@ class ConnectionView(APIView):
         member_community_manager = MemberCommunityImpl(member_id=member_id, platform_code=request_platform,
                                                        version_code=version_code, api_key=api_key)
         response_data = member_community_manager.update_connection_request(user_uuid,
-                                                                           request_body.get('connection_type'),
-                                                                           request_body.get('action'))
+                                                                           request_body.get('action'),
+                                                                           request_body.get('connection_type'))
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
