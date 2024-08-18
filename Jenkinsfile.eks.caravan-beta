@@ -1,5 +1,11 @@
 pipeline {
     agent any
+
+    parameters {
+        booleanParam(name: 'run_migrations', defaultValue: false, description: 'Run migrations on the migration instance')
+        string(name: 'migration_server_IP', defaultValue: '10.51.143.85', description: 'Migration instance server IP')
+    }
+
     stages {
         stage("Checkout code") {
             steps {
@@ -8,6 +14,9 @@ pipeline {
          }
 
          stage("Executing the Script Migration step for caravan-beta") {
+            when {
+                expression { params.run_migrations == true }
+            }
             steps {
                 script{
                     sh """ssh -tt -i "/var/lib/jenkins/.ssh/id_rsa" root@$migration_server_IP << EOF
