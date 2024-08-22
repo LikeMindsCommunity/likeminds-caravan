@@ -5333,7 +5333,7 @@ def get_ordered_chatrooms_data_on_unseen_count(user_id, community_id: str = None
 def get_mau_overview_data_for_community(community_id, no_of_months):
 
     if not community_id or not no_of_months:
-        return
+        return None, None
     
     try:
         sql_for_chat = f"""

@@ -252,9 +252,9 @@ class SdkMauView(APIView):
 
     def get(self, request):
 
-        request_body = RequestUtilities.load_request_body(request)
+        request_params = RequestUtilities.fetch_request_query_params(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
-        no_of_months = RequestUtilities.get_mau_query_limiter(request_body)
+        no_of_months = RequestUtilities.get_mau_query_limiter(request_params)
         community_id = SdkViewHelper.get_community_id_from_api_key(api_key)
         chat_data, feed_data = get_mau_overview_data_for_community(community_id, no_of_months)
 

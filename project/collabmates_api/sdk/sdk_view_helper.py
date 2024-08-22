@@ -343,7 +343,7 @@ class SdkViewHelper:
         if not feed_data or not chat_data:
             return {"success": False, "error_message": "feed or chat data not found"}
             
-        result = {}
+        result = {"success": True}
 
         # Helper function to clean up the month string
         def clean_month(month):
@@ -362,4 +362,4 @@ class SdkViewHelper:
             # Calculate the total
             result[year]['total'][clean_month_str] = result[year]['chat'][clean_month_str] + count
 
-        return {"success": True, "data": result}
+        return result
