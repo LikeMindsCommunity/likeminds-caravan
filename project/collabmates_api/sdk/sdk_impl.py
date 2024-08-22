@@ -465,6 +465,10 @@ class SdkImpl(SdkManager):
 
         result = {'success': True}
 
+        if not mau_data or len(mau_data) == 0:
+            result['message'] = 'mau data does not exist for this community'
+            return result
+
         for month, year, count, category in mau_data:
             if year not in result:
                 result[year] = {'feed': {}, 'chat': {}, 'total': {}}
