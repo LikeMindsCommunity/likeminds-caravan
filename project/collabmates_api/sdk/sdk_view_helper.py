@@ -333,33 +333,37 @@ class SdkViewHelper:
         }
 
     @staticmethod
-    def get_community_id_from_api_key(api_key):
-        sdk_client = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key}).first()
-        return sdk_client.community_id
-    
-    @staticmethod
-    def create_final_mau_response(feed_data, chat_data):
+    def get_mau_overview_validator(request_params, member_id, api_key):
+
+        if not request_params:
+            return ResponseUtilities.get_inner_error_context('invalid request params')
+
+        no_of_months = request_params.get('no_of_months')
+
+        if 'no_of_months' not in request_params and not no_of_months:
+            return ResponseUtilities.get_inner_error_context('send no_of_months in params')
+
+        if not no_of_months.isdigit():
+            return ResponseUtilities.get_inner_error_context('no_of_months should be a number')
+
+        if int(no_of_months) == 0:
+            return ResponseUtilities.get_inner_error_context('no_of_months should be non-zero')
         
-        if not feed_data or not chat_data:
-            return {"success": False, "error_message": "feed or chat data not found"}
-            
-        result = {"success": True}
+        # member_id and api_key validation
+        validation_params = {
+            'user_id': member_id,
+            'community_id': {
+                'api_key': api_key
+            }
+        }
 
-        # Helper function to clean up the month string
-        def clean_month(month):
-            return month.strip()
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
 
-        # Process the data
-        for month, year, count in chat_data:
-            if year not in result:
-                result[year] = {'feed': {}, 'chat': {}, 'total': {}}
-            clean_month_str = clean_month(month)
-            result[year]['chat'][clean_month_str] = count
-
-        for month, year, count in feed_data:
-            clean_month_str = clean_month(month)
-            result[year]['feed'][clean_month_str] = count
-            # Calculate the total
-            result[year]['total'][clean_month_str] = result[year]['chat'][clean_month_str] + count
-
-        return result
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        return {
+            'request_params': request_params,
+            'user_instance': validated_dict.get('user_id'),
+            'community_instance': validated_dict.get('community_id')
+        }

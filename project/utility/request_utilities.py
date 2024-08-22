@@ -168,7 +168,3 @@ class RequestUtilities:
             page_size = default
 
         return page_size
-
-    @staticmethod
-    def get_mau_query_limiter(req_params):
-        return int(req_params.get("no_of_months"))

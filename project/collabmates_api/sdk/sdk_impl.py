@@ -14,6 +14,7 @@ from collabmates_api.community.community_impl import (CommunityImpl, CommunityHe
 from collabmates_api.user.view_impl import UserImpl
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 from collabmates_api.rest_api import CommunitySerializerV1
+from collabmates_api.raw_queries import get_mau_overview_data_for_community
 import uuid
 
 
@@ -448,3 +449,35 @@ class SdkImpl(SdkManager):
         screen.delete()
 
         return {'success': True}
+
+    def get_mau_overview(self, request_params) -> dict:
+        
+        validated_request = SdkViewHelper.get_mau_overview_validator(request_params, self.member_id, self.api_key)
+
+        if 'error_message' in validated_request:
+            return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+        
+        no_of_months = int(validated_request['request_params']['no_of_months'])
+        community_instance = validated_request.get('community_instance')
+        
+        mau_data = get_mau_overview_data_for_community(community_instance.id, no_of_months)
+
+        result = {'success': True}
+
+        for month, year, count, category in mau_data:
+            if year not in result:
+                result[year] = {'feed': {}, 'chat': {}, 'total': {}}
+            
+            clean_month_str = month.strip()
+            
+            # Update the respective category (feed/chat)
+            result[year][category][clean_month_str] = count
+            
+            # Calculate the total
+            if clean_month_str in result[year]['total']:
+                result[year]['total'][clean_month_str] += count
+            else:
+                result[year]['total'][clean_month_str] = count
+
+        return result

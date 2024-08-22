@@ -8,8 +8,6 @@ from utility.response_utilities import ResponseUtilities
 from .sdk_impl import SdkImpl
 
 from external_services.logging.logging_wrapper import LoggingWrapper
-from collabmates_api.raw_queries import get_mau_overview_data_for_community
-from collabmates_api.sdk.sdk_view_helper import SdkViewHelper
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -253,14 +251,14 @@ class SdkMauView(APIView):
     def get(self, request):
 
         request_params = RequestUtilities.fetch_request_query_params(request)
+        member_id = RequestUtilities.get_member_id_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
-        no_of_months = RequestUtilities.get_mau_query_limiter(request_params)
-        community_id = SdkViewHelper.get_community_id_from_api_key(api_key)
-        chat_data, feed_data = get_mau_overview_data_for_community(community_id, no_of_months)
 
-        response_data = SdkViewHelper.create_final_mau_response(feed_data, chat_data)
+        sdk_manager = SdkImpl(api_key=api_key, member_id=member_id)
+
+        response_data = sdk_manager.get_mau_overview(request_params)
 
         if 'error_message' in response_data:
-            return JsonResponse(response_data, status=status_codes.HTTP_404_NOT_FOUND)
+            return JsonResponse(response_data, status=response_data['status'])
 
         return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
