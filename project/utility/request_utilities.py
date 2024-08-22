@@ -168,4 +168,3 @@ class RequestUtilities:
             page_size = default
 
         return page_size
-

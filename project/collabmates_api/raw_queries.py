@@ -5329,3 +5329,44 @@ def get_ordered_chatrooms_data_on_unseen_count(user_id, community_id: str = None
 
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
+
+def get_mau_overview_data_for_community(community_id, no_of_months):
+
+    if not community_id or not no_of_months:
+        return None
+    
+    try:
+        sql = f"""
+            SELECT 
+                to_char (to_timestamp (((togther_activeusermonthlydata.start_date+togther_activeusermonthlydata.end_date)/2)+19800), 'Month') AS month,
+                to_char (to_timestamp (((togther_activeusermonthlydata.start_date+togther_activeusermonthlydata.end_date)/2)+19800), 'yyyy') AS year,
+                SUM(mau_count) AS total_mau_count,
+                togther_communitybillingdates.sdk AS sdk
+            FROM 
+                togther_activeusermonthlydata
+            LEFT JOIN 
+                togther_communitybillingdates 
+                ON togther_activeusermonthlydata.billing_id = togther_communitybillingdates.id
+            LEFT JOIN 
+                togther_community 
+                ON togther_communitybillingdates.community_id = togther_community.id
+            WHERE 
+                togther_community.id = {community_id} 
+            GROUP BY 
+                month, year, sdk
+            ORDER BY 
+                MIN(togther_activeusermonthlydata.start_date) DESC
+            LIMIT {no_of_months*2};
+        """
+
+        conn = get_connection()
+        curr = conn.cursor()
+        
+        curr.execute(sql)
+        mau_data = curr.fetchall()
+        
+        curr.close()
+        
+        return mau_data
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
