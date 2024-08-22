@@ -255,7 +255,6 @@ class SdkMauView(APIView):
         api_key = RequestUtilities.get_api_key_from_headers(request)
 
         sdk_manager = SdkImpl(api_key=api_key, member_id=member_id)
-
         response_data = sdk_manager.get_mau_overview(request_params)
 
         if 'error_message' in response_data:

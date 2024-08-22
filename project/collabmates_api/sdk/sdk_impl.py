@@ -451,16 +451,16 @@ class SdkImpl(SdkManager):
         return {'success': True}
 
     def get_mau_overview(self, request_params) -> dict:
-        
+
         validated_request = SdkViewHelper.get_mau_overview_validator(request_params, self.member_id, self.api_key)
 
         if 'error_message' in validated_request:
             return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
                                                             status_codes.HTTP_400_BAD_REQUEST)
-        
+
         no_of_months = int(validated_request['request_params']['no_of_months'])
         community_instance = validated_request.get('community_instance')
-        
+
         mau_data = get_mau_overview_data_for_community(community_instance.id, no_of_months)
 
         result = {'success': True}

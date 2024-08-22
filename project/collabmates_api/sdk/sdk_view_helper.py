@@ -346,7 +346,7 @@ class SdkViewHelper:
         if not no_of_months.isdigit():
             return ResponseUtilities.get_inner_error_context('no_of_months should be a number')
 
-        if int(no_of_months) == 0:
+        if int(no_of_months) <= 0:
             return ResponseUtilities.get_inner_error_context('no_of_months should be non-zero')
         
         # member_id and api_key validation

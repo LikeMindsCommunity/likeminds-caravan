@@ -94,3 +94,10 @@ class SdkManager(metaclass=abc.ABCMeta):
         Deletes an existing screen for SDK Project
         """
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_mau_overview(self, req_body) -> dict:
+        """
+        Gets mau data for a dashboard user
+        """
+        raise NotImplementedError
