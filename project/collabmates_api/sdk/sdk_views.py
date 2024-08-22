@@ -8,6 +8,8 @@ from utility.response_utilities import ResponseUtilities
 from .sdk_impl import SdkImpl
 
 from external_services.logging.logging_wrapper import LoggingWrapper
+from collabmates_api.raw_queries import get_mau_overview_data_for_community
+from collabmates_api.sdk.sdk_view_helper import SdkViewHelper
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -242,5 +244,23 @@ class OnboardingScreensView(APIView):
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
                                                                     response_data['status'])
             return JsonResponse(context['data'], status=context['status'])
+
+        return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
+
+
+class SdkMauView(APIView):
+
+    def get(self, request):
+
+        request_body = RequestUtilities.load_request_body(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        no_of_months = RequestUtilities.get_mau_query_limiter(request_body)
+        community_id = SdkViewHelper.get_community_id_from_api_key(api_key)
+        chat_data, feed_data = get_mau_overview_data_for_community(community_id, no_of_months)
+
+        response_data = SdkViewHelper.create_final_mau_response(feed_data, chat_data)
+
+        if 'error_message' in response_data:
+            return JsonResponse(response_data, status=status_codes.HTTP_404_NOT_FOUND)
 
         return JsonResponse(response_data, status=status_codes.HTTP_200_OK)

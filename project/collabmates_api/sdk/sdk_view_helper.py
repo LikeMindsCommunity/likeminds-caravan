@@ -331,3 +331,35 @@ class SdkViewHelper:
             'uuid_sdk_client_instance': sdk_client_users_info_filter,
             'app_access': app_access
         }
+
+    @staticmethod
+    def get_community_id_from_api_key(api_key):
+        sdk_client = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key}).first()
+        return sdk_client.community_id
+    
+    @staticmethod
+    def create_final_mau_response(feed_data, chat_data):
+        
+        if not feed_data or not chat_data:
+            return {"success": False, "error_message": "feed or chat data not found"}
+            
+        result = {}
+
+        # Helper function to clean up the month string
+        def clean_month(month):
+            return month.strip()
+
+        # Process the data
+        for month, year, count in chat_data:
+            if year not in result:
+                result[year] = {'feed': {}, 'chat': {}, 'total': {}}
+            clean_month_str = clean_month(month)
+            result[year]['chat'][clean_month_str] = count
+
+        for month, year, count in feed_data:
+            clean_month_str = clean_month(month)
+            result[year]['feed'][clean_month_str] = count
+            # Calculate the total
+            result[year]['total'][clean_month_str] = result[year]['chat'][clean_month_str] + count
+
+        return {"success": True, "data": result}

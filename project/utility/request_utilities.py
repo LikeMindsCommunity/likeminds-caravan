@@ -169,3 +169,6 @@ class RequestUtilities:
 
         return page_size
 
+    @staticmethod
+    def get_mau_query_limiter(req_body):
+        return req_body.get("no_of_months")
