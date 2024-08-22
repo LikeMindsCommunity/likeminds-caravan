@@ -205,17 +205,23 @@ class MemberCommunityManager(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def create_connection_request(self, user_uuid: str) -> dict:
+    def create_connection_request(self, user_uuid: str, connection_type: str,
+                                  connection_request_auto_accepted: bool) -> dict:
         """Method to create a new connection request"""
 
         raise NotImplementedError
 
-    def update_connection_request(self, user_uuid: str, action: str) -> dict:
+    def update_connection_request(self, user_uuid: str, connection_type: str, action: str) -> dict:
         """Method to update the connection request"""
 
         raise NotImplementedError
 
     def fetch_connections(self, user_uuid: str, page: int, page_size: int, status: str) -> dict:
         """Method to fetch the connections data"""
+
+        raise NotImplementedError
+
+    def fetch_connection_meta(self, user_uuid: str) -> dict:
+        """Method to fetch the connection meta data"""
 
         raise NotImplementedError

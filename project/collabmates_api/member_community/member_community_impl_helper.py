@@ -20,7 +20,7 @@ from utility.states import (card_types, community_setting_types, member_states, 
                             conversation_states, DMFabShowList, api_types, get_started_types, click_states,
                             moderation_history_types, access_types, feed_order_types, WebhookTypes,
                             webhook_profile_methods, deleted_members, report_action_types, SyncNotificationTypes,
-                            ConnectionRequestActions, ConnectionRequestStatus)
+                            ConnectionRequestActions, ConnectionRequestStatus, ConnectionTypes)
 from utility.utils import (get_time_text_for_my_chatrooms)
 from utility.celery_tasks import (create_member_dm_chatroom, update_community_pin_chatrooms_list_in_cache,
                                   update_preview_for_account_image_change, update_multiple_previews_in_community)
@@ -1825,7 +1825,7 @@ class MemberCommunityHelper:
         }
 
     @staticmethod
-    def validate_create_connection_request(requesting_user_id, api_key, requested_user_id):
+    def validate_create_connection_request(requesting_user_id, api_key, requested_user_id, connection_type):
         validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key,
                                                                             requested_user_id)
 
@@ -1847,10 +1847,13 @@ class MemberCommunityHelper:
         if requesting_user.id == requested_user.id:
             return ResponseUtilities.get_inner_error_context("You can't request a connection to yourself")
 
+        if connection_type not in [ConnectionTypes.ONE_WAY.value, ConnectionTypes.TWO_WAY.value]:
+            return ResponseUtilities.get_inner_error_context("Invalid connection type sent")
+
         return validated_request
 
     @staticmethod
-    def validate_update_connection_request(requesting_user_id, api_key, requested_user_id, action):
+    def validate_update_connection_request(requesting_user_id, api_key, requested_user_id, action, connection_type):
         validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key,
                                                                             requested_user_id)
 
@@ -1874,6 +1877,9 @@ class MemberCommunityHelper:
 
         if action not in [ConnectionRequestActions.ACCEPT.value, ConnectionRequestActions.REJECT.value]:
             return ResponseUtilities.get_inner_error_context("Invalid connection action sent")
+
+        if connection_type not in [ConnectionTypes.ONE_WAY.value, ConnectionTypes.TWO_WAY.value]:
+            return ResponseUtilities.get_inner_error_context("Invalid connection type sent")
 
         return validated_request
 
@@ -1911,6 +1917,26 @@ class MemberCommunityHelper:
         return validated_request
 
     @staticmethod
+    def validate_fetch_connection_meta_request(requesting_user_id, api_key, community_id, requested_user_id):
+        validated_request = MemberCommunityHelper.validate_connection_users(requesting_user_id, api_key,
+                                                                            requested_user_id, community_id)
+
+        if validated_request.get('error_message'):
+            return validated_request
+
+        community_instance = validated_request.get('community_instance')
+
+        community_setting = ModelUtilities.get_model_filter(CommunitySettings,
+                                                            {'community': community_instance,
+                                                             'setting_type': community_setting_types.USER_CONNECTION,
+                                                             'enabled': True})
+
+        if not community_setting:
+            return ResponseUtilities.get_inner_error_context("Enable User Connection Setting to use this api")
+
+        return validated_request
+
+    @staticmethod
     def parse_users_dict_for_lm_id_mapping(users):
         output = {}
 
@@ -1922,7 +1948,8 @@ class MemberCommunityHelper:
 
     @staticmethod
     @shared_task
-    def update_connection_data_cache_in_swarm_service(community_id, member_id, user_id, connection_status):
+    def update_connection_data_cache_in_swarm_service(community_id, member_id, user_id, connection_status,
+                                                      connection_type):
         user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': user_id}).first()
         member_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id': member_id}).first()
         sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id,
@@ -1945,7 +1972,8 @@ class MemberCommunityHelper:
 
         # Add patch request body
         client.update_body({
-            "status": connection_status
+            "status": connection_status,
+            "connection_type": connection_type
         })
 
         # Send patch request

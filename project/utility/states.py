@@ -1004,6 +1004,11 @@ class ConnectionStates(enum.Enum):
     DISCONNECTED = "disconnected"
 
 
+class ConnectionTypes(enum.Enum):
+    ONE_WAY = "one_way"
+    TWO_WAY = "two_way"
+
+
 class AttachmentTypes:
     GIF = "gif"
 
