@@ -4,7 +4,7 @@ from collabmates_api.member_community.views_impl import ViewsImpl, FetchCommunit
     FetchUserDeletedCommunities, FetchMemberDetails, ShowDmMessageIcon, FetchMemberProfileView, EditMemberProfileView, \
     RequestDMLimitView, FetchDMChatroomsView, MemberCanDMView, JoinCommunitySDKView, UnsubscribeEmailNotificationsView,\
     FetchAccessView, FetchPostFeedView, FetchExcludedChatroomsView, FetchUserChatroomStatus, UserHomeMeta, \
-    PendingMembers, LeaveCommunity, ConnectionView
+    PendingMembers, LeaveCommunity, ConnectionView, ConnectionMetaView
 
 urlpatterns = [
     path('', ViewsImpl.get_member_communities, name="get_member_communities"),
@@ -32,5 +32,6 @@ urlpatterns = [
     path('home_meta', UserHomeMeta.as_view(), name="user_home_meta"),
     path('pending_members', PendingMembers.as_view(), name="get_pending_members"),
     path('leave', LeaveCommunity.as_view(), name="leave_community"),
-    path('<str:user_uuid>/connection', ConnectionView.as_view(), name="connection")
+    path('<str:user_uuid>/connection', ConnectionView.as_view(), name="connection"),
+    path('<str:user_uuid>/connection_meta', ConnectionMetaView.as_view(), name="connection_meta")
 ]

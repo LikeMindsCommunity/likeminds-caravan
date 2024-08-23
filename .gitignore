@@ -197,4 +197,4 @@ fabric.properties
 __init__.py
 /bin/
 /include/
-
+.vscode

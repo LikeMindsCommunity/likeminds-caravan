@@ -5949,6 +5949,8 @@ class CommunityHelper:
             community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
 
             if community_setting_instance and community_setting_instance.enabled:
+                configuration_value = {**COMMUNITY_CONFIGURATIONS[PERSONALISED_FEED_WEIGHTS].get('value'),
+                                       **configuration_value}
 
                 if update_values.get('recency_metrics') and isinstance(update_values.get('recency_metrics'), dict) and \
                         update_values.get('recency_metrics').get('weight') and \
@@ -6031,6 +6033,23 @@ class CommunityHelper:
                         type(update_values.get('post_dampening_metrics').get('max_threshold')) in [int, float]:
                     configuration_value['post_dampening_metrics']['max_threshold'] = \
                         update_values.get('post_dampening_metrics').get('max_threshold')
+                    record_updated = True
+
+                if update_values.get('user_connection_metrics') and isinstance(
+                        update_values.get('user_connection_metrics'), dict) and \
+                        update_values.get('user_connection_metrics').get('weight') and \
+                        type(update_values.get('user_connection_metrics').get('weight')) in [int, float]:
+
+                    configuration_value['user_connection_metrics']['weight'] = \
+                        update_values.get('user_connection_metrics').get('weight')
+                    record_updated = True
+
+                if update_values.get('user_connection_metrics') and isinstance(
+                        update_values.get('user_connection_metrics'), dict) and \
+                        update_values.get('user_connection_metrics').get('max_threshold') and \
+                        type(update_values.get('user_connection_metrics').get('max_threshold')) in [int, float]:
+                    configuration_value['user_connection_metrics']['max_threshold'] = \
+                        update_values.get('user_connection_metrics').get('max_threshold')
                     record_updated = True
 
         # Update configuration instance if record is updated

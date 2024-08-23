@@ -244,3 +244,20 @@ class OnboardingScreensView(APIView):
             return JsonResponse(context['data'], status=context['status'])
 
         return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
+
+
+class SdkMauView(APIView):
+
+    def get(self, request):
+
+        request_params = RequestUtilities.fetch_request_query_params(request)
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        sdk_manager = SdkImpl(api_key=api_key, member_id=member_id)
+        response_data = sdk_manager.get_mau_overview(request_params)
+
+        if 'error_message' in response_data:
+            return JsonResponse(response_data, status=response_data['status'])
+
+        return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
