@@ -1415,7 +1415,8 @@ class CommunityImpl(CommunityManager):
             if community_setting["setting_type"] in [community_setting_types.USER_TOPICS_CONNECTION,
                                                      community_setting_types.FEED_REPOST,
                                                      community_setting_types.POST_APPROVAL_NEEDED,
-                                                     community_setting_types.ENABLE_PERSONALISED_FEED]:
+                                                     community_setting_types.ENABLE_PERSONALISED_FEED,
+                                                     community_setting_types.USER_CONNECTION]:
 
                 # Delete kettle community settings cache if user topics connection, feed repost, post approval needed
                 # setting is updated
