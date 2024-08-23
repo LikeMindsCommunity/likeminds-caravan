@@ -464,7 +464,7 @@ class ChatroomMemberImpl(ChatroomMemberManager):
 
         return chatroom_context
 
-    def process_chatroom_list(self, chatroom_list, community_instance, sdk_client_info_flag: bool=False,
+    def process_chatroom_list(self, chatroom_list, community_instance, sdk_client_info_flag: bool=True,
                               chatroom_created_at_uniform_check: bool=False) -> []:
 
         error_logger.error("[process_chatroom] starting proceess chatroom lost")

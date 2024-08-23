@@ -331,3 +331,39 @@ class SdkViewHelper:
             'uuid_sdk_client_instance': sdk_client_users_info_filter,
             'app_access': app_access
         }
+
+    @staticmethod
+    def get_mau_overview_validator(request_params, member_id, api_key):
+
+        if not request_params:
+            return ResponseUtilities.get_inner_error_context('invalid request params')
+
+        no_of_months = request_params.get('no_of_months')
+
+        if 'no_of_months' not in request_params and not no_of_months:
+            return ResponseUtilities.get_inner_error_context('send no_of_months in params')
+
+        if not no_of_months.isdigit():
+            return ResponseUtilities.get_inner_error_context('no_of_months should be a number')
+
+        if int(no_of_months) <= 0:
+            return ResponseUtilities.get_inner_error_context('no_of_months should be non-zero')
+        
+        # member_id and api_key validation
+        validation_params = {
+            'user_id': member_id,
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        return {
+            'request_params': request_params,
+            'user_instance': validated_dict.get('user_id'),
+            'community_instance': validated_dict.get('community_id')
+        }
