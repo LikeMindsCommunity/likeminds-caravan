@@ -146,14 +146,21 @@ def send_notifications(service_account_file_dict: dict, firebase_key: str, token
     total_success_count = 0
     total_failures_count = 0
 
+    message_title = message['payload']['title']
+    message_body = message['payload']['sub_title']
+
+    if notification_os == NotificationPlatform.ANDROID.value:
+        message_title = None
+        message_body = None
+
     if service_account_file_dict:
         push_service = FCMHTTPV1Notification(service_account_file_dict)
 
         for token_chunk in token_chunks_list:
             result = push_service.notify_multiple_devices(registration_ids=token_chunk,
                                                           stacks=stacks,
-                                                          message_title=message['payload']['title'],
-                                                          message_body=message['payload']['sub_title'],
+                                                          message_title=message_title,
+                                                          message_body=message_body,
                                                           message_icon=None,
                                                           data_message=message['payload'],
                                                           extra_kwargs_android=http_v1_extra_kwargs_android,
@@ -207,7 +214,8 @@ def send_notification_for_android(token_list, message, service_account_file_dict
     }
 
     final_result = send_notifications(service_account_file_dict, firebase_key, token_chunks_list, message, ['android'],
-                                      legacy_extra_kwargs, http_v1_extra_kwargs, {},  "ANDROID")
+                                      legacy_extra_kwargs, http_v1_extra_kwargs, {},
+                                      NotificationPlatform.ANDROID.value)
 
     return final_result
 
@@ -234,7 +242,7 @@ def send_notification_for_ios(token_list, message, service_account_file_dict=Non
     }
 
     final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message, ['ios'],
-                                      legacy_extra_kwargs, http_v1_extra_kwargs, {}, "IOS")
+                                      legacy_extra_kwargs, http_v1_extra_kwargs, {}, NotificationPlatform.IOS.value)
 
     return final_result
 
@@ -251,7 +259,7 @@ def send_notification_for_web(token_list, message, service_account_file_dict=Non
     legacy_extra_kwargs = {}
 
     final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message, None,
-                                      legacy_extra_kwargs, http_v1_extra_kwargs, {}, "WEB")
+                                      legacy_extra_kwargs, http_v1_extra_kwargs, {}, NotificationPlatform.WEB.value)
 
     return final_result
 
@@ -268,7 +276,7 @@ def send_notification_for_react(token_list, message, service_account_file_dict=N
     legacy_extra_kwargs = {}
 
     final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message, None,
-                                      legacy_extra_kwargs, http_v1_extra_kwargs, {}, "REACT")
+                                      legacy_extra_kwargs, http_v1_extra_kwargs, {}, NotificationPlatform.REACT.value)
 
     return final_result
 
@@ -310,7 +318,7 @@ def send_notification_for_flutter(token_list, message, service_account_file_dict
 
     final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message,
                                       ['android', 'ios'], legacy_extra_kwargs, http_v1_extra_kwargs_android,
-                                      http_v1_extra_kwargs_ios, "FLUTTER")
+                                      http_v1_extra_kwargs_ios, NotificationPlatform.FLUTTER.value)
 
     return final_result
 
@@ -346,7 +354,7 @@ def send_notification_for_react_native(token_list, message, service_account_file
 
     final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message,
                                       ['android', 'ios'], legacy_extra_kwargs, http_v1_extra_kwargs_android,
-                                      http_v1_extra_kwargs_ios, "REACT-NATIVE")
+                                      http_v1_extra_kwargs_ios, NotificationPlatform.REACT_NATIVE.value)
 
     return final_result
 
