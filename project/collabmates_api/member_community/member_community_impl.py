@@ -2549,7 +2549,7 @@ class MemberCommunityImpl(MemberCommunityManager):
                 not auto_approve]):
             return ResponseUtilities.get_inner_error_context("You can't approve your request")
 
-        MemberCommunityImpl.create_new_connection(community_instance, member_id, user_id, connection_type)
+        MemberCommunityImpl.create_new_connection(community_instance, user1_id, user2_id, connection_type)
 
         return {'success': True}
 
