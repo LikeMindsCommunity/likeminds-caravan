@@ -1004,6 +1004,11 @@ class ConnectionStates(enum.Enum):
     DISCONNECTED = "disconnected"
 
 
+class ConnectionTypes(enum.Enum):
+    ONE_WAY = "one_way"
+    TWO_WAY = "two_way"
+
+
 class AttachmentTypes:
     GIF = "gif"
 
@@ -1047,3 +1052,12 @@ class CommunityConfigurationTypes(enum.Enum):
 
 class ChatroomSearchOrderBy(enum.Enum):
     RECENT_CONVERSATION = "recent_conversation"
+
+
+class NotificationPlatform(enum.Enum):
+    ANDROID = "ANDROID"
+    IOS = "IOS"
+    WEB = "WEB"
+    FLUTTER = "FLUTTER"
+    REACT_NATIVE = "REACT-NATIVE"
+    REACT = "REACT"

@@ -1415,7 +1415,8 @@ class CommunityImpl(CommunityManager):
             if community_setting["setting_type"] in [community_setting_types.USER_TOPICS_CONNECTION,
                                                      community_setting_types.FEED_REPOST,
                                                      community_setting_types.POST_APPROVAL_NEEDED,
-                                                     community_setting_types.ENABLE_PERSONALISED_FEED]:
+                                                     community_setting_types.ENABLE_PERSONALISED_FEED,
+                                                     community_setting_types.USER_CONNECTION]:
 
                 # Delete kettle community settings cache if user topics connection, feed repost, post approval needed
                 # setting is updated
@@ -1423,11 +1424,16 @@ class CommunityImpl(CommunityManager):
                     community_instance.id, user_instance.id,
                     [KETTLE_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id)])
 
-                if community_setting["setting_type"] in [community_setting_types.POST_APPROVAL_NEEDED]:
-                    # Delete swarm community settings cache if post apporval needed setting is updated
-                    InternalServiceUtilities.delete_cache_from_swarm_service.delay(
-                        community_instance.id, user_instance.id,
-                        SWARM_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id))
+            if community_setting["setting_type"] in [community_setting_types.POST_APPROVAL_NEEDED,
+                                                     community_setting_types.FEED_REPOST,
+                                                     community_setting_types.ENABLE_PERSONALISED_FEED,
+                                                     community_setting_types.USER_TOPICS_CONNECTION, 
+                                                     community_setting_types.USER_CONNECTION]:
+                
+                # Delete swarm community settings cache if post apporval needed setting is updated
+                InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+                    community_instance.id, user_instance.id,
+                    SWARM_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id))
 
             if not community_setting['enabled']:
                 disabled_community_setting_context = {
@@ -5949,6 +5955,8 @@ class CommunityHelper:
             community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
 
             if community_setting_instance and community_setting_instance.enabled:
+                configuration_value = {**COMMUNITY_CONFIGURATIONS[PERSONALISED_FEED_WEIGHTS].get('value'),
+                                       **configuration_value}
 
                 if update_values.get('recency_metrics') and isinstance(update_values.get('recency_metrics'), dict) and \
                         update_values.get('recency_metrics').get('weight') and \
@@ -6031,6 +6039,23 @@ class CommunityHelper:
                         type(update_values.get('post_dampening_metrics').get('max_threshold')) in [int, float]:
                     configuration_value['post_dampening_metrics']['max_threshold'] = \
                         update_values.get('post_dampening_metrics').get('max_threshold')
+                    record_updated = True
+
+                if update_values.get('user_connection_metrics') and isinstance(
+                        update_values.get('user_connection_metrics'), dict) and \
+                        update_values.get('user_connection_metrics').get('weight') and \
+                        type(update_values.get('user_connection_metrics').get('weight')) in [int, float]:
+
+                    configuration_value['user_connection_metrics']['weight'] = \
+                        update_values.get('user_connection_metrics').get('weight')
+                    record_updated = True
+
+                if update_values.get('user_connection_metrics') and isinstance(
+                        update_values.get('user_connection_metrics'), dict) and \
+                        update_values.get('user_connection_metrics').get('max_threshold') and \
+                        type(update_values.get('user_connection_metrics').get('max_threshold')) in [int, float]:
+                    configuration_value['user_connection_metrics']['max_threshold'] = \
+                        update_values.get('user_connection_metrics').get('max_threshold')
                     record_updated = True
 
         # Update configuration instance if record is updated

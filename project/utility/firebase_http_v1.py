@@ -41,6 +41,7 @@ class FCMHTTPV1Notification:
                                 message_icon=None,
                                 data_message=None,
                                 condition=None,
+                                remove_notification=False,
                                 extra_kwargs_android={},
                                 extra_kwargs_ios={},
                                 extra_kwargs_web={}):
@@ -72,6 +73,7 @@ class FCMHTTPV1Notification:
                     message_icon=message_icon,
                     data_message=data_message,
                     condition=condition,
+                    remove_notification=remove_notification,
                     extra_kwargs_android=extra_kwargs_android,
                     extra_kwargs_ios=extra_kwargs_ios,
                     extra_kwargs_web=extra_kwargs_web
