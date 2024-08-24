@@ -1052,3 +1052,12 @@ class CommunityConfigurationTypes(enum.Enum):
 
 class ChatroomSearchOrderBy(enum.Enum):
     RECENT_CONVERSATION = "recent_conversation"
+
+
+class NotificationPlatform(enum.Enum):
+    ANDROID = "ANDROID"
+    IOS = "IOS"
+    WEB = "WEB"
+    FLUTTER = "FLUTTER"
+    REACT_NATIVE = "REACT-NATIVE"
+    REACT = "REACT"
