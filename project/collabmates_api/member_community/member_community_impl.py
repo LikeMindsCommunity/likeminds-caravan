@@ -2523,11 +2523,6 @@ class MemberCommunityImpl(MemberCommunityManager):
     def accept_connection_request(community_instance, member_id, user_id,
                                   connection_type: str = ConnectionTypes.TWO_WAY.value,
                                   auto_approve: bool = False):
-        connection = MemberCommunityImpl.get_connections(community_instance, member_id, user_id, connection_type)
-
-        if connection:
-            return ResponseUtilities.get_inner_error_context("Connection already exists")
-
         if auto_approve:
             user1_id = member_id
             user2_id = user_id
@@ -2535,6 +2530,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         else:
             user1_id = user_id
             user2_id = member_id
+
+        connection = MemberCommunityImpl.get_connections(community_instance, user1_id, user2_id, connection_type)
+
+        if connection:
+            return ResponseUtilities.get_inner_error_context("Connection already exists")
 
         connection_requests = MemberCommunityImpl.get_connection_request(community_instance, user1_id, user2_id,
                                                                          connection_type)
