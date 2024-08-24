@@ -2523,11 +2523,6 @@ class MemberCommunityImpl(MemberCommunityManager):
     def accept_connection_request(community_instance, member_id, user_id,
                                   connection_type: str = ConnectionTypes.TWO_WAY.value,
                                   auto_approve: bool = False):
-        connection = MemberCommunityImpl.get_connections(community_instance, member_id, user_id, connection_type)
-
-        if connection:
-            return ResponseUtilities.get_inner_error_context("Connection already exists")
-
         if auto_approve:
             user1_id = member_id
             user2_id = user_id
@@ -2535,6 +2530,11 @@ class MemberCommunityImpl(MemberCommunityManager):
         else:
             user1_id = user_id
             user2_id = member_id
+
+        connection = MemberCommunityImpl.get_connections(community_instance, user1_id, user2_id, connection_type)
+
+        if connection:
+            return ResponseUtilities.get_inner_error_context("Connection already exists")
 
         connection_requests = MemberCommunityImpl.get_connection_request(community_instance, user1_id, user2_id,
                                                                          connection_type)
@@ -2549,33 +2549,34 @@ class MemberCommunityImpl(MemberCommunityManager):
                 not auto_approve]):
             return ResponseUtilities.get_inner_error_context("You can't approve your request")
 
-        MemberCommunityImpl.create_new_connection(community_instance, member_id, user_id, connection_type)
+        MemberCommunityImpl.create_new_connection(community_instance, user1_id, user2_id, connection_type)
 
         return {'success': True}
 
     @staticmethod
-    def reject_connection_request(community_instance, member_id, user_id,
+    def reject_connection_request(community_instance, user1_id, user2_id,
                                   connection_type: str = ConnectionTypes.TWO_WAY.value):
-        connection = MemberCommunityImpl.get_connections(community_instance, member_id, user_id, connection_type)
-
-        if connection:
-            MemberCommunityImpl.delete_connection(community_instance, member_id, user_id, connection_type)
-            return {'success': True}
-
-        connection_requests = MemberCommunityImpl.get_connection_request(community_instance, member_id, user_id,
-                                                                         connection_type)
-
-        if not connection_requests:
-            return ResponseUtilities.get_inner_error_context("Connection request doesn't exist")
-
-        connection_request = connection_requests[0]
-
-        MemberCommunityImpl.delete_connection_requests(community_instance, member_id, user_id, connection_type)
-
         event_name = "Connection Request Rejected"
 
-        if connection_request.request_by_id == member_id and connection_request.request_to_id == user_id:
-            event_name = "Connection Request Cancelled"
+        connection = MemberCommunityImpl.get_connections(community_instance, user1_id, user2_id, connection_type)
+
+        if connection:
+            MemberCommunityImpl.delete_connection(community_instance, user1_id, user2_id, connection_type)
+            return {'success': True}
+
+        else:
+            connection_requests = MemberCommunityImpl.get_connection_request(community_instance, user2_id, user1_id,
+                                                                             connection_type)
+
+            if not connection_requests:
+                return ResponseUtilities.get_inner_error_context("Connection request doesn't exist")
+
+            connection_request = connection_requests[0]
+
+            MemberCommunityImpl.delete_connection_requests(community_instance, user2_id, user1_id, connection_type)
+
+            if connection_request.request_by_id == user1_id and connection_request.request_to_id == user2_id:
+                event_name = "Connection Request Cancelled"
 
         # log the event
         data = {

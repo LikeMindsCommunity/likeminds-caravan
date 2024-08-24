@@ -1415,7 +1415,8 @@ class CommunityImpl(CommunityManager):
             if community_setting["setting_type"] in [community_setting_types.USER_TOPICS_CONNECTION,
                                                      community_setting_types.FEED_REPOST,
                                                      community_setting_types.POST_APPROVAL_NEEDED,
-                                                     community_setting_types.ENABLE_PERSONALISED_FEED]:
+                                                     community_setting_types.ENABLE_PERSONALISED_FEED,
+                                                     community_setting_types.USER_CONNECTION]:
 
                 # Delete kettle community settings cache if user topics connection, feed repost, post approval needed
                 # setting is updated
@@ -1423,11 +1424,16 @@ class CommunityImpl(CommunityManager):
                     community_instance.id, user_instance.id,
                     [KETTLE_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id)])
 
-                if community_setting["setting_type"] in [community_setting_types.POST_APPROVAL_NEEDED]:
-                    # Delete swarm community settings cache if post apporval needed setting is updated
-                    InternalServiceUtilities.delete_cache_from_swarm_service.delay(
-                        community_instance.id, user_instance.id,
-                        SWARM_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id))
+            if community_setting["setting_type"] in [community_setting_types.POST_APPROVAL_NEEDED,
+                                                     community_setting_types.FEED_REPOST,
+                                                     community_setting_types.ENABLE_PERSONALISED_FEED,
+                                                     community_setting_types.USER_TOPICS_CONNECTION, 
+                                                     community_setting_types.USER_CONNECTION]:
+                
+                # Delete swarm community settings cache if post apporval needed setting is updated
+                InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+                    community_instance.id, user_instance.id,
+                    SWARM_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id))
 
             if not community_setting['enabled']:
                 disabled_community_setting_context = {
