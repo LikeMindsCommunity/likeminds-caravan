@@ -148,10 +148,12 @@ def send_notifications(service_account_file_dict: dict, firebase_key: str, token
 
     message_title = message['payload']['title']
     message_body = message['payload']['sub_title']
+    remove_notification = False
 
     if notification_os == NotificationPlatform.ANDROID.value:
         message_title = None
         message_body = None
+        remove_notification = True
 
     if service_account_file_dict:
         push_service = FCMHTTPV1Notification(service_account_file_dict)
@@ -163,6 +165,7 @@ def send_notifications(service_account_file_dict: dict, firebase_key: str, token
                                                           message_body=message_body,
                                                           message_icon=None,
                                                           data_message=message['payload'],
+                                                          remove_notification=remove_notification,
                                                           extra_kwargs_android=http_v1_extra_kwargs_android,
                                                           extra_kwargs_ios=http_v1_extra_kwargs_ios)
 
