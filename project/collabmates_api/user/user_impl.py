@@ -1093,8 +1093,8 @@ class UserImpl(UserManager):
 
         return self.create_user_context_for_sdk(validated_request.get('user_instance'))
 
-    def fetch_user_bot(self, api_key: str = None) -> dict:
-        validated_request = UserViewHelper.validate_fetch_user_bot_request(api_key)
+    def fetch_user_bot(self, api_key: str = None, community_id: str = None) -> dict:
+        validated_request = UserViewHelper.validate_fetch_user_bot_request(api_key, community_id)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
