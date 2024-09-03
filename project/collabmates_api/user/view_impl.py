@@ -6,6 +6,7 @@ from collabmates_api.utility import single_community_view_version_check
 from utility.exception_utilities import InvalidHeaderException
 from utility.request_utilities import RequestUtilities
 from utility.response_utilities import ResponseUtilities
+from utility.string_utilities import StringUtilities
 from cms.cms_auth_utilities import CMSAuthUtilities
 from django.conf import settings
 from collabmates_api.user.user_impl import UserImpl
@@ -414,6 +415,48 @@ class UserMetaView(APIView):
 
         user_manager = UserImpl(user_id=member_id, api_key=api_key)
         response_data = user_manager.user_meta()
+
+        if 'error_message' in response_data:
+            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
+                                                                    response_data['status'])
+            return JsonResponse(context['data'], status=context['status'])
+
+        return JsonResponse(response_data)
+
+
+class BlockUserView(APIView):
+    """
+    Verify user social login
+    """
+
+    def put(self, request, user_uuid):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        req_body = RequestUtilities.load_request_body(request)
+
+        user_manager = UserImpl(user_id=member_id, api_key=api_key)
+        response_data = user_manager.block_unblock_user(user_uuid, req_body.get('should_block'))
+
+        if 'error_message' in response_data:
+            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
+                                                                    response_data['status'])
+            return JsonResponse(context['data'], status=context['status'])
+
+        return JsonResponse(response_data)
+
+    def get(self, request, user_uuid):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        params = RequestUtilities.fetch_request_query_params(request)
+        page = RequestUtilities.get_page_number(request)
+        page_size = RequestUtilities.get_page_size(request, default=10)
+        block_user_type = StringUtilities.convert_string_to_list(params.get('block_user_type'), [])
+
+        user_manager = UserImpl(user_id=member_id, api_key=api_key)
+        response_data = user_manager.get_block_user_data(user_uuid,
+                                                         block_user_type,
+                                                         page,
+                                                         page_size)
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
