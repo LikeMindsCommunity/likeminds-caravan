@@ -1,5 +1,4 @@
 import json
-import re
 import uuid
 
 import requests as rqst
@@ -36,7 +35,7 @@ from utility.time_utilities import TimeUtilities
 from utility.states import email_states, mobile_states, member_states, login_types, deleted_members, \
     conversation_states, member_rights, community_setting_types, chat_request_states, api_types, \
     whatsapp_subscription_state_actions, OTPTypes, GuestFlowUserTypes, CommunityConfigurationTypes
-from utility.utils import generate_random, is_valid_email
+from utility.utils import generate_random
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
 from utility.constants import (ONE_DAY_HOURS, INTERNATIONAL_OTP_LIMIT_FILE_NAME)
@@ -296,7 +295,7 @@ class UserImpl(UserManager):
 
         return user_instance
 
-    def create_user_context(self, user_instance, is_exisiting_user=False, sdk_client_user_info_instance=None,
+    def create_user_context_for_sdk(self, user_instance, is_exisiting_user=False, sdk_client_user_info_instance=None,
                                     app_access=True):
 
         user_object = {
@@ -311,7 +310,7 @@ class UserImpl(UserManager):
         return user_object
 
     @staticmethod
-    def _get_or_create_user(user_context, api_key=None):
+    def _get_or_create_sdk_user_and_userinfo(user_context, api_key=None):
 
         user_unique_id = user_context.get('user_unique_id')
         user_email = user_context.get('email')
@@ -326,10 +325,10 @@ class UserImpl(UserManager):
         is_bot = user_context.get('is_bot', False)
         is_guest_user = user_context.get('is_guest', False)
 
-        if api_key:
-            if not (is_bot or not user_unique_id):
-                return ResponseUtilities.get_inner_error_context("Invalid API key!")
+        if not (is_bot or api_key or not user_unique_id):
+            return ResponseUtilities.get_inner_error_context("Invalid API key!")
 
+        if api_key:
             sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key}).first()
 
             if not sdk_client_instance:
@@ -339,9 +338,8 @@ class UserImpl(UserManager):
 
         should_create_user = True
         sdk_client_users_info_filter = None
-        user_info_filter = None
 
-        if is_guest_user and api_key:
+        if is_guest_user:
             sdk_client_users_info_filter = UserHelper.get_guest_user(community_instance, user_unique_id)
 
             if sdk_client_users_info_filter.get('error_message'):
@@ -349,7 +347,7 @@ class UserImpl(UserManager):
 
             sdk_client_users_info_filter = sdk_client_users_info_filter.get('sdk_client_users_info_filter')
 
-        elif user_unique_id and api_key:
+        elif user_unique_id:
             sdk_client_users_info_filter = ModelUtilities.get_model_filter(
                 SDKClientUsersInfo, {'community': community_instance}).filter(
                 Q(user_unique_id=user_unique_id) | Q(user__userinfo__user_unique_id=user_unique_id))
@@ -360,14 +358,10 @@ class UserImpl(UserManager):
                 'user_id', flat=True))
 
             if existing_user_ids_with_email:
+                sdk_client_users_info_filter = ModelUtilities.get_model_filter(
+                    SDKClientUsersInfo, {'community': community_instance, 'user__in': existing_user_ids_with_email})
 
-                if api_key:
-                    sdk_client_users_info_filter = ModelUtilities.get_model_filter(
-                        SDKClientUsersInfo, {'community': community_instance, 'user__in': existing_user_ids_with_email})
-                else:
-                    user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id_id__in': existing_user_ids_with_email})
-
-        elif user_mobile_no and user_country_code and api_key:
+        elif user_mobile_no and user_country_code:
             existing_user_ids_with_mobile = list(ModelUtilities.get_model_filter(
                 userMobiles, {'country_code': user_country_code, 'mobile_no': user_mobile_no}).values_list(
                 'user_id', flat=True))
@@ -390,15 +384,6 @@ class UserImpl(UserManager):
             return {'user_instance': sdk_client_user_info_instance.user,
                     'sdk_client_user_info_instance': sdk_client_user_info_instance,
                     'existing_user': existing_user,
-                    'app_access': app_access}
-
-        elif user_info_filter:
-            existing_user = True
-            user_info_instance = user_info_filter[0]
-        
-            return {'user_instance': user_info_instance.user_id,
-                    'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                    'is_existing_user': existing_user,
                     'app_access': app_access}
 
         if should_create_user:
@@ -604,24 +589,13 @@ class UserImpl(UserManager):
         if not user_context:
             return {'success': False, 'error_message': "Invalid Login"}
 
-        if login_type == login_types.DASHBOARD:
-            dashboard_user_context = self._get_or_create_user(user_context)
-
-            if dashboard_user_context.get('error_message'):
-                return {'success': False, 'error_message': dashboard_user_context.get('error_message')}
-            
-            return self.create_user_context(dashboard_user_context.get('user_instance'),
-                                                    dashboard_user_context.get('is_existing_user'),
-                                                    dashboard_user_context.get('sdk_client_user_info_instance'),
-                                                    dashboard_user_context.get('app_access'))
-        
         if login_type == login_types.SDK:
-            sdk_user_context = self._get_or_create_user(user_context, api_key=api_key)
+            sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context, api_key=api_key)
 
             if sdk_user_context.get('error_message'):
                 return {'success': False, 'error_message': sdk_user_context.get('error_message')}
 
-            return self.create_user_context(sdk_user_context.get('user_instance'),
+            return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'),
                                                     sdk_user_context.get('existing_user'),
                                                     sdk_user_context.get('sdk_client_user_info_instance'),
                                                     sdk_user_context.get('app_access'))
@@ -1090,13 +1064,13 @@ class UserImpl(UserManager):
             'is_bot': True
         }
 
-        sdk_user_context = self._get_or_create_user(user_context)
+        sdk_user_context = self._get_or_create_sdk_user_and_userinfo(user_context)
 
         if sdk_user_context.get('error_message'):
             return ResponseUtilities.get_impl_error_context(sdk_user_context.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        return self.create_user_context(sdk_user_context.get('user_instance'))
+        return self.create_user_context_for_sdk(sdk_user_context.get('user_instance'))
 
     def update_user_bot(self, req_body) -> dict:
         validated_request = UserViewHelper.validate_update_user_bot_request(self.get_user_id(), req_body)
@@ -1117,7 +1091,7 @@ class UserImpl(UserManager):
 
         ModelUtilities.update_or_create_model(Userinfo, filter_dict, update_dict)
 
-        return self.create_user_context(validated_request.get('user_instance'))
+        return self.create_user_context_for_sdk(validated_request.get('user_instance'))
 
     def fetch_user_bot(self, api_key: str = None, community_id: str = None) -> dict:
         validated_request = UserViewHelper.validate_fetch_user_bot_request(api_key, community_id)
@@ -1140,7 +1114,7 @@ class UserImpl(UserManager):
             sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo, 
                                                                             {'user_id': user_instance}).first()
 
-            return self.create_user_context(user_instance, 
+            return self.create_user_context_for_sdk(user_instance, 
                                                     sdk_client_user_info_instance=sdk_client_user_info_instance)
 
         return ResponseUtilities.get_impl_error_context('Community bot not found',
@@ -1459,9 +1433,6 @@ class UserHelper:
         elif login_type == login_types.SDK:
             return UserHelper.validate_sdk_login_object(req_body)
 
-        elif login_type == login_types.DASHBOARD:
-            return UserHelper.validate_dashboard_login_object(req_body)
-
         else:
             return {}
 
@@ -1587,41 +1558,6 @@ class UserHelper:
 
         if custom_meta.get('user_unique_id'):
             user_context['user_unique_id'] = custom_meta.get('user_unique_id')
-
-        return user_context
-
-    @staticmethod
-    def validate_dashboard_login_object(req_body):
-
-        user_meta = req_body.get('user', {})
-
-        if not user_meta.get('name'):
-            return {}
-
-        user_context = {
-            'name': user_meta.get('name'),
-            'email': user_meta.get('email', ''),
-            'organisation_name': user_meta.get('organisation_name'),
-            'mobile_no': req_body.get('mobile_no'),
-            'country_code': user_meta.get('country_code'),
-        }
-        
-        if user_meta.get('image_url'):
-            user_context['image_url'] = user_meta.get('image_url')
-            user_context['has_profile_image'] = True
-
-        else:
-            user_context['has_profile_image'] = False
-        
-        user_email = user_context.get('email')
-
-        if not user_email:
-            return ResponseUtilities.get_inner_error_context("User email not found")
-
-        validated_email = is_valid_email(user_email)
-
-        if not validated_email:
-            return ResponseUtilities.get_inner_error_context("User email is not valid")
 
         return user_context
 
@@ -2125,19 +2061,16 @@ class UserHelper:
 
     @staticmethod
     def validate_user_send_otp_on_mobile_request(api_key: str, country_code: str, mobile_no: str):
-        
-        if api_key and len(api_key) > 0:
-            
-            validation_params = {
-                'community_id': {
-                    'api_key': api_key
-                }
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
             }
+        }
 
-            validated_dict = ValidationUtilities.is_valid(validation_params)
+        validated_dict = ValidationUtilities.is_valid(validation_params)
 
-            if validated_dict.get('error_message'):
-                return validated_dict
+        if validated_dict.get('error_message'):
+            return validated_dict
 
         if not (mobile_no and str(mobile_no).isdigit()):
             return ResponseUtilities.get_inner_error_context('Invalid mobile number!')
@@ -2230,7 +2163,19 @@ class UserHelper:
 
     @staticmethod
     def validate_user_verify_otp_on_mobile_request(api_key: str, country_code: int, mobile_no: int, otp: str):
-        
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        community_instance = validated_dict.get('community_id')
+
         if not (mobile_no and str(mobile_no).isdigit()):
             return ResponseUtilities.get_inner_error_context('Invalid mobile number!')
 
@@ -2242,58 +2187,35 @@ class UserHelper:
 
         is_international = str(country_code) != '91'
 
-        if api_key and len(api_key) > 0:
-
-            validation_params = {
-                'community_id': {
-                    'api_key': api_key
-                }
-            }
-
-            validated_dict = ValidationUtilities.is_valid(validation_params)
-
-            if validated_dict.get('error_message'):
-                return validated_dict
-
-            community_instance = validated_dict.get('community_id')
-
-            return {
-                'is_international': is_international,
-                'community_instance': community_instance
-            }
-
-        else:
-            return {'is_international': is_international}
+        return {
+            'is_international': is_international,
+            'community_instance': community_instance
+        }
 
     @staticmethod
     def validate_user_verify_otp_on_email_request(api_key: str, email_id: str, otp: str):
-        
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        community_instance = validated_dict.get('community_id')
+
         if not email_id:
             return ResponseUtilities.get_inner_error_context('Invalid email ID!')
 
         if not otp:
             return ResponseUtilities.get_inner_error_context("Invalid OTP!")
 
-        if api_key and len(api_key) > 0:
-
-            validation_params = {
-                'community_id': {
-                    'api_key': api_key
-                }
-            }
-
-            validated_dict = ValidationUtilities.is_valid(validation_params)
-
-            if validated_dict.get('error_message'):
-                return validated_dict
-
-            community_instance = validated_dict.get('community_id')
-
-            return {
-                'community_instance': community_instance
-            }
-        
-        return {}
+        return {
+            'community_instance': community_instance
+        }
 
     @staticmethod
     def validate_user_google_login_request(api_key: str, token: str):
@@ -2338,19 +2260,16 @@ class UserHelper:
 
     @staticmethod
     def validate_user_send_otp_on_email_request(api_key: str, email_id: str):
-        
-        if api_key and len(api_key) > 0:
-            
-            validation_params = {
-                'community_id': {
-                    'api_key': api_key
-                }
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
             }
+        }
 
-            validated_dict = ValidationUtilities.is_valid(validation_params)
+        validated_dict = ValidationUtilities.is_valid(validation_params)
 
-            if validated_dict.get('error_message'):
-                return validated_dict
+        if validated_dict.get('error_message'):
+            return validated_dict
 
         if not email_id:
             return ResponseUtilities.get_inner_error_context('Invalid email ID!')
@@ -2515,12 +2434,10 @@ class UserHelper:
 
     @staticmethod
     def handle_verify_user_email_otp(community_instance, email_id):
-
         app_access = True
         existing_user = False
         user_object = None
         sdk_client_user_info_instance = None
-        user_info_instance = None
 
         filter_dict = {
             'email': email_id
@@ -2531,14 +2448,9 @@ class UserHelper:
         if email_filter:
             user_ids_list = list(email_filter.values_list('user_id', flat=True))
 
-            if community_instance:
-                sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+            sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
                                                                             {'community': community_instance,
                                                                              'user__in': user_ids_list}).first()
-            else:
-                user_info_instance = ModelUtilities.get_model_filter(Userinfo,
-                                                                            {'user_id_id__in': user_ids_list}).first()
-
 
         if sdk_client_user_info_instance:
             existing_user = True
@@ -2552,10 +2464,6 @@ class UserHelper:
 
             user_object = get_logged_in_user(user_instance=sdk_client_user_info_instance.user,
                                              sdk_client_info_flag=True)
-
-        if user_info_instance:
-            existing_user = True
-            user_object = get_logged_in_user(user_instance=user_info_instance.user_id)
 
         return {
             'success': True,

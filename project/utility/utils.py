@@ -1,6 +1,5 @@
 # file containing common functions of both android and web
 from __future__ import absolute_import, unicode_literals
-import re
 
 from urllib.parse import urlparse
 
@@ -1278,9 +1277,3 @@ def is_version_code_supported_for_intro_room(version_code, platform_code):
             return True
     
     return False
-
-def is_valid_email(email):
-    
-    email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-    
-    return re.match(email_regex, email) is not None
