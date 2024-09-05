@@ -499,7 +499,6 @@ class LoginTypes:
     APPLE = "apple"
     CUSTOM = "custom"
     SDK = "sdk"
-    DASHBOARD = "dashboard"
 
 
 login_types = LoginTypes()
