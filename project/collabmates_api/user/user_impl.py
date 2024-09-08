@@ -42,9 +42,10 @@ from utility.constants import (ONE_DAY_HOURS, INTERNATIONAL_OTP_LIMIT_FILE_NAME)
 from utility.response_utilities import ResponseUtilities
 
 from utility.url_utilities import UrlUtilities
-from utility.cache_keys import (INTERNATIONAL_OTP_GENERATE_CACHE_KEY)
+from utility.cache_keys import (INTERNATIONAL_OTP_GENERATE_CACHE_KEY, SWARM_CACHE_KEY_BLOCK_USER)
 from utility.file_utilities import FileUtilities
 from utility.validation_utilities import ValidationUtilities
+from utility.internal_service_utilities import InternalServiceUtilities
 
 from .constants import *
 from .user_view_helper import UserViewHelper
@@ -1387,6 +1388,8 @@ class UserImpl(UserManager):
 
         block_user_filter = ModelUtilities.get_model_filter(BlockUser, filter_dict)
 
+        is_record_updated = False
+
         if should_block:
 
             if block_user_filter:
@@ -1395,6 +1398,7 @@ class UserImpl(UserManager):
 
             else:
                 ModelUtilities.update_or_create_model(BlockUser, filter_dict, {})
+                is_record_updated = True
 
         else:
 
@@ -1404,6 +1408,13 @@ class UserImpl(UserManager):
 
             else:
                 block_user_filter.delete()
+                is_record_updated = True
+
+        if is_record_updated:
+            # Delete swarm community settings cache if user is blocked/unblocked
+            InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+                community_instance.id, user_instance.id,
+                SWARM_CACHE_KEY_BLOCK_USER.format(community_instance.id, user_instance.userinfo.user_unique_id))
 
         return {
             'success': True
@@ -1412,6 +1423,7 @@ class UserImpl(UserManager):
     def get_block_user_data(self, user_uuid: str, block_user_type: list, page: int, page_size: int) -> dict:
         validated_req = UserHelper.validate_get_block_user_data_request(self.get_user_id(),
                                                                         self.get_api_key(),
+                                                                        self.get_community_id(),
                                                                         user_uuid,
                                                                         block_user_type)
 
@@ -1432,15 +1444,15 @@ class UserImpl(UserManager):
             }
 
             blocked_user_filter = ModelUtilities.get_model_filter(BlockUser, filter_dict).order_by('created_at')
-            blocked_user_list = list(paginate_list(blocked_user_filter, page, page_size))
+            blocked_user_list = paginate_list(blocked_user_filter, page, page_size)
 
             if blocked_user_list:
                 blocked_user_ids_list = [block_user_instance.blocked_user_id for block_user_instance in
-                                         blocked_user_list]
+                                         blocked_user_list.object_list]
                 blocked_users_list = UserHelper.compute_members_meta_list(community_instance,
                                                                           blocked_user_ids_list,
-                                                                          page,
-                                                                          page_size)
+                                                                          page=1,
+                                                                          page_size=page_size)
 
         if BlockUserTypes.BLOCKED.value in block_user_type:
             filter_dict = {
@@ -1449,15 +1461,15 @@ class UserImpl(UserManager):
             }
 
             blocking_user_filter = ModelUtilities.get_model_filter(BlockUser, filter_dict).order_by('created_at')
-            blocking_user_list = list(paginate_list(blocking_user_filter, page, page_size))
+            blocking_user_list = paginate_list(blocking_user_filter, page, page_size)
 
             if blocking_user_list:
                 blocking_user_ids_list = [block_user_instance.blocking_user_id for block_user_instance in
-                                          blocked_user_list]
+                                          blocking_user_list.object_list]
                 blocking_users_list = UserHelper.compute_members_meta_list(community_instance,
                                                                            blocking_user_ids_list,
-                                                                           page,
-                                                                           page_size)
+                                                                           page=1,
+                                                                           page_size=page_size)
 
         return {
             'success': True,
@@ -2713,13 +2725,14 @@ class UserHelper:
         }
 
     @staticmethod
-    def validate_get_block_user_data_request(user_id, api_key, second_user_uuid, block_user_type):
+    def validate_get_block_user_data_request(user_id, api_key, community_id, second_user_uuid, block_user_type):
 
         if set(block_user_type).difference({BlockUserTypes.BLOCKING.value, BlockUserTypes.BLOCKED.value}):
             return ResponseUtilities.get_inner_error_context('Invalid block user type.')
 
         validation_params = {
             'community_id': {
+                'community_id': community_id,
                 'api_key': api_key
             }
         }
