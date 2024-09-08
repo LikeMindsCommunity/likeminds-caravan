@@ -385,8 +385,8 @@ class SdkViewHelper:
             'name': req_body.get('name'),
             'email': req_body.get('email', ''),
             'organisation_name': req_body.get('organisation_name'),
-            'mobile_no': int(req_body.get('mobile_no')),
-            'country_code': int(req_body.get('country_code')),
+            'mobile_no': req_body.get('mobile_no'),
+            'country_code': req_body.get('country_code'),
         }
 
         if req_body.get('image_url'):
