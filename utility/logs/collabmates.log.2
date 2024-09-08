@@ -1,0 +1,1163 @@
+2024-08-22 14:04:32,389  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_views.py", line 259, in get
+    response_data = sdk_manager.get_mau_overview(request_params)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py", line 464, in get_mau_overview
+    mau_data = get_mau_overview_data_for_community(community['id'], no_of_months)
+TypeError: 'Community' object is not subscriptable
+2024-08-22 14:05:51,219  INFO Watching for file changes with StatReloader  
+2024-08-22 14:06:53,492  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py changed, reloading.  
+2024-08-22 14:09:47,845  INFO Watching for file changes with StatReloader  
+2024-08-22 14:11:11,155  INFO "GET /api/sdk/mau_overview?no_of_months=6 HTTP/1.1" 200 17  
+2024-08-22 14:11:36,784  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py changed, reloading.  
+2024-08-22 14:11:39,696  INFO Watching for file changes with StatReloader  
+2024-08-22 14:12:42,169  INFO Watching for file changes with StatReloader  
+2024-08-22 14:12:55,258  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_views.py", line 259, in get
+    response_data = sdk_manager.get_mau_overview(request_params)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py", line 465, in get_mau_overview
+    print('community_id:', community.get('id'))
+AttributeError: 'Community' object has no attribute 'get'
+2024-08-22 14:15:29,567  INFO Watching for file changes with StatReloader  
+2024-08-22 14:15:35,566  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_views.py", line 259, in get
+    response_data = sdk_manager.get_mau_overview(request_params)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py", line 455, in get_mau_overview
+    validated_request = SdkViewHelper.get_mau_overview_validator(request_params, self.member_id, self.api_key)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py", line 370, in get_mau_overview_validator
+    'community_id': community_instance.get('id'),
+AttributeError: 'Community' object has no attribute 'get'
+2024-08-22 14:22:20,363  INFO Watching for file changes with StatReloader  
+2024-08-22 14:22:26,605  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_views.py", line 259, in get
+    response_data = sdk_manager.get_mau_overview(request_params)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py", line 455, in get_mau_overview
+    validated_request = SdkViewHelper.get_mau_overview_validator(request_params, self.member_id, self.api_key)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py", line 367, in get_mau_overview_validator
+    community_instance = ModelUtilities.get_model_filter(Community, {'id': sdk_client.get('community_id')})
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/db/models/query.py", line 404, in get
+    clone = self._chain() if self.query.combinator else self.filter(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/db/models/query.py", line 904, in filter
+    return self._filter_or_exclude(False, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/db/models/query.py", line 923, in _filter_or_exclude
+    clone.query.add_q(Q(*args, **kwargs))
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/db/models/sql/query.py", line 1350, in add_q
+    clause, _ = self._add_q(q_object, self.used_aliases)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/db/models/sql/query.py", line 1381, in _add_q
+    check_filterable=check_filterable,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/db/models/sql/query.py", line 1247, in build_filter
+    arg, value = filter_expr
+ValueError: too many values to unpack (expected 2)
+2024-08-22 14:23:01,473  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py changed, reloading.  
+2024-08-22 14:23:28,036  INFO Watching for file changes with StatReloader  
+2024-08-22 14:23:41,291  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_views.py", line 259, in get
+    response_data = sdk_manager.get_mau_overview(request_params)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py", line 455, in get_mau_overview
+    validated_request = SdkViewHelper.get_mau_overview_validator(request_params, self.member_id, self.api_key)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py", line 367, in get_mau_overview_validator
+    community_instance = ModelUtilities.get_model_filter(Community, {'id': sdk_client.get('community_id')}).first()
+AttributeError: 'SdkClient' object has no attribute 'get'
+2024-08-22 14:24:16,006  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py changed, reloading.  
+2024-08-22 14:25:11,776  INFO Watching for file changes with StatReloader  
+2024-08-22 14:25:17,440  INFO Watching for file changes with StatReloader  
+2024-08-22 14:25:24,058  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_views.py", line 259, in get
+    response_data = sdk_manager.get_mau_overview(request_params)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py", line 455, in get_mau_overview
+    validated_request = SdkViewHelper.get_mau_overview_validator(request_params, self.member_id, self.api_key)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py", line 367, in get_mau_overview_validator
+    community_instance = ModelUtilities.get_model_filter(Community, {'id': sdk_client['community_id']}).first()
+TypeError: 'SdkClient' object is not subscriptable
+2024-08-22 14:32:10,558  INFO Watching for file changes with StatReloader  
+2024-08-22 14:32:55,213  INFO "GET /api/sdk/mau_overview?no_of_months=6 HTTP/1.1" 200 300  
+2024-08-22 14:35:11,822  INFO Watching for file changes with StatReloader  
+2024-08-22 14:35:29,247  INFO "POST /api/sdk/initiate HTTP/1.1" 200 4565  
+2024-08-22 14:35:56,307  INFO "GET /api/sdk/mau_overview?no_of_months=6 HTTP/1.1" 200 300  
+2024-08-22 14:36:15,347  INFO "GET /api/sdk/mau_overview?no_of_months=6 HTTP/1.1" 200 300  
+2024-08-22 14:36:19,988  WARNING Bad Request: /api/sdk/mau_overview  
+2024-08-22 14:36:19,989  WARNING "GET /api/sdk/mau_overview?no_of_months=0 HTTP/1.1" 400 67  
+2024-08-22 14:36:29,954  INFO "GET /api/sdk/mau_overview?no_of_months=7 HTTP/1.1" 200 320  
+2024-08-22 14:50:29,930  INFO Watching for file changes with StatReloader  
+2024-08-22 14:50:47,403  INFO "GET /api/sdk/mau_overview?no_of_months=7 HTTP/1.1" 200 320  
+2024-08-22 14:51:13,125  INFO "GET /api/sdk/mau_overview?no_of_months=7 HTTP/1.1" 200 320  
+2024-08-22 15:47:29,973  INFO "GET /api/verify_otp?country_code=91&mobile_no=8860664490&otp=9999 HTTP/1.1" 200 549  
+2024-08-22 15:48:03,087  WARNING Bad Request: /api/sdk/mau_overview  
+2024-08-22 15:48:03,088  WARNING "GET /api/sdk/mau_overview?no_of_months=7 HTTP/1.1" 400 57  
+2024-08-22 15:48:49,700  WARNING Bad Request: /api/sdk/mau_overview  
+2024-08-22 15:48:49,702  WARNING "GET /api/sdk/mau_overview?no_of_months=7 HTTP/1.1" 400 57  
+2024-08-22 15:49:09,376  WARNING Bad Request: /api/sdk/mau_overview  
+2024-08-22 15:49:09,377  WARNING "GET /api/sdk/mau_overview?no_of_months=7 HTTP/1.1" 400 57  
+2024-08-22 15:49:48,134  WARNING Bad Request: /api/sdk/mau_overview  
+2024-08-22 15:49:48,136  WARNING "GET /api/sdk/mau_overview?no_of_months=7 HTTP/1.1" 400 57  
+2024-08-22 15:50:48,041  INFO "GET /api/user/bot HTTP/1.1" 200 534  
+2024-08-22 15:50:48,076  INFO "GET /api/sdk/mau_overview?no_of_months=7 HTTP/1.1" 200 320  
+2024-08-22 15:54:57,713  INFO "GET /api/user/bot HTTP/1.1" 200 534  
+2024-08-22 15:54:57,756  INFO "GET /api/sdk/mau_overview?no_of_months=7 HTTP/1.1" 200 320  
+2024-08-23 16:42:39,021  INFO Watching for file changes with StatReloader  
+2024-08-23 16:44:21,074  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py changed, reloading.  
+2024-08-23 16:44:23,861  INFO Watching for file changes with StatReloader  
+2024-08-23 16:44:43,731  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py changed, reloading.  
+2024-08-23 16:44:46,189  INFO Watching for file changes with StatReloader  
+2024-08-23 16:44:49,291  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py changed, reloading.  
+2024-08-23 16:44:51,526  INFO Watching for file changes with StatReloader  
+2024-08-23 16:45:02,263  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py changed, reloading.  
+2024-08-23 16:45:04,954  INFO Watching for file changes with StatReloader  
+2024-08-23 16:45:50,146  INFO Watching for file changes with StatReloader  
+2024-08-23 16:46:57,860  WARNING Bad Request: /api/sdk/mau_overview  
+2024-08-23 16:46:57,861  WARNING "GET /api/sdk/mau_overview HTTP/1.1" 400 58  
+2024-08-23 16:47:23,936  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py changed, reloading.  
+2024-08-23 16:47:26,463  INFO Watching for file changes with StatReloader  
+2024-08-23 16:47:34,540  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_views.py", line 258, in get
+    response_data = sdk_manager.get_mau_overview(request_params)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py", line 455, in get_mau_overview
+    validated_request = SdkViewHelper.get_mau_overview_validator(request_params, self.member_id, self.api_key)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py", line 344, in get_mau_overview_validator
+    request_params['no_of_months'] = '6'
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/http/request.py", line 467, in __setitem__
+    self._assert_mutable()
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/http/request.py", line 464, in _assert_mutable
+    raise AttributeError("This QueryDict instance is immutable")
+AttributeError: This QueryDict instance is immutable
+2024-08-23 16:47:36,261  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:47:38,933  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:47:40,578  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:47:43,950  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:47:49,987  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:47:53,253  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:47:57,156  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:48:03,356  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:48:09,505  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:48:16,193  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:53:03,162  INFO Watching for file changes with StatReloader  
+2024-08-23 16:53:13,664  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_views.py", line 258, in get
+    response_data = sdk_manager.get_mau_overview(request_params)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py", line 455, in get_mau_overview
+    validated_request = SdkViewHelper.get_mau_overview_validator(request_params, self.member_id, self.api_key)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py", line 346, in get_mau_overview_validator
+    if not no_of_months.isdigit():
+AttributeError: 'NoneType' object has no attribute 'isdigit'
+2024-08-23 16:53:15,338  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:53:16,661  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:55:20,215  INFO Watching for file changes with StatReloader  
+2024-08-23 16:55:33,135  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_views.py", line 258, in get
+    response_data = sdk_manager.get_mau_overview(request_params)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py", line 455, in get_mau_overview
+    validated_request = SdkViewHelper.get_mau_overview_validator(request_params, self.member_id, self.api_key)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py", line 346, in get_mau_overview_validator
+    if not no_of_months.isdigit():
+AttributeError: 'NoneType' object has no attribute 'isdigit'
+2024-08-23 16:55:34,645  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:55:35,958  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:56:29,125  INFO Watching for file changes with StatReloader  
+2024-08-23 16:56:33,235  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/datastructures.py", line 76, in __getitem__
+    list_ = super().__getitem__(key)
+KeyError: 'no_of_months'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_views.py", line 258, in get
+    response_data = sdk_manager.get_mau_overview(request_params)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py", line 461, in get_mau_overview
+    no_of_months = int(validated_request['request_params']['no_of_months'])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/datastructures.py", line 78, in __getitem__
+    raise MultiValueDictKeyError(key)
+django.utils.datastructures.MultiValueDictKeyError: 'no_of_months'
+2024-08-23 16:56:34,463  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 16:59:48,678  INFO Watching for file changes with StatReloader  
+2024-08-23 16:59:56,807  WARNING Bad Request: /api/sdk/mau_overview  
+2024-08-23 16:59:56,808  WARNING "GET /api/sdk/mau_overview HTTP/1.1" 400 63  
+2024-08-23 17:02:22,759  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py changed, reloading.  
+2024-08-23 17:02:25,686  INFO Watching for file changes with StatReloader  
+2024-08-23 17:41:41,641  INFO Watching for file changes with StatReloader  
+2024-08-23 17:41:52,819  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_views.py", line 258, in get
+    response_data = sdk_manager.get_mau_overview(request_params)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py", line 455, in get_mau_overview
+    validated_request = SdkViewHelper.get_mau_overview_validator(request_params, self.member_id, self.api_key)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py", line 354, in get_mau_overview_validator
+    if not no_of_months.isdigit():
+AttributeError: 'NoneType' object has no attribute 'isdigit'
+2024-08-23 17:41:53,901  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 17:41:55,968  ERROR Internal Server Error: /api/sdk/mau_overview  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-23 17:46:05,492  INFO Watching for file changes with StatReloader  
+2024-08-23 17:46:12,590  INFO "GET /api/sdk/mau_overview HTTP/1.1" 200 300  
+2024-08-23 17:46:47,276  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py changed, reloading.  
+2024-08-23 17:46:49,857  INFO Watching for file changes with StatReloader  
+2024-08-23 17:46:57,129  INFO "GET /api/sdk/mau_overview HTTP/1.1" 200 265  
+2024-08-23 17:47:52,637  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py changed, reloading.  
+2024-08-23 17:47:55,548  INFO Watching for file changes with StatReloader  
+2024-08-23 17:49:10,347  INFO Watching for file changes with StatReloader  
+2024-08-23 17:49:36,344  WARNING Bad Request: /api/sdk/mau_overview  
+2024-08-23 17:49:36,345  WARNING "GET /api/sdk/mau_overview?no_of_months=-12 HTTP/1.1" 400 67  
+2024-08-23 17:50:05,862  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py changed, reloading.  
+2024-08-23 17:50:08,734  INFO Watching for file changes with StatReloader  
+2024-08-23 17:51:54,323  INFO Watching for file changes with StatReloader  
+2024-08-23 17:52:05,789  WARNING Bad Request: /api/sdk/mau_overview  
+2024-08-23 17:52:05,790  WARNING "GET /api/sdk/mau_overview?no_of_months=12asd HTTP/1.1" 400 81  
+2024-08-23 17:52:21,394  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py changed, reloading.  
+2024-08-23 17:52:23,983  INFO Watching for file changes with StatReloader  
+2024-08-23 17:52:41,192  WARNING Bad Request: /api/sdk/mau_overview  
+2024-08-23 17:52:41,193  WARNING "GET /api/sdk/mau_overview?no_of_months=-12 HTTP/1.1" 400 81  
+2024-08-23 17:52:47,432  WARNING Bad Request: /api/sdk/mau_overview  
+2024-08-23 17:52:47,433  WARNING "GET /api/sdk/mau_overview?no_of_months=asd HTTP/1.1" 400 81  
+2024-08-23 17:52:51,203  INFO "GET /api/sdk/mau_overview HTTP/1.1" 200 300  
+2024-08-28 15:36:58,401  INFO Watching for file changes with StatReloader  
+2024-08-28 15:41:17,551  INFO Watching for file changes with StatReloader  
+2024-08-28 15:51:19,379  INFO "POST /api/sdk/login HTTP/1.1" 200 810  
+2024-08-28 16:24:14,466  INFO /Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_view_helper.py changed, reloading.  
+2024-08-28 16:24:17,376  INFO Watching for file changes with StatReloader  
+2024-08-28 16:27:58,671  INFO "POST /api/sdk/login HTTP/1.1" 200 810  
+2024-08-28 16:39:53,106  INFO Watching for file changes with StatReloader  
+2024-08-28 16:41:08,345  INFO "POST /api/sdk/login HTTP/1.1" 200 810  
+2024-08-28 16:43:17,001  INFO Watching for file changes with StatReloader  
+2024-08-28 16:43:39,329  INFO "POST /api/sdk/login HTTP/1.1" 200 809  
+2024-08-29 14:59:49,215  INFO Watching for file changes with StatReloader  
+2024-08-29 15:00:03,087  ERROR Internal Server Error: /api/sdk/login  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_views.py", line 278, in post
+    response_data = sdk_manager.sdk_login(req_body, api_key)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_impl.py", line 503, in sdk_login
+    sdk_user_context = SdkViewHelper._get_or_create_sdk_user_and_userinfo(validated_user, api_key=api_key)
+TypeError: _get_or_create_sdk_user_and_userinfo() got an unexpected keyword argument 'api_key'
+2024-08-29 15:00:05,170  ERROR Internal Server Error: /api/sdk/login  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-29 15:00:06,662  ERROR Internal Server Error: /api/sdk/login  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/deprecation.py", line 94, in __call__
+    response = response or self.get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 36, in inner
+    response = response_for_exception(request, exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 95, in response_for_exception
+    exc_info=sys.exc_info(),
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 228, in log_response
+    exc_info=exc_info,
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1407, in error
+    self._log(ERROR, msg, args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1514, in _log
+    self.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1524, in handle
+    self.callHandlers(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 1586, in callHandlers
+    hdlr.handle(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/lib/python3.7/logging/__init__.py", line 894, in handle
+    self.emit(record)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 122, in emit
+    self.send_mail(subject, message, fail_silently=True, html_message=html_message)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/utils/log.py", line 125, in send_mail
+    mail.mail_admins(subject, message, *args, connection=self.connection(), **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/__init__.py", line 103, in mail_admins
+    mail.send(fail_silently=fail_silently)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/mail/message.py", line 276, in send
+    return self.get_connection(fail_silently).send_messages([self])
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/sgbackend/mail.py", line 66, in send_messages
+    self.sg.client.mail.send.post(request_body=mail)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 277, in http_request
+    self._make_request(opener, request, timeout=timeout)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/python_http_client/client.py", line 184, in _make_request
+    raise exc
+python_http_client.exceptions.UnauthorizedError: HTTP Error 401: Unauthorized
+2024-08-29 15:01:45,858  INFO Watching for file changes with StatReloader  
+2024-08-29 15:01:53,760  ERROR Internal Server Error: /api/sdk/login  
+Traceback (most recent call last):
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 505, in dispatch
+    response = self.handle_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 465, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 476, in raise_uncaught_exception
+    raise exc
+  File "/Users/likeminds/.pyenv/versions/3.7.12/envs/myenv/lib/python3.7/site-packages/rest_framework/views.py", line 502, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/Users/likeminds/Desktop/Togther/project/collabmates_api/sdk/sdk_views.py", line 278, in post
+    response_data = sdk_manager.sdk_login(req_body)
+TypeError: sdk_login() missing 1 required positional argument: 'api_key'

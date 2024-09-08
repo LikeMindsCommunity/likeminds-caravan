@@ -267,15 +267,14 @@ class SdkLoginView(APIView):
 
     def post(self, request):
         req_body = RequestUtilities.load_request_body(request)
-        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         if not req_body:
             return JsonResponse({'success': False,
                                  'error_message': "Invalid request body"},
                                 status=status_codes.HTTP_400_BAD_REQUEST)
         
-        sdk_manager = SdkImpl(api_key=api_key)
-        response_data = sdk_manager.sdk_login(req_body, api_key)
+        sdk_manager = SdkImpl()
+        response_data = sdk_manager.sdk_login(req_body)
 
         if 'error_message' in response_data:
             return JsonResponse(response_data, status=status_codes.HTTP_400_BAD_REQUEST)

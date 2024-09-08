@@ -13,6 +13,7 @@ from django.db import IntegrityError
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.states import email_states, mobile_states, member_states, login_types, community_setting_types, GuestFlowUserTypes, CommunityConfigurationTypes
 import uuid
+import re
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -382,12 +383,11 @@ class SdkViewHelper:
 
         user_meta = req_body.get('user', {})
 
-        if not (user_meta.get('name') or user_meta.get('user_unique_id')):
+        if not user_meta.get('name'):
             return {}
 
         user_context = {
             'name': user_meta.get('name'),
-            'is_guest': user_meta.get('is_guest', False),
             'email': user_meta.get('email', ''),
             'organisation_name': user_meta.get('organisation_name'),
             'mobile_no': user_meta.get('mobile_no'),
@@ -401,88 +401,48 @@ class SdkViewHelper:
         else:
             user_context['has_profile_image'] = False
 
-        user_context['login_type'] = login_types.SDK
-        user_context['mobile_context'] = SdkViewHelper.compute_mobile_no(req_body)
-
-        if user_meta.get('user_unique_id'):
-            user_context['user_unique_id'] = user_meta.get('user_unique_id')
-
         return user_context
 
     @staticmethod
-    def _get_or_create_sdk_user_and_userinfo(user_context, api_key=None):
+    def _get_or_create_sdk_user_and_userinfo(user_context):
 
-        user_unique_id = user_context.get('user_unique_id')
         user_email = user_context.get('email')
         user_mobile_no = user_context.get('mobile_no')
         user_country_code = user_context.get('country_code')
         user_instance = None
         unique_id = str(uuid.uuid4())
-        sdk_client_user_info_instance = None
-        community_instance = None
         existing_user = False
         app_access = True
-        is_bot = user_context.get('is_bot', False)
-        is_guest_user = user_context.get('is_guest', False)
+        
+        if not user_email: # add check for email format
+            return ResponseUtilities.get_inner_error_context("User email not found")
+        
+        validated_email = SdkViewHelper.is_valid_email(user_email)
 
-        if not (is_bot or api_key or not user_unique_id):
-            return ResponseUtilities.get_inner_error_context("Invalid API key!")
-
-        if api_key:
-            sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key}).first()
-
-            if not sdk_client_instance:
-                return ResponseUtilities.get_inner_error_context("Invalid API key!")
-
-            community_instance = sdk_client_instance.community
+        if not validated_email:
+            return ResponseUtilities.get_inner_error_context("User email is not valid")
 
         should_create_user = True
-        sdk_client_users_info_filter = None
+        user_info_filter = None
 
-        if is_guest_user:
-            sdk_client_users_info_filter = SdkViewHelper.get_guest_user(community_instance, user_unique_id)
+        existing_user_ids_with_email = list(ModelUtilities.get_model_filter(userEmails,
+                                                                            {'email': user_email}).values_list(
+            'user_id', flat=True))
 
-            if sdk_client_users_info_filter.get('error_message'):
-                return ResponseUtilities.get_inner_error_context(**sdk_client_users_info_filter)
+        if existing_user_ids_with_email:
+            user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id_id__in': existing_user_ids_with_email})
 
-            sdk_client_users_info_filter = sdk_client_users_info_filter.get('sdk_client_users_info_filter')
-
-        elif user_unique_id:
-            sdk_client_users_info_filter = ModelUtilities.get_model_filter(
-                SDKClientUsersInfo, {'community': community_instance}).filter(
-                Q(user_unique_id=user_unique_id) | Q(user__userinfo__user_unique_id=user_unique_id))
-
-        elif user_email:
-            existing_user_ids_with_email = list(ModelUtilities.get_model_filter(userEmails,
-                                                                                {'email': user_email}).values_list(
-                'user_id', flat=True))
-
-            if existing_user_ids_with_email:
-                sdk_client_users_info_filter = ModelUtilities.get_model_filter(
-                    SDKClientUsersInfo, {'community': community_instance, 'user__in': existing_user_ids_with_email})
-
-        elif user_mobile_no and user_country_code:
-            existing_user_ids_with_mobile = list(ModelUtilities.get_model_filter(
-                userMobiles, {'country_code': user_country_code, 'mobile_no': user_mobile_no}).values_list(
-                'user_id', flat=True))
-
-            if existing_user_ids_with_mobile:
-                sdk_client_users_info_filter = ModelUtilities.get_model_filter(
-                    SDKClientUsersInfo, {'community': community_instance, 'user__in': existing_user_ids_with_mobile})
-
-        if sdk_client_users_info_filter:
+        if user_info_filter:
             existing_user = True
-            sdk_client_user_info_instance = sdk_client_users_info_filter[0]
+            user_info_instance = user_info_filter[0]
 
             removed_member = ModelUtilities.get_model_filter(removedMembers,
-                                                             {'community': community_instance,
-                                                              'member': sdk_client_user_info_instance.user})
+                                                    {'member': user_info_instance.user_id_id})
 
             if len(removed_member):
                 app_access = False
-
-            return {'user_instance': sdk_client_user_info_instance.user,
-                    'sdk_client_user_info_instance': sdk_client_user_info_instance,
+        
+            return {'user_info_instance': user_info_instance,
                     'is_existing_user': existing_user,
                     'app_access': app_access}
 
@@ -500,20 +460,11 @@ class SdkViewHelper:
             userinfo_instance.created_at = TimeUtilities.current_time_in_sec()
             userinfo_instance.user_id = user_instance
             userinfo_instance.user_unique_id = unique_id
-            userinfo_instance.is_guest = user_context.get('is_guest', False)
             userinfo_instance.image_link = SdkViewHelper.process_image_url_for_processing(user_context, user_instance)
             userinfo_instance.organisation_name = user_context.get('organisation_name')
-            userinfo_instance.is_bot = user_context.get('is_bot', False)
-            userinfo_instance.save() 
+            userinfo_instance.save()
 
-            mobile_context = user_context.get('mobile_context')
-
-            if mobile_context and mobile_context.get('country_code') and mobile_context.get('mobile_no'):
-                SdkViewHelper.create_user_mobile_number(user_instance,
-                                                   mobile_context.get('country_code'),
-                                                   mobile_context.get('mobile_no'))
-
-            elif user_mobile_no and user_country_code:
+            if user_mobile_no and user_country_code:
                 SdkViewHelper.create_user_mobile_number(user_instance,
                                                    user_country_code,
                                                    user_mobile_no,
@@ -522,95 +473,9 @@ class SdkViewHelper:
             if user_context.get('email'):
                 SdkViewHelper.create_user_primary_email(user_instance, user_context)
 
-            if (user_unique_id or unique_id) and community_instance:
-                sdk_client_user_info_instance = SDKClientUsersInfo()
-                sdk_client_user_info_instance.community = community_instance
-                sdk_client_user_info_instance.user = user_instance
-                sdk_client_user_info_instance.user_unique_id = user_unique_id if user_unique_id else unique_id
-
-                try:
-                    sdk_client_user_info_instance.save()
-
-                # If user_unique_id is already present in the table, delete User instances and raise IntegrityError
-                except IntegrityError as e:
-
-                    error_logger.error(f"Integrity error occured in SdkClientUsersInfo: {e} | User Instance deleted: {user_instance.id}")
-                    user_instance.delete()
-                    raise e
-
-        return {'user_instance': user_instance,
-                'sdk_client_user_info_instance': sdk_client_user_info_instance,
+        return {'user_info_instance': userinfo_instance,
                 'is_existing_user': existing_user,
                 'app_access': app_access}
-    
-    @staticmethod
-    def get_guest_user(community_instance: Community, user_unique_id: str = None):
-        sdk_client_users_info_filter = None
-
-        # Fetch guest flow community settings
-        filter_dict = {
-            'community': community_instance,
-            'setting_type': community_setting_types.ENABLE_GUEST_FLOW
-        }
-
-        community_setting_instance = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
-
-        if community_setting_instance and not community_setting_instance.enabled:
-            return ResponseUtilities.get_inner_error_context('Guest flow is disabled!')
-
-        # Fetch guest flow community configurations
-        from collabmates_api.community.community_impl import CommunityHelper
-
-        guest_flow_configuration_metadata = {}
-
-        guest_flow_community_configuration = CommunityHelper.fetch_or_return_default_community_configurations(
-            community_instance, [CommunityConfigurationTypes.GUEST_FLOW_METADATA.value])
-
-        if len(guest_flow_community_configuration):
-            guest_flow_community_configuration = guest_flow_community_configuration[0]
-
-        if guest_flow_community_configuration and isinstance(guest_flow_community_configuration, dict):
-            guest_flow_configuration_metadata = guest_flow_community_configuration.get('value')
-
-        # Checks for guest user when user_unique_id is present
-        if user_unique_id:
-            sdk_client_users_info_filter = ModelUtilities.get_model_filter(
-                SDKClientUsersInfo, {'community': community_instance}).filter(
-                Q(user_unique_id=user_unique_id) | Q(user__userinfo__user_unique_id=user_unique_id))
-
-            if not sdk_client_users_info_filter:
-
-                if guest_flow_configuration_metadata.get('guest_users') == GuestFlowUserTypes.SINGLE.value:
-                    return ResponseUtilities.get_inner_error_context('Invalid user UUID!')
-
-                elif guest_flow_configuration_metadata.get('guest_users') != GuestFlowUserTypes.MULTIPLE.value:
-                    return ResponseUtilities.get_inner_error_context('Invalid guest flow configurations!')
-
-            else:
-                sdk_client_user_info_instance = sdk_client_users_info_filter[0]
-
-                if not sdk_client_user_info_instance.user.userinfo.is_guest:
-                    return ResponseUtilities.get_inner_error_context('User is not guest!')
-
-        elif guest_flow_configuration_metadata.get('guest_users') == GuestFlowUserTypes.SINGLE.value:
-            sdk_client_users_info_filter = ModelUtilities.get_model_filter(
-                SDKClientUsersInfo, {'community': community_instance, 'user__userinfo__is_guest': True})
-
-        return {'sdk_client_users_info_filter': sdk_client_users_info_filter}
-    
-    @staticmethod
-    def compute_mobile_no(body):
-        country_code = body.get('country_code', "")
-        mobile_no = body.get('mobile_no', "")
-
-        if not mobile_no or not country_code:
-            return {}
-
-        mobile_context = {'country_code': country_code,
-                          'mobile_no': mobile_no,
-                          'phone_no': str(country_code) + str(mobile_no)}
-
-        return mobile_context
     
     @staticmethod
     def create_user_primary_email(user_instance, user_context, email_state=email_states.PRIMARY):
@@ -697,36 +562,44 @@ class SdkViewHelper:
     @staticmethod
     def is_user_belong_to_any_community(user_instance):
 
-        return Members.objects.filter(member_id=user_instance).filter(Q(state=member_states.ADMIN)
+        return Members.objects.filter(member_id=user_instance.user_id_id).filter(Q(state=member_states.ADMIN)
                                                                       | Q(state=member_states.MEMBER)
                                                                       | Q(
             state=member_states.PROFILE_UNAVAILABLE)).exists()
 
-    def create_user_context_for_sdk(user_instance, is_exisiting_user=False, sdk_client_user_info_instance=None,
-                                    app_access=True):
+    def create_user_context_for_sdk(user_info_instance, is_exisiting_user=False, app_access=True):
 
-        logged_in_user = SdkViewHelper.compute_logged_in_user(user_instance.userinfo, sdk_client_user_info_instance)
-        
-        print("emails:" , logged_in_user['emails'])
+        logged_in_user = SdkViewHelper.compute_logged_in_user(user_info_instance)
         
         user_object = {
             'success': True,
             'user': logged_in_user,
             'email_exists': True if len(logged_in_user['emails']) else False,
-            'access': SdkViewHelper.is_user_belong_to_any_community(user_instance),
+            'access': SdkViewHelper.is_user_belong_to_any_community(user_info_instance),
             'is_existing_user': is_exisiting_user,
             'app_access': app_access
         }
 
         return user_object
     
-    def compute_logged_in_user(userinfo_instance, sdk_client_user_info_instance=None):
+    def is_valid_email(email):
+        
+        email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+        
+        return re.match(email_regex, email) is not None
 
-        userinfo_context = UserinfoSerializer(userinfo_instance)
+    def compute_logged_in_user(userinfo_instance):
 
-        if sdk_client_user_info_instance:
-            userinfo_context['sdk_client_info'] = SDKClientUsersInfoSerializer(sdk_client_user_info_instance,
-                                                                               many=False).data
+        userinfo_context = {
+            'id': userinfo_instance.id,
+            'name': userinfo_instance.name,
+            'updated_at': userinfo_instance.updated_at,
+            'is_guest': userinfo_instance.is_guest,
+            'user_unique_id': userinfo_instance.user_unique_id,
+            'uuid': userinfo_instance.user_unique_id,
+            'organisation_name': userinfo_instance.organisation_name,
+            'image_url': userinfo_instance.image_link
+        }
 
         email_list = SdkViewHelper.create_user_email_list(userinfo_instance)
         mobile_list = SdkViewHelper.create_user_mobile_list(userinfo_instance)
