@@ -11,9 +11,7 @@ from .models import SdkClient, SdkOnboardingScreen
 from django.contrib.auth.models import User
 from django.db import IntegrityError
 from external_services.logging.logging_wrapper import LoggingWrapper
-from utility.states import email_states, mobile_states, member_states, login_types, deleted_members, \
-    conversation_states, member_rights, community_setting_types, chat_request_states, api_types, \
-    whatsapp_subscription_state_actions, OTPTypes, GuestFlowUserTypes, CommunityConfigurationTypes
+from utility.states import email_states, mobile_states, member_states, login_types, community_setting_types, GuestFlowUserTypes, CommunityConfigurationTypes
 import uuid
 
 error_logger = LoggingWrapper.get_instance()
