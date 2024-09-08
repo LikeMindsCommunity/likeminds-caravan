@@ -311,7 +311,7 @@ class UserImpl(UserManager):
         return user_object
 
     @staticmethod
-    def _get_or_create_user(user_context, api_key=None):
+    def _get_or_create_sdk_user(user_context, api_key=None):
 
         user_unique_id = user_context.get('user_unique_id')
         user_email = user_context.get('email')
@@ -339,9 +339,8 @@ class UserImpl(UserManager):
 
         should_create_user = True
         sdk_client_users_info_filter = None
-        user_info_filter = None
 
-        if is_guest_user and api_key:
+        if is_guest_user:
             sdk_client_users_info_filter = UserHelper.get_guest_user(community_instance, user_unique_id)
 
             if sdk_client_users_info_filter.get('error_message'):
@@ -349,7 +348,7 @@ class UserImpl(UserManager):
 
             sdk_client_users_info_filter = sdk_client_users_info_filter.get('sdk_client_users_info_filter')
 
-        elif user_unique_id and api_key:
+        elif user_unique_id:
             sdk_client_users_info_filter = ModelUtilities.get_model_filter(
                 SDKClientUsersInfo, {'community': community_instance}).filter(
                 Q(user_unique_id=user_unique_id) | Q(user__userinfo__user_unique_id=user_unique_id))
@@ -360,14 +359,10 @@ class UserImpl(UserManager):
                 'user_id', flat=True))
 
             if existing_user_ids_with_email:
+                sdk_client_users_info_filter = ModelUtilities.get_model_filter(
+                    SDKClientUsersInfo, {'community': community_instance, 'user__in': existing_user_ids_with_email})
 
-                if api_key:
-                    sdk_client_users_info_filter = ModelUtilities.get_model_filter(
-                        SDKClientUsersInfo, {'community': community_instance, 'user__in': existing_user_ids_with_email})
-                else:
-                    user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id_id__in': existing_user_ids_with_email})
-
-        elif user_mobile_no and user_country_code and api_key:
+        elif user_mobile_no and user_country_code:
             existing_user_ids_with_mobile = list(ModelUtilities.get_model_filter(
                 userMobiles, {'country_code': user_country_code, 'mobile_no': user_mobile_no}).values_list(
                 'user_id', flat=True))
@@ -388,15 +383,6 @@ class UserImpl(UserManager):
                 app_access = False
 
             return {'user_instance': sdk_client_user_info_instance.user,
-                    'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                    'existing_user': existing_user,
-                    'app_access': app_access}
-
-        elif user_info_filter:
-            existing_user = True
-            user_info_instance = user_info_filter[0]
-        
-            return {'user_instance': user_info_instance.user_id,
                     'sdk_client_user_info_instance': sdk_client_user_info_instance,
                     'existing_user': existing_user,
                     'app_access': app_access}
@@ -455,6 +441,76 @@ class UserImpl(UserManager):
 
         return {'user_instance': user_instance,
                 'sdk_client_user_info_instance': sdk_client_user_info_instance,
+                'existing_user': existing_user,
+                'app_access': app_access}
+
+    @staticmethod
+    def _get_or_create_dashboard_user(user_context):
+
+        user_email = user_context.get('email')
+        user_mobile_no = user_context.get('mobile_no')
+        user_country_code = user_context.get('country_code')
+        user_instance = None
+        unique_id = str(uuid.uuid4())
+        existing_user = False
+        app_access = True
+        
+        user_info_filter = None
+        should_create_user = True
+
+        if user_email:
+            existing_user_ids_with_email = list(ModelUtilities.get_model_filter(userEmails,
+                                                                                {'email': user_email}).values_list(
+                'user_id', flat=True))
+
+            if existing_user_ids_with_email:
+                user_info_filter = ModelUtilities.get_model_filter(Userinfo, {'user_id_id__in': existing_user_ids_with_email})
+
+        if user_info_filter:
+            existing_user = True
+            user_info_instance = user_info_filter[0]
+
+            return {'user_instance': user_info_instance.user_id,
+                    'existing_user': existing_user,
+                    'app_access': app_access}
+
+        if should_create_user:
+
+            if not user_context.get('name'):
+                return ResponseUtilities.get_inner_error_context("Invalid user name!")
+
+            user_instance = User()
+            user_instance.username = unique_id
+            user_instance.save()
+
+            userinfo_instance = Userinfo()
+            userinfo_instance.name = user_context.get('name')
+            userinfo_instance.created_at = TimeUtilities.current_time_in_sec()
+            userinfo_instance.user_id = user_instance
+            userinfo_instance.user_unique_id = unique_id
+            userinfo_instance.is_guest = user_context.get('is_guest', False)
+            userinfo_instance.image_link = UserHelper.process_image_url_for_processing(user_context, user_instance)
+            userinfo_instance.organisation_name = user_context.get('organisation_name')
+            userinfo_instance.is_bot = user_context.get('is_bot', False)
+            userinfo_instance.save()
+
+            mobile_context = user_context.get('mobile_context')
+
+            if mobile_context and mobile_context.get('country_code') and mobile_context.get('mobile_no'):
+                UserImpl.create_user_mobile_number(user_instance,
+                                                   mobile_context.get('country_code'),
+                                                   mobile_context.get('mobile_no'))
+
+            elif user_mobile_no and user_country_code:
+                UserImpl.create_user_mobile_number(user_instance,
+                                                   user_country_code,
+                                                   user_mobile_no,
+                                                   force_create_instance=True)
+
+            if user_context.get('email'):
+                UserImpl.create_user_primary_email(user_instance, user_context)
+
+        return {'user_instance': user_instance,
                 'existing_user': existing_user,
                 'app_access': app_access}
 
@@ -605,7 +661,7 @@ class UserImpl(UserManager):
             return {'success': False, 'error_message': "Invalid Login"}
 
         if login_type == login_types.DASHBOARD:
-            dashboard_user_context = self._get_or_create_user(user_context)
+            dashboard_user_context = self._get_or_create_dashboard_user(user_context)
 
             if dashboard_user_context.get('error_message'):
                 return {'success': False, 'error_message': dashboard_user_context.get('error_message')}
@@ -616,7 +672,7 @@ class UserImpl(UserManager):
                                                     dashboard_user_context.get('app_access'))
         
         if login_type == login_types.SDK:
-            sdk_user_context = self._get_or_create_user(user_context, api_key=api_key)
+            sdk_user_context = self._get_or_create_sdk_user(user_context, api_key=api_key)
 
             if sdk_user_context.get('error_message'):
                 return {'success': False, 'error_message': sdk_user_context.get('error_message')}
@@ -1090,7 +1146,7 @@ class UserImpl(UserManager):
             'is_bot': True
         }
 
-        sdk_user_context = self._get_or_create_user(user_context)
+        sdk_user_context = self._get_or_create_sdk_user(user_context)
 
         if sdk_user_context.get('error_message'):
             return ResponseUtilities.get_impl_error_context(sdk_user_context.get('error_message'),
