@@ -488,7 +488,7 @@ class SdkImpl(SdkManager):
 
         return result
 
-    def sdk_login(self, req_body) -> dict:
+    def sdk_login(self, req_body, api_key) -> dict:
         try:
             validated_user = SdkViewHelper.sdk_login_user_validator(req_body)
 
@@ -500,11 +500,12 @@ class SdkImpl(SdkManager):
         if not validated_user:
             return {'success': False, 'error_message': "Invalid Login"}
         
-        sdk_user_context = SdkViewHelper._get_or_create_sdk_user_and_userinfo(validated_user)
+        sdk_user_context = SdkViewHelper._get_or_create_sdk_user_and_userinfo(validated_user, api_key=api_key)
 
         if sdk_user_context.get('error_message'):
             return {'success': False, 'error_message': sdk_user_context.get('error_message')}
 
-        return SdkViewHelper.create_user_context_for_sdk(sdk_user_context.get('user_info_instance'),
+        return SdkViewHelper.create_user_context_for_sdk(sdk_user_context.get('user_instance'),
                                                 sdk_user_context.get('is_existing_user'),
+                                                sdk_user_context.get('sdk_client_user_info_instance'),
                                                 sdk_user_context.get('app_access'))
