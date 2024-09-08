@@ -389,7 +389,7 @@ class UserImpl(UserManager):
 
             return {'user_instance': sdk_client_user_info_instance.user,
                     'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                    'is_existing_user': existing_user,
+                    'existing_user': existing_user,
                     'app_access': app_access}
 
         elif user_info_filter:
@@ -398,7 +398,7 @@ class UserImpl(UserManager):
         
             return {'user_instance': user_info_instance.user_id,
                     'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                    'is_existing_user': existing_user,
+                    'existing_user': existing_user,
                     'app_access': app_access}
 
         if should_create_user:
@@ -455,7 +455,7 @@ class UserImpl(UserManager):
 
         return {'user_instance': user_instance,
                 'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                'is_existing_user': existing_user,
+                'existing_user': existing_user,
                 'app_access': app_access}
 
     @staticmethod
@@ -611,7 +611,7 @@ class UserImpl(UserManager):
                 return {'success': False, 'error_message': dashboard_user_context.get('error_message')}
             
             return self.create_user_context(dashboard_user_context.get('user_instance'),
-                                                    dashboard_user_context.get('is_existing_user'),
+                                                    dashboard_user_context.get('existing_user'),
                                                     dashboard_user_context.get('sdk_client_user_info_instance'),
                                                     dashboard_user_context.get('app_access'))
         
@@ -622,7 +622,7 @@ class UserImpl(UserManager):
                 return {'success': False, 'error_message': sdk_user_context.get('error_message')}
 
             return self.create_user_context(sdk_user_context.get('user_instance'),
-                                                    sdk_user_context.get('is_existing_user'),
+                                                    sdk_user_context.get('existing_user'),
                                                     sdk_user_context.get('sdk_client_user_info_instance'),
                                                     sdk_user_context.get('app_access'))
 
