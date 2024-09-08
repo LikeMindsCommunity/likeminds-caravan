@@ -381,6 +381,11 @@ class SdkViewHelper:
     @staticmethod
     def sdk_login_user_validator(req_body):
 
+        # user_meta = req_body.get('user', {})
+
+        # if not user_meta.get('name'):
+        #     return {}
+
         user_context = {
             'name': req_body.get('name'),
             'email': req_body.get('email', ''),
@@ -421,7 +426,7 @@ class SdkViewHelper:
         user_info_filter = None
 
         existing_user_ids_with_email = list(ModelUtilities.get_model_filter(userEmails,
-                                                                            {'email': user_email}).values_list(
+                                                                            {'email': validated_email}).values_list(
             'user_id', flat=True))
 
         if existing_user_ids_with_email:
