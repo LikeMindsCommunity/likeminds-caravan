@@ -2061,16 +2061,19 @@ class UserHelper:
 
     @staticmethod
     def validate_user_send_otp_on_mobile_request(api_key: str, country_code: str, mobile_no: str):
-        validation_params = {
-            'community_id': {
-                'api_key': api_key
+        
+        if api_key and len(api_key) > 0:
+            
+            validation_params = {
+                'community_id': {
+                    'api_key': api_key
+                }
             }
-        }
 
-        validated_dict = ValidationUtilities.is_valid(validation_params)
+            validated_dict = ValidationUtilities.is_valid(validation_params)
 
-        if validated_dict.get('error_message'):
-            return validated_dict
+            if validated_dict.get('error_message'):
+                return validated_dict
 
         if not (mobile_no and str(mobile_no).isdigit()):
             return ResponseUtilities.get_inner_error_context('Invalid mobile number!')
@@ -2163,19 +2166,7 @@ class UserHelper:
 
     @staticmethod
     def validate_user_verify_otp_on_mobile_request(api_key: str, country_code: int, mobile_no: int, otp: str):
-        validation_params = {
-            'community_id': {
-                'api_key': api_key
-            }
-        }
-
-        validated_dict = ValidationUtilities.is_valid(validation_params)
-
-        if validated_dict.get('error_message'):
-            return validated_dict
-
-        community_instance = validated_dict.get('community_id')
-
+        
         if not (mobile_no and str(mobile_no).isdigit()):
             return ResponseUtilities.get_inner_error_context('Invalid mobile number!')
 
@@ -2187,35 +2178,58 @@ class UserHelper:
 
         is_international = str(country_code) != '91'
 
-        return {
-            'is_international': is_international,
-            'community_instance': community_instance
-        }
+        if api_key and len(api_key) > 0:
+
+            validation_params = {
+                'community_id': {
+                    'api_key': api_key
+                }
+            }
+
+            validated_dict = ValidationUtilities.is_valid(validation_params)
+
+            if validated_dict.get('error_message'):
+                return validated_dict
+
+            community_instance = validated_dict.get('community_id')
+
+            return {
+                'is_international': is_international,
+                'community_instance': community_instance
+            }
+
+        else:
+            return {'is_international': is_international}
 
     @staticmethod
     def validate_user_verify_otp_on_email_request(api_key: str, email_id: str, otp: str):
-        validation_params = {
-            'community_id': {
-                'api_key': api_key
-            }
-        }
-
-        validated_dict = ValidationUtilities.is_valid(validation_params)
-
-        if validated_dict.get('error_message'):
-            return validated_dict
-
-        community_instance = validated_dict.get('community_id')
-
+        
         if not email_id:
             return ResponseUtilities.get_inner_error_context('Invalid email ID!')
 
         if not otp:
             return ResponseUtilities.get_inner_error_context("Invalid OTP!")
 
-        return {
-            'community_instance': community_instance
-        }
+        if api_key and len(api_key) > 0:
+
+            validation_params = {
+                'community_id': {
+                    'api_key': api_key
+                }
+            }
+
+            validated_dict = ValidationUtilities.is_valid(validation_params)
+
+            if validated_dict.get('error_message'):
+                return validated_dict
+
+            community_instance = validated_dict.get('community_id')
+
+            return {
+                'community_instance': community_instance
+            }
+        
+        return {}
 
     @staticmethod
     def validate_user_google_login_request(api_key: str, token: str):
@@ -2260,16 +2274,19 @@ class UserHelper:
 
     @staticmethod
     def validate_user_send_otp_on_email_request(api_key: str, email_id: str):
-        validation_params = {
-            'community_id': {
-                'api_key': api_key
+        
+        if api_key and len(api_key) > 0:
+            
+            validation_params = {
+                'community_id': {
+                    'api_key': api_key
+                }
             }
-        }
 
-        validated_dict = ValidationUtilities.is_valid(validation_params)
+            validated_dict = ValidationUtilities.is_valid(validation_params)
 
-        if validated_dict.get('error_message'):
-            return validated_dict
+            if validated_dict.get('error_message'):
+                return validated_dict
 
         if not email_id:
             return ResponseUtilities.get_inner_error_context('Invalid email ID!')
@@ -2354,6 +2371,10 @@ class UserHelper:
 
     @staticmethod
     def handle_verify_user_mobile_otp(community_instance, mobile_no, country_code):
+        
+        if not community_instance:
+            return {'success': True}
+        
         app_access = True
         existing_user = False
         user_object = None
@@ -2434,6 +2455,10 @@ class UserHelper:
 
     @staticmethod
     def handle_verify_user_email_otp(community_instance, email_id):
+
+        if not community_instance:
+            return {'success': True}
+
         app_access = True
         existing_user = False
         user_object = None
