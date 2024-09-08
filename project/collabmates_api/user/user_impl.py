@@ -2490,6 +2490,21 @@ class UserHelper:
 
         user_ids_list = list(email_filter.values_list('user_id', flat=True))
 
+        if not community_instance:
+            user_info_instance = ModelUtilities.get_model_filter(Userinfo, 
+                                                               {'user_id_id__in': user_ids_list}).first()
+            
+            if not user_info_instance:
+                return ResponseUtilities.get_impl_error_context('Wrong OTP!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+            
+            return {
+                'success': True,
+                'existing_user': True,
+                'user': get_logged_in_user(user_instance=user_info_instance.user_id),
+                'app_access': app_access
+            }
+
         sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
                                                                         {'community': community_instance,
                                                                          'user__in': user_ids_list}).first()
