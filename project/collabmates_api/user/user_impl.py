@@ -326,10 +326,10 @@ class UserImpl(UserManager):
         is_bot = user_context.get('is_bot', False)
         is_guest_user = user_context.get('is_guest', False)
 
-        if api_key:
-            if not (is_bot or not user_unique_id):
-                return ResponseUtilities.get_inner_error_context("Invalid API key!")
+        if not (is_bot or api_key or not user_unique_id):
+            return ResponseUtilities.get_inner_error_context("Invalid API key!")
 
+        if api_key:
             sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key}).first()
 
             if not sdk_client_instance:
@@ -389,7 +389,7 @@ class UserImpl(UserManager):
 
             return {'user_instance': sdk_client_user_info_instance.user,
                     'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                    'existing_user': existing_user,
+                    'is_existing_user': existing_user,
                     'app_access': app_access}
 
         elif user_info_filter:
@@ -455,7 +455,7 @@ class UserImpl(UserManager):
 
         return {'user_instance': user_instance,
                 'sdk_client_user_info_instance': sdk_client_user_info_instance,
-                'existing_user': existing_user,
+                'is_existing_user': existing_user,
                 'app_access': app_access}
 
     @staticmethod
@@ -622,7 +622,7 @@ class UserImpl(UserManager):
                 return {'success': False, 'error_message': sdk_user_context.get('error_message')}
 
             return self.create_user_context(sdk_user_context.get('user_instance'),
-                                                    sdk_user_context.get('existing_user'),
+                                                    sdk_user_context.get('is_existing_user'),
                                                     sdk_user_context.get('sdk_client_user_info_instance'),
                                                     sdk_user_context.get('app_access'))
 
