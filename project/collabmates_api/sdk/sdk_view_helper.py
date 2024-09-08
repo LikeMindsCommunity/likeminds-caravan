@@ -381,21 +381,21 @@ class SdkViewHelper:
     @staticmethod
     def sdk_login_user_validator(req_body):
 
-        user_meta = req_body.get('user', {})
+        # user_meta = req_body.get('user', {})
 
-        if not user_meta.get('name'):
-            return {}
+        # if not user_meta.get('name'):
+        #     return {}
 
         user_context = {
-            'name': user_meta.get('name'),
-            'email': user_meta.get('email', ''),
-            'organisation_name': user_meta.get('organisation_name'),
-            'mobile_no': user_meta.get('mobile_no'),
-            'country_code': user_meta.get('country_code'),
+            'name': req_body.get('name'),
+            'email': req_body.get('email', ''),
+            'organisation_name': req_body.get('organisation_name'),
+            'mobile_no': int(req_body.get('mobile_no')),
+            'country_code': int(req_body.get('country_code')),
         }
 
-        if user_meta.get('image_url'):
-            user_context['image_url'] = user_meta.get('image_url')
+        if req_body.get('image_url'):
+            user_context['image_url'] = req_body.get('image_url')
             user_context['has_profile_image'] = True
 
         else:
@@ -414,7 +414,7 @@ class SdkViewHelper:
         existing_user = False
         app_access = True
         
-        if not user_email: # add check for email format
+        if not user_email:
             return ResponseUtilities.get_inner_error_context("User email not found")
         
         validated_email = SdkViewHelper.is_valid_email(user_email)
@@ -426,7 +426,7 @@ class SdkViewHelper:
         user_info_filter = None
 
         existing_user_ids_with_email = list(ModelUtilities.get_model_filter(userEmails,
-                                                                            {'email': user_email}).values_list(
+                                                                            {'email': validated_email}).values_list(
             'user_id', flat=True))
 
         if existing_user_ids_with_email:
