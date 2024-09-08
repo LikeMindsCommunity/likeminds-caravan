@@ -2443,8 +2443,6 @@ class UserHelper:
     @staticmethod
     def handle_verify_user_mobile_otp(community_instance, mobile_no, country_code):
         
-        if not community_instance:
-            return {'success': True}
         
         app_access = True
         existing_user = False
@@ -2527,13 +2525,11 @@ class UserHelper:
     @staticmethod
     def handle_verify_user_email_otp(community_instance, email_id):
 
-        if not community_instance:
-            return {'success': True}
-
         app_access = True
         existing_user = False
         user_object = None
         sdk_client_user_info_instance = None
+        user_info_instance = None
 
         filter_dict = {
             'email': email_id
@@ -2544,9 +2540,14 @@ class UserHelper:
         if email_filter:
             user_ids_list = list(email_filter.values_list('user_id', flat=True))
 
-            sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+            if community_instance:
+                sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
                                                                             {'community': community_instance,
                                                                              'user__in': user_ids_list}).first()
+            else:
+                user_info_instance = ModelUtilities.get_model_filter(Userinfo,
+                                                                            {'user_id_id__in': user_ids_list}).first()
+
 
         if sdk_client_user_info_instance:
             existing_user = True
@@ -2560,6 +2561,10 @@ class UserHelper:
 
             user_object = get_logged_in_user(user_instance=sdk_client_user_info_instance.user,
                                              sdk_client_info_flag=True)
+
+        if user_info_instance:
+            existing_user = True
+            user_object = get_logged_in_user(user_instance=user_info_instance.user_id)
 
         return {
             'success': True,
