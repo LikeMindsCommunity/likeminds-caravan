@@ -16,9 +16,7 @@ from collabmates_api.member_community.member_community_impl import MemberCommuni
 from collabmates_api.rest_api import CommunitySerializerV1
 from collabmates_api.raw_queries import get_mau_overview_data_for_community
 import uuid
-from external_services.logging.logging_wrapper import LoggingWrapper
 
-error_logger = LoggingWrapper.get_instance()
 
 class SdkImpl(SdkManager):
 
@@ -487,25 +485,3 @@ class SdkImpl(SdkManager):
                 result[year]['total'][clean_month_str] = count
 
         return result
-
-    def sdk_login(self, req_body, api_key) -> dict:
-        try:
-            validated_user = SdkViewHelper.sdk_login_user_validator(req_body)
-
-        except Exception as e:
-            error_logger.error(e)
-
-            validated_user = {}
-
-        if not validated_user:
-            return {'success': False, 'error_message': "Invalid Login"}
-        
-        sdk_user_context = SdkViewHelper._get_or_create_sdk_user_and_userinfo(validated_user, api_key=api_key)
-
-        if sdk_user_context.get('error_message'):
-            return {'success': False, 'error_message': sdk_user_context.get('error_message')}
-
-        return SdkViewHelper.create_user_context_for_sdk(sdk_user_context.get('user_instance'),
-                                                sdk_user_context.get('is_existing_user'),
-                                                sdk_user_context.get('sdk_client_user_info_instance'),
-                                                sdk_user_context.get('app_access'))
