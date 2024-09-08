@@ -36,7 +36,7 @@ from utility.time_utilities import TimeUtilities
 from utility.states import email_states, mobile_states, member_states, login_types, deleted_members, \
     conversation_states, member_rights, community_setting_types, chat_request_states, api_types, \
     whatsapp_subscription_state_actions, OTPTypes, GuestFlowUserTypes, CommunityConfigurationTypes
-from utility.utils import generate_random
+from utility.utils import generate_random, is_valid_email
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
 from utility.constants import (ONE_DAY_HOURS, INTERNATIONAL_OTP_LIMIT_FILE_NAME)
@@ -311,7 +311,7 @@ class UserImpl(UserManager):
         return user_object
 
     @staticmethod
-    def _get_or_create_user_and_userinfo(user_context, api_key=None):
+    def _get_or_create_user(user_context, api_key=None):
 
         user_unique_id = user_context.get('user_unique_id')
         user_email = user_context.get('email')
@@ -605,7 +605,7 @@ class UserImpl(UserManager):
             return {'success': False, 'error_message': "Invalid Login"}
 
         if login_type == login_types.DASHBOARD:
-            dashboard_user_context = self._get_or_create_user_and_userinfo(user_context)
+            dashboard_user_context = self._get_or_create_user(user_context)
 
             if dashboard_user_context.get('error_message'):
                 return {'success': False, 'error_message': dashboard_user_context.get('error_message')}
@@ -616,7 +616,7 @@ class UserImpl(UserManager):
                                                     dashboard_user_context.get('app_access'))
         
         if login_type == login_types.SDK:
-            sdk_user_context = self._get_or_create_user_and_userinfo(user_context, api_key=api_key)
+            sdk_user_context = self._get_or_create_user(user_context, api_key=api_key)
 
             if sdk_user_context.get('error_message'):
                 return {'success': False, 'error_message': sdk_user_context.get('error_message')}
@@ -1090,7 +1090,7 @@ class UserImpl(UserManager):
             'is_bot': True
         }
 
-        sdk_user_context = self._get_or_create_user_and_userinfo(user_context)
+        sdk_user_context = self._get_or_create_user(user_context)
 
         if sdk_user_context.get('error_message'):
             return ResponseUtilities.get_impl_error_context(sdk_user_context.get('error_message'),
@@ -1618,20 +1618,13 @@ class UserHelper:
         if not user_email:
             return ResponseUtilities.get_inner_error_context("User email not found")
 
-        validated_email = UserHelper.is_valid_email(user_email)
+        validated_email = is_valid_email(user_email)
 
         if not validated_email:
             return ResponseUtilities.get_inner_error_context("User email is not valid")
 
         return user_context
 
-    @staticmethod
-    def is_valid_email(email):
-        
-        email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-        
-        return re.match(email_regex, email) is not None
-    
     @staticmethod
     def generate_email_verification_token_for_custom_login(user_instance, email):
 
@@ -2442,8 +2435,6 @@ class UserHelper:
 
     @staticmethod
     def handle_verify_user_mobile_otp(community_instance, mobile_no, country_code):
-        
-        
         app_access = True
         existing_user = False
         user_object = None
