@@ -1432,6 +1432,7 @@ class UserImpl(UserManager):
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = validated_req.get('user_instance')
+        second_user_instance = validated_req.get('second_user_instance')
         community_instance = validated_req.get('community_instance')
 
         blocked_users_list = []
@@ -1442,6 +1443,9 @@ class UserImpl(UserManager):
                 'community_id': community_instance.id,
                 'blocking_user': user_instance
             }
+
+            if user_instance.id != second_user_instance.id:
+                filter_dict['blocked_user'] = second_user_instance
 
             blocked_user_filter = ModelUtilities.get_model_filter(BlockUser, filter_dict).order_by('created_at')
             blocked_user_list = paginate_list(blocked_user_filter, page, page_size)
@@ -1459,6 +1463,9 @@ class UserImpl(UserManager):
                 'community_id': community_instance.id,
                 'blocked_user': user_instance
             }
+
+            if user_instance.id != second_user_instance.id:
+                filter_dict['blocking_user'] = second_user_instance
 
             blocking_user_filter = ModelUtilities.get_model_filter(BlockUser, filter_dict).order_by('created_at')
             blocking_user_list = paginate_list(blocking_user_filter, page, page_size)
@@ -2753,9 +2760,6 @@ class UserHelper:
 
         if not second_user_instance:
             return ResponseUtilities.get_inner_error_context('Invalid user_uuid.')
-
-        if user_instance.id != second_user_instance.id:
-            return ResponseUtilities.get_inner_error_context('You cannot fetch other user\'s blocked list.')
 
         return {
             'user_instance': user_instance,
