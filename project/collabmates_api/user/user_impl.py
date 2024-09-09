@@ -2182,7 +2182,7 @@ class UserHelper:
     @staticmethod
     def validate_user_send_otp_on_mobile_request(api_key: str, country_code: str, mobile_no: str):
         
-        if api_key and len(api_key) > 0:
+        if api_key:
             
             validation_params = {
                 'community_id': {
@@ -2298,7 +2298,7 @@ class UserHelper:
 
         is_international = str(country_code) != '91'
 
-        if api_key and len(api_key) > 0:
+        if api_key:
 
             validation_params = {
                 'community_id': {
@@ -2330,7 +2330,7 @@ class UserHelper:
         if not otp:
             return ResponseUtilities.get_inner_error_context("Invalid OTP!")
 
-        if api_key and len(api_key) > 0:
+        if api_key:
 
             validation_params = {
                 'community_id': {
@@ -2395,7 +2395,7 @@ class UserHelper:
     @staticmethod
     def validate_user_send_otp_on_email_request(api_key: str, email_id: str):
         
-        if api_key and len(api_key) > 0:
+        if api_key:
             
             validation_params = {
                 'community_id': {
