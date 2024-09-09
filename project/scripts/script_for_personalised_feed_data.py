@@ -26,30 +26,6 @@ def get_auth_token_from_uuid(uuid):
         print(f"Failed to initiate for uuid: {uuid} | {initiate_response.json()}")
         return None
 
-# Fetch the universal feed | Needs an auth token
-def feed_universal(auth_token):
-
-    if auth_token:
-        # Step 2: Call the GET API to fetch the universal feed
-        feed_url = base_url + "/feed/universal"
-        headers = {"Authorization": auth_token}
-        params = {"page_size": 50}
-        
-        feed_response = requests.get(feed_url, headers=headers, params=params)
-        
-        # Check if the GET request was successful
-        if feed_response.status_code == 200:
-            posts = feed_response.json().get("data", {}).get("posts", [])
-            
-            # Step 3: Iterate over the posts and print them
-            for post in posts:
-                print(post)
-        else:
-            print(f"Failed to fetch feed: {feed_response.status_code}")
-    else:
-        print("Failed to retrieve access token")
-
-
 # Like a post N times using N different users with delay of 500 ms | Needs a Post Id 
 def like_N_times(N, post_id):
 
