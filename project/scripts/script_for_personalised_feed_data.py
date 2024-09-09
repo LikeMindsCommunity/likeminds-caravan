@@ -2,7 +2,9 @@ import requests, time
 
 base_url = "https://auth.likeminds.community"
 api_key = "f9368ac1-e3cb-42cf-8e6b-fc82c92b9507"
+uuid_prefix = "sdk-user-" # sdk/initiate user unique id & name
 
+# Post IDs for which we want to like and comment
 post_ids = [
     "66deb6abfbd5bf9f1eef34f3",     # user e - 1000 likes
     "66deb6aa21b6e5613afb97e7",     # user e - 1000 comments
@@ -10,6 +12,7 @@ post_ids = [
     "66deb68821b6e5613afb97e5",     # user d - 100 comments
 ]
 
+# Get auth token against a uuid using sdk/initiate API
 def get_auth_token_from_uuid(uuid):
 
     initiate_url = base_url + "/sdk/initiate"
@@ -23,6 +26,7 @@ def get_auth_token_from_uuid(uuid):
         print(f"Failed to initiate for uuid: {uuid} | {initiate_response.json()}")
         return None
 
+# Fetch the universal feed | Needs an auth token
 def feed_universal(auth_token):
 
     if auth_token:
@@ -45,36 +49,39 @@ def feed_universal(auth_token):
     else:
         print("Failed to retrieve access token")
 
+
+# Like a post N times using N different users with delay of 500 ms | Needs a Post Id 
 def like_N_times(N, post_id):
 
     # Iterate for N times
     for i in range(N):
-        uuid = "sdk-user-" + str(i)
+        uuid = uuid_prefix + str(i)
         auth_token = get_auth_token_from_uuid(uuid)
         
         if auth_token:
             like_post(auth_token, post_id)
         
         time.sleep(0.5)
-        # break
 
     print(f"Post {post_id} liked {N} times")
 
+
+# Comment on a post N times using N different users with delay of 500 ms | Needs a Post Id
 def comment_N_times(N, post_id):
 
     # Iterate for N times
     for i in range(N):
-        uuid = "sdk-user-" + str(i)
+        uuid = uuid_prefix + str(i)
         auth_token = get_auth_token_from_uuid(uuid)
         
         if auth_token:
             comment_post(auth_token, post_id)
 
         time.sleep(0.5)
-        # break
 
     print(f"Post {post_id} commented {N} times")
 
+# Like a post using API feed/post/:post_id/like | Needs auth_token & Post Id
 def like_post(auth_token, post_id):
     like_url = base_url + f"/feed/post/{post_id}/like"
     headers = {"Authorization": auth_token}
@@ -85,6 +92,7 @@ def like_post(auth_token, post_id):
     else:
         print(f"Post {post_id} liked | {like_response.json()}")
 
+# Comment on a post using API feed/post/:post_id/comment | Needs auth_token & Post Id
 def comment_post(auth_token, post_id):
     comment_url = base_url + f"/feed/post/{post_id}/comment"
     headers = {"Authorization": auth_token}
@@ -96,6 +104,7 @@ def comment_post(auth_token, post_id):
         print(f"Post {post_id} commented | {comment_response.json()}")
 
 
+# Update N and postId as per requirement
 like_N_times(1000, post_ids[0])
 comment_N_times(1000, post_ids[1])
 like_N_times(100, post_ids[2])
