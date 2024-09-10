@@ -31,7 +31,7 @@ def like_N_times(N, post_id):
         if auth_token:
             like_post(auth_token, post_id)
         
-        time.sleep(0.5)
+        time.sleep(0.3)
 
     print(f"Post {post_id} liked {N} times")
 
@@ -47,7 +47,7 @@ def comment_N_times(N, post_id):
         if auth_token:
             comment_post(auth_token, post_id)
 
-        time.sleep(0.5)
+        time.sleep(1)
 
     print(f"Post {post_id} commented {N} times")
 
