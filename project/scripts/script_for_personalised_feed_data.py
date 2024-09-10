@@ -1,16 +1,10 @@
 import requests, time
 
 base_url = "https://auth.likeminds.community"
-api_key = "f9368ac1-e3cb-42cf-8e6b-fc82c92b9507"
+
+api_key = "" # Add your API Key here
 uuid_prefix = "sdk-user-" # sdk/initiate user unique id & name
 
-# Post IDs for which we want to like and comment
-post_ids = [
-    "66deb6abfbd5bf9f1eef34f3",     # user e - 1000 likes
-    "66deb6aa21b6e5613afb97e7",     # user e - 1000 comments
-    "66deb68908a35ae09a18b66d",     # user d - 100 likes
-    "66deb68821b6e5613afb97e5",     # user d - 100 comments
-]
 
 # Get auth token against a uuid using sdk/initiate API
 def get_auth_token_from_uuid(uuid):
@@ -78,10 +72,3 @@ def comment_post(auth_token, post_id):
         print(f"Failed to comment on post: {comment_response.json()}")
     else:
         print(f"Post {post_id} commented | {comment_response.json()}")
-
-
-# Update N and postId as per requirement
-like_N_times(1000, post_ids[0])
-comment_N_times(1000, post_ids[1])
-like_N_times(100, post_ids[2])
-comment_N_times(100, post_ids[3])
