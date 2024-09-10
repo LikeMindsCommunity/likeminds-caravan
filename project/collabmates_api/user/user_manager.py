@@ -123,7 +123,7 @@ class UserManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_user_bot(self, api_key: str = None) -> dict:
+    def fetch_user_bot(self, api_key: str = None, community_id: str = None) -> dict:
         """
         Fetches a user bot
         """

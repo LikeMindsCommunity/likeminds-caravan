@@ -292,9 +292,10 @@ class BotView(APIView):
         platform = RequestUtilities.get_platform_code(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
+        params = RequestUtilities.fetch_request_query_params(request)
 
         user_manager = UserImpl(user_id=None, platform_code=platform, version_code=version_code)
-        context = user_manager.fetch_user_bot(api_key=api_key)
+        context = user_manager.fetch_user_bot(api_key=api_key, community_id=params.get('community_id'))
 
         if context.get('success'):
             return JsonResponse(context, status=status_codes.HTTP_200_OK)
