@@ -126,6 +126,9 @@ from utility.response_utilities import ResponseUtilities
 from utility.cache_keys import (CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, CHATROOM_TYPE_CONVERSION)
 from utility.version_utilities import VersionUtilities
 
+from ...utility.cache_keys import KETTLE_CACHE_CHATROOM_PARTICIPANTS
+from ...utility.internal_service_utilities import InternalServiceUtilities
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 subscription_url = settings.SUBSCRIPTION_SERVER_URL
@@ -1270,7 +1273,7 @@ class ChatroomImpl(ChatroomManager):
                                                                                      trigger_webhook=True)
 
         if chatroom_instance.co_hosts:
-            ChatroomHelper.auto_follow_event_co_hosts_and_send_notification(chatroom_instance, user_instance.userinfo)
+            ChatroomHelper.auto_follow_event_co_hosts_and_send_notification(chatroom_instance, user_instance)
 
         open_chatroom_participants = req_body.get('chatroom_participants', [])
 
@@ -1487,7 +1490,7 @@ class ChatroomImpl(ChatroomManager):
                                                                   event_type=WebhookTypes.CHATROOM_LEFT.value,
                                                                   type_method=type_method)
 
-    def add_secret_chatroom_participant(self, req_body: dict, is_internal: bool = True, add_user_joined_message: bool = True, 
+    def add_secret_chatroom_participant(self, req_body: dict, is_internal: bool = True, add_user_joined_message: bool = True,
                                         trigger_webhook: bool = False, join_method: str = None) -> dict:
         validated_req_body = ChatroomViewHelper.validate_add_secret_chatroom_participants_request(self.get_member_id(),
                                                                                                   self.get_chatroom_id(),
@@ -1592,6 +1595,9 @@ class ChatroomImpl(ChatroomManager):
                                                              users_list=new_participants_list,
                                                              event_type=WebhookTypes.CHATROOM_JOINED.value, 
                                                              type_method=join_method)
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                chatroom_instance.community_id, user_instance.id,
+                [KETTLE_CACHE_CHATROOM_PARTICIPANTS.format(chatroom_instance.id)])
         # updating all secret chatroom participants
         filter_dict = {
             'card': chatroom_instance,
@@ -1803,7 +1809,7 @@ class ChatroomImpl(ChatroomManager):
             community_members = list(Members.get_members_of_community(community_id).values_list('member_id',
                                                                                                 flat=True))
 
-            ChatroomHelper.bulk_follow_chatroom_users(chatroom_instance, community_members, 
+            ChatroomHelper.bulk_follow_chatroom_users(chatroom_instance, community_members, user_instance,
                                                       trigger_webhook=True, 
                                                       join_method=webhook_chatroom_methods.CHATROOM_AUTO_FOLLOWED)
 
@@ -2071,7 +2077,7 @@ class ChatroomImpl(ChatroomManager):
             card_instance = self.update_event_meta(req_body, user_instance, community_instance, card_instance)
 
             if new_co_hosts:
-                ChatroomHelper.auto_follow_event_co_hosts_and_send_notification(card_instance, user_instance.userinfo,
+                ChatroomHelper.auto_follow_event_co_hosts_and_send_notification(card_instance, user_instance,
                                                                                 new_co_hosts=new_co_hosts)
 
             chatroom_context = {
@@ -2858,7 +2864,7 @@ class ChatroomImpl(ChatroomManager):
             chatroom_participants = ModelUtilities.get_valid_member_ids(chatroom_participants,
                                                                         community_id=card_instance.community_id)
 
-        ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants,
+        ChatroomHelper.bulk_follow_chatroom_users(card_instance, chatroom_participants,user_instance,
                                                   trigger_webhook=True, 
                                                   join_method=webhook_chatroom_methods.CM_ADDED)
 
@@ -4494,7 +4500,9 @@ class ChatroomHelper:
                                                              users_list=user_list,
                                                              event_type=WebhookTypes.CHATROOM_JOINED.value, 
                                                              type_method=webhook_chatroom_methods.CM_ADDED)
-
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id, room_creator_id,
+                [KETTLE_CACHE_CHATROOM_PARTICIPANTS.format(chatroom_id)])
         ChatroomHelper.update_secret_chatroom_for_community_promoters(card_instance, community_instance, member_dict)
         ElasticSearchSync.update_chatroom(card_instance.id)
 
@@ -4723,6 +4731,9 @@ class ChatroomHelper:
                                                                       users_list=[user_instance.id],
                                                                       event_type=WebhookTypes.CHATROOM_JOINED.value,
                                                                       type_method=webhook_chatroom_methods.CHATROOM_AUTO_FOLLOWED)
+                InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                    card_instance.community_id, user_instance.id,
+                    [KETTLE_CACHE_CHATROOM_PARTICIPANTS.format(card_instance.id)])
 
         conversation_impl.ConversationHelper.update_homescreen_meta_on_chatroom_follow(community_instance,
                                                                                        card_instance,
@@ -4812,6 +4823,9 @@ class ChatroomHelper:
                                                                      users_list=[user_instance.id],
                                                                      event_type=WebhookTypes.CHATROOM_JOINED.value, 
                                                                      type_method=webhook_chatroom_methods.CHATROOM_AUTO_FOLLOWED)
+                    InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                        community_instance.id, user_instance.id,
+                        [KETTLE_CACHE_CHATROOM_PARTICIPANTS.format(card_instance.id)])
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_chatroom_list(
@@ -4832,7 +4846,7 @@ class ChatroomHelper:
         return member_dict
 
     @staticmethod
-    def set_state_for_all_chatroom_members_in_community(card_instance, community_instance,
+    def set_state_for_all_chatroom_members_in_community(card_instance, community_instance, user_instance,
                                                         chatroom_participants_list=None, trigger_webhook=False):
 
         member_filter = Members.get_members_of_community(community_instance).select_related('member_id')
@@ -4934,6 +4948,9 @@ class ChatroomHelper:
                                                                  users_list=auto_follow_members_list,
                                                                  event_type=WebhookTypes.CHATROOM_JOINED.value, 
                                                                  type_method=join_method)
+                InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                    community_instance.id, user_instance.id,
+                    [KETTLE_CACHE_CHATROOM_PARTICIPANTS.format(card_instance.id)])
 
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
             card_instance.id, card_engagement_user_list)
@@ -4968,7 +4985,7 @@ class ChatroomHelper:
             return
 
         ChatroomHelper.set_state_for_all_chatroom_members_in_community(
-            card_instance, community_instance, chatroom_participants_list=chatroom_participants_list, 
+            card_instance, community_instance, user_instance, chatroom_participants_list=chatroom_participants_list,
             trigger_webhook=trigger_webhook)
 
         # If chatroom type is not feedroom, then update unseen count 
@@ -4978,7 +4995,7 @@ class ChatroomHelper:
         update_last_answer_id(card_instance.id, "")
 
         if card_instance.co_hosts:
-            ChatroomHelper.auto_follow_event_co_hosts_and_send_notification(card_instance, user_instance.userinfo)
+            ChatroomHelper.auto_follow_event_co_hosts_and_send_notification(card_instance, user_instance)
 
         if is_intro_chatroom:
             ElasticSearchSync.update_all_community_chatrooms_for_user(community_instance.id, user_instance.id)
@@ -5132,7 +5149,7 @@ class ChatroomHelper:
                                      sdk_client_info_flag=sdk_client_info_flag)
 
     @staticmethod
-    def bulk_follow_chatroom_users(card_instance, user_list, trigger_webhook=False, join_method: str = None):
+    def bulk_follow_chatroom_users(card_instance, user_list, user_instance, trigger_webhook=False, join_method: str = None):
 
         user_list = [int(user_id) for user_id in user_list if str(user_id).isdigit()]
 
@@ -5184,16 +5201,19 @@ class ChatroomHelper:
                                                              users_list=chatroom_member_list,
                                                              event_type=WebhookTypes.CHATROOM_JOINED.value, 
                                                              type_method=join_method)
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                card_instance.community_id, user_instance.id,
+                [KETTLE_CACHE_CHATROOM_PARTICIPANTS.format(card_instance.id)])
 
     @staticmethod
-    def auto_follow_event_co_hosts_and_send_notification(card_instance, userinfo_instance, new_co_hosts=None):
+    def auto_follow_event_co_hosts_and_send_notification(card_instance, user_instance, new_co_hosts=None):
 
         co_host_list = json.loads(card_instance.co_hosts) if card_instance.co_hosts else []
 
         if new_co_hosts:
             co_host_list = new_co_hosts
 
-        ChatroomHelper.bulk_follow_chatroom_users(card_instance, co_host_list, 
+        ChatroomHelper.bulk_follow_chatroom_users(card_instance, co_host_list, user_instance,
                                                   trigger_webhook=True, join_method=webhook_chatroom_methods.CM_ADDED)
 
         co_hosts_chatroom_state = ModelUtilities.get_model_filter(collabcardState, {'card': card_instance,
@@ -5210,7 +5230,7 @@ class ChatroomHelper:
             })
 
         send_notification_to_event_co_hosts.delay(co_host_list, card_instance.id,
-                                                  card_instance.header, userinfo_instance.name)
+                                                  card_instance.header, user_instance.userinfo.name)
 
     @staticmethod
     def is_online_event_link_verified_for_user(card_instance, user_instance):
