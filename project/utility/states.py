@@ -1062,3 +1062,10 @@ class NotificationPlatform(enum.Enum):
     FLUTTER = "FLUTTER"
     REACT_NATIVE = "REACT-NATIVE"
     REACT = "REACT"
+
+class UserRoles(enum.Enum):
+    CHATBOT = "chatbot"
+
+    @classmethod
+    def is_valid_role(cls, role) -> bool:
+        return role in cls._value2member_map_

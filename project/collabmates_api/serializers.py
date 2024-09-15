@@ -156,7 +156,8 @@ def UserinfoSerializer(user, sdk_client_info_flag:bool=False):
         'user_unique_id': user.user_unique_id,
         'uuid': user.user_unique_id,
         'organisation_name': user.organisation_name,
-        'image_url': user.image_link
+        'image_url': user.image_link,
+        'roles': user.roles,
     }
 
     # Add sdk_client_info to user context if sdk_client_info_flag is True

@@ -12,7 +12,9 @@ from collabmates_api.community.constants import *
 from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSerializer, CommunityToastV1Serializer, \
     CommunityGetStartedSerializer, CommunityQuestionsSerializerV2, CommunityAnswersSerializer, get_error_context, \
     CommunityDMSettingsSerializer, CommunityNotificationSettingsSerializer, FeedNotificationSettingsSerializer, \
-    ReportTagsSerializer, CommunityConfigurationsSerializer
+    ReportTagsSerializer, CommunityConfigurationsSerializer, ChatbotMetaSerializer
+
+from collabmates_api.serializers import UserinfoSerializer
 
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
     give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage, \
@@ -39,7 +41,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
     communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings, FeedNotificationSettings, \
     Report_Tags, Report, CommunityConfigurations, CommunityBillingDates, communityRightsSettings, userAdminRights, \
-    memberRights, adminRights
+    memberRights, adminRights, ChatbotMeta
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST, IMAGE_URLS_FOR_QUESTION_TITLES, SENDER_NAME_FOR_EMAIL_COMMS, \
@@ -83,7 +85,8 @@ from utility.states import member_states, card_types, click_states, member_right
     email_states, question_change_states, SyncNotificationTypes, edit_field_community_data_types, \
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
     api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
-    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus, GuestFlowUserTypes
+    CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus, GuestFlowUserTypes, \
+    UserRoles
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -2162,7 +2165,7 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True}
 
-    def add_community_member(self, req_body: dict) -> {}:
+    def add_community_member(self, req_body: dict, auto_join: bool=False) -> {}:
         validated_req_body = CommunityViewHelper.validate_add_community_member_request(self.get_member_id(),
                                                                                        self.get_api_key(),
                                                                                        req_body)
@@ -2200,7 +2203,7 @@ class CommunityImpl(CommunityManager):
             "image_url": validated_req_body['user_body'].get('image_url')
         }
 
-        join_community_context = member_community_manager.join_community_sdk(community_req_body)
+        join_community_context = member_community_manager.join_community_sdk(community_req_body, auto_join=auto_join)
 
         if not join_community_context.get('success'):
             return ResponseUtilities.get_impl_error_context('Unable to join community!',
@@ -2691,6 +2694,79 @@ class CommunityImpl(CommunityManager):
         }
 
         return response
+    
+    def fetch_chatbots(self, page, page_size, uuids) -> dict:
+        return {}
+    
+    def create_chatbot(self, req_body:dict = {}) -> dict:
+
+        validated_request = CommunityHelper.validate_create_chatbot_request(self.get_member_id(),self.get_api_key(), 
+                                                                            req_body)
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        user_instance = validated_request.get('user_instance')
+        community_instance = validated_request.get('community_instance')
+        chatbot_meta = req_body.get('chatbot_meta', {})
+        default_text = req_body.get('default_text', "")
+
+        # Create user instance for chatbot
+        add_community_member_req_body = {
+            'uuid': req_body.get('uuid', ""),
+            'user_name': req_body.get('name', ""),
+            'image_url': req_body.get('image_url', "")
+        }
+
+        # Add user as community member
+        response = self.add_community_member(add_community_member_req_body, auto_join=True)
+        if not response.get('success'):
+            return response
+        
+        user_id = response.get('user').get('id')
+        chatbot_user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
+        if not chatbot_user_instance:
+            return ResponseUtilities.get_impl_error_context('Chatbot user instance not found!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        chatbot_member_instance = Members.get_member_instance_or_none(community_instance, chatbot_user_instance)
+        if not chatbot_member_instance:
+            return ResponseUtilities.get_impl_error_context('Chatbot member instance not found!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        # Update chatbot member instance as admin
+        chatbot_member_instance.state = member_states.ADMIN
+        chatbot_member_instance.custom_title="chatbot"
+        chatbot_member_instance.save()
+
+        # Add chatbot role to user info
+        Userinfo.add_role_to_user(chatbot_user_instance, UserRoles.CHATBOT.value)
+
+        # Create chatbotMeta instance
+        chatbot_meta_instance = ChatbotMeta(
+            user=chatbot_user_instance,
+            community=community_instance,
+            default_text=default_text,
+            provider=chatbot_meta.get('provider', ""),
+            provider_meta=chatbot_meta.get('provider_meta', {}),
+        )
+
+        chatbot_meta_instance.save()
+
+        # Serialise chatbot user object with chatbotMeta
+        chatbot_user = UserinfoSerializer(chatbot_user_instance.userinfo, sdk_client_info_flag=True)
+        chatbot_user['chatbot_meta'] = ChatbotMetaSerializer(chatbot_meta_instance).data
+
+        return {
+            'success': True,
+            'user': chatbot_user
+        }
+    
+    def update_chatbot(self, req_body:dict = {}) -> dict:
+        return {}
+    
+    def delete_chatbots(self, req_body:dict = {}) -> dict:
+        return {}
 
 
 class CommunityHelper:
@@ -5456,7 +5532,7 @@ class CommunityHelper:
 
             if update_values.get('provider') and isinstance(update_values.get('provider'), str):
                 if not (update_values.get('provider').strip() == CHATBOT_PROVIDER_OPENAI):
-                    return ResponseUtilities.get_inner_error_context(f"Invalid provider value. Supported values - '{CHATBOT_PROVIDER_OPENAI}'")        
+                    return ResponseUtilities.get_inner_error_context(f"Invalid provider value. Supported values - '{CHATBOT_PROVIDER_OPENAI}'")
             
             if update_values.get('api_key'):
                 if not isinstance(update_values.get('api_key'), str) or not update_values.get('api_key').strip():
@@ -6158,17 +6234,12 @@ class CommunityHelper:
     def validate_open_ai_api_key_for_assistant(api_key:str, community_instance, user_instance) -> dict:
         #TODO: Complete
         if not (api_key and community_instance and user_instance):
-            return ResponseUtilities.get_inner_error_context("Invalid request body")
+            return ResponseUtilities.get_inner_error_context("Invalid request body for validating")
         
         try:    
 
             client = ApiClient()
-            client.update_request_url("https://www.google.com")
-
-            # Add headers
-            client.update_headers({
-                'Authorization': f"Bearer {api_key}"
-            })
+            client.update_request_url("https://betaauth.likeminds.community")
 
             # Send GET request
             response = client.get().response
@@ -6416,3 +6487,82 @@ class CommunityHelper:
                                                                 'user__in': manager_instances})
             
         info_logger.info(f"Successfully updated create_feed_poll to 'no_one' for community {community_instance.id}")
+
+    @staticmethod
+    def validate_create_chatbot_request(user_id: int, api_key: str, req_body: dict) -> dict:
+
+        if not req_body:
+            return ResponseUtilities.get_inner_error_context("Invalid request body")
+        
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+
+        # Validate if user is admin or not
+        if not Members.is_member_community_promoter(community_instance, user_instance):
+            return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
+        
+        # Validate configurations for chatbot
+        configurations = CommunityHelper.fetch_or_return_default_community_configurations(community_instance, 
+                                                                                          [CHATBOT_CONFIGURATIONS])
+        if not configurations:
+            return ResponseUtilities.get_inner_error_context("Community configurations not found")
+        
+        chatbot_configurations = configurations[0].get('value')
+
+        if not chatbot_configurations.get('enabled'):
+            return ResponseUtilities.get_inner_error_context("Chatbot is not enabled for this community")
+
+        if chatbot_configurations.get('provider') == "" or chatbot_configurations.get('api_key') == "":
+            return ResponseUtilities.get_inner_error_context("Please set chatbot configurations first")
+        
+        # Validation for required req body values
+        if not req_body.get('name'):
+            return ResponseUtilities.get_inner_error_context("Please send name in request body")
+        
+        chatbot_meta = req_body.get('chatbot_meta', {})
+
+        if not (chatbot_meta and isinstance(chatbot_meta, dict)):
+            return ResponseUtilities.get_inner_error_context("Please send chatbot_meta in request body")
+
+        provider = chatbot_meta.get('provider')
+        provider_meta = chatbot_meta.get('provider_meta')
+
+        if not ((provider and isinstance(provider, str)) or (provider_meta and isinstance(provider_meta, dict))):
+            return ResponseUtilities.get_inner_error_context("Please send provider and provider_meta in chatbot_meta")
+        
+        if not provider == CHATBOT_PROVIDER_OPENAI:
+            return ResponseUtilities.get_inner_error_context(f"Invalid provider value. Supported values - '{CHATBOT_PROVIDER_OPENAI}'")
+        
+        if not (provider_meta.get('assistant_id') and isinstance(provider_meta.get('assistant_id'), str)):
+            return ResponseUtilities.get_inner_error_context("Please send assistant_id in provider_meta")
+
+        #TODO: Update function for assistants
+        validated_request = CommunityHelper.validate_open_ai_api_key_for_assistant("api_key", community_instance, user_instance)
+        if validated_request.get('error_message'):
+            return validated_request
+        
+        # Validation for optional Values
+        if provider_meta.get('thread_context') and not isinstance(provider_meta.get('thread_context'), int):
+            return ResponseUtilities.get_inner_error_context("Invalid thread_context value. Please send integer in seconds")
+        
+        if provider_meta.get('max_prompt_tokens') and not isinstance(provider_meta.get('max_prompt_tokens'), int):
+            return ResponseUtilities.get_inner_error_context("Invalid max_prompt_tokens value.")
+
+        if provider_meta.get('max_completion_tokens') and not isinstance(provider_meta.get('max_completion_tokens'), int):
+            return ResponseUtilities.get_inner_error_context("Invalid max_completion_tokens value.")
+        
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+        }
