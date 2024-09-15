@@ -3,6 +3,8 @@ import json, csv, os
 from celery import shared_task
 from django.contrib.auth.models import User
 from django.template.loader import get_template
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
 import re
 from rest_framework import status as status_codes
 from django.conf import settings
@@ -2696,7 +2698,55 @@ class CommunityImpl(CommunityManager):
         return response
     
     def fetch_chatbots(self, page, page_size, uuids) -> dict:
-        return {}
+
+        validated_request = CommunityHelper.validate_fetch_chatbots_request(self.get_member_id(),
+                                                                            self.get_api_key())
+        
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_request.get('community_instance')
+        user_instance = validated_request.get('user_instance')
+
+        
+        # Fetch chatbots along with related userInfo data
+        chatbotMetas = ModelUtilities.get_model_filter( ChatbotMeta, {'community': community_instance,}
+                                                       ).select_related('user__userinfo')
+
+        # fetch user_ids from uuids
+        user_ids = ModelUtilities.get_valid_user_ids_from_uuids(uuids, community_instance.id)
+        if user_ids:
+            chatbotMetas = chatbotMetas.filter(user__id__in=user_ids)
+
+        # Paginate the queryset
+        paginator = Paginator(chatbotMetas, page_size)
+        try:
+            chatbots_page = paginator.page(page)
+        except PageNotAnInteger:
+            chatbots_page = paginator.page(1)
+        except EmptyPage:
+            chatbots_page = paginator.page(paginator.num_pages)
+
+        users = []
+
+        # Prepare the response
+        for chatbot in chatbots_page.object_list:
+            chatbot_user = UserinfoSerializer(chatbot.user.userinfo, sdk_client_info_flag=True)
+            chatbot_user['chatbot_meta'] = ChatbotMetaSerializer(chatbot).data
+            users.append(chatbot_user)
+
+        # Prepare the response
+        response = {
+            'success': True,
+            'users': users,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': paginator.num_pages,
+            'total_chatbots': paginator.count,
+        }
+
+        return response
     
     def create_chatbot(self, req_body:dict = {}) -> dict:
 
@@ -6488,6 +6538,29 @@ class CommunityHelper:
             
         info_logger.info(f"Successfully updated create_feed_poll to 'no_one' for community {community_instance.id}")
 
+    @staticmethod
+    def validate_fetch_chatbots_request(user_id:int, api_key: str) -> dict:
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+        
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance
+        }
+    
     @staticmethod
     def validate_create_chatbot_request(user_id: int, api_key: str, req_body: dict) -> dict:
 
