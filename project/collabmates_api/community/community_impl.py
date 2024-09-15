@@ -91,7 +91,7 @@ from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDI
                                FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION, 
                                PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION,
                                WIDGETS_METADATA_CONFIGURATION, PERSONALISED_FEED_WEIGHTS, FEED_SETTINGS_CONFIGURATION,
-                               CREATE_FEED_POLL_COMMUNITY_VALUES)
+                               CREATE_FEED_POLL_COMMUNITY_VALUES, CHATBOT_CONFIGURATIONS, CHATBOT_PROVIDER_OPENAI)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -5448,7 +5448,25 @@ class CommunityHelper:
                 update_values.get('create_feed_poll') not in CREATE_FEED_POLL_COMMUNITY_VALUES):
                 return ResponseUtilities.get_inner_error_context(
                     "Please send valid value for create_feed_poll (possible values - 'everyone', 'only_cm', 'no_one')")            
+
+        elif configuration_type == CHATBOT_CONFIGURATIONS:
+
+            if update_values.get('enabled') and not isinstance(update_values.get('enabled'), bool):
+                return ResponseUtilities.get_inner_error_context("Invalid enabled value")
+
+            if update_values.get('provider') and isinstance(update_values.get('provider'), str):
+                if not (update_values.get('provider').strip() == CHATBOT_PROVIDER_OPENAI):
+                    return ResponseUtilities.get_inner_error_context(f"Invalid provider value. Supported values - '{CHATBOT_PROVIDER_OPENAI}'")        
+            
+            if update_values.get('api_key'):
+                if not isinstance(update_values.get('api_key'), str) or not update_values.get('api_key').strip():
+                    return ResponseUtilities.get_inner_error_context("Invalid api_key value")
                 
+                # Validate api_key #TODO
+                api_key_validation = CommunityHelper.validate_open_ai_api_key_for_assistant(update_values.get('api_key'), community_instance, user_instance)
+                if api_key_validation.get('error_message'):
+                    return api_key_validation
+             
         return {
             'community_instance': community_instance,
             'user_instance': user_instance,
@@ -6058,6 +6076,22 @@ class CommunityHelper:
                         update_values.get('user_connection_metrics').get('max_threshold')
                     record_updated = True
 
+        elif configuration_type == CHATBOT_CONFIGURATIONS:
+                
+            if update_values.get('enabled') and isinstance(update_values.get('enabled'), bool):
+                configuration_value['enabled'] = update_values.get('enabled')
+                record_updated = True
+
+            if update_values.get('provider') and isinstance(update_values.get('provider'), str) and (
+                update_values.get('provider').strip() == CHATBOT_PROVIDER_OPENAI):
+
+                configuration_value['provider'] = update_values.get('provider')
+                record_updated = True
+
+            if update_values.get('api_key') and isinstance(update_values.get('api_key'), str):
+                configuration_value['api_key'] = update_values.get('api_key')
+                record_updated = True
+
         # Update configuration instance if record is updated
         if record_updated:
             configuration_instance.value = configuration_value
@@ -6119,6 +6153,37 @@ class CommunityHelper:
         except Exception as e:
             error_logger.error(f"Exception occurred while setting up Inferdo's API Key for community - {community_instance.id} -  {community_instance.name} | Error: {e.args}")
             return ResponseUtilities.get_inner_error_context(f"Some error occured setting up Inferdo's API Key, please contact support")
+        
+    @staticmethod
+    def validate_open_ai_api_key_for_assistant(api_key:str, community_instance, user_instance) -> dict:
+        #TODO: Complete
+        if not (api_key and community_instance and user_instance):
+            return ResponseUtilities.get_inner_error_context("Invalid request body")
+        
+        try:    
+
+            client = ApiClient()
+            client.update_request_url("https://www.google.com")
+
+            # Add headers
+            client.update_headers({
+                'Authorization': f"Bearer {api_key}"
+            })
+
+            # Send GET request
+            response = client.get().response
+
+            if response.status_code != 200:
+                error_logger.error(f"Error occured setting up OpenAI's API Key for community - {community_instance.id} \
+                                   -  {community_instance.name} | StatusCode: {response.status_code} , Response: {response.json()}")
+                
+                return ResponseUtilities.get_inner_error_context(f"Error occured setting up OpenAI's API Key: {response.json()}")
+
+            return {'success': True}
+        
+        except Exception as e:
+            error_logger.error(f"Exception occurred while setting up OpenAI's API Key for community - {community_instance.id} -  {community_instance.name} | Error: {e.args}")
+            return ResponseUtilities.get_inner_error_context(f"Some error occured setting up OpenAI's API Key, please contact support")
 
     @staticmethod
     @shared_task    

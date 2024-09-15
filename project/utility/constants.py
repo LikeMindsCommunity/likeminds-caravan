@@ -128,6 +128,7 @@ WIDGETS_METADATA_CONFIGURATION = "widgets_metadata"
 GUEST_FLOW_METADATA_CONFIGURATION = "guest_flow_metadata"
 FEED_SETTINGS_CONFIGURATION = "feed_settings"
 PERSONALISED_FEED_WEIGHTS = "personalised_feed_weights"
+CHATBOT_CONFIGURATIONS = "chatbot"
 
 # Community Configurations
 COMMUNITY_CONFIGURATIONS = {
@@ -233,8 +234,20 @@ COMMUNITY_CONFIGURATIONS = {
                 "max_threshold": 0
             }
         }
+    },
+    CHATBOT_CONFIGURATIONS : {
+        "type": CHATBOT_CONFIGURATIONS,
+        "description": "Chatbot configurations for the community",
+        "value": {
+            "enabled": False,
+            "provider": "", # open_ai_assistant
+            "api_key": "",
+            "error_message": ""
+        }
     }
 }
+
+CHATBOT_PROVIDER_OPENAI = "open_ai_assistant"
 
 CREATE_FEED_POLL_COMMUNITY_VALUES = ["everyone", "only_cm", "no_one"]
 
