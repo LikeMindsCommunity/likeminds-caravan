@@ -4959,9 +4959,11 @@ class ChatroomHelper:
                                                                  event_type=WebhookTypes.CHATROOM_JOINED.value,
                                                                  type_method=join_method)
 
-        ChatroomHelper.delete_chatroom_participants_cache.delay(card_instance.community_id,
+        if card_engagement_user_list:
+            ChatroomHelper.delete_chatroom_participants_cache.delay(card_instance.community_id,
                                                                 user_instance.id,
                                                                 card_instance.id)
+
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_user_list(
             card_instance.id, card_engagement_user_list)
 
@@ -5212,7 +5214,8 @@ class ChatroomHelper:
                                                              event_type=WebhookTypes.CHATROOM_JOINED.value,
                                                              type_method=join_method)
 
-        ChatroomHelper.delete_chatroom_participants_cache.delay(card_instance.community_id,
+        if chatroom_member_list:
+            ChatroomHelper.delete_chatroom_participants_cache.delay(card_instance.community_id,
                                                                 user_id,
                                                                 card_instance.id)
 
