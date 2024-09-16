@@ -1199,17 +1199,4 @@ class ChatbotView(APIView):
                                                                                 res.get('status')))
         
         return JsonResponse(res)
-        
-    def delete(self,request):
-        member_id = RequestUtilities.get_member_id_from_headers(request)
-        api_key = RequestUtilities.get_api_key_from_headers(request)
-        req_body = RequestUtilities.load_request_body(request)
 
-        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
-        res = community_manager.delete_chatbots(req_body)
-
-        if 'error_message' in res:
-            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
-                                                                                res.get('status')))
-        
-        return JsonResponse(res)

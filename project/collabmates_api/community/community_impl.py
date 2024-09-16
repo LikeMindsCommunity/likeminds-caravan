@@ -2828,6 +2828,7 @@ class CommunityImpl(CommunityManager):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
         
+        community_instance = validated_request.get('community_instance')
         chatbot_meta_instance = validated_request.get('chatbot_meta_instance')
         chatbot_user_instance = validated_request.get('chatbot_user_instance')
 
@@ -2836,12 +2837,19 @@ class CommunityImpl(CommunityManager):
         image_url = req_body.get('image_url', "").strip()
 
         if name:
-            chatbot_user_instance.userinfo.name = name
-            chatbot_user_instance.userinfo.save()
+            CommunityHelper.update_user_alias_name(chatbot_user_instance.id, community_instance.id, name, 
+                                                   question_states.NAME)
 
         if image_url:
-            chatbot_user_instance.userinfo.image_link = image_url
-            chatbot_user_instance.userinfo.save()
+            from collabmates_api.member_community.member_community_impl import MemberCommunityHelper
+
+            chatbot_member_instance = Members.get_member_instance_or_none(community_instance, chatbot_user_instance)
+            if not chatbot_member_instance:
+                return ResponseUtilities.get_impl_error_context('Chatbot member instance not found!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+            
+            MemberCommunityHelper.update_users_image_url_in_community(chatbot_member_instance, image_url)
+            MemberCommunityHelper.update_user_image_in_sdk(chatbot_user_instance, image_url)
 
         if chatbot_meta:
             if chatbot_meta.get('default_text'):
@@ -2876,9 +2884,6 @@ class CommunityImpl(CommunityManager):
             'success': True,
             'user': chatbot_user
         }
-    
-    def delete_chatbots(self, req_body:dict = {}) -> dict:
-        return {}
 
 
 class CommunityHelper:
@@ -6772,6 +6777,8 @@ class CommunityHelper:
             return ResponseUtilities.get_inner_error_context("Invalid max_completion_tokens value.")
         
         return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
             'chatbot_meta_instance': chatbot_meta_instance,
             'chatbot_user_instance': chatbot_meta_instance.user,
         }
