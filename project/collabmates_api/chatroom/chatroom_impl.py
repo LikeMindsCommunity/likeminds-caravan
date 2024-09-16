@@ -75,7 +75,8 @@ from togther.models import (Members, Collabcard, card_answers, Community,
                             EventHighlights, EventMemberTestimonials, EventFAQ, EventNudge, userEmails, Card_Attachment,
                             EventRecordingsAttachments, ChatroomCohort, Cohort, CohortMember, removedMembers,
                             CommunityGetStarted, EventRecordingsURL, ChatroomSecretTypeConversion,
-                            ScheduledChatroomFollow, CommunitySettings, ChatroomInvite, UserChannelSettings)
+                            ScheduledChatroomFollow, CommunitySettings, ChatroomInvite, UserChannelSettings,
+                            ChatbotMeta)
 
 from utility.webhook_utilities import (WebhookUtilties)
 from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, 
@@ -88,7 +89,7 @@ from utility.states import member_states, card_types, collabcard_states, SyncNot
     SyncTypes, member_rights, conversation_states, email_states, event_webflow_update_types, get_started_types, \
     event_online_link_types, block_chatroom_states, chat_request_states, api_types, noti_states, \
     community_setting_types, chatroom_invite_status_types, chatroom_setting_states, webhook_chatroom_methods, \
-    event_kinds, WebhookTypes
+    event_kinds, WebhookTypes, UserRoles
 
 from utility.utils import check_notification_flag
 from utility.internal_link_preview_utilities import PreviewUtilities
@@ -3709,9 +3710,20 @@ class ChatroomImpl(ChatroomManager):
 
             card_content = {}
             chatroom_name = DM_CHATROOM_NAME
+            chatroom_header = DM_CHATROOM_NAME
             chatroom_type = card_types.CARD_DIRECT_MESSAGE
 
             if member_state == member_states.ADMIN:
+
+                # If dm chatroom is with chatbot, update header & title
+                if UserRoles.CHATBOT.value in member_instance.userinfo.roles:  
+                    chatbot_meta = ModelUtilities.get_model_filter(ChatbotMeta, {'user': member_instance}).first()
+                    if chatbot_meta:
+                        chatroom_name = member_instance.userinfo.name
+                        
+                        if chatbot_meta.default_text:
+                            chatroom_header = chatbot_meta.default_text
+
                 self._fill_chatroom_basic_info(card_content, chatroom_name,
                                                community_instance, member_instance, chatroom_type)
 
@@ -3726,7 +3738,7 @@ class ChatroomImpl(ChatroomManager):
                 card_content['member_state'] = user_member_state
 
             card_content['date_epoch'] = TimeUtilities.current_time_in_sec()
-            card_content['header'] = chatroom_name
+            card_content['header'] = chatroom_header
             card_content['has_been_named'] = True
             card_content['is_private'] = True
             card_content['custom_tag'] = custom_tag

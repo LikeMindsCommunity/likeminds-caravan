@@ -423,7 +423,7 @@ class Userinfo(models.Model):
     last_active = models.BigIntegerField(default=0)
     organisation_name = models.CharField(max_length=255, null=True)
     is_bot = models.BooleanField(default=False)
-    roles = ArrayField(models.CharField(max_length=10), null=True, blank=True, default=list)
+    roles = ArrayField(models.CharField(max_length=10), blank=True, default=list)
 
     def __str__(self):
         return self.name
@@ -3748,3 +3748,23 @@ class ChatbotMeta(models.Model):
         self.updated_at = current_time
 
         super(ChatbotMeta, self).save(*args, **kwargs)
+
+class ChatbotConversations(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    last_conversation = models.ForeignKey(card_answers, null=True, on_delete=models.SET_NULL)
+    provider = models.CharField(max_length=255)
+    provider_meta = JSONField()
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(ChatbotConversations, self).save(*args, **kwargs)
