@@ -2207,6 +2207,11 @@ def remove_members(community_instance, user_instance, removed_state, current_use
                                           {"community": community_instance, "member": user_instance}
                                           )
 
+    # Remove chatbot meta
+    ModelUtilities.delete_record_in_model(ChatbotMeta,
+                                          {"community": community_instance, "user": user_instance}
+                                          )
+
     update_last_unseen_in_engage_on_card_creation.delay(community_instance.id, is_seen=False)
 
 
