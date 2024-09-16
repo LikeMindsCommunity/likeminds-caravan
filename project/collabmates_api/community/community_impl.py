@@ -96,7 +96,8 @@ from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDI
                                FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION, 
                                PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION,
                                WIDGETS_METADATA_CONFIGURATION, PERSONALISED_FEED_WEIGHTS, FEED_SETTINGS_CONFIGURATION,
-                               CREATE_FEED_POLL_COMMUNITY_VALUES, CHATBOT_CONFIGURATIONS, CHATBOT_PROVIDER_OPENAI)
+                               CREATE_FEED_POLL_COMMUNITY_VALUES, CHATBOT_CONFIGURATIONS, CHATBOT_PROVIDER_OPENAI,
+                               CHATBOT_DEFAULT_THREAD_CONTEXT)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -2758,14 +2759,21 @@ class CommunityImpl(CommunityManager):
         
         user_instance = validated_request.get('user_instance')
         community_instance = validated_request.get('community_instance')
+
         chatbot_meta = req_body.get('chatbot_meta', {})
-        default_text = req_body.get('default_text', "")
+        default_text = chatbot_meta.get('default_text', "")
+        provider = chatbot_meta.get('provider', "")
+        provider_meta = chatbot_meta.get('provider_meta', {})
+
+        name = req_body.get('name', "").strip()
+        image_url = req_body.get('image_url', "").strip()
+        uuid = req_body.get('uuid', "")
 
         # Create user instance for chatbot
         add_community_member_req_body = {
-            'uuid': req_body.get('uuid', ""),
-            'user_name': req_body.get('name', ""),
-            'image_url': req_body.get('image_url', "")
+            'uuid': uuid,
+            'user_name': name,
+            'image_url': image_url
         }
 
         # Add user as community member
@@ -2797,8 +2805,8 @@ class CommunityImpl(CommunityManager):
             user=chatbot_user_instance,
             community=community_instance,
             default_text=default_text,
-            provider=chatbot_meta.get('provider', ""),
-            provider_meta=chatbot_meta.get('provider_meta', {}),
+            provider=provider,
+            provider_meta=provider_meta,
         )
 
         chatbot_meta_instance.save()
@@ -2813,7 +2821,61 @@ class CommunityImpl(CommunityManager):
         }
     
     def update_chatbot(self, req_body:dict = {}) -> dict:
-        return {}
+
+        validated_request = CommunityHelper.validate_update_chatbot_request(self.get_member_id(),self.get_api_key(),
+                                                                            req_body)
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        chatbot_meta_instance = validated_request.get('chatbot_meta_instance')
+        chatbot_user_instance = validated_request.get('chatbot_user_instance')
+
+        chatbot_meta = req_body.get('chatbot_meta', {})
+        name = req_body.get('name', "").strip()
+        image_url = req_body.get('image_url', "").strip()
+
+        if name:
+            chatbot_user_instance.userinfo.name = name
+            chatbot_user_instance.userinfo.save()
+
+        if image_url:
+            chatbot_user_instance.userinfo.image_link = image_url
+            chatbot_user_instance.userinfo.save()
+
+        if chatbot_meta:
+            if chatbot_meta.get('default_text'):
+                chatbot_meta_instance.default_text = chatbot_meta.get('default_text')
+                chatbot_meta_instance.save()
+
+            if chatbot_meta.get('provider'):
+                chatbot_meta_instance.provider = chatbot_meta.get('provider')
+                chatbot_meta_instance.save()
+
+            if chatbot_meta.get('provider_meta'):
+                if chatbot_meta.get('provider_meta').get('assistant_id'):
+                    chatbot_meta_instance.provider_meta['assistant_id'] = chatbot_meta.get('provider_meta').get('assistant_id')
+                    chatbot_meta_instance.save()
+
+                if chatbot_meta.get('provider_meta').get('thread_context'):
+                    chatbot_meta_instance.provider_meta['thread_context'] = chatbot_meta.get('provider_meta').get('thread_context')
+                    chatbot_meta_instance.save()
+
+                if chatbot_meta.get('provider_meta').get('max_prompt_tokens'):
+                    chatbot_meta_instance.provider_meta['max_prompt_tokens'] = chatbot_meta.get('provider_meta').get('max_prompt_tokens')
+                    chatbot_meta_instance.save()
+
+                if chatbot_meta.get('provider_meta').get('max_completion_tokens'):
+                    chatbot_meta_instance.provider_meta['max_completion_tokens'] = chatbot_meta.get('provider_meta').get('max_completion_tokens')
+                    chatbot_meta_instance.save()
+
+        chatbot_user = UserinfoSerializer(chatbot_user_instance.userinfo, sdk_client_info_flag=True)
+        chatbot_user['chatbot_meta'] = ChatbotMetaSerializer(chatbot_meta_instance).data
+
+        return {
+            'success': True,
+            'user': chatbot_user
+        }
     
     def delete_chatbots(self, req_body:dict = {}) -> dict:
         return {}
@@ -6610,6 +6672,7 @@ class CommunityHelper:
 
         provider = chatbot_meta.get('provider')
         provider_meta = chatbot_meta.get('provider_meta')
+        default_text = chatbot_meta.get('default_text')
 
         if not ((provider and isinstance(provider, str)) or (provider_meta and isinstance(provider_meta, dict))):
             return ResponseUtilities.get_inner_error_context("Please send provider and provider_meta in chatbot_meta")
@@ -6626,8 +6689,11 @@ class CommunityHelper:
             return validated_request
         
         # Validation for optional Values
-        if provider_meta.get('thread_context') and not isinstance(provider_meta.get('thread_context'), int):
-            return ResponseUtilities.get_inner_error_context("Invalid thread_context value. Please send integer in seconds")
+        if provider_meta.get('thread_context'):
+            if not isinstance(provider_meta.get('thread_context'), int):
+                return ResponseUtilities.get_inner_error_context("Invalid thread_context value. Please send integer in seconds")
+        else:
+            provider_meta['thread_context'] = CHATBOT_DEFAULT_THREAD_CONTEXT
         
         if provider_meta.get('max_prompt_tokens') and not isinstance(provider_meta.get('max_prompt_tokens'), int):
             return ResponseUtilities.get_inner_error_context("Invalid max_prompt_tokens value.")
@@ -6635,7 +6701,77 @@ class CommunityHelper:
         if provider_meta.get('max_completion_tokens') and not isinstance(provider_meta.get('max_completion_tokens'), int):
             return ResponseUtilities.get_inner_error_context("Invalid max_completion_tokens value.")
         
+        if default_text and not isinstance(default_text, str):
+            return ResponseUtilities.get_inner_error_context("Invalid default_text value. Please send string")
+        
         return {
             'user_instance': user_instance,
             'community_instance': community_instance,
+        }
+    
+    @staticmethod
+    def validate_update_chatbot_request(user_id: int, api_key: str, req_body: dict) -> dict:
+
+        if not req_body:
+            return ResponseUtilities.get_inner_error_context("Invalid request body")
+        
+        if not req_body.get('chatbot_uuid'):
+            return ResponseUtilities.get_inner_error_context("Please send chatbot_uuid")
+        
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+
+        # Validate if user is admin or not
+        if not Members.is_member_community_promoter(community_instance, user_instance):
+            return ResponseUtilities.get_inner_error_context("You are not authorized to perform this operation")
+
+        user_ids = ModelUtilities.get_valid_user_ids_from_uuids([req_body.get('chatbot_uuid')], community_instance.id)
+        if not user_ids:
+            return ResponseUtilities.get_inner_error_context("Invalid chatbot_uuid")
+        
+        chatbot_meta_instance = ModelUtilities.get_model_filter(ChatbotMeta, {'community_id': community_instance,
+                                                                              'user_id': user_ids[0]}).first()
+        if not chatbot_meta_instance:
+            return ResponseUtilities.get_inner_error_context("Chatbot not found against uuid")
+        
+        chatbot_meta = req_body.get('chatbot_meta', {})
+
+        provider = chatbot_meta.get('provider', "")
+        provider_meta = chatbot_meta.get('provider_meta', {})
+        
+        if provider and provider != CHATBOT_PROVIDER_OPENAI:
+            return ResponseUtilities.get_inner_error_context(f"Invalid provider value. Supported values - '{CHATBOT_PROVIDER_OPENAI}'")
+
+        if provider_meta and provider_meta.get('assistant_id'):
+            if not isinstance(provider_meta.get('assistant_id'), str):
+                return ResponseUtilities.get_inner_error_context("Please send valid assistant_id in provider_meta")
+            
+            #TODO: Update function for assistants
+            validated_request = CommunityHelper.validate_open_ai_api_key_for_assistant("api_key", community_instance, user_instance)
+            if validated_request.get('error_message'):
+                return validated_request
+        
+        if provider_meta and provider_meta.get('thread_context') and not isinstance(provider_meta.get('thread_context'), int):
+            return ResponseUtilities.get_inner_error_context("Invalid thread_context value. Please send integer in seconds")
+        
+        if provider_meta and provider_meta.get('max_prompt_tokens') and not isinstance(provider_meta.get('max_prompt_tokens'), int):
+            return ResponseUtilities.get_inner_error_context("Invalid max_prompt_tokens value.")
+
+        if provider_meta and provider_meta.get('max_completion_tokens') and not isinstance(provider_meta.get('max_completion_tokens'), int):
+            return ResponseUtilities.get_inner_error_context("Invalid max_completion_tokens value.")
+        
+        return {
+            'chatbot_meta_instance': chatbot_meta_instance,
+            'chatbot_user_instance': chatbot_meta_instance.user,
         }
