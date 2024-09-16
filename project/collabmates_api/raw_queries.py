@@ -1564,6 +1564,7 @@ def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info: bool = False) 
                     togther_userinfo.updated_at                 AS "updated_at",
                     togther_userinfo.user_unique_id             AS "user_unique_id",
                     togther_userinfo.user_unique_id             AS "uuid",
+                    togther_userinfo.roles                      AS "roles",
                     togther_sdkclientusersinfo.user_id          AS "sdk_client_info___user",
                     togther_sdkclientusersinfo.user_unique_id   AS "sdk_client_info___user_unique_id",
                     togther_sdkclientusersinfo.user_unique_id   AS "sdk_client_info___uuid",
@@ -1885,6 +1886,7 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
                          "togther_members"."custom_title",
                          "togther_userinfo"."name",
                          "togther_userinfo"."image_link",
+                         "togther_userinfo"."roles",
                          "togther_members"."created_at",
                          "togther_userinfo"."user_unique_id",
                          "togther_userinfo"."is_guest"
@@ -1972,7 +1974,8 @@ def get_members_meta_list(community_id: int, member_ids: list = None, page=1, pa
                 {members_meta_data_query}, 
                 togther_userinfo.user_unique_id as "uuid",
                 togther_userinfo.user_id_id as "id", 
-                togther_userinfo.image_link as "image_url", 
+                togther_userinfo.image_link as "image_url",
+                togther_userinfo.roles as "roles", 
                 CASE when (togther_members.custom_title = 'Member') then Null else togther_members.custom_title END as "custom_title", 
                 togther_members.state as "state",
                 CASE when (togther_members.community_id_id = {community_id}) then false else true END as "is_deleted",
@@ -3591,6 +3594,7 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=N
                            is_guest,
                            togther_userinfo.user_unique_id,
                            togther_userinfo.user_unique_id           AS uuid,
+                           togther_userinfo.roles                    AS roles,
                            togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___user_unique_id,
                            togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___uuid,
                            togther_sdkclientusersinfo.community_id   AS sdk_client_info___community,
@@ -3688,6 +3692,7 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
                            togther_userinfo.is_guest,
                            togther_userinfo.user_unique_id,
                            togther_userinfo.user_unique_id as uuid,
+                           togther_userinfo.roles as roles,
                            togther_sdkclientusersinfo.user_unique_id    AS sdk_client_info___user_unique_id,
                            togther_sdkclientusersinfo.user_unique_id    AS sdk_client_info___uuid,
                            togther_sdkclientusersinfo.community_id      AS sdk_client_info___community, 
@@ -3733,6 +3738,7 @@ def get_conversation_users_against_chatrooms_list(chatroom_ids_list, number_of_c
                    togther_userinfo.user_id_id,
                    togther_userinfo.name,
                    togther_userinfo.image_link,
+                   togther_userinfo.roles,
                    togther_members.id,
                    togther_members.image_url
             FROM   togther_userinfo
@@ -3966,7 +3972,7 @@ def get_members_query_meta_for_sync_revamp(key_name_prefix: str = None):
 
 
 def get_users_query_meta_for_sync_revamp(key_name_prefix: str = None):
-    query_fields = ['user_id_id', 'name', 'image_link', 'user_unique_id', 'is_guest']
+    query_fields = ['user_id_id', 'name', 'image_link', 'user_unique_id', 'is_guest', 'roles']
     meta_query = create_query_with_prefix(query_fields, 'togther_userinfo', 'user', key_name_prefix)
 
     # To add uuid in user object
