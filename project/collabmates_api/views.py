@@ -15545,10 +15545,10 @@ def add_community_settings_for_community(community_instance, user_instance):
     for setting_type, setting_title in COMMUNITY_SETTING_TYPE_TITLE_MAPPING.items():
         is_enabled = True
 
-        if setting_type in [community_setting_types.DIRECT_MESSAGES, community_setting_types.MEMBERS_CAN_DM,
-                            community_setting_types.DIRECT_MSGS_GROUP_MSGS, community_setting_types.FEED,
-                            community_setting_types.CHATROOMS, community_setting_types.SECRET_CHATROOMS_INVITE,
-                            community_setting_types.POST_GROUPS, community_setting_types.SECRET_GROUP_INVITE,
+        if setting_type in [community_setting_types.MEMBERS_CAN_DM,
+                            community_setting_types.DIRECT_MSGS_GROUP_MSGS,
+                            community_setting_types.SECRET_CHATROOMS_INVITE,
+                            community_setting_types.SECRET_GROUP_INVITE,
                             community_setting_types.CREATE_INTRO_ROOMS, community_setting_types.USER_CONNECTION,
                             community_setting_types.NSFW_FILTERING, community_setting_types.USER_TOPICS_CONNECTION, 
                             community_setting_types.ENABLE_GUEST_FLOW, community_setting_types.POST_APPROVAL_NEEDED,
