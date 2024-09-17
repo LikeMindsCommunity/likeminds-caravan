@@ -2870,11 +2870,11 @@ class CommunityImpl(CommunityManager):
                     chatbot_meta_instance.provider_meta['thread_context'] = chatbot_meta.get('provider_meta').get('thread_context')
                     chatbot_meta_instance.save()
 
-                if chatbot_meta.get('provider_meta').get('max_prompt_tokens'):
+                if chatbot_meta.get('provider_meta').get('max_prompt_tokens') is not None:
                     chatbot_meta_instance.provider_meta['max_prompt_tokens'] = chatbot_meta.get('provider_meta').get('max_prompt_tokens')
                     chatbot_meta_instance.save()
 
-                if chatbot_meta.get('provider_meta').get('max_completion_tokens'):
+                if chatbot_meta.get('provider_meta').get('max_completion_tokens') is not None:
                     chatbot_meta_instance.provider_meta['max_completion_tokens'] = chatbot_meta.get('provider_meta').get('max_completion_tokens')
                     chatbot_meta_instance.save()
 
