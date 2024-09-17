@@ -2588,6 +2588,10 @@ class ConversationHelper:
                                                                                 users_list=[user_instance.id],
                                                                                 event_type=WebhookTypes.CHATROOM_JOINED.value,
                                                                                 type_method=webhook_chatroom_methods.SELF_JOINED)
+        if followed_chatroom:
+            chatroom_impl.ChatroomHelper.delete_chatroom_participants_cache.delay(chatroom_instance.community_id,
+                                                                                  user_instance.id,
+                                                                                  chatroom_instance.id)
 
     @staticmethod
     def _send_conversation_creation_notifications(user_instance, chatroom_instance, conversation_instance, has_files,
