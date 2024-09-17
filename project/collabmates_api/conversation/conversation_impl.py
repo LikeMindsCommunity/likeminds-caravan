@@ -956,6 +956,7 @@ class ConversationImpl(ConversationManager):
         attachments_data = req_body.get('attachments')
         attachment_count = req_body.get('attachment_count', 0)
         widget_metadata = req_body.get('metadata', {})
+        trigger_bot = req_body.get('trigger_bot', False)
 
         if attachments_data and isinstance(attachments_data, list):
             attachment_count = len(attachments_data)
@@ -1084,6 +1085,10 @@ class ConversationImpl(ConversationManager):
                                                                            tagged_members_list=tagged_members_list,
                                                                            is_group_tag=is_group_tag,
                                                                            all_files_uploaded=all_files_uploaded)
+            
+            # Trigger chatbot for direct message conversation
+            if trigger_bot and chatroom_instance.type == card_types.CARD_DIRECT_MESSAGE:
+                ConversationHelper.trigger_chatbot_for_chatroom_against_conversation.delay(conversation_instance.id)
 
             context = {
                 "current_user_id": self.get_member_id(),
@@ -2834,3 +2839,8 @@ class ConversationHelper:
             payload['replied_conversation_id'] = conversation_instance.reply_id
         
         return payload
+    
+    @shared_task
+    @staticmethod
+    def trigger_chatbot_for_chatroom_against_conversation(user_id: int, chatroom_id: int, conversation_id: int):
+        return
