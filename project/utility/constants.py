@@ -249,6 +249,7 @@ COMMUNITY_CONFIGURATIONS = {
 
 CHATBOT_PROVIDER_OPENAI = "open_ai_assistant"
 CHATBOT_DEFAULT_THREAD_CONTEXT = 43200 # 12 hours
+CHATBOT_CONVERSATION_ERROR_OCCURED_MESSAGE = "We are facing some issues and we won't be able to serve you right now. Please try again in some time."
 
 CREATE_FEED_POLL_COMMUNITY_VALUES = ["everyone", "only_cm", "no_one"]
 

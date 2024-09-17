@@ -16,7 +16,8 @@ from internal_services.url_tags.uri_tags_impl import UriTagsImpl
 from utility.cache_keys import EVENT_ATTENDEES_CONVERSATION, CHATBOT_ASSISTANT_THREAD_CACHE_KEY
 from utility.json_utilities import JsonUtilities
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT, MINUTES_5, \
-    MINUTES_30, MINUTES_60, PLATFORM_CODE_WEB, CHATBOT_CONFIGURATIONS, CHATBOT_DEFAULT_THREAD_CONTEXT
+    MINUTES_30, MINUTES_60, PLATFORM_CODE_WEB, CHATBOT_CONFIGURATIONS, CHATBOT_DEFAULT_THREAD_CONTEXT, \
+    CHATBOT_CONVERSATION_ERROR_OCCURED_MESSAGE
 from utility.response_utilities import ResponseUtilities
 
 from .conversation_manager import ConversationManager
@@ -2881,9 +2882,6 @@ class ConversationHelper:
             error_logger.error(f"api_key not found for openAi chatbot in community: {chatroom_instance.community.id}")
             return
         
-        max_completion_tokens = chatbot_configurations.get("value", {}).get('max_completion_tokens', 0)
-        max_prompt_tokens = chatbot_configurations.get("value", {}).get('max_prompt_tokens', 0)
-
         # check if chatroom user is chatbot
         if UserRoles.CHATBOT.value not in chatbot_user_instance.userinfo.roles:
             error_logger.error(f"Chatbot is not a member of chatroom: {chatroom_id}")
@@ -2905,15 +2903,18 @@ class ConversationHelper:
             error_logger.error(f"thread_context not found for chatbot member: {chatbot_user_instance.id}. Using default value")
             thread_context = CHATBOT_DEFAULT_THREAD_CONTEXT
 
+        max_completion_tokens = chatbot_meta_instance.provider_meta.get('max_completion_tokens', 0)
+        max_prompt_tokens = chatbot_meta_instance.provider_meta.get('max_prompt_tokens', 0)
+
         # Fetch thread_id against cache chatroom_id_assistant_id__chatbot_threads
         thread_id: str = CacheImpl.get_cache(CHATBOT_ASSISTANT_THREAD_CACHE_KEY.format(chatroom_id, assistant_id)) 
 
         # Call OpenAI API and create a run for chatbot
-        response, thread_id = ConversationHelper.run_thread_and_fetch_latest_message_for_open_ai_assistant.delay(
+        response, thread_id = ConversationHelper.run_thread_and_fetch_latest_message_for_open_ai_assistant(
             api_key, assistant_id, conversation_instance.answer, thread_id, max_completion_tokens, max_prompt_tokens)
         
         if not response:
-            response = "We are facing some issues and we won't be able to serve you right now. Please try again in some time."
+            response = CHATBOT_CONVERSATION_ERROR_OCCURED_MESSAGE
         
         # Call create_conversation_v1 with chatbot user_id
         conversation_impl = ConversationImpl(member_id=chatbot_user_instance.id, api_version_code=api_version_code)
@@ -2938,14 +2939,15 @@ class ConversationHelper:
         return
     
     @staticmethod
-    def run_thread_and_fetch_latest_message_for_open_ai_assistant(api_key:str, assistant_id: str, message: str, thread_id: str="", 
-                                                max_completion_tokens: int=0, max_prompt_tokens: int=0):
+    def run_thread_and_fetch_latest_message_for_open_ai_assistant(api_key:str, assistant_id: str, message: str, 
+                                                                  thread_id: str="", max_completion_tokens: int=0, 
+                                                                  max_prompt_tokens: int=0):
 
         if not (assistant_id and message and api_key):
             error_logger.error(f"Invalid request parameters for OpenAI API call: {assistant_id}, {message}, {api_key}")
             return None, None
-        
         try:
+            response = ""
             client = OpenAI(api_key=api_key)
 
             messages = [{"role": "user", "content": message}]
@@ -2974,6 +2976,9 @@ class ConversationHelper:
                     thread={"messages": messages}
                 )
 
+            if run.thread_id:
+                thread_id = run.thread_id
+
             # If run is completed, fetch latest message from thread
             if run.status == 'completed': 
                 messages = client.beta.threads.messages.list(
@@ -2981,19 +2986,17 @@ class ConversationHelper:
                     limit=1
                 )
             else:
-                error_logger.error(f"Error while creating thread for OpenAI API for assistant_id: {assistant_id} | status {run.status} ")
-                return None, None
-
-            thread_id = run.thread_id
+                error_logger.error(f"Error while creating thread for OpenAI API for assistant_id: {assistant_id} | status: {run.status} | incomplete details: {run.incomplete_details}")
+                return response, thread_id
             
             if len(messages.data) > 0 and len(messages.data[0].content) > 0:
                 response = messages.data[0].content[0].text.value
             else:
                 error_logger.error(f"Error while fetch messages for OpenAI thread : {thread_id}: No messages found")
-                return None, None
+                return response, thread_id
             
             return response, thread_id
         
         except Exception as e:
             error_logger.error(f"Error while calling OpenAI API for assistant_id: {assistant_id} and api_key: {api_key}: {str(e)} ")
-            return None, None
+            return response, thread_id

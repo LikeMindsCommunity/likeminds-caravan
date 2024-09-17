@@ -3752,7 +3752,7 @@ class ChatbotMeta(models.Model):
 class ChatbotThreads(models.Model):
     chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     assistant_id = models.CharField(max_length=255)
-    thread_id = models.CharField(max_length=255)
+    thread_id = models.CharField(max_length=255, null=True)
     last_conversation = models.ForeignKey(card_answers, null=True, on_delete=models.SET_NULL)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
