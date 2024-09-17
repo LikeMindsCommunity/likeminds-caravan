@@ -123,11 +123,10 @@ from collabmates_api.notifications.tasks import trigger_event_comms, send_app_no
 from collabmates_api.notifications.constants import EVENT_TYPE, CALENDAR_INVITE_TYPE
 
 from utility.response_utilities import ResponseUtilities
-from utility.cache_keys import (CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, CHATROOM_TYPE_CONVERSION)
+from utility.cache_keys import (CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, CHATROOM_TYPE_CONVERSION,
+                                KETTLE_CACHE_CHATROOM_PARTICIPANTS)
 from utility.version_utilities import VersionUtilities
-
-from ...utility.cache_keys import KETTLE_CACHE_CHATROOM_PARTICIPANTS
-from ...utility.internal_service_utilities import InternalServiceUtilities
+from utility.internal_service_utilities import InternalServiceUtilities
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -4745,6 +4744,7 @@ class ChatroomHelper:
         ChatroomHelper.delete_chatroom_participants_cache.delay(card_instance.community_id,
                                                                 user_instance.id,
                                                                 card_instance.id)
+        
         conversation_impl.ConversationHelper.update_homescreen_meta_on_chatroom_follow(community_instance,
                                                                                        card_instance,
                                                                                        card_state_instance,
@@ -4837,6 +4837,7 @@ class ChatroomHelper:
                 ChatroomHelper.delete_chatroom_participants_cache.delay(card_instance.community_id,
                                                                 user_instance.id,
                                                                 card_instance.id)
+                
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
         ChatroomHelper.create_card_engagements_for_home_screen_for_auto_follow_all_members_with_chatroom_list(
             auto_follow_chatroom_list, user_instance.id, community_instance.id, member_state=member_states.MEMBER)

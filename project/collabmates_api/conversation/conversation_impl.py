@@ -21,7 +21,6 @@ from .conversation_manager import ConversationManager
 from .conversation_view_helper import ConversationViewHelper
 from .reactions import fetch_chatroom_or_conversation_reactions
 from ..chatroom import chatroom_impl
-from ..chatroom.chatroom_impl import ChatroomHelper
 from ..notification import send_notification_to_message_creator_on_reaction, get_tagged_members_list, \
     send_notification_on_chatroom_topic_update, send_poll_conversation_creation_notification_v1
 from ..notifications.tasks import send_communication_when_chatroom_not_opened
@@ -2589,10 +2588,10 @@ class ConversationHelper:
                                                                                 users_list=[user_instance.id],
                                                                                 event_type=WebhookTypes.CHATROOM_JOINED.value,
                                                                                 type_method=webhook_chatroom_methods.SELF_JOINED)
-
-        ChatroomHelper.delete_chatroom_participants_cache.delay(chatroom_instance.community_id,
-                                                                user_instance.id,
-                                                                chatroom_instance.id)
+        if followed_chatroom:
+            chatroom_impl.ChatroomHelper.delete_chatroom_participants_cache.delay(chatroom_instance.community_id,
+                                                                                  user_instance.id,
+                                                                                  chatroom_instance.id)
 
     @staticmethod
     def _send_conversation_creation_notifications(user_instance, chatroom_instance, conversation_instance, has_files,

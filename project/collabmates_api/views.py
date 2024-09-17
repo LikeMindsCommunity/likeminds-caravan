@@ -50,7 +50,6 @@ from utility.firebase import (update_last_answer_id, upload_image_to_firebase, u
 
 from utility.internal_link_preview_utilities import PreviewUtilities
 
-from .chatroom.chatroom_impl import ChatroomHelper
 from .notification import *
 from .raw_queries import *
 from .snackbar.snackbar_impl import SnackbarImpl
@@ -6437,6 +6436,7 @@ def follow_chatroom_async(collabcard_id,
                                                                   event_type=WebhookTypes.CHATROOM_LEFT.value,
                                                                   type_method=webhook_chatroom_methods.SELF_LEFT)
 
+            from .chatroom.chatroom_impl import ChatroomHelper
             ChatroomHelper.delete_chatroom_participants_cache.delay(card_instance.community_id,
                                                                     user_instance.id,
                                                                     card_instance.id)
@@ -6455,10 +6455,10 @@ def follow_chatroom_async(collabcard_id,
                                                               users_list=[user_instance.id],
                                                               event_type=WebhookTypes.CHATROOM_JOINED.value, 
                                                               type_method=webhook_chatroom_methods.SELF_JOINED)
-
-    ChatroomHelper.delete_chatroom_participants_cache.delay(community_instance.id,
-                                                            user_instance.id,
-                                                            card_instance.id)
+        from .chatroom.chatroom_impl import ChatroomHelper
+        ChatroomHelper.delete_chatroom_participants_cache.delay(community_instance.id,
+                                                                user_instance.id,
+                                                                card_instance.id)
 
     # If feedroom, delete cache in swarm for user community channels
     if card_instance.type == card_types.CARD_FEED_GROUP:
