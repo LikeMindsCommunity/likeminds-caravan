@@ -128,9 +128,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     @staticmethod
     def _find_member_communities(member_id: str) -> list:
-        """
-        TODO: move to model definition file
-        """
         return Member_Engage.objects.filter(member_id=member_id).select_related('community_id', 'member_id').order_by(
             '-order_time')
 
@@ -157,9 +154,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     @staticmethod
     def _community_serializer(community_id: int, member_id: str) -> dict:
-        """
-        TODO: move to model definition file
-        """
         if not isinstance(community_id, Community):
             community_id = Community.objects.get(pk=community_id)
 
@@ -181,9 +175,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     @staticmethod
     def _extract_user(member_id: str) -> {}:
-        """
-        TODO: move to model definition file
-        """
         return User.objects.get(id=member_id)
 
     @staticmethod

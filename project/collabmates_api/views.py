@@ -3248,7 +3248,6 @@ def send_chatroom_creation_notification(card_instance, user_instance, set_defaul
 
     """
     do not send notifications for new intro room
-    TODO: update logic with new intro room update
     """
 
     if card_instance.type == card_types.CARD_INTRO or card_instance.type == card_types.CARD_EVENT or \

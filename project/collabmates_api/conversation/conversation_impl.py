@@ -2843,9 +2843,9 @@ class ConversationHelper:
         
         return payload
     
-    @shared_task
     @staticmethod
-    def trigger_chatbot_for_chatroom_against_conversation(chatroom_id: int, conversation_id: int, api_version: int):
+    @shared_task
+    def trigger_chatbot_for_chatroom_against_conversation(chatroom_id: int, conversation_id: int, api_version_code: int):
 
         if not (chatroom_id and conversation_id):
             return
@@ -2869,7 +2869,7 @@ class ConversationHelper:
         
         chatbot_configurations = configurations[0]
 
-        chatbot_enabled = chatbot_configurations.get(CHATBOT_CONFIGURATIONS, {}).get('enabled', False)
+        chatbot_enabled = chatbot_configurations.get("value", {}).get('enabled', False)
         if not chatbot_enabled:
             error_logger.error(f"Chatbot is not enabled for community: {chatroom_instance.community.id}")
             return
@@ -2880,7 +2880,7 @@ class ConversationHelper:
             return
 
         # Fetch chatbotMeta instance for assistant_id
-        chatbot_meta_instance = ModelUtilities.get_model_instance_or_none(ChatbotMeta, chatbot_user_instance.id)
+        chatbot_meta_instance = ModelUtilities.get_model_filter(ChatbotMeta, {'user': chatbot_user_instance}).first()
         if not chatbot_meta_instance:
             error_logger.error(f"ChatbotMeta instance not found for chatroom member: {chatbot_user_instance.id}")
             return
@@ -2896,7 +2896,7 @@ class ConversationHelper:
             thread_context = CHATBOT_DEFAULT_THREAD_CONTEXT
 
         # Fetch thread_id against cache chatroom_id_assistant_id__chatbot_threads
-        thread_id = CacheImpl.get_cache(CHATBOT_ASSISTANT_THREAD_CACHE_KEY.format(chatroom_id, assistant_id)) 
+        thread_id: str = CacheImpl.get_cache(CHATBOT_ASSISTANT_THREAD_CACHE_KEY.format(chatroom_id, assistant_id)) 
 
         # If thread_id exists, then send call OpenAI API with threadId
         response, thread_id, error_message = ConversationHelper.call_open_ai_assistant_and_get_response(assistant_id, 
@@ -2907,7 +2907,7 @@ class ConversationHelper:
             return
         
         # Call create_conversation_v1 with chatbot user_id
-        conversation_impl = ConversationImpl(member_id=chatbot_user_instance.id, api_version=api_version)
+        conversation_impl = ConversationImpl(member_id=chatbot_user_instance.id, api_version_code=api_version_code)
         req_body = {
             "chatroom_id": chatroom_id,
             "text": response,
@@ -2918,7 +2918,7 @@ class ConversationHelper:
             error_logger.error(f"Error while creating conversation for chatbot: {response['error_message']} for chatroom_id: {chatroom_id}")
             return
         
-        chatbot_conversation_id = response.get('conversation_id')
+        chatbot_conversation_id = response.get('conversation', {}).get('id', "")
 
         # save or update thread_id in cache with thread_context TTL #TODO: Check if existing ttl is updated
         CacheImpl.set_cache(CHATBOT_ASSISTANT_THREAD_CACHE_KEY.format(chatroom_id, assistant_id), thread_id, thread_context)
@@ -2932,7 +2932,7 @@ class ConversationHelper:
     
     @staticmethod #TODO: Implement this method
     def call_open_ai_assistant_and_get_response(assisant_id: str, message: str, thread_id: str):
-        threadId = thread_id or ""
+        threadId = "threadId"
         error_message = None
 
         response = "Response from AI"

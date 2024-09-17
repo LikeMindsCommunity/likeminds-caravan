@@ -1924,9 +1924,10 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
             member_dict['custom_title'] = data[5]
             member_dict['name'] = data[6]
             member_dict['image_link'] = data[7]
-            member_dict['created_at'] = data[8]
-            member_dict['user_unique_id'] = data[9]
-            member_dict['is_guest'] = data[10]
+            member_dict['roles'] = data[8]
+            member_dict['created_at'] = data[9]
+            member_dict['user_unique_id'] = data[10]
+            member_dict['is_guest'] = data[11]
             member_list.append(member_dict)
 
         return member_list

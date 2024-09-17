@@ -3750,7 +3750,6 @@ class ChatbotMeta(models.Model):
         super(ChatbotMeta, self).save(*args, **kwargs)
 
 class ChatbotThreads(models.Model):
-    community = models.ForeignKey(Community, on_delete=models.CASCADE)
     chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
     assistant_id = models.CharField(max_length=255)
     thread_id = models.CharField(max_length=255)
