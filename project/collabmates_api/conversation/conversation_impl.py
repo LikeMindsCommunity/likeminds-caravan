@@ -1,6 +1,8 @@
 import time
 import json, uuid
 import re
+
+from openai import OpenAI
 from django.contrib.auth.models import User
 from django.db import transaction
 from typing import Union
@@ -2873,6 +2875,11 @@ class ConversationHelper:
         if not chatbot_enabled:
             error_logger.error(f"Chatbot is not enabled for community: {chatroom_instance.community.id}")
             return
+        
+        api_key = chatbot_configurations.get("value", {}).get('api_key', "")
+        if not api_key:
+            error_logger.error(f"api_key not found for openAi chatbot in community: {chatroom_instance.community.id}")
+            return
 
         # check if chatroom user is chatbot
         if UserRoles.CHATBOT.value not in chatbot_user_instance.userinfo.roles:
@@ -2898,13 +2905,13 @@ class ConversationHelper:
         # Fetch thread_id against cache chatroom_id_assistant_id__chatbot_threads
         thread_id: str = CacheImpl.get_cache(CHATBOT_ASSISTANT_THREAD_CACHE_KEY.format(chatroom_id, assistant_id)) 
 
-        # If thread_id exists, then send call OpenAI API with threadId
-        response, thread_id, error_message = ConversationHelper.call_open_ai_assistant_and_get_response(assistant_id, 
-                                                                                                        conversation_instance.answer,
-                                                                                                        thread_id)
-        if error_message or not response:
-            error_logger.error(f"Error while calling OpenAI API for chatbot: {error_message}")
-            return
+        # Aall OpenAI API and create a run for chatbot
+        response, thread_id = ConversationHelper.call_open_ai_assistant_and_get_response(api_key,
+                                                                                         assistant_id, 
+                                                                                         conversation_instance.answer,
+                                                                                         thread_id)
+        if not response:
+            response = "We are facing some issues and we won't be able to serve you right now. Please try again in some time."
         
         # Call create_conversation_v1 with chatbot user_id
         conversation_impl = ConversationImpl(member_id=chatbot_user_instance.id, api_version_code=api_version_code)
@@ -2920,21 +2927,56 @@ class ConversationHelper:
         
         chatbot_conversation_id = response.get('conversation', {}).get('id', "")
 
-        # save or update thread_id in cache with thread_context TTL #TODO: Check if existing ttl is updated
         CacheImpl.set_cache(CHATBOT_ASSISTANT_THREAD_CACHE_KEY.format(chatroom_id, assistant_id), thread_id, thread_context)
 
-        # Create or Update chatbot_conversation_id in chatbot_conversations
         ModelUtilities.update_or_create_model(ChatbotThreads,
                                               {'chatroom_id': chatroom_id, 'assistant_id': assistant_id, 'thread_id': thread_id},
                                               {'last_conversation_id': chatbot_conversation_id})
 
         return
     
-    @staticmethod #TODO: Implement this method
-    def call_open_ai_assistant_and_get_response(assisant_id: str, message: str, thread_id: str):
-        threadId = "threadId"
-        error_message = None
+    @staticmethod
+    def call_open_ai_assistant_and_get_response(api_key:str, assistant_id: str, message: str, thread_id: str="", 
+                                                max_completion_tokens: int=0, max_prompt_tokens: int=0):
 
-        response = "Response from AI"
+        if not (assistant_id and message and api_key):
+            error_logger.error(f"Invalid request parameters for OpenAI API call: {assistant_id}, {message}, {api_key}")
+            return None, None
+        
+        try:
+            client = OpenAI(api_key=api_key)
 
-        return response, threadId, ""
+            messages = [{"role": "user", "content": message}]
+
+            params = {
+                "assistant_id": assistant_id,
+            }
+
+            if max_completion_tokens:
+                params['max_completion_tokens'] = max_completion_tokens
+
+            if max_prompt_tokens:
+                params['max_prompt_tokens'] = max_prompt_tokens
+
+            # If thread_id is present, call OpenAI API with thread_id else create a new thread
+            if thread_id:
+                run = client.beta.threads.runs.create(
+                    **params, 
+                    thread_id=thread_id,
+                    additional_messages=messages
+                )
+
+            else:
+                run = client.beta.threads.create_and_run(
+                    **params,
+                    thread={"messages": messages}
+                )
+            
+            thread_id = run['thread_id']
+            response = run['messages'][0]['content']
+            
+            return response, thread_id
+        
+        except Exception as e:
+            error_logger.error(f"Error while calling OpenAI API for assistant_id: {assistant_id} and api_key: {api_key}: {str(e)} ")
+            return None, None

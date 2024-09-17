@@ -1,4 +1,5 @@
 import json, csv, os
+from openai import OpenAI
 
 from celery import shared_task
 from django.contrib.auth.models import User
@@ -5655,8 +5656,8 @@ class CommunityHelper:
                 if not isinstance(update_values.get('api_key'), str) or not update_values.get('api_key').strip():
                     return ResponseUtilities.get_inner_error_context("Invalid api_key value")
                 
-                # Validate api_key #TODO
-                api_key_validation = CommunityHelper.validate_open_ai_api_key_for_assistant(update_values.get('api_key'), community_instance, user_instance)
+                # Validate open ai api_key
+                api_key_validation = CommunityHelper.validate_open_ai_api_key_or_assistant(update_values.get('api_key'))
                 if api_key_validation.get('error_message'):
                     return api_key_validation
              
@@ -6348,32 +6349,6 @@ class CommunityHelper:
             return ResponseUtilities.get_inner_error_context(f"Some error occured setting up Inferdo's API Key, please contact support")
         
     @staticmethod
-    def validate_open_ai_api_key_for_assistant(api_key:str, community_instance, user_instance) -> dict:
-        #TODO: Complete
-        if not (api_key and community_instance and user_instance):
-            return ResponseUtilities.get_inner_error_context("Invalid request body for validating")
-        
-        try:    
-
-            client = ApiClient()
-            client.update_request_url("https://betaauth.likeminds.community")
-
-            # Send GET request
-            response = client.get().response
-
-            if response.status_code != 200:
-                error_logger.error(f"Error occured setting up OpenAI's API Key for community - {community_instance.id} \
-                                   -  {community_instance.name} | StatusCode: {response.status_code} , Response: {response.json()}")
-                
-                return ResponseUtilities.get_inner_error_context(f"Error occured setting up OpenAI's API Key: {response.json()}")
-
-            return {'success': True}
-        
-        except Exception as e:
-            error_logger.error(f"Exception occurred while setting up OpenAI's API Key for community - {community_instance.id} -  {community_instance.name} | Error: {e.args}")
-            return ResponseUtilities.get_inner_error_context(f"Some error occured setting up OpenAI's API Key, please contact support")
-
-    @staticmethod
     @shared_task    
     def close_under_review_pending_post_reports(community_id: int, user_id: int, report_ids: list, status: str):
 
@@ -6688,8 +6663,7 @@ class CommunityHelper:
         if not (provider_meta.get('assistant_id') and isinstance(provider_meta.get('assistant_id'), str)):
             return ResponseUtilities.get_inner_error_context("Please send assistant_id in provider_meta")
 
-        #TODO: Update function for assistants
-        validated_request = CommunityHelper.validate_open_ai_api_key_for_assistant("api_key", community_instance, user_instance)
+        validated_request = CommunityHelper.validate_open_ai_api_key_or_assistant(chatbot_configurations.get("api_key"), provider_meta.get('assistant_id'))
         if validated_request.get('error_message'):
             return validated_request
         
@@ -6762,8 +6736,7 @@ class CommunityHelper:
             if not isinstance(provider_meta.get('assistant_id'), str):
                 return ResponseUtilities.get_inner_error_context("Please send valid assistant_id in provider_meta")
             
-            #TODO: Update function for assistants
-            validated_request = CommunityHelper.validate_open_ai_api_key_for_assistant("api_key", community_instance, user_instance)
+            validated_request = CommunityHelper.validate_open_ai_api_key_or_assistant("api_key", community_instance, user_instance)
             if validated_request.get('error_message'):
                 return validated_request
         
@@ -6782,3 +6755,36 @@ class CommunityHelper:
             'chatbot_meta_instance': chatbot_meta_instance,
             'chatbot_user_instance': chatbot_meta_instance.user,
         }
+
+    @staticmethod
+    def validate_open_ai_api_key_or_assistant(api_key:str, assistant_id: str="") -> dict:
+
+        if not (api_key):
+            return ResponseUtilities.get_inner_error_context("Invalid request body for validating openAi api key")
+        
+        try:    
+            client = OpenAI(api_key=api_key)
+
+            if assistant_id:
+                # Make a simple API call to retrieve assistant
+                client.beta.assistants.retrieve(assistant_id)
+
+            else:
+                # Make a simple API call to list models (a lightweight operation)
+                client.models.retrieve("gpt-3.5-turbo-instruct")
+
+            return {'success': True}
+        
+        except Exception as e:
+            error_logger.error(f"Exception occurred while setting up OpenAI's API Key | Error: {e.args}")
+            
+            if e.body.get('code'):
+                error_message =  e.body.get('code') 
+            elif e.body.get('message'):
+                error_message = e.body.get('message')
+            else: 
+                error_message = e.args[0]
+
+            return ResponseUtilities.get_inner_error_context(f"Error occured validating OpenAI's API Key: {error_message}")
+
+    
