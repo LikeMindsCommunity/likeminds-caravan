@@ -3749,13 +3749,12 @@ class ChatbotMeta(models.Model):
 
         super(ChatbotMeta, self).save(*args, **kwargs)
 
-class ChatbotConversations(models.Model):
+class ChatbotThreads(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
     chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    assistant_id = models.CharField(max_length=255)
+    thread_id = models.CharField(max_length=255)
     last_conversation = models.ForeignKey(card_answers, null=True, on_delete=models.SET_NULL)
-    provider = models.CharField(max_length=255)
-    provider_meta = JSONField()
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
@@ -3767,4 +3766,4 @@ class ChatbotConversations(models.Model):
 
         self.updated_at = current_time
 
-        super(ChatbotConversations, self).save(*args, **kwargs)
+        super(ChatbotThreads, self).save(*args, **kwargs)
