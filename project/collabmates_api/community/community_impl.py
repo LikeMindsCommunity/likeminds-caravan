@@ -6671,7 +6671,9 @@ class CommunityHelper:
         if not (provider_meta.get('assistant_id') and isinstance(provider_meta.get('assistant_id'), str)):
             return ResponseUtilities.get_inner_error_context("Please send assistant_id in provider_meta")
 
-        validated_request = OpenAiWrapper.validate_open_ai_api_key_or_assistant(chatbot_configurations.get("api_key"), provider_meta.get('assistant_id'))
+        # Validate open ai assistant_id
+        validated_request = OpenAiWrapper(chatbot_configurations.get('api_key')
+                                          ).validate_open_ai_api_key_or_assistant(provider_meta.get('assistant_id'))
         if validated_request.get('error_message'):
             return validated_request
         
@@ -6758,8 +6760,9 @@ class CommunityHelper:
             if not isinstance(provider_meta.get('assistant_id'), str):
                 return ResponseUtilities.get_inner_error_context("Please send valid assistant_id in provider_meta")
             
-            validated_request = OpenAiWrapper.validate_open_ai_api_key_or_assistant(chatbot_configurations.get('api_key'), 
-                                                                                    community_instance, user_instance)
+
+            validated_request = OpenAiWrapper(chatbot_configurations.get('api_key')
+                                              ).validate_open_ai_api_key_or_assistant(provider_meta.get('assistant_id'))
             if validated_request.get('error_message'):
                 return validated_request
         
