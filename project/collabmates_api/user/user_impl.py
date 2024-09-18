@@ -1530,11 +1530,11 @@ class UserImpl(UserManager):
                 filter_dict['blocked_user'] = second_user_instance
 
             blocked_user_filter = ModelUtilities.get_model_filter(BlockUser, filter_dict).order_by('created_at')
-            blocked_user_list = paginate_list(blocked_user_filter, page, page_size)
+            blocked_user_list, total_pages, total_count = paginate_list(blocked_user_filter, page, page_size)
 
             if blocked_user_list:
                 blocked_user_ids_list = [block_user_instance.blocked_user_id for block_user_instance in
-                                         blocked_user_list.object_list]
+                                         blocked_user_list]
                 blocked_users_list = UserHelper.compute_members_meta_list(community_instance,
                                                                           blocked_user_ids_list,
                                                                           page=1,
@@ -1550,11 +1550,11 @@ class UserImpl(UserManager):
                 filter_dict['blocking_user'] = second_user_instance
 
             blocking_user_filter = ModelUtilities.get_model_filter(BlockUser, filter_dict).order_by('created_at')
-            blocking_user_list = paginate_list(blocking_user_filter, page, page_size)
+            blocking_user_list, total_pages, total_count = paginate_list(blocking_user_filter, page, page_size)
 
             if blocking_user_list:
                 blocking_user_ids_list = [block_user_instance.blocking_user_id for block_user_instance in
-                                          blocking_user_list.object_list]
+                                          blocking_user_list]
                 blocking_users_list = UserHelper.compute_members_meta_list(community_instance,
                                                                            blocking_user_ids_list,
                                                                            page=1,

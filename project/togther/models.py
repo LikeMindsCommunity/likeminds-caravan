@@ -3,7 +3,7 @@ import uuid
 
 from django.db import models
 from django.contrib.auth.models import User
-from django.contrib.postgres.fields import JSONField
+from django.contrib.postgres.fields import JSONField, ArrayField
 import time
 from django.db.models import Q
 from utility.states import member_states, member_rights
@@ -16,7 +16,7 @@ from typing import Union
 from external_services.logging.logging_wrapper import LoggingWrapper
 from django.core import serializers as core_serializer
 from django.utils.translation import gettext_lazy as _
-from utility.states import noti_states
+from utility.states import noti_states, UserRoles
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -423,6 +423,7 @@ class Userinfo(models.Model):
     last_active = models.BigIntegerField(default=0)
     organisation_name = models.CharField(max_length=255, null=True)
     is_bot = models.BooleanField(default=False)
+    roles = ArrayField(models.CharField(max_length=10), blank=True, default=list)
 
     def __str__(self):
         return self.name
@@ -463,6 +464,20 @@ class Userinfo(models.Model):
         self.updated_at = current_time
 
         super(Userinfo, self).save(*args, **kwargs)
+
+    @staticmethod
+    def add_role_to_user(user_instance: User, role: str) -> None:
+        if not user_instance:
+            return
+
+        if not UserRoles.is_valid_role(role):
+            return
+
+        if not user_instance.userinfo.roles:
+            user_instance.userinfo.roles = []
+
+        user_instance.userinfo.roles.append('chatbot')
+        user_instance.userinfo.save()
 
 
 # Collabcard Report Module
@@ -3715,6 +3730,42 @@ class CommunityConfigurations(models.Model):
 
         super(CommunityConfigurations, self).save(*args, **kwargs)
 
+class ChatbotMeta(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    default_text = models.TextField()
+    provider = models.CharField(max_length=255)
+    provider_meta = JSONField()
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(ChatbotMeta, self).save(*args, **kwargs)
+
+class ChatbotThreads(models.Model):
+    chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE)
+    assistant_id = models.CharField(max_length=255)
+    thread_id = models.CharField(max_length=255, null=True)
+    last_conversation = models.ForeignKey(card_answers, null=True, on_delete=models.SET_NULL)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+        super(ChatbotThreads, self).save(*args, **kwargs)
+
 
 class BlockUser(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
@@ -3730,5 +3781,4 @@ class BlockUser(models.Model):
             self.created_at = current_time
 
         self.updated_at = current_time
-
         super(BlockUser, self).save(*args, **kwargs)
