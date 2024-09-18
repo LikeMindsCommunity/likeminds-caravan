@@ -475,17 +475,19 @@ class SdkImpl(SdkManager):
             if year not in organized:
                 organized[year] = {"chat": [], "feed": [], "total": []}
             
+            clean_month_str = month.strip() if month else month
+
             # Add data to chat or feed list
-            organized[year][platform].append({"label": month, "count": count})
+            organized[year][platform].append({"label": clean_month_str, "count": count})
             
             # Add data to total (sum for both chat and feed)
-            if any(month in entry['label'] for entry in organized[year]['total']):
+            if any(clean_month_str in entry['label'] for entry in organized[year]['total']):
                 for entry in organized[year]['total']:
-                    if entry['label'] == month:
+                    if entry['label'] == clean_month_str:
                         entry['count'] += count
                         break
             else:
-                organized[year]['total'].append({"label": month, "count": count})
+                organized[year]['total'].append({"label": clean_month_str, "count": count})
 
         final = []
         for year, data in organized.items():
