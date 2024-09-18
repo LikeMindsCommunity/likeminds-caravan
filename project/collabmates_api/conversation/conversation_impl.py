@@ -1,6 +1,8 @@
 import time
 import json, uuid
 import re
+
+from openai import OpenAI
 from django.contrib.auth.models import User
 from django.db import transaction
 from typing import Union
@@ -11,10 +13,11 @@ from rest_framework import status as status_codes
 
 from external_services.caching.cache_impl import CacheImpl
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
-from utility.cache_keys import EVENT_ATTENDEES_CONVERSATION
+from utility.cache_keys import EVENT_ATTENDEES_CONVERSATION, CHATBOT_ASSISTANT_THREAD_CACHE_KEY
 from utility.json_utilities import JsonUtilities
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT, MINUTES_5, \
-    MINUTES_30, MINUTES_60, PLATFORM_CODE_WEB, SWARM_WIDGET_ENDPOINT
+    MINUTES_30, MINUTES_60, PLATFORM_CODE_WEB, CHATBOT_CONFIGURATIONS, CHATBOT_DEFAULT_THREAD_CONTEXT, \
+    CHATBOT_CONVERSATION_ERROR_OCCURED_MESSAGE
 from utility.response_utilities import ResponseUtilities
 
 from .conversation_manager import ConversationManager
@@ -52,7 +55,7 @@ from togther.models import (card_answers, collabcardState, Collabcard, Members,
                             Community, ModelUtilities, MessageReactions, conversationPolls,
                             conversationPollMembers, Userinfo, conversationEngage, answerAttachment,
                             conversationEventMembers, conversationEventNudge, UserEmailsSendStatus, userDevices,
-                            userMemberRights, UserChannelSettings)
+                            userMemberRights, ChatbotMeta, ChatbotThreads)
 from collabmates_api.sdk.models import SdkClient
 
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -63,7 +66,8 @@ from utility.request_utilities import RequestUtilities
 from utility.states import (member_states, collabcard_states, card_types, SyncNotificationTypes, SyncTypes,
                             conversation_states, conversation_poll_types, chatroom_not_opened_types,
                             user_email_send_status_types, member_rights, unsubscribe_types, noti_states,
-                            chat_request_states, webhook_chatroom_methods, attachment_types, WidgetTypes, WebhookTypes)
+                            chat_request_states, webhook_chatroom_methods, attachment_types, WidgetTypes, 
+                            WebhookTypes, UserRoles)
 
 from utility.webhook_utilities import (WebhookUtilties)
 from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, MAX_WEBHOOK_USERS_META_LIMIT)
@@ -88,6 +92,7 @@ from celery import shared_task
 from ..owner_message_template import post_owner_message_template_in_intro_room, check_owner_template_posted
 from collabmates_api.search.sync import ElasticSearchSync
 from utility.internal_service_utilities import InternalServiceUtilities
+from external_services.open_ai.open_ai_wrapper import OpenAiWrapper
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -956,6 +961,7 @@ class ConversationImpl(ConversationManager):
         attachments_data = req_body.get('attachments')
         attachment_count = req_body.get('attachment_count', 0)
         widget_metadata = req_body.get('metadata', {})
+        trigger_bot = req_body.get('trigger_bot', False)
 
         if attachments_data and isinstance(attachments_data, list):
             attachment_count = len(attachments_data)
@@ -1084,6 +1090,12 @@ class ConversationImpl(ConversationManager):
                                                                            tagged_members_list=tagged_members_list,
                                                                            is_group_tag=is_group_tag,
                                                                            all_files_uploaded=all_files_uploaded)
+            
+            # Trigger chatbot for direct message conversation
+            if trigger_bot and chatroom_instance.type == card_types.CARD_DIRECT_MESSAGE:
+                ConversationHelper.trigger_chatbot_for_chatroom_against_conversation.delay(chatroom_instance.id,
+                                                                                           conversation_instance.id,
+                                                                                           self.get_api_version_code())
 
             context = {
                 "current_user_id": self.get_member_id(),
@@ -2838,3 +2850,123 @@ class ConversationHelper:
             payload['replied_conversation_id'] = conversation_instance.reply_id
         
         return payload
+    
+    @staticmethod
+    @shared_task
+    def trigger_chatbot_for_chatroom_against_conversation(chatroom_id: int, conversation_id: int, api_version_code: int):
+
+        validation_dict = ConversationHelper.validate_trigger_chatbot_against_conversation(chatroom_id, conversation_id)
+        if validation_dict.get('error_message'):
+            error_logger.error(f"Error while validating chatbot trigger request: {validation_dict['error_message']}")
+            return
+        
+        conversation_instance = validation_dict.get('conversation_instance')
+        chatbot_user_instance = validation_dict.get('chatbot_user_instance')
+        api_key = validation_dict.get('api_key')
+        assistant_id = validation_dict.get('assistant_id')
+        thread_context = validation_dict.get('thread_context')
+        max_completion_tokens = validation_dict.get('max_completion_tokens')
+        max_prompt_tokens = validation_dict.get('max_prompt_tokens')
+
+        # Fetch thread_id against cache chatroom_id_assistant_id__chatbot_threads
+        thread_id: str = CacheImpl.get_cache(CHATBOT_ASSISTANT_THREAD_CACHE_KEY.format(chatroom_id, assistant_id)) 
+
+        # Call OpenAI API and create a run for chatbot
+        open_ai_wrapper = OpenAiWrapper(api_key)
+        res = open_ai_wrapper.run_thread_and_fetch_latest_message_for_open_ai_assistant(
+            assistant_id, conversation_instance.answer, thread_id, max_completion_tokens, max_prompt_tokens)
+        
+        if res.get('error_message'):
+            error_logger.error(f"Error while fetching response from openAi chatbot: {res['error_message']}")
+            response = CHATBOT_CONVERSATION_ERROR_OCCURED_MESSAGE
+        else:
+            response = res.get('response', "")
+            thread_id = res.get('thread_id', "")
+        
+        # Call create_conversation_v1 with chatbot user_id
+        conversation_impl = ConversationImpl(member_id=chatbot_user_instance.id, api_version_code=api_version_code)
+        req_body = {
+            "chatroom_id": chatroom_id,
+            "text": response,
+        }
+
+        response = conversation_impl.create_conversation_v1(req_body)
+        if response.get('error_message'):
+            error_logger.error(f"Error while creating conversation for chatbot for chatroom_id: {chatroom_id}: {response['error_message']}")
+            return
+        
+        chatbot_conversation_id = response.get('conversation', {}).get('id', "")
+
+        if thread_id:
+            CacheImpl.set_cache(CHATBOT_ASSISTANT_THREAD_CACHE_KEY.format(chatroom_id, assistant_id), thread_id, thread_context)
+
+        ModelUtilities.update_or_create_model(ChatbotThreads,{ 
+            'chatroom_id': chatroom_id, 'assistant_id': assistant_id,'thread_id': thread_id},{ 
+                'last_conversation_id': chatbot_conversation_id})
+
+        return
+    
+    @staticmethod
+    def validate_trigger_chatbot_against_conversation(chatroom_id: int, conversation_id: int):
+
+        if not (chatroom_id and conversation_id):
+            return {"error_message": "Invalid chatroom_id or conversation_id"}
+        
+        # Fetch chatroom conversation instances
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+        conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+        if not (chatroom_instance and conversation_instance):
+            return {"error_message": "Invalid chatroom or conversation instance"}
+        
+        chatbot_user_instance = chatroom_instance.user
+        
+        from collabmates_api.community.community_impl import CommunityHelper
+
+        # Check in configurations if chatbot is enabled and get api_key
+        configurations = CommunityHelper.fetch_or_return_default_community_configurations(chatroom_instance.community.id, [CHATBOT_CONFIGURATIONS])
+        if not configurations:
+            return {"error_message": f"Chatbot configurations not found for community: {chatroom_instance.community.id}"}
+        
+        chatbot_configurations = configurations[0]
+
+        chatbot_enabled = chatbot_configurations.get("value", {}).get('enabled', False)
+        if not chatbot_enabled:
+            return {"error_message": "Chatbot is not enabled for community"}
+        
+        api_key = chatbot_configurations.get("value", {}).get('api_key', "")
+        if not api_key:
+            return {"error_message": f"api_key not found for openAi chatbot in community: {chatroom_instance.community.id}"}
+        
+        # check if chatroom user is chatbot
+        if UserRoles.CHATBOT.value not in chatbot_user_instance.userinfo.roles:
+            return {"error_message": f"Chatbot is not a member of chatroom: {chatroom_id}"}
+
+        # Fetch chatbotMeta instance for assistant_id
+        chatbot_meta_instance = ModelUtilities.get_model_filter(ChatbotMeta, {'user': chatbot_user_instance}).first()
+        if not chatbot_meta_instance:
+            return {"error_message": f"ChatbotMeta instance not found for chatbot member: {chatbot_user_instance.id}"}
+
+        assistant_id = chatbot_meta_instance.provider_meta.get('assistant_id')
+        if not assistant_id:
+            return {"error_message": f"assistant_id not found for chatbot member: {chatbot_user_instance.id}"}
+        
+        thread_context = chatbot_meta_instance.provider_meta.get('thread_context')
+        if not thread_context:
+            error_logger.error(f"thread_context not found for chatbot member: {chatbot_user_instance.id}. Using default value")
+            thread_context = CHATBOT_DEFAULT_THREAD_CONTEXT
+
+        max_completion_tokens = chatbot_meta_instance.provider_meta.get('max_completion_tokens', 0)
+        max_prompt_tokens = chatbot_meta_instance.provider_meta.get('max_prompt_tokens', 0)
+
+        return {
+            "chatroom_instance": chatroom_instance,
+            "conversation_instance": conversation_instance,
+            "chatbot_user_instance": chatbot_user_instance,
+            "api_key": api_key,
+            "assistant_id": assistant_id,
+            "thread_context": thread_context,
+            "max_completion_tokens": max_completion_tokens,
+            "max_prompt_tokens": max_prompt_tokens
+        }
+

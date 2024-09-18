@@ -107,7 +107,11 @@ def paginate_list(queryset, page_number, paginate_by=10):
     paginator = Paginator(queryset, paginate_by)
     max_page = len(paginator.page_range)
 
-    return [] if (max_page < int(page_number) or not queryset) else paginator.get_page(page_number)
+    paginated_queryset = [] if (max_page < int(page_number) or not queryset) else paginator.get_page(page_number)
+    total_pages = paginator.num_pages
+    total_count = paginator.count
+
+    return paginated_queryset, total_pages, total_count
 
 
 def single_community_view_version_check(platform_code: str, version_code: int) -> bool:
