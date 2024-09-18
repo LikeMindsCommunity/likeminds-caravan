@@ -23,7 +23,8 @@ class UserManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'send_user_otp') and callable(subclass.send_user_otp)) and
                 (hasattr(subclass, 'verify_user_otp') and callable(subclass.verify_user_otp)) and
                 (hasattr(subclass, 'user_social_login') and callable(subclass.user_social_login)) and
-                (hasattr(subclass, 'user_meta') and callable(subclass.user_meta)) or
+                (hasattr(subclass, 'user_meta') and callable(subclass.user_meta)) and
+                (hasattr(subclass, 'block_unblock_user') and callable(subclass.block_unblock_user)) or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -169,5 +170,19 @@ class UserManager(metaclass=abc.ABCMeta):
     def user_meta(self) -> dict:
         """
         Fetch user meta corresponding to member id
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def block_unblock_user(self, user_uuid: str, should_block: bool) -> dict:
+        """
+        Block unblock user
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_block_user_data(self, user_uuid: str, block_user_type: list, page: int, page_size: int) -> dict:
+        """
+        Get block data based on block user type
         """
         raise NotImplementedError

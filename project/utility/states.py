@@ -1062,3 +1062,8 @@ class NotificationPlatform(enum.Enum):
     FLUTTER = "FLUTTER"
     REACT_NATIVE = "REACT-NATIVE"
     REACT = "REACT"
+
+
+class BlockUserTypes(enum.Enum):
+    BLOCKING = "BLOCKING"
+    BLOCKED = "BLOCKED"

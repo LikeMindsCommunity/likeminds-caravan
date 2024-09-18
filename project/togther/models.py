@@ -3714,3 +3714,21 @@ class CommunityConfigurations(models.Model):
         self.updated_at = current_time
 
         super(CommunityConfigurations, self).save(*args, **kwargs)
+
+
+class BlockUser(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    blocking_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="blocking_user")
+    blocked_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="blocked_user")
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+
+        super(BlockUser, self).save(*args, **kwargs)
