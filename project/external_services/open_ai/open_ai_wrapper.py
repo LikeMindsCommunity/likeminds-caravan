@@ -33,9 +33,9 @@ class OpenAiWrapper:
         except Exception as e:
             error_logger.error(f"Exception occurred while setting up OpenAI's API Key | Error: {e.args}")
             
-            if e.body.get('code'):
+            if e.body and isinstance(e.body, dict) and e.body.get('code'):
                 error_message =  e.body.get('code') 
-            elif e.body.get('message'):
+            elif e.body and isinstance(e.body, dict) and e.body.get('message'):
                 error_message = e.body.get('message')
             else: 
                 error_message = e.args[0]
@@ -100,4 +100,4 @@ class OpenAiWrapper:
         
         except Exception as e:
             return {"error_message": f"Error while calling OpenAI API for assistant_id: {assistant_id} and api_key: {self.api_key}: {str(e)} "}
-    
+        
