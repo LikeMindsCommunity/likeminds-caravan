@@ -37,6 +37,7 @@ from utility.number_utilities import NumberUtilities
 from utility.internal_service_utilities import InternalServiceUtilities
 from external_services.email.email_wrapper import MailWrapper, MailHelper
 from external_services.airtable.airtable_wrapper import AirtableWrapper
+from external_services.open_ai.open_ai_wrapper import OpenAiWrapper
 from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilities, CommunityUserDelete, \
     card_answers, collabcardState, Member_Engage, communityAnswers, removedMembers, communityToast, userMobiles, \
     communityLevels, conversationEngage, userMemberRights, moderationHistory, communityQuestions, questionFilters, \
@@ -124,6 +125,7 @@ from ..tasks import send_community_confirmation_email, cm_onboarding_version_che
 from ..sms import send_community_confirmation_sms
 from ..utility import single_community_view_version_check, free_link_and_freemium_community_version_check, \
     m2cm_v2_version_check
+from collabmates_api.utility import paginate_list
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -2713,7 +2715,7 @@ class CommunityImpl(CommunityManager):
 
         
         # Fetch chatbots along with related userInfo data
-        chatbotMetas = ModelUtilities.get_model_filter( ChatbotMeta, {'community': community_instance,}
+        chatbotMetas = ModelUtilities.get_model_filter(ChatbotMeta, {'community': community_instance,}
                                                        ).select_related('user__userinfo')
 
         # fetch user_ids from uuids
@@ -2721,19 +2723,13 @@ class CommunityImpl(CommunityManager):
         if user_ids:
             chatbotMetas = chatbotMetas.filter(user__id__in=user_ids)
 
-        # Paginate the queryset
-        paginator = Paginator(chatbotMetas, page_size)
-        try:
-            chatbots_page = paginator.page(page)
-        except PageNotAnInteger:
-            chatbots_page = paginator.page(1)
-        except EmptyPage:
-            chatbots_page = paginator.page(paginator.num_pages)
+        # Get paginated data
+        chatbots_page, total_pages, total_count = paginate_list(chatbotMetas, page, page_size)
 
         users = []
 
         # Prepare the response
-        for chatbot in chatbots_page.object_list:
+        for chatbot in chatbots_page:
             chatbot_user = UserinfoSerializer(chatbot.user.userinfo, sdk_client_info_flag=True)
             chatbot_user['chatbot_meta'] = ChatbotMetaSerializer(chatbot).data
             users.append(chatbot_user)
@@ -2743,33 +2739,19 @@ class CommunityImpl(CommunityManager):
             'success': True,
             'users': users,
             'page': page,
-            'page_size': page_size,
-            'total_pages': paginator.num_pages,
-            'total_chatbots': paginator.count,
+            'total_pages': total_pages,
+            'total_chatbots': total_count,
         }
 
         return response
     
-    def create_chatbot(self, req_body:dict = {}) -> dict:
-
-        validated_request = CommunityHelper.validate_create_chatbot_request(self.get_member_id(),self.get_api_key(), 
-                                                                            req_body)
-        if validated_request.get('error_message'):
-            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+    def create_chatbot_user_in_community(self, community_instance, name: str, uuid: str, image_url: str, 
+                                         chatbot_meta: dict):
         
-        user_instance = validated_request.get('user_instance')
-        community_instance = validated_request.get('community_instance')
-
-        chatbot_meta = req_body.get('chatbot_meta', {})
         default_text = chatbot_meta.get('default_text', "")
         provider = chatbot_meta.get('provider', "")
         provider_meta = chatbot_meta.get('provider_meta', {})
-
-        name = req_body.get('name', "").strip()
-        image_url = req_body.get('image_url', "").strip()
-        uuid = req_body.get('uuid', "")
-
+        
         # Create user instance for chatbot
         add_community_member_req_body = {
             'uuid': uuid,
@@ -2812,6 +2794,28 @@ class CommunityImpl(CommunityManager):
 
         chatbot_meta_instance.save()
 
+        return chatbot_user_instance, chatbot_meta_instance
+    
+    def create_chatbot(self, req_body:dict = {}) -> dict:
+
+        validated_request = CommunityHelper.validate_create_chatbot_request(self.get_member_id(), self.get_api_key(), 
+                                                                            req_body)
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+        
+        community_instance = validated_request.get('community_instance')
+
+        chatbot_meta = req_body.get('chatbot_meta', {})
+        name = req_body.get('name', "").strip()
+        image_url = req_body.get('image_url', "").strip()
+        uuid = req_body.get('uuid', "")
+
+        # Create chatbot user in community
+        chatbot_user_instance, chatbot_meta_instance = self.create_chatbot_user_in_community(
+            community_instance, name, uuid, image_url, chatbot_meta)
+
+
         # Serialise chatbot user object with chatbotMeta
         chatbot_user = UserinfoSerializer(chatbot_user_instance.userinfo, sdk_client_info_flag=True)
         chatbot_user['chatbot_meta'] = ChatbotMetaSerializer(chatbot_meta_instance).data
@@ -2852,31 +2856,35 @@ class CommunityImpl(CommunityManager):
             MemberCommunityHelper.update_users_image_url_in_community(chatbot_member_instance, image_url)
             MemberCommunityHelper.update_user_image_in_sdk(chatbot_user_instance, image_url)
 
+        record_updated = False
         if chatbot_meta:
             if chatbot_meta.get('default_text'):
                 chatbot_meta_instance.default_text = chatbot_meta.get('default_text')
-                chatbot_meta_instance.save()
+                record_updated = True
 
             if chatbot_meta.get('provider'):
                 chatbot_meta_instance.provider = chatbot_meta.get('provider')
-                chatbot_meta_instance.save()
+                record_updated = True
 
             if chatbot_meta.get('provider_meta'):
                 if chatbot_meta.get('provider_meta').get('assistant_id'):
                     chatbot_meta_instance.provider_meta['assistant_id'] = chatbot_meta.get('provider_meta').get('assistant_id')
-                    chatbot_meta_instance.save()
+                    record_updated = True
 
                 if chatbot_meta.get('provider_meta').get('thread_context'):
                     chatbot_meta_instance.provider_meta['thread_context'] = chatbot_meta.get('provider_meta').get('thread_context')
-                    chatbot_meta_instance.save()
+                    record_updated = True
 
                 if chatbot_meta.get('provider_meta').get('max_prompt_tokens') is not None:
                     chatbot_meta_instance.provider_meta['max_prompt_tokens'] = chatbot_meta.get('provider_meta').get('max_prompt_tokens')
-                    chatbot_meta_instance.save()
+                    record_updated = True
 
                 if chatbot_meta.get('provider_meta').get('max_completion_tokens') is not None:
                     chatbot_meta_instance.provider_meta['max_completion_tokens'] = chatbot_meta.get('provider_meta').get('max_completion_tokens')
-                    chatbot_meta_instance.save()
+                    record_updated = True
+            
+            if record_updated:
+                chatbot_meta_instance.save()
 
         chatbot_user = UserinfoSerializer(chatbot_user_instance.userinfo, sdk_client_info_flag=True)
         chatbot_user['chatbot_meta'] = ChatbotMetaSerializer(chatbot_meta_instance).data
@@ -5648,8 +5656,8 @@ class CommunityHelper:
             if update_values.get('enabled') and not isinstance(update_values.get('enabled'), bool):
                 return ResponseUtilities.get_inner_error_context("Invalid enabled value")
 
-            if update_values.get('provider') and isinstance(update_values.get('provider'), str):
-                if not (update_values.get('provider').strip() == CHATBOT_PROVIDER_OPENAI):
+            if update_values.get('provider') and isinstance(update_values.get('provider'), str) and not (
+                update_values.get('provider').strip() == CHATBOT_PROVIDER_OPENAI):
                     return ResponseUtilities.get_inner_error_context(f"Invalid provider value. Supported values - '{CHATBOT_PROVIDER_OPENAI}'")
             
             if update_values.get('api_key'):
@@ -5657,7 +5665,7 @@ class CommunityHelper:
                     return ResponseUtilities.get_inner_error_context("Invalid api_key value")
                 
                 # Validate open ai api_key
-                api_key_validation = CommunityHelper.validate_open_ai_api_key_or_assistant(update_values.get('api_key'))
+                api_key_validation = OpenAiWrapper(update_values.get('api_key')).validate_open_ai_api_key_or_assistant()
                 if api_key_validation.get('error_message'):
                     return api_key_validation
              
@@ -6638,7 +6646,7 @@ class CommunityHelper:
         if not chatbot_configurations.get('enabled'):
             return ResponseUtilities.get_inner_error_context("Chatbot is not enabled for this community")
 
-        if chatbot_configurations.get('provider') == "" or chatbot_configurations.get('api_key') == "":
+        if not (chatbot_configurations.get('provider') and chatbot_configurations.get('api_key')):
             return ResponseUtilities.get_inner_error_context("Please set chatbot configurations first")
         
         # Validation for required req body values
@@ -6663,7 +6671,7 @@ class CommunityHelper:
         if not (provider_meta.get('assistant_id') and isinstance(provider_meta.get('assistant_id'), str)):
             return ResponseUtilities.get_inner_error_context("Please send assistant_id in provider_meta")
 
-        validated_request = CommunityHelper.validate_open_ai_api_key_or_assistant(chatbot_configurations.get("api_key"), provider_meta.get('assistant_id'))
+        validated_request = OpenAiWrapper.validate_open_ai_api_key_or_assistant(chatbot_configurations.get("api_key"), provider_meta.get('assistant_id'))
         if validated_request.get('error_message'):
             return validated_request
         
@@ -6719,10 +6727,24 @@ class CommunityHelper:
         if not user_ids:
             return ResponseUtilities.get_inner_error_context("Invalid chatbot_uuid")
         
+        # Validate configurations for chatbot
+        configurations = CommunityHelper.fetch_or_return_default_community_configurations(community_instance, 
+                                                                                          [CHATBOT_CONFIGURATIONS])
+        if not configurations:
+            return ResponseUtilities.get_inner_error_context("Community configurations not found")
+        
+        chatbot_configurations = configurations[0].get('value')
+
+        if not chatbot_configurations.get('enabled'):
+            return ResponseUtilities.get_inner_error_context("Chatbot is not enabled for this community")
+
+        if not (chatbot_configurations.get('provider') and chatbot_configurations.get('api_key')):
+            return ResponseUtilities.get_inner_error_context("Please set chatbot configurations first")
+        
         chatbot_meta_instance = ModelUtilities.get_model_filter(ChatbotMeta, {'community_id': community_instance,
                                                                               'user_id': user_ids[0]}).first()
         if not chatbot_meta_instance:
-            return ResponseUtilities.get_inner_error_context("Chatbot not found against uuid")
+            return ResponseUtilities.get_inner_erwror_context("Chatbot not found against uuid")
         
         chatbot_meta = req_body.get('chatbot_meta', {})
 
@@ -6736,7 +6758,8 @@ class CommunityHelper:
             if not isinstance(provider_meta.get('assistant_id'), str):
                 return ResponseUtilities.get_inner_error_context("Please send valid assistant_id in provider_meta")
             
-            validated_request = CommunityHelper.validate_open_ai_api_key_or_assistant("api_key", community_instance, user_instance)
+            validated_request = OpenAiWrapper.validate_open_ai_api_key_or_assistant(chatbot_configurations.get('api_key'), 
+                                                                                    community_instance, user_instance)
             if validated_request.get('error_message'):
                 return validated_request
         
@@ -6755,36 +6778,3 @@ class CommunityHelper:
             'chatbot_meta_instance': chatbot_meta_instance,
             'chatbot_user_instance': chatbot_meta_instance.user,
         }
-
-    @staticmethod
-    def validate_open_ai_api_key_or_assistant(api_key:str, assistant_id: str="") -> dict:
-
-        if not (api_key):
-            return ResponseUtilities.get_inner_error_context("Invalid request body for validating openAi api key")
-        
-        try:    
-            client = OpenAI(api_key=api_key)
-
-            if assistant_id:
-                # Make a simple API call to retrieve assistant
-                client.beta.assistants.retrieve(assistant_id)
-
-            else:
-                # Make a simple API call to list models (a lightweight operation)
-                client.models.retrieve("gpt-3.5-turbo-instruct")
-
-            return {'success': True}
-        
-        except Exception as e:
-            error_logger.error(f"Exception occurred while setting up OpenAI's API Key | Error: {e.args}")
-            
-            if e.body.get('code'):
-                error_message =  e.body.get('code') 
-            elif e.body.get('message'):
-                error_message = e.body.get('message')
-            else: 
-                error_message = e.args[0]
-
-            return ResponseUtilities.get_inner_error_context(f"Error occured validating OpenAI's API Key: {error_message}")
-
-    
