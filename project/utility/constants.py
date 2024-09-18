@@ -257,6 +257,7 @@ SWARM_WIDGET_ENDPOINT = "/widget"
 
 # Internal Platform types
 PLATFORM_TYPE_CARAVAN_SERVICE = "caravan-service"
+PLATFORM_TYPE_SWARM_SERVICE = "swarm-service"
 
 # Swarm endpoints
 SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT = "/user"

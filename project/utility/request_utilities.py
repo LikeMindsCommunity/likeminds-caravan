@@ -35,6 +35,10 @@ class RequestUtilities:
         return request.query_params
 
     @staticmethod
+    def get_platform_type(request: object):
+        return request.META.get('HTTP_X_PLATFORM_TYPE', '').lower()
+
+    @staticmethod
     def is_request_web(request: object):
         return request.META.get('HTTP_X_PLATFORM_CODE', '').lower() == "web"
 

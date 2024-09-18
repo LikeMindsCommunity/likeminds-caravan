@@ -474,7 +474,7 @@ class MemberCommunityHelper:
 
     @staticmethod
     def update_member_profile_menu_for_sdk(user_member_instance, community_instance, current_user_member_instance, menu,
-                                           community_hood_check: bool=False):
+                                           community_hood_check: bool = False):
 
         community = ModelUtilities.get_model_filter(SdkClient, {"community": community_instance, "is_deleted": False})
 
