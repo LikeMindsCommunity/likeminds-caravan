@@ -14,7 +14,7 @@ class OpenAiWrapper:
     
     def validate_open_ai_api_key_or_assistant(self, assistant_id: str="") -> dict:
 
-        if not (self.api_key):
+        if not self.api_key:
             return ResponseUtilities.get_inner_error_context("Invalid request body for validating openAi api key")
         
         try:    

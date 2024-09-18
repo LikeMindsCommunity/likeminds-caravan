@@ -335,7 +335,7 @@ def get_secret_chatroom_participants(chatroom_instance, current_user_id, page=1,
         participants_list.remove(current_user_id)
         participants_list.insert(0, current_user_id)
 
-    paginated_participants_list = paginate_list(participants_list, page, paginate_by=10)
+    paginated_participants_list, total_pages, total_count = paginate_list(participants_list, page, paginate_by=10)
 
     community_instance = chatroom_instance.community
     community_id = community_instance.id
@@ -892,7 +892,7 @@ def get_member_instances_with_filter(member_set, current_user_id, community_id, 
     if current_user_id and int(current_user_id) in member_set:
         member_set.remove(int(current_user_id))
     member_ids = list(member_set)
-    member_ids = paginate_list(member_ids, page, paginate_by=10)
+    member_ids, total_pages, total_count = paginate_list(member_ids, page, paginate_by=10)
 
     if is_owner or is_promoter:
         user_admin_rights = check_all_manager_rights(current_user_id, community_id)
