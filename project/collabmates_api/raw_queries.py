@@ -1939,7 +1939,8 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
         return []
 
 
-def get_members_meta_list(community_id: int, member_ids: list = None, page=1, page_size=50, search_string: str = ''):
+def get_members_meta_list(community_id: int, member_ids: list = None, page=1, page_size=50, search_string: str = '',
+                          excluded_member_ids: list = None):
     """returns meta data of members based on community_id and or member_ids"""
 
     try:
@@ -1949,6 +1950,7 @@ def get_members_meta_list(community_id: int, member_ids: list = None, page=1, pa
 
         get_removed_members = ""
         join_removed_members_table = ""
+        excluded_member_ids_query = ""
 
         # If member_ids are passed get users from the user_ids and join removedMembers table
         if member_ids:  
@@ -1965,6 +1967,13 @@ def get_members_meta_list(community_id: int, member_ids: list = None, page=1, pa
                                     or togther_removedmembers.community_id = {community_id}
                                     And togther_removedmembers.member_id in {user_ids}
                                     """
+
+        if excluded_member_ids:
+            user_ids = get_tuple_from_array(excluded_member_ids)
+
+            excluded_member_ids_query = f"""
+                                            togther_userinfo.user_id_id NOT IN {user_ids} AND
+                                        """
 
         # select query for members meta 
         members_meta_data_query = get_query_fields_for_members_meta()
@@ -1994,6 +2003,7 @@ def get_members_meta_list(community_id: int, member_ids: list = None, page=1, pa
                 {join_removed_members_table}
 
                 where
+                    {excluded_member_ids_query}
                     togther_userinfo.is_guest is false
                     And togther_members.community_id_id = {community_id} 
                     And togther_members.state in (1,4,9)

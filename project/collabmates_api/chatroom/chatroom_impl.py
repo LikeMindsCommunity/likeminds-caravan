@@ -599,16 +599,17 @@ class ChatroomImpl(ChatroomManager):
         return conversation_users
 
     @staticmethod
-    def compute_tagging_list_of_community_members(community_instance, member_ids=[], search_name: str=None,
-                                                  page: int=None, page_size: int=None, order_by_name: bool=None,
-                                                  sdk_client_info_flag: bool=False):
+    def compute_tagging_list_of_community_members(community_instance, member_ids=[], search_name: str = None,
+                                                  page: int = None, page_size: int = None, order_by_name: bool = None,
+                                                  sdk_client_info_flag: bool = False):
         member_list = MemberCommunityImpl.fetch_list_of_community_members(community_instance, member_ids)
         member_data = MemberCommunityImpl.fetch_members_based_on_user_list(member_list, community_instance,
                                                                            member_name_search_string=search_name,
                                                                            page=page, page_size=page_size,
                                                                            order_by_name=order_by_name,
                                                                            sdk_client_info_flag=sdk_client_info_flag)
-        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data, sdk_client_info_flag=sdk_client_info_flag)
+        tagging_list = MemberCommunityHelper.extract_member_tagging_data(member_data,
+                                                                         sdk_client_info_flag=sdk_client_info_flag)
 
         return tagging_list
 
