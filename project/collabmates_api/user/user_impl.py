@@ -43,7 +43,8 @@ from utility.constants import (ONE_DAY_HOURS, INTERNATIONAL_OTP_LIMIT_FILE_NAME)
 from utility.response_utilities import ResponseUtilities
 
 from utility.url_utilities import UrlUtilities
-from utility.cache_keys import (INTERNATIONAL_OTP_GENERATE_CACHE_KEY, SWARM_CACHE_KEY_BLOCK_USER)
+from utility.cache_keys import (INTERNATIONAL_OTP_GENERATE_CACHE_KEY, SWARM_CACHE_KEY_BLOCK_USER,
+                                SWARM_CACHE_KEY_TOP_COMMENTS)
 from utility.file_utilities import FileUtilities
 from utility.validation_utilities import ValidationUtilities
 from utility.internal_service_utilities import InternalServiceUtilities
@@ -1470,8 +1471,6 @@ class UserImpl(UserManager):
 
         block_user_filter = ModelUtilities.get_model_filter(BlockUser, filter_dict)
 
-        is_record_updated = False
-
         if should_block:
 
             if block_user_filter:
@@ -1497,6 +1496,11 @@ class UserImpl(UserManager):
             InternalServiceUtilities.delete_cache_from_swarm_service.delay(
                 community_instance.id, user_instance.id,
                 SWARM_CACHE_KEY_BLOCK_USER.format(community_instance.id, user_instance.userinfo.user_unique_id))
+
+            # Delete swarm community top comments
+            InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+                community_instance.id, user_instance.id,
+                key_pattern=SWARM_CACHE_KEY_TOP_COMMENTS.format(community_instance.id))
 
         return {
             'success': True
