@@ -1071,6 +1071,7 @@ class UserRoles(enum.Enum):
     def is_valid_role(cls, role) -> bool:
         return role in cls._value2member_map_
 
+
 class BlockUserTypes(enum.Enum):
     BLOCKING = "BLOCKING"
     BLOCKED = "BLOCKED"

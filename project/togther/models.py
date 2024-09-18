@@ -464,7 +464,7 @@ class Userinfo(models.Model):
         self.updated_at = current_time
 
         super(Userinfo, self).save(*args, **kwargs)
-    
+
     @staticmethod
     def add_role_to_user(user_instance: User, role: str) -> None:
         if not user_instance:
@@ -472,13 +472,13 @@ class Userinfo(models.Model):
 
         if not UserRoles.is_valid_role(role):
             return
-        
+
         if not user_instance.userinfo.roles:
             user_instance.userinfo.roles = []
 
         user_instance.userinfo.roles.append('chatbot')
         user_instance.userinfo.save()
-    
+
 
 # Collabcard Report Module
 class Report_Tags(models.Model):
@@ -3765,6 +3765,7 @@ class ChatbotThreads(models.Model):
 
         self.updated_at = current_time
         super(ChatbotThreads, self).save(*args, **kwargs)
+
 
 class BlockUser(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)

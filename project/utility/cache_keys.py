@@ -40,3 +40,5 @@ SWARM_CACHE_KEY_USER_COMMUNITY_CHANNELS = "{}_{}_user_community_channels" # comm
 CHATBOT_ASSISTANT_THREAD_CACHE_KEY = "{}_{}_chatbot_threads" # chatroom_id, assistant_id
 SWARM_CACHE_KEY_BLOCK_USER = "{}_{}_blocked_users" # community_id, user_unique_id
 KETTLE_CACHE_CHATROOM_PARTICIPANTS = "chatroom_participants_{}" # chatroom_participants_<chatroom_id>
+
+SWARM_CACHE_KEY_TOP_COMMENTS = "{}_*_top_liked_comments" # community_id

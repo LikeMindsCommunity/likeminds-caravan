@@ -45,7 +45,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
     communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings, FeedNotificationSettings, \
     Report_Tags, Report, CommunityConfigurations, CommunityBillingDates, communityRightsSettings, userAdminRights, \
-    memberRights, adminRights, ChatbotMeta
+    memberRights, adminRights, ChatbotMeta, BlockUser
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST, IMAGE_URLS_FOR_QUESTION_TITLES, SENDER_NAME_FOR_EMAIL_COMMS, \
@@ -1008,7 +1008,8 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True, 'access': user_has_access}
 
-    def fetch_members_meta(self, member_ids, search_name: str = None, page: int = None, page_size: int = None, order_by_name: bool = None):
+    def fetch_members_meta(self, member_ids, search_name: str = None, page: int = None, page_size: int = None,
+                           order_by_name: bool = None):
         validated_req = CommunityViewHelper.validate_fetch_members_meta_request(self.get_member_id(),
                                                                                 self.get_community_id(),
                                                                                 member_ids,
@@ -1054,9 +1055,18 @@ class CommunityImpl(CommunityManager):
         community_instance = validated_req.get('community_instance')
         member_ids = validated_req.get('member_ids')
 
+        # Fetch users blocked by user
+        filter_dict = {
+            'community_id': community_instance.id,
+            'blocking_user': self.get_member_id()
+        }
+
+        excluded_user_ids = list(ModelUtilities.get_model_filter(BlockUser, filter_dict).values_list('blocked_user',
+                                                                                                     flat=True))
+
         # Get members meta list
         members_list = CommunityHelper.compute_members_meta_list(community_instance, member_ids, page, 
-                                                                 page_size, search_name, sdk_client_info_flag=True)
+                                                                 page_size, search_name, excluded_user_ids)
 
         # Add question answers data in users info
         members_question_answer_data = CommunityHelper.get_members_filled_community_answers_data(community_instance,
@@ -5169,7 +5179,7 @@ class CommunityHelper:
     
     @staticmethod
     def compute_members_meta_list(community_instance, member_ids, page, page_size, search_name, 
-                                  sdk_client_info_flag: bool = False):
+                                  excluded_member_ids: list = None):
         
         members_data = []
 
@@ -5185,7 +5195,8 @@ class CommunityHelper:
                                              member_ids=user_ids,
                                              page=page,
                                              page_size=page_size,
-                                             search_string=search_name)
+                                             search_string=search_name,
+                                             excluded_member_ids=excluded_member_ids)
 
         return members_data
     
