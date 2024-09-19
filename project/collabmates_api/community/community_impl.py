@@ -1057,12 +1057,14 @@ class CommunityImpl(CommunityManager):
 
         # Fetch users blocked by user
         filter_dict = {
-            'community_id': community_instance.id,
-            'blocking_user': self.get_member_id()
+            'community_id': community_instance.id
         }
 
-        excluded_user_ids = list(ModelUtilities.get_model_filter(BlockUser, filter_dict).values_list('blocked_user',
-                                                                                                     flat=True))
+        excluded_user_filter = ModelUtilities.get_model_filter(BlockUser, filter_dict).filter(
+            Q(blocking_user=self.get_member_id()) | Q(blocked_user=self.get_member_id()))
+
+        excluded_user_ids = list(excluded_user_filter.values_list('blocking_user', flat=True)) + \
+                            list(excluded_user_filter.values_list('blocked_user', flat=True))
 
         # Get members meta list
         members_list = CommunityHelper.compute_members_meta_list(community_instance, member_ids, page, 
