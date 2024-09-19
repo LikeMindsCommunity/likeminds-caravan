@@ -6661,6 +6661,13 @@ class CommunityHelper:
 
         if not (chatbot_configurations.get('provider') and chatbot_configurations.get('api_key')):
             return ResponseUtilities.get_inner_error_context("Please set chatbot configurations first")
+
+        if req_body.get('uuid'):
+            user_instance = ModelUtilities.get_user_instance_or_none_from_uuid(req_body.get('uuid'), 
+                                                                               community_instance.id)
+            if user_instance:
+                return ResponseUtilities.get_inner_error_context("Chatbot already exists against this uuid.")
+
         
         # Validation for required req body values
         if not req_body.get('name'):
