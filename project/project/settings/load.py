@@ -89,6 +89,7 @@ CACHES = {
         'LOCATION': os.getenv('CACHE_LOCATION'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'PASSWORD': os.getenv('CACHE_PASSWORD'),
         }
     }
 }

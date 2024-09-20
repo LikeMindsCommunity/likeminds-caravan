@@ -1666,3 +1666,9 @@ class CommunityConfigurationsSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommunityConfigurations
         fields = ('type', 'description', 'value')
+
+class ChatbotMetaSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ChatbotMeta
+        fields = ('default_text', 'provider', 'provider_meta')

@@ -353,7 +353,7 @@ class CommunityManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def add_community_member(self, req_body: dict) -> {}:
+    def add_community_member(self, req_body: dict, auto_join: bool=False) -> {}:
         """ Add member to community using SDK dashboard"""
 
         raise NotImplementedError

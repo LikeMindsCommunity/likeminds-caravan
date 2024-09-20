@@ -1564,6 +1564,7 @@ def get_users_sdk_meta_dict(user_ids: list, only_sdk_client_info: bool = False) 
                     togther_userinfo.updated_at                 AS "updated_at",
                     togther_userinfo.user_unique_id             AS "user_unique_id",
                     togther_userinfo.user_unique_id             AS "uuid",
+                    togther_userinfo.roles                      AS "roles",
                     togther_sdkclientusersinfo.user_id          AS "sdk_client_info___user",
                     togther_sdkclientusersinfo.user_unique_id   AS "sdk_client_info___user_unique_id",
                     togther_sdkclientusersinfo.user_unique_id   AS "sdk_client_info___uuid",
@@ -1885,6 +1886,7 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
                          "togther_members"."custom_title",
                          "togther_userinfo"."name",
                          "togther_userinfo"."image_link",
+                         "togther_userinfo"."roles",
                          "togther_members"."created_at",
                          "togther_userinfo"."user_unique_id",
                          "togther_userinfo"."is_guest"
@@ -1922,9 +1924,10 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
             member_dict['custom_title'] = data[5]
             member_dict['name'] = data[6]
             member_dict['image_link'] = data[7]
-            member_dict['created_at'] = data[8]
-            member_dict['user_unique_id'] = data[9]
-            member_dict['is_guest'] = data[10]
+            member_dict['roles'] = data[8]
+            member_dict['created_at'] = data[9]
+            member_dict['user_unique_id'] = data[10]
+            member_dict['is_guest'] = data[11]
             member_list.append(member_dict)
 
         return member_list
@@ -1936,7 +1939,8 @@ def get_members_based_on_user_list_query(user_list, community_id, order_by_name=
         return []
 
 
-def get_members_meta_list(community_id: int, member_ids: list = None, page=1, page_size=50, search_string: str = ''):
+def get_members_meta_list(community_id: int, member_ids: list = None, page=1, page_size=50, search_string: str = '',
+                          excluded_member_ids: list = None):
     """returns meta data of members based on community_id and or member_ids"""
 
     try:
@@ -1946,6 +1950,7 @@ def get_members_meta_list(community_id: int, member_ids: list = None, page=1, pa
 
         get_removed_members = ""
         join_removed_members_table = ""
+        excluded_member_ids_query = ""
 
         # If member_ids are passed get users from the user_ids and join removedMembers table
         if member_ids:  
@@ -1963,6 +1968,13 @@ def get_members_meta_list(community_id: int, member_ids: list = None, page=1, pa
                                     And togther_removedmembers.member_id in {user_ids}
                                     """
 
+        if excluded_member_ids:
+            user_ids = get_tuple_from_array(excluded_member_ids)
+
+            excluded_member_ids_query = f"""
+                                            togther_userinfo.user_id_id NOT IN {user_ids} AND
+                                        """
+
         # select query for members meta 
         members_meta_data_query = get_query_fields_for_members_meta()
 
@@ -1972,7 +1984,8 @@ def get_members_meta_list(community_id: int, member_ids: list = None, page=1, pa
                 {members_meta_data_query}, 
                 togther_userinfo.user_unique_id as "uuid",
                 togther_userinfo.user_id_id as "id", 
-                togther_userinfo.image_link as "image_url", 
+                togther_userinfo.image_link as "image_url",
+                togther_userinfo.roles as "roles", 
                 CASE when (togther_members.custom_title = 'Member') then Null else togther_members.custom_title END as "custom_title", 
                 togther_members.state as "state",
                 CASE when (togther_members.community_id_id = {community_id}) then false else true END as "is_deleted",
@@ -1990,6 +2003,7 @@ def get_members_meta_list(community_id: int, member_ids: list = None, page=1, pa
                 {join_removed_members_table}
 
                 where
+                    {excluded_member_ids_query}
                     togther_userinfo.is_guest is false
                     And togther_members.community_id_id = {community_id} 
                     And togther_members.state in (1,4,9)
@@ -3591,6 +3605,7 @@ def get_sorted_user_data_on_basis_of_activity_in_chatroom(chatroom_id, user_id=N
                            is_guest,
                            togther_userinfo.user_unique_id,
                            togther_userinfo.user_unique_id           AS uuid,
+                           togther_userinfo.roles                    AS roles,
                            togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___user_unique_id,
                            togther_sdkclientusersinfo.user_unique_id AS sdk_client_info___uuid,
                            togther_sdkclientusersinfo.community_id   AS sdk_client_info___community,
@@ -3688,6 +3703,7 @@ def get_community_members_data_on_basis_of_name_search(community_id, chatroom_id
                            togther_userinfo.is_guest,
                            togther_userinfo.user_unique_id,
                            togther_userinfo.user_unique_id as uuid,
+                           togther_userinfo.roles as roles,
                            togther_sdkclientusersinfo.user_unique_id    AS sdk_client_info___user_unique_id,
                            togther_sdkclientusersinfo.user_unique_id    AS sdk_client_info___uuid,
                            togther_sdkclientusersinfo.community_id      AS sdk_client_info___community, 
@@ -3733,6 +3749,7 @@ def get_conversation_users_against_chatrooms_list(chatroom_ids_list, number_of_c
                    togther_userinfo.user_id_id,
                    togther_userinfo.name,
                    togther_userinfo.image_link,
+                   togther_userinfo.roles,
                    togther_members.id,
                    togther_members.image_url
             FROM   togther_userinfo
@@ -3966,7 +3983,7 @@ def get_members_query_meta_for_sync_revamp(key_name_prefix: str = None):
 
 
 def get_users_query_meta_for_sync_revamp(key_name_prefix: str = None):
-    query_fields = ['user_id_id', 'name', 'image_link', 'user_unique_id', 'is_guest']
+    query_fields = ['user_id_id', 'name', 'image_link', 'user_unique_id', 'is_guest', 'roles']
     meta_query = create_query_with_prefix(query_fields, 'togther_userinfo', 'user', key_name_prefix)
 
     # To add uuid in user object

@@ -128,9 +128,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     @staticmethod
     def _find_member_communities(member_id: str) -> list:
-        """
-        TODO: move to model definition file
-        """
         return Member_Engage.objects.filter(member_id=member_id).select_related('community_id', 'member_id').order_by(
             '-order_time')
 
@@ -157,9 +154,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     @staticmethod
     def _community_serializer(community_id: int, member_id: str) -> dict:
-        """
-        TODO: move to model definition file
-        """
         if not isinstance(community_id, Community):
             community_id = Community.objects.get(pk=community_id)
 
@@ -181,9 +175,6 @@ class MemberCommunityImpl(MemberCommunityManager):
 
     @staticmethod
     def _extract_user(member_id: str) -> {}:
-        """
-        TODO: move to model definition file
-        """
         return User.objects.get(id=member_id)
 
     @staticmethod
@@ -1879,7 +1870,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         return response
 
-    def join_community_sdk(self, req_body: dict) -> {}:
+    def join_community_sdk(self, req_body: dict, auto_join: bool=False) -> {}:
         validated_request = MemberCommunityViewHelper.validate_join_community_sdk_request(self.get_member_id(),
                                                                                           self.get_community_id(),
                                                                                           self.get_api_key())
@@ -1904,7 +1895,7 @@ class MemberCommunityImpl(MemberCommunityManager):
 
         req_body = req_body if req_body else {}
 
-        if (not members_filter) and (community_setting_instance and community_setting_instance.enabled):
+        if ((not members_filter) and (community_setting_instance and community_setting_instance.enabled)) or auto_join:
             MemberCommunityHelper.make_requesting_user_as_member_of_community(
                 user_instance, community_instance, req_body, device_id=self.get_device_id(),
                 platform=self.get_platform_code(), version_code=self.get_version_code(), trigger_webhook=True,

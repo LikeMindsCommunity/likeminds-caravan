@@ -20,7 +20,7 @@ from cms.models import userAcquition
 from togther.models import (userMobiles, ModelUtilities, userSurvey, userDevices, Community,
                             Members, userEmails, Userinfo, emailTokens, Collabcard, removedMembers,
                             DirectMessageTutorial, communityRightsSettings, card_answers, collabcardState,
-                            conversationEngage, CommunitySettings, SDKClientUsersInfo, mobileBackup)
+                            conversationEngage, CommunitySettings, SDKClientUsersInfo, mobileBackup, BlockUser)
 from collabmates_api.user.user_manager import UserManager
 from collabmates_api.notifications.models import (WhatsappSubscription)
 from collabmates_api.sdk.models import (SdkClient, OnboardedVerifiedIUsers)
@@ -35,7 +35,7 @@ from utility.mail_category_constants import EmailCategories, EmailSubCategories
 from utility.time_utilities import TimeUtilities
 from utility.states import email_states, mobile_states, member_states, login_types, deleted_members, \
     conversation_states, member_rights, community_setting_types, chat_request_states, api_types, \
-    whatsapp_subscription_state_actions, OTPTypes, GuestFlowUserTypes, CommunityConfigurationTypes
+    whatsapp_subscription_state_actions, OTPTypes, GuestFlowUserTypes, CommunityConfigurationTypes, BlockUserTypes
 from utility.utils import generate_random, is_valid_email
 from utility.firebase import upload_image_to_firebase
 from utility.api_client import ApiClient
@@ -43,18 +43,20 @@ from utility.constants import (ONE_DAY_HOURS, INTERNATIONAL_OTP_LIMIT_FILE_NAME)
 from utility.response_utilities import ResponseUtilities
 
 from utility.url_utilities import UrlUtilities
-from utility.cache_keys import (INTERNATIONAL_OTP_GENERATE_CACHE_KEY)
+from utility.cache_keys import (INTERNATIONAL_OTP_GENERATE_CACHE_KEY, SWARM_CACHE_KEY_BLOCK_USER,
+                                SWARM_CACHE_KEY_TOP_COMMENTS)
 from utility.file_utilities import FileUtilities
 from utility.validation_utilities import ValidationUtilities
+from utility.internal_service_utilities import InternalServiceUtilities
 
 from .constants import *
 from .user_view_helper import UserViewHelper
 from ..raw_queries import get_community_id_list, get_conversations_after_last_seen_messages_in_chatrooms, \
-    get_dm_chatrooms_of_user
+    get_dm_chatrooms_of_user, get_members_meta_list
 from ..views import (remove_members, remove_all_member_rights, remove_all_manager_rights, send_otp_on_email,
                      verify_otp_on_email)
 from ..tasks import send_verification_mail_for_email_sync, cm_onboarding_version_check
-from ..utility import m2cm_v1_version_check, m2cm_v2_version_check
+from ..utility import m2cm_v1_version_check, m2cm_v2_version_check, paginate_list
 from ..rest_api import CommunitySerializerV1, SDKClientUsersInfoSerializer
 from ..serializers import get_logged_in_user, UserinfoSerializer
 from ..static_text import DM_CHATROOMS_VERSION_CODE_ANDROID, DM_CHATROOMS_VERSION_CODE_IOS, \
@@ -1448,6 +1450,126 @@ class UserImpl(UserManager):
                 }
             }
 
+    def block_unblock_user(self, user_uuid: str, should_block: bool) -> dict:
+        validated_req = UserHelper.validate_block_unblock_user_request(self.get_user_id(),
+                                                                       self.get_api_key(),
+                                                                       user_uuid)
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = validated_req.get('user_instance')
+        second_user_instance = validated_req.get('second_user_instance')
+        community_instance = validated_req.get('community_instance')
+
+        filter_dict = {
+            'community_id': community_instance.id,
+            'blocking_user': user_instance,
+            'blocked_user': second_user_instance,
+        }
+
+        block_user_filter = ModelUtilities.get_model_filter(BlockUser, filter_dict)
+
+        if should_block:
+
+            if block_user_filter:
+                return ResponseUtilities.get_impl_error_context('User is already blocked!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            else:
+                ModelUtilities.update_or_create_model(BlockUser, filter_dict, {})
+                is_record_updated = True
+
+        else:
+
+            if not block_user_filter:
+                return ResponseUtilities.get_impl_error_context('User is already unblocked!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            else:
+                block_user_filter.delete()
+                is_record_updated = True
+
+        if is_record_updated:
+            # Delete swarm community settings cache if user is blocked/unblocked
+            InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+                community_instance.id, user_instance.id,
+                SWARM_CACHE_KEY_BLOCK_USER.format(community_instance.id, user_instance.userinfo.user_unique_id))
+
+            # Delete swarm community top comments
+            InternalServiceUtilities.delete_cache_from_swarm_service.delay(
+                community_instance.id, user_instance.id,
+                key_pattern=SWARM_CACHE_KEY_TOP_COMMENTS.format(community_instance.id))
+
+        return {
+            'success': True
+        }
+
+    def get_block_user_data(self, user_uuid: str, block_user_type: list, page: int, page_size: int) -> dict:
+        validated_req = UserHelper.validate_get_block_user_data_request(self.get_user_id(),
+                                                                        self.get_api_key(),
+                                                                        self.get_community_id(),
+                                                                        user_uuid,
+                                                                        block_user_type)
+
+        if validated_req.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = validated_req.get('user_instance')
+        second_user_instance = validated_req.get('second_user_instance')
+        community_instance = validated_req.get('community_instance')
+
+        blocked_users_list = []
+        blocking_users_list = []
+
+        if BlockUserTypes.BLOCKING.value in block_user_type:
+            filter_dict = {
+                'community_id': community_instance.id,
+                'blocking_user': user_instance
+            }
+
+            if user_instance.id != second_user_instance.id:
+                filter_dict['blocked_user'] = second_user_instance
+
+            blocked_user_filter = ModelUtilities.get_model_filter(BlockUser, filter_dict).order_by('created_at')
+            blocked_user_list, total_pages, total_count = paginate_list(blocked_user_filter, page, page_size)
+
+            if blocked_user_list:
+                blocked_user_ids_list = [block_user_instance.blocked_user_id for block_user_instance in
+                                         blocked_user_list]
+                blocked_users_list = UserHelper.compute_members_meta_list(community_instance,
+                                                                          blocked_user_ids_list,
+                                                                          page=1,
+                                                                          page_size=page_size)
+
+        if BlockUserTypes.BLOCKED.value in block_user_type:
+            filter_dict = {
+                'community_id': community_instance.id,
+                'blocked_user': user_instance
+            }
+
+            if user_instance.id != second_user_instance.id:
+                filter_dict['blocking_user'] = second_user_instance
+
+            blocking_user_filter = ModelUtilities.get_model_filter(BlockUser, filter_dict).order_by('created_at')
+            blocking_user_list, total_pages, total_count = paginate_list(blocking_user_filter, page, page_size)
+
+            if blocking_user_list:
+                blocking_user_ids_list = [block_user_instance.blocking_user_id for block_user_instance in
+                                          blocking_user_list]
+                blocking_users_list = UserHelper.compute_members_meta_list(community_instance,
+                                                                           blocking_user_ids_list,
+                                                                           page=1,
+                                                                           page_size=page_size)
+
+        return {
+            'success': True,
+            'blocked_users': blocked_users_list,
+            'blocking_users': blocking_users_list
+        }
+
 
 class UserHelper:
 
@@ -2741,3 +2863,93 @@ class UserHelper:
                 SDKClientUsersInfo, {'community': community_instance, 'user__userinfo__is_guest': True})
 
         return {'sdk_client_users_info_filter': sdk_client_users_info_filter}
+
+    @staticmethod
+    def validate_block_unblock_user_request(user_id, api_key, second_user_uuid):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        community_instance = validated_dict.get('community_id')
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_instance.id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid user_id.')
+
+        second_user_instance = ModelUtilities.get_user_instance_or_none(second_user_uuid, community_instance.id)
+
+        if not second_user_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid user_uuid.')
+
+        if user_instance.id == second_user_instance.id:
+            return ResponseUtilities.get_inner_error_context('You cannot block yourself!')
+
+        return {
+            'user_instance': user_instance,
+            'second_user_instance': second_user_instance,
+            'community_instance': validated_dict.get('community_id')
+        }
+
+    @staticmethod
+    def validate_get_block_user_data_request(user_id, api_key, community_id, second_user_uuid, block_user_type):
+
+        if set(block_user_type).difference({BlockUserTypes.BLOCKING.value, BlockUserTypes.BLOCKED.value}):
+            return ResponseUtilities.get_inner_error_context('Invalid block user type.')
+
+        validation_params = {
+            'community_id': {
+                'community_id': community_id,
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        community_instance = validated_dict.get('community_id')
+
+        user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_instance.id)
+
+        if not user_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid user_id.')
+
+        second_user_instance = ModelUtilities.get_user_instance_or_none(second_user_uuid, community_instance.id)
+
+        if not second_user_instance:
+            return ResponseUtilities.get_inner_error_context('Invalid user_uuid.')
+
+        return {
+            'user_instance': user_instance,
+            'second_user_instance': second_user_instance,
+            'community_instance': validated_dict.get('community_id')
+        }
+
+    @staticmethod
+    def compute_members_meta_list(community_instance, member_ids, page, page_size):
+
+        members_data = []
+
+        # Get valid user_ids from member_ids
+        user_ids = ModelUtilities.get_valid_member_ids(member_ids, community_id=community_instance.id)
+
+        # If all member_ids are invalid return empty list
+        if member_ids and not user_ids:
+            return members_data
+
+        # Get query result
+        members_data = get_members_meta_list(community_id=community_instance.id,
+                                             member_ids=user_ids,
+                                             page=page,
+                                             page_size=page_size)
+
+        return members_data
