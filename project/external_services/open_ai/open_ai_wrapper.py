@@ -10,9 +10,11 @@ info_logger = LoggingWrapper.get_instance()
 
 class OpenAiWrapper:
     api_key = ""
+    vision_model = ""
 
-    def __init__(self, api_key: str = ""):
+    def __init__(self, api_key: str = "", vision_model: str = ""):
         self.api_key = api_key
+        self.vision_model = vision_model
 
     def validate_open_ai_api_key_or_assistant(self, assistant_id: str = "") -> dict:
 
@@ -67,14 +69,17 @@ class OpenAiWrapper:
 
         try:
             client = OpenAI(api_key=self.api_key)
+            image_attachment_present = False
 
             messages = [
                 {"role": "user", "content": message},
             ]
             
+            #TODO: Test this
             for attachment in attachments:
                 if attachment.type == attachment_types.IMAGE:
-                    messages.append({"role": "user", "content": attachment.url})
+                    image_attachment_present = True
+                    messages.append({"role": "user", "content": [{"url": attachment.url, "type": "image"}]})
 
             params = {
                 "assistant_id": assistant_id,
@@ -85,6 +90,13 @@ class OpenAiWrapper:
 
             if max_prompt_tokens:
                 params["max_prompt_tokens"] = max_prompt_tokens
+                
+            if image_attachment_present:
+                #TODO: Ask animesh if they have not set the vision model, should we use the default vision model?
+                if self.vision_model:
+                    params["model"] = self.vision_model
+                else:
+                    params["model"] = "gpt-4o-mini"
 
             # If thread_id is present, call OpenAI API with thread_id else create a new thread
             if thread_id:
