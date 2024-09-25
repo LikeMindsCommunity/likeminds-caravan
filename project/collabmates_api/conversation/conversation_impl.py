@@ -2950,8 +2950,6 @@ class ConversationHelper:
         if not api_key:
             return {"error_message": f"api_key not found for openAi chatbot in community: {chatroom_instance.community.id}"}
         
-        vision_model = chatbot_configurations.get("value", {}).get('vision_model', "")
-        
         # check if chatroom user is chatbot
         if UserRoles.CHATBOT.value not in chatbot_user_instance.userinfo.roles:
             return {"error_message": f"Chatbot is not a member of chatroom: {chatroom_id}"}
@@ -2972,6 +2970,7 @@ class ConversationHelper:
 
         max_completion_tokens = chatbot_meta_instance.provider_meta.get('max_completion_tokens', 0)
         max_prompt_tokens = chatbot_meta_instance.provider_meta.get('max_prompt_tokens', 0)
+        vision_model = chatbot_meta_instance.provider_meta.get('vision_model', "")
 
         return {
             "chatroom_instance": chatroom_instance,
