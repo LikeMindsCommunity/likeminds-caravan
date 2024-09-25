@@ -8,6 +8,8 @@ from utility.states import attachment_types
 from external_services.amazon_s3.s3_utils import S3_Utils
 from external_services.logging.logging_wrapper import LoggingWrapper
 
+from constants import DEFAULT_VISION_MODEL
+
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
@@ -81,7 +83,6 @@ class OpenAiWrapper:
                 {"role": "user", "content": message},
             ]
             
-            #TODO: Test this
             for attachment in attachments:
                 if attachment.type == attachment_types.IMAGE:
                     image_attachment_present = True
@@ -91,7 +92,7 @@ class OpenAiWrapper:
                     transcribed_text = self.transcribe_audio(attachment.url)
                     if transcribed_text:
                         messages.append({"role": "user", "content": transcribed_text})
-                    else: #TODO: Confirm the output of this
+                    else:
                         messages.append({"role": "user", "content": "Some error occurred while transcribing the audio"})
 
             params = {
@@ -105,11 +106,10 @@ class OpenAiWrapper:
                 params["max_prompt_tokens"] = max_prompt_tokens
                 
             if image_attachment_present:
-                #TODO: Ask animesh if they have not set the vision model, should we use the default vision model?
                 if self.vision_model:
                     params["model"] = self.vision_model
                 else:
-                    params["model"] = "gpt-4o-mini"
+                    params["model"] = DEFAULT_VISION_MODEL
 
             # If thread_id is present, call OpenAI API with thread_id else create a new thread
             if thread_id:

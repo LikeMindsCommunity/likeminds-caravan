@@ -1,0 +1,2 @@
+
+DEFAULT_VISION_MODEL = "gpt-4o-mini"
