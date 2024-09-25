@@ -1,7 +1,11 @@
+import requests
+
 from openai import OpenAI
 
 from utility.response_utilities import ResponseUtilities
 from utility.states import attachment_types
+
+from external_services.amazon_s3.s3_utils import S3_Utils
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 error_logger = LoggingWrapper.get_instance()
@@ -9,12 +13,17 @@ info_logger = LoggingWrapper.get_instance()
 
 
 class OpenAiWrapper:
+    
+    client = None
+    
     api_key = ""
     vision_model = ""
 
     def __init__(self, api_key: str = "", vision_model: str = ""):
         self.api_key = api_key
         self.vision_model = vision_model
+        
+        self.client = OpenAI(api_key=self.api_key)
 
     def validate_open_ai_api_key_or_assistant(self, assistant_id: str = "") -> dict:
 
@@ -24,15 +33,14 @@ class OpenAiWrapper:
             )
 
         try:
-            client = OpenAI(api_key=self.api_key)
 
             if assistant_id:
                 # Make a simple API call to retrieve assistant
-                client.beta.assistants.retrieve(assistant_id)
+                self.client.beta.assistants.retrieve(assistant_id)
 
             else:
                 # Make a simple API call to list models (a lightweight operation)
-                client.models.retrieve("gpt-3.5-turbo-instruct")
+                self.client.models.retrieve("gpt-3.5-turbo-instruct")
 
             return {"success": True}
 
@@ -68,9 +76,7 @@ class OpenAiWrapper:
             }
 
         try:
-            client = OpenAI(api_key=self.api_key)
             image_attachment_present = False
-
             messages = [
                 {"role": "user", "content": message},
             ]
@@ -80,6 +86,13 @@ class OpenAiWrapper:
                 if attachment.type == attachment_types.IMAGE:
                     image_attachment_present = True
                     messages.append({"role": "user", "content": [{"url": attachment.url, "type": "image"}]})
+                    
+                elif attachment.type == attachment_types.AUDIO:
+                    transcribed_text = self.transcribe_audio(attachment.url)
+                    if transcribed_text:
+                        messages.append({"role": "user", "content": transcribed_text})
+                    else: #TODO: Confirm the output of this
+                        messages.append({"role": "user", "content": "Some error occurred while transcribing the audio"})
 
             params = {
                 "assistant_id": assistant_id,
@@ -100,12 +113,12 @@ class OpenAiWrapper:
 
             # If thread_id is present, call OpenAI API with thread_id else create a new thread
             if thread_id:
-                run = client.beta.threads.runs.create_and_poll(
+                run = self.client.beta.threads.runs.create_and_poll(
                     **params, thread_id=thread_id, additional_messages=messages
                 )
 
             else:
-                run = client.beta.threads.create_and_run_poll(
+                run = self.client.beta.threads.create_and_run_poll(
                     **params, thread={"messages": messages}
                 )
 
@@ -114,7 +127,7 @@ class OpenAiWrapper:
 
             # If run is completed, fetch latest message from thread
             if run.status == "completed":
-                messages = client.beta.threads.messages.list(
+                messages = self.client.beta.threads.messages.list(
                     thread_id=run.thread_id, limit=1
                 )
 
@@ -136,3 +149,24 @@ class OpenAiWrapper:
             return {
                 "error_message": f"Error while calling OpenAI API for assistant_id: {assistant_id} and api_key: {self.api_key}: {str(e)} "
             }
+            
+    def transcribe_audio(self, audio_url: str = "") -> str:
+        try:
+            file_path = S3_Utils.download_file_from_s3_url(audio_url)
+            if file_path:
+                    transcription = self.client.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=file_path,
+                    )
+                    
+                    if transcription:
+                        return transcription.text
+                    else:
+                        return ""
+            else:
+                return ""
+                    
+        except Exception as e:
+            error_logger.error(f"Error while transcribing audio for audio_url: {audio_url} | error: {str(e)}")
+            return ""
+                
