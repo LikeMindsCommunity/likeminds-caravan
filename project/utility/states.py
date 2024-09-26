@@ -1011,6 +1011,9 @@ class ConnectionTypes(enum.Enum):
 
 
 class AttachmentTypes:
+    IMAGE = "image"
+    AUDIO = "audio"
+    VIDEO = "video"
     GIF = "gif"
 
 

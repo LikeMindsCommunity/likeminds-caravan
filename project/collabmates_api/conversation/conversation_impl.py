@@ -2863,18 +2863,30 @@ class ConversationHelper:
         conversation_instance = validation_dict.get('conversation_instance')
         chatbot_user_instance = validation_dict.get('chatbot_user_instance')
         api_key = validation_dict.get('api_key')
+        vision_model = validation_dict.get('vision_model')
         assistant_id = validation_dict.get('assistant_id')
         thread_context = validation_dict.get('thread_context')
         max_completion_tokens = validation_dict.get('max_completion_tokens')
         max_prompt_tokens = validation_dict.get('max_prompt_tokens')
+        
+        attachments = []
+        if conversation_instance.attachment_count > 0:
+            attachments_filter = ModelUtilities.get_model_filter(answerAttachment, {'answer': conversation_instance})
+            
+            for attachment in attachments_filter:
+                if attachment.type in [attachment_types.IMAGE, attachment_types.AUDIO]:
+                    attachments.append({
+                        "type": attachment.type,
+                        "url": attachment.file_url,
+                    })
 
         # Fetch thread_id against cache chatroom_id_assistant_id__chatbot_threads
         thread_id: str = CacheImpl.get_cache(CHATBOT_ASSISTANT_THREAD_CACHE_KEY.format(chatroom_id, assistant_id)) 
 
         # Call OpenAI API and create a run for chatbot
-        open_ai_wrapper = OpenAiWrapper(api_key)
-        res = open_ai_wrapper.run_thread_and_fetch_latest_message_for_open_ai_assistant(
-            assistant_id, conversation_instance.answer, thread_id, max_completion_tokens, max_prompt_tokens)
+        open_ai_wrapper = OpenAiWrapper(api_key, vision_model)
+        res = open_ai_wrapper.run_thread_and_fetch_latest_message_for_open_ai_assistant(assistant_id, 
+                conversation_instance.answer, attachments, thread_id, max_completion_tokens, max_prompt_tokens)
         
         if res.get('error_message'):
             error_logger.error(f"Error while fetching response from openAi chatbot: {res['error_message']}")
@@ -2958,12 +2970,14 @@ class ConversationHelper:
 
         max_completion_tokens = chatbot_meta_instance.provider_meta.get('max_completion_tokens', 0)
         max_prompt_tokens = chatbot_meta_instance.provider_meta.get('max_prompt_tokens', 0)
+        vision_model = chatbot_meta_instance.provider_meta.get('vision_model', "")
 
         return {
             "chatroom_instance": chatroom_instance,
             "conversation_instance": conversation_instance,
             "chatbot_user_instance": chatbot_user_instance,
             "api_key": api_key,
+            "vision_model": vision_model,
             "assistant_id": assistant_id,
             "thread_context": thread_context,
             "max_completion_tokens": max_completion_tokens,

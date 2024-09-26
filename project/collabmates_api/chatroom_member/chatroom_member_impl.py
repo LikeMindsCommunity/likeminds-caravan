@@ -336,7 +336,8 @@ class ChatroomMemberImpl(ChatroomMemberManager):
                     member_dict = {
                         'id': user_instance.id,
                         'name': userinfo_instance.name,
-                        'image_url': userinfo_instance.image_link
+                        'image_url': userinfo_instance.image_link,
+                        'roles': userinfo_instance.roles,
                     }
 
             if not member_data:

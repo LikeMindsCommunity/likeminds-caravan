@@ -2894,6 +2894,10 @@ class CommunityImpl(CommunityManager):
                 if chatbot_meta.get('provider_meta').get('max_completion_tokens') is not None:
                     chatbot_meta_instance.provider_meta['max_completion_tokens'] = chatbot_meta.get('provider_meta').get('max_completion_tokens')
                     record_updated = True
+                    
+                if chatbot_meta.get('provider_meta').get('vision_model') is not None:
+                    chatbot_meta_instance.provider_meta['vision_model'] = chatbot_meta.get('provider_meta').get('vision_model')
+                    record_updated = True
             
             if record_updated:
                 chatbot_meta_instance.save()
@@ -6681,6 +6685,9 @@ class CommunityHelper:
         provider = chatbot_meta.get('provider')
         provider_meta = chatbot_meta.get('provider_meta')
         default_text = chatbot_meta.get('default_text')
+        
+        if default_text and not isinstance(default_text, str):
+            return ResponseUtilities.get_inner_error_context("Invalid default_text value. Please send string")
 
         if not ((provider and isinstance(provider, str)) or (provider_meta and isinstance(provider_meta, dict))):
             return ResponseUtilities.get_inner_error_context("Please send provider and provider_meta in chatbot_meta")
@@ -6710,8 +6717,8 @@ class CommunityHelper:
         if provider_meta.get('max_completion_tokens') and not isinstance(provider_meta.get('max_completion_tokens'), int):
             return ResponseUtilities.get_inner_error_context("Invalid max_completion_tokens value.")
         
-        if default_text and not isinstance(default_text, str):
-            return ResponseUtilities.get_inner_error_context("Invalid default_text value. Please send string")
+        if provider_meta.get('vision_model') and not isinstance(provider_meta.get('vision_model'), str):
+            return ResponseUtilities.get_inner_error_context("Invalid vision_model value. Please send string")
         
         return {
             'user_instance': user_instance,
@@ -6794,6 +6801,9 @@ class CommunityHelper:
 
         if provider_meta and provider_meta.get('max_completion_tokens') and not isinstance(provider_meta.get('max_completion_tokens'), int):
             return ResponseUtilities.get_inner_error_context("Invalid max_completion_tokens value.")
+        
+        if provider_meta and provider_meta.get('vision_model') and not isinstance(provider_meta.get('vision_model'), str):
+            return ResponseUtilities.get_inner_error_context("Invalid vision_model value. Please send string")
         
         return {
             'user_instance': user_instance,

@@ -210,6 +210,9 @@ class MemberCommunityHelper:
 
             if value.get('state'):
                 temp['state'] = value.get('state')
+                
+            if value.get('roles'):
+                temp['roles'] = value.get('roles')
 
             if sdk_client_info_flag:
                 temp['sdk_client_info'] = value.get('sdk_client_info')

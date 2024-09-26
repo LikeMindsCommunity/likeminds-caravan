@@ -1284,3 +1284,11 @@ def is_valid_email(email):
     email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
     
     return re.match(email_regex, email) is not None
+
+def get_file_name_from_url(url: str) -> str:
+    file_name = url.split("/")
+    
+    if len(file_name) > 1:
+        return file_name[-1]
+    else:
+        return url
