@@ -73,59 +73,70 @@ class OpenAiWrapper:
     ) -> dict:
 
         if not (assistant_id and self.api_key):
-            return {
-                "error_message": f"Invalid request parameters for OpenAI API call: {assistant_id}, {message}, {self.api_key}"
-            }
+            return { "error_message": f"Invalid request parameters for OpenAI API call: {assistant_id}, {message}, {self.api_key}"}
             
         if not (message or attachments):
-            return {
-                "error_message": f"Invalid request parameters for OpenAI API call: {assistant_id}, {message}, {attachments}"
-            }
+            return { "error_message": f"Invalid request parameters for OpenAI API call: {assistant_id}, {message}, {attachments}"}
 
         try:
-            image_attachment_present = False
-            content = [ { "type": "text", "text": message } ]
-            
-            for attachment in attachments:
-                
-                if attachment.get("type") == attachment_types.IMAGE:
-                    image_attachment_present = True
-                    base64_image = self.get_base64_encoded_image_from_url(attachment.get("url"))
-                    content.append({ 
-                                    "type": "image_url", 
-                                    "image_url": { "url": f"data:image/jpeg;base64,{base64_image}"}
-                                    }
-                                )
-                    
-                elif attachment.get("type") == attachment_types.AUDIO:
-                    transcribed_text = self.transcribe_audio(attachment.get("url"))
-                    if transcribed_text:
-                        content.append({ "type": "text", "text": transcribed_text})
-                    else: #TODO: Confirm the output of this
-                        content.append({ "type": "text", "text": "Some error occurred while transcribing the audio"})
-            
-            messages = [
-                {"role": "user", "content": content},
-            ]
-            
-            params = {
-                "assistant_id": assistant_id,
-            }
+            params, messages = self.prepare_params_for_run(
+                message, attachments, assistant_id, max_completion_tokens, max_prompt_tokens
+            )
 
-            if max_completion_tokens:
-                params["max_completion_tokens"] = max_completion_tokens
+            return self.create_run_and_fetch_latest_message_and_thread_id(params, messages, thread_id)
 
-            if max_prompt_tokens:
-                params["max_prompt_tokens"] = max_prompt_tokens
+        except Exception as e:
+            return { "error_message": f"Error while calling OpenAI API for assistant_id: {assistant_id} and api_key: {self.api_key}: {str(e)} " }
+            
+    def prepare_params_for_run(
+        self,
+        message:str,
+        attachments: list = [],
+        assistant_id: str = "", 
+        max_completion_tokens: int = 0, 
+        max_prompt_tokens: int = 0,
+    ):
+        
+        image_attachment_present = False
+        content = [ { "type": "text", "text": message } ]
+            
+        for attachment in attachments:
+            
+            if attachment.get("type") == attachment_types.IMAGE:
+                image_attachment_present = True
+                image_file_id = self.dowload_file_from_url_and_upload_to_open_ai(attachment.get("url"))
+                if image_file_id:
+                    content.append({ "type": "image_file", "image_file": { "file_id": image_file_id}})
                 
-            if image_attachment_present:
-                if self.vision_model:
-                    params["model"] = self.vision_model
+            elif attachment.get("type") == attachment_types.AUDIO:
+                transcribed_text = self.transcribe_audio(attachment.get("url"))
+                if transcribed_text:
+                    content.append({ "type": "text", "text": transcribed_text})
                 else:
-                    params["model"] = DEFAULT_VISION_MODEL
+                    content.append({ "type": "text", "text": "Some error occurred while transcribing \
+                                                                the audio, please reply appropriately"})
+        
+        messages = [ {"role": "user", "content": content} ]
+        params = { "assistant_id": assistant_id}
 
+        if max_completion_tokens:
+            params["max_completion_tokens"] = max_completion_tokens
+
+        if max_prompt_tokens:
+            params["max_prompt_tokens"] = max_prompt_tokens
+            
+        if image_attachment_present:
+            if self.vision_model:
+                params["model"] = self.vision_model
+            else:
+                params["model"] = DEFAULT_VISION_MODEL
+                
+        return params, messages   
+    
+    def create_run_and_fetch_latest_message_and_thread_id(self, params: dict, messages: list, thread_id: str) -> dict:
+        try:
+            
             # If thread_id is present, call OpenAI API with thread_id else create a new thread
-            thread_id = ""
             if thread_id:
                 run = self.client.beta.threads.runs.create_and_poll(
                     **params, thread_id=thread_id, additional_messages=messages
@@ -144,24 +155,25 @@ class OpenAiWrapper:
                 messages = self.client.beta.threads.messages.list(
                     thread_id=run.thread_id, limit=1
                 )
-
+                
             else:
                 return {
-                    "error_message": f"Error while creating thread for OpenAI API for assistant_id: {assistant_id} | status: {run.status} | incomplete details: {run.incomplete_details}"
+                    "error_message": f"Error while creating thread for OpenAI API for assistant_id: {run.assistant_id} | status: {run.status} | incomplete details: {run.incomplete_details}",
+                    "thread_id": thread_id
                 }
 
             if len(messages.data) > 0 and len(messages.data[0].content) > 0:
-                response = messages.data[0].content[0].text.value
+                return {"response": messages.data[0].content[0].text.value, "thread_id": thread_id}
             else:
                 return {
-                    "error_message": f"Error while fetching latest message from OpenAI API for assistant_id: {assistant_id} | thread_id: {thread_id}"
+                    "error_message": f"Error while fetching latest message from OpenAI API for assistant_id: {run.assistant_id} | thread_id: {thread_id}",
+                    "thread_id": thread_id
                 }
-
-            return {"response": response, "thread_id": thread_id}
-
+                
         except Exception as e:
             return {
-                "error_message": f"Error while calling OpenAI API for assistant_id: {assistant_id} and api_key: {self.api_key}: {str(e)} "
+                "error_message": f"Exception occured while running and fetching latest message from OpenAI API for assistant_id: {run.assistant_id} | thread_id: {thread_id} | params: {params} | error: {str(e)}",
+                "thread_id": thread_id
             }
             
     def transcribe_audio(self, audio_url: str = "") -> str:
@@ -189,26 +201,25 @@ class OpenAiWrapper:
             if file_path:
                 os.remove(file_path)
                 
-    def get_base64_encoded_image_from_url(self, image_url: str = "") -> str:
-        
-        # file_obj = self.client.files.create(file=open("test.jpg", "rb")) ##Use file_obj.id in message content
-        
+    def upload_file(self, file_path: str = "") -> str:
         try:
-            file_path = S3_Utils.download_file_from_s3_url(image_url)
+            file_obj = self.client.files.create(file=open(file_path, "rb"), purpose="vision")
+            return file_obj.id
+        except Exception as e:
+            error_logger.error(f"Error while uploading file to open_ai | error: {str(e)}")
+            return ""
+                
+    def dowload_file_from_url_and_upload_to_open_ai(self, file_url: str = "") -> str:
+        try:
+            file_path = S3_Utils.download_file_from_s3_url(file_url)
             if file_path:
-                return self.encode_image(file_path)
+                return self.upload_file(file_path)
             else:
                 return ""
-            
         except Exception as e:
-            error_logger.error(f"Error while downloading image for image_url: {image_url} | error: {str(e)}")
+            error_logger.error(f"Error while downloading file for file_url: {file_url} | error: {str(e)}")
             return ""
-        
         finally:
             if file_path:
                 os.remove(file_path)
-        
-    def encode_image(self, image_path):
-        with open(image_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
-                
+
