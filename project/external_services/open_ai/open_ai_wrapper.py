@@ -1,4 +1,4 @@
-import requests
+import requests, os, base64
 
 from openai import OpenAI
 
@@ -8,7 +8,7 @@ from utility.states import attachment_types
 from external_services.amazon_s3.s3_utils import S3_Utils
 from external_services.logging.logging_wrapper import LoggingWrapper
 
-from constants import DEFAULT_VISION_MODEL
+from external_services.open_ai.constants import DEFAULT_VISION_MODEL
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -72,29 +72,42 @@ class OpenAiWrapper:
         max_prompt_tokens: int = 0,
     ) -> dict:
 
-        if not (assistant_id and message and self.api_key):
+        if not (assistant_id and self.api_key):
             return {
                 "error_message": f"Invalid request parameters for OpenAI API call: {assistant_id}, {message}, {self.api_key}"
+            }
+            
+        if not (message or attachments):
+            return {
+                "error_message": f"Invalid request parameters for OpenAI API call: {assistant_id}, {message}, {attachments}"
             }
 
         try:
             image_attachment_present = False
-            messages = [
-                {"role": "user", "content": message},
-            ]
+            content = [ { "type": "text", "text": message } ]
             
             for attachment in attachments:
-                if attachment.type == attachment_types.IMAGE:
+                
+                if attachment.get("type") == attachment_types.IMAGE:
                     image_attachment_present = True
-                    messages.append({"role": "user", "content": [{"url": attachment.url, "type": "image"}]})
+                    base64_image = self.get_base64_encoded_image_from_url(attachment.get("url"))
+                    content.append({ 
+                                    "type": "image_url", 
+                                    "image_url": { "url": f"data:image/jpeg;base64,{base64_image}"}
+                                    }
+                                )
                     
-                elif attachment.type == attachment_types.AUDIO:
-                    transcribed_text = self.transcribe_audio(attachment.url)
+                elif attachment.get("type") == attachment_types.AUDIO:
+                    transcribed_text = self.transcribe_audio(attachment.get("url"))
                     if transcribed_text:
-                        messages.append({"role": "user", "content": transcribed_text})
-                    else:
-                        messages.append({"role": "user", "content": "Some error occurred while transcribing the audio"})
-
+                        content.append({ "type": "text", "text": transcribed_text})
+                    else: #TODO: Confirm the output of this
+                        content.append({ "type": "text", "text": "Some error occurred while transcribing the audio"})
+            
+            messages = [
+                {"role": "user", "content": content},
+            ]
+            
             params = {
                 "assistant_id": assistant_id,
             }
@@ -112,6 +125,7 @@ class OpenAiWrapper:
                     params["model"] = DEFAULT_VISION_MODEL
 
             # If thread_id is present, call OpenAI API with thread_id else create a new thread
+            thread_id = ""
             if thread_id:
                 run = self.client.beta.threads.runs.create_and_poll(
                     **params, thread_id=thread_id, additional_messages=messages
@@ -154,19 +168,47 @@ class OpenAiWrapper:
         try:
             file_path = S3_Utils.download_file_from_s3_url(audio_url)
             if file_path:
-                    transcription = self.client.audio.transcriptions.create(
-                        model="whisper-1",
-                        file=file_path,
-                    )
-                    
-                    if transcription:
-                        return transcription.text
-                    else:
-                        return ""
+                audio_file = open(file_path, "rb")
+                transcription = self.client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file,
+                )
+                
+                if transcription:
+                    return transcription.text
+                else:
+                    return ""
             else:
                 return ""
                     
         except Exception as e:
             error_logger.error(f"Error while transcribing audio for audio_url: {audio_url} | error: {str(e)}")
             return ""
+        
+        finally:
+            if file_path:
+                os.remove(file_path)
+                
+    def get_base64_encoded_image_from_url(self, image_url: str = "") -> str:
+        
+        # file_obj = self.client.files.create(file=open("test.jpg", "rb")) ##Use file_obj.id in message content
+        
+        try:
+            file_path = S3_Utils.download_file_from_s3_url(image_url)
+            if file_path:
+                return self.encode_image(file_path)
+            else:
+                return ""
+            
+        except Exception as e:
+            error_logger.error(f"Error while downloading image for image_url: {image_url} | error: {str(e)}")
+            return ""
+        
+        finally:
+            if file_path:
+                os.remove(file_path)
+        
+    def encode_image(self, image_path):
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
                 

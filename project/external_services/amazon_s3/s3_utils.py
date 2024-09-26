@@ -1,7 +1,7 @@
 import requests
 
 from utility.utils import get_file_name_from_url
-from external_services.logging import LoggingWrapper
+from external_services.logging.logging_wrapper import LoggingWrapper
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
