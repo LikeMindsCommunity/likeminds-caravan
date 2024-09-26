@@ -4,7 +4,7 @@ from togther.models import (ModelUtilities, communityQuestions, SDKClientUsersIn
 from utility.states import (login_types)
 from utility.validation_utilities import ValidationUtilities
 from .models import SdkClient, SdkOnboardingScreen
-
+from datetime import datetime, timedelta
 
 class SdkViewHelper:
 
@@ -366,3 +366,52 @@ class SdkViewHelper:
             'user_instance': validated_dict.get('user_id'),
             'community_instance': validated_dict.get('community_id')
         }
+
+    def organize_mau_data(mau_data, no_of_months):
+        # Get the last n months up to the current month
+        today = datetime.today()
+        last_n_months = []
+        for i in range(no_of_months):
+            month_date = today - timedelta(days=i * 30)  # Approximate by 30 days
+            month_name = month_date.strftime("%B")  # Full month name
+            year = month_date.strftime("%Y")  # Full year
+            last_n_months.append((month_name, year))
+
+        organized = {}
+
+        # Initialize dictionary for each year with empty chat, feed, and total lists
+        for month_name, year in last_n_months:
+            if year not in organized:
+                organized[year] = {"chat": [], "feed": [], "total": []}
+            
+            # Initialize each month in both lists with a count of 0
+            organized[year]["chat"].append({"label": month_name, "count": 0})
+            organized[year]["feed"].append({"label": month_name, "count": 0})
+            organized[year]["total"].append({"label": month_name, "count": 0})
+
+        # Populate the data from mau_data
+        for month, year, count, platform in mau_data:
+            clean_month_str = month.strip() if month else month
+            
+            if year in organized:
+                for entry in organized[year][platform]:
+                    if entry['label'] == clean_month_str:
+                        entry['count'] = count
+                        break
+                # Update total
+                for total_entry in organized[year]['total']:
+                    if total_entry['label'] == clean_month_str:
+                        total_entry['count'] += count
+                        break
+
+        # Convert to the desired format with sorted data
+        result = []
+        for year, data in organized.items():
+            result.append({
+                "year": year,
+                "chat": sorted(data["chat"], key=lambda x: x["label"], reverse=True),
+                "feed": sorted(data["feed"], key=lambda x: x["label"], reverse=True),
+                "total": sorted(data["total"], key=lambda x: x["label"], reverse=True)
+            })
+
+        return result

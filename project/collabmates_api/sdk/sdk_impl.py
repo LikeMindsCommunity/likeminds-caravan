@@ -469,35 +469,8 @@ class SdkImpl(SdkManager):
             result['message'] = 'mau data does not exist for this community'
             return result
 
-        organized = {}
+        organized_mau_data = SdkViewHelper.organize_mau_data(mau_data, no_of_months)
 
-        for month, year, count, platform in mau_data:
-            if year not in organized:
-                organized[year] = {"chat": [], "feed": [], "total": []}
-            
-            clean_month_str = month.strip() if month else month
-
-            # Add data to chat or feed list
-            organized[year][platform].append({"label": clean_month_str, "count": count})
-            
-            # Add data to total (sum for both chat and feed)
-            if any(clean_month_str in entry['label'] for entry in organized[year]['total']):
-                for entry in organized[year]['total']:
-                    if entry['label'] == clean_month_str:
-                        entry['count'] += count
-                        break
-            else:
-                organized[year]['total'].append({"label": clean_month_str, "count": count})
-
-        final = []
-        for year, data in organized.items():
-            final.append({
-                "year": year,
-                "chat": sorted(data["chat"], key=lambda x: x["label"], reverse=True),
-                "feed": sorted(data["feed"], key=lambda x: x["label"], reverse=True),
-                "total": sorted(data["total"], key=lambda x: x["label"], reverse=True)
-            })
-
-        result['mau_data'] = final
+        result['mau_data'] = organized_mau_data
 
         return result
