@@ -8,7 +8,8 @@ from utility.states import attachment_types
 from external_services.amazon_s3.s3_utils import S3_Utils
 from external_services.logging.logging_wrapper import LoggingWrapper
 
-from external_services.open_ai.constants import DEFAULT_VISION_MODEL
+from external_services.open_ai.constants import (DEFAULT_VISION_MODEL,
+                                                 ERROR_INVALID_REQUEST_BODY_FOR_VALIDATING_OPENAI_API_KEY)
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -31,7 +32,7 @@ class OpenAiWrapper:
 
         if not self.api_key:
             return ResponseUtilities.get_inner_error_context(
-                "Invalid request body for validating openAi api key"
+                ERROR_INVALID_REQUEST_BODY_FOR_VALIDATING_OPENAI_API_KEY
             )
 
         try:
