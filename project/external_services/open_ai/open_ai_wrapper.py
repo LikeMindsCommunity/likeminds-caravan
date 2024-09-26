@@ -99,7 +99,10 @@ class OpenAiWrapper:
     ):
         
         image_attachment_present = False
-        content = [ { "type": "text", "text": message } ]
+        content = []
+        
+        if message:
+            content.append({ "type": "text", "text": message})
             
         for attachment in attachments:
             
