@@ -1308,6 +1308,8 @@ def get_ios_users_from_user_list(user_list):
 
 def get_notification_payload_metadata_for_conversation_creation(community_instance, card_instance, userinfo_instance,
                                                                 conversation_instance):
+    from collabmates_api.raw_queries import get_users_sdk_meta_dict
+
     payload = dict()
 
     payload['community_name'] = community_instance.name
@@ -1325,6 +1327,7 @@ def get_notification_payload_metadata_for_conversation_creation(community_instan
     payload['community_image'] = ""
 
     payload['last_conversation_unique_names'] = []
+    payload['chatroom_creator'] = get_users_sdk_meta_dict([card_instance.user_id]).get(card_instance.user_id, {})
 
     if conversation_instance:
         payload['chatroom_last_conversation_id'] = conversation_instance.id
@@ -1332,6 +1335,9 @@ def get_notification_payload_metadata_for_conversation_creation(community_instan
         payload['chatroom_last_conversation_user_name'] = userinfo_instance.name
         payload['chatroom_last_conversation_user_image'] = ""
         payload['chatroom_last_conversation_timestamp'] = conversation_instance.created_at
+        payload['chatroom_last_conversation_creator'] = get_users_sdk_meta_dict([conversation_instance.user_id]).get(
+            conversation_instance.user_id, {}
+        )
 
         if conversation_instance.has_files or \
                 conversation_instance.attachment_count > 0:
@@ -1491,7 +1497,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
         route = CHATROOM_DETAIL_NOTIFICATION_ROUTE % card_id
 
     else:
-        route = COLLABCARD_COMMUNITY_NOTIFICATION_ROUTE %(card_id, community_instance.id)
+        route = COLLABCARD_COMMUNITY_NOTIFICATION_ROUTE % (card_id, community_instance.id)
 
     message = {
         'payload': {
