@@ -1560,6 +1560,20 @@ def get_custom_data_for_new_conversation_created(user_id: str, community_id: str
 
     excluded_card_ids = list(set(mute_status_list + excluded_card_ids))
 
+    # check if intro room setting is enabled and hide the master room accordingly
+    filter_dict = {
+        'community_id': community_id,
+        'setting_type': community_setting_types.INTRO_ROOM,
+        'enabled': True
+    }
+
+    intro_room_setting_enabled = False
+
+    intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+
+    if intro_room_setting_filter:
+        intro_room_setting_enabled = True
+
     unread_conversation = []
 
     for card_id, unread_dict in ordered_unseen_dict.items():
@@ -1573,6 +1587,9 @@ def get_custom_data_for_new_conversation_created(user_id: str, community_id: str
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
 
         if not card_instance:
+            continue
+
+        if intro_room_setting_enabled and card_instance.type == card_types.CARD_MASTER_INTRO:
             continue
 
         temp = {}
