@@ -78,7 +78,6 @@ class OpenAiWrapper:
             
         if not (message or attachments):
             return { "error_message": f"Invalid request parameters for OpenAI API call: {assistant_id}, {message}, {attachments}"}
-            #TODO: Send response - "Please send message or a valid attachment to proceed"
 
         try:
             params, messages = self.prepare_params_for_run(
@@ -140,8 +139,6 @@ class OpenAiWrapper:
     
     def create_run_and_fetch_latest_message_and_thread_id(self, params: dict, messages: list, thread_id: str) -> dict:
         try:
-            
-            run = None
             assistant_id = params.get("assistant_id", "")
             
             # If thread_id is present, call OpenAI API with thread_id else create a new thread
@@ -154,12 +151,6 @@ class OpenAiWrapper:
                 run = self.client.beta.threads.create_and_run_poll(
                     **params, thread={"messages": messages}
                 )
-            
-            if not run:
-                return {
-                    "error_message": f"Error while creating run for OpenAI API for assistant_id: {assistant_id} ",
-                    "thread_id": thread_id
-                }
 
             if run.thread_id:
                 thread_id = run.thread_id
