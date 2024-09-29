@@ -1014,6 +1014,7 @@ class AttachmentTypes:
     IMAGE = "image"
     AUDIO = "audio"
     VIDEO = "video"
+    VOICE_NOTE = "voice_note"
     GIF = "gif"
 
 

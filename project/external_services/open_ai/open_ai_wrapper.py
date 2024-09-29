@@ -78,6 +78,7 @@ class OpenAiWrapper:
             
         if not (message or attachments):
             return { "error_message": f"Invalid request parameters for OpenAI API call: {assistant_id}, {message}, {attachments}"}
+            #TODO: Send response - "Please send message or a valid attachment to proceed"
 
         try:
             params, messages = self.prepare_params_for_run(
@@ -112,7 +113,7 @@ class OpenAiWrapper:
                 if image_file_id:
                     content.append({ "type": "image_file", "image_file": { "file_id": image_file_id}})
                 
-            elif attachment.get("type") == attachment_types.AUDIO:
+            elif attachment.get("type") in [attachment_types.AUDIO, attachment_types.VOICE_NOTE]:
                 transcribed_text = self.transcribe_audio(attachment.get("url"))
                 if transcribed_text:
                     content.append({ "type": "text", "text": transcribed_text})
