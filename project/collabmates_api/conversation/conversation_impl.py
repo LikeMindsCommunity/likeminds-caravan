@@ -2874,7 +2874,7 @@ class ConversationHelper:
             attachments_filter = ModelUtilities.get_model_filter(answerAttachment, {'answer': conversation_instance})
             
             for attachment in attachments_filter:
-                if attachment.type in [attachment_types.IMAGE, attachment_types.AUDIO]:
+                if attachment.type in [attachment_types.IMAGE, attachment_types.AUDIO, attachment_types.VOICE_NOTE]:
                     attachments.append({
                         "type": attachment.type,
                         "url": attachment.file_url,
