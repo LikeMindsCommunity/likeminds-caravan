@@ -206,32 +206,32 @@ COMMUNITY_CONFIGURATIONS = {
         "description": "Personalised feed weights metadata for the community",
         "value": {
             "recency_metrics": {
-                "weight": 0,
-                "max_threshold": 0
+                "weight": 10,
+                "max_threshold": 1800000
             },
             "likes_metrics": {
-                "weight": 0,
-                "max_threshold": 0
+                "weight": 1,
+                "max_threshold": 100
             },
             "comments_metrics": {
-                "weight": 0,
-                "max_threshold": 0
-            },
-            "user_groups_metrics": {
-                "weight": 0,
-                "max_threshold": 0
-            },
-            "user_topics_metrics": {
-                "weight": 0,
-                "max_threshold": 0
+                "weight": 1,
+                "max_threshold": 100
             },
             "post_dampening_metrics": {
-                "weight": 0,
-                "max_threshold": 0
+                "weight": 10,
+                "max_threshold": 300
+            },
+            "user_groups_metrics": {
+                "weight": 10,
+                "max_threshold": 10
+            },
+            "user_topics_metrics": {
+                "weight": 10,
+                "max_threshold": 10
             },
             "user_connection_metrics": {
-                "weight": 0,
-                "max_threshold": 0
+                "weight": 10,
+                "max_threshold": 10
             }
         }
     },
