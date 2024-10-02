@@ -1,6 +1,13 @@
 import enum
 
 
+class ExtendedEnum(enum.Enum):
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
+
+
 class PlatformCodes:
     ANDROID = "an"
     IOS = "ios"
@@ -1079,3 +1086,7 @@ class UserRoles(enum.Enum):
 class BlockUserTypes(enum.Enum):
     BLOCKING = "BLOCKING"
     BLOCKED = "BLOCKED"
+
+
+class SearchMustHaveRights(ExtendedEnum):
+    RESPOND_IN_CHATROOM = "RESPOND_IN_CHATROOM"
