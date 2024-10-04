@@ -1342,10 +1342,6 @@ def get_notification_payload_metadata_for_conversation_creation(community_instan
         if conversation_instance.has_files or \
                 conversation_instance.attachment_count > 0:
             answer_files = get_answer_files(conversation_instance.id)
-            payload['images'] = answer_files['image']
-            payload['pdf'] = answer_files['pdf']
-            payload['videos'] = answer_files['videos']
-            payload['audios'] = answer_files['audios']
             payload['attachments'] = answer_files['attachments']
 
         payload['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s""" % (
