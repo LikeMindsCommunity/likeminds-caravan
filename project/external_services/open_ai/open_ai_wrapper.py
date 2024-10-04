@@ -112,7 +112,7 @@ class OpenAiWrapper:
                 if image_file_id:
                     content.append({ "type": "image_file", "image_file": { "file_id": image_file_id}})
                 
-            elif attachment.get("type") == attachment_types.AUDIO:
+            elif attachment.get("type") in [attachment_types.AUDIO, attachment_types.VOICE_NOTE]:
                 transcribed_text = self.transcribe_audio(attachment.get("url"))
                 if transcribed_text:
                     content.append({ "type": "text", "text": transcribed_text})
@@ -139,6 +139,7 @@ class OpenAiWrapper:
     
     def create_run_and_fetch_latest_message_and_thread_id(self, params: dict, messages: list, thread_id: str) -> dict:
         try:
+            assistant_id = params.get("assistant_id", "")
             
             # If thread_id is present, call OpenAI API with thread_id else create a new thread
             if thread_id:
@@ -176,7 +177,7 @@ class OpenAiWrapper:
                 
         except Exception as e:
             return {
-                "error_message": f"Exception occured while running and fetching latest message from OpenAI API for assistant_id: {run.assistant_id} | thread_id: {thread_id} | params: {params} | error: {str(e)}",
+                "error_message": f"Exception occured while running and fetching latest message from OpenAI API assistant_id: {assistant_id} | thread_id: {thread_id} | params: {params} | error: {str(e)}",
                 "thread_id": thread_id
             }
             
