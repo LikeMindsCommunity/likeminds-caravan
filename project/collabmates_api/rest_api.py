@@ -1660,15 +1660,24 @@ class ReportTagsSerializer(serializers.ModelSerializer):
                 del data['tag_name']
 
         return data
-    
+
+
 class CommunityConfigurationsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CommunityConfigurations
         fields = ('type', 'description', 'value')
 
+
 class ChatbotMetaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ChatbotMeta
         fields = ('default_text', 'provider', 'provider_meta')
+
+
+class CommunityIntegrationStatusSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CommunityIntegrationStatus
+        fields = ('status_type', 'status')

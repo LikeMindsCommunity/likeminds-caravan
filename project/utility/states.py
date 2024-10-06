@@ -1,4 +1,5 @@
 import enum
+from django.db import models
 
 
 class PlatformCodes:
@@ -1079,3 +1080,13 @@ class UserRoles(enum.Enum):
 class BlockUserTypes(enum.Enum):
     BLOCKING = "BLOCKING"
     BLOCKED = "BLOCKED"
+
+
+class CommunityIntegrationStatusTypes(models.TextChoices):
+    COPY_API_KEY = "COPY_API_KEY", "COPY_API_KEY"
+    COPY_PLATFORM_CODE = "COPY_PLATFORM_CODE", "COPY_PLATFORM_CODE"
+    FINISH = "FINISH", "FINISH"
+
+    @classmethod
+    def get_choices_list(cls):
+        return [choice[0] for choice in cls.choices]
