@@ -424,6 +424,7 @@ class Userinfo(models.Model):
     organisation_name = models.CharField(max_length=255, null=True)
     is_bot = models.BooleanField(default=False)
     roles = ArrayField(models.CharField(max_length=10), blank=True, default=list)
+    meta_info = JSONField(default=dict())
 
     def __str__(self):
         return self.name

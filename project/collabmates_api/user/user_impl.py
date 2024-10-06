@@ -494,6 +494,7 @@ class UserImpl(UserManager):
             userinfo_instance.image_link = UserHelper.process_image_url_for_processing(user_context, user_instance)
             userinfo_instance.organisation_name = user_context.get('organisation_name')
             userinfo_instance.is_bot = user_context.get('is_bot', False)
+            userinfo_instance.meta_info = user_context.get('meta_info', {})
             userinfo_instance.save()
 
             mobile_context = user_context.get('mobile_context')
@@ -669,9 +670,9 @@ class UserImpl(UserManager):
                 return {'success': False, 'error_message': dashboard_user_context.get('error_message')}
             
             return self.create_user_context(dashboard_user_context.get('user_instance'),
-                                                    dashboard_user_context.get('existing_user'),
-                                                    dashboard_user_context.get('sdk_client_user_info_instance'),
-                                                    dashboard_user_context.get('app_access'))
+                                            dashboard_user_context.get('existing_user'),
+                                            dashboard_user_context.get('sdk_client_user_info_instance'),
+                                            dashboard_user_context.get('app_access'))
         
         if login_type == login_types.SDK:
             sdk_user_context = self._get_or_create_sdk_user(user_context, api_key=api_key)
@@ -1782,8 +1783,9 @@ class UserHelper:
             'organisation_name': user_meta.get('organisation_name'),
             'mobile_no': req_body.get('mobile_no'),
             'country_code': user_meta.get('country_code'),
+            'meta_info': user_meta.get('meta_info', {}),
         }
-        
+
         if user_meta.get('image_url'):
             user_context['image_url'] = user_meta.get('image_url')
             user_context['has_profile_image'] = True
