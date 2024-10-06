@@ -6903,7 +6903,7 @@ class CommunityHelper:
         community_integration_instances = ModelUtilities.get_model_filter(
             CommunityIntegrationStatus, {'community': community_instance})
 
-        # key value pair of status_type -> intgration instance
+        # key value pair of status_type -> integration instance
         integration_instances_response = {instance.status_type: instance for instance in
                                           community_integration_instances}
 
