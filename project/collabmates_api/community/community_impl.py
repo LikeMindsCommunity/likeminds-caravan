@@ -6183,6 +6183,21 @@ class CommunityHelper:
                     configuration_value['guest_users'] = update_values.get('guest_users')
                     record_updated = True
 
+        elif configuration_type == FEED_SETTINGS_CONFIGURATION:
+
+            if update_values.get('create_feed_poll') and isinstance(update_values.get('create_feed_poll'), str) and (
+                update_values.get('create_feed_poll') in CREATE_FEED_POLL_COMMUNITY_VALUES):
+
+                # if create_feed_poll value is updated, update rights for all members & managers in the community
+                if configuration_value['create_feed_poll'] != update_values.get('create_feed_poll'):
+
+                    configuration_value['create_feed_poll'] = update_values.get('create_feed_poll')
+                    
+                    # Update rights for all members & managers in the community
+                    CommunityHelper.update_create_feed_poll_settings_for_community.delay(community_id, user_id, update_values.get('create_feed_poll'))
+
+                    record_updated = True
+            
         elif configuration_type == PERSONALISED_FEED_WEIGHTS:
             filter_dict = {
                 'community': community_id,

@@ -200,6 +200,15 @@ COMMUNITY_CONFIGURATIONS = {
             "guest_users": "SINGLE"
         }
     },
+    FEED_SETTINGS_CONFIGURATION:
+    {
+        "type": FEED_SETTINGS_CONFIGURATION,
+        "description": "Additional Feed settings for the community",
+        "value":
+        {
+            "create_feed_poll": "everyone", # everyone, only_cm, no_one
+        }
+    },
     PERSONALISED_FEED_WEIGHTS:
     {
         "type": PERSONALISED_FEED_WEIGHTS,
