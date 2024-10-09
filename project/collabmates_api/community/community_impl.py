@@ -4288,6 +4288,9 @@ class CommunityHelper:
         # give all community setting rights
         give_all_community_setting_rights(community=community_instance)
 
+        CommunityHelper.update_feed_notification_settings_based_on_feed_setting(community_id=community_id, 
+                                                                                is_enabled=True)
+
         save_moderation_history(user=user_instance, community=community_instance,
                                 moderation_by=user_instance,
                                 type=moderation_history_types.STARTED_COMMUNITY)
