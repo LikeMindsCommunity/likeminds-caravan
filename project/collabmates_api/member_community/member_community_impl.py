@@ -865,15 +865,11 @@ class MemberCommunityImpl(MemberCommunityManager):
             'enabled': True
         }
 
-        if is_version_code_supported_for_intro_room(self.get_version_code(), self.get_platform_code()):
-            intro_room_setting_enabled = False
+        intro_room_setting_enabled = False
 
-            intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+        intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
 
-            if intro_room_setting_filter:
-                intro_room_setting_enabled = True
-
-        else:
+        if intro_room_setting_filter:
             intro_room_setting_enabled = True
 
         excluded_card_ids = []

@@ -1308,6 +1308,8 @@ def get_ios_users_from_user_list(user_list):
 
 def get_notification_payload_metadata_for_conversation_creation(community_instance, card_instance, userinfo_instance,
                                                                 conversation_instance):
+    from collabmates_api.raw_queries import get_users_sdk_meta_dict
+
     payload = dict()
 
     payload['community_name'] = community_instance.name
@@ -1325,6 +1327,7 @@ def get_notification_payload_metadata_for_conversation_creation(community_instan
     payload['community_image'] = ""
 
     payload['last_conversation_unique_names'] = []
+    payload['chatroom_creator'] = get_users_sdk_meta_dict([card_instance.user_id]).get(card_instance.user_id, {})
 
     if conversation_instance:
         payload['chatroom_last_conversation_id'] = conversation_instance.id
@@ -1332,14 +1335,13 @@ def get_notification_payload_metadata_for_conversation_creation(community_instan
         payload['chatroom_last_conversation_user_name'] = userinfo_instance.name
         payload['chatroom_last_conversation_user_image'] = ""
         payload['chatroom_last_conversation_timestamp'] = conversation_instance.created_at
+        payload['chatroom_last_conversation_creator'] = get_users_sdk_meta_dict([conversation_instance.user_id]).get(
+            conversation_instance.user_id, {}
+        )
 
         if conversation_instance.has_files or \
                 conversation_instance.attachment_count > 0:
             answer_files = get_answer_files(conversation_instance.id)
-            payload['images'] = answer_files['image']
-            payload['pdf'] = answer_files['pdf']
-            payload['videos'] = answer_files['videos']
-            payload['audios'] = answer_files['audios']
             payload['attachments'] = answer_files['attachments']
 
         payload['route_child'] = """route://collabcard?collabcard_id=%s&last_conversation_id=%s""" % (
@@ -1491,7 +1493,7 @@ def send_follow_notification(card_id, user_id, conversation_id):
         route = CHATROOM_DETAIL_NOTIFICATION_ROUTE % card_id
 
     else:
-        route = COLLABCARD_COMMUNITY_NOTIFICATION_ROUTE %(card_id, community_instance.id)
+        route = COLLABCARD_COMMUNITY_NOTIFICATION_ROUTE % (card_id, community_instance.id)
 
     message = {
         'payload': {
@@ -1554,6 +1556,20 @@ def get_custom_data_for_new_conversation_created(user_id: str, community_id: str
 
     excluded_card_ids = list(set(mute_status_list + excluded_card_ids))
 
+    # check if intro room setting is enabled and hide the master room accordingly
+    filter_dict = {
+        'community_id': community_id,
+        'setting_type': community_setting_types.INTRO_ROOM,
+        'enabled': True
+    }
+
+    intro_room_setting_enabled = False
+
+    intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+
+    if intro_room_setting_filter:
+        intro_room_setting_enabled = True
+
     unread_conversation = []
 
     for card_id, unread_dict in ordered_unseen_dict.items():
@@ -1567,6 +1583,9 @@ def get_custom_data_for_new_conversation_created(user_id: str, community_id: str
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
 
         if not card_instance:
+            continue
+
+        if intro_room_setting_enabled and card_instance.type == card_types.CARD_MASTER_INTRO:
             continue
 
         temp = {}

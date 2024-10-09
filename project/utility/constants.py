@@ -200,38 +200,47 @@ COMMUNITY_CONFIGURATIONS = {
             "guest_users": "SINGLE"
         }
     },
+    FEED_SETTINGS_CONFIGURATION:
+    {
+        "type": FEED_SETTINGS_CONFIGURATION,
+        "description": "Additional Feed settings for the community",
+        "value":
+        {
+            "create_feed_poll": "everyone", # everyone, only_cm, no_one
+        }
+    },
     PERSONALISED_FEED_WEIGHTS:
     {
         "type": PERSONALISED_FEED_WEIGHTS,
         "description": "Personalised feed weights metadata for the community",
         "value": {
             "recency_metrics": {
-                "weight": 0,
-                "max_threshold": 0
+                "weight": 10,
+                "max_threshold": 1800000
             },
             "likes_metrics": {
-                "weight": 0,
-                "max_threshold": 0
+                "weight": 1,
+                "max_threshold": 100
             },
             "comments_metrics": {
-                "weight": 0,
-                "max_threshold": 0
-            },
-            "user_groups_metrics": {
-                "weight": 0,
-                "max_threshold": 0
-            },
-            "user_topics_metrics": {
-                "weight": 0,
-                "max_threshold": 0
+                "weight": 1,
+                "max_threshold": 100
             },
             "post_dampening_metrics": {
-                "weight": 0,
-                "max_threshold": 0
+                "weight": 10,
+                "max_threshold": 300
+            },
+            "user_groups_metrics": {
+                "weight": 10,
+                "max_threshold": 10
+            },
+            "user_topics_metrics": {
+                "weight": 10,
+                "max_threshold": 10
             },
             "user_connection_metrics": {
-                "weight": 0,
-                "max_threshold": 0
+                "weight": 10,
+                "max_threshold": 10
             }
         }
     },
