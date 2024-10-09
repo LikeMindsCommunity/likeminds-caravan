@@ -313,7 +313,7 @@ class SdkImpl(SdkManager):
             # Update the community integration status
             CommunityImpl(member_id=self.get_member_id(), api_key=self.get_api_key()
                           ).update_community_integration_status(
-                status_type=CommunityIntegrationStatusTypes.FINISH.value, status=True)
+                status_type=CommunityIntegrationStatusTypes.FINISH.value, status=True, is_internal=True)
 
         req_body = validated_request_body.get('join_req_body')
 

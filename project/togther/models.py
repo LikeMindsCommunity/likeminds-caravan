@@ -3787,7 +3787,7 @@ class BlockUser(models.Model):
 
 class CommunityIntegrationStatus(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
-    status_type = models.CharField(max_length=255, choices=CommunityIntegrationStatusTypes.choices)
+    status_type = models.CharField(max_length=255)
     status = models.BooleanField(default=False)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)

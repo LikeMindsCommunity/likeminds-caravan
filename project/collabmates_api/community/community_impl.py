@@ -2922,9 +2922,9 @@ class CommunityImpl(CommunityManager):
             'community_integration_data': integration_data
         }
 
-    def update_community_integration_status(self, status_type: str, status: bool) -> dict:
+    def update_community_integration_status(self, status_type: str, status: bool, is_internal: bool) -> dict:
         validated_req = CommunityHelper.validate_update_community_integration_request(self.get_api_key(),
-                                                                                      status_type, status)
+                                                                                      status_type, status, is_internal)
 
         if 'error_message' in validated_req:
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -6874,7 +6874,8 @@ class CommunityHelper:
         }
 
     @staticmethod
-    def validate_update_community_integration_request(api_key: str, status_type: str, status: bool) -> dict:
+    def validate_update_community_integration_request(api_key: str, status_type: str, status: bool,
+                                                      is_internal: bool) -> dict:
 
         validation_params = {
             'community_id': {
@@ -6887,8 +6888,9 @@ class CommunityHelper:
         if validated_dict.get('error_message'):
             return validated_dict
 
-        if not (isinstance(status_type, str) and status_type in CommunityIntegrationStatusTypes.get_choices_list()):
-            return ResponseUtilities.get_inner_error_context("Invalid status_type value")
+        if isinstance(status_type, str) and status_type in CommunityIntegrationStatusTypes.get_choices_list() and \
+                not is_internal:
+            return ResponseUtilities.get_inner_error_context("You cannot update the reserved state.")
 
         if not isinstance(status, bool):
             return ResponseUtilities.get_inner_error_context("Invalid status value")

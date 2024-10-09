@@ -1224,7 +1224,8 @@ class CommunityIntegrationView(APIView):
 
         community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
         res = community_manager.update_community_integration_status(req_body.get('status_type'),
-                                                                    req_body.get('status'))
+                                                                    req_body.get('status'),
+                                                                    is_internal=False)
 
         if 'error_message' in res:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
