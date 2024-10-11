@@ -147,7 +147,7 @@ def CommunitySerializer(community, promoter_id=0, is_owner=False,
     return new_dict
 
 
-def UserinfoSerializer(user, sdk_client_info_flag:bool=False):
+def UserinfoSerializer(user, sdk_client_info_flag: bool = False):
     userinfo = {
         'id': user.user_id_id,
         'name': user.name,
@@ -158,6 +158,7 @@ def UserinfoSerializer(user, sdk_client_info_flag:bool=False):
         'organisation_name': user.organisation_name,
         'image_url': user.image_link,
         'roles': user.roles,
+        'meta_info': user.meta_info,
     }
 
     # Add sdk_client_info to user context if sdk_client_info_flag is True

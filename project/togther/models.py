@@ -16,7 +16,7 @@ from typing import Union
 from external_services.logging.logging_wrapper import LoggingWrapper
 from django.core import serializers as core_serializer
 from django.utils.translation import gettext_lazy as _
-from utility.states import noti_states, UserRoles
+from utility.states import noti_states, UserRoles, CommunityIntegrationStatusTypes
 
 error_logger = LoggingWrapper.get_instance()
 
@@ -424,6 +424,7 @@ class Userinfo(models.Model):
     organisation_name = models.CharField(max_length=255, null=True)
     is_bot = models.BooleanField(default=False)
     roles = ArrayField(models.CharField(max_length=10), blank=True, default=list)
+    meta_info = JSONField(default=dict())
 
     def __str__(self):
         return self.name
@@ -3782,3 +3783,20 @@ class BlockUser(models.Model):
 
         self.updated_at = current_time
         super(BlockUser, self).save(*args, **kwargs)
+
+
+class CommunityIntegrationStatus(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    status_type = models.CharField(max_length=255)
+    status = models.BooleanField(default=False)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+        super(CommunityIntegrationStatus, self).save(*args, **kwargs)

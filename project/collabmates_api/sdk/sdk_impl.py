@@ -2,7 +2,7 @@ from rest_framework import status as status_codes
 
 from .sdk_manager import SdkManager
 from utility.response_utilities import ResponseUtilities
-from utility.states import (api_types, login_types, question_states)
+from utility.states import (api_types, login_types, question_states, CommunityIntegrationStatusTypes)
 from utility.auth_utilities import AuthUtilities
 from utility.version_utilities import VersionUtilities
 from togther.models import (ModelUtilities, communityAnswers, Community, SDKClientUsersInfo)
@@ -309,6 +309,11 @@ class SdkImpl(SdkManager):
             if 'error_message' in join_community_context:
                 return ResponseUtilities.get_impl_error_context(join_community_context.get('error_message'),
                                                                 join_community_context.get('status'))
+
+            # Update the community integration status
+            CommunityImpl(member_id=self.get_member_id(), api_key=self.get_api_key()
+                          ).update_community_integration_status(
+                status_type=CommunityIntegrationStatusTypes.FINISH.value, status=True, is_internal=True)
 
         req_body = validated_request_body.get('join_req_body')
 

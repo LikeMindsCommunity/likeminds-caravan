@@ -1,21 +1,18 @@
 import json, csv, os
-from openai import OpenAI
 
 from celery import shared_task
 from django.contrib.auth.models import User
 from django.template.loader import get_template
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 import re
 from rest_framework import status as status_codes
-from django.conf import settings
 
 from cms.models import NewAnswer
 from collabmates_api.community.constants import *
 from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSerializer, CommunityToastV1Serializer, \
     CommunityGetStartedSerializer, CommunityQuestionsSerializerV2, CommunityAnswersSerializer, get_error_context, \
     CommunityDMSettingsSerializer, CommunityNotificationSettingsSerializer, FeedNotificationSettingsSerializer, \
-    ReportTagsSerializer, CommunityConfigurationsSerializer, ChatbotMetaSerializer
+    ReportTagsSerializer, CommunityConfigurationsSerializer, ChatbotMetaSerializer, CommunityIntegrationStatusSerializer
 
 from collabmates_api.serializers import UserinfoSerializer
 
@@ -45,7 +42,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
     communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings, FeedNotificationSettings, \
     Report_Tags, Report, CommunityConfigurations, CommunityBillingDates, communityRightsSettings, userAdminRights, \
-    memberRights, adminRights, ChatbotMeta, BlockUser
+    memberRights, adminRights, ChatbotMeta, BlockUser, CommunityIntegrationStatus
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST, IMAGE_URLS_FOR_QUESTION_TITLES, SENDER_NAME_FOR_EMAIL_COMMS, \
@@ -90,7 +87,7 @@ from utility.states import member_states, card_types, click_states, member_right
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
     api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
     CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus, GuestFlowUserTypes, \
-    UserRoles
+    UserRoles, CommunityIntegrationStatusTypes
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -2908,6 +2905,50 @@ class CommunityImpl(CommunityManager):
         return {
             'success': True,
             'user': chatbot_user
+        }
+
+    def fetch_community_integration_status(self) -> dict:
+        validated_req = CommunityHelper.validate_fetch_community_integration_request(self.get_api_key())
+
+        if 'error_message' in validated_req:
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_req.get('community_instance')
+        integration_data = CommunityHelper.fetch_or_return_default_community_integration_status(community_instance)
+
+        return {
+            'success': True,
+            'community_integration_data': integration_data
+        }
+
+    def update_community_integration_status(self, status_type: str, status: bool, is_internal: bool) -> dict:
+        validated_req = CommunityHelper.validate_update_community_integration_request(self.get_api_key(),
+                                                                                      status_type, status, is_internal)
+
+        if 'error_message' in validated_req:
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_req.get('community_instance')
+
+        # Update the community integration status
+        filter_dict = {
+            "community": community_instance,
+            "status_type": status_type
+        }
+        community_integration_instance = ModelUtilities.get_model_filter(CommunityIntegrationStatus,
+                                                                         filter_dict).first()
+
+        if not community_integration_instance:
+            ModelUtilities.update_or_create_model(CommunityIntegrationStatus, filter_dict, {"status": status})
+
+        elif community_integration_instance.status != status:
+            community_integration_instance.status = status
+            community_integration_instance.save()
+
+        return {
+            'success': True
         }
 
 
@@ -6829,3 +6870,74 @@ class CommunityHelper:
             'chatbot_meta_instance': chatbot_meta_instance,
             'chatbot_user_instance': chatbot_meta_instance.user,
         }
+
+    @staticmethod
+    def validate_fetch_community_integration_request(api_key: str) -> dict:
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        community_instance = validated_dict.get('community_id')
+
+        return {
+            'community_instance': community_instance
+        }
+
+    @staticmethod
+    def validate_update_community_integration_request(api_key: str, status_type: str, status: bool,
+                                                      is_internal: bool) -> dict:
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        if isinstance(status_type, str) and status_type in CommunityIntegrationStatusTypes.get_choices_list() and \
+                not is_internal:
+            return ResponseUtilities.get_inner_error_context("You cannot update the reserved state.")
+
+        if not isinstance(status, bool):
+            return ResponseUtilities.get_inner_error_context("Invalid status value")
+
+        return {
+            "community_instance": validated_dict.get('community_id')
+        }
+
+    @staticmethod
+    def fetch_or_return_default_community_integration_status(community_instance) -> dict:
+        # fetch community integration from db
+        community_integration_instances = ModelUtilities.get_model_filter(
+            CommunityIntegrationStatus, {'community': community_instance})
+
+        # key value pair of status_type -> integration instance
+        integration_instances_response = {instance.status_type: instance for instance in
+                                          community_integration_instances}
+
+        # Add default integrations if not present
+        for status_type in CommunityIntegrationStatusTypes.get_choices_list():
+
+            if status_type not in integration_instances_response:
+                instance = CommunityIntegrationStatus(community=community_instance,
+                                                      status_type=status_type,
+                                                      status=False)
+                integration_instances_response[status_type] = instance
+
+        # serialize community integrations
+        serialised_community_integrations = CommunityIntegrationStatusSerializer(
+            integration_instances_response.values(), many=True).data
+
+        return serialised_community_integrations
