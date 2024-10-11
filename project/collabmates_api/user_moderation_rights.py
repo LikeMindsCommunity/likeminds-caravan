@@ -739,8 +739,9 @@ def get_right_dict(right, post_variable_name="", comment_variable_name=""):
 
 
 def give_all_community_setting_rights(community):
-    member_rights = memberRights.objects.all().exclude(state__in=[4, 7, 8, 9, 10, 11]).order_by("state")
-    save_community_setting_rights(community, member_rights)
+    member_rights_list = memberRights.objects.all().exclude(state__in=[member_rights.MEMBER_RIGHT_INVITE_PRIVATE_LINK, 
+                                                                       member_rights.MEMBER_RIGHT_ENABLE_MEMBERS_CAN_DM]).order_by("state")
+    save_community_setting_rights(community, member_rights_list)
 
 
 def save_community_setting_rights(community, rights_list):
