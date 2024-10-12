@@ -5695,6 +5695,16 @@ class CommunityHelper:
                         len(update_values.get('like_entity_variable').get('past_tense_verb').strip()) <= FEED_LIKE_VARIABLE_MAX_LENGTH)
                         ):
                     return ResponseUtilities.get_inner_error_context("Invalid like_entity_variable value!")
+                
+            if update_values.get('anonymous-user'):
+                if not isinstance(update_values.get('anonymous-user'), dict):
+                    return ResponseUtilities.get_inner_error_context("Invalid anonymous-user value")
+                
+                if update_values.get('anonymous-user').get('name') and not isinstance(update_values.get('anonymous-user').get('name'), str):
+                    return ResponseUtilities.get_inner_error_context("Invalid name value")
+                
+                if update_values.get('anonymous-user').get('image_url') and not isinstance(update_values.get('anonymous-user').get('image_url'), str):
+                    return ResponseUtilities.get_inner_error_context("Invalid image_url value")
 
         elif configuration_type == FEED_SETTINGS_CONFIGURATION:
 
@@ -5711,6 +5721,7 @@ class CommunityHelper:
                 update_values.get('create_feed_poll') not in CREATE_FEED_POLL_COMMUNITY_VALUES):
                 return ResponseUtilities.get_inner_error_context(
                     "Please send valid value for create_feed_poll (possible values - 'everyone', 'only_cm', 'no_one')")            
+                
 
         elif configuration_type == CHATBOT_CONFIGURATIONS:
 
@@ -6168,6 +6179,19 @@ class CommunityHelper:
                 InternalServiceUtilities.delete_cache_from_swarm_service.delay(
                     community_id=community_id, user_id=user_id,
                     key_pattern=SWARM_TOP_LIKED_COMMENTS_CACHE_KEY.format(community_id))
+            
+            if update_values.get('anonymous-user') and isinstance(update_values.get('anonymous-user'), dict):
+
+                if not (configuration_value.get('anonymous-user') or isinstance(configuration_value.get('anonymous-user'), dict)):
+                    configuration_value['anonymous-user'] = {}
+
+                if update_values.get('anonymous-user').get('name'):
+                    configuration_value['anonymous-user']['name'] = update_values.get('anonymous-user').get('name')
+                    record_updated = True
+
+                if update_values.get('anonymous-user').get('image_url'):
+                    configuration_value['anonymous-user']['image_url'] = update_values.get('anonymous-user').get('image_url')
+                    record_updated = True
 
         elif configuration_type == PROFILE_METADATA_CONFIGURATION:
             
@@ -6241,6 +6265,7 @@ class CommunityHelper:
                     CommunityHelper.update_create_feed_poll_settings_for_community.delay(community_id, user_id, update_values.get('create_feed_poll'))
 
                     record_updated = True
+            
             
         elif configuration_type == PERSONALISED_FEED_WEIGHTS:
             filter_dict = {
