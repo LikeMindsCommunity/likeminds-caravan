@@ -32,7 +32,9 @@ SWARM_TOP_LIKED_COMMENTS_CACHE_KEY = "{}_*_top_liked_comments"
 KETTLE_CACHE_KEY_COMMUNITY_SETTINGS = "{}_community_settings" # community_id
 KETTLE_CACHE_KEY_USER_META = "{}_{}_user_meta" # community_id, user_unique_id
 KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS = "{}_profile_meta_configurations" # community_id
+KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS = "{}_feed_metadata_configurations"  # community_id
 KETTLE_CACHE_KEY_WIDGET_META = "{}_{}_widget_meta" # community_id, widget_id
+KETTLE_CACHE_KEY_ANONYMOUS_USER_META = "{}_anonymous-user_user_meta"  # community_id
 
 SWARM_CACHE_KEY_COMMUNITY_SETTINGS = "{}_community_settings" # community_id
 SWARM_CACHE_KEY_USER_COMMUNITY_CHANNELS = "{}_{}_user_community_channels" # community_id, user_unique_id

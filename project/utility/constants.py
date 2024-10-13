@@ -152,7 +152,7 @@ COMMUNITY_CONFIGURATIONS = {
                 "comment_sort_order": "",  # asc or desc
                 "comment_count": 1,
             },
-            "anonymous_user": {
+            "anonymous_user_meta": {
                 "name": "Anonymous User",
                 "image_url": "",
             },
