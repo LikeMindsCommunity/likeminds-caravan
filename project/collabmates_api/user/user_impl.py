@@ -1766,8 +1766,8 @@ class UserHelper:
 
         if custom_meta.get('user_unique_id'):
             
-            # If user_unique_id is "anonymous-user" return error
-            if custom_meta.get('user_unique_id') == 'anonymous-user': #TODO: move to constant
+            # If user_unique_id is "lm-anonymous-user" return error
+            if custom_meta.get('user_unique_id') == 'lm-anonymous-user': #TODO: move to constant
                 return {}
             
             user_context['user_unique_id'] = custom_meta.get('user_unique_id')

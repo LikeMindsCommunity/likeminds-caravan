@@ -5697,14 +5697,14 @@ class CommunityHelper:
                         ):
                     return ResponseUtilities.get_inner_error_context("Invalid like_entity_variable value!")
                 
-            if update_values.get('anonymous-user'):
-                if not isinstance(update_values.get('anonymous-user'), dict):
-                    return ResponseUtilities.get_inner_error_context("Invalid anonymous-user value")
+            if update_values.get('anonymous_user_meta'):
+                if not isinstance(update_values.get('anonymous_user_meta'), dict):
+                    return ResponseUtilities.get_inner_error_context("Invalid anonymous_user_meta value")
                 
-                if update_values.get('anonymous-user').get('name') and not isinstance(update_values.get('anonymous-user').get('name'), str):
+                if update_values.get('anonymous_user_meta').get('name') and not isinstance(update_values.get('anonymous_user_meta').get('name'), str):
                     return ResponseUtilities.get_inner_error_context("Invalid name value")
                 
-                if update_values.get('anonymous-user').get('image_url') and not isinstance(update_values.get('anonymous-user').get('image_url'), str):
+                if update_values.get('anonymous_user_meta').get('image_url') and not isinstance(update_values.get('anonymous_user_meta').get('image_url'), str):
                     return ResponseUtilities.get_inner_error_context("Invalid image_url value")
 
         elif configuration_type == FEED_SETTINGS_CONFIGURATION:
@@ -6188,17 +6188,17 @@ class CommunityHelper:
                     community_id=community_id, user_id=user_id,
                     key_pattern=SWARM_TOP_LIKED_COMMENTS_CACHE_KEY.format(community_id))
                 
-            if update_values.get('anonymous-user') and isinstance(update_values.get('anonymous-user'), dict):
+            if update_values.get('anonymous_user_meta') and isinstance(update_values.get('anonymous_user_meta'), dict):
 
-                if not (configuration_value.get('anonymous-user') or isinstance(configuration_value.get('anonymous-user'), dict)):
-                    configuration_value['anonymous-user'] = {}
+                if not (configuration_value.get('anonymous_user_meta') or isinstance(configuration_value.get('anonymous_user_meta'), dict)):
+                    configuration_value['anonymous_user_meta'] = {}
 
-                if update_values.get('anonymous-user').get('name'):
-                    configuration_value['anonymous-user']['name'] = update_values.get('anonymous-user').get('name')
+                if update_values.get('anonymous_user_meta').get('name'):
+                    configuration_value['anonymous_user_meta']['name'] = update_values.get('anonymous_user_meta').get('name')
                     record_updated = True
 
-                if update_values.get('anonymous-user').get('image_url'):
-                    configuration_value['anonymous-user']['image_url'] = update_values.get('anonymous-user').get('image_url')
+                if update_values.get('anonymous_user_meta').get('image_url'):
+                    configuration_value['anonymous_user_meta']['image_url'] = update_values.get('anonymous_user_meta').get('image_url')
                     record_updated = True
                     
                 if record_updated:
