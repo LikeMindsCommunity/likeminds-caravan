@@ -1765,6 +1765,11 @@ class UserHelper:
         user_context['mobile_context'] = UserHelper.compute_mobile_no(req_body)
 
         if custom_meta.get('user_unique_id'):
+            
+            # If user_unique_id is "lm-anonymous-user" return error
+            if custom_meta.get('user_unique_id') == 'lm-anonymous-user': #TODO: move to constant
+                return {}
+            
             user_context['user_unique_id'] = custom_meta.get('user_unique_id')
 
         return user_context

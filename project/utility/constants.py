@@ -132,128 +132,87 @@ CHATBOT_CONFIGURATIONS = "chatbot"
 
 # Community Configurations
 COMMUNITY_CONFIGURATIONS = {
-    MEDIA_LIMITS_CONFIGURATION:
-    {
+    MEDIA_LIMITS_CONFIGURATION: {
         "type": "media_limits",
         "description": "Media size upload limit (in Kilobytes) for different file formats",
-        "value":
-        {
-            "max_image_size": 5124, # 5 MB
-            "max_video_size": 102400, # 100 MB
-        }
+        "value": {
+            "max_image_size": 5124,  # 5 MB
+            "max_video_size": 102400,  # 100 MB
+        },
     },
-    FEED_METADATA_CONFIGURATION:
-    {
+    FEED_METADATA_CONFIGURATION: {
         "type": "feed_metadata",
         "description": "Metadata related to feed and its entity",
-        "value":
-        {
+        "value": {
             "post": "post",
             "comment": "comment",
-            "like_entity_variable": {
-                "entity_name": "like",
-                "past_tense_verb": "liked"
-            },
+            "like_entity_variable": {"entity_name": "like", "past_tense_verb": "liked"},
             "universal_feed": {
-                "comment_sort_order_key": "", # likes
-                "comment_sort_order": "", # asc or desc
-                "comment_count": 1
-            }
-        }
+                "comment_sort_order_key": "",  # likes
+                "comment_sort_order": "",  # asc or desc
+                "comment_count": 1,
+            },
+            "anonymous_user_meta": {
+                "name": "Anonymous User",
+                "image_url": "",
+            },
+        },
     },
-    PROFILE_METADATA_CONFIGURATION:
-    {
+    PROFILE_METADATA_CONFIGURATION: {
         "type": "profile_metadata",
         "description": "User profiles metadata for the community",
-        "value":
-        {
-            "widgets_enabled": False
-        }
+        "value": {"widgets_enabled": False},
     },
-    NSFW_FILTERING_CONFIGURATION:
-    {
+    NSFW_FILTERING_CONFIGURATION: {
         "type": "nsfw_filtering",
         "description": "NSFW filtering metadata for the community",
-        "value":
-        {
+        "value": {
             "enabled": False,
             "inferdo_api_key": "",
             "cutoff_score": 0.8,
-            "error_status": ""
-        }
+            "error_status": "",
+        },
     },
-    WIDGETS_METADATA_CONFIGURATION:
-    {
+    WIDGETS_METADATA_CONFIGURATION: {
         "type": WIDGETS_METADATA_CONFIGURATION,
         "description": "Widgets metadata for the community",
-        "value":
-        {
-            "message": False
-        }
+        "value": {"message": False},
     },
-    GUEST_FLOW_METADATA_CONFIGURATION:
-    {
+    GUEST_FLOW_METADATA_CONFIGURATION: {
         "type": "guest_flow_metadata",
         "description": "Community configurations for guest flow",
-        "value":
-        {
-            "guest_users": "SINGLE"
-        }
+        "value": {"guest_users": "SINGLE"},
     },
-    FEED_SETTINGS_CONFIGURATION:
-    {
+    FEED_SETTINGS_CONFIGURATION: {
         "type": FEED_SETTINGS_CONFIGURATION,
         "description": "Additional Feed settings for the community",
-        "value":
-        {
-            "create_feed_poll": "everyone", # everyone, only_cm, no_one
-        }
+        "value": {
+            "create_feed_poll": "everyone",  # everyone, only_cm, no_one
+        },
     },
-    PERSONALISED_FEED_WEIGHTS:
-    {
+    PERSONALISED_FEED_WEIGHTS: {
         "type": PERSONALISED_FEED_WEIGHTS,
         "description": "Personalised feed weights metadata for the community",
         "value": {
-            "recency_metrics": {
-                "weight": 10,
-                "max_threshold": 1800000
-            },
-            "likes_metrics": {
-                "weight": 1,
-                "max_threshold": 100
-            },
-            "comments_metrics": {
-                "weight": 1,
-                "max_threshold": 100
-            },
-            "post_dampening_metrics": {
-                "weight": 10,
-                "max_threshold": 300
-            },
-            "user_groups_metrics": {
-                "weight": 10,
-                "max_threshold": 10
-            },
-            "user_topics_metrics": {
-                "weight": 10,
-                "max_threshold": 10
-            },
-            "user_connection_metrics": {
-                "weight": 10,
-                "max_threshold": 10
-            }
-        }
+            "recency_metrics": {"weight": 10, "max_threshold": 1800000},
+            "likes_metrics": {"weight": 1, "max_threshold": 100},
+            "comments_metrics": {"weight": 1, "max_threshold": 100},
+            "post_dampening_metrics": {"weight": 10, "max_threshold": 300},
+            "user_groups_metrics": {"weight": 10, "max_threshold": 10},
+            "user_topics_metrics": {"weight": 10, "max_threshold": 10},
+            "user_connection_metrics": {"weight": 10, "max_threshold": 10},
+        },
     },
-    CHATBOT_CONFIGURATIONS : {
+    CHATBOT_CONFIGURATIONS: {
         "type": CHATBOT_CONFIGURATIONS,
         "description": "Chatbot configurations for the community",
         "value": {
             "enabled": False,
-            "provider": "", # open_ai_assistant
+            "provider": "",  # open_ai_assistant
             "api_key": "",
-            "error_message": ""
-        }
-    }
+            "error_message": "",
+        },
+    },
 }
 
 CHATBOT_PROVIDER_OPENAI = "open_ai_assistant"
