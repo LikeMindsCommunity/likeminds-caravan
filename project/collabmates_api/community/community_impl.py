@@ -5730,6 +5730,7 @@ class CommunityHelper:
                 if update_values.get('menu_items_config').get('hide_post'
                     ) and not isinstance(update_values.get('menu_items_config').get('hide_post'), bool):
                     return ResponseUtilities.get_inner_error_context("Invalid hide_post value")
+                
 
         elif configuration_type == CHATBOT_CONFIGURATIONS:
 
@@ -6203,12 +6204,7 @@ class CommunityHelper:
                     
                 if record_updated:
                     
-                    # Delete kettle feed_metadata cache corresponding to anonymous user
-                    InternalServiceUtilities.delete_cache_from_kettle_service.delay(
-                        community_id=community_id, user_id=user_id,
-                        key_pattern=KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS.format(community_id))
-                    
-                    # Delete kettle cache corresponding to universal feed
+                    # Delete kettle cache for anonymous user
                     InternalServiceUtilities.delete_cache_from_kettle_service.delay(
                         community_id=community_id, user_id=user_id,
                         key_pattern=KETTLE_CACHE_KEY_ANONYMOUS_USER_META.format(community_id))
@@ -6443,6 +6439,12 @@ class CommunityHelper:
                     community_id=community_id, user_id=user_id,
                     key_patterns=[KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS.format(community_id)]
                 )
+                
+            if configuration_type in [FEED_METADATA_CONFIGURATION]:
+                # Delete kettle feed_metadata cache corresponding to anonymous user
+                InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                    community_id=community_id, user_id=user_id,
+                    key_pattern=KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS.format(community_id))
 
             # Delete cache key for widget configurations
             if configuration_type in [WIDGETS_METADATA_CONFIGURATION]:
