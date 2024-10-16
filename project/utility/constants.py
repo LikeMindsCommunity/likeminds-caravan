@@ -188,6 +188,9 @@ COMMUNITY_CONFIGURATIONS = {
         "description": "Additional Feed settings for the community",
         "value": {
             "create_feed_poll": "everyone",  # everyone, only_cm, no_one
+            "menu_items_config": {
+                "hide_post": False
+            }
         },
     },
     PERSONALISED_FEED_WEIGHTS: {

@@ -210,7 +210,7 @@ class MemberCommunityHelper:
 
             if value.get('state'):
                 temp['state'] = value.get('state')
-                
+
             if value.get('roles'):
                 temp['roles'] = value.get('roles')
 
@@ -1208,13 +1208,30 @@ class MemberCommunityHelper:
 
         member_state = Members.get_community_member_state(community_instance, user_instance)
 
-        valid_access_types = [access_types.CREATE_POST, access_types.VIEW_POST, access_types.DELETE_POST,
-                              access_types.EDIT_POST, access_types.PIN_POST, access_types.LIKE_POST,
-                              access_types.SAVE_POST, access_types.CREATE_COMMENT, access_types.VIEW_COMMENT,
-                              access_types.DELETE_COMMENT, access_types.EDIT_COMMENT, access_types.LIKE_COMMENT,
-                              access_types.CREATE_ACTIVITY, access_types.VIEW_ACTIVITY, access_types.CREATE_TOPIC,
-                              access_types.EDIT_TOPIC, access_types.DELETE_TOPIC, access_types.IS_MEMBER,
-                              access_types.CHANGE_AUTHOR, access_types.VIEW_USER_ACTIVITY, access_types.CREATE_FEED_POLL,]
+        valid_access_types = [
+            access_types.CREATE_POST,
+            access_types.VIEW_POST,
+            access_types.DELETE_POST,
+            access_types.EDIT_POST,
+            access_types.PIN_POST,
+            access_types.LIKE_POST,
+            access_types.SAVE_POST,
+            access_types.CREATE_COMMENT,
+            access_types.VIEW_COMMENT,
+            access_types.DELETE_COMMENT,
+            access_types.EDIT_COMMENT,
+            access_types.LIKE_COMMENT,
+            access_types.CREATE_ACTIVITY,
+            access_types.VIEW_ACTIVITY,
+            access_types.CREATE_TOPIC,
+            access_types.EDIT_TOPIC,
+            access_types.DELETE_TOPIC,
+            access_types.IS_MEMBER,
+            access_types.CHANGE_AUTHOR,
+            access_types.VIEW_USER_ACTIVITY,
+            access_types.CREATE_FEED_POLL,
+            access_types.HIDE_POST,
+        ]
 
         access_type = access_type_value
 
@@ -1893,13 +1910,13 @@ class MemberCommunityHelper:
 
         if validated_request.get('error_message'):
             return validated_request
-        
+
         if not status:
             status = ConnectionRequestStatus.ACCEPTED.value
-        
+
         if status not in [ConnectionRequestStatus.PENDING.value, ConnectionRequestStatus.ACCEPTED.value]:
             return ResponseUtilities.get_inner_error_context("Invalid status sent")
-        
+
         validated_request['status'] = status
 
         community_instance = validated_request.get('community_instance')

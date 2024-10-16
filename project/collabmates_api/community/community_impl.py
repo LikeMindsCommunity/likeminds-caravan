@@ -5721,7 +5721,15 @@ class CommunityHelper:
             if update_values.get('create_feed_poll') and not isinstance(update_values.get('create_feed_poll'), str) or (
                 update_values.get('create_feed_poll') not in CREATE_FEED_POLL_COMMUNITY_VALUES):
                 return ResponseUtilities.get_inner_error_context(
-                    "Please send valid value for create_feed_poll (possible values - 'everyone', 'only_cm', 'no_one')")            
+                    "Please send valid value for create_feed_poll (possible values - 'everyone', 'only_cm', 'no_one')")      
+                
+            if update_values.get('menu_items_config'): 
+                if not isinstance(update_values.get('menu_items_config'), dict):
+                    return ResponseUtilities.get_inner_error_context("Invalid menu_items_config value")    
+                
+                if update_values.get('menu_items_config').get('hide_post'
+                    ) and not isinstance(update_values.get('menu_items_config').get('hide_post'), bool):
+                    return ResponseUtilities.get_inner_error_context("Invalid hide_post value")
                 
 
         elif configuration_type == CHATBOT_CONFIGURATIONS:
@@ -6273,6 +6281,17 @@ class CommunityHelper:
                     CommunityHelper.update_create_feed_poll_settings_for_community.delay(community_id, user_id, update_values.get('create_feed_poll'))
 
                     record_updated = True
+                    
+            if update_values.get('menu_items_config') and isinstance(update_values.get('menu_items_config'), dict):
+                
+                if not (configuration_value.get('menu_items_config') or isinstance(configuration_value.get('menu_items_config'), dict)):
+                    configuration_value['menu_items_config'] = {}
+                    
+                if update_values.get('menu_items_config').get('hide_post'
+                    ) and isinstance(update_values.get('menu_items_config').get('hide_post'), bool):
+                    
+                    configuration_value['menu_items_config']['hide_post'] = update_values.get('menu_items_config').get('hide_post')
+                    record_updated = True
                 
         elif configuration_type == PERSONALISED_FEED_WEIGHTS:
             filter_dict = {
@@ -6409,7 +6428,7 @@ class CommunityHelper:
 
             # Call SWARM api to delete cache key to update configurations
             if configuration_type in [FEED_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION,
-                                      PERSONALISED_FEED_WEIGHTS]:
+                                      PERSONALISED_FEED_WEIGHTS, FEED_SETTINGS_CONFIGURATION]:
                 InternalServiceUtilities.delete_cache_from_swarm_service.delay(
                     community_id=community_id, user_id=user_id, 
                     cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
