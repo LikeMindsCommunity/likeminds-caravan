@@ -1,21 +1,18 @@
 import json, csv, os
-from openai import OpenAI
 
 from celery import shared_task
 from django.contrib.auth.models import User
 from django.template.loader import get_template
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 import re
 from rest_framework import status as status_codes
-from django.conf import settings
 
 from cms.models import NewAnswer
 from collabmates_api.community.constants import *
 from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSerializer, CommunityToastV1Serializer, \
     CommunityGetStartedSerializer, CommunityQuestionsSerializerV2, CommunityAnswersSerializer, get_error_context, \
     CommunityDMSettingsSerializer, CommunityNotificationSettingsSerializer, FeedNotificationSettingsSerializer, \
-    ReportTagsSerializer, CommunityConfigurationsSerializer, ChatbotMetaSerializer
+    ReportTagsSerializer, CommunityConfigurationsSerializer, ChatbotMetaSerializer, CommunityIntegrationStatusSerializer
 
 from collabmates_api.serializers import UserinfoSerializer
 
@@ -45,7 +42,7 @@ from togther.models import Community, Userinfo, Collabcard, Members, ModelUtilit
     ContentDownloadSettings, CommunityGetStarted, UserEmailsSendStatus, communityFieldTypes, \
     communityFieldSubTypes, CommunityDirectMessageSettings, CommunityNotificationSettings, FeedNotificationSettings, \
     Report_Tags, Report, CommunityConfigurations, CommunityBillingDates, communityRightsSettings, userAdminRights, \
-    memberRights, adminRights, ChatbotMeta, BlockUser
+    memberRights, adminRights, ChatbotMeta, BlockUser, CommunityIntegrationStatus
 from collabmates_api.webhook.models import CommunityWebhook
 from collabmates_api.static_text import ALL_MEMBER_COHORT_TEXT, CUSTOMISE_JOIN_FORM_MAIL_SUBJECT, \
     PRIVATE_LINK_APP_INVITE_DEFAULT_TOAST, IMAGE_URLS_FOR_QUESTION_TITLES, SENDER_NAME_FOR_EMAIL_COMMS, \
@@ -70,7 +67,8 @@ from external_services.caching.cache_impl import CacheImpl
 from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY, 
                                 KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META, 
                                 KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY,
-                                SWARM_CACHE_KEY_COMMUNITY_SETTINGS)
+                                SWARM_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_ANONYMOUS_USER_META,
+                                KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS)
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -90,7 +88,7 @@ from utility.states import member_states, card_types, click_states, member_right
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
     api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
     CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus, GuestFlowUserTypes, \
-    UserRoles
+    UserRoles, CommunityIntegrationStatusTypes
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -2910,6 +2908,50 @@ class CommunityImpl(CommunityManager):
             'user': chatbot_user
         }
 
+    def fetch_community_integration_status(self) -> dict:
+        validated_req = CommunityHelper.validate_fetch_community_integration_request(self.get_api_key())
+
+        if 'error_message' in validated_req:
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_req.get('community_instance')
+        integration_data = CommunityHelper.fetch_or_return_default_community_integration_status(community_instance)
+
+        return {
+            'success': True,
+            'community_integration_data': integration_data
+        }
+
+    def update_community_integration_status(self, status_type: str, status: bool, is_internal: bool) -> dict:
+        validated_req = CommunityHelper.validate_update_community_integration_request(self.get_api_key(),
+                                                                                      status_type, status, is_internal)
+
+        if 'error_message' in validated_req:
+            return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        community_instance = validated_req.get('community_instance')
+
+        # Update the community integration status
+        filter_dict = {
+            "community": community_instance,
+            "status_type": status_type
+        }
+        community_integration_instance = ModelUtilities.get_model_filter(CommunityIntegrationStatus,
+                                                                         filter_dict).first()
+
+        if not community_integration_instance:
+            ModelUtilities.update_or_create_model(CommunityIntegrationStatus, filter_dict, {"status": status})
+
+        elif community_integration_instance.status != status:
+            community_integration_instance.status = status
+            community_integration_instance.save()
+
+        return {
+            'success': True
+        }
+
 
 class CommunityHelper:
 
@@ -5654,6 +5696,16 @@ class CommunityHelper:
                         len(update_values.get('like_entity_variable').get('past_tense_verb').strip()) <= FEED_LIKE_VARIABLE_MAX_LENGTH)
                         ):
                     return ResponseUtilities.get_inner_error_context("Invalid like_entity_variable value!")
+                
+            if update_values.get('anonymous_user_meta'):
+                if not isinstance(update_values.get('anonymous_user_meta'), dict):
+                    return ResponseUtilities.get_inner_error_context("Invalid anonymous_user_meta value")
+                
+                if update_values.get('anonymous_user_meta').get('name') and not isinstance(update_values.get('anonymous_user_meta').get('name'), str):
+                    return ResponseUtilities.get_inner_error_context("Invalid name value")
+                
+                if update_values.get('anonymous_user_meta').get('image_url') and not isinstance(update_values.get('anonymous_user_meta').get('image_url'), str):
+                    return ResponseUtilities.get_inner_error_context("Invalid image_url value")
 
         elif configuration_type == FEED_SETTINGS_CONFIGURATION:
 
@@ -5666,10 +5718,20 @@ class CommunityHelper:
             if community_settings_instance and not community_settings_instance.enabled:
                 return ResponseUtilities.get_inner_error_context("Please enable feed settings first")
 
-            if update_values.get('create_feed_poll') and not isinstance(update_values.get('create_feed_poll'), str) or (
-                update_values.get('create_feed_poll') not in CREATE_FEED_POLL_COMMUNITY_VALUES):
-                return ResponseUtilities.get_inner_error_context(
-                    "Please send valid value for create_feed_poll (possible values - 'everyone', 'only_cm', 'no_one')")            
+            if update_values.get('create_feed_poll'):
+                if not isinstance(update_values.get('create_feed_poll'), str
+                    ) or (update_values.get('create_feed_poll') not in CREATE_FEED_POLL_COMMUNITY_VALUES):
+                    return ResponseUtilities.get_inner_error_context(
+                        "Please send valid value for create_feed_poll (possible values - 'everyone', 'only_cm', 'no_one')")      
+                
+            if update_values.get('menu_items_config'): 
+                if not isinstance(update_values.get('menu_items_config'), dict):
+                    return ResponseUtilities.get_inner_error_context("Invalid menu_items_config value")    
+                
+                if update_values.get('menu_items_config').get('hide_post'
+                    ) and not isinstance(update_values.get('menu_items_config').get('hide_post'), bool):
+                    return ResponseUtilities.get_inner_error_context("Invalid hide_post value")
+                
 
         elif configuration_type == CHATBOT_CONFIGURATIONS:
 
@@ -6127,6 +6189,26 @@ class CommunityHelper:
                 InternalServiceUtilities.delete_cache_from_swarm_service.delay(
                     community_id=community_id, user_id=user_id,
                     key_pattern=SWARM_TOP_LIKED_COMMENTS_CACHE_KEY.format(community_id))
+                
+            if update_values.get('anonymous_user_meta') and isinstance(update_values.get('anonymous_user_meta'), dict):
+
+                if not (configuration_value.get('anonymous_user_meta') or isinstance(configuration_value.get('anonymous_user_meta'), dict)):
+                    configuration_value['anonymous_user_meta'] = {}
+
+                if update_values.get('anonymous_user_meta').get('name'):
+                    configuration_value['anonymous_user_meta']['name'] = update_values.get('anonymous_user_meta').get('name')
+                    record_updated = True
+
+                if update_values.get('anonymous_user_meta').get('image_url'):
+                    configuration_value['anonymous_user_meta']['image_url'] = update_values.get('anonymous_user_meta').get('image_url')
+                    record_updated = True
+                    
+                if record_updated:
+                    
+                    # Delete kettle cache for anonymous user
+                    InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                        community_id=community_id, user_id=user_id,
+                        key_patterns=[KETTLE_CACHE_KEY_ANONYMOUS_USER_META.format(community_id)])
 
         elif configuration_type == PROFILE_METADATA_CONFIGURATION:
             
@@ -6200,7 +6282,18 @@ class CommunityHelper:
                     CommunityHelper.update_create_feed_poll_settings_for_community.delay(community_id, user_id, update_values.get('create_feed_poll'))
 
                     record_updated = True
-            
+                    
+            if update_values.get('menu_items_config') and isinstance(update_values.get('menu_items_config'), dict):
+                
+                if not (configuration_value.get('menu_items_config') or isinstance(configuration_value.get('menu_items_config'), dict)):
+                    configuration_value['menu_items_config'] = {}
+                    
+                if update_values.get('menu_items_config').get('hide_post') is not None and isinstance(
+                    update_values.get('menu_items_config').get('hide_post'), bool):
+                    
+                    configuration_value['menu_items_config']['hide_post'] = update_values.get('menu_items_config').get('hide_post')
+                    record_updated = True
+                
         elif configuration_type == PERSONALISED_FEED_WEIGHTS:
             filter_dict = {
                 'community': community_id,
@@ -6336,7 +6429,7 @@ class CommunityHelper:
 
             # Call SWARM api to delete cache key to update configurations
             if configuration_type in [FEED_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION,
-                                      PERSONALISED_FEED_WEIGHTS]:
+                                      PERSONALISED_FEED_WEIGHTS, FEED_SETTINGS_CONFIGURATION]:
                 InternalServiceUtilities.delete_cache_from_swarm_service.delay(
                     community_id=community_id, user_id=user_id, 
                     cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
@@ -6347,6 +6440,12 @@ class CommunityHelper:
                     community_id=community_id, user_id=user_id,
                     key_patterns=[KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS.format(community_id)]
                 )
+                
+            if configuration_type in [FEED_METADATA_CONFIGURATION]:
+                # Delete kettle feed_metadata cache corresponding to anonymous user
+                InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                    community_id=community_id, user_id=user_id,
+                    key_patterns=[KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS.format(community_id)])
 
             # Delete cache key for widget configurations
             if configuration_type in [WIDGETS_METADATA_CONFIGURATION]:
@@ -6829,3 +6928,74 @@ class CommunityHelper:
             'chatbot_meta_instance': chatbot_meta_instance,
             'chatbot_user_instance': chatbot_meta_instance.user,
         }
+
+    @staticmethod
+    def validate_fetch_community_integration_request(api_key: str) -> dict:
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        community_instance = validated_dict.get('community_id')
+
+        return {
+            'community_instance': community_instance
+        }
+
+    @staticmethod
+    def validate_update_community_integration_request(api_key: str, status_type: str, status: bool,
+                                                      is_internal: bool) -> dict:
+
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        if isinstance(status_type, str) and status_type in CommunityIntegrationStatusTypes.get_choices_list() and \
+                not is_internal:
+            return ResponseUtilities.get_inner_error_context("You cannot update the reserved state.")
+
+        if not isinstance(status, bool):
+            return ResponseUtilities.get_inner_error_context("Invalid status value")
+
+        return {
+            "community_instance": validated_dict.get('community_id')
+        }
+
+    @staticmethod
+    def fetch_or_return_default_community_integration_status(community_instance) -> dict:
+        # fetch community integration from db
+        community_integration_instances = ModelUtilities.get_model_filter(
+            CommunityIntegrationStatus, {'community': community_instance})
+
+        # key value pair of status_type -> integration instance
+        integration_instances_response = {instance.status_type: instance for instance in
+                                          community_integration_instances}
+
+        # Add default integrations if not present
+        for status_type in CommunityIntegrationStatusTypes.get_choices_list():
+
+            if status_type not in integration_instances_response:
+                instance = CommunityIntegrationStatus(community=community_instance,
+                                                      status_type=status_type,
+                                                      status=False)
+                integration_instances_response[status_type] = instance
+
+        # serialize community integrations
+        serialised_community_integrations = CommunityIntegrationStatusSerializer(
+            integration_instances_response.values(), many=True).data
+
+        return serialised_community_integrations
