@@ -5718,10 +5718,11 @@ class CommunityHelper:
             if community_settings_instance and not community_settings_instance.enabled:
                 return ResponseUtilities.get_inner_error_context("Please enable feed settings first")
 
-            if update_values.get('create_feed_poll') and not isinstance(update_values.get('create_feed_poll'), str) or (
-                update_values.get('create_feed_poll') not in CREATE_FEED_POLL_COMMUNITY_VALUES):
-                return ResponseUtilities.get_inner_error_context(
-                    "Please send valid value for create_feed_poll (possible values - 'everyone', 'only_cm', 'no_one')")      
+            if update_values.get('create_feed_poll'):
+                if not isinstance(update_values.get('create_feed_poll'), str
+                    ) or (update_values.get('create_feed_poll') not in CREATE_FEED_POLL_COMMUNITY_VALUES):
+                    return ResponseUtilities.get_inner_error_context(
+                        "Please send valid value for create_feed_poll (possible values - 'everyone', 'only_cm', 'no_one')")      
                 
             if update_values.get('menu_items_config'): 
                 if not isinstance(update_values.get('menu_items_config'), dict):
