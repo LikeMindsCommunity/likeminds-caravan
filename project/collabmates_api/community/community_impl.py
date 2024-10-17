@@ -6208,7 +6208,7 @@ class CommunityHelper:
                     # Delete kettle cache for anonymous user
                     InternalServiceUtilities.delete_cache_from_kettle_service.delay(
                         community_id=community_id, user_id=user_id,
-                        key_patterns=KETTLE_CACHE_KEY_ANONYMOUS_USER_META.format(community_id))
+                        key_patterns=[KETTLE_CACHE_KEY_ANONYMOUS_USER_META.format(community_id)])
 
         elif configuration_type == PROFILE_METADATA_CONFIGURATION:
             
@@ -6288,8 +6288,8 @@ class CommunityHelper:
                 if not (configuration_value.get('menu_items_config') or isinstance(configuration_value.get('menu_items_config'), dict)):
                     configuration_value['menu_items_config'] = {}
                     
-                if update_values.get('menu_items_config').get('hide_post'
-                    ) and isinstance(update_values.get('menu_items_config').get('hide_post'), bool):
+                if update_values.get('menu_items_config').get('hide_post') is not None and isinstance(
+                    update_values.get('menu_items_config').get('hide_post'), bool):
                     
                     configuration_value['menu_items_config']['hide_post'] = update_values.get('menu_items_config').get('hide_post')
                     record_updated = True
@@ -6445,7 +6445,7 @@ class CommunityHelper:
                 # Delete kettle feed_metadata cache corresponding to anonymous user
                 InternalServiceUtilities.delete_cache_from_kettle_service.delay(
                     community_id=community_id, user_id=user_id,
-                    key_patterns=KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS.format(community_id))
+                    key_patterns=[KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS.format(community_id)])
 
             # Delete cache key for widget configurations
             if configuration_type in [WIDGETS_METADATA_CONFIGURATION]:
