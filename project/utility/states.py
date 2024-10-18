@@ -1,4 +1,5 @@
 import enum
+from django.db import models
 
 
 class ExtendedEnum(enum.Enum):
@@ -896,6 +897,7 @@ class AccessTypes:
     VIEW_POST = "view_post"
     DELETE_POST = "delete_post"
     PIN_POST = "pin_post"
+    HIDE_POST = "hide_post"
     LIKE_POST = "like_post"
     SAVE_POST = "save_post"
     CREATE_COMMENT = "create_comment"
@@ -1090,3 +1092,11 @@ class BlockUserTypes(enum.Enum):
 
 class SearchMustHaveRights(ExtendedEnum):
     RESPOND_IN_CHATROOM = "RESPOND_IN_CHATROOM"
+    
+    
+class CommunityIntegrationStatusTypes(models.TextChoices):
+    FINISH = "FINISH", "FINISH"
+
+    @classmethod
+    def get_choices_list(cls):
+        return [choice[0] for choice in cls.choices]

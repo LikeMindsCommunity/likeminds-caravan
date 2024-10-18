@@ -865,15 +865,11 @@ class MemberCommunityImpl(MemberCommunityManager):
             'enabled': True
         }
 
-        if is_version_code_supported_for_intro_room(self.get_version_code(), self.get_platform_code()):
-            intro_room_setting_enabled = False
+        intro_room_setting_enabled = False
 
-            intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
+        intro_room_setting_filter = ModelUtilities.get_model_filter(CommunitySettings, filter_dict)
 
-            if intro_room_setting_filter:
-                intro_room_setting_enabled = True
-
-        else:
+        if intro_room_setting_filter:
             intro_room_setting_enabled = True
 
         excluded_card_ids = []
@@ -2009,7 +2005,7 @@ class MemberCommunityImpl(MemberCommunityManager):
             if all([access_type in [access_types.DELETE_POST, access_types.PIN_POST, access_types.DELETE_COMMENT,
                                     access_types.CREATE_ACTIVITY, access_types.EDIT_COMMENT, access_types.EDIT_POST,
                                     access_types.CREATE_TOPIC, access_types.EDIT_TOPIC, access_types.DELETE_TOPIC, 
-                                    access_types.CHANGE_AUTHOR],
+                                    access_types.CHANGE_AUTHOR, access_types.HIDE_POST,],
                     check_admin_moderate_feed_and_comments_right(user_instance, community_instance)]):
                 output_context['access'] = True
 

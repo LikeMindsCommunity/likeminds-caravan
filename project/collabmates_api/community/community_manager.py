@@ -409,3 +409,17 @@ class CommunityManager(metaclass=abc.ABCMeta):
         Updates community configurations
         """
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_community_integration_status(self, status_type: str, status: bool) -> dict:
+        """
+        Updates community integration status
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_community_integration_status(self) -> dict:
+        """
+        Fetches community integration status
+        """
+        raise NotImplementedError
