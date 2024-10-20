@@ -890,6 +890,7 @@ class AccessTypes:
     VIEW_POST = "view_post"
     DELETE_POST = "delete_post"
     PIN_POST = "pin_post"
+    HIDE_POST = "hide_post"
     LIKE_POST = "like_post"
     SAVE_POST = "save_post"
     CREATE_COMMENT = "create_comment"

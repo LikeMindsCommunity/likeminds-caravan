@@ -67,7 +67,8 @@ from external_services.caching.cache_impl import CacheImpl
 from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY, 
                                 KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META, 
                                 KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY,
-                                SWARM_CACHE_KEY_COMMUNITY_SETTINGS)
+                                SWARM_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_ANONYMOUS_USER_META,
+                                KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS)
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -4329,6 +4330,9 @@ class CommunityHelper:
         # give all community setting rights
         give_all_community_setting_rights(community=community_instance)
 
+        CommunityHelper.update_feed_notification_settings_based_on_feed_setting(community_id=community_id, 
+                                                                                is_enabled=True)
+
         save_moderation_history(user=user_instance, community=community_instance,
                                 moderation_by=user_instance,
                                 type=moderation_history_types.STARTED_COMMUNITY)
@@ -5692,6 +5696,16 @@ class CommunityHelper:
                         len(update_values.get('like_entity_variable').get('past_tense_verb').strip()) <= FEED_LIKE_VARIABLE_MAX_LENGTH)
                         ):
                     return ResponseUtilities.get_inner_error_context("Invalid like_entity_variable value!")
+                
+            if update_values.get('anonymous_user_meta'):
+                if not isinstance(update_values.get('anonymous_user_meta'), dict):
+                    return ResponseUtilities.get_inner_error_context("Invalid anonymous_user_meta value")
+                
+                if update_values.get('anonymous_user_meta').get('name') and not isinstance(update_values.get('anonymous_user_meta').get('name'), str):
+                    return ResponseUtilities.get_inner_error_context("Invalid name value")
+                
+                if update_values.get('anonymous_user_meta').get('image_url') and not isinstance(update_values.get('anonymous_user_meta').get('image_url'), str):
+                    return ResponseUtilities.get_inner_error_context("Invalid image_url value")
 
         elif configuration_type == FEED_SETTINGS_CONFIGURATION:
 
@@ -5704,10 +5718,20 @@ class CommunityHelper:
             if community_settings_instance and not community_settings_instance.enabled:
                 return ResponseUtilities.get_inner_error_context("Please enable feed settings first")
 
-            if update_values.get('create_feed_poll') and not isinstance(update_values.get('create_feed_poll'), str) or (
-                update_values.get('create_feed_poll') not in CREATE_FEED_POLL_COMMUNITY_VALUES):
-                return ResponseUtilities.get_inner_error_context(
-                    "Please send valid value for create_feed_poll (possible values - 'everyone', 'only_cm', 'no_one')")            
+            if update_values.get('create_feed_poll'):
+                if not isinstance(update_values.get('create_feed_poll'), str
+                    ) or (update_values.get('create_feed_poll') not in CREATE_FEED_POLL_COMMUNITY_VALUES):
+                    return ResponseUtilities.get_inner_error_context(
+                        "Please send valid value for create_feed_poll (possible values - 'everyone', 'only_cm', 'no_one')")      
+                
+            if update_values.get('menu_items_config'): 
+                if not isinstance(update_values.get('menu_items_config'), dict):
+                    return ResponseUtilities.get_inner_error_context("Invalid menu_items_config value")    
+                
+                if update_values.get('menu_items_config').get('hide_post'
+                    ) and not isinstance(update_values.get('menu_items_config').get('hide_post'), bool):
+                    return ResponseUtilities.get_inner_error_context("Invalid hide_post value")
+                
 
         elif configuration_type == CHATBOT_CONFIGURATIONS:
 
@@ -6165,6 +6189,26 @@ class CommunityHelper:
                 InternalServiceUtilities.delete_cache_from_swarm_service.delay(
                     community_id=community_id, user_id=user_id,
                     key_pattern=SWARM_TOP_LIKED_COMMENTS_CACHE_KEY.format(community_id))
+                
+            if update_values.get('anonymous_user_meta') and isinstance(update_values.get('anonymous_user_meta'), dict):
+
+                if not (configuration_value.get('anonymous_user_meta') or isinstance(configuration_value.get('anonymous_user_meta'), dict)):
+                    configuration_value['anonymous_user_meta'] = {}
+
+                if update_values.get('anonymous_user_meta').get('name'):
+                    configuration_value['anonymous_user_meta']['name'] = update_values.get('anonymous_user_meta').get('name')
+                    record_updated = True
+
+                if update_values.get('anonymous_user_meta').get('image_url'):
+                    configuration_value['anonymous_user_meta']['image_url'] = update_values.get('anonymous_user_meta').get('image_url')
+                    record_updated = True
+                    
+                if record_updated:
+                    
+                    # Delete kettle cache for anonymous user
+                    InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                        community_id=community_id, user_id=user_id,
+                        key_patterns=[KETTLE_CACHE_KEY_ANONYMOUS_USER_META.format(community_id)])
 
         elif configuration_type == PROFILE_METADATA_CONFIGURATION:
             
@@ -6224,6 +6268,32 @@ class CommunityHelper:
                     configuration_value['guest_users'] = update_values.get('guest_users')
                     record_updated = True
 
+        elif configuration_type == FEED_SETTINGS_CONFIGURATION:
+
+            if update_values.get('create_feed_poll') and isinstance(update_values.get('create_feed_poll'), str) and (
+                update_values.get('create_feed_poll') in CREATE_FEED_POLL_COMMUNITY_VALUES):
+
+                # if create_feed_poll value is updated, update rights for all members & managers in the community
+                if configuration_value['create_feed_poll'] != update_values.get('create_feed_poll'):
+
+                    configuration_value['create_feed_poll'] = update_values.get('create_feed_poll')
+                    
+                    # Update rights for all members & managers in the community
+                    CommunityHelper.update_create_feed_poll_settings_for_community.delay(community_id, user_id, update_values.get('create_feed_poll'))
+
+                    record_updated = True
+                    
+            if update_values.get('menu_items_config') and isinstance(update_values.get('menu_items_config'), dict):
+                
+                if not (configuration_value.get('menu_items_config') or isinstance(configuration_value.get('menu_items_config'), dict)):
+                    configuration_value['menu_items_config'] = {}
+                    
+                if update_values.get('menu_items_config').get('hide_post') is not None and isinstance(
+                    update_values.get('menu_items_config').get('hide_post'), bool):
+                    
+                    configuration_value['menu_items_config']['hide_post'] = update_values.get('menu_items_config').get('hide_post')
+                    record_updated = True
+                
         elif configuration_type == PERSONALISED_FEED_WEIGHTS:
             filter_dict = {
                 'community': community_id,
@@ -6359,7 +6429,7 @@ class CommunityHelper:
 
             # Call SWARM api to delete cache key to update configurations
             if configuration_type in [FEED_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION,
-                                      PERSONALISED_FEED_WEIGHTS]:
+                                      PERSONALISED_FEED_WEIGHTS, FEED_SETTINGS_CONFIGURATION]:
                 InternalServiceUtilities.delete_cache_from_swarm_service.delay(
                     community_id=community_id, user_id=user_id, 
                     cache_key=(SWARM_CACHE_KEY_CONFIGURATIONS % str(community_id)))
@@ -6370,6 +6440,12 @@ class CommunityHelper:
                     community_id=community_id, user_id=user_id,
                     key_patterns=[KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS.format(community_id)]
                 )
+                
+            if configuration_type in [FEED_METADATA_CONFIGURATION]:
+                # Delete kettle feed_metadata cache corresponding to anonymous user
+                InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                    community_id=community_id, user_id=user_id,
+                    key_patterns=[KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS.format(community_id)])
 
             # Delete cache key for widget configurations
             if configuration_type in [WIDGETS_METADATA_CONFIGURATION]:
