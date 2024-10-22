@@ -2,6 +2,13 @@ import enum
 from django.db import models
 
 
+class ExtendedEnum(enum.Enum):
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
+
+
 class PlatformCodes:
     ANDROID = "an"
     IOS = "ios"
@@ -1083,6 +1090,10 @@ class BlockUserTypes(enum.Enum):
     BLOCKED = "BLOCKED"
 
 
+class SearchMustHaveRights(ExtendedEnum):
+    RESPOND_IN_CHATROOM = "RESPOND_IN_CHATROOM"
+    
+    
 class CommunityIntegrationStatusTypes(models.TextChoices):
     FINISH = "FINISH", "FINISH"
 
