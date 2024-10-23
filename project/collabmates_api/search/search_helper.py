@@ -1,11 +1,9 @@
-from togther.models import (ModelUtilities, Collabcard, Members, userMemberRights, UserChannelSettings)
+from togther.models import (ModelUtilities, Collabcard, Members, Userinfo)
 from collabmates_api.serializers import (get_menu_for_members)
-from collabmates_api.chatroom.constants import (CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE)
-from utility.states import (member_states, SearchMustHaveRights, member_rights)
+from utility.states import (member_states)
 from collabmates_api.user_moderation_rights import (check_all_manager_rights)
 from utility.time_utilities import TimeUtilities
 from ..raw_queries import (get_chatroom_participants_count, get_users_sdk_meta_dict)
-from utility.response_utilities import ResponseUtilities
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -124,32 +122,3 @@ class SearchHelper:
                                     item_member_is_owner=user_data.get('is_owner'),
                                     parents_list=user_data.get('parent_cm_list'),
                                     current_user_admin_rights=user_admin_rights)
-
-    @staticmethod
-    def validate_must_have_rights_in_search_chatroom_request(current_user_id: int, community_id: int,
-                                                             must_have_rights: list = None) -> dict:
-
-        if not must_have_rights:
-            return {}
-
-        if not isinstance(must_have_rights, list) or set(must_have_rights).difference(set(SearchMustHaveRights.list())):
-            return ResponseUtilities.get_inner_error_context("Invalid must_have_rights list")
-
-        has_right = ModelUtilities.get_model_filter(userMemberRights,
-                                                    {'user': current_user_id, 'community': community_id,
-                                                     'right__state': member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM})
-
-        if not has_right:
-            return {"chatroom_ids": []}
-
-        # For member_can_message setting
-        filter_dict = {
-            "user": current_user_id,
-            "setting_type": CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE,
-            "enabled": True
-        }
-        user_channel_settings_filter = ModelUtilities.get_model_filter(UserChannelSettings, filter_dict)
-
-        chatroom_ids = list(user_channel_settings_filter.values_list('id', flat=True))
-
-        return {"chatroom_ids": chatroom_ids}

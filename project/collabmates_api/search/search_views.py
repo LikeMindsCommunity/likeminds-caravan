@@ -50,7 +50,6 @@ class ChatroomSearchView(APIView):
         follow_status = request.GET.get('follow_status', True)
         chatroom_types = StringUtilities.get_list_from_string(request.GET.get('chatroom_types', ""), [])
         order_by = request.GET.get('order_by', "")
-        must_have_rights = StringUtilities.get_list_from_string(request.GET.get('must_have_rights', ""), [])
 
         if isinstance(follow_status, str):
             follow_status = follow_status.lower() == 'true'
@@ -60,8 +59,7 @@ class ChatroomSearchView(APIView):
                                     community_id=community_id)
 
         chatrooms_data = search_manager.search_chatroom(chatroom_types=chatroom_types,
-                                                        order_by=order_by,
-                                                        must_have_rights=must_have_rights)
+                                                        order_by=order_by)
 
         if 'error_message' in chatrooms_data:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(chatrooms_data.get('error_message'),
