@@ -6968,6 +6968,9 @@ class CommunityHelper:
                 not is_internal:
             return ResponseUtilities.get_inner_error_context("You cannot update the reserved state.")
 
+        if not (isinstance(status_type, str) and status_type):
+            return ResponseUtilities.get_inner_error_context("Invalid status type")
+
         if not isinstance(status, bool):
             return ResponseUtilities.get_inner_error_context("Invalid status value")
 
