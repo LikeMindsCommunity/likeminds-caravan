@@ -136,7 +136,7 @@ class ElasticSearchSync:
         @param user_id: int
         @param community_id: int
         @return: None
-        @description: updates all chatrooms in a given community
+        @description: updates all chatrooms of a user in a given community
         """
         instances = collabcardState.objects \
             .filter(user_id=user_id, community__id=community_id, remove=None) \
