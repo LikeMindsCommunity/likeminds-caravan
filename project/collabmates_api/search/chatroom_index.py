@@ -4,8 +4,12 @@ from django_elasticsearch_dsl import Document, Index, fields, KeywordField, Bool
 from django_elasticsearch_dsl_drf.compat import StringField
 from elasticsearch_dsl import analyzer, token_filter
 
-from togther.models import collabcardState, ModelUtilities, card_answers
-from utility.states import (conversation_states)
+from togther.models import collabcardState, ModelUtilities, card_answers, userMemberRights, Members
+
+from utility.states import (conversation_states, member_rights)
+from collabmates_api.chatroom.constants import (CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE)
+
+from collabmates_api.chatroom.chatroom_impl import ChatroomHelper
 from .index_utilities import IndexUtilities
 
 # Max index length
@@ -132,6 +136,8 @@ class ChatroomDocument(Document):
 
     last_message_timestamp = fields.IntegerField()
 
+    can_message = BooleanField() # Newly added
+
     def prepare_attachments(self, instance):
         return IndexUtilities(instance.card).get_attachments()
 
@@ -146,6 +152,42 @@ class ChatroomDocument(Document):
 
         if card_answer_filter:
             return card_answer_filter.last().last_updated
+
+    @staticmethod
+    def prepare_can_message(instance):
+        
+        # TODO: reindex chatroom document to update can_message field for cases - 
+        # 1. when chatroom member_can_message setting is updated i.e "update chatroom" API
+        # 2. when user member rights are updated i.e "update community member rights" API
+        # 3. when user chatroom settings are updated i.e "Update user channel settings" API
+
+        # If user has right in community to respond
+        has_right = ModelUtilities.get_model_filter(
+            userMemberRights,
+            {
+                "user": instance.user,
+                "community": instance.community,
+                "right__state": member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM,
+            },
+        )
+
+        if not has_right:
+            return False
+
+        is_admin = Members.is_member_community_promoter(instance.user, instance.community)
+
+        user_chatroom_settings = ChatroomHelper.compute_user_chatroom_settings(
+                instance.user,
+                instance.chatroom,
+                is_admin,
+                [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE],
+            )
+
+        # if user does not have right to respond in chatroom based on chatroom (member_can_message) and channel user settings
+        if not user_chatroom_settings or not user_chatroom_settings[0].enabled :
+            return False
+
+        return True
 
     def get_queryset(self):
         return super().get_queryset()\
