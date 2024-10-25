@@ -379,6 +379,7 @@ class SearchImpl(SearchManager):
 
             self.set_community_id(community_instance.id)
 
+        #TODO: Would need to change this to add a filter of "can_message" in es query only instead of DB calls.
         validated_dict = SearchHelper.validate_must_have_rights_in_search_chatroom_request(
             self.get_member_id(), self.get_community_id(), must_have_rights)
 

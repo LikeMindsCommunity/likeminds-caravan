@@ -160,6 +160,8 @@ class ChatroomDocument(Document):
         # 1. when chatroom member_can_message setting is updated i.e "update chatroom" API
         # 2. when user member rights are updated i.e "update community member rights" API
         # 3. when user chatroom settings are updated i.e "Update user channel settings" API
+        
+        # TODO: Also update chatrooms seaarch API to filter on 'can_message' when needed
 
         # If user has right in community to respond
         has_right = ModelUtilities.get_model_filter(
