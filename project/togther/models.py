@@ -262,7 +262,7 @@ class Members(models.Model):
         return member_states.GUEST
 
     @staticmethod
-    def is_member_community_promoter(community: Community, member: User) -> int:
+    def is_member_community_promoter(community: Community, member: User) -> bool:
         member_state = Members.get_community_member_state(community, member)
         return member_state == member_states.ADMIN
 

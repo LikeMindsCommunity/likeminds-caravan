@@ -136,9 +136,10 @@ class ChatroomDocument(Document):
 
     last_message_timestamp = fields.IntegerField()
 
-    can_message = BooleanField() # Newly added
+    can_message = BooleanField()
 
-    def prepare_attachments(self, instance):
+    @staticmethod
+    def prepare_attachments(instance):
         return IndexUtilities(instance.card).get_attachments()
 
     @staticmethod
@@ -155,14 +156,6 @@ class ChatroomDocument(Document):
 
     @staticmethod
     def prepare_can_message(instance):
-        
-        # TODO: reindex chatroom document to update can_message field for cases - 
-        # 1. when chatroom member_can_message setting is updated i.e "update chatroom" API
-        # 2. when user member rights are updated i.e "update community member rights" API
-        # 3. when user chatroom settings are updated i.e "Update user channel settings" API
-        
-        # TODO: Also update chatrooms seaarch API to filter on 'can_message' when needed
-
         # If user has right in community to respond
         has_right = ModelUtilities.get_model_filter(
             userMemberRights,
@@ -176,17 +169,18 @@ class ChatroomDocument(Document):
         if not has_right:
             return False
 
-        is_admin = Members.is_member_community_promoter(instance.user, instance.community)
+        is_admin = Members.is_member_community_promoter(instance.community, instance.user)
 
         user_chatroom_settings = ChatroomHelper.compute_user_chatroom_settings(
                 instance.user,
-                instance.chatroom,
+                instance.card,
                 is_admin,
                 [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE],
             )
 
-        # if user does not have right to respond in chatroom based on chatroom (member_can_message) and channel user settings
-        if not user_chatroom_settings or not user_chatroom_settings[0].enabled :
+        # if user does not have right to respond in chatroom based on chatroom (member_can_message)
+        # and channel user settings
+        if not user_chatroom_settings or not user_chatroom_settings[0].enabled:
             return False
 
         return True

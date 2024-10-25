@@ -126,30 +126,12 @@ class SearchHelper:
                                     current_user_admin_rights=user_admin_rights)
 
     @staticmethod
-    def validate_must_have_rights_in_search_chatroom_request(current_user_id: int, community_id: int,
-                                                             must_have_rights: list = None) -> dict:
+    def validate_must_have_rights_in_search_chatroom_request(must_have_rights: list = None) -> dict:
 
         if not must_have_rights:
-            return {}
+            return {"must_have_rights": []}
 
         if not isinstance(must_have_rights, list) or set(must_have_rights).difference(set(SearchMustHaveRights.list())):
             return ResponseUtilities.get_inner_error_context("Invalid must_have_rights list")
 
-        has_right = ModelUtilities.get_model_filter(userMemberRights,
-                                                    {'user': current_user_id, 'community': community_id,
-                                                     'right__state': member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM})
-
-        if not has_right:
-            return {"chatroom_ids": []}
-
-        # For member_can_message setting
-        filter_dict = {
-            "user": current_user_id,
-            "setting_type": CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE,
-            "enabled": True
-        }
-        user_channel_settings_filter = ModelUtilities.get_model_filter(UserChannelSettings, filter_dict)
-
-        chatroom_ids = list(user_channel_settings_filter.values_list('id', flat=True))
-
-        return {"chatroom_ids": chatroom_ids}
+        return {"must_have_rights": must_have_rights}

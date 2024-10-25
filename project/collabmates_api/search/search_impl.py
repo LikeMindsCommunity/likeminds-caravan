@@ -6,7 +6,7 @@ from .search_helper import SearchHelper
 from togther.models import (collabcardState, userMemberRights, Members, communityAnswers, ModelUtilities)
 
 from utility.states import (member_rights, card_types, member_states, question_states, question_answers_versions,
-                            conversation_states, ChatroomSearchOrderBy)
+                            conversation_states, ChatroomSearchOrderBy, SearchMustHaveRights)
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
 from utility.response_utilities import ResponseUtilities
@@ -105,7 +105,7 @@ class SearchImpl(SearchManager):
         }
 
     def _get_chatroom_search_ngram_query_dict(self, excluded_chatroom_id_list, included_chatroom_types, order_by,
-                                              included_chatroom_ids):
+                                              must_have_rights_list):
         """
         @param excluded_chatroom_id_list: list of excluded chatroom ids on the basis of cohort access
         @return: dict
@@ -156,9 +156,9 @@ class SearchImpl(SearchManager):
             }
         ]
 
-        if included_chatroom_ids is not None:
+        if SearchMustHaveRights.RESPOND_IN_CHATROOM.value in must_have_rights_list:
             must_filter_list.append({
-                "terms": {"chatroom.id": included_chatroom_ids}
+                "term": {"can_message": True}
             })
 
         return {
@@ -380,22 +380,13 @@ class SearchImpl(SearchManager):
             self.set_community_id(community_instance.id)
 
         #TODO: Would need to change this to add a filter of "can_message" in es query only instead of DB calls.
-        validated_dict = SearchHelper.validate_must_have_rights_in_search_chatroom_request(
-            self.get_member_id(), self.get_community_id(), must_have_rights)
+        validated_dict = SearchHelper.validate_must_have_rights_in_search_chatroom_request(must_have_rights)
 
         if "error_message" in validated_dict:
             return ResponseUtilities.get_impl_error_context(validated_dict.get("error_message"),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        if "chatroom_ids" in validated_dict and not validated_dict["chatroom_ids"]:
-            return {
-                'success': True,
-                'chatrooms': []
-            }
-
-        included_chatroom_ids = None
-        if "chatroom_ids" in validated_dict:
-            included_chatroom_ids = validated_dict["chatroom_ids"]
+        must_have_rights = validated_dict.get("must_have_rights")
 
         excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
                                                                            self.get_community_id())
@@ -416,7 +407,7 @@ class SearchImpl(SearchManager):
         search_query_dict = self._get_chatroom_search_ngram_query_dict(excluded_card_ids,
                                                                        chatroom_types,
                                                                        order_by,
-                                                                       included_chatroom_ids)
+                                                                       must_have_rights)
 
         if self.get_community_id():
             self._append_community_id(search_query_dict, self.get_community_id())

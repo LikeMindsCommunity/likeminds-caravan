@@ -11518,6 +11518,9 @@ def update_community_manager_rights(request):
 
         # Update index of Members
         ElasticSearchSync.update_member.delay(user_id, community_id)
+        
+        # Update chatroom indexing
+        ElasticSearchSync.update_all_community_chatrooms_for_a_user.delay(user_id, community_id)
 
         return JsonResponse({'success': True})
     else:
@@ -12050,6 +12053,9 @@ def update_community_member_rights(request):
 
         # Update Members Indexing
         ElasticSearchSync.update_member.delay(user_id, community_id)
+
+        # Update chatroom indexing
+        ElasticSearchSync.update_all_community_chatrooms_for_a_user.delay(user_id, community_id)
 
         return JsonResponse({'success': True})
     else:
