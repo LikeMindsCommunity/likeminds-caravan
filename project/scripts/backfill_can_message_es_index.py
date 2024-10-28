@@ -12,7 +12,7 @@ def backfill_can_message_es_index():
 
     for sdk_community in sdk_communities:
         print(f"Communities left: {count}")
-        ElasticSearchSync.update_all_community_chatrooms.delay(sdk_community.community_id)
+        ElasticSearchSync.update_all_community_chatrooms(sdk_community.community_id)
         count -= 1
 
 
