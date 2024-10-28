@@ -1450,7 +1450,8 @@ class ChatroomSettings(APIView):
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(response_context.get('error_message'),
                                                                                 response_context.get('status')))
         return JsonResponse(response_context)
-    
+
+
 class ChatroomUserSettings(APIView):
 
     def _validate_request(self, member_id, api_key, req_params = None, req_body = None):

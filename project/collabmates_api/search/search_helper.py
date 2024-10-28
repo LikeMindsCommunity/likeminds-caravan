@@ -1,9 +1,11 @@
-from togther.models import (ModelUtilities, Collabcard, Members, Userinfo)
+from togther.models import (ModelUtilities, Collabcard, Members, userMemberRights, UserChannelSettings)
 from collabmates_api.serializers import (get_menu_for_members)
-from utility.states import (member_states)
+from collabmates_api.chatroom.constants import (CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE)
+from utility.states import (member_states, SearchMustHaveRights, member_rights)
 from collabmates_api.user_moderation_rights import (check_all_manager_rights)
 from utility.time_utilities import TimeUtilities
 from ..raw_queries import (get_chatroom_participants_count, get_users_sdk_meta_dict)
+from utility.response_utilities import ResponseUtilities
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -122,3 +124,14 @@ class SearchHelper:
                                     item_member_is_owner=user_data.get('is_owner'),
                                     parents_list=user_data.get('parent_cm_list'),
                                     current_user_admin_rights=user_admin_rights)
+
+    @staticmethod
+    def validate_must_have_rights_in_search_chatroom_request(must_have_rights: list = None) -> dict:
+
+        if not must_have_rights:
+            return {"must_have_rights": []}
+
+        if not isinstance(must_have_rights, list) or set(must_have_rights).difference(set(SearchMustHaveRights.list())):
+            return ResponseUtilities.get_inner_error_context("Invalid must_have_rights list")
+
+        return {"must_have_rights": must_have_rights}

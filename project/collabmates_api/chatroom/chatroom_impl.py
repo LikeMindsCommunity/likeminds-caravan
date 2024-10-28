@@ -6440,6 +6440,9 @@ class ChatroomHelper:
                 updated_settings.append(ModelUtilities.update_or_create_model(UserChannelSettings, filter_dict,
                                                                               update_dict)[0])
 
+                # Update the chatroom index for the user
+                ElasticSearchSync.update_chatroom_for_user.delay(chatroom_instance.id, participant_instance.id)
+
         return updated_settings
 
     @staticmethod
