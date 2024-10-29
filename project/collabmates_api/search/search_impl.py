@@ -6,7 +6,7 @@ from .search_helper import SearchHelper
 from togther.models import (collabcardState, userMemberRights, Members, communityAnswers, ModelUtilities)
 
 from utility.states import (member_rights, card_types, member_states, question_states, question_answers_versions,
-                            conversation_states, ChatroomSearchOrderBy)
+                            conversation_states, ChatroomSearchOrderBy, SearchMustHaveRights)
 from utility.number_utilities import NumberUtilities
 from utility.time_utilities import TimeUtilities
 from utility.response_utilities import ResponseUtilities
@@ -104,7 +104,8 @@ class SearchImpl(SearchManager):
             }
         }
 
-    def _get_chatroom_search_ngram_query_dict(self, excluded_chatroom_id_list, included_chatroom_types, order_by):
+    def _get_chatroom_search_ngram_query_dict(self, excluded_chatroom_id_list, included_chatroom_types, order_by,
+                                              must_have_rights_list):
         """
         @param excluded_chatroom_id_list: list of excluded chatroom ids on the basis of cohort access
         @return: dict
@@ -129,37 +130,44 @@ class SearchImpl(SearchManager):
                 }
             }
 
+        must_filter_list = [
+            {
+                "term": {"member.id": self.get_member_id()}
+            },
+            {
+                "term": {"follow_status": self.get_follow_status()}
+            },
+            {
+                "bool": {
+                    "should": [
+                        {
+                            "match": {
+                                f"chatroom.{self.get_search_field()}": {
+                                    "query": self.get_search_term(),
+                                    "analyzer": "standard"
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "terms": {"chatroom.type": included_chatroom_types}
+            }
+        ]
+
+        if SearchMustHaveRights.RESPOND_IN_CHATROOM.value in must_have_rights_list:
+            must_filter_list.append({
+                "term": {"can_message": True}
+            })
+
         return {
             "from": self.get_page_size()*(self.get_page_number()-1),
             "size": self.get_page_size(),
             "sort": sort_order_dict,
             "query": {
                 "bool": {
-                    "must": [
-                        {
-                            "term": {"member.id": self.get_member_id()}
-                        },
-                        {
-                            "term": {"follow_status": self.get_follow_status()}
-                        },
-                        {
-                            "bool": {
-                                "should": [
-                                    {
-                                        "match": {
-                                            f"chatroom.{self.get_search_field()}": {
-                                                "query": self.get_search_term(),
-                                                "analyzer": "standard"
-                                            }
-                                        }
-                                    }
-                                ]
-                            }
-                        },
-                        {
-                            "terms": {"chatroom.type": included_chatroom_types}
-                        }
-                    ],
+                    "must": must_filter_list,
                     "must_not": [
                         {
                             "terms": {"chatroom.id": excluded_chatroom_id_list}
@@ -360,7 +368,7 @@ class SearchImpl(SearchManager):
 
         return is_disabled
 
-    def search_chatroom(self, chatroom_types: list = [], order_by: str = ""):
+    def search_chatroom(self, chatroom_types: list = [], order_by: str = "", must_have_rights: list = None):
 
         if self.get_api_key() and not self.get_community_id():
             community_instance = SdkClient.get_community_instance_or_none(self.get_community_id(), self.get_api_key())
@@ -370,6 +378,14 @@ class SearchImpl(SearchManager):
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
 
             self.set_community_id(community_instance.id)
+
+        validated_dict = SearchHelper.validate_must_have_rights_in_search_chatroom_request(must_have_rights)
+
+        if "error_message" in validated_dict:
+            return ResponseUtilities.get_impl_error_context(validated_dict.get("error_message"),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        must_have_rights = validated_dict.get("must_have_rights")
 
         excluded_card_ids = get_card_ids_to_exclude_based_on_cohort_access(self.get_member_id(),
                                                                            self.get_community_id())
@@ -389,7 +405,8 @@ class SearchImpl(SearchManager):
 
         search_query_dict = self._get_chatroom_search_ngram_query_dict(excluded_card_ids,
                                                                        chatroom_types,
-                                                                       order_by)
+                                                                       order_by,
+                                                                       must_have_rights)
 
         if self.get_community_id():
             self._append_community_id(search_query_dict, self.get_community_id())

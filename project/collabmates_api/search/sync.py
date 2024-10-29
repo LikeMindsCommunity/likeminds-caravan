@@ -131,6 +131,22 @@ class ElasticSearchSync:
 
     @staticmethod
     @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
+    def update_all_community_chatrooms_for_a_user(user_id: int, community_id: int):
+        """
+        @param user_id: int
+        @param community_id: int
+        @return: None
+        @description: updates all chatrooms of a user in a given community
+        """
+        instances = collabcardState.objects \
+            .filter(user_id=user_id, community__id=community_id, remove=None) \
+            .exclude(card__is_deleted=True, secret_chatroom_left=True) \
+            .select_related('card', 'community')
+
+        ElasticSearchSync.update_document(instances)
+
+    @staticmethod
+    @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
     def delete_chatrooms_for_removed_member(community_id: int, user_id: int):
         """
         @param community_id: int
