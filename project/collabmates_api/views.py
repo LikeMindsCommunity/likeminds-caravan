@@ -11650,6 +11650,9 @@ def remove_community_manager(request):
         # Update Members Index
         ElasticSearchSync.update_member.delay(user_id, community_id)
 
+        # Update chatroom indexing
+        ElasticSearchSync.update_all_community_chatrooms_for_a_user.delay(user_id, community_id)
+
         # Delete user meta cache in kettle service
         cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
 
