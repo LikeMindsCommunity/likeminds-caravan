@@ -1,5 +1,9 @@
+import json
+
 from rest_framework import status as status_codes
 
+from external_services.caching.cache_impl import CacheImpl
+from utility.cache_keys import SDK_USER_INITIATE_COMMUNITY_DATA
 from .sdk_manager import SdkManager
 from utility.response_utilities import ResponseUtilities
 from utility.states import (api_types, login_types, question_states, CommunityIntegrationStatusTypes)
@@ -341,10 +345,19 @@ class SdkImpl(SdkManager):
         user_object = user_impl.compute_logged_in_user(uuid_sdk_client_instance.user.userinfo,
                                                        sdk_client_user_info_instance=uuid_sdk_client_instance)
 
+        cache_user_initiate_community_data_key = SDK_USER_INITIATE_COMMUNITY_DATA % str(community_instance.id)
+        cache_user_initiate_community_data = CacheImpl.get_cache(cache_user_initiate_community_data_key)
+
+        if cache_user_initiate_community_data:
+            community_data = cache_user_initiate_community_data
+        else:
+            community_data = CommunitySerializerV1(community_instance, context={'send_community_settings': True}).data
+            CacheImpl.set_cache(cache_user_initiate_community_data_key, community_data)
+
         return {
             'success': True,
             'user': user_object,
-            'community': CommunitySerializerV1(community_instance, context={'send_community_settings': True}).data,
+            'community': community_data,
             'app_access': validated_request_body.get('app_access', True)
         }
 
