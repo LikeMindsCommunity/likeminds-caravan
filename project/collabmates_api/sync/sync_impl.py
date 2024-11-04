@@ -180,6 +180,9 @@ class SyncImpl(SyncManager):
             SyncHelper.add_additional_data_in_chatroom_meta(chatrooms_data,
                                                             chatroom_data_key=SYNC_CHATROOMS_DATA_KEY)
 
+        if 'community_meta' not in chatrooms_data:
+            chatrooms_data['community_meta'] = {}
+
         return {**{'success': True}, **chatrooms_data}
 
     def sync_channel_detail(self, channel_id: str, channel_action_types: list):
@@ -371,5 +374,8 @@ class SyncImpl(SyncManager):
                                                             is_user_cm)
         
         SyncHelper.add_additional_data_in_chatroom_meta(conversations_data)
+
+        if 'community_meta' not in conversations_data:
+            conversations_data['community_meta'] = {}
 
         return {**{'success': True}, **conversations_data}
