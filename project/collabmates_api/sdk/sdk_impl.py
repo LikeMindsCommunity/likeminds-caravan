@@ -351,7 +351,12 @@ class SdkImpl(SdkManager):
         if cache_user_initiate_community_data:
             community_data = cache_user_initiate_community_data
         else:
-            community_data = CommunitySerializerV1(community_instance, context={'send_community_settings': True}).data
+            community_data = CommunitySerializerV1(community_instance, context={
+                'send_community_settings': True,
+                'send_community_branding': False,
+                'send_community_whitelabel': False,
+                'send_community_settings_rights': False
+            }).data
             CacheImpl.set_cache(cache_user_initiate_community_data_key, community_data)
 
         return {
