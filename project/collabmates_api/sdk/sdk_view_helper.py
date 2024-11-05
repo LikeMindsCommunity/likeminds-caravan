@@ -315,14 +315,14 @@ class SdkViewHelper:
         if not sdk_client_users_info_filter:
             return ResponseUtilities.get_inner_error_context('Invalid uuid!')
 
-        app_access = True
-
         sdk_client_users_info_filter = sdk_client_users_info_filter.first()
 
-        removed_member = ModelUtilities.get_model_filter(removedMembers,
-                                                         {'community': community_instance,
-                                                          'member': sdk_client_users_info_filter.user})
+        removed_member = ModelUtilities.get_model_filter(removedMembers, {
+            'community': community_instance,
+            'member': sdk_client_users_info_filter.user
+        })
 
+        app_access = True
         if len(removed_member):
             app_access = False
 
