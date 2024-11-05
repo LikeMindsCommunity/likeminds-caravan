@@ -1,3 +1,4 @@
+from itertools import islice
 from elasticsearch_dsl import Search, UpdateByQuery
 from elasticsearch import Elasticsearch
 from django.conf import settings
@@ -125,9 +126,15 @@ class ElasticSearchSync:
         instances = collabcardState.objects \
             .filter(community__id=community_id, remove=None) \
             .exclude(card__is_deleted=True, secret_chatroom_left=True) \
-            .select_related('card', 'community')
+            .select_related('card', 'community').iterator()
 
-        ElasticSearchSync.update_document(instances)
+        while True:
+            batch = list(islice(instances, 1000))
+
+            if not batch:
+                break
+
+            ElasticSearchSync.update_document(batch)
 
     @staticmethod
     @shared_task(queue=ELASTIC_SEARCH_QUEUE_NAME)
