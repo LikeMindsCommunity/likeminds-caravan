@@ -197,9 +197,9 @@ class CommunitySerializerV1(serializers.ModelSerializer):
         self.current_user_instance = self.context.get('current_user_instance', None)
         self.restrict_members_count = self.context.get('restrict_members_count', False)
         self.send_community_settings = self.context.get('send_community_settings', False)
-        self.send_community_branding = self.context.get('send_community_branding', False)
-        self.send_community_whitelabel = self.context.get('send_community_whitelabel', False)
-        self.send_community_settings_rights = self.context.get('send_community_settings_rights', False)
+        self.send_community_branding = self.context.get('send_community_branding', True)
+        self.send_community_whitelabel = self.context.get('send_community_whitelabel', True)
+        self.send_community_settings_rights = self.context.get('send_community_settings_rights', True)
 
     def get_members_count(self, instance):
 
