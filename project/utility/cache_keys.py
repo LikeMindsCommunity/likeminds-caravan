@@ -1,4 +1,5 @@
 SDK_USER_INITIATE_COMMUNITY_DATA = "sdk_user_initiate_community_%s"
+SDK_USER_INITIATE_COMMUNITY_DATA_TIMEOUT = 86400  # in seconds, = 24 hours
 
 CONVERSATION_POLL_OPTIONS_CONVERSATION_ID = "conversation_poll_options_%s"
 CONVERSATION_POLL_VOTERS_CONVERSATION_ID = "conversation_poll_voters_%s"

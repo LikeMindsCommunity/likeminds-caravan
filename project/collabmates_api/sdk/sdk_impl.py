@@ -3,7 +3,7 @@ import json
 from rest_framework import status as status_codes
 
 from external_services.caching.cache_impl import CacheImpl
-from utility.cache_keys import SDK_USER_INITIATE_COMMUNITY_DATA
+from utility.cache_keys import SDK_USER_INITIATE_COMMUNITY_DATA, SDK_USER_INITIATE_COMMUNITY_DATA_TIMEOUT
 from .sdk_manager import SdkManager
 from utility.response_utilities import ResponseUtilities
 from utility.states import (api_types, login_types, question_states, CommunityIntegrationStatusTypes)
@@ -357,7 +357,11 @@ class SdkImpl(SdkManager):
                 'send_community_whitelabel': False,
                 'send_community_settings_rights': False
             }).data
-            CacheImpl.set_cache(cache_user_initiate_community_data_key, community_data)
+
+            CacheImpl.set_cache(
+                cache_user_initiate_community_data_key,
+                community_data,
+                SDK_USER_INITIATE_COMMUNITY_DATA_TIMEOUT)
 
         return {
             'success': True,
