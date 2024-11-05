@@ -197,9 +197,6 @@ class CommunitySerializerV1(serializers.ModelSerializer):
         self.current_user_instance = self.context.get('current_user_instance', None)
         self.restrict_members_count = self.context.get('restrict_members_count', False)
         self.send_community_settings = self.context.get('send_community_settings', False)
-        self.send_community_branding = self.context.get('send_community_branding', True)
-        self.send_community_whitelabel = self.context.get('send_community_whitelabel', True)
-        self.send_community_settings_rights = self.context.get('send_community_settings_rights', True)
 
     def get_members_count(self, instance):
 
@@ -215,10 +212,8 @@ class CommunitySerializerV1(serializers.ModelSerializer):
 
         for field in fields:
 
-            if self.send_community_settings_rights:
-                data['community_setting_rights'] = get_saved_member_rights_list(check_all_member_rights(
-                    community=community.id),
-                    show_dm_right=True)
+            data['community_setting_rights'] = get_saved_member_rights_list(
+                check_all_member_rights(community=community.id), show_dm_right=True)
 
             if field.field_name == "image_url":
                 if community.image_link or self.is_sdk:
@@ -234,10 +229,10 @@ class CommunitySerializerV1(serializers.ModelSerializer):
                 elif not community.image_link:
                     data['image_url'] = (url + data.get('image_url')) if data.get('image_url') else None
 
-            if field.field_name == "branding" and self.send_community_branding:
+            if field.field_name == "branding":
                 data['branding'] = json.loads(community.branding) if community.branding else None
 
-            if field.field_name == "whitelabel_info" and self.send_community_whitelabel:
+            if field.field_name == "whitelabel_info":
                 data['whitelabel_info'] = json.loads(community.whitelabel_info) if community.whitelabel_info else None
 
             if self.send_community_settings:

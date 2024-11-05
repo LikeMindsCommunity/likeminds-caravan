@@ -64,11 +64,11 @@ from external_services.wa_notification.wa_notification_impl import NotificationI
 from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 
-from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY,
-                                KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META,
+from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY, 
+                                KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META, 
                                 KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY,
                                 SWARM_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_ANONYMOUS_USER_META,
-                                KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS, SDK_USER_INITIATE_COMMUNITY_DATA)
+                                KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS)
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -476,7 +476,6 @@ class CommunityImpl(CommunityManager):
 
         CacheImpl.delete_key('COMMUNITY_BRANDING_{}'.format(self.get_community_id()))
         CacheImpl.delete_key('WHITELABEL_COMMUNITY_{}'.format(self.get_community_id()))
-        CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
 
         domains_data = CacheImpl.get_cache('WHITELABEL_DOMAINS')
         domains_json = json.loads(domains_data) if domains_data else {}
@@ -1120,8 +1119,6 @@ class CommunityImpl(CommunityManager):
 
         if len(content_download_settings_list):
 
-            CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(community_instance.id))
-
             for content_download_setting in content_download_settings_list:
 
                 community_id = community_instance.id if community_instance else content_download_setting["community_id"]
@@ -1467,9 +1464,6 @@ class CommunityImpl(CommunityManager):
             ModelUtilities.model_update(CommunitySettings, filter_dict, update_dict)
 
         create_intro_room_disabled_text_for_community_members.delay(disabled_community_settings_context_list)
-
-        CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
-
         return {'success': True}
 
     def fetch_community_toasts_v1(self):
@@ -1527,8 +1521,6 @@ class CommunityImpl(CommunityManager):
             return {'success': False, 'error_message': "User is not a member of community"}
 
         toast_filter.update(is_shown=True, updated_at=TimeUtilities.current_time_in_sec())
-
-        CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
 
         return {'success': True}
 
@@ -2062,8 +2054,6 @@ class CommunityImpl(CommunityManager):
         ModelUtilities.update_or_create_model(CommunityDirectMessageSettings, filter_dict,
                                               validated_req_body.get('update_dict'))
 
-        CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
-
         return {'success': True}
 
     def fetch_community_dm_settings(self, api_revamp_v1_check=False) -> {}:
@@ -2188,8 +2178,6 @@ class CommunityImpl(CommunityManager):
         send_sync_notification.delay({'community_id': community_instance.id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
         update_multiple_previews_in_community.delay({'community_id': community_instance.id})
-
-        CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
 
         return {'success': True}
 
@@ -2317,8 +2305,6 @@ class CommunityImpl(CommunityManager):
                 'community_notification_settings': serializer.data
             }
 
-            CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
-
             return res
 
         return ResponseUtilities.get_impl_error_context(serializer.errors, status_codes.HTTP_400_BAD_REQUEST)
@@ -2397,8 +2383,6 @@ class CommunityImpl(CommunityManager):
                 'enabled': notification_setting.get('enabled')
             }
             ModelUtilities.update_or_create_model(FeedNotificationSettings, filter_dict, update_dict)
-
-        CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
 
         return {'success': True}
 
