@@ -5,6 +5,7 @@ from utility.states import (login_types)
 from utility.validation_utilities import ValidationUtilities
 from .models import SdkClient, SdkOnboardingScreen
 from datetime import datetime, timedelta
+from utility.constants import MONTHS_ORDER
 
 class SdkViewHelper:
 
@@ -409,9 +410,9 @@ class SdkViewHelper:
         for year, data in organized.items():
             result.append({
                 "year": year,
-                "chat": sorted(data["chat"], key=lambda x: x["label"], reverse=True),
-                "feed": sorted(data["feed"], key=lambda x: x["label"], reverse=True),
-                "total": sorted(data["total"], key=lambda x: x["label"], reverse=True)
+                "chat": sorted(data["chat"], key=lambda x: MONTHS_ORDER.index(x["label"])),
+                "feed": sorted(data["feed"], key=lambda x: MONTHS_ORDER.index(x["label"])),
+                "total": sorted(data["total"], key=lambda x: MONTHS_ORDER.index(x["label"]))
             })
 
         return result
