@@ -120,6 +120,21 @@ Team CommunityHood
 ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_START = 200
 ANDROID_BRODCAST_NOTIFIFCATION_BLOCK_VERSION_END = 212
 
+MONTHS_ORDER = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+]
+
 MEDIA_LIMITS_CONFIGURATION = "media_limits"
 FEED_METADATA_CONFIGURATION = "feed_metadata"
 PROFILE_METADATA_CONFIGURATION = "profile_metadata"
