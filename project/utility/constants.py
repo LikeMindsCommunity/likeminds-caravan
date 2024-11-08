@@ -205,6 +205,16 @@ COMMUNITY_CONFIGURATIONS = {
             "create_feed_poll": "everyone",  # everyone, only_cm, no_one
             "menu_items_config": {
                 "hide_post": False
+            },
+            "notification_feed_activities": {
+                "like_on_post": True,
+                "comment_on_post": True,
+                "like_on_comment": True,
+                "comment_on_comment": True,
+                "tagged_in_post": True,
+                "tagged_in_post_comment": True,
+                "also_comment_on_post": True,
+                "repost_on_post": True,
             }
         },
     },
@@ -236,6 +246,17 @@ COMMUNITY_CONFIGURATIONS = {
 CHATBOT_PROVIDER_OPENAI = "open_ai_assistant"
 CHATBOT_DEFAULT_THREAD_CONTEXT = 43200 # 12 hours
 CHATBOT_CONVERSATION_ERROR_OCCURED_MESSAGE = "We are facing some issues and we won't be able to serve you right now. Please try again in some time."
+
+VALID_NOTIFICATION_FEED_ACTIVITIES = [
+    "like_on_post",
+    "comment_on_post",
+    "like_on_comment",
+    "comment_on_comment",
+    "tagged_in_post",
+    "tagged_in_post_comment",
+    "also_comment_on_post",
+    "repost_on_post",
+]
 
 CREATE_FEED_POLL_COMMUNITY_VALUES = ["everyone", "only_cm", "no_one"]
 
