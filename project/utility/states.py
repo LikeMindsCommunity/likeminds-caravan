@@ -1100,3 +1100,8 @@ class CommunityIntegrationStatusTypes(models.TextChoices):
     @classmethod
     def get_choices_list(cls):
         return [choice[0] for choice in cls.choices]
+
+
+class SyncConversationsOrderTypes(ExtendedEnum):
+    ASCENDING = "ASC"
+    DESCENDING = "DESC"
