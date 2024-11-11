@@ -204,7 +204,7 @@ COMMUNITY_CONFIGURATIONS = {
         "value": {
             "create_feed_poll": "everyone",  # everyone, only_cm, no_one
             "menu_items_config": {"hide_post": False},
-            "notification_feed_activities": {
+            "notification_feed_actions": {
                 "like_on_your_post": True,
                 "comment_on_your_post": True,
                 "like_on_your_comment": True,
@@ -245,7 +245,7 @@ CHATBOT_PROVIDER_OPENAI = "open_ai_assistant"
 CHATBOT_DEFAULT_THREAD_CONTEXT = 43200 # 12 hours
 CHATBOT_CONVERSATION_ERROR_OCCURED_MESSAGE = "We are facing some issues and we won't be able to serve you right now. Please try again in some time."
 
-VALID_NOTIFICATION_FEED_ACTIVITIES = [
+VALID_NOTIFICATION_FEED_ACTIONS = [
     "like_on_your_post",
     "comment_on_your_post",
     "like_on_your_comment",
