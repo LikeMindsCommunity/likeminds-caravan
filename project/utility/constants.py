@@ -203,9 +203,17 @@ COMMUNITY_CONFIGURATIONS = {
         "description": "Additional Feed settings for the community",
         "value": {
             "create_feed_poll": "everyone",  # everyone, only_cm, no_one
-            "menu_items_config": {
-                "hide_post": False
-            }
+            "menu_items_config": {"hide_post": False},
+            "notification_feed_actions": {
+                "like_on_your_post": True,
+                "comment_on_your_post": True,
+                "like_on_your_comment": True,
+                "comment_on_your_comment": True,
+                "tagged_you_on_post": True,
+                "tagged_you_on_comment_post": True,
+                "also_commented_on_post_you_commented": True,
+                "reposted_your_post": True,
+            },
         },
     },
     PERSONALISED_FEED_WEIGHTS: {
@@ -236,6 +244,17 @@ COMMUNITY_CONFIGURATIONS = {
 CHATBOT_PROVIDER_OPENAI = "open_ai_assistant"
 CHATBOT_DEFAULT_THREAD_CONTEXT = 43200 # 12 hours
 CHATBOT_CONVERSATION_ERROR_OCCURED_MESSAGE = "We are facing some issues and we won't be able to serve you right now. Please try again in some time."
+
+VALID_NOTIFICATION_FEED_ACTIONS = [
+    "like_on_your_post",
+    "comment_on_your_post",
+    "like_on_your_comment",
+    "comment_on_your_comment",
+    "tagged_you_on_post",
+    "tagged_you_on_comment_post",
+    "also_commented_on_post_you_commented",
+    "reposted_your_post",
+]
 
 CREATE_FEED_POLL_COMMUNITY_VALUES = ["everyone", "only_cm", "no_one"]
 

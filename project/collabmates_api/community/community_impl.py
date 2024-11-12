@@ -64,11 +64,11 @@ from external_services.wa_notification.wa_notification_impl import NotificationI
 from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 
-from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY, 
-                                KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META, 
+from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY,
+                                KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META,
                                 KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY,
                                 SWARM_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_ANONYMOUS_USER_META,
-                                KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS)
+                                KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS, SDK_USER_INITIATE_COMMUNITY_DATA)
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -97,7 +97,7 @@ from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDI
                                PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION,
                                WIDGETS_METADATA_CONFIGURATION, PERSONALISED_FEED_WEIGHTS, FEED_SETTINGS_CONFIGURATION,
                                CREATE_FEED_POLL_COMMUNITY_VALUES, CHATBOT_CONFIGURATIONS, CHATBOT_PROVIDER_OPENAI,
-                               CHATBOT_DEFAULT_THREAD_CONTEXT)
+                               CHATBOT_DEFAULT_THREAD_CONTEXT, VALID_NOTIFICATION_FEED_ACTIONS)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -476,6 +476,7 @@ class CommunityImpl(CommunityManager):
 
         CacheImpl.delete_key('COMMUNITY_BRANDING_{}'.format(self.get_community_id()))
         CacheImpl.delete_key('WHITELABEL_COMMUNITY_{}'.format(self.get_community_id()))
+        CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
 
         domains_data = CacheImpl.get_cache('WHITELABEL_DOMAINS')
         domains_json = json.loads(domains_data) if domains_data else {}
@@ -1119,6 +1120,8 @@ class CommunityImpl(CommunityManager):
 
         if len(content_download_settings_list):
 
+            CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(community_instance.id))
+
             for content_download_setting in content_download_settings_list:
 
                 community_id = community_instance.id if community_instance else content_download_setting["community_id"]
@@ -1464,6 +1467,9 @@ class CommunityImpl(CommunityManager):
             ModelUtilities.model_update(CommunitySettings, filter_dict, update_dict)
 
         create_intro_room_disabled_text_for_community_members.delay(disabled_community_settings_context_list)
+
+        CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
+
         return {'success': True}
 
     def fetch_community_toasts_v1(self):
@@ -1521,6 +1527,8 @@ class CommunityImpl(CommunityManager):
             return {'success': False, 'error_message': "User is not a member of community"}
 
         toast_filter.update(is_shown=True, updated_at=TimeUtilities.current_time_in_sec())
+
+        CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
 
         return {'success': True}
 
@@ -2054,6 +2062,8 @@ class CommunityImpl(CommunityManager):
         ModelUtilities.update_or_create_model(CommunityDirectMessageSettings, filter_dict,
                                               validated_req_body.get('update_dict'))
 
+        CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
+
         return {'success': True}
 
     def fetch_community_dm_settings(self, api_revamp_v1_check=False) -> {}:
@@ -2178,6 +2188,8 @@ class CommunityImpl(CommunityManager):
         send_sync_notification.delay({'community_id': community_instance.id,
                                       'sync_notification_type': SyncNotificationTypes.ALL_MEMBERS.value})
         update_multiple_previews_in_community.delay({'community_id': community_instance.id})
+
+        CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
 
         return {'success': True}
 
@@ -2305,6 +2317,8 @@ class CommunityImpl(CommunityManager):
                 'community_notification_settings': serializer.data
             }
 
+            CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
+
             return res
 
         return ResponseUtilities.get_impl_error_context(serializer.errors, status_codes.HTTP_400_BAD_REQUEST)
@@ -2383,6 +2397,8 @@ class CommunityImpl(CommunityManager):
                 'enabled': notification_setting.get('enabled')
             }
             ModelUtilities.update_or_create_model(FeedNotificationSettings, filter_dict, update_dict)
+
+        CacheImpl.delete_key(SDK_USER_INITIATE_COMMUNITY_DATA % str(self.get_community_id()))
 
         return {'success': True}
 
@@ -5732,6 +5748,17 @@ class CommunityHelper:
                     ) and not isinstance(update_values.get('menu_items_config').get('hide_post'), bool):
                     return ResponseUtilities.get_inner_error_context("Invalid hide_post value")
                 
+            if update_values.get('notification_feed_actions'): 
+                if not isinstance(update_values.get('notification_feed_actions'), dict):
+                    return ResponseUtilities.get_inner_error_context("Invalid notification_feed_actions value")    
+                
+                for key, value in update_values.get('notification_feed_actions').items():
+                    
+                    if not isinstance(value, bool):
+                        return ResponseUtilities.get_inner_error_context(f"Invalid value for key - {key}")
+                    
+                    if key not in VALID_NOTIFICATION_FEED_ACTIONS:
+                        return ResponseUtilities.get_inner_error_context(f"Invalid key sent in notification_feed_actions - {key}")
 
         elif configuration_type == CHATBOT_CONFIGURATIONS:
 
@@ -6292,6 +6319,22 @@ class CommunityHelper:
                     update_values.get('menu_items_config').get('hide_post'), bool):
                     
                     configuration_value['menu_items_config']['hide_post'] = update_values.get('menu_items_config').get('hide_post')
+                    record_updated = True
+                    
+            if update_values.get('notification_feed_actions') and isinstance(update_values.get('notification_feed_actions'), dict):
+                
+                if not (configuration_value.get('notification_feed_actions') or isinstance(configuration_value.get('notification_feed_actions'), dict)):
+                    configuration_value['notification_feed_actions'] = {}
+                    
+                for key, value in update_values.get('notification_feed_actions').items():
+                    
+                    if not isinstance(value, bool):
+                        continue
+                    
+                    if key not in VALID_NOTIFICATION_FEED_ACTIONS:
+                        continue
+                    
+                    configuration_value['notification_feed_actions'][key] = value
                     record_updated = True
                 
         elif configuration_type == PERSONALISED_FEED_WEIGHTS:
