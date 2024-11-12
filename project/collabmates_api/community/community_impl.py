@@ -97,7 +97,7 @@ from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDI
                                PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION,
                                WIDGETS_METADATA_CONFIGURATION, PERSONALISED_FEED_WEIGHTS, FEED_SETTINGS_CONFIGURATION,
                                CREATE_FEED_POLL_COMMUNITY_VALUES, CHATBOT_CONFIGURATIONS, CHATBOT_PROVIDER_OPENAI,
-                               CHATBOT_DEFAULT_THREAD_CONTEXT)
+                               CHATBOT_DEFAULT_THREAD_CONTEXT, VALID_NOTIFICATION_FEED_ACTIONS)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -5748,6 +5748,17 @@ class CommunityHelper:
                     ) and not isinstance(update_values.get('menu_items_config').get('hide_post'), bool):
                     return ResponseUtilities.get_inner_error_context("Invalid hide_post value")
                 
+            if update_values.get('notification_feed_actions'): 
+                if not isinstance(update_values.get('notification_feed_actions'), dict):
+                    return ResponseUtilities.get_inner_error_context("Invalid notification_feed_actions value")    
+                
+                for key, value in update_values.get('notification_feed_actions').items():
+                    
+                    if not isinstance(value, bool):
+                        return ResponseUtilities.get_inner_error_context(f"Invalid value for key - {key}")
+                    
+                    if key not in VALID_NOTIFICATION_FEED_ACTIONS:
+                        return ResponseUtilities.get_inner_error_context(f"Invalid key sent in notification_feed_actions - {key}")
 
         elif configuration_type == CHATBOT_CONFIGURATIONS:
 
@@ -6308,6 +6319,22 @@ class CommunityHelper:
                     update_values.get('menu_items_config').get('hide_post'), bool):
                     
                     configuration_value['menu_items_config']['hide_post'] = update_values.get('menu_items_config').get('hide_post')
+                    record_updated = True
+                    
+            if update_values.get('notification_feed_actions') and isinstance(update_values.get('notification_feed_actions'), dict):
+                
+                if not (configuration_value.get('notification_feed_actions') or isinstance(configuration_value.get('notification_feed_actions'), dict)):
+                    configuration_value['notification_feed_actions'] = {}
+                    
+                for key, value in update_values.get('notification_feed_actions').items():
+                    
+                    if not isinstance(value, bool):
+                        continue
+                    
+                    if key not in VALID_NOTIFICATION_FEED_ACTIONS:
+                        continue
+                    
+                    configuration_value['notification_feed_actions'][key] = value
                     record_updated = True
                 
         elif configuration_type == PERSONALISED_FEED_WEIGHTS:
