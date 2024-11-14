@@ -129,7 +129,7 @@ class ElasticSearchSync:
             .select_related('card', 'community').iterator()
 
         while True:
-            batch = list(islice(instances, 10000))
+            batch = list(islice(instances, 1000))
 
             if not batch:
                 break
