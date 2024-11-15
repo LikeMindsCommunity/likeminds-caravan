@@ -3,7 +3,7 @@ from collabmates_api.user.view_impl import (DeleteUserView, UserSeenSurvey, User
                                             UserRemoveProfile, UserLoginView, FetchUserAccess, FetchDmHome,
                                             UpdateDmTutorial, FetchDmFeed, FetchAllUsers, BotView,
                                             FetchUser, WhatsappSubscriptionView, UserOTPView, UserSocialLoginView,
-                                            UserMetaView, BlockUserView)
+                                            UserMetaView, BlockUserView, DashboardUserView)
 
 
 urlpatterns = [
@@ -23,5 +23,6 @@ urlpatterns = [
     path('otp', UserOTPView.as_view(), name="user_otp"),
     path('social/login', UserSocialLoginView.as_view(), name="user_social_login"),
     path('meta', UserMetaView.as_view(), name="user_meta"),
-    path('<str:user_uuid>/block', BlockUserView.as_view(), name="block_user")
+    path('<str:user_uuid>/block', BlockUserView.as_view(), name="block_user"),
+    path('dashboard', DashboardUserView.as_view(), name="dashboard_user")
 ]
