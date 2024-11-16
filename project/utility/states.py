@@ -1083,6 +1083,10 @@ class UserRoles(enum.Enum):
     @classmethod
     def is_valid_role(cls, role) -> bool:
         return role in cls._value2member_map_
+    
+    @classmethod
+    def is_chatbot(cls, roles) -> bool:
+        return cls.CHATBOT.value in roles
 
 
 class BlockUserTypes(enum.Enum):

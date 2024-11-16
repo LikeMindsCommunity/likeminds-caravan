@@ -3731,7 +3731,7 @@ class ChatroomImpl(ChatroomManager):
             if member_state == member_states.ADMIN:
 
                 # If dm chatroom is with chatbot, update header & title
-                if UserRoles.CHATBOT.value in member_instance.userinfo.roles:  
+                if UserRoles.is_chatbot(member_instance.userinfo.roles):  
                     chatbot_meta = ModelUtilities.get_model_filter(ChatbotMeta, {'user': member_instance}).first()
                     if chatbot_meta:
                         chatroom_name = member_instance.userinfo.name
@@ -5858,6 +5858,11 @@ class ChatroomHelper:
                                                                 message, user_member_state, member_state,
                                                                 conversation_state=conv_state,
                                                                 update_chatroom_updated_at=True)
+            
+            # If chatroom user is chatbot, then trigger chatbot response
+            if UserRoles.is_chatbot(card_instance.chatroom_with_user.roles):
+                conversation_impl.ConversationHelper.trigger_chatbot_for_chatroom_against_conversation.delay(
+                    card_instance.id, conversation_instance.id)
 
             context = {"current_user_id": user_instance.id, "fetch_reply": True}
             conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
