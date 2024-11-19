@@ -5860,7 +5860,7 @@ class ChatroomHelper:
                                                                 update_chatroom_updated_at=True)
             
             # If chatroom user is chatbot, then trigger chatbot response
-            if UserRoles.is_chatbot(card_instance.chatroom_with_user.roles):
+            if UserRoles.is_chatbot(card_instance.user.userinfo.roles):
                 conversation_impl.ConversationHelper.trigger_chatbot_for_chatroom_against_conversation.delay(
                     card_instance.id, conversation_instance.id)
 
