@@ -1786,9 +1786,9 @@ class UserHelper:
             'name': user_meta.get('name'),
             'email': user_meta.get('email', ''),
             'organisation_name': user_meta.get('organisation_name'),
-            'mobile_no': req_body.get('mobile_no'),
-            'country_code': user_meta.get('country_code'),
             'meta_info': user_meta.get('meta_info', {}),
+            'mobile_no': req_body.get('mobile_no'),
+            'country_code': req_body.get('country_code'),
         }
 
         if user_meta.get('image_url'):
