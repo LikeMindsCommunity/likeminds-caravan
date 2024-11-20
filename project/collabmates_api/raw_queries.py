@@ -4555,6 +4555,9 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
 
         if (min_timestamp > 0) and (max_timestamp > 0):
             order_by_query = "last_updated ASC"
+            
+        if not order_by:
+            order_by = SyncConversationsOrderTypes.DESCENDING.value
 
         # If is_local_db is false, then order conversations response by created_at DESC
         if is_local_db is False:
