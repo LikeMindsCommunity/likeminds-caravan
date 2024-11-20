@@ -2853,7 +2853,7 @@ class ConversationHelper:
     
     @staticmethod
     @shared_task
-    def trigger_chatbot_for_chatroom_against_conversation(chatroom_id: int, conversation_id: int, api_version_code: int):
+    def trigger_chatbot_for_chatroom_against_conversation(chatroom_id: int, conversation_id: int, api_version_code: int = 1):
 
         validation_dict = ConversationHelper.validate_trigger_chatbot_against_conversation(chatroom_id, conversation_id)
         if validation_dict.get('error_message'):
