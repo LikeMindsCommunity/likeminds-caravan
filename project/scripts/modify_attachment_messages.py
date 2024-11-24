@@ -4,7 +4,9 @@ from itertools import islice
 from togther.models import answerAttachment, ModelUtilities, card_answers
 
 # Regex to match and remove the specific lines
-regex = r'\\n?\s*\*\s*This is a (gif|video|pdf|image|file) message\. Please update your app\s*\*'
+regex = r'\\n?\s*\*\s*This is a ' \
+        r'(gif|video|pdf|image|image/png|voice_note|audio|image/jpeg|location|application|application/pdf) message\. ' \
+        r'`Please update your app\s*\*'
 
 
 def modify_attachment_messages():
@@ -17,8 +19,6 @@ def modify_attachment_messages():
 
     while True:
         batch = list(islice(all_answer_attachment, 1000))
-
-        print(batch)
 
         if not batch:
             break
