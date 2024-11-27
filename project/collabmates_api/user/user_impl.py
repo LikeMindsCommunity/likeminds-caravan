@@ -1393,7 +1393,7 @@ class UserImpl(UserManager):
             return ResponseUtilities.get_impl_error_context('Invalid OTP type!',
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-    def user_social_login(self, login_type: str, token: str) -> dict:
+    def user_social_login(self, login_type: str, token: str = None, user_data: dict = None) -> dict:
 
         if login_type == login_types.GOOGLE:
             validated_req = UserHelper.validate_user_google_login_request(self.get_api_key(),
@@ -1414,14 +1414,26 @@ class UserImpl(UserManager):
             UserHelper.save_onboarded_verified_user_data.delay(self.get_api_key(),
                                                                email=google_json.get('email'))
 
-            return {
-                'success': True,
-                'user': user_context
-            }
+        elif login_type == login_types.APPLE:
+            validated_req = UserHelper.validate_user_apple_login_request(self.get_api_key(), user_data)
+
+            if validated_req.get('error_message'):
+                return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+            user_context = UserHelper.create_user_context_for_apple(user_data)
+
+            UserHelper.save_onboarded_verified_user_data.delay(self.get_api_key(),
+                                                               email=user_data.get('email'))
 
         else:
             return ResponseUtilities.get_impl_error_context("Invalid login type!",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        return {
+            'success': True,
+            'user': user_context
+        }
 
     def user_meta(self) -> dict:
         validated_req = UserHelper.validate_user_meta_request(self.get_user_id(), self.get_api_key())
@@ -2499,6 +2511,27 @@ class UserHelper:
         return {}
 
     @staticmethod
+    def validate_user_apple_login_request(api_key: str, user_data: dict):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            }
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        if not user_data:
+            return ResponseUtilities.get_inner_error_context('Send user data!')
+
+        if not (user_data.get('name') and user_data.get('email')):
+            return ResponseUtilities.get_inner_error_context('Invalid user data!')
+
+        return {}
+
+    @staticmethod
     def create_user_context_based_on_google_response(google_json: dict):
 
         if not google_json:
@@ -2520,6 +2553,14 @@ class UserHelper:
                 user_context['image_url'] = image_url
 
         return user_context
+
+    @staticmethod
+    def create_user_context_for_apple(user_data: dict):
+        return {
+            'name': user_data.get('name'),
+            'email': user_data.get('email'),
+            'image_url': user_data.get('image_url')
+        }
 
     @staticmethod
     def validate_user_send_otp_on_email_request(api_key: str, email_id: str):
