@@ -7575,9 +7575,6 @@ def upload_conversation_attachments(body, member_id):
     # updating the last updated when posting answer
     conversation_instance.last_updated = TimeUtilities.current_time_in_milliseconds()
 
-    if body.get('type') == "gif":
-        conversation_instance.answer = conversation_instance.answer + GIF_ATTACHMENT_FILL_TEXT
-
     if not all_files_uploaded:
         conversation_instance.save()
 
