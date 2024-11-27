@@ -476,22 +476,3 @@ class BlockUserView(APIView):
 
         return JsonResponse(response_data)
 
-
-class DashboardUserView(APIView):
-    """
-    Verify user social login
-    """
-
-    def patch(self, request):
-        member_id = RequestUtilities.get_member_id_from_headers(request)
-        req_body = RequestUtilities.load_request_body(request)
-
-        user_manager = UserImpl(user_id=member_id)
-        response_data = user_manager.update_dashboard_user(req_body)
-
-        if 'error_message' in response_data:
-            context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],
-                                                                    response_data['status'])
-            return JsonResponse(context['data'], status=context['status'])
-
-        return JsonResponse(response_data)

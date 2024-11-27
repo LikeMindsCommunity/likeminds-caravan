@@ -186,10 +186,3 @@ class UserManager(metaclass=abc.ABCMeta):
         Get block data based on block user type
         """
         raise NotImplementedError
-
-    @abc.abstractmethod
-    def update_dashboard_user(self, request_body: dict) -> dict:
-        """
-        Update the dashboard user data
-        """
-        raise NotImplementedError
