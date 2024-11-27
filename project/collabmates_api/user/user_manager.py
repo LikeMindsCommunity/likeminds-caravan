@@ -160,7 +160,7 @@ class UserManager(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def user_social_login(self, login_type: str, token: str) -> dict:
+    def user_social_login(self, login_type: str, token: str = None, user_data: dict = None) -> dict:
         """
         Verify user OTPs
         """
