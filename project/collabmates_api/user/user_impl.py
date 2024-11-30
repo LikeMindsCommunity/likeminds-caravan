@@ -1585,22 +1585,22 @@ class UserImpl(UserManager):
 
     def update_dashboard_user(self, request_body: dict) -> dict:
         validated_req = UserHelper.validate_update_dashboard_user_request(self.get_user_id(),
-                                                                          request_body.get('otp'))
+                                                                          request_body.get('otp'),
+                                                                          request_body.get('email_id'),
+                                                                          request_body.get('mobile_number'))
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         user_instance = validated_req.get('user_instance')
-        
+        email_instance = validated_req.get('email_instance')
+
         is_updated = False
         
         if request_body.get('email_id'):
-            email_instance = ModelUtilities.get_model_filter(userEmails, {'user': user_instance}).first()
-
-            if email_instance:
-                email_instance.email = request_body.get('email_id')
-                email_instance.save()
+            email_instance.email = request_body.get('email_id')
+            email_instance.save()
 
         if request_body.get('mobile_number'):
             mobile_instance = ModelUtilities.get_model_filter(userMobiles, {'user': user_instance}).first()
@@ -3041,7 +3041,7 @@ class UserHelper:
         return members_data
 
     @staticmethod
-    def validate_update_dashboard_user_request(user_id: str, otp: str):
+    def validate_update_dashboard_user_request(user_id: str, otp: str, email_id: str, mobile_number: str):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:
@@ -3058,9 +3058,21 @@ class UserHelper:
         gupshup_otp_response = verify_otp_on_email(email_instance.email, otp)
 
         if not gupshup_otp_response.get('success'):
-            return ResponseUtilities.get_impl_error_context('Incorrect OTP!',
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+            return ResponseUtilities.get_inner_error_context('Incorrect OTP!')
+
+        if email_id:
+            new_email_instance = ModelUtilities.get_model_filter(userEmails, {'email': email_id}).first()
+
+            if new_email_instance and new_email_instance.user != user_instance:
+                return ResponseUtilities.get_inner_error_context('Email ID exists for another user.')
+
+        if mobile_number:
+            new_mobile_instance = ModelUtilities.get_model_filter(userMobiles, {'mobile_no': mobile_number}).first()
+
+            if new_mobile_instance and new_mobile_instance.user != user_instance:
+                return ResponseUtilities.get_inner_error_context('Mobile number exists for another user.')
 
         return {
             'user_instance': user_instance,
+            'email_instance': email_instance
         }
