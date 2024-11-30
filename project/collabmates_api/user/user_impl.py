@@ -1584,7 +1584,8 @@ class UserImpl(UserManager):
         }
 
     def update_dashboard_user(self, request_body: dict) -> dict:
-        validated_req = UserHelper.validate_update_dashboard_user_request(self.get_user_id())
+        validated_req = UserHelper.validate_update_dashboard_user_request(self.get_user_id(),
+                                                                          request_body.get('otp'))
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -2812,12 +2813,11 @@ class UserHelper:
 
             if community_instance:
                 sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
-                                                                            {'community': community_instance,
-                                                                             'user__in': user_ids_list}).first()
+                                                                                {'community': community_instance,
+                                                                                 'user__in': user_ids_list}).first()
             else:
                 user_info_instance = ModelUtilities.get_model_filter(Userinfo,
-                                                                            {'user_id_id__in': user_ids_list}).first()
-
+                                                                     {'user_id_id__in': user_ids_list}).first()
 
         if sdk_client_user_info_instance:
             existing_user = True
@@ -3041,11 +3041,25 @@ class UserHelper:
         return members_data
 
     @staticmethod
-    def validate_update_dashboard_user_request(user_id):
+    def validate_update_dashboard_user_request(user_id: str, otp: str):
         user_instance = ModelUtilities.get_user_instance_or_none(user_id)
 
         if not user_instance:
             return ResponseUtilities.get_inner_error_context('Invalid user_id.')
+
+        if not otp:
+            return ResponseUtilities.get_inner_error_context('Send otp.')
+
+        email_instance = ModelUtilities.get_model_filter(userEmails, {'user': user_instance}).first()
+
+        if not email_instance:
+            return ResponseUtilities.get_inner_error_context('No email associated with this user.')
+
+        gupshup_otp_response = verify_otp_on_email(email_instance.email, otp)
+
+        if not gupshup_otp_response.get('success'):
+            return ResponseUtilities.get_impl_error_context('Incorrect OTP!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         return {
             'user_instance': user_instance,
