@@ -18,7 +18,7 @@ from .constants import (SYNC_KEY_SPLIT_VALUE, IGNORED_KEYS_LIST, META_KEYS_SUFFI
                         CHATROOM_DATE_EPOCH_KEY, SDK_CLIENT_META_KEY_VALUE, SDK_CLIENT_INFO_KEY_VALUE,
                         SYNC_META_DICT_KEYS, SYNC_META_KEY_VALUE)
 from utility.states import (conversation_states, conversation_poll_types, ChannelActionTypes, card_types,
-                            chat_request_states, MemberRoles)
+                            chat_request_states, MemberRoles, SyncConversationsOrderTypes)
 from utility.constants import (LITTLE_JOYS_ID)
 from togther.models import (ModelUtilities, card_answers, Collabcard, collabcardState, Members)
 from collabmates_api.static_text import (unMute_notifications, mute_notifications, view_profile, block_member_chatroom,
@@ -116,7 +116,7 @@ class SyncHelper:
     @staticmethod
     def validate_sync_conversations_request(user_id, community_id, api_key: str = None, chatroom_id: int = None,
                                             min_timestamp: int = None, max_timestamp: int = None,
-                                            conversation_id: str = None):
+                                            conversation_id: str = None, order_by: str = ""):
         validation_params = {
             'community_id': {
                 'community_id': community_id,
@@ -148,6 +148,9 @@ class SyncHelper:
 
             if not conversation_instance:
                 return ResponseUtilities.get_inner_error_context("Invalid conversation ID!")
+
+        if order_by and order_by not in SyncConversationsOrderTypes.list():
+            return ResponseUtilities.get_inner_error_context("Invalid order by value!")
 
         user_instance = validated_dict.get('user_id')
         community_instance = validated_dict.get('community_id')

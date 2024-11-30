@@ -46,7 +46,7 @@ from ..views import (adding_guest_in_chatroom, collabcard_follow_internal,
                      generate_internal_link_preview_for_conversation, send_poll_conversation_creation_notification,
                      create_chatroom_engagement, create_chatroom, collabcard_follow_internal_v1)
 
-from ..static_text import (EVERYONE_TAG_REGEX, PARTICIPANTS_TAG_REGEX, GIF_ATTACHMENT_FILL_TEXT)
+from ..static_text import (EVERYONE_TAG_REGEX, PARTICIPANTS_TAG_REGEX)
 
 from .constants import *
 from ..chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE, CREATE_CONVERSATION_OG_TAGS_REQUEST_TIMEOUT
@@ -2651,9 +2651,6 @@ class ConversationHelper:
 
                 ModelUtilities.update_or_create_model(answerAttachment, filter_dict, attachment_context)
 
-                if attachment_data.get('type') == attachment_types.GIF:
-                    conversation_instance.answer = conversation_instance.answer + GIF_ATTACHMENT_FILL_TEXT
-
             uploaded_files_count = ModelUtilities.get_model_filter(answerAttachment,
                                                                    {'answer': conversation_instance}).count()
 
@@ -2853,7 +2850,7 @@ class ConversationHelper:
     
     @staticmethod
     @shared_task
-    def trigger_chatbot_for_chatroom_against_conversation(chatroom_id: int, conversation_id: int, api_version_code: int):
+    def trigger_chatbot_for_chatroom_against_conversation(chatroom_id: int, conversation_id: int, api_version_code: int = 1):
 
         validation_dict = ConversationHelper.validate_trigger_chatbot_against_conversation(chatroom_id, conversation_id)
         if validation_dict.get('error_message'):

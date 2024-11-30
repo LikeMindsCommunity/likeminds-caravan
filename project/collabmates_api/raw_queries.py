@@ -1,9 +1,8 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 import time
-import logging
 import psycopg2
-from utility.states import (card_types, conversation_states, SyncTypes, noti_states)
+from utility.states import (card_types, conversation_states, SyncTypes, noti_states, SyncConversationsOrderTypes)
 from utility.utils import is_version_code_supported_for_intro_room
 from .static_text import (MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP, SPECIFIC_MEMBER_TAG_REGEX, EVERYONE_TAG_REGEX,
                           PARTICIPANTS_TAG_REGEX)
@@ -4546,7 +4545,8 @@ def get_home_feed_chatrooms_against_non_local_db_user(user_id, community_id, min
 def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_timestamp: int = None,
                                     max_timestamp: int = None, page: int = 1, limit: int = 10,
                                     only_query: bool = False, is_local_db: bool = True, conversation_id: str = None,
-                                    excluded_conversation_states: list = None, is_widget_enabled: bool = False):
+                                    excluded_conversation_states: list = None, is_widget_enabled: bool = False,
+                                    order_by: str = SyncConversationsOrderTypes.DESCENDING.value):
     try:
         page_number = int(page)
         offset = (page_number - 1) * limit
@@ -4555,10 +4555,13 @@ def get_chatroom_conversations_data(user_id, community_id, chatroom_id, min_time
 
         if (min_timestamp > 0) and (max_timestamp > 0):
             order_by_query = "last_updated ASC"
+            
+        if not order_by:
+            order_by = SyncConversationsOrderTypes.DESCENDING.value
 
         # If is_local_db is false, then order conversations response by created_at DESC
         if is_local_db is False:
-            order_by_query = "created_at DESC"
+            order_by_query = f"created_at {order_by}"
 
         conversation_id_query = ""
         excluded_conversation_states_query = ""

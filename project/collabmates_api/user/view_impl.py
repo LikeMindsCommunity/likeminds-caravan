@@ -7,6 +7,7 @@ from utility.exception_utilities import InvalidHeaderException
 from utility.request_utilities import RequestUtilities
 from utility.response_utilities import ResponseUtilities
 from utility.string_utilities import StringUtilities
+from utility.json_utilities import JsonUtilities
 from utility.constants import PLATFORM_TYPE_SWARM_SERVICE
 from cms.cms_auth_utilities import CMSAuthUtilities
 from django.conf import settings
@@ -393,10 +394,12 @@ class UserSocialLoginView(APIView):
     def get(self, request):
         req_params = RequestUtilities.fetch_request_query_params(request)
         api_key = RequestUtilities.get_api_key_from_headers(request)
+        user_data = JsonUtilities.load_json_data(req_params.get('user_data'))
 
         user_manager = UserImpl(user_id="", api_key=api_key)
         response_data = user_manager.user_social_login(login_type=req_params.get('login_type'),
-                                                       token=req_params.get('token'))
+                                                       token=req_params.get('token'),
+                                                       user_data=user_data)
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],

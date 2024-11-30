@@ -2,7 +2,7 @@ from rest_framework import status as status_codes
 
 from .sync_manager import SyncManager
 from .sync_helper import SyncHelper
-from utility.states import (card_types, SyncTypes, conversation_states, WidgetTypes)
+from utility.states import (card_types, SyncTypes, conversation_states, WidgetTypes, SyncConversationsOrderTypes)
 from .constants import (CONVERSATIONS_META_KEY_VALUE, CONVERSATION_POLLS_META_KEY_VALUE, SYNC_CHATROOMS_DATA_KEY,
                         SYNC_CONVERSATIONS_DATA_KEY, SYNC_CHANNEL_DETAILS_DATA_KEY)
 from utility.response_utilities import ResponseUtilities
@@ -292,7 +292,8 @@ class SyncImpl(SyncManager):
 
     def sync_conversations(self, chatroom_id: int = None, page: int = None, page_size: int = None,
                            min_timestamp: int = None, max_timestamp: int = None, is_local_db: bool = True,
-                           conversation_id: str = None, excluded_conversation_states: list = None) -> dict:
+                           conversation_id: str = None, excluded_conversation_states: list = None,
+                           order_by: str = SyncConversationsOrderTypes.DESCENDING.value) -> dict:
 
         validated_request_body = SyncHelper.validate_sync_conversations_request(self.get_member_id(),
                                                                                 self.get_community_id(),
@@ -300,7 +301,8 @@ class SyncImpl(SyncManager):
                                                                                 chatroom_id,
                                                                                 min_timestamp,
                                                                                 max_timestamp,
-                                                                                conversation_id)
+                                                                                conversation_id,
+                                                                                order_by)
 
         if 'error_message' in validated_request_body:
             return ResponseUtilities.get_impl_error_context(validated_request_body.get('error_message'),
@@ -319,7 +321,8 @@ class SyncImpl(SyncManager):
         conversations_data, conversation_ids_list = get_chatroom_conversations_data(
             user_instance.id, community_instance.id, chatroom_instance.id, min_timestamp, max_timestamp, page=page,
             limit=page_size, is_local_db=is_local_db, conversation_id=conversation_id,
-            excluded_conversation_states=excluded_conversation_states, is_widget_enabled=is_widget_enabled)
+            excluded_conversation_states=excluded_conversation_states, is_widget_enabled=is_widget_enabled,
+            order_by=order_by)
 
         # Conversation data
         conversations_data = SyncHelper.parse_sync_raw_query_response(conversations_data, SYNC_CONVERSATIONS_DATA_KEY)
