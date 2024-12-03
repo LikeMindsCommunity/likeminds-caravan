@@ -214,6 +214,7 @@ COMMUNITY_CONFIGURATIONS = {
                 "also_commented_on_post_you_commented": True,
                 "reposted_your_post": True,
             },
+            "auto_approve_post": "everyone",  # everyone, only_cm, no_one
         },
     },
     PERSONALISED_FEED_WEIGHTS: {
@@ -256,7 +257,9 @@ VALID_NOTIFICATION_FEED_ACTIONS = [
     "reposted_your_post",
 ]
 
-CREATE_FEED_POLL_COMMUNITY_VALUES = ["everyone", "only_cm", "no_one"]
+CREATE_FEED_POLL_CONFIGURATION_VALUES = ["everyone", "only_cm", "no_one"]
+
+AUTO_APPROVE_POST_CONFIGURATION_VALUES = ["everyone", "only_cm", "no_one"]
 
 SWARM_WIDGET_ENDPOINT = "/widget"
 
