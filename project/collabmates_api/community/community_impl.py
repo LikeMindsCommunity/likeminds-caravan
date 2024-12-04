@@ -6952,7 +6952,7 @@ class CommunityHelper:
         chatbot_meta_instance = ModelUtilities.get_model_filter(ChatbotMeta, {'community_id': community_instance,
                                                                               'user_id': user_ids[0]}).first()
         if not chatbot_meta_instance:
-            return ResponseUtilities.get_inner_erwror_context("Chatbot not found against uuid")
+            return ResponseUtilities.get_inner_error_context("Chatbot not found against uuid")
         
         chatbot_meta = req_body.get('chatbot_meta', {})
 
