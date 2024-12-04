@@ -5761,11 +5761,11 @@ class CommunityHelper:
                     if key not in VALID_NOTIFICATION_FEED_ACTIONS:
                         return ResponseUtilities.get_inner_error_context(f"Invalid key sent in notification_feed_actions - {key}")
             
-            if update_values.get('auto_approve_Post'):
-                if not isinstance(update_values.get('auto_approve_Post'), str
-                    ) or (update_values.get('auto_approve_Post') not in AUTO_APPROVE_POST_CONFIGURATION_VALUES):
+            if update_values.get('auto_approve_post'):
+                if not isinstance(update_values.get('auto_approve_post'), str
+                    ) or (update_values.get('auto_approve_post') not in AUTO_APPROVE_POST_CONFIGURATION_VALUES):
                     return ResponseUtilities.get_inner_error_context(
-                        "Please send valid value for auto_approve_Post (possible values - 'everyone', 'only_cm', 'no_one')")
+                        "Please send valid value for auto_approve_post (possible values - 'everyone', 'only_cm', 'no_one')")
 
         elif configuration_type == CHATBOT_CONFIGURATIONS:
 
@@ -6344,10 +6344,10 @@ class CommunityHelper:
                     configuration_value['notification_feed_actions'][key] = value
                     record_updated = True
             
-            if update_values.get('auto_approve_Post') and isinstance(update_values.get('auto_approve_Post'), str) and (
-                update_values.get('auto_approve_Post') in AUTO_APPROVE_POST_CONFIGURATION_VALUES):
+            if update_values.get('auto_approve_post') and isinstance(update_values.get('auto_approve_post'), str) and (
+                update_values.get('auto_approve_post') in AUTO_APPROVE_POST_CONFIGURATION_VALUES):
                 
-                configuration_value['auto_approve_Post'] = update_values.get('auto_approve_Post')
+                configuration_value['auto_approve_post'] = update_values.get('auto_approve_post')
                 record_updated = True
                 
                 # Call Kettle api to delete cache key for feed_settings cache

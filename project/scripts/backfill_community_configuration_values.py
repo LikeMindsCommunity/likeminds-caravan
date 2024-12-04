@@ -5,6 +5,7 @@ from collabmates_api.community.community_impl import CommunityHelper
 
 COMMUNITY_CONFIGURATION_TYPE = ""
 
+# Function to backfill default community configuration values for a specific type
 def backfill_community_configurations():
     
     print("Starting the backfill_community_configurations script")
@@ -32,15 +33,17 @@ def backfill_community_configurations():
 
     print(f"Backfilled {records.count()} records for type '{COMMUNITY_CONFIGURATION_TYPE}'")
 
+# Function to backfill auto_approve_post configurations where post_approval settings is enabled
 def backfill_auto_approve_post_configurations_for_enabled_communities():
 
     # Fetch all the records from community settings where type = 'auto_approve_post' and enabled = True
-    records = CommunityConfigurations.objects.filter(
-        type=community_setting_types.POST_APPROVAL_NEEDED, enabled=True)
+    records = CommunitySettings.objects.filter(
+        setting_type=community_setting_types.POST_APPROVAL_NEEDED, enabled=True
+    )
 
     for record in records:
 
-        user_id = record.enabled_by
+        user_id = record.enabled_by.id
 
         if not user_id:
 
@@ -51,7 +54,7 @@ def backfill_auto_approve_post_configurations_for_enabled_communities():
                 print(f"Could not find bot id for community_id: {record.community_id}")
                 continue
             else:
-                user_id = bot_id
+                user_id = bot_id.id
 
         update_values = {
             "auto_approve_post": "no_one"
