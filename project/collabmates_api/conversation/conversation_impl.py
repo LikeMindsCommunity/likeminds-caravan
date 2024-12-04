@@ -2857,8 +2857,8 @@ class ConversationHelper:
     def trigger_chatbot_for_chatroom_against_conversation(
             chatroom_id: int,
             conversation_id: int,
+            should_stream_chatbot_response: bool = False,
             api_version_code: int = 1,
-            should_stream_chatbot_response: bool = False
     ):
 
         validation_dict = ConversationHelper.validate_trigger_chatbot_against_conversation(chatroom_id, conversation_id)

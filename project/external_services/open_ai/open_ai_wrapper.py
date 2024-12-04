@@ -101,7 +101,6 @@ class OpenAiWrapper:
         assistant_id: str = "", 
         max_completion_tokens: int = 0, 
         max_prompt_tokens: int = 0,
-        should_stream_chatbot_response: bool = False
     ):
         
         image_attachment_present = False
@@ -159,7 +158,7 @@ class OpenAiWrapper:
                 if thread_id:
                     response = self.get_stream_response_with_thread(params, thread_id, messages, chatroom_id)
                 else:
-                    response, thread_id = self.create_steam_response_without_thread(params, messages, chatroom_id)
+                    response, thread_id = self.create_stream_response_without_thread(params, messages, chatroom_id)
             else:
                 if thread_id:
                     run = self.client.beta.threads.runs.create_and_poll(
