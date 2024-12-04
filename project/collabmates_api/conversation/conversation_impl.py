@@ -962,6 +962,7 @@ class ConversationImpl(ConversationManager):
         attachment_count = req_body.get('attachment_count', 0)
         widget_metadata = req_body.get('metadata', {})
         trigger_bot = req_body.get('trigger_bot', False)
+        should_stream_chatbot_response = req_body.get('should_stream_chatbot_response', False)
 
         if attachments_data and isinstance(attachments_data, list):
             attachment_count = len(attachments_data)
@@ -1093,9 +1094,12 @@ class ConversationImpl(ConversationManager):
             
             # Trigger chatbot for direct message conversation
             if trigger_bot and chatroom_instance.type == card_types.CARD_DIRECT_MESSAGE:
-                ConversationHelper.trigger_chatbot_for_chatroom_against_conversation.delay(chatroom_instance.id,
-                                                                                           conversation_instance.id,
-                                                                                           self.get_api_version_code())
+                ConversationHelper.trigger_chatbot_for_chatroom_against_conversation(
+                    chatroom_instance.id,
+                    conversation_instance.id,
+                    self.get_api_version_code(),
+                    should_stream_chatbot_response
+                )
 
             context = {
                 "current_user_id": self.get_member_id(),
@@ -2850,7 +2854,12 @@ class ConversationHelper:
     
     @staticmethod
     @shared_task
-    def trigger_chatbot_for_chatroom_against_conversation(chatroom_id: int, conversation_id: int, api_version_code: int = 1):
+    def trigger_chatbot_for_chatroom_against_conversation(
+            chatroom_id: int,
+            conversation_id: int,
+            api_version_code: int = 1,
+            should_stream_chatbot_response: bool = False
+    ):
 
         validation_dict = ConversationHelper.validate_trigger_chatbot_against_conversation(chatroom_id, conversation_id)
         if validation_dict.get('error_message'):
@@ -2882,8 +2891,13 @@ class ConversationHelper:
 
         # Call OpenAI API and create a run for chatbot
         open_ai_wrapper = OpenAiWrapper(api_key, vision_model)
-        res = open_ai_wrapper.run_thread_and_fetch_latest_message_for_open_ai_assistant(assistant_id, 
-                conversation_instance.answer, attachments, thread_id, max_completion_tokens, max_prompt_tokens)
+        res = open_ai_wrapper.run_thread_and_fetch_latest_message_for_open_ai_assistant(assistant_id,
+                                                                                        conversation_instance.answer,
+                                                                                        attachments, thread_id,
+                                                                                        max_completion_tokens,
+                                                                                        max_prompt_tokens,
+                                                                                        should_stream_chatbot_response,
+                                                                                        chatroom_id)
         
         if res.get('error_message'):
             error_logger.error(f"Error while fetching response from openAi chatbot: {res['error_message']}")

@@ -2,6 +2,7 @@ import requests, os, base64
 
 from openai import OpenAI
 
+from external_services.pandemonium.pandemonium_api_client import PandemoniumAPIClient
 from utility.response_utilities import ResponseUtilities
 from utility.states import attachment_types
 
@@ -18,6 +19,7 @@ info_logger = LoggingWrapper.get_instance()
 class OpenAiWrapper:
     
     client = None
+    pandemonium_api_client = PandemoniumAPIClient()
     
     api_key = ""
     vision_model = ""
@@ -71,6 +73,8 @@ class OpenAiWrapper:
         thread_id: str = "",
         max_completion_tokens: int = 0,
         max_prompt_tokens: int = 0,
+        should_stream_chatbot_response: bool = False,
+        chatroom_id: int = 0
     ) -> dict:
 
         if not (assistant_id and self.api_key):
@@ -84,7 +88,8 @@ class OpenAiWrapper:
                 message, attachments, assistant_id, max_completion_tokens, max_prompt_tokens
             )
 
-            return self.create_run_and_fetch_latest_message_and_thread_id(params, messages, thread_id)
+            return self.create_run_and_fetch_latest_message_and_thread_id(params, messages, thread_id,
+                                                                          should_stream_chatbot_response, chatroom_id)
 
         except Exception as e:
             return { "error_message": f"Error while calling OpenAI API for assistant_id: {assistant_id} and api_key: {self.api_key}: {str(e)} " }
@@ -96,6 +101,7 @@ class OpenAiWrapper:
         assistant_id: str = "", 
         max_completion_tokens: int = 0, 
         max_prompt_tokens: int = 0,
+        should_stream_chatbot_response: bool = False
     ):
         
         image_attachment_present = False
@@ -137,50 +143,66 @@ class OpenAiWrapper:
                 
         return params, messages   
     
-    def create_run_and_fetch_latest_message_and_thread_id(self, params: dict, messages: list, thread_id: str) -> dict:
+    def create_run_and_fetch_latest_message_and_thread_id(
+            self,
+            params: dict,
+            messages: list,
+            thread_id: str,
+            should_stream_chatbot_response: bool,
+            chatroom_id: int) -> dict:
         try:
             assistant_id = params.get("assistant_id", "")
-            
+            response = ""
+
             # If thread_id is present, call OpenAI API with thread_id else create a new thread
-            if thread_id:
-                run = self.client.beta.threads.runs.create_and_poll(
-                    **params, thread_id=thread_id, additional_messages=messages
-                )
-
+            if should_stream_chatbot_response:
+                if thread_id:
+                    response = self.get_stream_response_with_thread(params, thread_id, messages, chatroom_id)
+                else:
+                    response, thread_id = self.create_steam_response_without_thread(params, messages, chatroom_id)
             else:
-                run = self.client.beta.threads.create_and_run_poll(
-                    **params, thread={"messages": messages}
-                )
+                if thread_id:
+                    run = self.client.beta.threads.runs.create_and_poll(
+                        **params, thread_id=thread_id, additional_messages=messages
+                    )
 
-            if run.thread_id:
-                thread_id = run.thread_id
+                else:
+                    run = self.client.beta.threads.create_and_run_poll(
+                        **params, thread={"messages": messages}
+                    )
 
-            # If run is completed, fetch latest message from thread
-            if run.status == "completed":
-                messages = self.client.beta.threads.messages.list(
-                    thread_id=run.thread_id, limit=1
-                )
-                
-            else:
-                return {
-                    "error_message": f"Error while creating thread for OpenAI API for assistant_id: {run.assistant_id} | status: {run.status} | incomplete details: {run.incomplete_details}",
-                    "thread_id": thread_id
-                }
+                if run.thread_id:
+                    thread_id = run.thread_id
 
-            if len(messages.data) > 0 and len(messages.data[0].content) > 0:
-                return {"response": messages.data[0].content[0].text.value, "thread_id": thread_id}
-            else:
-                return {
-                    "error_message": f"Error while fetching latest message from OpenAI API for assistant_id: {run.assistant_id} | thread_id: {thread_id}",
-                    "thread_id": thread_id
-                }
-                
+                # If run is completed, fetch latest message from thread
+                if run.status == "completed":
+                    messages = self.client.beta.threads.messages.list(
+                        thread_id=run.thread_id, limit=1
+                    )
+
+                else:
+                    return {
+                        "error_message": f"Error while creating thread for OpenAI API for assistant_id: {run.assistant_id} | status: {run.status} | incomplete details: {run.incomplete_details}",
+                        "thread_id": thread_id
+                    }
+
+                if len(messages.data) > 0 and len(messages.data[0].content) > 0:
+                    response = messages.data[0].content[0].text.value
+
+                else:
+                    return {
+                        "error_message": f"Error while fetching latest message from OpenAI API for assistant_id: {run.assistant_id} | thread_id: {thread_id}",
+                        "thread_id": thread_id
+                    }
+
+            return {"response": response, "thread_id": thread_id}
+
         except Exception as e:
             return {
                 "error_message": f"Exception occured while running and fetching latest message from OpenAI API assistant_id: {assistant_id} | thread_id: {thread_id} | params: {params} | error: {str(e)}",
                 "thread_id": thread_id
             }
-            
+
     def transcribe_audio(self, audio_url: str = "") -> str:
         try:
             file_path = S3_Utils.download_file_from_s3_url(audio_url)
@@ -228,3 +250,65 @@ class OpenAiWrapper:
             if file_path:
                 os.remove(file_path)
 
+    def get_stream_response_with_thread(
+            self,
+            params: dict,
+            thread_id: str,
+            messages: list,
+            chatroom_id: int
+    ) -> str:
+        with self.client.beta.threads.runs.stream(
+                **params,
+                thread_id=thread_id,
+                additional_messages=messages
+        ) as stream:
+            response: str = ""
+
+            for event in stream:
+                if event.event == "thread.message.delta" and \
+                        event.data and \
+                        event.data.delta and \
+                        event.data.delta.content and \
+                        len(event.data.delta.content) > 0:
+                    message_chunk = event.data.delta.content[0].text.value
+                    self.send_message_to_pandemonium(chatroom_id, message_chunk)
+                if event.event == "thread.message.completed" and \
+                        event.data and \
+                        event.data.content and \
+                        len(event.data.content) > 0:
+                    response = event.data.content[0].text.value
+
+            return response
+
+    def create_steam_response_without_thread(
+            self,
+            params: dict,
+            messages: list,
+            chatroom_id: int
+    ):
+        with self.client.beta.threads.create_and_run_stream(
+                **params,
+                thread={"messages": messages}
+        ) as stream:
+            response: str = ""
+            thread_id: str = ""
+
+            for event in stream:
+                if event.event == "thread.created":
+                    thread_id = event.data.id
+                if event.event == "thread.message.delta" and event.data and event.data.delta and event.data.delta.content and len(
+                        event.data.delta.content) > 0:
+                    message_chunk = event.data.delta.content[0].text.value
+                    self.send_message_to_pandemonium(chatroom_id, message_chunk)
+                if event.event == "thread.message.completed" and event.data and event.data.content and len(
+                        event.data.content) > 0:
+                    response = event.data.content[0].text.value
+
+        return response, thread_id
+
+    def send_message_to_pandemonium(self, chatroom_id: int, message_chunk: str) -> None:
+        data: dict = {
+            "message_chunk": message_chunk
+        }
+
+        self.pandemonium_api_client.publish_chatroom_conversation_to_pandemonium(chatroom_id, data)

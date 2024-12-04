@@ -3891,6 +3891,7 @@ class ChatroomImpl(ChatroomManager):
         card_instance = validated_request.get('chatroom_instance')
         chat_request_state = validated_request.get('chat_request_state')
         message = req_body.get('text')
+        should_stream_chatbot_response = req_body.get('should_stream_chatbot_response', False)
 
         user_instances_list = [card_instance.user, card_instance.chatroom_with_user]
         user_member_state = Members.get_community_member_state(card_instance.community, card_instance.user)
@@ -3922,7 +3923,8 @@ class ChatroomImpl(ChatroomManager):
         elif chat_request_state == chat_request_states.ACCEPTED:
             response = ChatroomHelper.accept_dm_connection_request(user_instance, card_instance, user_member_state,
                                                                    member_state, chat_request_state, card_state_filter,
-                                                                   message, user_instances_list)
+                                                                   message, user_instances_list,
+                                                                   should_stream_chatbot_response)
 
             if not response.get('success'):
                 return ResponseUtilities.get_impl_error_context(response.get('error_message'),
@@ -5811,7 +5813,8 @@ class ChatroomHelper:
 
     @staticmethod
     def accept_dm_connection_request(user_instance, card_instance, user_member_state, member_state,
-                                     chat_request_state, card_state_filter, message=None, user_instances_list=None):
+                                     chat_request_state, card_state_filter, message=None, user_instances_list=None,
+                                     should_stream_chatbot_response: bool = False):
 
         filter_dict = {
             'setting_type': community_setting_types.ENABLE_DM_WITHOUT_CONNECTION_REQUEST,
@@ -5862,7 +5865,7 @@ class ChatroomHelper:
             # If chatroom user is chatbot, then trigger chatbot response
             if UserRoles.is_chatbot(card_instance.user.userinfo.roles):
                 conversation_impl.ConversationHelper.trigger_chatbot_for_chatroom_against_conversation.delay(
-                    card_instance.id, conversation_instance.id)
+                    card_instance.id, conversation_instance.id, should_stream_chatbot_response)
 
             context = {"current_user_id": user_instance.id, "fetch_reply": True}
             conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
