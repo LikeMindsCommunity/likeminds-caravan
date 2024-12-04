@@ -280,7 +280,7 @@ class OpenAiWrapper:
 
             return response
 
-    def create_steam_response_without_thread(
+    def create_stream_response_without_thread(
             self,
             params: dict,
             messages: list,
