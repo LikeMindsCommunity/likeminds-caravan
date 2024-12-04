@@ -1094,7 +1094,7 @@ class ConversationImpl(ConversationManager):
             
             # Trigger chatbot for direct message conversation
             if trigger_bot and chatroom_instance.type == card_types.CARD_DIRECT_MESSAGE:
-                ConversationHelper.trigger_chatbot_for_chatroom_against_conversation(
+                ConversationHelper.trigger_chatbot_for_chatroom_against_conversation.delay(
                     chatroom_instance.id,
                     conversation_instance.id,
                     self.get_api_version_code(),
