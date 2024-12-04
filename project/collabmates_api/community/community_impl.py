@@ -68,7 +68,8 @@ from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_
                                 KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META,
                                 KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY,
                                 SWARM_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_ANONYMOUS_USER_META,
-                                KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS, SDK_USER_INITIATE_COMMUNITY_DATA)
+                                KETTLE_CACHE_KEY_FEED_META_CONFIGURATIONS, SDK_USER_INITIATE_COMMUNITY_DATA, 
+                                KETTLE_CACHE_KEY_FEED_SETTINGS_CONFIGURATIONS)
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -96,8 +97,8 @@ from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDI
                                FEED_METADATA_CONFIGURATION, PROFILE_METADATA_CONFIGURATION, NSFW_FILTERING_CONFIGURATION, 
                                PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION,
                                WIDGETS_METADATA_CONFIGURATION, PERSONALISED_FEED_WEIGHTS, FEED_SETTINGS_CONFIGURATION,
-                               CREATE_FEED_POLL_COMMUNITY_VALUES, CHATBOT_CONFIGURATIONS, CHATBOT_PROVIDER_OPENAI,
-                               CHATBOT_DEFAULT_THREAD_CONTEXT, VALID_NOTIFICATION_FEED_ACTIONS)
+                               CREATE_FEED_POLL_CONFIGURATION_VALUES, CHATBOT_CONFIGURATIONS, CHATBOT_PROVIDER_OPENAI,
+                               CHATBOT_DEFAULT_THREAD_CONTEXT, VALID_NOTIFICATION_FEED_ACTIONS, AUTO_APPROVE_POST_CONFIGURATION_VALUES)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -5736,7 +5737,7 @@ class CommunityHelper:
 
             if update_values.get('create_feed_poll'):
                 if not isinstance(update_values.get('create_feed_poll'), str
-                    ) or (update_values.get('create_feed_poll') not in CREATE_FEED_POLL_COMMUNITY_VALUES):
+                    ) or (update_values.get('create_feed_poll') not in CREATE_FEED_POLL_CONFIGURATION_VALUES):
                     return ResponseUtilities.get_inner_error_context(
                         "Please send valid value for create_feed_poll (possible values - 'everyone', 'only_cm', 'no_one')")      
                 
@@ -5759,6 +5760,12 @@ class CommunityHelper:
                     
                     if key not in VALID_NOTIFICATION_FEED_ACTIONS:
                         return ResponseUtilities.get_inner_error_context(f"Invalid key sent in notification_feed_actions - {key}")
+            
+            if update_values.get('auto_approve_post'):
+                if not isinstance(update_values.get('auto_approve_post'), str
+                    ) or (update_values.get('auto_approve_post') not in AUTO_APPROVE_POST_CONFIGURATION_VALUES):
+                    return ResponseUtilities.get_inner_error_context(
+                        "Please send valid value for auto_approve_post (possible values - 'everyone', 'only_cm', 'no_one')")
 
         elif configuration_type == CHATBOT_CONFIGURATIONS:
 
@@ -6298,7 +6305,7 @@ class CommunityHelper:
         elif configuration_type == FEED_SETTINGS_CONFIGURATION:
 
             if update_values.get('create_feed_poll') and isinstance(update_values.get('create_feed_poll'), str) and (
-                update_values.get('create_feed_poll') in CREATE_FEED_POLL_COMMUNITY_VALUES):
+                update_values.get('create_feed_poll') in CREATE_FEED_POLL_CONFIGURATION_VALUES):
 
                 # if create_feed_poll value is updated, update rights for all members & managers in the community
                 if configuration_value['create_feed_poll'] != update_values.get('create_feed_poll'):
@@ -6336,6 +6343,18 @@ class CommunityHelper:
                     
                     configuration_value['notification_feed_actions'][key] = value
                     record_updated = True
+            
+            if update_values.get('auto_approve_post') and isinstance(update_values.get('auto_approve_post'), str) and (
+                update_values.get('auto_approve_post') in AUTO_APPROVE_POST_CONFIGURATION_VALUES):
+                
+                configuration_value['auto_approve_post'] = update_values.get('auto_approve_post')
+                record_updated = True
+                
+                # Call Kettle api to delete cache key for feed_settings cache
+                InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                    community_id=community_id, user_id=user_id,
+                    key_patterns=[KETTLE_CACHE_KEY_FEED_SETTINGS_CONFIGURATIONS.format(community_id)]
+                )
                 
         elif configuration_type == PERSONALISED_FEED_WEIGHTS:
             filter_dict = {
