@@ -1097,8 +1097,8 @@ class ConversationImpl(ConversationManager):
                 ConversationHelper.trigger_chatbot_for_chatroom_against_conversation.delay(
                     chatroom_instance.id,
                     conversation_instance.id,
+                    should_stream_chatbot_response,
                     self.get_api_version_code(),
-                    should_stream_chatbot_response
                 )
 
             context = {
