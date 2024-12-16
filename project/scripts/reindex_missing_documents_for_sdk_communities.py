@@ -23,11 +23,18 @@ class ElasticSearchHelper:
             start_index = chunk * chunk_size
             end_index = start_index + chunk_size
             chunk_instances = instances[start_index:end_index]
+            
+            if not chunk_instances:
+                continue
 
             print(
                 f"Starting bulk update in ES for chunk: {chunk} for community: {chunk_instances[0].community.id}"
             )
-            ConversationDocument().update(chunk_instances)
+            
+            if isinstance(chunk_instances[0], collabcardState):
+                ChatroomDocument().update(chunk_instances)
+            elif isinstance(chunk_instances[0], card_answers):
+                ConversationDocument().update(chunk_instances)
 
             if end_index > total_instances:
                 end_index = total_instances
