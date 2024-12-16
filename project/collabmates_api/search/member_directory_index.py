@@ -173,4 +173,13 @@ class MemberDirectoryDocument(Document):
             This method is called before indexing the user_unique_id field in the MemberDirectoryDocument.
         """
 
-        return instance.member_id.userinfo.user_unique_id
+        uuid = ''
+
+        try:
+            uuid = instance.member_id.userinfo.user_unique_id
+
+        except Exception as e:
+            print(f"Error when preparing user_unique_id: {e}")
+            return uuid
+
+        return uuid
