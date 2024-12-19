@@ -70,7 +70,7 @@ class SyncImpl(SyncManager):
 
     def sync_chatrooms(self, page: int = None, page_size: int = None, min_timestamp: int = None,
                        max_timestamp: int = None, chatroom_type: list = None, is_local_db: bool = True,
-                       included_conversation_states: list = None, chatroom_id: str = None) -> dict:
+                       included_conversation_states: list = None, chatroom_id: str = None, tag: str = None) -> dict:
 
         validated_request_body = SyncHelper.validate_sync_chatrooms_request(self.get_member_id(),
                                                                             self.get_community_id(),
@@ -121,13 +121,13 @@ class SyncImpl(SyncManager):
                 user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
                 included_chatroom_types=included_chatroom_types,
                 included_conversation_states=included_conversation_states, chatroom_id=chatroom_id,
-                is_widget_enabled=is_widget_enabled)
+                is_widget_enabled=is_widget_enabled, tag=tag)
 
         else:
             chatrooms_data, chatroom_ids_list = get_home_feed_chatrooms_against_user(
                 user_instance.id, community_instance.id, min_timestamp, max_timestamp, page=page, limit=page_size,
                 included_chatroom_types=included_chatroom_types, chatroom_id=chatroom_id,
-                is_widget_enabled=is_widget_enabled)
+                is_widget_enabled=is_widget_enabled, tag=tag)
 
         card_unseen_count_map = None
 
