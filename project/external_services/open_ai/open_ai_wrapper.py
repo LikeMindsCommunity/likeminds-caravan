@@ -228,7 +228,7 @@ class OpenAiWrapper:
             thread_id: str,
             messages: list,
             chatroom_id: int,
-            stream_to_pandemonium: bool = False,
+            should_stream_chatbot_response: bool = False,
     ) -> str:
         with self.client.beta.threads.runs.stream(
                 **params,
@@ -238,7 +238,7 @@ class OpenAiWrapper:
             response: str = ""
 
             for event in stream:
-                if stream_to_pandemonium and \
+                if should_stream_chatbot_response and \
                     event.event == "thread.message.delta" and \
                         event.data and \
                         event.data.delta and \
@@ -261,7 +261,7 @@ class OpenAiWrapper:
         params: dict,
         messages: list,
         chatroom_id: int,
-        stream_to_pandemonium: bool = False,
+        should_stream_chatbot_response: bool = False,
     ):
         with self.client.beta.threads.create_and_run_stream(
                 **params,
@@ -274,7 +274,7 @@ class OpenAiWrapper:
                 if event.event == "thread.created":
                     thread_id = event.data.id
                 if (
-                    stream_to_pandemonium 
+                    should_stream_chatbot_response 
                     and event.event == "thread.message.delta"
                     and event.data
                     and event.data.delta
