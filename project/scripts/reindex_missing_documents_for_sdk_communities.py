@@ -3,7 +3,7 @@ import traceback
 from functools import wraps
 
 from django.core.paginator import Paginator
-from django.db import OperationalError, DatabaseError, DataError, IntegrityError, InternalError, ProgrammingError, NotSupportedError
+from django.db import connection
 
 from togther.models import ModelUtilities, card_answers, collabcardState
 from collabmates_api.sdk.models import SdkClient
@@ -18,8 +18,9 @@ def retry_on_db_failure(max_retries=1, delay=5):
             retries = 0
             while retries < max_retries:
                 try:
+                    connection.ensure_connection()
                     return func(*args, **kwargs)
-                except (OperationalError, DatabaseError, DataError, IntegrityError, InternalError, ProgrammingError, NotSupportedError) as e:
+                except Exception as e:
                     retries += 1
                     print(f"Database connection failed. Retrying {retries}/{max_retries}...")
                     print(f"Exception in {func.__name__}: {e}")
