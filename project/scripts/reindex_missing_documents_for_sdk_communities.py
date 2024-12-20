@@ -1,13 +1,32 @@
 import time
 import traceback
+from functools import wraps
 
 from django.core.paginator import Paginator
+from django.db import OperationalError, DatabaseError, DataError, IntegrityError, InternalError, ProgrammingError, NotSupportedError
 
 from togther.models import ModelUtilities, card_answers, collabcardState
 from collabmates_api.sdk.models import SdkClient
 from collabmates_api.search.conversation_index import ConversationDocument
 from collabmates_api.search.chatroom_index import ChatroomDocument
 
+
+def retry_on_db_failure(max_retries=1, delay=5):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            retries = 0
+            while retries < max_retries:
+                try:
+                    return func(*args, **kwargs)
+                except (OperationalError, DatabaseError, DataError, IntegrityError, InternalError, ProgrammingError, NotSupportedError) as e:
+                    retries += 1
+                    print(f"Database connection failed. Retrying {retries}/{max_retries}...")
+                    print(f"Exception in {func.__name__}: {e}")
+                    time.sleep(delay)
+            raise Exception("Max retries exceeded for database connection.")
+        return wrapper
+    return decorator
 
 class DataHelper:
 
@@ -45,6 +64,7 @@ class DataHelper:
             print(f"Bulk update in ES Done: {end_index} done out of {total_instances}")
 
     @staticmethod
+    @retry_on_db_failure()
     def paginate_queryset(queryset, chunk_size):
         paginator = Paginator(queryset, chunk_size)
         for page_number in range(1, paginator.num_pages + 1):
@@ -65,9 +85,11 @@ class ReindexBase:
         print(f"{task_name} took {end_time - start_time} seconds")
 
     def get_active_sdk_community_ids(self):
+        
         return ModelUtilities.get_model_filter(
             SdkClient, {"is_deleted": False}
-        ).values_list("community_id", flat=True)
+        ).order_by('-id', 
+            ).values_list("community_id", flat=True)
 
     def reindex_for_all_communities(self, reindex_function):
         community_ids = self.get_active_sdk_community_ids()
@@ -143,30 +165,31 @@ class ReindexBase:
 
 class ReindexChatrooms(ReindexBase):
 
+    @retry_on_db_failure()
     def reindex_missing_chatrooms_of_a_community(self):
-        
+
         if self.community_id is None:
             print("Community ID is None")
             return None
 
         start_time = time.time()
-        
+
         print(f"Reindexing missing chatrooms of community: {self.community_id}")
 
         chatroom_ids = self.get_chatroom_ids_from_elastic_search()
         chatroom_queryset = self.get_missing_chatrooms_in_a_community(chatroom_ids)
-        
+
         if not chatroom_queryset:
             return None
-        
+
         print(f"Total missing chatrooms: {chatroom_queryset.count()}")
-        
+
         for chatroom_instances in DataHelper.paginate_queryset(chatroom_queryset, self.db_chunk_size):
 
             DataHelper.bulk_update_in_elastic_search(
                 chatroom_instances, chunk_size=self.es_chunk_size
             )
-            
+
         self.print_time_taken(start_time, "Reindexing chatrooms")
 
     def reindex_chatrooms_for_all_communities(self):
@@ -174,8 +197,9 @@ class ReindexChatrooms(ReindexBase):
 
 class ReindexConversations(ReindexBase):
 
+    @retry_on_db_failure()
     def reindex_missing_conversations_of_a_community(self):
-        
+
         if self.community_id is None:
             print("Community ID is None")
             return None
@@ -185,10 +209,10 @@ class ReindexConversations(ReindexBase):
 
         conversation_ids = self.get_conversation_ids_from_elastic_search()
         conversation_queryset = self.get_missing_conversations_in_a_community(conversation_ids)
-        
+
         if not conversation_queryset:
             return None
-        
+
         print(f"Total missing conversations: {conversation_queryset.count()}")
 
         for converastion_instances in DataHelper.paginate_queryset(conversation_queryset, self.db_chunk_size):
@@ -196,11 +220,11 @@ class ReindexConversations(ReindexBase):
             DataHelper.bulk_update_in_elastic_search(
                 converastion_instances, chunk_size=self.es_chunk_size
             )
-            
+
         self.print_time_taken(start_time, "Reindexed conversations")
 
     def reindex_conversations_for_all_communities(self):
-        
+
         self.reindex_for_all_communities(
             self.reindex_missing_conversations_of_a_community
         )
