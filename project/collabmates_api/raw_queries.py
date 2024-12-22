@@ -4132,28 +4132,13 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                           get_members_query_meta_for_sync_revamp("topic"),
                                           get_sdk_client_query_meta_for_sync_revamp("topic")])
 
-        dm_chatroom_conversation_query = ""
-        dm_chatroom_message_query = ""
-        dm_chatroom_message_filter_query = ""
+        dm_chatroom_query = ""
 
         if is_dm_chatroom:
-            dm_chatroom_conversation_query = """LEFT JOIN togther_card_answers ON 
-            togther_card_answers.card_id = togther_collabcard.id"""
-
-            dm_chatroom_message_query = """
-            ,(
-                CASE
-                    WHEN togther_collabcard.type = 10 AND togther_collabcard.is_private = true AND 
-                    togther_card_answers.state NOT IN (0, 10) THEN 0
-                    ELSE 1
-                END
-            ) AS dm_message
-            """
-
-            dm_chatroom_message_filter_query = """
-            WHERE 
-            (
-                chatroom_data.dm_message = 1
+            dm_chatroom_query = """
+            AND (
+                  (togther_collabcard.type = 10 AND togther_collabcardstate.chat_request_state IS NOT NULL)
+                  OR (togther_collabcard.type != 10)
             )
             """
 
@@ -4205,18 +4190,17 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                       FROM 
                                         (
                                           SELECT 
-                                            {} {}
+                                            {}
                                           FROM 
                                             togther_collabcardstate 
                                             INNER JOIN togther_collabcard ON togther_collabcardstate.card_id = togther_collabcard.id
-                                            {} 
                                           WHERE 
                                             (
                                               togther_collabcardstate.user_id = {} 
                                               AND togther_collabcardstate.follow_status = true 
                                               AND togther_collabcardstate.community_id = {} 
                                               AND togther_collabcardstate.remove_id IS NULL 
-                                              AND togther_collabcard.type IN {} 
+                                              AND togther_collabcard.type IN {} {}
                                               AND togther_collabcard.updated_at >= {} 
                                               AND togther_collabcard.updated_at <= {} 
                                               {} {}
@@ -4225,7 +4209,6 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
                                             togther_collabcard.updated_at DESC
                                         ) AS chatroom_data 
                                         INNER JOIN togther_community ON chatroom_data.community_id = togther_community.id
-                                        {}
                                     ) AS chatroom_community_data
                                     INNER JOIN togther_userinfo ON (
                                       togther_userinfo.user_id_id = chatroom_community_data.user_id
@@ -4300,10 +4283,9 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
         """.format(topic_user_data_query, topic_conversation_data_query,
                    get_conversation_query_meta_for_sync_revamp("last", is_widget_enabled),
                    chatroom_with_user_data_query, chat_requested_user_data_query, creator_data_query,
-                   get_community_query_meta_for_sync_revamp(""), chatroom_query, dm_chatroom_message_query,
-                   dm_chatroom_conversation_query, user_id, community_id, included_chatroom_types_query,
-                   min_timestamp, max_timestamp, chatroom_id_query, chatroom_tag_query, dm_chatroom_message_filter_query, 
-                   offset, limit)
+                   get_community_query_meta_for_sync_revamp(""), chatroom_query, user_id, community_id,
+                   included_chatroom_types_query, dm_chatroom_query, min_timestamp, max_timestamp, chatroom_id_query,
+                   chatroom_tag_query, offset, limit)
 
         if only_query:
             return sql
