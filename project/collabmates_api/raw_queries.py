@@ -4137,8 +4137,9 @@ def get_home_feed_chatrooms_against_user(user_id, community_id, min_timestamp: i
         if is_dm_chatroom:
             dm_chatroom_query = """
             AND (
-                  (togther_collabcard.type = 10 AND togther_collabcardstate.chat_request_state IS NOT NULL)
-                  OR (togther_collabcard.type != 10)
+                  (togther_collabcard.type = 10 AND togther_collabcard.is_private = true AND 
+                  togther_collabcardstate.chat_request_state IS NOT NULL)
+                  OR (togther_collabcard.type != 10 AND togther_collabcard.is_private = false)
             )
             """
 
