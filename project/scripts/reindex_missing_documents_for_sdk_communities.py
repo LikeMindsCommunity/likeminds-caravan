@@ -199,6 +199,7 @@ class ReindexChatrooms(ReindexBase):
     def get_count_of_all_missing_chatrooms(self):
 
         community_ids = self.get_active_sdk_community_ids()
+        total_count = 0
 
         for community_id in community_ids:
             self.community_id = community_id
@@ -208,10 +209,15 @@ class ReindexChatrooms(ReindexBase):
             count = chatroom_queryset.count()
             if not count:
                 continue
-
+            
+            total_count += count
             print(
                 f"Community {community_id} has {count} missing chatrooms (collabcardState)"
             )
+        
+        print(f"Total missing chatrooms: {total_count}")
+        
+        return total_count
 
 class ReindexConversations(ReindexBase):
 
@@ -250,6 +256,7 @@ class ReindexConversations(ReindexBase):
     def get_count_of_all_missing_conversations(self):
 
         community_ids = self.get_active_sdk_community_ids()
+        total_count = 0
 
         for community_id in community_ids:
             self.community_id = community_id
@@ -259,10 +266,15 @@ class ReindexConversations(ReindexBase):
             count = conversation_queryset.count()
             if not count:
                 continue
-
+            
+            total_count += count
             print(
                 f"Community {community_id} has {count} missing conversations (card_answers)"
             )
+            
+        print(f"Total missing conversations: {total_count}")
+        
+        return total_count
 
 
 class ReindexManager:
@@ -284,6 +296,15 @@ class ReindexManager:
     def reindex_conversations_for_single_community(self, community_id):
         self.conversation_reindexer.community_id = community_id
         self.conversation_reindexer.reindex_missing_conversations_of_a_community()
+        
+    def get_total_count_of_missing_documents(self):
+        total_chatrooms = self.chatroom_reindexer.get_count_of_all_missing_chatrooms()
+        total_conversations = self.conversation_reindexer.get_count_of_all_missing_conversations()
+
+        print(f"Total missing chatrooms: {total_chatrooms}")
+        print(f"Total missing conversations: {total_conversations}")
+
+        return total_chatrooms, total_conversations
 
 
 # Example usage
