@@ -196,6 +196,7 @@ class ReindexChatrooms(ReindexBase):
     def reindex_chatrooms_for_all_communities(self):
         self.reindex_for_all_communities(self.reindex_missing_chatrooms_of_a_community)
 
+    @retry_on_db_failure()
     def get_count_of_all_missing_chatrooms(self):
 
         community_ids = self.get_active_sdk_community_ids()
@@ -253,6 +254,7 @@ class ReindexConversations(ReindexBase):
             self.reindex_missing_conversations_of_a_community
         )
 
+    @retry_on_db_failure()
     def get_count_of_all_missing_conversations(self):
 
         community_ids = self.get_active_sdk_community_ids()
@@ -266,14 +268,14 @@ class ReindexConversations(ReindexBase):
             count = conversation_queryset.count()
             if not count:
                 continue
-            
+
             total_count += count
             print(
                 f"Community {community_id} has {count} missing conversations (card_answers)"
             )
-            
+
         print(f"Total missing conversations: {total_count}")
-        
+
         return total_count
 
 
