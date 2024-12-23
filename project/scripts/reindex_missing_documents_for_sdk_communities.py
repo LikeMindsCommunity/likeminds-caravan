@@ -203,19 +203,25 @@ class ReindexChatrooms(ReindexBase):
         total_count = 0
 
         for community_id in community_ids:
-            self.community_id = community_id
-            chatroom_ids = self.get_chatroom_ids_from_elastic_search()
-            chatroom_queryset = self.get_missing_chatrooms_in_a_community(chatroom_ids)
-
-            count = chatroom_queryset.count()
-            if not count:
-                continue
             
-            total_count += count
-            print(
-                f"Community {community_id} has {count} missing chatrooms (collabcardState)"
-            )
-        
+            try:
+                self.community_id = community_id
+                chatroom_ids = self.get_chatroom_ids_from_elastic_search()
+                chatroom_queryset = self.get_missing_chatrooms_in_a_community(chatroom_ids)
+
+                count = chatroom_queryset.count()
+                if not count:
+                    continue
+                
+                total_count += count
+                print(
+                    f"Community {community_id} has {count} missing chatrooms (collabcardState)"
+                )
+            except Exception as e:
+                print(f"Error in community: {community_id}: {e}")
+                # Print stack track
+                traceback.print_exc()
+            
         print(f"Total missing chatrooms: {total_count}")
         
         return total_count
