@@ -261,18 +261,24 @@ class ReindexConversations(ReindexBase):
         total_count = 0
 
         for community_id in community_ids:
-            self.community_id = community_id
-            conversation_ids = self.get_conversation_ids_from_elastic_search()
-            conversation_queryset = self.get_missing_conversations_in_a_community(conversation_ids)
+            
+            try:
+                self.community_id = community_id
+                conversation_ids = self.get_conversation_ids_from_elastic_search()
+                conversation_queryset = self.get_missing_conversations_in_a_community(conversation_ids)
 
-            count = conversation_queryset.count()
-            if not count:
-                continue
+                count = conversation_queryset.count()
+                if not count:
+                    continue
 
-            total_count += count
-            print(
-                f"Community {community_id} has {count} missing conversations (card_answers)"
-            )
+                total_count += count
+                print(
+                    f"Community {community_id} has {count} missing conversations (card_answers)"
+                )
+            except Exception as e:
+                print(f"Error in community: {community_id}: {e}")
+                # Print stack track
+                traceback.print_exc()
 
         print(f"Total missing conversations: {total_count}")
 
