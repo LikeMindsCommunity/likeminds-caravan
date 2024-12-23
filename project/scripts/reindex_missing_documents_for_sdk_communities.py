@@ -204,8 +204,13 @@ class ReindexChatrooms(ReindexBase):
             self.community_id = community_id
             chatroom_ids = self.get_chatroom_ids_from_elastic_search()
             chatroom_queryset = self.get_missing_chatrooms_in_a_community(chatroom_ids)
+
+            count = chatroom_queryset.count()
+            if not count:
+                continue
+
             print(
-                f"Community {community_id} has {chatroom_queryset.count()} missing chatrooms (collabcardState)"
+                f"Community {community_id} has {count} missing chatrooms (collabcardState)"
             )
 
 class ReindexConversations(ReindexBase):
@@ -241,7 +246,7 @@ class ReindexConversations(ReindexBase):
         self.reindex_for_all_communities(
             self.reindex_missing_conversations_of_a_community
         )
-        
+
     def get_count_of_all_missing_conversations(self):
 
         community_ids = self.get_active_sdk_community_ids()
@@ -250,8 +255,13 @@ class ReindexConversations(ReindexBase):
             self.community_id = community_id
             conversation_ids = self.get_conversation_ids_from_elastic_search()
             conversation_queryset = self.get_missing_conversations_in_a_community(conversation_ids)
+
+            count = conversation_queryset.count()
+            if not count:
+                continue
+
             print(
-                f"Community {community_id} has {conversation_queryset.count()} missing conversations (card_answers)"
+                f"Community {community_id} has {count} missing conversations (card_answers)"
             )
 
 
