@@ -89,7 +89,7 @@ from utility.states import member_states, card_types, click_states, member_right
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
     api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
     CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus, GuestFlowUserTypes, \
-    UserRoles, CommunityIntegrationStatusTypes
+    UserRoles, CommunityIntegrationStatusTypes, conversation_poll_types, multi_select_poll_states
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -98,7 +98,8 @@ from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDI
                                PLATFORM_TYPE_CARAVAN_SERVICE, GUEST_FLOW_METADATA_CONFIGURATION,
                                WIDGETS_METADATA_CONFIGURATION, PERSONALISED_FEED_WEIGHTS, FEED_SETTINGS_CONFIGURATION,
                                CREATE_FEED_POLL_CONFIGURATION_VALUES, CHATBOT_CONFIGURATIONS, CHATBOT_PROVIDER_OPENAI,
-                               CHATBOT_DEFAULT_THREAD_CONTEXT, VALID_NOTIFICATION_FEED_ACTIONS, AUTO_APPROVE_POST_CONFIGURATION_VALUES)
+                               CHATBOT_DEFAULT_THREAD_CONTEXT, VALID_NOTIFICATION_FEED_ACTIONS, 
+                               AUTO_APPROVE_POST_CONFIGURATION_VALUES, CHAT_POLL_CONFIGURATIONS)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -5784,6 +5785,47 @@ class CommunityHelper:
                 api_key_validation = OpenAiWrapper(update_values.get('api_key')).validate_open_ai_api_key_or_assistant()
                 if api_key_validation.get('error_message'):
                     return api_key_validation
+                
+        elif configuration_type == CHAT_POLL_CONFIGURATIONS:
+            
+            values = update_values.get('poll_configurations')
+            
+            if values.get('allow_override') and not isinstance(values.get('allow_override'), bool):
+                return ResponseUtilities.get_inner_error_context(
+                    "Invalid allow_override value - Please send boolean value.")
+            
+            if values.get('poll_type'):
+                if not isinstance(values.get('poll_type'), str
+                    ) or not conversation_poll_types.is_valid_poll_type_enum(values.get('poll_type')):
+                    return ResponseUtilities.get_inner_error_context(
+                        "Invalid poll_type value - allowed values: instant | deferred | open .")
+                
+            if values.get('no_poll_expiry'
+                ) and not isinstance(values.get('no_poll_expiry'), bool):
+                return ResponseUtilities.get_inner_error_context(
+                    "Invalid no_poll_expiry value - Please send boolean value.")
+            
+            if values.get('allow_vote_change') and not isinstance(values.get('allow_vote_change'), bool):
+                return ResponseUtilities.get_inner_error_context(
+                    "Invalid allow_vote_change value - Please send boolean value.")
+            
+            if values.get('multiple_select_state'):
+                if not isinstance(values.get('multiple_select_state'), str) or not (
+                    multi_select_poll_states.is_valid_poll_state_enum(values.get('multiple_select_state'))):
+                    return ResponseUtilities.get_inner_error_context(
+                        "Invalid multiple_select_state value - allowed values: exactly | at_max | at_most | at_least .")
+                    
+            if values.get('multiple_select_no') and not isinstance(values.get('multiple_select_no'), int):
+                return ResponseUtilities.get_inner_error_context(
+                    "Invalid multiple_select_no value - Please send integer value.")
+            
+            if values.get('is_anonymous') and not isinstance(values.get('is_anonymous'), bool):
+                return ResponseUtilities.get_inner_error_context(
+                    "Invalid is_anonymous value - Please send boolean value.")
+                
+            if values.get('allow_add_option') and not isinstance(values.get('allow_add_option'), bool):
+                return ResponseUtilities.get_inner_error_context(
+                    "Invalid allow_add_option value - Please send boolean value.")
              
         return {
             'community_instance': community_instance,
