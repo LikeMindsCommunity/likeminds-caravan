@@ -1312,12 +1312,12 @@ class ConversationImpl(ConversationManager):
 
         user_instance = validated_request.get('user_instance')
         conversation_instance = validated_request.get('conversation_instance')
+        user_poll_instances = validated_request.get('user_polls_instance')
 
         polls = request_body.get('polls', [])
-
-        poll_filter = ModelUtilities.get_model_filter(conversationPollMembers, {'user': user_instance,
-                                                                                'conversation': conversation_instance})
-        poll_filter.delete()
+        
+        if user_poll_instances:
+            user_poll_instances.delete()
 
         for poll in polls:
             poll_filter = ModelUtilities.get_model_filter(conversationPolls, {'id': poll.get('id'),

@@ -1,5 +1,5 @@
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, Collabcard, card_answers, Members, userMemberRights)
+from togther.models import (ModelUtilities, Collabcard, card_answers, Members, conversationPollMembers)
 from utility.states import (member_states, card_types, conversation_states, member_rights)
 from .constants import (ERROR_MESSAGE_FOR_ANNOUNCEMENT_ROOM)
 from utility.time_utilities import TimeUtilities
@@ -119,14 +119,23 @@ class ConversationViewHelper:
 
         if not isinstance(req_body.get('polls'), list):
             return ResponseUtilities.get_inner_error_context('Send correct structure of polls data')
+        
+        user_poll_instances = ModelUtilities.get_model_filter(conversationPollMembers,
+            {"user": user_instance, "conversation": conversation_instance},
+        )
+        
+        if user_poll_instances and not conversation_instance.allow_vote_change:
+            return ResponseUtilities.get_inner_error_context('Poll already submitted')
 
-        if (not conversation_instance.expiry_time) or conversation_instance.expiry_time < \
-                TimeUtilities.current_time_in_milliseconds():
-            return ResponseUtilities.get_inner_error_context('Poll has been ended')
+        if not conversation_instance.no_poll_expiry: 
+            if not conversation_instance.expiry_time or \
+                conversation_instance.expiry_time < TimeUtilities.current_time_in_milliseconds():
+                return ResponseUtilities.get_inner_error_context('Poll has been ended')
 
         return {
             'user_instance': user_instance,
-            'conversation_instance': conversation_instance
+            'conversation_instance': conversation_instance,
+            'user_polls_instance': user_poll_instances
         }
 
     @staticmethod
@@ -248,4 +257,3 @@ class ConversationViewHelper:
             'user_instance': user_instance,
             'chatroom_instance': chatroom_instance
         }
-
