@@ -5002,8 +5002,8 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                                          get_members_query_meta_for_sync_revamp("options_creator"),
                                          get_sdk_client_query_meta_for_sync_revamp("options_creator")])
 
-        sql = """
-            SELECT final_polls_data.*, no_votes * 100 / final_polls_data.count AS percentage, {}
+        sql = f"""
+            SELECT final_polls_data.*, no_votes * 100 / final_polls_data.count AS percentage, {poll_options_creator}
             FROM   (SELECT polls_data.conversation_id, id, no_votes, total_voters.count, is_selected, 
                     Split_part(text_options,'___', 1) AS text,
                     Cast(COALESCE(Split_part(poll_option_creator, '___', 1), '0') AS BIGINT) AS user_id
@@ -5014,9 +5014,9 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                                    END                              AS is_selected,
                                    String_agg(Text(text), '___')    AS text_options,
                                    String_agg(Text(user_id), '___') AS poll_option_creator
-                            FROM   (SELECT {},
+                            FROM   (SELECT {poll_data_query},
                                            CASE
-                                             WHEN togther_conversationpollmembers.user_id = {}
+                                             WHEN togther_conversationpollmembers.user_id = {user_id}
                                            THEN 1
                                              ELSE 0
                                            END
@@ -5037,24 +5037,23 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                            togther_conversationpollmembers.conversation_id
                            AND togther_conversationpolls.id =
                            togther_conversationpollmembers.poll_id
-                           WHERE  togther_conversationpolls.conversation_id IN {}) AS polls_all_data
+                           WHERE  togther_conversationpolls.conversation_id IN {conversation_ids_query}) AS polls_all_data
                             GROUP  BY conversation_id,
                                       id) AS polls_data
                             LEFT JOIN (
                                 SELECT conversation_id, COUNT(DISTINCT(user_id)) FROM
                                 togther_conversationPollMembers GROUP BY conversation_id
-                                HAVING conversation_id IN {}) AS total_voters
+                                HAVING conversation_id IN {conversation_ids_query}) AS total_voters
                                 ON total_voters.conversation_id = polls_data.conversation_id
                             ) AS final_polls_data
                    LEFT JOIN togther_userinfo
                           ON ( togther_userinfo.user_id_id = final_polls_data.user_id )
                    LEFT JOIN togther_members
                           ON ( final_polls_data.user_id = togther_members.member_id_id
-                               AND togther_members.community_id_id = {})
+                               AND togther_members.community_id_id = {community_id})
                    LEFT JOIN togther_sdkclientusersinfo
                           ON ( final_polls_data.user_id = togther_sdkclientusersinfo.user_id );
-        """.format(poll_options_creator, poll_data_query, user_id, conversation_ids_query, conversation_ids_query,
-                   community_id)
+        """
 
         curr.execute(sql)
         polls_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
