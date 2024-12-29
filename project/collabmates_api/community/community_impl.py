@@ -5788,44 +5788,43 @@ class CommunityHelper:
                 
         elif configuration_type == CHAT_POLL_CONFIGURATIONS:
             
-            values = update_values.get('poll_configurations')
-            
-            if values.get('allow_override') and not isinstance(values.get('allow_override'), bool):
+            if update_values.get('allow_override') and not isinstance(update_values.get('allow_override'), bool):
                 return ResponseUtilities.get_inner_error_context(
                     "Invalid allow_override value - Please send boolean value.")
-            
-            if values.get('poll_type'):
-                if not isinstance(values.get('poll_type'), str
-                    ) or not conversation_poll_types.is_valid_poll_type_enum(values.get('poll_type')):
-                    return ResponseUtilities.get_inner_error_context(
-                        "Invalid poll_type value - allowed values: instant | deferred | open .")
                 
-            if values.get('no_poll_expiry'
-                ) and not isinstance(values.get('no_poll_expiry'), bool):
+            if update_values.get('no_poll_expiry'
+                ) and not isinstance(update_values.get('no_poll_expiry'), bool):
                 return ResponseUtilities.get_inner_error_context(
                     "Invalid no_poll_expiry value - Please send boolean value.")
             
-            if values.get('allow_vote_change') and not isinstance(values.get('allow_vote_change'), bool):
+            if update_values.get('allow_vote_change') and not isinstance(update_values.get('allow_vote_change'), bool):
                 return ResponseUtilities.get_inner_error_context(
                     "Invalid allow_vote_change value - Please send boolean value.")
             
-            if values.get('multiple_select_state'):
-                if not isinstance(values.get('multiple_select_state'), str) or not (
-                    multi_select_poll_states.is_valid_poll_state_enum(values.get('multiple_select_state'))):
-                    return ResponseUtilities.get_inner_error_context(
-                        "Invalid multiple_select_state value - allowed values: exactly | at_max | at_most | at_least .")
-                    
-            if values.get('multiple_select_no') and not isinstance(values.get('multiple_select_no'), int):
-                return ResponseUtilities.get_inner_error_context(
-                    "Invalid multiple_select_no value - Please send integer value.")
-            
-            if values.get('is_anonymous') and not isinstance(values.get('is_anonymous'), bool):
+            if update_values.get('is_anonymous') and not isinstance(update_values.get('is_anonymous'), bool):
                 return ResponseUtilities.get_inner_error_context(
                     "Invalid is_anonymous value - Please send boolean value.")
                 
-            if values.get('allow_add_option') and not isinstance(values.get('allow_add_option'), bool):
+            if update_values.get('allow_add_option') and not isinstance(update_values.get('allow_add_option'), bool):
                 return ResponseUtilities.get_inner_error_context(
                     "Invalid allow_add_option value - Please send boolean value.")
+                
+            if update_values.get('poll_type'):
+                if not isinstance(update_values.get('poll_type'), str
+                    ) or not conversation_poll_types.is_valid_poll_type_enum(update_values.get('poll_type')):
+                    return ResponseUtilities.get_inner_error_context(
+                        "Invalid poll_type value - allowed update_values: instant | deferred | open .")
+                    
+            if update_values.get('multiple_select_state'):
+                if not isinstance(update_values.get('multiple_select_state'), str) or not (
+                    multi_select_poll_states.is_valid_poll_state_enum(update_values.get('multiple_select_state'))):
+                    return ResponseUtilities.get_inner_error_context(
+                        "Invalid multiple_select_state value - allowed update_values: exactly | at_max | at_most | at_least .")
+                    
+            if update_values.get('multiple_select_no') and not isinstance(update_values.get('multiple_select_no'), int):
+                return ResponseUtilities.get_inner_error_context(
+                    "Invalid multiple_select_no value - Please send integer value.")
+            
              
         return {
             'community_instance': community_instance,
@@ -6526,6 +6525,40 @@ class CommunityHelper:
                 configuration_value['api_key'] = update_values.get('api_key')
                 record_updated = True
 
+        elif configuration_type == CHAT_POLL_CONFIGURATIONS:
+            
+            if update_values.get('allow_override') and isinstance(update_values.get('allow_override'), bool):
+                configuration_value['allow_override'] = update_values.get('allow_override')
+                record_updated = True
+                
+            if update_values.get('no_poll_expiry') and isinstance(update_values.get('no_poll_expiry'), bool):
+                configuration_value['no_poll_expiry'] = update_values.get('no_poll_expiry')
+                record_updated = True
+                
+            if update_values.get('allow_vote_change') and isinstance(update_values.get('allow_vote_change'), bool):
+                configuration_value['allow_vote_change'] = update_values.get('allow_vote_change')
+                record_updated = True
+                
+            if update_values.get('is_anonymous') and isinstance(update_values.get('is_anonymous'), bool):
+                configuration_value['is_anonymous'] = update_values.get('is_anonymous')
+                record_updated = True
+                
+            if update_values.get('allow_add_option') and isinstance(update_values.get('allow_add_option'), bool):
+                configuration_value['allow_add_option'] = update_values.get('allow_add_option')
+                record_updated = True
+            
+            if update_values.get('poll_type') and conversation_poll_types.is_valid_poll_type_enum(update_values.get('poll_type')):
+                configuration_value['poll_type'] = update_values.get('poll_type')
+                record_updated = True
+                
+            if update_values.get('multiple_select_state') and multi_select_poll_states.is_valid_multi_select_state_enum(update_values.get('multiple_select_state')):
+                configuration_value['multiple_select_state'] = update_values.get('multiple_select_state')
+                record_updated = True
+                
+            if update_values.get('multiple_select_no') and isinstance(update_values.get('multiple_select_no'), int):
+                configuration_value['multiple_select_no'] = update_values.get('multiple_select_no')
+                record_updated = True
+            
         # Update configuration instance if record is updated
         if record_updated:
             configuration_instance.value = configuration_value
