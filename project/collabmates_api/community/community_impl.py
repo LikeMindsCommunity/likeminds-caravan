@@ -5792,8 +5792,7 @@ class CommunityHelper:
                 return ResponseUtilities.get_inner_error_context(
                     "Invalid allow_override value - Please send boolean value.")
                 
-            if update_values.get('no_poll_expiry'
-                ) and not isinstance(update_values.get('no_poll_expiry'), bool):
+            if update_values.get('no_poll_expiry') and isinstance(update_values.get('no_poll_expiry'), bool):
                 return ResponseUtilities.get_inner_error_context(
                     "Invalid no_poll_expiry value - Please send boolean value.")
             
@@ -5814,6 +5813,11 @@ class CommunityHelper:
                     ) or not conversation_poll_types.is_valid_poll_type_enum(update_values.get('poll_type')):
                     return ResponseUtilities.get_inner_error_context(
                         "Invalid poll_type value - allowed update_values: instant | deferred | open .")
+                    
+                if update_values.get('no_poll_expiry') and \
+                    update_values.get('poll_type') == conversation_poll_types.DEFERRED:
+                    return ResponseUtilities.get_inner_error_context(
+                        "You cannot set no_poll_expiry to true for deferred polls.")
                     
             if update_values.get('multiple_select_state'):
                 if not isinstance(update_values.get('multiple_select_state'), str) or not (
@@ -6511,7 +6515,7 @@ class CommunityHelper:
 
         elif configuration_type == CHATBOT_CONFIGURATIONS:
                 
-            if update_values.get('enabled') and isinstance(update_values.get('enabled'), bool):
+            if update_values.get('enabled') is not None and isinstance(update_values.get('enabled'), bool):
                 configuration_value['enabled'] = update_values.get('enabled')
                 record_updated = True
 
@@ -6527,23 +6531,23 @@ class CommunityHelper:
 
         elif configuration_type == CHAT_POLL_CONFIGURATIONS:
             
-            if update_values.get('allow_override') and isinstance(update_values.get('allow_override'), bool):
+            if update_values.get('allow_override') is not None and isinstance(update_values.get('allow_override'), bool):
                 configuration_value['allow_override'] = update_values.get('allow_override')
                 record_updated = True
                 
-            if update_values.get('no_poll_expiry') and isinstance(update_values.get('no_poll_expiry'), bool):
+            if update_values.get('no_poll_expiry') is not None and isinstance(update_values.get('no_poll_expiry'), bool):
                 configuration_value['no_poll_expiry'] = update_values.get('no_poll_expiry')
                 record_updated = True
                 
-            if update_values.get('allow_vote_change') and isinstance(update_values.get('allow_vote_change'), bool):
+            if update_values.get('allow_vote_change') is not None and isinstance(update_values.get('allow_vote_change'), bool):
                 configuration_value['allow_vote_change'] = update_values.get('allow_vote_change')
                 record_updated = True
                 
-            if update_values.get('is_anonymous') and isinstance(update_values.get('is_anonymous'), bool):
+            if update_values.get('is_anonymous') is not None and isinstance(update_values.get('is_anonymous'), bool):
                 configuration_value['is_anonymous'] = update_values.get('is_anonymous')
                 record_updated = True
                 
-            if update_values.get('allow_add_option') and isinstance(update_values.get('allow_add_option'), bool):
+            if update_values.get('allow_add_option') is not None and isinstance(update_values.get('allow_add_option'), bool):
                 configuration_value['allow_add_option'] = update_values.get('allow_add_option')
                 record_updated = True
             
@@ -6558,6 +6562,11 @@ class CommunityHelper:
             if update_values.get('multiple_select_no') and isinstance(update_values.get('multiple_select_no'), int):
                 configuration_value['multiple_select_no'] = update_values.get('multiple_select_no')
                 record_updated = True
+                
+            if configuration_value.get('no_poll_expiry') and configuration_value.get('poll_type') == conversation_poll_types.DEFERRED_POLL_ENUM:
+                configuration_value['no_poll_expiry'] = False
+                record_updated = True
+            
             
         # Update configuration instance if record is updated
         if record_updated:

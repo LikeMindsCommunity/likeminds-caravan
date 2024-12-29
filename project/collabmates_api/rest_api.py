@@ -1003,8 +1003,8 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
                   'attachment_count', 'attachments_uploaded', 'location', 'reply_conversation',
                   'preview', 'member_id', 'created_epoch', 'temporary_id', 'is_anonymous',
                   'allow_add_option', 'poll_type', 'expiry_time', 'multiple_select_state',
-                  'multiple_select_no', 'polls', 'reactions', 'poll_type_text', 'submit_type_text',
-                  'poll_answer_text', 'reply_chatroom_id', 'header', 'location',
+                  'multiple_select_no', 'polls', 'poll_type_text', 'no_poll_expiry', 'allow_vote_change', 
+                  'reactions', 'submit_type_text', 'poll_answer_text', 'reply_chatroom_id', 'header', 'location',
                   'location_lat', 'location_long', 'start_time', 'end_time', 'co_hosts_ids',
                   'attendees_ids', 'has_event_recording', 'about_recording', 'recording_url_og_tags', 'widget_id')
 
@@ -1037,7 +1037,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
     def get_poll_type_text(self, obj):
 
         if obj.state == conversation_states.CONVERSATION_POLL:
-            return "Instant poll" if obj.poll_type == conversation_poll_types.INSTANT else "Deferred poll"
+            return conversation_poll_types.get_poll_name(obj.poll_type)
 
     def get_submit_type_text(self, obj):
 

@@ -3947,9 +3947,9 @@ def get_conversation_query_meta_for_sync_revamp(key_name_prefix: str = None, sho
                     'attachments_uploaded', 'card_id', 'user_id', 'community_id', 'og_tags', 'deleted_by_user_id',
                     'internal_link', 'reply_id', 'last_updated', 'preview_chatroom_id', 'preview_type', 'api_version',
                     'temporary_id', 'poll_type', 'multiple_select_state', 'multiple_select_no', 'is_anonymous',
-                    'allow_add_option', 'expiry_time', 'preview_community_id', 'has_reactions', 'device_id',
-                    'poll_answer_text', 'reply_chatroom_id', 'header', 'location', 'location_lat', 'location_long',
-                    'start_time', 'end_time', 'online_link_enable_before', 'co_hosts']
+                    'allow_add_option', 'expiry_time', 'no_poll_expiry', 'allow_vote_change', 'preview_community_id', 
+                    'has_reactions', 'device_id', 'poll_answer_text', 'reply_chatroom_id', 'header', 'location', 
+                    'location_lat', 'location_long', 'start_time', 'end_time', 'online_link_enable_before', 'co_hosts']
 
     meta_query = create_query_with_prefix(query_fields, 'togther_card_answers', 'conversation', key_name_prefix)
 
