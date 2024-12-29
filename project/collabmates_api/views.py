@@ -13082,7 +13082,7 @@ class SyncChatrooms(APIView):
                 chatroom['is_anonymous'] = data[30]
                 chatroom['poll_type'] = data[31]
                 chatroom['poll_type_text'] = "Instant poll" if chatroom[
-                                                                   'poll_type'] == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+                                                                   'poll_type'] == chatroom_poll_types.POLL_TYPE_INSTANT else "Deferred poll"
                 chatroom['submit_type_text'] = "Secret voting" if chatroom['is_poll_anonymous'] else "Public voting"
 
                 polls = self._get_polls_v1(poll_data, chatroom['id'], poll_votes, data[29], member_id)
@@ -13833,7 +13833,7 @@ class SyncChatroomsDiff(APIView):
             chatroom['is_anonymous'] = data[30]
             chatroom['poll_type'] = data[31]
             chatroom['poll_type_text'] = "Instant poll" \
-                if chatroom['poll_type'] == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+                if chatroom['poll_type'] == chatroom_poll_types.POLL_TYPE_INSTANT else "Deferred poll"
             chatroom['submit_type_text'] = "Secret voting" if chatroom[
                 'is_poll_anonymous'] else "Public voting"
 

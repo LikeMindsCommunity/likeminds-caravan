@@ -19,7 +19,7 @@ from .serializers import (get_answer_files, get_preview_for_url, get_category_of
                           get_members_profile, get_share_url_text, CollabcardPollsSerializer,
                           get_removed_member_custom_text, get_collabcard_files, get_user_profile,
                           get_answer_text_for_poll, CollabcardSerializer)
-from utility.states import (card_types, question_states, member_states, poll_types,
+from utility.states import (card_types, question_states, member_states, chatroom_poll_types,
                             deleted_members, manager_rights, member_rights, conversation_states,
                             conversation_poll_types)
 from utility.utils import (get_time_text, generate_private_link, eligibility_count,
@@ -344,7 +344,7 @@ class GetChatroomInstanceSerializer(serializers.ModelSerializer):
         return None
 
     def get_poll_type_text(self, card):
-        return "Instant poll" if card.poll_type == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+        return "Instant poll" if card.poll_type == chatroom_poll_types.POLL_TYPE_INSTANT else "Deferred poll"
 
     def get_submit_type_text(self, card):
         return "Secret voting" if card.is_poll_anonymous else "Public voting"
