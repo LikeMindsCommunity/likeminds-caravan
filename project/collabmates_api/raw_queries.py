@@ -5017,6 +5017,7 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                             FROM   (SELECT {poll_data_query},
                                            CASE
                                              WHEN togther_conversationpollmembers.user_id = {user_id}
+                                             OR togther_card_answers.poll_type = 2
                                            THEN 1
                                              ELSE 0
                                            END
@@ -5031,6 +5032,8 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                                            AS
                                            vote_count
                                     FROM   togther_conversationpolls
+                                    INNER JOIN togther_card_answers 
+                                    ON togther_card_answers.id = togther_conversationpolls.conversation_id 
                                            LEFT JOIN togther_conversationpollmembers
                                                   ON
             togther_conversationpolls.conversation_id =
