@@ -443,8 +443,6 @@ class ConversationImpl(ConversationManager):
             poll_context['no_poll_expiry'] = req_body.get('no_poll_expiry', False)
             poll_context['allow_vote_change'] = req_body.get('allow_vote_change', True)
 
-            # TODO: Add support for no_poll_expiry and allow_vote_change
-
             poll_context['poll_answer_text'] = POLL_ANSWER_TEXT
 
         return poll_context
@@ -995,61 +993,14 @@ class ConversationImpl(ConversationManager):
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
         if req_body.get('state') and (req_body['state'] == conversation_states.CONVERSATION_POLL):
-            has_right = ModelUtilities.get_model_filter(userMemberRights,
-                                                        {'user': user_instance, 'community': community_instance,
-                                                         'right__state': member_rights.MEMBER_RIGHT_CREATE_POLL})
-
-            if not has_right:
-                return ResponseUtilities.get_impl_error_context("You don't have the rights to create a poll",
-                                                                status_codes.HTTP_400_BAD_REQUEST)
-
-            from collabmates_api.community.community_impl import CommunityHelper
-
-            configurations = CommunityHelper.fetch_or_return_default_community_configurations(
-                chatroom_instance.community.id, [CHAT_POLL_CONFIGURATIONS])
-
-            poll_chat_configs = configurations[0].get('value')
-
-            if poll_chat_configs.get('allow_override', True) is False: 
-                req_body['poll_type'] = conversation_poll_types.get_int_poll_type_from_string(
-                    poll_chat_configs.get('poll_type', 'instant'))
-
-                req_body['multiple_select_state'] = multi_select_poll_states.get_int_poll_state_from_enum(
-                    poll_chat_configs.get('multi_select_state', multi_select_poll_states.EXACTLY_ENUM))
-
-                req_body['multiple_select_no'] = poll_chat_configs.get('multiple_select_no', 1)
-
-                req_body['is_anonymous'] = poll_chat_configs.get('is_anonymous', False)
-
-                req_body['allow_add_option'] = poll_chat_configs.get('allow_add_option', False)
-                
-                req_body['no_poll_expiry'] = poll_chat_configs.get('no_poll_expiry', False)
-                if req_body['no_poll_expiry']:
-                    req_body['expiry_time'] = None
-                
-                req_body['allow_vote_change'] = poll_chat_configs.get('allow_vote_change', True)
-                
-            else:
-                if req_body.get('poll_type') is None:
-                    return ResponseUtilities.get_impl_error_context("Poll type is required!",
-                                                                    status_codes.HTTP_400_BAD_REQUEST)
-                    
-                if not (req_body.get('no_poll_expiry') and req_body.get('expiry_time')):
-                    return ResponseUtilities.get_impl_error_context("Poll expiry time is required!",
-                                                                    status_codes.HTTP_400_BAD_REQUEST)
-                    
-                if req_body.get('poll_type') == conversation_poll_types.DEFERRED and \
-                        not req_body.get('no_poll_expiry'):
-                    return ResponseUtilities.get_impl_error_context("Poll expiry time is required for deferred poll!",
-                                                                    status_codes.HTTP_400_BAD_REQUEST)
-                if req_body.get('no_poll_expiry'):
-                    req_body['expiry_time'] = None
-                    
-                if req_body.get('allow_vote_change') is None:
-                    if req_body.get('poll_type') == conversation_poll_types.INSTANT:
-                        req_body['allow_vote_change'] = False
-                    else:
-                        req_body['allow_vote_change'] = True
+            
+            validated_request = ConversationHelper.validate_poll_conversation_request(req_body, user_instance,
+                                                                                      chatroom_instance, 
+                                                                                      community_instance)
+            
+            if validated_request.get('error_message'):
+                return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         is_guest = False
         is_widgets_enabled = False
@@ -2885,6 +2836,65 @@ class ConversationHelper:
             'replied_conv_instance': replied_conv_instance
         }
     
+    @staticmethod
+    def validate_poll_conversation_request(req_body: dict, user_instance, chatroom_instance, community_instance) -> dict:
+        
+        has_right = ModelUtilities.get_model_filter(userMemberRights,
+                                                        {'user': user_instance, 'community': community_instance,
+                                                         'right__state': member_rights.MEMBER_RIGHT_CREATE_POLL})
+
+        if not has_right:
+            return ResponseUtilities.get_inner_error_context("You don't have the rights to create a poll")
+
+        from collabmates_api.community.community_impl import CommunityHelper
+
+        configurations = CommunityHelper.fetch_or_return_default_community_configurations(
+            chatroom_instance.community.id, [CHAT_POLL_CONFIGURATIONS])
+
+        poll_chat_configs = configurations[0].get('value')
+
+        # Update req_body for poll configurations
+        if poll_chat_configs.get('allow_override', True) is False: 
+            req_body['poll_type'] = conversation_poll_types.get_int_poll_type_from_string(
+                poll_chat_configs.get('poll_type', 'instant'))
+
+            req_body['multiple_select_state'] = multi_select_poll_states.get_int_poll_state_from_enum(
+                poll_chat_configs.get('multi_select_state', multi_select_poll_states.EXACTLY_ENUM))
+
+            req_body['multiple_select_no'] = poll_chat_configs.get('multiple_select_no', 1)
+
+            req_body['is_anonymous'] = poll_chat_configs.get('is_anonymous', False)
+
+            req_body['allow_add_option'] = poll_chat_configs.get('allow_add_option', False)
+            
+            req_body['no_poll_expiry'] = poll_chat_configs.get('no_poll_expiry', False)
+            if req_body['no_poll_expiry']:
+                req_body['expiry_time'] = None
+            
+            req_body['allow_vote_change'] = poll_chat_configs.get('allow_vote_change', True)
+            
+        else:
+            if req_body.get('poll_type') is None:
+                return ResponseUtilities.get_inner_error_context("Poll type is required!")
+                
+            if not (req_body.get('no_poll_expiry') and req_body.get('expiry_time')):
+                return ResponseUtilities.get_inner_error_context("Poll expiry time is required!")
+                
+            if req_body.get('poll_type') == conversation_poll_types.DEFERRED and \
+                    not req_body.get('no_poll_expiry'):
+                return ResponseUtilities.get_inner_error_context("Poll expiry time is required for deferred poll!")
+            
+            if req_body.get('no_poll_expiry'):
+                req_body['expiry_time'] = None
+                
+            if req_body.get('allow_vote_change') is None:
+                if req_body.get('poll_type') == conversation_poll_types.INSTANT:
+                    req_body['allow_vote_change'] = False
+                else:
+                    req_body['allow_vote_change'] = True
+        
+        return {}
+                        
     @staticmethod
     def get_conversation_payload_for_webhook_events(conversation_id: int, event_type: str):
         
