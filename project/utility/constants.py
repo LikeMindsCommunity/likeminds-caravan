@@ -242,7 +242,9 @@ COMMUNITY_CONFIGURATIONS = {
         },
     },
     CHAT_POLL_CONFIGURATIONS: {
-        { 
+        "type": CHAT_POLL_CONFIGURATIONS,
+        "description": "Chat poll configurations for the community.",
+        "value": {
             "allow_override": True, # If to use configurations params, or create conversation params
             "poll_type": "instant", # 'instant | deferred | open'
             "no_poll_expiry": False,  # If poll has no expiry
