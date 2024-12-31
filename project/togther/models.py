@@ -835,9 +835,11 @@ class card_answers(models.Model):
     multiple_select_no = models.IntegerField(null=True)
     is_anonymous = models.BooleanField(default=False)
     allow_add_option = models.BooleanField(default=False)
+    poll_answer_text = models.TextField(default='')
+    no_poll_expiry = models.BooleanField(default=False)
+    allow_vote_change = models.BooleanField(default=True)
 
     has_reactions = models.BooleanField(default=False)
-    poll_answer_text = models.TextField(default='')
     reply_chatroom = models.ForeignKey(Collabcard, on_delete=models.CASCADE, null=True,
                                        related_name="reply_chatroom_action")
 

@@ -17,7 +17,7 @@ from utility.cache_keys import EVENT_ATTENDEES_CONVERSATION, CHATBOT_ASSISTANT_T
 from utility.json_utilities import JsonUtilities
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT, MINUTES_5, \
     MINUTES_30, MINUTES_60, PLATFORM_CODE_WEB, CHATBOT_CONFIGURATIONS, CHATBOT_DEFAULT_THREAD_CONTEXT, \
-    CHATBOT_CONVERSATION_ERROR_OCCURED_MESSAGE
+    CHATBOT_CONVERSATION_ERROR_OCCURED_MESSAGE, CHAT_POLL_CONFIGURATIONS
 from utility.response_utilities import ResponseUtilities
 
 from .conversation_manager import ConversationManager
@@ -67,7 +67,7 @@ from utility.states import (member_states, collabcard_states, card_types, SyncNo
                             conversation_states, conversation_poll_types, chatroom_not_opened_types,
                             user_email_send_status_types, member_rights, unsubscribe_types, noti_states,
                             chat_request_states, webhook_chatroom_methods, attachment_types, WidgetTypes, 
-                            WebhookTypes, UserRoles)
+                            WebhookTypes, UserRoles, multi_select_poll_states)
 
 from utility.webhook_utilities import (WebhookUtilties)
 from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, MAX_WEBHOOK_USERS_META_LIMIT)
@@ -439,7 +439,9 @@ class ConversationImpl(ConversationManager):
                 'multiple_select_no'] if 'multiple_select_no' in req_body else None
             poll_context['is_anonymous'] = req_body['is_anonymous'] if 'is_anonymous' in req_body else False
             poll_context['allow_add_option'] = req_body['allow_add_option'] if 'allow_add_option' in req_body else False
-            poll_context['expiry_time'] = req_body['expiry_time']
+            poll_context['expiry_time'] = req_body.get('expiry_time', None)
+            poll_context['no_poll_expiry'] = req_body.get('no_poll_expiry', False)
+            poll_context['allow_vote_change'] = req_body.get('allow_vote_change', True)
 
             poll_context['poll_answer_text'] = POLL_ANSWER_TEXT
 
@@ -764,7 +766,7 @@ class ConversationImpl(ConversationManager):
             if not conversation:
                 return ResponseUtilities.get_impl_error_context('Invalid conversation ID provided',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
-            
+
             conversations = [conversation]
             conversations = self._create_conversation_list(conversations, sdk_client_info_flag=True)
             return {'success': True, 'conversations': conversations}
@@ -991,13 +993,14 @@ class ConversationImpl(ConversationManager):
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
         if req_body.get('state') and (req_body['state'] == conversation_states.CONVERSATION_POLL):
-            has_right = ModelUtilities.get_model_filter(userMemberRights,
-                                                        {'user': user_instance, 'community': community_instance,
-                                                         'right__state': member_rights.MEMBER_RIGHT_CREATE_POLL})
-
-            if not has_right:
-                return ResponseUtilities.get_impl_error_context("You don't have the rights to create a poll",
-                                                                status_codes.HTTP_400_BAD_REQUEST)
+            
+            validated_request = ConversationHelper.validate_poll_conversation_request(req_body, user_instance,
+                                                                                      chatroom_instance, 
+                                                                                      community_instance)
+            
+            if validated_request.get('error_message'):
+                return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         is_guest = False
         is_widgets_enabled = False
@@ -1242,12 +1245,12 @@ class ConversationImpl(ConversationManager):
             'user_id': poll_instance.user_id
         }
 
-        # Get serialized member details from 
+        # Get serialized member details from
         user_sdk_meta = get_users_sdk_meta_dict([user_instance.id])
-        
+
         if user_sdk_meta:
             poll_response['member'] = user_sdk_meta.get(user_instance.id)
-        
+
         return {'success': True, 'poll': poll_response}
 
     def submit_poll(self, request_body):
@@ -1260,12 +1263,12 @@ class ConversationImpl(ConversationManager):
 
         user_instance = validated_request.get('user_instance')
         conversation_instance = validated_request.get('conversation_instance')
+        user_poll_instances = validated_request.get('user_polls_instance')
 
         polls = request_body.get('polls', [])
-
-        poll_filter = ModelUtilities.get_model_filter(conversationPollMembers, {'user': user_instance,
-                                                                                'conversation': conversation_instance})
-        poll_filter.delete()
+        
+        if user_poll_instances:
+            user_poll_instances.delete()
 
         for poll in polls:
             poll_filter = ModelUtilities.get_model_filter(conversationPolls, {'id': poll.get('id'),
@@ -1407,7 +1410,7 @@ class ConversationImpl(ConversationManager):
                                     {'card': chatroom_instance},
                                     {'updated_at': TimeUtilities.current_time_in_sec()})
 
-        #If Chatroom is part of an SDK community, do not send notification
+        # If Chatroom is part of an SDK community, do not send notification
         if not SdkClient.is_sdk_community(chatroom_instance.community_id):
             send_notification_on_chatroom_topic_update.delay(chatroom_instance.id, user_instance.id)
 
@@ -1662,25 +1665,25 @@ class ConversationImpl(ConversationManager):
     def genereate_payload_data_for_chatroom_user_tagged_webhook(conversation_id: int, users_list: list, event_type: str):
 
         payload_data = {}
-          
+
         conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id, 
                                                                                               event_type)
-        
+
         if not conversation_payload:
             return {}
-        
+
         chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
             conversation_payload['chatroom_id'])
-        
+
         payload_data['chatroom'] = chatroom_payload
 
         payload_data['conversation'] = conversation_payload
-        
+
         created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events([conversation_payload['user_id']])
 
         if not created_by_user:
             return {}
-    
+
         payload_data['created_by_user'] = created_by_user[0]
 
         tagged_users = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
@@ -1688,28 +1691,28 @@ class ConversationImpl(ConversationManager):
         payload_data['tagged_users'] = tagged_users
 
         return payload_data
-    
+
     @staticmethod
     def genereate_payload_data_for_chatroom_conversation_replied_webhook(conversation_id: int, event_type: str):
 
         payload_data = {}
-        
+
         conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id, 
                                                                                               event_type)
-        
+
         if not conversation_payload:
             return {}
-        
+
         chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
             conversation_payload['chatroom_id'])
-        
+
         payload_data['chatroom'] = chatroom_payload
         original_conversation = ConversationHelper.get_conversation_payload_for_webhook_events(
                 conversation_payload['replied_conversation_id'], "")
-            
+
         if not original_conversation:
             return {}
-        
+
         payload_data['original_conversation'] = original_conversation
         payload_data['replied_conversation'] = conversation_payload
 
@@ -1720,7 +1723,7 @@ class ConversationImpl(ConversationManager):
 
         if not (original_conversation_user and replied_conversation_user):
             return {}
-        
+
         payload_data['original_conversation_user'] = original_conversation_user[0]
         payload_data['replied_conversation_user'] = replied_conversation_user[0]
 
@@ -1728,7 +1731,7 @@ class ConversationImpl(ConversationManager):
 
     @staticmethod
     def generate_payload_for_conversation_webhook_event(conversation_id: int, users_list: list, event_type: str) -> dict:
-        
+
         payload = {
             "event": event_type,
             "source": WEBHOOK_SOURCE_CHAT,
@@ -1746,38 +1749,38 @@ class ConversationImpl(ConversationManager):
         elif event_type == WebhookTypes.CHATROOM_CONVERSATION_REPLIED.value:
             payload_data = ConversationImpl.genereate_payload_data_for_chatroom_conversation_replied_webhook(
                 conversation_id, event_type)
-            
+
         else:
             return {}
-        
+
         if not payload_data:
             return {}
-        
+
         payload['data'] = payload_data
 
         return payload
-    
+
     @staticmethod
     @shared_task
     def trigger_webhook_for_conversation_event(community_id: int, conversation_id: int, users_list: list, 
                                                event_type: str):
-        
+
         if not (community_id and conversation_id and event_type):
             return
-        
+
         webhooks = WebhookUtilties.validate_and_fetch_all_webhook_url_and_secret(community_id, 
                                                                                  event_type)
-        
+
         if not webhooks:
             return
-        
+
         payload = ConversationImpl.generate_payload_for_conversation_webhook_event(conversation_id, 
                                                                                    users_list, 
                                                                                    event_type)
-        
+
         if not payload:
             return
-        
+
         for webhook in webhooks:
 
             payload['id'] = str(uuid.uuid4())
@@ -2819,6 +2822,8 @@ class ConversationHelper:
                                                                                              chatroom_instance, 
                                                                                              is_admin,
                                                                                              [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE])
+    
+            
 
         # If user_chatroom_settings for 'member_can_message' is false, then return error
         if not user_chatroom_settings or not user_chatroom_settings[0].enabled :
@@ -2831,6 +2836,64 @@ class ConversationHelper:
             'replied_conv_instance': replied_conv_instance
         }
     
+    @staticmethod
+    def validate_poll_conversation_request(req_body: dict, user_instance, chatroom_instance, community_instance) -> dict:
+        
+        has_right = ModelUtilities.get_model_filter(userMemberRights,
+                                                        {'user': user_instance, 'community': community_instance,
+                                                         'right__state': member_rights.MEMBER_RIGHT_CREATE_POLL})
+
+        if not has_right:
+            return ResponseUtilities.get_inner_error_context("You don't have the rights to create a poll")
+
+        from collabmates_api.community.community_impl import CommunityHelper
+
+        configurations = CommunityHelper.fetch_or_return_default_community_configurations(
+            chatroom_instance.community.id, [CHAT_POLL_CONFIGURATIONS])
+
+        poll_chat_configs = configurations[0].get('value')
+
+        # Update req_body for poll configurations
+        if poll_chat_configs.get('allow_override', True) is False: 
+            req_body['poll_type'] = conversation_poll_types.get_int_poll_type_from_string(
+                poll_chat_configs.get('poll_type', 'instant'))
+
+            req_body['multiple_select_state'] = multi_select_poll_states.get_int_poll_state_from_enum(
+                poll_chat_configs.get('multi_select_state', multi_select_poll_states.EXACTLY_ENUM))
+
+            req_body['multiple_select_no'] = poll_chat_configs.get('multiple_select_no', 1)
+
+            req_body['is_anonymous'] = poll_chat_configs.get('is_anonymous', False)
+
+            req_body['allow_add_option'] = poll_chat_configs.get('allow_add_option', False)
+            
+            req_body['no_poll_expiry'] = poll_chat_configs.get('no_poll_expiry', False)
+            if req_body['no_poll_expiry']:
+                req_body['expiry_time'] = None
+            
+            req_body['allow_vote_change'] = poll_chat_configs.get('allow_vote_change', True)
+            
+        else:
+            if req_body.get('poll_type') is None:
+                return ResponseUtilities.get_inner_error_context("Poll type is required!")
+                
+            if not req_body.get('expiry_time') and not req_body.get('no_poll_expiry'):
+                return ResponseUtilities.get_inner_error_context("Poll expiry time is required!")
+                
+            if req_body.get('poll_type') == conversation_poll_types.DEFERRED and req_body.get('no_poll_expiry'):
+                return ResponseUtilities.get_inner_error_context("Poll expiry time is required for deferred poll!")
+            
+            if req_body.get('no_poll_expiry'):
+                req_body['expiry_time'] = None
+                
+            if req_body.get('allow_vote_change') is None:
+                if req_body.get('poll_type') == conversation_poll_types.INSTANT:
+                    req_body['allow_vote_change'] = False
+                else:
+                    req_body['allow_vote_change'] = True
+        
+        return {}
+                        
     @staticmethod
     def get_conversation_payload_for_webhook_events(conversation_id: int, event_type: str):
         
@@ -2994,4 +3057,3 @@ class ConversationHelper:
             "max_completion_tokens": max_completion_tokens,
             "max_prompt_tokens": max_prompt_tokens
         }
-
