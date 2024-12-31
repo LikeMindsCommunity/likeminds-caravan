@@ -2877,11 +2877,10 @@ class ConversationHelper:
             if req_body.get('poll_type') is None:
                 return ResponseUtilities.get_inner_error_context("Poll type is required!")
                 
-            if not (req_body.get('no_poll_expiry') and req_body.get('expiry_time')):
+            if not req_body.get('expiry_time') and not req_body.get('no_poll_expiry'):
                 return ResponseUtilities.get_inner_error_context("Poll expiry time is required!")
                 
-            if req_body.get('poll_type') == conversation_poll_types.DEFERRED and \
-                    not req_body.get('no_poll_expiry'):
+            if req_body.get('poll_type') == conversation_poll_types.DEFERRED and req_body.get('no_poll_expiry'):
                 return ResponseUtilities.get_inner_error_context("Poll expiry time is required for deferred poll!")
             
             if req_body.get('no_poll_expiry'):
