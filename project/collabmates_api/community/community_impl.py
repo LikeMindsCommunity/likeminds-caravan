@@ -6555,7 +6555,8 @@ class CommunityHelper:
                 configuration_value['poll_type'] = update_values.get('poll_type')
                 record_updated = True
                 
-            if update_values.get('multiple_select_state') and multi_select_poll_states.is_valid_multi_select_state_enum(update_values.get('multiple_select_state')):
+            if update_values.get('multiple_select_state') and \
+                multi_select_poll_states.is_valid_poll_state_enum(update_values.get('multiple_select_state')):
                 configuration_value['multiple_select_state'] = update_values.get('multiple_select_state')
                 record_updated = True
                 
