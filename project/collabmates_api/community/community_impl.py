@@ -2203,7 +2203,6 @@ class CommunityImpl(CommunityManager):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        user_instance = validated_req_body.get('user_instance')
         community_instance = validated_req_body.get('community_instance')
 
         req_body = {
