@@ -2857,6 +2857,9 @@ class ConversationHelper:
         if poll_chat_configs.get('allow_override', True) is False: 
             req_body['poll_type'] = conversation_poll_types.get_int_poll_type_from_string(
                 poll_chat_configs.get('poll_type', 'instant'))
+            
+            if req_body['poll_type'] == conversation_poll_types.DEFERRED and not req_body.get('expiry_time'):
+                return ResponseUtilities.get_inner_error_context("Poll expiry time is required for deferred poll!")
 
             req_body['multiple_select_state'] = multi_select_poll_states.get_int_poll_state_from_enum(
                 poll_chat_configs.get('multi_select_state', multi_select_poll_states.EXACTLY_ENUM))

@@ -5792,7 +5792,7 @@ class CommunityHelper:
                 return ResponseUtilities.get_inner_error_context(
                     "Invalid allow_override value - Please send boolean value.")
                 
-            if update_values.get('no_poll_expiry') and isinstance(update_values.get('no_poll_expiry'), bool):
+            if update_values.get('no_poll_expiry') and not isinstance(update_values.get('no_poll_expiry'), bool):
                 return ResponseUtilities.get_inner_error_context(
                     "Invalid no_poll_expiry value - Please send boolean value.")
             
