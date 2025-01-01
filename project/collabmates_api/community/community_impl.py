@@ -5815,7 +5815,7 @@ class CommunityHelper:
                         "Invalid poll_type value - allowed update_values: instant | deferred | open .")
                     
                 if update_values.get('no_poll_expiry') and \
-                    update_values.get('poll_type') == conversation_poll_types.DEFERRED:
+                    update_values.get('poll_type') == conversation_poll_types.DEFERRED_POLL_ENUM:
                     return ResponseUtilities.get_inner_error_context(
                         "You cannot set no_poll_expiry to true for deferred polls.")
                     
