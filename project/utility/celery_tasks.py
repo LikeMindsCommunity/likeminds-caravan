@@ -35,7 +35,7 @@ from utility.firebase import update_my_chatrooms_on_homefeed_in_firebase
 from utility.number_utilities import NumberUtilities
 from utility.states import card_types, conversation_poll_types, conversation_states, community_level_states, \
     level_click_states, event_access, event_webflow_update_types, deleted_members, collabcard_states, SyncTypes, \
-    community_setting_types, CollabcardTypes, poll_types, message_template_chatroom_types, webhook_chatroom_methods
+    community_setting_types, CollabcardTypes, message_template_chatroom_types, webhook_chatroom_methods
 
 from utility.validation_utilities import ValidationUtilities
 

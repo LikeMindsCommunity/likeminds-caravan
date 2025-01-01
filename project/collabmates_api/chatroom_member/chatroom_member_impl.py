@@ -23,7 +23,7 @@ from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY, CONVERSATIONS_DISTI
 from external_services.caching.cache_impl import CacheImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 from utility.number_utilities import NumberUtilities
-from utility.states import card_types, poll_types, conversation_states
+from utility.states import card_types, chatroom_poll_types, conversation_states
 from utility.time_utilities import TimeUtilities
 from togther.models import collabcardState, Members, ModelUtilities, MemberPollVotes, card_answers, EventInstructor, \
     EventHighlights, EventMemberTestimonials, EventFAQ, Cohort, CohortMember, ChatroomCohort, Collabcard
@@ -650,7 +650,7 @@ class ChatroomMemberHelper:
         poll_context['allow_add_option'] = card_instance.allow_add_option
         poll_context['poll_type'] = card_instance.poll_type
         poll_context[
-            'poll_type_text'] = "Instant poll" if card_instance.poll_type == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+            'poll_type_text'] = "Instant poll" if card_instance.poll_type == chatroom_poll_types.POLL_TYPE_INSTANT else "Deferred poll"
         poll_context['submit_type_text'] = "Secret voting" if card_instance.is_poll_anonymous else "Public voting"
 
         poll_context['expiry_time'] = card_instance.end_date
@@ -926,7 +926,7 @@ class ChatroomMemberHelper:
             if member_vote_filter:
                 is_selected = True
 
-            if chatroom_instance.poll_type == poll_types.POLL_TYPE_INSTANT and is_selected:
+            if chatroom_instance.poll_type == chatroom_poll_types.POLL_TYPE_INSTANT and is_selected:
                 return True
 
         return False
