@@ -29,6 +29,22 @@ except:
     from scripts.connection import get_connection
     from project.celery import app
 
+import time
+from functools import wraps
+
+def print_time_taken(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        time_taken = (end_time - start_time) * 1000  # Convert to milliseconds
+        log_msg = f"Function '{func.__name__}' took {time_taken:.2f} ms"
+        print(log_msg)
+        info_logger.debug(log_msg)
+        return result
+    return wrapper
+
 
 def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation_id, unseen_count):
     '''function to update chatroom data'''
@@ -1865,6 +1881,7 @@ def get_conversation_files_based_on_conversation_list(conversation_list):
         return {}
 
 
+@print_time_taken
 def get_members_based_on_user_list_query(user_list, community_id, order_by_name=False, page=0, page_size=0,
                                          member_name_search_string=""):
     """returns the members of the community based on user list"""
@@ -3535,7 +3552,7 @@ def get_user_ids_based_on_guest_filter(is_guest=False, only_sql_query=False):
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
-
+@print_time_taken
 def get_chatroom_participants_count(chatroom_id, community_id):
     """Returns the participants count of chatroom in community"""
 
