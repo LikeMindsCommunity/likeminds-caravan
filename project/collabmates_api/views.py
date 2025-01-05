@@ -101,30 +101,14 @@ from .search.sync import ElasticSearchSync
 from .community.constants import *
 from .chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE
 
+from utility.utils import print_time_taken
+
 
 from urllib import parse
 
 url = settings.URL
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
-
-import time
-from functools import wraps
-
-def print_time_taken(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        start_time = time.time()
-        result = func(*args, **kwargs)
-        end_time = time.time()
-        time_taken = (end_time - start_time) * 1000  # Convert to milliseconds
-        
-        log_msg = f"Function '{func.__name__}' took {time_taken:.2f} ms"
-        print(log_msg)
-        info_logger.debug(log_msg)
-        return result
-    return wrapper
-
 
 def update_pending_member_count_in_engage(community):
     '''function to update the member count in engage'''

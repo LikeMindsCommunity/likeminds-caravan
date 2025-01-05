@@ -11,6 +11,7 @@ from collabmates_api.static_files import (REMOVED_USER_URL)
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.time_utilities import TimeUtilities
+from utility.utils import print_time_taken
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -28,22 +29,6 @@ except:
     sys.path.append("..")
     from scripts.connection import get_connection
     from project.celery import app
-
-import time
-from functools import wraps
-
-def print_time_taken(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        start_time = time.time()
-        result = func(*args, **kwargs)
-        end_time = time.time()
-        time_taken = (end_time - start_time) * 1000  # Convert to milliseconds
-        log_msg = f"Function '{func.__name__}' took {time_taken:.2f} ms"
-        print(log_msg)
-        info_logger.debug(log_msg)
-        return result
-    return wrapper
 
 
 def update_conversation_engage_for_chatrooms(card_id, user_id, last_conversation_id, unseen_count):
