@@ -5681,7 +5681,7 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, api_type=ap
                                            {'card': card_instance, 'user': user_instance, 'remove': None},
                                            {'external_seen': True})
 
-    # Commenting this as it is not required
+    # Commenting this as it is not required anymore
     # update_last_unseen_in_engage(user=user_instance, community=card_instance.community)
 
     if chatroom_state:

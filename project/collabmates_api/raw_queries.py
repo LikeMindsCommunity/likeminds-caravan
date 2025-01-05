@@ -8,6 +8,9 @@ from .static_text import (MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP, SPECIFIC_M
                           PARTICIPANTS_TAG_REGEX)
 from collabmates_api.static_files import (REMOVED_USER_URL)
 
+from utility.cache_keys import CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY, CHATROOM_PARTICIPANTS_COUNT_TTL
+from external_services.caching.cache_impl import CacheImpl
+
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.time_utilities import TimeUtilities
@@ -3543,9 +3546,15 @@ def get_chatroom_participants_count(chatroom_id, community_id):
 
     try:
         
+        key = CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY.format(chatroom_id)
+        participants_count = CacheImpl.get_cache(key)
+        
+        if participants_count:
+            return participants_count
+        
         current_time = TimeUtilities.current_time_in_milliseconds()
 
-        error_logger.error(f"[raw_query] Starting get_chatroom_participants_count for chatroom_id {chatroom_id} and community_id {community_id} ")
+        error_logger.info(f"[raw_query] Starting get_chatroom_participants_count for chatroom_id {chatroom_id} and community_id {community_id} ")
 
         conn = get_connection()
         curr = conn.cursor()
@@ -3573,6 +3582,7 @@ def get_chatroom_participants_count(chatroom_id, community_id):
         error_logger.error(f"[raw_query] ({current_time - end_time} ms) Done get_chatroom_participants_count for chatroom_id {chatroom_id} and community_id {community_id} ")
 
         if participants_count:
+            CacheImpl.set_cache(key, participants_count[0], CHATROOM_PARTICIPANTS_COUNT_TTL)
             return participants_count[0]
 
         return 0
