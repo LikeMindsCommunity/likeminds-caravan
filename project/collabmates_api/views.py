@@ -101,13 +101,14 @@ from .search.sync import ElasticSearchSync
 from .community.constants import *
 from .chatroom.constants import CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE
 
+from utility.utils import print_time_taken
+
 
 from urllib import parse
 
 url = settings.URL
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
-
 
 def update_pending_member_count_in_engage(community):
     '''function to update the member count in engage'''
@@ -4588,7 +4589,7 @@ def fetch_chatroom(request):
 
     return JsonResponse(context)
 
-
+@print_time_taken
 def fetch_chatroom_version_2(request):
     card_id = request.GET.get('chatroom_id', '')
 
@@ -4993,8 +4994,9 @@ def get_answer_bubble_context_for_web(ans):
     return answer_bubble
 
 
+@print_time_taken
 def get_chatroom_actions(card_status, creator, card_instance, promoter=False, current_user_instance=None,
-                         community_instance=None, is_child=False, request_type="", parent_list=None, version_code=None,
+                         community_instance=None, is_child=False, parent_list=None, version_code=None,
                          platform_code=None, api_type=api_types.Non_SDK, api_version_code=0):
     """ function to get chatroom actions """
 
@@ -5400,15 +5402,10 @@ def get_chatroom_internal(request, card_instance, user_id, page, conversation_id
         is_card_creator = True
     # sending the chatroom actions
 
-    request_type = ""
-    is_ios = is_request_ios(request)
-    if is_ios:
-        request_type = "iOS"
-
     chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance,
                                             promoter=is_promoter, current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
-                                            request_type=request_type, parent_list=parent_list,
+                                            parent_list=parent_list,
                                             platform_code=platform_code, version_code=version_code
                                             )
 
@@ -5574,10 +5571,6 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     is_card_creator = False
     if user_id and int(user_id) == card_instance.user.id:
         is_card_creator = True
-    request_type = ""
-    is_ios = is_request_ios(request)
-    if is_ios:
-        request_type = "iOS"
 
     platform_code = RequestUtilities.get_platform_code(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
@@ -5585,7 +5578,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
     chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance,
                                             promoter=is_promoter, current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
-                                            request_type=request_type, parent_list=parent_list,
+                                            parent_list=parent_list,
                                             platform_code=platform_code, version_code=version_code
                                             )
 
@@ -5656,7 +5649,7 @@ def get_chatroom_internal_version_1(request, card_instance, user_id, page, conve
 
     return context
 
-
+@print_time_taken
 def get_chatroom_internal_version_2(request, card_instance, user_id, api_type=api_types.Non_SDK, api_version_code=0):
     '''version 1 function for sending chatroom instance without conversations'''
 
@@ -5674,7 +5667,6 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, api_type=ap
     # if the user is seeing this chatroom from external link or notification
     if not chatroom_state and \
             user_instance and \
-            is_member_verified(card_instance.community, user_instance) and \
             not card_instance.is_secret:
         expire_at = get_expiry_time_of_chatroom()
         create_chatroom_state_instance(card_instance, user_instance, state=0,
@@ -5688,8 +5680,6 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, api_type=ap
             update_models_for_syncing_apis(SyncTypes.CHATROOM,
                                            {'card': card_instance, 'user': user_instance, 'remove': None},
                                            {'external_seen': True})
-
-    update_last_unseen_in_engage(user=user_instance, community=card_instance.community)
 
     if chatroom_state:
         state_instance = chatroom_state[0]
@@ -5723,23 +5713,19 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, api_type=ap
     if user_id and int(user_id) == card_instance.user_id:
         is_card_creator = True
 
-    request_type = ""
-    is_ios = is_request_ios(request)
-    if is_ios:
-        request_type = "iOS"
-
     platform_code = RequestUtilities.get_platform_code_with_sdk(request)
     version_code = RequestUtilities.get_version_code_from_headers(request)
 
     chatroom_actions = get_chatroom_actions(card_status, creator=is_card_creator, card_instance=card_instance,
                                             promoter=is_promoter, current_user_instance=user_id,
                                             community_instance=card_instance.community, is_child=is_child,
-                                            request_type=request_type, parent_list=parent_list,
+                                            parent_list=parent_list,
                                             platform_code=platform_code, version_code=version_code, api_type=api_type,
                                             api_version_code=api_version_code)
 
     context['chatroom_actions'] = chatroom_actions
 
+    # Add caching here for participant_count
     if card_instance.type != card_types.CARD_MASTER_INTRO:
         if card_instance.is_secret:
             secret_room_participants = json.loads(card_instance.secret_chatroom_participants)
@@ -5750,8 +5736,8 @@ def get_chatroom_internal_version_2(request, card_instance, user_id, api_type=ap
             context['participant_count'] = ChatroomHelper.chatroom_participants_count(card_instance)
 
     conversation_member_filter = conversationMemberState.objects.filter(user=user_instance, card=card_instance)
-
-    if not conversation_member_filter.exists():
+    
+    if card_instance.type == card_types.CARD_INTRO and not conversation_member_filter.exists():
         placeholder = create_introduction_card_placeholder(card_instance, user_id)
         if placeholder:
             context['placeholder'] = placeholder

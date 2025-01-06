@@ -125,7 +125,7 @@ from collabmates_api.notifications.constants import EVENT_TYPE, CALENDAR_INVITE_
 
 from utility.response_utilities import ResponseUtilities
 from utility.cache_keys import (CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY, CHATROOM_TYPE_CONVERSION,
-                                KETTLE_CACHE_CHATROOM_PARTICIPANTS)
+                                KETTLE_CACHE_CHATROOM_PARTICIPANTS, CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY)
 from utility.version_utilities import VersionUtilities
 from utility.internal_service_utilities import InternalServiceUtilities
 
@@ -7022,6 +7022,13 @@ class ChatroomHelper:
     @staticmethod
     @shared_task
     def delete_chatroom_participants_cache(community_id: int, user_id: int, chatroom_id: int):
+        
+        # Delete Caravan cache
+        deleted = CacheImpl.delete_key(CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY.format(chatroom_id))
+        if deleted:
+            info_logger.info(f"Deleted chatroom participants count cache for chatroom_id: {chatroom_id}")
+        
+        # Delete kettle cache
         InternalServiceUtilities.delete_cache_from_kettle_service.delay(
             community_id, user_id,
             [KETTLE_CACHE_CHATROOM_PARTICIPANTS.format(chatroom_id)])
