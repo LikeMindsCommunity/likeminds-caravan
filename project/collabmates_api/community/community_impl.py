@@ -2761,8 +2761,8 @@ class CommunityImpl(CommunityManager):
         for chatbot in chatbots_page:
             chatbot_user = UserinfoSerializer(chatbot.user.userinfo, sdk_client_info_flag=True)
             chatbot_user['chatbot_meta'] = ChatbotMetaSerializer(chatbot).data
-            chatbot_user['member_since_epoch'] = chatbot_user.created_at    
-            chatbot_user['member_since'] = MEMBER_SINCE_TEXT % TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(chatbot_user.created_at)
+            chatbot_user['member_since_epoch'] = chatbot.created_at    
+            chatbot_user['member_since'] = MEMBER_SINCE_TEXT % TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(chatbot.created_at)
             users.append(chatbot_user)
 
         # Prepare the response
