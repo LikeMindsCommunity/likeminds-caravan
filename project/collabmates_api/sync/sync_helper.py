@@ -412,10 +412,13 @@ class SyncHelper:
         elif conv_data.get('user_id') == user_id:
             to_show_results = True
 
-        elif not conv_data.get('expiry_time'):
+        elif not conv_data.get('no_poll_expiry') and not conv_data.get('expiry_time'):
             to_show_results = True
 
-        elif conv_data.get('expiry_time') <= TimeUtilities.current_time_in_milliseconds():
+        elif conv_data.get('expiry_time') and conv_data.get('expiry_time') <= TimeUtilities.current_time_in_milliseconds():
+            to_show_results = True
+            
+        elif conv_data.get('poll_type') == conversation_poll_types.OPEN:
             to_show_results = True
 
         elif conv_data.get('poll_type') == conversation_poll_types.INSTANT and conv_polls_data:
