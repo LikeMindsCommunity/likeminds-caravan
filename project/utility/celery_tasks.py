@@ -686,10 +686,13 @@ def get_to_show_results_for_conversation_poll(conversation_context):
         if is_cm or user_instance == conversation_instance.user:
             return True
 
-        if not conversation_instance.expiry_time:
+        if not conversation_instance.no_poll_expiry and not conversation_instance.expiry_time:
             return True
 
-        if TimeUtilities.current_time_in_milliseconds() >= conversation_instance.expiry_time:
+        if conversation_instance.expiry_time and TimeUtilities.current_time_in_milliseconds() >= conversation_instance.expiry_time:
+            return True
+        
+        if conversation_instance.poll_type == conversation_poll_types.OPEN:
             return True
 
         conversation_poll_options = ModelUtilities.get_model_filter(conversationPolls,

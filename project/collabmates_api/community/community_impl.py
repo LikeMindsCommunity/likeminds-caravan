@@ -73,6 +73,7 @@ from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_
 from collabmates_api.community.community_manager import CommunityManager
 from .community_view_helper import CommunityViewHelper
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
+from collabmates_api.member_community.constants import MEMBER_SINCE_TEXT
 from collabmates_api.sdk.models import (SdkClient, CommunityEmailConfiguration)
 
 from collabmates_api.mails import send_created_community_email_to_team, send_report_mail_to_team
@@ -2760,6 +2761,8 @@ class CommunityImpl(CommunityManager):
         for chatbot in chatbots_page:
             chatbot_user = UserinfoSerializer(chatbot.user.userinfo, sdk_client_info_flag=True)
             chatbot_user['chatbot_meta'] = ChatbotMetaSerializer(chatbot).data
+            chatbot_user['member_since_epoch'] = chatbot.created_at    
+            chatbot_user['member_since'] = MEMBER_SINCE_TEXT % TimeUtilities.convert_epoch_time_to_date_with_mon_day_year(chatbot.created_at)
             users.append(chatbot_user)
 
         # Prepare the response
