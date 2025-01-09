@@ -1435,13 +1435,13 @@ class UserImpl(UserManager):
             records = ModelUtilities.get_model_filter(OnboardedVerifiedIUsers, filter_dict).first()
             
             if not records:
-                if not email:
-                    return ResponseUtilities.get_impl_error_context('Please send email for first time login!', 
+                if not (email and name):
+                    return ResponseUtilities.get_impl_error_context('Please send email and name for first time login!', 
                                                                     status_codes.HTTP_400_BAD_REQUEST)
                 
                 # Save user data
                 UserHelper.save_onboarded_verified_user_data(self.get_api_key(), email=email, social_uuid=social_uuid, 
-                                                             name = name)
+                                                             name=name)
                 
             else:
                 email = records.email
