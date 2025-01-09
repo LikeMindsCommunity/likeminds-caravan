@@ -1440,11 +1440,12 @@ class UserImpl(UserManager):
                                                                     status_codes.HTTP_400_BAD_REQUEST)
                 
                 # Save user data
-                UserHelper.save_onboarded_verified_user_data(self.get_api_key(), email=email, 
-                                                            social_uuid=social_uuid)
+                UserHelper.save_onboarded_verified_user_data(self.get_api_key(), email=email, social_uuid=social_uuid, 
+                                                             name = name)
                 
             else:
                 email = records.email
+                name = records.name
 
             user_context = UserHelper.create_user_context_for_apple(email = email, name = name, image_url = image_url)
 
@@ -2876,8 +2877,8 @@ class UserHelper:
 
     @staticmethod
     @shared_task
-    def save_onboarded_verified_user_data(api_key: str, email: str = None, mobile_no: int = None,
-                                          country_code: int = None, social_uuid: str = None):
+    def save_onboarded_verified_user_data(api_key: str, email: str = None, mobile_no: int = None, 
+                                          country_code: int = None, social_uuid: str = None, name: str = None):
         
         if not (email or (mobile_no and country_code) or social_uuid):
             return
@@ -2901,6 +2902,9 @@ class UserHelper:
             return
 
         del filter_dict['sdk_client__api_key']
+        
+        if name:
+            filter_dict['name'] = name
 
         sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key}).first()
 
