@@ -125,6 +125,8 @@ class OnboardedVerifiedIUsers(models.Model):
     mobile_no = models.BigIntegerField(null=True)
     country_code = models.IntegerField(null=True)
     email = models.TextField(null=True)
+    name = models.TextField(null=True)
+    social_uuid = models.TextField(null=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)
 
