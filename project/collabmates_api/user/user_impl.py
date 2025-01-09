@@ -1424,6 +1424,8 @@ class UserImpl(UserManager):
             community_instance = validated_req.get('community_instance')
             social_uuid = validated_req.get('social_uuid')
             email = validated_req.get('email')
+            name = validated_req.get('name')
+            image_url = validated_req.get('image_url')
                 
             filter_dict = {
                 'social_uuid': social_uuid,
@@ -1444,7 +1446,7 @@ class UserImpl(UserManager):
             else:
                 email = records.email
 
-            user_context = UserHelper.create_user_context_for_apple(email)
+            user_context = UserHelper.create_user_context_for_apple(email = email, name = name, image_url = image_url)
 
         else:
             return ResponseUtilities.get_impl_error_context("Invalid login type!",
@@ -2595,6 +2597,8 @@ class UserHelper:
             'community_instance': community_instance,
             'social_uuid': user_data.get('social_uuid'),
             'email': user_data.get('email'),
+            'name': user_data.get('name'),
+            'image_url': user_data.get('image_url')
         }
 
     @staticmethod
@@ -2621,9 +2625,11 @@ class UserHelper:
         return user_context
 
     @staticmethod
-    def create_user_context_for_apple(email: str):
+    def create_user_context_for_apple(email: str, name: str = "", image_url: str = ""):
         return {
             'email': email,
+            'name': name,
+            'image_url': image_url
         }
 
     @staticmethod
