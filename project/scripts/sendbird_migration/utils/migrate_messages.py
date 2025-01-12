@@ -1,0 +1,3 @@
+
+class MigrateMessages:
+    pass
