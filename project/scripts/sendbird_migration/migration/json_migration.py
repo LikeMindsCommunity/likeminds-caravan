@@ -1,7 +1,10 @@
 import json, os
 
 from ..constants import LIKEMINDS_API_KEY, PLATFORM_CODE, VERSION_CODE, JSON_FILE_TYPE
-from models import Users, Channels, Messages
+from ..models.user import Users
+from ..models.channel import Channels
+from ..models.message import Messages
+
 from utils.migrate_users import MigrateUsers
 from utils.migrate_channels import MigrateChannels
 from utils.migrate_messages import MigrateMessages

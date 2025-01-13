@@ -1,6 +1,6 @@
 from typing import List
 
-from models.user import UserModel
+from ..models.user import UserModel
 from ..constants import LIKEMINDS_API_KEY, PLATFORM_CODE, VERSION_CODE
 
 from collabmates_api.community.community_impl import CommunityImpl

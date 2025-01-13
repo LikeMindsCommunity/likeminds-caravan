@@ -1,6 +1,6 @@
 from typing import List
 
-from models import ChannelModel
+from ..models.channel import ChannelModel
 from ..constants import PLATFORM_CODE, VERSION_CODE, LIKEMINDS_API_KEY, TTL_FOR_CACHE
 
 from collabmates_api.chatroom.chatroom_impl import ChatroomImpl

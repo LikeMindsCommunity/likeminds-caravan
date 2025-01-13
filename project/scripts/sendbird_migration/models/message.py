@@ -2,11 +2,12 @@ from typing import List
 from pydantic import BaseModel, Field, model_validator
 from pydantic_core import PydanticCustomError
 
-from user import UserModel
-from channels import ChannelModel
+from ..models.user import UserModel
+from ..models.channel import ChannelModel
 
 from utility.time_utilities import TimeUtilities
 from utility.states import conversation_states, card_types
+
 
 class MessageModel(BaseModel):
     message_id: int
