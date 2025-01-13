@@ -1,24 +1,12 @@
-import json
-import os
-import time
-import boto3
+import json, os, time, boto3, requests
 from urllib.parse import quote, urlparse
 
-# from constants import (
-#     DOWNLOAD_PATH,
-#     S3_BUCKET_PROD,
-#     S3_BUCKET_BETA,
-#     FILE_SIZE_LIMIT,
-#     S3_REGION,
-#     VALID_PLATFORM_TYPES,
-# )
-
-
-VALID_PLATFORM_TYPES = ["caravan", ]
+VALID_PLATFORM_TYPES = ["caravan"]
 DOWNLOAD_PATH = "/tmp/"
 S3_BUCKET_PROD = "prod-media-bucket"
 S3_BUCKET_BETA = "beta-media-bucket"
 S3_REGION = "ap-south-1"
+
 
 def lambda_handler(event, context):
     print("event: ", event)
@@ -28,7 +16,7 @@ def lambda_handler(event, context):
         print("Error in validation: ", err)
         return get_json_response(file_url, "", err)
 
-    file_name, err = download_file_from_s3(file_url)
+    file_name, err = download_file_from_url(file_url)
     if err != "":
         print("error download from s3: ", err)
         return get_json_response(file_url, "", err)
@@ -68,7 +56,29 @@ def fetch_headers_body_from_event(event):
     headers = event.get("headers", {})
     return headers, body
 
-# Add generic downlaod file function
+
+def download_file_from_url(file_url):
+    try:
+        parsed_url = urlparse(file_url)
+        file_name = os.path.basename(parsed_url.path)
+        file_name = append_timestamp_before_extension(file_name)
+
+        temp_path = DOWNLOAD_PATH + file_name
+
+        response = requests.get(file_url, stream=True)
+        response.raise_for_status()
+
+        with open(temp_path, "wb") as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+
+        return file_name, ""
+
+    except Exception as e:
+        return "", str(e)
+
+
+# To downlaod file from s3 bucket
 def download_file_from_s3(file_url):
     try:
         s3 = boto3.client("s3")
