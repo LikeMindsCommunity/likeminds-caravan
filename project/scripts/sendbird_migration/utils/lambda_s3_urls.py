@@ -68,7 +68,7 @@ def fetch_headers_body_from_event(event):
     headers = event.get("headers", {})
     return headers, body
 
-
+# Add generic downlaod file function
 def download_file_from_s3(file_url):
     try:
         s3 = boto3.client("s3")
