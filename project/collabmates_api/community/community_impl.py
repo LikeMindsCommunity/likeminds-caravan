@@ -2869,8 +2869,8 @@ class CommunityImpl(CommunityManager):
         chatbot_user_instance = validated_request.get('chatbot_user_instance')
 
         chatbot_meta = req_body.get('chatbot_meta', {})
-        name = req_body.get('name', "").strip()
-        image_url = req_body.get('image_url', "").strip()
+        name = req_body.get('name')
+        image_url = req_body.get('image_url')
 
         if name is not None:
             CommunityHelper.update_user_alias_name(chatbot_user_instance.id, community_instance.id, name, 
