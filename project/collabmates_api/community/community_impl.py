@@ -2872,11 +2872,11 @@ class CommunityImpl(CommunityManager):
         name = req_body.get('name', "").strip()
         image_url = req_body.get('image_url', "").strip()
 
-        if name:
+        if name is not None:
             CommunityHelper.update_user_alias_name(chatbot_user_instance.id, community_instance.id, name, 
                                                    question_states.NAME)
 
-        if image_url:
+        if image_url is not None:
             from collabmates_api.member_community.member_community_impl import MemberCommunityHelper
             
             chatbot_member_instance = ModelUtilities.get_model_filter(Members, {'member_id': chatbot_user_instance, 
