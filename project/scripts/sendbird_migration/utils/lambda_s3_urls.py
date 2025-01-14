@@ -1,10 +1,10 @@
 import json, os, time, boto3, requests
 from urllib.parse import quote, urlparse
 
-VALID_PLATFORM_TYPES = ["caravan"]
+VALID_PLATFORM_TYPES = ["caravan-service"]
 DOWNLOAD_PATH = "/tmp/"
-S3_BUCKET_PROD = "prod-media-bucket"
-S3_BUCKET_BETA = "beta-media-bucket"
+S3_BUCKET_PROD = "prod-likeminds-media"
+S3_BUCKET_BETA = "beta-likeminds-media"
 S3_REGION = "ap-south-1"
 
 
@@ -37,11 +37,11 @@ def validate_request_and_fetch_params(event):
 
     is_prod = True if body.get("is_prod", False) is True else False
 
-    if not (file_url or file_path):
-        return "", "", "both file_url & file_path is required"
+    if not (file_url and file_path):
+        return "", "", "", "both file_url & file_path is required"
 
     if headers["x-platform-type"] not in VALID_PLATFORM_TYPES:
-        return "", "", "Not Authorised"
+        return "", "", "", "Not Authorised"
 
     return file_url, file_path, is_prod, ""
 

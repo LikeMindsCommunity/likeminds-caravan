@@ -12,3 +12,5 @@ JSON_FILE_TYPE = ".json"
 
 USER_PROFILE_IMAGE_S3_PATH = "files/profile/{}/{}-{}"
 CHATROOM_IMAGE_S3_PATH = "files/chatroom/image/{}"
+
+LAMBDA_URL = "https://mcm23vgasphq26jbnp4xwtkeku0qkhzb.lambda-url.ap-south-1.on.aws/"  # Hosted on old AWS account
