@@ -2878,8 +2878,10 @@ class CommunityImpl(CommunityManager):
 
         if image_url:
             from collabmates_api.member_community.member_community_impl import MemberCommunityHelper
-
-            chatbot_member_instance = Members.get_member_instance_or_none(community_instance, chatbot_user_instance)
+            
+            chatbot_member_instance = ModelUtilities.get_model_filter(Members, {'member_id': chatbot_user_instance, 
+                                                                                'community_id': community_instance})
+            
             if not chatbot_member_instance:
                 return ResponseUtilities.get_impl_error_context('Chatbot member instance not found!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
