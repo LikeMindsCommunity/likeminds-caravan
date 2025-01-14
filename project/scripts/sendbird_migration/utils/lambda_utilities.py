@@ -7,7 +7,7 @@ class LambdaUtilities:
     lambda_beta_url = "LAMBDA_URL"
 
     @staticmethod
-    def migrate_to_s3(file_url, file_path, is_prod) -> str :
+    def migrate_to_s3(file_url, file_path, is_prod) -> str:
 
         payload = {
             "file_url": file_url,

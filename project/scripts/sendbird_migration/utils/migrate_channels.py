@@ -1,15 +1,19 @@
 from typing import List
+from pathlib import Path
 
 from ..models.channel import ChannelModel
-from ..constants import PLATFORM_CODE, VERSION_CODE, LIKEMINDS_API_KEY, TTL_FOR_CACHE
+from ..constants import PLATFORM_CODE, VERSION_CODE, LIKEMINDS_API_KEY, TTL_FOR_CACHE, CHATROOM_IMAGE_S3_PATH
 
 from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
-from collabmates_api.models import Collabcard
-from togther.models import ModelUtilities
+from togther.models import (
+    ModelUtilities,
+    Collabcard
+)
 from utility.cache_keys import SENDBIRD_MIGRATION_CHANNEL_MAP_CACHE_KEY
 from utility.time_utilities import TimeUtilities
 from external_services.caching.cache_impl import CacheImpl
 
+from ..utils.lambda_utilities import LambdaUtilities
 
 
 class MigrateChannels:
@@ -20,6 +24,13 @@ class MigrateChannels:
         self.member_id = bot_id
         self.community_id = community_id
         self.channels_data = channels_data
+
+    @staticmethod
+    def _create_s3_path_to_save_chatroom_images(url: str):
+        url_path = Path(url)
+
+        return CHATROOM_IMAGE_S3_PATH.format("".join([
+            str(TimeUtilities.current_time_in_milliseconds()), url_path.suffix]))
 
     def _create_chatroom_in_community(self, req_body):
         chatroom_manager = ChatroomImpl(
@@ -54,6 +65,11 @@ class MigrateChannels:
 
             else:
                 # TODO: Add code to upload image url to S3 and replace the image_url with the new one
+                s3_path = self._create_s3_path_to_save_chatroom_images(channel_data.chatroom_image_url)
+                s3_url = LambdaUtilities.migrate_to_s3(channel_data.chatroom_image_url, s3_path, is_prod=False)
+
+                if not s3_url:
+                    raise ValueError(f"Error in uploading file to s3: {s3_url} for user uuid: {channel_data.channel_url}")
 
                 request_body = channel_data.model_dump(
                     include=[
@@ -98,7 +114,11 @@ class MigrateChannels:
                     f"chatroom id: {chatroom_id}"
                 )
 
-                # TODO: Call the chatroom setting of member can message for the chatroom above
+                chatroom_manager = ChatroomImpl(member_id=self.member_id, chatroom_id=chatroom_id)
+                response_context = chatroom_manager.toggle_member_message_post(channel_data.members_can_message)
+
+                if response_context.get("error_message"):
+                    print(f"Error in updating member can message setting: {response_context.get('error_message')}")
 
         ModelUtilities.bulk_update_instances(
             Collabcard, chatroom_instances_list, fields=["created_at", "date_epoch"]

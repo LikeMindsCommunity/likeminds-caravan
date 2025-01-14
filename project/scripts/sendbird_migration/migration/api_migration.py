@@ -1,3 +1,8 @@
+import requests
+
+from ..constants import APPLICATION_ID
+
+
 class SendbirdMigration:
     BASE_URL = f"https://api-{APPLICATION_ID}.sendbird.com/v3"
     API_TOKEN = "441ddd489a87926711df7e8e6c473af1fca1c532"

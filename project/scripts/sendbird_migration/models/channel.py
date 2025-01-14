@@ -1,11 +1,11 @@
 from pydantic import BaseModel, Field, model_validator
-from utility.time_utilities import TimeUtilities
 from typing import List
 
 from user import UserModel
 
 
-from utility.states import conversation_states, card_types
+from utility.states import card_types
+
 
 class ChannelModel(BaseModel):
     channel_url: str

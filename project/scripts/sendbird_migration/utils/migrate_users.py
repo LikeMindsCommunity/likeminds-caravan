@@ -1,11 +1,14 @@
 from typing import List
+from pathlib import Path
 
 from ..models.user import UserModel
-from ..constants import LIKEMINDS_API_KEY, PLATFORM_CODE, VERSION_CODE
+from ..constants import LIKEMINDS_API_KEY, PLATFORM_CODE, VERSION_CODE, USER_PROFILE_IMAGE_S3_PATH
 
 from collabmates_api.community.community_impl import CommunityImpl
 from togther.models import SDKClientUsersInfo, Members, Userinfo, ModelUtilities
 from utility.time_utilities import TimeUtilities
+
+from ..utils.lambda_utilities import LambdaUtilities
 
 
 class MigrateUsers:
@@ -14,6 +17,13 @@ class MigrateUsers:
         self.member_id = bot_id
         self.community_id = community_id
         self.users_data = users_data
+
+    @staticmethod
+    def _create_s3_path_to_save_profile(url: str, uuid: str):
+        url_path = Path(url)
+
+        return USER_PROFILE_IMAGE_S3_PATH.format(uuid, url_path.stem, "".join([
+            str(TimeUtilities.current_time_in_milliseconds()), url_path.suffix]))
 
     def _add_member_to_community(self, req_body):
         community_manager = CommunityImpl(
@@ -39,6 +49,11 @@ class MigrateUsers:
 
         for user_data in self.users_data:
             # TODO: Add code to upload image url to S3 and replace the image_url with the new one
+            s3_path = self._create_s3_path_to_save_profile(user_data.image_url, user_data.uuid)
+            s3_url = LambdaUtilities.migrate_to_s3(user_data.image_url, s3_path, is_prod=False)
+
+            if not s3_url:
+                raise ValueError(f"Error in uploading file to s3: {s3_url} for user uuid: {user_data.uuid}")
 
             request_body = user_data.model_dump(
                 include=["uuid", "user_name", "image_url"]
@@ -47,7 +62,7 @@ class MigrateUsers:
             print(
                 f"Calling api/community/member POST with request body: {request_body}"
             )
-            response = self._add_member_to_community(request_body)
+            self._add_member_to_community(request_body)
 
             # Update the created_at for Users, SdkClientUsersInfo, Members schema
             sdk_user_instance: SDKClientUsersInfo = ModelUtilities.get_model_filter(

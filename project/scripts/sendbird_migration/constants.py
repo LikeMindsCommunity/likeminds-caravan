@@ -9,3 +9,6 @@ VERSION_CODE = 26
 TTL_FOR_CACHE = 60 * 60 * 60
 
 JSON_FILE_TYPE = ".json"
+
+USER_PROFILE_IMAGE_S3_PATH = "files/profile/{}/{}-{}"
+CHATROOM_IMAGE_S3_PATH = "files/chatroom/image/{}"

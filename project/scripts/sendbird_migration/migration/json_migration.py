@@ -7,9 +7,8 @@ from ..models.user import Users
 from ..models.channel import Channels
 from ..models.message import MessageModel, Messages
 
-from utils.migrate_users import MigrateUsers
-from utils.migrate_channels import MigrateChannels
-from utils.migrate_messages import MigrateMessages
+from ..utils.migrate_users import MigrateUsers
+from ..utils.migrate_channels import MigrateChannels
 
 
 from collabmates_api.sdk.models import SdkClient

@@ -23,5 +23,3 @@ class MigrateMessages:
         
         for message_data in self.messages_data:
             pass
-        
-        
