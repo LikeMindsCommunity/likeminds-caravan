@@ -1,5 +1,6 @@
 import json, mimetypes
-from typing import List
+
+from typing import List, Optional
 from pydantic import BaseModel, Field, model_validator
 from pydantic_core import PydanticCustomError
 
@@ -7,7 +8,7 @@ from ..models.user import UserModel
 from ..models.channel import ChannelModel
 
 from utility.time_utilities import TimeUtilities
-from utility.states import conversation_states, card_types
+from utility.states import conversation_states, card_types, multi_select_poll_states
 # from utility.cache_keys import SENDBIRD_MIGRATION_CHANNEL_MAP_CACHE_KEY
 from external_services.caching.cache_impl import CacheImpl
 
@@ -62,19 +63,29 @@ class AttachmentModel(BaseModel):
 
         return data
 
+class PollOptionsModel(BaseModel):
+    text: str
+
 class MessageModel(BaseModel):
     sendbird_message_id: int = Field(alias="message_id")
-    answer: str = Field(alias="message")
-    state: int = 0
-    attachments: List[AttachmentModel] = []
+    is_deleted: bool = Field(alias="is_removed")
     created_at: int
     user_id: int
-    is_deleted: bool = Field(alias="is_removed")
-    chatroom_id: int = Field(alias="channel_id")
-    metadata: dict = {}
-    replied_conversation_id: int = 0
     
-    #TODO: polls
+    answer: str = Field(alias="message")
+    state: int = 0
+    attachments: Optional[List[AttachmentModel]] = []
+    chatroom_id: int = Field(alias="channel_id")
+    replied_conversation_id: int = 0
+    metadata: dict = {}
+
+    polls: List[PollOptionsModel] = []
+    expiry_time: int = 0
+    no_poll_expiry: bool = False
+    allow_add_option: bool = False
+    multiple_select_state: Optional[str] = Field(default=None)
+    multiple_select_no: Optional[int] = Field(default=0)
+
 
     @staticmethod
     def _validate_state(data):
@@ -135,27 +146,26 @@ class MessageModel(BaseModel):
 
     @staticmethod
     def _validate_attachments(data):
-        
+
         if data.get('type') == 'FILE':
-            
+
             file_data = data.get("file")
             files_data = data.get("files")
             if not (file_data or files_data):
                 raise PydanticCustomError("invalid_attachment", "No file/s found in the message.")
-            
+
             data["attachments"] = []
-                            
+
             if files_data:
                 for index, file_data in enumerate(files_data):
                     attachment = AttachmentModel(**file_data, index=index)
                     data["attachments"].append(attachment)
-                    
+
             if file_data:
                 file_data["index"] = data["attachments"][-1].index + 1 if data["attachments"] else 0
                 attachment = AttachmentModel(**file_data)
                 data["attachments"].append(attachment)
 
-                    
         return data
 
     @staticmethod
@@ -171,6 +181,37 @@ class MessageModel(BaseModel):
             data["replied_conversation_id"] = conversation_id
 
         return data
+
+    @staticmethod
+    def _validate_polls(data):
+
+        poll_data = data.get('poll')
+
+        if poll_data:
+            data['state'] = conversation_states.CONVERSATION_POLL
+
+            if poll_data.get('title'):
+                data['message'] = poll_data.get('title')
+
+            if poll_data.get('close_at'):
+                if poll_data.get('close_at', 0) <= 0:
+                    data['no_poll_expiry'] = True
+                else:
+                    data['expiry_time'] = poll_data.get('close_at')
+
+            if poll_data.get('options'):
+                data['polls'] = [PollOptionsModel(text=poll_option.get('text')) for poll_option in poll_data.get('options')]
+                
+            if poll_data.get('allow_multiple_votes'):
+                data['multiple_select_state'] = multi_select_poll_states.AT_MAX
+                data['multiple_select_no'] = len(poll_data.get('options'))
+                
+            if poll_data.get('allow_user_suggestion'):
+                data['allow_add_option'] = True
+
+            #TODO: Need to add support of poll voters and their votes
+        return data
+                
 
     @classmethod
     @model_validator(mode="before")
