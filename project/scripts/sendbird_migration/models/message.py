@@ -17,6 +17,9 @@ USER_LM_KEY = "user_%s" # sendbird user_id -> likeminds user_id
 CHATROOM_LM_KEY = "chatroom_%s" # sendbird chatroom_id -> likeminds chatroom_id
 CONVERSATION_LM_KEY = "conversation_%s" # sendbird conversation_id -> likeminds conversation_id
 
+USER_PROFILE_ROUTE = "<<[%s]|route://user_profile/[%s]>>"
+MENTIONED_USERS_SYMBOL = "@"
+
 class AttachmentModel(BaseModel):
     url: str
     type: str
@@ -66,18 +69,30 @@ class AttachmentModel(BaseModel):
 class PollOptionsModel(BaseModel):
     text: str
 
+class ReactionModel(BaseModel):
+    key: str
+    user_ids: List[int]
+    conversation_id: int
+
+class OgTagsModel(BaseModel):
+    title: str
+    description: str
+    image: str
+    url: str
+
 class MessageModel(BaseModel):
     sendbird_message_id: int = Field(alias="message_id")
     is_deleted: bool = Field(alias="is_removed")
     created_at: int
     user_id: int
-    
+
     answer: str = Field(alias="message")
     state: int = 0
     attachments: Optional[List[AttachmentModel]] = []
     chatroom_id: int = Field(alias="channel_id")
     replied_conversation_id: int = 0
     metadata: dict = {}
+    og_tags: Optional[OgTagsModel] = None
 
     polls: List[PollOptionsModel] = []
     expiry_time: int = 0
@@ -86,6 +101,7 @@ class MessageModel(BaseModel):
     multiple_select_state: Optional[str] = Field(default=None)
     multiple_select_no: Optional[int] = Field(default=0)
 
+    Reactions: List[ReactionModel] = []
 
     @staticmethod
     def _validate_state(data):
@@ -147,6 +163,7 @@ class MessageModel(BaseModel):
     @staticmethod
     def _validate_attachments(data):
 
+        # TODO: Might need ti update according to misfits data and their multi-media flow
         if data.get('type') == 'FILE':
 
             file_data = data.get("file")
@@ -182,40 +199,9 @@ class MessageModel(BaseModel):
 
         return data
 
-    @staticmethod
-    def _validate_polls(data):
-
-        poll_data = data.get('poll')
-
-        if poll_data:
-            data['state'] = conversation_states.CONVERSATION_POLL
-
-            if poll_data.get('title'):
-                data['message'] = poll_data.get('title')
-
-            if poll_data.get('close_at'):
-                if poll_data.get('close_at', 0) <= 0:
-                    data['no_poll_expiry'] = True
-                else:
-                    data['expiry_time'] = poll_data.get('close_at')
-
-            if poll_data.get('options'):
-                data['polls'] = [PollOptionsModel(text=poll_option.get('text')) for poll_option in poll_data.get('options')]
-                
-            if poll_data.get('allow_multiple_votes'):
-                data['multiple_select_state'] = multi_select_poll_states.AT_MAX
-                data['multiple_select_no'] = len(poll_data.get('options'))
-                
-            if poll_data.get('allow_user_suggestion'):
-                data['allow_add_option'] = True
-
-            #TODO: Need to add support of poll voters and their votes
-        return data
-                
-
     @classmethod
     @model_validator(mode="before")
-    def _validate(cls, data):
+    def _validate_before(cls, data):
         data = cls._validate_state(data)
         data = cls._validate_user(data)
         data = cls._validate_chatroom_id(data)
@@ -223,6 +209,120 @@ class MessageModel(BaseModel):
         data = cls._validate_attachments(data)
         data = cls._validate_replied_conversation_id(data)
 
+        return data
+
+    @staticmethod
+    def _populate_polls(data):
+
+        poll_data = data.get("poll")
+
+        if poll_data:
+            data["state"] = conversation_states.CONVERSATION_POLL
+
+            if poll_data.get("title"):
+                data["message"] = poll_data.get("title")
+
+            if poll_data.get("close_at"):
+                if poll_data.get("close_at", 0) <= 0:
+                    data["no_poll_expiry"] = True
+                else:
+                    data["expiry_time"] = poll_data.get("close_at")
+
+            if poll_data.get("options"):
+                data["polls"] = [
+                    PollOptionsModel(text=poll_option.get("text"))
+                    for poll_option in poll_data.get("options")
+                ]
+
+            if poll_data.get("allow_multiple_votes"):
+                data["multiple_select_state"] = multi_select_poll_states.AT_MAX
+                data["multiple_select_no"] = len(poll_data.get("options"))
+
+            if poll_data.get("allow_user_suggestion"):
+                data["allow_add_option"] = True
+
+            # TODO: Need to add support of poll voters and their votes
+        return data
+
+    @staticmethod
+    def _populate_reactions(data):
+
+        reactions_data = data.get("reactions")
+
+        if reactions_data:
+            reactions = []
+            for reaction_data in reactions_data:
+                reaction = ReactionModel(key=reaction_data.get("key"))
+
+                for user_id in reaction_data.get("user_ids"):
+                    # Fetch user_id
+                    user_id = user_id
+                    if not user_id:
+                        raise PydanticCustomError(
+                            "invalid_user_id", "No user id found in the reaction."
+                        )
+
+                    # Fetch likeminds user_id from cache
+                    lm_user_id = CacheImpl.get_cache(USER_LM_KEY % user_id)
+                    if not lm_user_id:
+                        raise PydanticCustomError(
+                            "invalid_user_id", "No user id found in the cache."
+                        )
+
+                    reaction.user_ids.append(lm_user_id)
+
+                reactions.append(reaction)
+
+            data["Reactions"] = reactions
+
+        return data
+
+    @staticmethod
+    def _populate_mentions(data):
+        # TODO: complete this after confirmation from misfits team
+        if data.get("mentioned_users"):
+
+            mentioned_user_lm_routes = []
+            answer = data.get('answer')
+
+            for user in data.get("mentioned_users"):
+                user_id = user.get("user_id")
+                if not user_id:
+                    raise PydanticCustomError(
+                        "invalid_user_id", "No user id found in the mentioned users."
+                    )
+
+                user_name = user.get("nickname")
+                if not user_name:
+                    raise PydanticCustomError(
+                        "invalid_user_name",
+                        "No user name found in the mentioned users.",
+                    )
+
+                # Using user_id as uuid to create user mention route
+                user_mention_route = USER_PROFILE_ROUTE % (user_name, user_id)
+                mentioned_user_lm_routes.append(user_mention_route)
+
+            # Define an anonymous function to replace mentions
+            replace_mentions = lambda text, users: (
+                text.replace(MENTIONED_USERS_SYMBOL, users.pop(0), 1) if users else text
+            )
+
+            # Replace all 'SYMBOL' in the message with the mentioned users
+            for _ in mentioned_user_lm_routes:
+                answer = replace_mentions(answer, mentioned_user_lm_routes)
+
+            data['answer'] = answer
+
+        return data
+
+    @classmethod
+    @model_validator(mode="after")
+    def _validate_after(cls, data):
+        data = cls._populate_polls(data)
+        data = cls._populate_reactions(data)
+        data = cls._populate_mentions(data)
+        
         return data
 
 
