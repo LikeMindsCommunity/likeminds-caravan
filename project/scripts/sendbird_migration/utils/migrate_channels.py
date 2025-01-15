@@ -66,7 +66,7 @@ class MigrateChannels:
             else:
                 # TODO: Add code to upload image url to S3 and replace the image_url with the new one
                 s3_path = self._create_s3_path_to_save_chatroom_images(channel_data.chatroom_image_url)
-                s3_url = LambdaUtilities.migrate_to_s3(channel_data.chatroom_image_url, s3_path, is_prod=False)
+                s3_url = LambdaUtilities.migrate_to_s3(channel_data.chatroom_image_url, s3_path)
 
                 if not s3_url:
                     raise ValueError(f"Error in uploading file to s3: {s3_url} for user uuid: {channel_data.channel_url}")
