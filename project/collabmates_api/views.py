@@ -4672,8 +4672,7 @@ def add_poll_conversation_data(conversation_instance, current_user_id):
                                                             'expiry_time': conversation_instance.expiry_time,
                                                             })
 
-        poll_conversation['poll_type_text'] = "Instant poll" \
-            if poll_conversation['poll_type'] == conversation_poll_types.INSTANT else "Deferred poll"
+        poll_conversation['poll_type_text'] = conversation_poll_types.get_poll_name(poll_conversation['poll_type'])
 
         poll_conversation['submit_type_text'] = "Secret voting" \
             if poll_conversation['is_anonymous'] else "Public voting"
@@ -14255,8 +14254,7 @@ class SyncConversation(APIView):
             if conversation_context['state'] == ConversationStates.CONVERSATION_POLL:
                 conversation_context['poll_type'] = conversation[20]
 
-                conversation_context['poll_type_text'] = "Instant poll" \
-                    if conversation_context['poll_type'] == conversation_poll_types.INSTANT else "Deferred poll"
+                conversation_context['poll_type_text'] = conversation_poll_types.get_poll_name(conversation_context['poll_type'])
 
                 if conversation[21] is not None:
                     conversation_context['multiple_select_state'] = conversation[21]
