@@ -44,6 +44,7 @@ google-api-python-client==2.58.0
 googleapis-common-protos==1.56.2
 googlemaps==4.1.0
 gunicorn==20.1.0
+gevent==24.2.1
 httplib2==0.17.0
 httpx==0.27.2
 idna==2.8
