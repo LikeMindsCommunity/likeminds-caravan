@@ -5029,7 +5029,6 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                             FROM   (SELECT {poll_data_query},
                                            CASE
                                              WHEN togther_conversationpollmembers.user_id = {user_id}
-                                             OR togther_card_answers.poll_type = 2
                                            THEN 1
                                              ELSE 0
                                            END

@@ -329,8 +329,7 @@ class ConversationImpl(ConversationManager):
             poll_conversation['polls'] = self._fetch_conversation_polls(conversation_instance)
             poll_conversation['to_show_results'] = self.fetch_conversation_poll_to_show_results(conversation_instance)
 
-            poll_conversation['poll_type_text'] = "Instant poll" \
-                if poll_conversation['poll_type'] == conversation_poll_types.INSTANT else "Deferred poll"
+            poll_conversation['poll_type_text'] = conversation_poll_types.get_poll_name(poll_conversation['poll_type'])
 
             poll_conversation['submit_type_text'] = "Secret voting" \
                 if poll_conversation['is_anonymous'] else "Public voting"

@@ -2869,17 +2869,19 @@ class CommunityImpl(CommunityManager):
         chatbot_user_instance = validated_request.get('chatbot_user_instance')
 
         chatbot_meta = req_body.get('chatbot_meta', {})
-        name = req_body.get('name', "").strip()
-        image_url = req_body.get('image_url', "").strip()
+        name = req_body.get('name')
+        image_url = req_body.get('image_url')
 
-        if name:
+        if name is not None:
             CommunityHelper.update_user_alias_name(chatbot_user_instance.id, community_instance.id, name, 
                                                    question_states.NAME)
 
-        if image_url:
+        if image_url is not None:
             from collabmates_api.member_community.member_community_impl import MemberCommunityHelper
-
-            chatbot_member_instance = Members.get_member_instance_or_none(community_instance, chatbot_user_instance)
+            
+            chatbot_member_instance = ModelUtilities.get_model_filter(Members, {'member_id': chatbot_user_instance, 
+                                                                                'community_id': community_instance})
+            
             if not chatbot_member_instance:
                 return ResponseUtilities.get_impl_error_context('Chatbot member instance not found!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
