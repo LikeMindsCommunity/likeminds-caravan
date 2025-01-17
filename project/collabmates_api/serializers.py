@@ -2070,8 +2070,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
             'conversation_id': conversation.id, 'poll_type': conversation.poll_type,
             'multiple_select_no': conversation.multiple_select_no, 'expiry_time': conversation.expiry_time})
 
-        temp['poll_type_text'] = "Instant poll" \
-            if temp['poll_type'] == conversation_poll_types.INSTANT else "Deferred poll"
+        temp['poll_type_text'] = conversation_poll_types.get_poll_name(temp['poll_type'])
 
         temp['submit_type_text'] = "Secret voting" \
             if temp['is_anonymous'] else "Public voting"

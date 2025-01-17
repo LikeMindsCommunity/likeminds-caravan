@@ -434,12 +434,8 @@ class SyncHelper:
     def compute_poll_type_text_for_conversation_meta(conv_data: dict):
         if conv_data.get(CONVERSATION_STATE_KEY_VALUE) != conversation_states.CONVERSATION_POLL:
             return None
-
-        if conv_data.get('poll_type') == conversation_poll_types.INSTANT:
-            return INSTANT_POLL_NAME_VALUE
-
-        else:
-            return DEFERRED_POLL_NAME_VALUE
+        
+        return conversation_poll_types.get_poll_name(conv_data.get('poll_type'))
 
     @staticmethod
     def compute_submit_type_text_for_conversation_meta(conv_data: dict):
