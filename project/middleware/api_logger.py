@@ -1,4 +1,4 @@
-import json
+import json, time
 import traceback
 from multiprocessing.context import Process
 
@@ -16,6 +16,7 @@ class ApiLogger(MiddlewareMixin):
     logger = LoggingWrapper.get_instance()
 
     def process_request(self, request: {}) -> None:
+        request.start_time = time.time()
         pass
 
     def process_response(self, request: {}, response: {}) -> {}:
@@ -27,6 +28,12 @@ class ApiLogger(MiddlewareMixin):
             response_dict = self._process_response_object(response)
             response_dict = self._process_response_dict(response_dict)
             log_object_dict = self._make_log_object(request_dict, response_dict)
+
+            # Calculate the time taken for the API to process
+            end_time = time.time()
+            duration = (end_time - request.start_time) * 1000
+            log_object_dict['latency'] = duration
+
             self._send_to_logger(log_object_dict)
 
         except Exception:
