@@ -6,6 +6,7 @@ from pydantic_core import PydanticCustomError
 
 from ..models.user import UserModel
 from ..models.channel import ChannelModel
+from ..utils.lambda_utilities import upload_attachment_to_s3
 
 from utility.time_utilities import TimeUtilities
 from utility.states import conversation_states, card_types, multi_select_poll_states
@@ -23,12 +24,12 @@ MENTIONED_USERS_SYMBOL = "@"
 class AttachmentModel(BaseModel):
     url: str
     type: str
-    name: str
+    name: str = Field(alias="file_name")
     index: int
+    thumbnail_url: str
 
-    @classmethod
-    @model_validator(mode="before")
-    def _validate_url(cls, data):
+    @staticmethod
+    def _validate_url(data):
 
         # Call lambda function to upload the attachment to S3
         # FilePath according
@@ -37,18 +38,17 @@ class AttachmentModel(BaseModel):
 
         return data
 
-    @classmethod
-    @model_validator(mode="before")
-    def _validate_type(cls, data):
+    @staticmethod
+    def _validate_type(data):
 
         type = ''
 
-        sendbird_type = data.get("type")
+        sendbird_type = data.get("file_type")
         if not sendbird_type:
             raise PydanticCustomError("invalid_attachment_type", "No attachment type found in the attachment.")
 
         # Validate the attachment type
-        mime_type, _ = mimetypes.guess_type(data.get("url"))
+        mime_type, _ = mimetypes.guess_type(sendbird_type)
         if not mime_type:
             raise PydanticCustomError("invalid_attachment_type", "Invalid attachment type found in the attachment.")
 
@@ -63,6 +63,29 @@ class AttachmentModel(BaseModel):
             type = 'video'
 
         data["type"] = type
+
+        return data
+
+    @staticmethod
+    def _validate_thumbnail_urls(data):
+
+        if data.get('thumbnails'):
+            # TODO: FilePath accordingly
+            file_path = ""
+
+            url = data.get('thumbnails')[0].get('url')
+            if url:
+                thumbnail_url = upload_attachment_to_s3(url, file_path)
+                data["thumbnail_url"] = thumbnail_url
+
+        return data
+    
+    @classmethod
+    @model_validator(mode="before")
+    def _validate_before(cls, data):
+        data = cls._validate_url(data)
+        data = cls._validate_type(data)
+        data = cls._validate_thumbnail_urls(data)
 
         return data
 
@@ -163,7 +186,7 @@ class MessageModel(BaseModel):
     @staticmethod
     def _validate_attachments(data):
 
-        # TODO: Might need ti update according to misfits data and their multi-media flow
+        # TODO: Might need to update according to misfits data and their multi-media flow
         if data.get('type') == 'FILE':
 
             file_data = data.get("file")
@@ -208,6 +231,7 @@ class MessageModel(BaseModel):
         data = cls._validate_metadata(data)
         data = cls._validate_attachments(data)
         data = cls._validate_replied_conversation_id(data)
+        data = AttachmentModel._validate_thumbnail_urls(data) #TODO: Test this
 
         return data
 
@@ -315,6 +339,8 @@ class MessageModel(BaseModel):
             data['answer'] = answer
 
         return data
+
+    @staticmethod
 
     @classmethod
     @model_validator(mode="after")
