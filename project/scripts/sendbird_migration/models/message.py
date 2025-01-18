@@ -6,20 +6,32 @@ from pydantic_core import PydanticCustomError
 
 from ..models.user import UserModel
 from ..models.channel import ChannelModel
-from ..utils.lambda_utilities import upload_attachment_to_s3
+from ..utils.lambda_utilities import LambdaUtilities
 
 from utility.time_utilities import TimeUtilities
-from utility.states import conversation_states, card_types, multi_select_poll_states
+from utility.states import conversation_states, card_types, multi_select_poll_states, attachment_types
 # from utility.cache_keys import SENDBIRD_MIGRATION_CHANNEL_MAP_CACHE_KEY
 from external_services.caching.cache_impl import CacheImpl
 
 
 USER_LM_KEY = "user_%s" # sendbird user_id -> likeminds user_id
 CHATROOM_LM_KEY = "chatroom_%s" # sendbird chatroom_id -> likeminds chatroom_id
-CONVERSATION_LM_KEY = "conversation_%s" # sendbird conversation_id -> likeminds conversation_id
+CONVERSATION_LM_KEY = "conversation_%d" # sendbird conversation_id -> likeminds conversation_id
 
 USER_PROFILE_ROUTE = "<<[%s]|route://user_profile/[%s]>>"
 MENTIONED_USERS_SYMBOL = "@"
+
+class MessageUtilites:
+
+    @staticmethod
+    def get_lm_id_from_sendbird_message_id(sendbird_message_id: int) -> int:
+        lm_id = CacheImpl.get_cache(CONVERSATION_LM_KEY % sendbird_message_id)
+        if not lm_id:
+            print("No conversation id found in the cache for sendbird message id: %d" % sendbird_message_id)
+            return None
+        
+        return lm_id
+
 
 class AttachmentModel(BaseModel):
     url: str
@@ -27,14 +39,22 @@ class AttachmentModel(BaseModel):
     name: str = Field(alias="file_name")
     index: int
     thumbnail_url: str
+    height: int =  None
+    width: int = None
+
+    attachment_message: str 
+    replied_conversation_id: int = 0
 
     @staticmethod
     def _validate_url(data):
 
-        # Call lambda function to upload the attachment to S3
-        # FilePath according
-        # attachment_url = upload_attachment_to_s3(data.get("url"), FilePath)
-        # data["url"] = attachment_url
+        url = data.get('url')
+        if url:
+            #TODO: FilePath according
+            file_path = ""
+
+            attachment_url = LambdaUtilities.migrate_to_s3(url, file_path)
+            data["url"] = attachment_url
 
         return data
 
@@ -75,11 +95,11 @@ class AttachmentModel(BaseModel):
 
             url = data.get('thumbnails')[0].get('url')
             if url:
-                thumbnail_url = upload_attachment_to_s3(url, file_path)
+                thumbnail_url = LambdaUtilities.migrate_to_s3(url, file_path)
                 data["thumbnail_url"] = thumbnail_url
 
         return data
-    
+
     @classmethod
     @model_validator(mode="before")
     def _validate_before(cls, data):
@@ -88,6 +108,86 @@ class AttachmentModel(BaseModel):
         data = cls._validate_thumbnail_urls(data)
 
         return data
+    
+    @staticmethod
+    def _validate_misfits_keys(data):
+
+        message = data.get('message')
+        if message:
+            data["attachment_message"] = message
+
+        name = data.get('name')
+        if name:
+            data["name"] = name
+
+        file_width = data.get('fileWidth')
+        if file_width:
+            data["width"] = file_width
+
+
+        file_height = data.get('fileHeight')
+        if file_height:
+            data["height"] = file_height
+
+        type = data.get('type')
+        if type:
+            if attachment_types.is_valid_attachment_type(type):
+                data["type"] = type
+            else:
+                raise PydanticCustomError("invalid_attachment_type", f"Invalid attachment type found in the misfits Type: {type}")
+            
+        url = data.get('fileUrl')
+        if url:
+            #TODO: FilePath according
+            file_path = ""
+
+            attachment_url = LambdaUtilities.migrate_to_s3(url, file_path)
+            data["url"] = attachment_url
+
+        thumbnail_url = data.get('videoThumbnailUrl')
+        if thumbnail_url:
+            #TODO: Update file_path accordingly
+            file_path = ""
+            url = LambdaUtilities.migrate_to_s3(thumbnail_url, file_path)
+            if url:
+                data["thumbnail_url"] = thumbnail_url
+
+        parent_message = data.get('parentMessage')
+        if parent_message:
+
+            parent_message_id = parent_message.get("message_id")
+            if parent_message_id:
+                lm_id = MessageUtilites.get_lm_id_from_sendbird_message_id(parent_message_id)
+                if not lm_id:
+                    raise PydanticCustomError("invalid_replied_conversation_id", "No replied conversation id found in the cache.")
+                
+                data["replied_conversation_id"] = lm_id
+            
+        return data
+    
+    @staticmethod
+    def _validate_misfits_metadata(data):
+
+        metadata = data.get('data')
+        if metadata:
+            try:
+                metadata = json.loads(metadata)
+                if metadata:
+                    data = AttachmentModel._validate_misfits_keys(metadata)
+                    
+            except json.JSONDecodeError:
+                raise PydanticCustomError("invalid_metadata", "Invalid metadata found in the attachment.")
+        
+        return data
+
+    @classmethod
+    @model_validator(mode="after")
+    def _validate_after(cls, data):
+        data = cls._validate_misfits_keys(data)
+        data = cls._validate_misfits_metadata(data)
+
+        return data
+
 
 class PollOptionsModel(BaseModel):
     text: str
@@ -172,18 +272,6 @@ class MessageModel(BaseModel):
         return data
 
     @staticmethod
-    def _validate_metadata(data):
-
-        if data.get('data'):
-            # Parse JSON data from the message
-            try:
-                data["metadata"] = json.loads(data.get('data'))
-            except json.JSONDecodeError:
-                raise PydanticCustomError("invalid_metadata", "Invalid metadata found in the message.")
-
-        return data
-
-    @staticmethod
     def _validate_attachments(data):
 
         # TODO: Might need to update according to misfits data and their multi-media flow
@@ -202,7 +290,7 @@ class MessageModel(BaseModel):
                     data["attachments"].append(attachment)
 
             if file_data:
-                file_data["index"] = data["attachments"][-1].index + 1 if data["attachments"] else 0
+                file_data["index"] = len(data["attachments"]) + 1
                 attachment = AttachmentModel(**file_data)
                 data["attachments"].append(attachment)
 
@@ -213,8 +301,8 @@ class MessageModel(BaseModel):
 
         if data.get('replied_conversation_id'):
 
-            # Fetch conversation_id from cache
-            conversation_id =  CacheImpl.get_cache(CONVERSATION_LM_KEY % data.get('replied_conversation_id'))
+            # Fetch LM conversation_id from cache
+            conversation_id = MessageUtilites.get_lm_id_from_sendbird_message_id(data.get('replied_conversation_id'))
             if not conversation_id:
                 raise PydanticCustomError("invalid_replied_conversation_id", "No replied conversation id found in the cache.")
 
@@ -228,7 +316,6 @@ class MessageModel(BaseModel):
         data = cls._validate_state(data)
         data = cls._validate_user(data)
         data = cls._validate_chatroom_id(data)
-        data = cls._validate_metadata(data)
         data = cls._validate_attachments(data)
         data = cls._validate_replied_conversation_id(data)
         data = AttachmentModel._validate_thumbnail_urls(data) #TODO: Test this
@@ -341,6 +428,54 @@ class MessageModel(BaseModel):
         return data
 
     @staticmethod
+    def _validate_misfits_metadata(data):
+
+        if data.get('data'):
+            # Parse JSON data from the message
+            try:
+                metadata = json.loads(data.get('data'))
+
+                parent_message = metadata.get("parentMessage")
+                if parent_message:
+
+                    parent_message_id = parent_message.get("message_id")
+                    if parent_message_id:
+                        lm_id = MessageUtilites.get_lm_id_from_sendbird_message_id(parent_message_id)
+                        if not lm_id:
+                            raise PydanticCustomError("invalid_replied_conversation_id", "No replied conversation id found in the cache.")
+                        
+                        data["replied_conversation_id"] = lm_id
+
+                type = metadata.get("type")
+                if type == "multi-media":
+                    attachments = metadata.get("metaData")
+                    if attachments:
+                        lm_attachments = []
+                        index = len(data["attachments"]) + 1
+                        for _, attachment in enumerate(attachments):
+                            attachment["index"] = index
+                            index += 1
+                            lm_attachments.append(AttachmentModel(**attachment))
+
+                        data["attachments"].extend(lm_attachments)
+
+            except json.JSONDecodeError:
+                raise PydanticCustomError("invalid_metadata", "Invalid metadata found in the message.")
+
+        return data
+
+    @staticmethod
+    def _validate_misfits_attachment_meta(data):
+
+        attachments = data.get('attachments')
+        for attachment in attachments:
+            if attachment.get('attachment_message'):
+                data["answer"] = attachment.get('attachment_message')
+            
+            if attachment.get('replied_conversation_id'):
+                data["replied_conversation_id"] = attachment.get('replied_conversation_id')
+
+        return data
 
     @classmethod
     @model_validator(mode="after")
@@ -348,6 +483,8 @@ class MessageModel(BaseModel):
         data = cls._populate_polls(data)
         data = cls._populate_reactions(data)
         data = cls._populate_mentions(data)
+        data = cls._validate_misfits_metadata(data)
+        data = cls._validate_misfits_attachment_meta(data)
         
         return data
 

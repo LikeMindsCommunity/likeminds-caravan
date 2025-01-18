@@ -1026,6 +1026,10 @@ class AttachmentTypes:
     VOICE_NOTE = "voice_note"
     GIF = "gif"
 
+    @classmethod
+    def is_valid_attachment_type(cls, attachment_type: str) -> bool:
+        return attachment_type in cls._value2member_map_
+
 
 attachment_types = AttachmentTypes()
 

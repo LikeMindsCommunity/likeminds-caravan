@@ -7,6 +7,12 @@ class LambdaUtilities:
 
     @staticmethod
     def migrate_to_s3(file_url, file_path) -> str:
+        """
+            file_url: str - URL of the file to be migrated
+            file_path: str - Path where the file should be stored in S3
+
+            Migrates the file to S3 and returns the public URL 
+        """
 
         payload = {
             "file_url": file_url,
