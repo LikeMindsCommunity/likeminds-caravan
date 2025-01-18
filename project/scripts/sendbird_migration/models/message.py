@@ -31,6 +31,19 @@ class MessageUtilites:
             return None
         
         return lm_id
+    
+    # function to replace mentions
+    def replace_mentions(text, users):
+        while users:
+            text = text.replace(MENTIONED_USERS_SYMBOL, users.pop(0), 1)
+        return text
+    
+    def ensure_epoch_in_ms(epoch_time):
+        # Check if the epoch time is in seconds (10 digits) or milliseconds (13 digits)
+        if len(str(epoch_time)) == 10:
+            # Convert seconds to milliseconds
+            return epoch_time * 1000
+        return epoch_time
 
 
 class AttachmentModel(BaseModel):
@@ -166,7 +179,7 @@ class AttachmentModel(BaseModel):
         return data
     
     @staticmethod
-    def _validate_misfits_metadata(data):
+    def _populate_misfits_metadata(data):
 
         metadata = data.get('data')
         if metadata:
@@ -184,7 +197,7 @@ class AttachmentModel(BaseModel):
     @model_validator(mode="after")
     def _validate_after(cls, data):
         data = cls._validate_misfits_keys(data)
-        data = cls._validate_misfits_metadata(data)
+        data = cls._populate_misfits_metadata(data)
 
         return data
 
@@ -192,16 +205,19 @@ class AttachmentModel(BaseModel):
 class PollOptionsModel(BaseModel):
     text: str
 
+
 class ReactionModel(BaseModel):
     key: str
     user_ids: List[int]
     conversation_id: int
+
 
 class OgTagsModel(BaseModel):
     title: str
     description: str
     image: str
     url: str
+
 
 class MessageModel(BaseModel):
     sendbird_message_id: int = Field(alias="message_id")
@@ -224,7 +240,7 @@ class MessageModel(BaseModel):
     multiple_select_state: Optional[str] = Field(default=None)
     multiple_select_no: Optional[int] = Field(default=0)
 
-    Reactions: List[ReactionModel] = []
+    reactions: List[ReactionModel] = []
 
     @staticmethod
     def _validate_state(data):
@@ -310,6 +326,17 @@ class MessageModel(BaseModel):
 
         return data
 
+    @staticmethod
+    def _validate_created_at(data):
+
+        created_at = data.get("created_at")
+        if not created_at:
+            raise PydanticCustomError("invalid_created_at", "No created_at found in the message.")
+
+        data["created_at"] = TimeUtilities.convert_epoch_to_ms(created_at)
+
+        return data
+
     @classmethod
     @model_validator(mode="before")
     def _validate_before(cls, data):
@@ -318,6 +345,7 @@ class MessageModel(BaseModel):
         data = cls._validate_chatroom_id(data)
         data = cls._validate_attachments(data)
         data = cls._validate_replied_conversation_id(data)
+        data = cls._validate_created_at(data)
         data = AttachmentModel._validate_thumbnail_urls(data) #TODO: Test this
 
         return data
@@ -337,13 +365,17 @@ class MessageModel(BaseModel):
                 if poll_data.get("close_at", 0) <= 0:
                     data["no_poll_expiry"] = True
                 else:
-                    data["expiry_time"] = poll_data.get("close_at")
+                    data["expiry_time"] = MessageUtilites.ensure_epoch_in_ms(poll_data.get("close_at"))
 
             if poll_data.get("options"):
                 data["polls"] = [
                     PollOptionsModel(text=poll_option.get("text"))
                     for poll_option in poll_data.get("options")
                 ]
+            else:
+                #TODO: Fetch poll options from API and update the data
+                #TODO: Need to add support of poll voters and their votes (Using API)
+                pass
 
             if poll_data.get("allow_multiple_votes"):
                 data["multiple_select_state"] = multi_select_poll_states.AT_MAX
@@ -352,7 +384,6 @@ class MessageModel(BaseModel):
             if poll_data.get("allow_user_suggestion"):
                 data["allow_add_option"] = True
 
-            # TODO: Need to add support of poll voters and their votes
         return data
 
     @staticmethod
@@ -384,7 +415,7 @@ class MessageModel(BaseModel):
 
                 reactions.append(reaction)
 
-            data["Reactions"] = reactions
+            data["reactions"] = reactions
 
         return data
 
@@ -394,8 +425,6 @@ class MessageModel(BaseModel):
         if data.get("mentioned_users"):
 
             mentioned_user_lm_routes = []
-            answer = data.get('answer')
-
             for user in data.get("mentioned_users"):
                 user_id = user.get("user_id")
                 if not user_id:
@@ -414,21 +443,14 @@ class MessageModel(BaseModel):
                 user_mention_route = USER_PROFILE_ROUTE % (user_name, user_id)
                 mentioned_user_lm_routes.append(user_mention_route)
 
-            # Define an anonymous function to replace mentions
-            replace_mentions = lambda text, users: (
-                text.replace(MENTIONED_USERS_SYMBOL, users.pop(0), 1) if users else text
-            )
-
             # Replace all 'SYMBOL' in the message with the mentioned users
-            for _ in mentioned_user_lm_routes:
-                answer = replace_mentions(answer, mentioned_user_lm_routes)
-
+            answer = MessageUtilites.replace_mentions(data.get('answer'), mentioned_user_lm_routes)
             data['answer'] = answer
 
         return data
 
     @staticmethod
-    def _validate_misfits_metadata(data):
+    def _populate_misfits_metadata(data):
 
         if data.get('data'):
             # Parse JSON data from the message
@@ -465,7 +487,7 @@ class MessageModel(BaseModel):
         return data
 
     @staticmethod
-    def _validate_misfits_attachment_meta(data):
+    def _populate_misfits_attachment_meta(data):
 
         attachments = data.get('attachments')
         for attachment in attachments:
@@ -483,8 +505,9 @@ class MessageModel(BaseModel):
         data = cls._populate_polls(data)
         data = cls._populate_reactions(data)
         data = cls._populate_mentions(data)
-        data = cls._validate_misfits_metadata(data)
-        data = cls._validate_misfits_attachment_meta(data)
+
+        data = cls._populate_misfits_metadata(data)
+        data = cls._populate_misfits_attachment_meta(data)
         
         return data
 
