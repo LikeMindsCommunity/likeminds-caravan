@@ -32,6 +32,15 @@ class MessageUtilites:
         
         return lm_id
     
+    @staticmethod
+    def get_lm_user_id_from_sendbird_user_id(sendbird_user_id: str) -> int:
+        lm_user_id = CacheImpl.get_cache(USER_LM_KEY % sendbird_user_id)
+        if not lm_user_id:
+            print("No user id found in the cache for sendbird user id: %d" % sendbird_user_id)
+            return None
+        
+        return lm_user_id
+    
     # function to replace mentions
     def replace_mentions(text, users):
         while users:
@@ -125,7 +134,7 @@ class AttachmentModel(BaseModel):
     @staticmethod
     def _validate_misfits_keys(data):
 
-        message = data.get('message')
+        message = data.get('msg')
         if message:
             data["attachment_message"] = message
 
@@ -207,9 +216,26 @@ class PollOptionsModel(BaseModel):
 
 
 class ReactionModel(BaseModel):
-    key: str
-    user_ids: List[int]
-    conversation_id: int
+    reaction_key: str = Field(alias="key")
+    user_ids: List[int] = []
+
+    @classmethod
+    @model_validator(mode="before")
+    def _validate_user_ids(cls, data):
+
+        users_list = data.get("user_ids")
+        if not users_list:
+            raise PydanticCustomError("invalid_user_ids", "No user ids found in the reaction.")
+        
+        for user_id in users_list:
+
+            lm_user_id = MessageUtilites.get_lm_user_id_from_sendbird_user_id(user_id)
+            if not lm_user_id:
+                raise PydanticCustomError("invalid_user_id", "No user id found in the cache.")
+            
+            data["user_ids"].append(lm_user_id)
+
+        return data
 
 
 class OgTagsModel(BaseModel):
@@ -225,10 +251,11 @@ class MessageModel(BaseModel):
     created_at: int
     user_id: int
 
-    answer: str = Field(alias="message")
     state: int = 0
-    attachments: Optional[List[AttachmentModel]] = []
+    text: str = Field(alias="message")
     chatroom_id: int = Field(alias="channel_id")
+
+    attachments: Optional[List[AttachmentModel]] = []
     replied_conversation_id: int = 0
     metadata: dict = {}
     og_tags: Optional[OgTagsModel] = None
@@ -240,7 +267,8 @@ class MessageModel(BaseModel):
     multiple_select_state: Optional[str] = Field(default=None)
     multiple_select_no: Optional[int] = Field(default=0)
 
-    reactions: List[ReactionModel] = []
+    reactions: List[ReactionModel] = [] 
+    poll_votes = [] #TODO: Add support for poll votes
 
     @staticmethod
     def _validate_state(data):
@@ -390,32 +418,8 @@ class MessageModel(BaseModel):
     def _populate_reactions(data):
 
         reactions_data = data.get("reactions")
-
         if reactions_data:
-            reactions = []
-            for reaction_data in reactions_data:
-                reaction = ReactionModel(key=reaction_data.get("key"))
-
-                for user_id in reaction_data.get("user_ids"):
-                    # Fetch user_id
-                    user_id = user_id
-                    if not user_id:
-                        raise PydanticCustomError(
-                            "invalid_user_id", "No user id found in the reaction."
-                        )
-
-                    # Fetch likeminds user_id from cache
-                    lm_user_id = CacheImpl.get_cache(USER_LM_KEY % user_id)
-                    if not lm_user_id:
-                        raise PydanticCustomError(
-                            "invalid_user_id", "No user id found in the cache."
-                        )
-
-                    reaction.user_ids.append(lm_user_id)
-
-                reactions.append(reaction)
-
-            data["reactions"] = reactions
+            data["reactions"] = ReactionModel(**reactions_data)
 
         return data
 
@@ -444,8 +448,8 @@ class MessageModel(BaseModel):
                 mentioned_user_lm_routes.append(user_mention_route)
 
             # Replace all 'SYMBOL' in the message with the mentioned users
-            answer = MessageUtilites.replace_mentions(data.get('answer'), mentioned_user_lm_routes)
-            data['answer'] = answer
+            text = MessageUtilites.replace_mentions(data.get('text'), mentioned_user_lm_routes)
+            data['text'] = text
 
         return data
 
@@ -492,7 +496,7 @@ class MessageModel(BaseModel):
         attachments = data.get('attachments')
         for attachment in attachments:
             if attachment.get('attachment_message'):
-                data["answer"] = attachment.get('attachment_message')
+                data["text"] = attachment.get('attachment_message')
             
             if attachment.get('replied_conversation_id'):
                 data["replied_conversation_id"] = attachment.get('replied_conversation_id')
@@ -503,7 +507,7 @@ class MessageModel(BaseModel):
     @model_validator(mode="after")
     def _validate_after(cls, data):
         data = cls._populate_polls(data)
-        data = cls._populate_reactions(data)
+        # data = cls._populate_reactions(data) #TODO: Confirm if this is not needed or not (If handled by pydantic automatically)
         data = cls._populate_mentions(data)
 
         data = cls._populate_misfits_metadata(data)
