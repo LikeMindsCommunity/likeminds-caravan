@@ -14,3 +14,11 @@ USER_PROFILE_IMAGE_S3_PATH = "files/profile/{}/{}-{}"
 CHATROOM_IMAGE_S3_PATH = "files/chatroom/image/{}"
 
 LAMBDA_URL = "https://mcm23vgasphq26jbnp4xwtkeku0qkhzb.lambda-url.ap-south-1.on.aws/"  # Hosted on old AWS account
+
+USER_PROFILE_ROUTE = "<<[%s]|route://user_profile/[%s]>>"
+MENTIONED_USERS_SYMBOL = "@" #TODO: Update this for misfits
+
+# Cache Keys for Mapping Sendbird -> Likeminds IDs
+SENDBIRD_CHANNEL_MAP_KEY = "sendbird_migration_channel_%s" # sendbird chatroom_id -> likeminds chatroom_id
+SENDBIRD_USER_MAP_KEY = "sendbird_user_%s" # sendbird user_id -> likeminds user_id
+SENDBIRD_MESSAGE_MAP_KEY = "sendbird_message_%d" # sendbird message_id -> likeminds conversation_id

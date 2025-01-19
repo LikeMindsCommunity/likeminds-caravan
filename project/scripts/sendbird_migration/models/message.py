@@ -7,6 +7,7 @@ from pydantic_core import PydanticCustomError
 from ..models.user import UserModel
 from ..models.channel import ChannelModel
 from ..utils.lambda_utilities import LambdaUtilities
+from ..constants import (SENDBIRD_USER_MAP_KEY, SENDBIRD_CHANNEL_MAP_KEY, SENDBIRD_MESSAGE_MAP_KEY, USER_PROFILE_ROUTE, MENTIONED_USERS_SYMBOL)
 
 from utility.time_utilities import TimeUtilities
 from utility.states import conversation_states, card_types, multi_select_poll_states, attachment_types
@@ -14,18 +15,11 @@ from utility.states import conversation_states, card_types, multi_select_poll_st
 from external_services.caching.cache_impl import CacheImpl
 
 
-USER_LM_KEY = "user_%s" # sendbird user_id -> likeminds user_id
-CHATROOM_LM_KEY = "chatroom_%s" # sendbird chatroom_id -> likeminds chatroom_id
-CONVERSATION_LM_KEY = "conversation_%d" # sendbird conversation_id -> likeminds conversation_id
-
-USER_PROFILE_ROUTE = "<<[%s]|route://user_profile/[%s]>>"
-MENTIONED_USERS_SYMBOL = "@" #TODO: Update this for misfits
-
 class MessageUtilites:
 
     @staticmethod
     def get_lm_id_from_sendbird_message_id(sendbird_message_id: int) -> int:
-        lm_id = CacheImpl.get_cache(CONVERSATION_LM_KEY % sendbird_message_id)
+        lm_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY % sendbird_message_id)
         if not lm_id:
             print("No conversation id found in the cache for sendbird message id: %d" % sendbird_message_id)
             return None
@@ -34,7 +28,7 @@ class MessageUtilites:
     
     @staticmethod
     def get_lm_user_id_from_sendbird_user_id(sendbird_user_id: str) -> int:
-        lm_user_id = CacheImpl.get_cache(USER_LM_KEY % sendbird_user_id)
+        lm_user_id = CacheImpl.get_cache(SENDBIRD_USER_MAP_KEY % sendbird_user_id)
         if not lm_user_id:
             print("No user id found in the cache for sendbird user id: %d" % sendbird_user_id)
             return None
@@ -291,7 +285,7 @@ class MessageModel(BaseModel):
             raise PydanticCustomError("invalid_user_id", "No user id found in the message.")
 
         # Fetch likeminds user_id from cache
-        lm_user_id =  CacheImpl.get_cache(USER_LM_KEY % user_id)
+        lm_user_id =  CacheImpl.get_cache(SENDBIRD_USER_MAP_KEY % user_id)
         if not lm_user_id:
             raise PydanticCustomError("invalid_user_id", "No user id found in the cache.")
 
@@ -308,7 +302,7 @@ class MessageModel(BaseModel):
             raise PydanticCustomError("invalid_chatroom_id", "No chatroom id found in the message.")
 
         # Fetch likeminds chatroom_id from cache
-        lm_chatroom_id =  CacheImpl.get_cache(CHATROOM_LM_KEY % chatroom_id)
+        lm_chatroom_id =  CacheImpl.get_cache(SENDBIRD_CHANNEL_MAP_KEY % chatroom_id)
         if not lm_chatroom_id:
             raise PydanticCustomError("invalid_chatroom_id", "No chatroom id found in the cache.")
 

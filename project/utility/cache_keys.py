@@ -49,4 +49,3 @@ KETTLE_CACHE_CHATROOM_PARTICIPANTS = "chatroom_participants_{}" # chatroom_parti
 
 SWARM_CACHE_KEY_TOP_COMMENTS = "{}_*_top_liked_comments" # community_id
 
-SENDBIRD_MIGRATION_CHANNEL_MAP_CACHE_KEY = "sendbird_migration_{}_{}"

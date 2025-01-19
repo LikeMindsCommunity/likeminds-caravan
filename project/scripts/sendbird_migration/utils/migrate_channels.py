@@ -2,14 +2,14 @@ from typing import List
 from pathlib import Path
 
 from ..models.channel import ChannelModel
-from ..constants import PLATFORM_CODE, VERSION_CODE, LIKEMINDS_API_KEY, TTL_FOR_CACHE, CHATROOM_IMAGE_S3_PATH
+from ..constants import (PLATFORM_CODE, VERSION_CODE, LIKEMINDS_API_KEY, TTL_FOR_CACHE, 
+                         CHATROOM_IMAGE_S3_PATH, SENDBIRD_CHANNEL_MAP_KEY)
 
 from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
 from togther.models import (
     ModelUtilities,
     Collabcard
 )
-from utility.cache_keys import SENDBIRD_MIGRATION_CHANNEL_MAP_CACHE_KEY
 from utility.time_utilities import TimeUtilities
 from external_services.caching.cache_impl import CacheImpl
 
@@ -53,9 +53,7 @@ class MigrateChannels:
         chatroom_instances_list = []
 
         for channel_data in self.channels_data:
-            cache_key = SENDBIRD_MIGRATION_CHANNEL_MAP_CACHE_KEY.format(
-                LIKEMINDS_API_KEY, channel_data.channel_url
-            )
+            cache_key = SENDBIRD_CHANNEL_MAP_KEY.format(channel_data.channel_url)
             chatroom_id = CacheImpl.get_cache(cache_key)
 
             if chatroom_id:

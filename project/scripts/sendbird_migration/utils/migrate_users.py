@@ -2,13 +2,15 @@ from typing import List
 from pathlib import Path
 
 from ..models.user import UserModel
-from ..constants import LIKEMINDS_API_KEY, PLATFORM_CODE, VERSION_CODE, USER_PROFILE_IMAGE_S3_PATH
+from ..utils.lambda_utilities import LambdaUtilities
+from ..constants import (LIKEMINDS_API_KEY, PLATFORM_CODE, VERSION_CODE, USER_PROFILE_IMAGE_S3_PATH,
+                         SENDBIRD_USER_MAP_KEY, TTL_FOR_CACHE)
 
 from collabmates_api.community.community_impl import CommunityImpl
 from togther.models import SDKClientUsersInfo, Members, Userinfo, ModelUtilities
 from utility.time_utilities import TimeUtilities
+from external_services.caching.cache_impl import CacheImpl
 
-from ..utils.lambda_utilities import LambdaUtilities
 
 
 class MigrateUsers:
@@ -48,6 +50,12 @@ class MigrateUsers:
         member_instances_list = []
 
         for user_data in self.users_data:
+
+            lm_user_id = CacheImpl.get_cache(SENDBIRD_USER_MAP_KEY.format(user_data.uuid))
+            if lm_user_id:
+                print(f"User already migrated for sendbird_user_id: {user_data.uuid} | lm_user_id: {lm_user_id}")
+                continue
+
             # TODO: Add code to upload image url to S3 and replace the image_url with the new one
             s3_path = self._create_s3_path_to_save_profile(user_data.image_url, user_data.uuid)
             s3_url = LambdaUtilities.migrate_to_s3(user_data.image_url, s3_path)
@@ -93,6 +101,9 @@ class MigrateUsers:
                     member_instance.created_at = user_data.created_at
                     member_instance.became_member_at = user_data.created_at
                     member_instances_list.append(member_instance)
+
+                # Set the cache for the user
+                CacheImpl.set_cache(SENDBIRD_USER_MAP_KEY.format(user_data.uuid), sdk_user_instance.user.id, TTL_FOR_CACHE)
 
         ModelUtilities.bulk_update_instances(
             SDKClientUsersInfo, sdk_instances_list, fields=["created_at"]

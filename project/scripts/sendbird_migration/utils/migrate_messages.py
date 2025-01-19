@@ -2,7 +2,7 @@ from typing import List
 
 from ..models.message import MessageModel, ReactionModel, MessageUtilites
 from ..constants import PLATFORM_CODE, VERSION_CODE, LIKEMINDS_API_KEY
-from ..models.message import CONVERSATION_LM_KEY #TODO: Move to constants
+from ..models.message import SENDBIRD_MESSAGE_MAP_KEY #TODO: Move to constants
 from ..constants import TTL_FOR_CACHE
 
 from togther.models import ModelUtilities, card_answers, conversationPolls, answerAttachment
@@ -29,7 +29,7 @@ class MigrateMessages:
                                                  chatroom_id: int, created_at: int, is_deleted: bool, 
                                                  reactions: List[ReactionModel] = None, poll_votes=None):
 
-        conversation_id = CacheImpl.get_cache(CONVERSATION_LM_KEY.format(sendbird_message_id))
+        conversation_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY.format(sendbird_message_id))
         if conversation_id:
             print(f"Conversation already created for sendbird_message_id: {sendbird_message_id}")
             return
@@ -52,7 +52,7 @@ class MigrateMessages:
                 raise ValueError(f"Cannot find conversation_id in response for message_id: {sendbird_message_id} | conversation_response: {conversation_response}")
             
             # Set cache for conversation_id
-            CacheImpl.set_cache(CONVERSATION_LM_KEY.format(sendbird_message_id), conversation_id, timeout=TTL_FOR_CACHE)
+            CacheImpl.set_cache(SENDBIRD_MESSAGE_MAP_KEY.format(sendbird_message_id), conversation_id, timeout=TTL_FOR_CACHE)
 
             print(f"Conversation created for sendbird_message_id: {sendbird_message_id} with conversation_id: {conversation_id} & chatroom_id: {chatroom_id}")
     
