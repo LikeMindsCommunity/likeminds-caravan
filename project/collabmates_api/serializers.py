@@ -6,7 +6,7 @@ from utility.utils import (generate_private_link, get_time_text, eligibility_cou
                            get_members_count_in_community, generate_private_link_for_chatroom,
                            get_date_time_from_timestamp, get_community_members_count_for_preview)
 
-from utility.states import (card_types, question_states, poll_types, deleted_members, conversation_states, api_types,
+from utility.states import (card_types, question_states, chatroom_poll_types, deleted_members, conversation_states, api_types,
                             conversation_poll_types, WidgetTypes)
 from .conversation.reactions import fetch_chatroom_or_conversation_reactions
 from .member_community.constants import CUSTOM_CLICK_TEXT_MEMBERSHIP_EXPIRED, CUSTOM_INTRO_TEXT_MEMBERSHIP_EXPIRED, \
@@ -298,7 +298,7 @@ def CollabcardSerializer(card, user, community=None, current_user_id=None, previ
         collabcard['allow_add_option'] = card.allow_add_option
         collabcard['poll_type'] = card.poll_type
         collabcard[
-            'poll_type_text'] = "Instant poll" if card.poll_type == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+            'poll_type_text'] = "Instant poll" if card.poll_type == chatroom_poll_types.POLL_TYPE_INSTANT else "Deferred poll"
         collabcard['submit_type_text'] = "Secret voting" if card.is_poll_anonymous else "Public voting"
 
     # for event card
@@ -473,7 +473,7 @@ def draftChatroomSerializer(card, user, community=None):
         chatroom['allow_add_option'] = card.allow_add_option
         chatroom['poll_type'] = card.poll_type
         chatroom[
-            'poll_type_text'] = "Instant poll" if card.poll_type == poll_types.POLL_TYPE_INSTANT else "Deferred poll"
+            'poll_type_text'] = "Instant poll" if card.poll_type == chatroom_poll_types.POLL_TYPE_INSTANT else "Deferred poll"
         chatroom['submit_type_text'] = "Secret voting" if card.is_poll_anonymous else "Public voting"
 
     # for event card
@@ -1175,7 +1175,7 @@ def get_to_show_results(card_polls, user, card):
     for poll in card_polls:
         is_selected = is_poll_selected(poll, user, card) if user else False
 
-        if card.poll_type == poll_types.POLL_TYPE_INSTANT and is_selected is True:
+        if card.poll_type == chatroom_poll_types.POLL_TYPE_INSTANT and is_selected is True:
             return True
 
     return False
@@ -2070,8 +2070,7 @@ def conversationSerializer(conversation, current_user_id=None, fetch_reply=True,
             'conversation_id': conversation.id, 'poll_type': conversation.poll_type,
             'multiple_select_no': conversation.multiple_select_no, 'expiry_time': conversation.expiry_time})
 
-        temp['poll_type_text'] = "Instant poll" \
-            if temp['poll_type'] == conversation_poll_types.INSTANT else "Deferred poll"
+        temp['poll_type_text'] = conversation_poll_types.get_poll_name(temp['poll_type'])
 
         temp['submit_type_text'] = "Secret voting" \
             if temp['is_anonymous'] else "Public voting"

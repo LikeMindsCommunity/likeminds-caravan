@@ -530,7 +530,7 @@ class MemberCommunityHelper:
         return updated_menu
 
     @staticmethod
-    def update_users_image_url_in_community(user_member_filter, image_url, user_intro_card_instance):
+    def update_users_image_url_in_community(user_member_filter, image_url, user_intro_card_instance=None):
         user_member_filter.update(image_url=image_url, updated_at=TimeUtilities.current_time_in_sec())
 
         if user_intro_card_instance:

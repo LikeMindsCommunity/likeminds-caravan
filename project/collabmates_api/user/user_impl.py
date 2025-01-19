@@ -1419,11 +1419,34 @@ class UserImpl(UserManager):
             if validated_req.get('error_message'):
                 return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
+                
+            community_instance = validated_req.get('community_instance')
+            social_uuid = validated_req.get('social_uuid')
+            email = validated_req.get('email')
+            name = validated_req.get('name')
+            image_url = validated_req.get('image_url')
+                
+            filter_dict = {
+                'social_uuid': social_uuid,
+                'sdk_client__community': community_instance
+            }
+            
+            records = ModelUtilities.get_model_filter(OnboardedVerifiedIUsers, filter_dict).first()
+            
+            if not records:
+                if not (email and name):
+                    return ResponseUtilities.get_impl_error_context('Please send email and name for first time login!', 
+                                                                    status_codes.HTTP_400_BAD_REQUEST)
+                
+                # Save user data
+                UserHelper.save_onboarded_verified_user_data(self.get_api_key(), email=email, social_uuid=social_uuid, 
+                                                             name=name)
+                
+            else:
+                email = records.email
+                name = records.name
 
-            user_context = UserHelper.create_user_context_for_apple(user_data)
-
-            UserHelper.save_onboarded_verified_user_data.delay(self.get_api_key(),
-                                                               email=user_data.get('email'))
+            user_context = UserHelper.create_user_context_for_apple(email = email, name = name, image_url = image_url)
 
         else:
             return ResponseUtilities.get_impl_error_context("Invalid login type!",
@@ -2550,6 +2573,7 @@ class UserHelper:
 
     @staticmethod
     def validate_user_apple_login_request(api_key: str, user_data: dict):
+        
         validation_params = {
             'community_id': {
                 'api_key': api_key
@@ -2560,14 +2584,22 @@ class UserHelper:
 
         if validated_dict.get('error_message'):
             return validated_dict
+        
+        community_instance = validated_dict.get('community_id')
 
         if not user_data:
             return ResponseUtilities.get_inner_error_context('Send user data!')
-
-        if not (user_data.get('name') and user_data.get('email')):
-            return ResponseUtilities.get_inner_error_context('Invalid user data!')
-
-        return {}
+        
+        if not user_data.get('social_uuid'):
+            return ResponseUtilities.get_inner_error_context('Please send social_uuid for Apple Login!')
+        
+        return {
+            'community_instance': community_instance,
+            'social_uuid': user_data.get('social_uuid'),
+            'email': user_data.get('email'),
+            'name': user_data.get('name'),
+            'image_url': user_data.get('image_url')
+        }
 
     @staticmethod
     def create_user_context_based_on_google_response(google_json: dict):
@@ -2593,11 +2625,11 @@ class UserHelper:
         return user_context
 
     @staticmethod
-    def create_user_context_for_apple(user_data: dict):
+    def create_user_context_for_apple(email: str, name: str = "", image_url: str = ""):
         return {
-            'name': user_data.get('name'),
-            'email': user_data.get('email'),
-            'image_url': user_data.get('image_url')
+            'email': email,
+            'name': name,
+            'image_url': image_url
         }
 
     @staticmethod
@@ -2844,9 +2876,10 @@ class UserHelper:
 
     @staticmethod
     @shared_task
-    def save_onboarded_verified_user_data(api_key: str, email: str = None, mobile_no: int = None,
-                                          country_code: int = None):
-        if not (email or (mobile_no and country_code)):
+    def save_onboarded_verified_user_data(api_key: str, email: str = None, mobile_no: int = None, 
+                                          country_code: int = None, social_uuid: str = None, name: str = None):
+        
+        if not (email or (mobile_no and country_code) or social_uuid):
             return
 
         filter_dict = {
@@ -2855,6 +2888,9 @@ class UserHelper:
 
         if email:
             filter_dict['email'] = email
+            
+        if social_uuid:
+            filter_dict['social_uuid'] = social_uuid
 
         if mobile_no and country_code:
             filter_dict = {**filter_dict, **{'mobile_no': mobile_no, 'country_code': country_code}}
@@ -2865,6 +2901,9 @@ class UserHelper:
             return
 
         del filter_dict['sdk_client__api_key']
+        
+        if name:
+            filter_dict['name'] = name
 
         sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'api_key': api_key}).first()
 

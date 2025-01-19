@@ -144,6 +144,7 @@ GUEST_FLOW_METADATA_CONFIGURATION = "guest_flow_metadata"
 FEED_SETTINGS_CONFIGURATION = "feed_settings"
 PERSONALISED_FEED_WEIGHTS = "personalised_feed_weights"
 CHATBOT_CONFIGURATIONS = "chatbot"
+CHAT_POLL_CONFIGURATIONS = "chat_poll"
 
 # Community Configurations
 COMMUNITY_CONFIGURATIONS = {
@@ -240,6 +241,21 @@ COMMUNITY_CONFIGURATIONS = {
             "error_message": "",
         },
     },
+    CHAT_POLL_CONFIGURATIONS: {
+        "type": CHAT_POLL_CONFIGURATIONS,
+        "description": "Chat poll configurations for the community.",
+        "value": {
+            "allow_override": True, # If to use configurations params, or create conversation params
+            "poll_type": "instant", # 'instant | deferred | open'
+            "no_poll_expiry": False,  # If poll has no expiry
+            "allow_vote_change": True, # If user can change his vote (till expiry)
+            "multiple_select_state": 'exactly', # 'exactly | at_max | at_most | at_least'
+            "multiple_select_no": 1, # How many options users can select 
+            "is_anonymous": False, # If poll is anonymous
+            "allow_add_option": False # If other people can add options to the poll
+        }
+    }
+    
 }
 
 CHATBOT_PROVIDER_OPENAI = "open_ai_assistant"

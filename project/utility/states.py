@@ -241,12 +241,12 @@ class CollabcardStates:
 collabcard_states = CollabcardStates()
 
 
-class PollTypes:
+class ChatroomPollTypes:
     POLL_TYPE_INSTANT = 0
     POLL_TYPE_DEFERRED = 1
 
 
-poll_types = PollTypes()
+chatroom_poll_types = ChatroomPollTypes()
 
 
 class MultiSelectPollStates:
@@ -255,6 +255,42 @@ class MultiSelectPollStates:
     AT_MAX = 1
     AT_MOST = 1
     AT_LEAST = 2
+    
+    EXACTLY_ENUM = "exactly"
+    AT_MAX_ENUM = "at_max"
+    AT_MOST_ENUM = "at_most"
+    AT_LEAST_ENUM = "at_least"
+    
+    
+    @classmethod
+    def is_valid_poll_state_enum(cls, poll_state: str) -> bool:
+        return poll_state in [cls.EXACTLY_ENUM, cls.AT_MAX_ENUM, cls.AT_MOST_ENUM, cls.AT_LEAST_ENUM]
+    
+    @classmethod
+    def get_poll_state_enum_from_int(cls, poll_state: int) -> str:
+        if poll_state == cls.EXACTLY:
+            return cls.EXACTLY_ENUM
+        elif poll_state == cls.AT_MAX:
+            return cls.AT_MAX_ENUM
+        elif poll_state == cls.AT_MOST:
+            return cls.AT_MOST_ENUM
+        elif poll_state == cls.AT_LEAST:
+            return cls.AT_LEAST_ENUM
+        else:
+            return "Unknown Poll State"
+        
+    @classmethod
+    def get_int_poll_state_from_enum(cls, poll_state: str) -> int:
+        if poll_state == cls.EXACTLY_ENUM:
+            return cls.EXACTLY
+        elif poll_state == cls.AT_MAX_ENUM:
+            return cls.AT_MAX
+        elif poll_state == cls.AT_MOST_ENUM:
+            return cls.AT_MOST
+        elif poll_state == cls.AT_LEAST_ENUM:
+            return cls.AT_LEAST
+        else:
+            return -1
 
 
 multi_select_poll_states = MultiSelectPollStates()
@@ -488,6 +524,53 @@ conversation_states = ConversationStates()
 class ConversationPollTypes:
     INSTANT = 0
     DEFERRED = 1
+    OPEN = 2
+    
+    INSTANT_POLL_ENUM = "instant"
+    DEFERRED_POLL_ENUM = "deferred"
+    OPEN_POLL_ENUM = "open"
+    
+    INSTANT_POLL_NAME = "Instant Poll"
+    DEFERRED_POLL_NAME = "Deferred Poll"
+    OPEN_POLL_NAME = "Open Poll"
+    
+    
+    @classmethod
+    def is_valid_poll_type_enum(cls, poll_type: str) -> bool:
+        return poll_type in [cls.INSTANT_POLL_ENUM, cls.DEFERRED_POLL_ENUM, cls.OPEN_POLL_ENUM]
+
+    @classmethod
+    def get_poll_name(cls, poll_type) -> str:
+        if poll_type == cls.INSTANT or poll_type == cls.INSTANT_POLL_ENUM:
+            return cls.INSTANT_POLL_NAME
+        elif poll_type == cls.DEFERRED or poll_type == cls.DEFERRED_POLL_ENUM:
+            return cls.DEFERRED_POLL_NAME
+        elif poll_type == cls.OPEN or poll_type == cls.OPEN_POLL_ENUM:
+            return cls.OPEN_POLL_NAME
+        else:
+            return "Unknown Poll Type"
+
+    @classmethod
+    def get_int_poll_type_from_string(cls, poll_type: str) -> int:
+        if poll_type.lower() == cls.INSTANT_POLL_ENUM:
+            return cls.INSTANT
+        elif poll_type.lower() == cls.DEFERRED_POLL_ENUM:
+            return cls.DEFERRED
+        elif poll_type.lower() == cls.OPEN_POLL_ENUM:
+            return cls.OPEN
+        else:
+            return -1
+        
+    @classmethod
+    def get_string_poll_type_from_int(cls, poll_type: int) -> str:
+        if poll_type == cls.INSTANT:
+            return cls.INSTANT_POLL_ENUM
+        elif poll_type == cls.DEFERRED:
+            return cls.DEFERRED_POLL_ENUM
+        elif poll_type == cls.OPEN:
+            return cls.OPEN_POLL_ENUM
+        else:
+            return ""
 
 
 conversation_poll_types = ConversationPollTypes()

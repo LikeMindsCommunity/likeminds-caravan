@@ -8,9 +8,13 @@ from .static_text import (MIN_NUMBER_OF_PIN_CHATROOMS_IN_FEED_REVAMP, SPECIFIC_M
                           PARTICIPANTS_TAG_REGEX)
 from collabmates_api.static_files import (REMOVED_USER_URL)
 
+from utility.cache_keys import CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY, CHATROOM_PARTICIPANTS_COUNT_TTL
+from external_services.caching.cache_impl import CacheImpl
+
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from utility.time_utilities import TimeUtilities
+from utility.utils import print_time_taken
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -1865,6 +1869,7 @@ def get_conversation_files_based_on_conversation_list(conversation_list):
         return {}
 
 
+@print_time_taken
 def get_members_based_on_user_list_query(user_list, community_id, order_by_name=False, page=0, page_size=0,
                                          member_name_search_string=""):
     """returns the members of the community based on user list"""
@@ -3535,15 +3540,21 @@ def get_user_ids_based_on_guest_filter(is_guest=False, only_sql_query=False):
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
 
-
+@print_time_taken
 def get_chatroom_participants_count(chatroom_id, community_id):
     """Returns the participants count of chatroom in community"""
 
     try:
         
+        key = CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY.format(chatroom_id)
+        participants_count = CacheImpl.get_cache(key)
+        
+        if participants_count:
+            return participants_count
+        
         current_time = TimeUtilities.current_time_in_milliseconds()
 
-        error_logger.error(f"[raw_query] Starting get_chatroom_participants_count for chatroom_id {chatroom_id} and community_id {community_id} ")
+        error_logger.info(f"[raw_query] Starting get_chatroom_participants_count for chatroom_id {chatroom_id} and community_id {community_id} ")
 
         conn = get_connection()
         curr = conn.cursor()
@@ -3571,6 +3582,7 @@ def get_chatroom_participants_count(chatroom_id, community_id):
         error_logger.error(f"[raw_query] ({current_time - end_time} ms) Done get_chatroom_participants_count for chatroom_id {chatroom_id} and community_id {community_id} ")
 
         if participants_count:
+            CacheImpl.set_cache(key, participants_count[0], CHATROOM_PARTICIPANTS_COUNT_TTL)
             return participants_count[0]
 
         return 0
@@ -3947,9 +3959,9 @@ def get_conversation_query_meta_for_sync_revamp(key_name_prefix: str = None, sho
                     'attachments_uploaded', 'card_id', 'user_id', 'community_id', 'og_tags', 'deleted_by_user_id',
                     'internal_link', 'reply_id', 'last_updated', 'preview_chatroom_id', 'preview_type', 'api_version',
                     'temporary_id', 'poll_type', 'multiple_select_state', 'multiple_select_no', 'is_anonymous',
-                    'allow_add_option', 'expiry_time', 'preview_community_id', 'has_reactions', 'device_id',
-                    'poll_answer_text', 'reply_chatroom_id', 'header', 'location', 'location_lat', 'location_long',
-                    'start_time', 'end_time', 'online_link_enable_before', 'co_hosts']
+                    'allow_add_option', 'expiry_time', 'no_poll_expiry', 'allow_vote_change', 'preview_community_id', 
+                    'has_reactions', 'device_id', 'poll_answer_text', 'reply_chatroom_id', 'header', 'location', 
+                    'location_lat', 'location_long', 'start_time', 'end_time', 'online_link_enable_before', 'co_hosts']
 
     meta_query = create_query_with_prefix(query_fields, 'togther_card_answers', 'conversation', key_name_prefix)
 
@@ -5002,8 +5014,8 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                                          get_members_query_meta_for_sync_revamp("options_creator"),
                                          get_sdk_client_query_meta_for_sync_revamp("options_creator")])
 
-        sql = """
-            SELECT final_polls_data.*, no_votes * 100 / final_polls_data.count AS percentage, {}
+        sql = f"""
+            SELECT final_polls_data.*, no_votes * 100 / final_polls_data.count AS percentage, {poll_options_creator}
             FROM   (SELECT polls_data.conversation_id, id, no_votes, total_voters.count, is_selected, 
                     Split_part(text_options,'___', 1) AS text,
                     Cast(COALESCE(Split_part(poll_option_creator, '___', 1), '0') AS BIGINT) AS user_id
@@ -5014,9 +5026,9 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                                    END                              AS is_selected,
                                    String_agg(Text(text), '___')    AS text_options,
                                    String_agg(Text(user_id), '___') AS poll_option_creator
-                            FROM   (SELECT {},
+                            FROM   (SELECT {poll_data_query},
                                            CASE
-                                             WHEN togther_conversationpollmembers.user_id = {}
+                                             WHEN togther_conversationpollmembers.user_id = {user_id}
                                            THEN 1
                                              ELSE 0
                                            END
@@ -5031,30 +5043,31 @@ def get_conversation_polls_data(community_id, conversation_ids: list, user_id: i
                                            AS
                                            vote_count
                                     FROM   togther_conversationpolls
+                                    INNER JOIN togther_card_answers 
+                                    ON togther_card_answers.id = togther_conversationpolls.conversation_id 
                                            LEFT JOIN togther_conversationpollmembers
                                                   ON
             togther_conversationpolls.conversation_id =
                            togther_conversationpollmembers.conversation_id
                            AND togther_conversationpolls.id =
                            togther_conversationpollmembers.poll_id
-                           WHERE  togther_conversationpolls.conversation_id IN {}) AS polls_all_data
+                           WHERE  togther_conversationpolls.conversation_id IN {conversation_ids_query}) AS polls_all_data
                             GROUP  BY conversation_id,
                                       id) AS polls_data
                             LEFT JOIN (
                                 SELECT conversation_id, COUNT(DISTINCT(user_id)) FROM
                                 togther_conversationPollMembers GROUP BY conversation_id
-                                HAVING conversation_id IN {}) AS total_voters
+                                HAVING conversation_id IN {conversation_ids_query}) AS total_voters
                                 ON total_voters.conversation_id = polls_data.conversation_id
                             ) AS final_polls_data
                    LEFT JOIN togther_userinfo
                           ON ( togther_userinfo.user_id_id = final_polls_data.user_id )
                    LEFT JOIN togther_members
                           ON ( final_polls_data.user_id = togther_members.member_id_id
-                               AND togther_members.community_id_id = {})
+                               AND togther_members.community_id_id = {community_id})
                    LEFT JOIN togther_sdkclientusersinfo
                           ON ( final_polls_data.user_id = togther_sdkclientusersinfo.user_id );
-        """.format(poll_options_creator, poll_data_query, user_id, conversation_ids_query, conversation_ids_query,
-                   community_id)
+        """
 
         curr.execute(sql)
         polls_data = convert_sql_query_result_to_dict(curr, curr.fetchall())

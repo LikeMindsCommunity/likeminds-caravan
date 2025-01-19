@@ -26,6 +26,9 @@ CHATROOM_TYPE_CONVERSION = "chatroom_type_conversion_{}"
 
 SYNC_LJ_MIN_TIMESTAMP = "sync_data_{}_{}"
 
+CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY = "chatroom_participants_count_{}"
+CHATROOM_PARTICIPANTS_COUNT_TTL = 604800  # 7 days in seconds
+
 SWARM_CACHE_KEY_CONFIGURATIONS = "%s_community_configurations"
 
 WIDGET_CONFIGURATIONS_CACHE_KEY = "{}_widget_configurations"

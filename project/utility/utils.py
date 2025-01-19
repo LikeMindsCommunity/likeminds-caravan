@@ -2,6 +2,8 @@
 from __future__ import absolute_import, unicode_literals
 import re
 
+from functools import wraps
+
 from urllib.parse import urlparse
 
 from celery import shared_task
@@ -1292,3 +1294,17 @@ def get_file_name_from_url(url: str) -> str:
         return file_name[-1]
     else:
         return url
+
+# This function is used as a decorator to print the time taken by a function to execute
+def print_time_taken(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        time_taken = (end_time - start_time) * 1000 
+        
+        log_msg = f"Function '{func.__name__}' took {time_taken:.2f} ms"
+        print(log_msg)
+        return result
+    return wrapper

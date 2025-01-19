@@ -412,10 +412,13 @@ class SyncHelper:
         elif conv_data.get('user_id') == user_id:
             to_show_results = True
 
-        elif not conv_data.get('expiry_time'):
+        elif not conv_data.get('no_poll_expiry') and not conv_data.get('expiry_time'):
             to_show_results = True
 
-        elif conv_data.get('expiry_time') <= TimeUtilities.current_time_in_milliseconds():
+        elif conv_data.get('expiry_time') and conv_data.get('expiry_time') <= TimeUtilities.current_time_in_milliseconds():
+            to_show_results = True
+            
+        elif conv_data.get('poll_type') == conversation_poll_types.OPEN:
             to_show_results = True
 
         elif conv_data.get('poll_type') == conversation_poll_types.INSTANT and conv_polls_data:
@@ -431,12 +434,8 @@ class SyncHelper:
     def compute_poll_type_text_for_conversation_meta(conv_data: dict):
         if conv_data.get(CONVERSATION_STATE_KEY_VALUE) != conversation_states.CONVERSATION_POLL:
             return None
-
-        if conv_data.get('poll_type') == conversation_poll_types.INSTANT:
-            return INSTANT_POLL_NAME_VALUE
-
-        else:
-            return DEFERRED_POLL_NAME_VALUE
+        
+        return conversation_poll_types.get_poll_name(conv_data.get('poll_type'))
 
     @staticmethod
     def compute_submit_type_text_for_conversation_meta(conv_data: dict):
