@@ -14,6 +14,13 @@ class LambdaUtilities:
             Migrates the file to S3 and returns the public URL 
         """
 
+        if not file_url:
+            return ""
+
+        headers = {
+            "x-platform-type": "caravan-service"
+        }
+
         payload = {
             "file_url": file_url,
             "file_path": file_path,
@@ -23,7 +30,7 @@ class LambdaUtilities:
         if not settings.IS_BETA:
             payload["is_prod"] = True
 
-        response = requests.post(LAMBDA_URL, json=payload)
+        response = requests.put(LAMBDA_URL, json=payload, headers=headers)
         if response.status_code != 200:
             print(f"Error: {response.json()}")
             return ""

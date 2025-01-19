@@ -15,10 +15,21 @@ from external_services.caching.cache_impl import CacheImpl
 
 class MigrateUsers:
 
-    def __init__(self, bot_id: int, community_id: int, users_data: List[UserModel]):
+    api_key: str = ""
+    platform_code: str = ""
+    version_code: str = ""
+    member_id: int = None
+    community_id: int = None
+    users_data: List[UserModel] = []
+
+    def __init__(self, api_key: int, platform_code: str, version_code: str, bot_id: int, community_id: int, 
+                 users_data: List[UserModel]):
         self.member_id = bot_id
         self.community_id = community_id
         self.users_data = users_data
+        self.api_key = api_key
+        self.platform_code = platform_code
+        self.version_code = version_code
 
     @staticmethod
     def _create_s3_path_to_save_profile(url: str, uuid: str):
@@ -30,9 +41,9 @@ class MigrateUsers:
     def _add_member_to_community(self, req_body):
         community_manager = CommunityImpl(
             member_id=self.member_id,
-            api_key=LIKEMINDS_API_KEY,
-            request_platform=PLATFORM_CODE,
-            version_code=VERSION_CODE,
+            api_key=self.api_key,
+            request_platform=self.platform_code,
+            version_code=self.version_code,
         )
         community_data = community_manager.add_community_member(req_body)
 
@@ -57,11 +68,13 @@ class MigrateUsers:
                 continue
 
             # TODO: Add code to upload image url to S3 and replace the image_url with the new one
-            s3_path = self._create_s3_path_to_save_profile(user_data.image_url, user_data.uuid)
-            s3_url = LambdaUtilities.migrate_to_s3(user_data.image_url, s3_path)
 
-            if not s3_url:
-                raise ValueError(f"Error in uploading file to s3: {s3_url} for user uuid: {user_data.uuid}")
+            if user_data.image_url:
+                s3_path = self._create_s3_path_to_save_profile(user_data.image_url, user_data.uuid)
+                s3_url = LambdaUtilities.migrate_to_s3(user_data.image_url, s3_path)
+
+                if s3_url:
+                    user_data.image_url = s3_url
 
             request_body = user_data.model_dump(
                 include=["uuid", "user_name", "image_url"]

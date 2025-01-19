@@ -1,6 +1,6 @@
 import requests
 
-from ..constants import APPLICATION_ID, API_TOKEN, LIKEMINDS_API_KEY, PLATFORM_CODE, VERSION_CODE
+from ..constants import APPLICATION_ID, API_TOKEN, LIKEMINDS_API_KEY, PLATFORM_CODE, VERSION_CODE, SENDBIRD_API_BASE_URL
 from ..models.user import Users
 from ..utils.migrate_users import MigrateUsers
 
@@ -10,6 +10,7 @@ from collabmates_api.user.user_impl import UserImpl
 
 
 class SendbirdMigration:
+
     api_key: str = LIKEMINDS_API_KEY
     application_id: str = APPLICATION_ID
     api_token: str = API_TOKEN
@@ -20,9 +21,8 @@ class SendbirdMigration:
     community_id: int = None
     bot_id: int = None
 
-    base_url = f"https://api-{APPLICATION_ID}.sendbird.com/v3"
-
-    ENDPOINTS = {
+    base_url = ""
+    endpoints = {
         "list_users": f"{base_url}/users",
         "list_open_channels": f"{base_url}/open_channels",
         "list_group_channels": f"{base_url}/group_channels",
@@ -46,7 +46,7 @@ class SendbirdMigration:
         if version_code:
             self.version_code = version_code
 
-        self.base_url = f"https://api-{self.application_id}.sendbird.com/v3"
+        self.base_url = SENDBIRD_API_BASE_URL.format(self.application_id)
 
         if not self.base_url or not self.api_token:
             raise ValueError("Base Url/Api Token is empty!")
@@ -54,7 +54,6 @@ class SendbirdMigration:
         self.community_id = self.get_community_from_api_key()
         self.bot_id = self.get_bot_id_from_bot_uuid()
 
-        return self
 
     def get_community_from_api_key(self):
         if not self.api_key:
@@ -63,13 +62,13 @@ class SendbirdMigration:
             )
 
         sdk_filter = ModelUtilities.get_model_filter(
-            SdkClient, {"api_key": LIKEMINDS_API_KEY}
+            SdkClient, {"api_key": self.api_key}
         )
 
         if not sdk_filter:
             raise ValueError("Invalid API key!")
         
-        return sdk_filter.first().community_instance.id
+        return sdk_filter.first().community.id
 
     def get_bot_id_from_bot_uuid(self):
 
@@ -86,6 +85,8 @@ class SendbirdMigration:
 
         if context.get("user", {}).get("id"):
             return context.get("user", {}).get("id")
+        else:
+            raise ValueError("Bot ID not found using fetch_user_bot")
         
     def _create_headers(self):
         return {"Api-Token": f"{self.api_token}", "Content-Type": "application/json"}
@@ -101,7 +102,7 @@ class SendbirdMigration:
         )
 
         if not response.ok:
-            print(f"Error in response: {response.json()}")
+            raise ValueError(f"Error in Sendbird API | Response: {response.json()}| status_code: {response.status_code}")
 
         json_response = response.json()
 
@@ -117,7 +118,7 @@ class SendbirdMigration:
         token = None
 
         while True:
-            url = self.ENDPOINTS.get("list_users")
+            url = self.endpoints.get("list_users")
 
             params = {
                 "active_mode": "all", # This will return all users
@@ -128,8 +129,6 @@ class SendbirdMigration:
                 params["token"] = token
 
             response = self._send_request("GET", url, params=params)
-
-            print(response) #TODO: Remove this
             
             token = response.get("next")
             users = response.get("users")
@@ -145,10 +144,10 @@ class SendbirdMigration:
 
         while not should_break_loop:
             if channel_type == "open_channel":
-                url = self.ENDPOINTS.get("list_open_channels")
+                url = self.endpoints.get("list_open_channels")
 
             elif channel_type == "group_channel":
-                url = self.ENDPOINTS.get("list_group_channels")
+                url = self.endpoints.get("list_group_channels")
 
             else:
                 raise ValueError(
@@ -171,16 +170,17 @@ class SendbirdMigration:
     def migrate_users(self):
 
         for users in self.list_users():
-            print(users)
 
             # Load up the users and validate them
-            validated_users = Users(users).users
+            validated_users = Users(users=users).users
 
+            # Migrate the users
             MigrateUsers(
-                bot_id=self.bot_id, community_id=self.community_id, users_data=validated_users
+                bot_id=self.bot_id, community_id=self.community_id, api_key=self.api_key, platform_code=self.platform_code,
+                 version_code=self.version_code, users_data=validated_users
             ).add_all_members_data()
 
-            print(f"Successfully migrated users: {validated_users}")
+            print(f"Successfully migrated users: {len(validated_users)}")
 
         return
     
@@ -188,7 +188,6 @@ class SendbirdMigration:
 
         self.migrate_users()
         # self.list_channels(channel_type="open_channel")
-        # self.list_channels(channel_type="group_channel")
         return
 
 

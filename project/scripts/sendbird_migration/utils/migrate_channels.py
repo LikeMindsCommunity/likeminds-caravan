@@ -18,8 +18,16 @@ from ..utils.lambda_utilities import LambdaUtilities
 
 class MigrateChannels:
 
+    api_key: str = ""
+    platform_code: str = ""
+    version_code: str = ""
+    member_id: int = None
+    community_id: int = None
+    channels_data: List[ChannelModel] = []
+
     def __init__(
-        self, bot_id: int, community_id: int, channels_data: List[ChannelModel]
+        self, api_key: str, platform_code: str, version_code: str, bot_id: int, community_id: int, 
+        channels_data: List[ChannelModel]
     ):
         self.member_id = bot_id
         self.community_id = community_id
@@ -35,9 +43,9 @@ class MigrateChannels:
     def _create_chatroom_in_community(self, req_body):
         chatroom_manager = ChatroomImpl(
             self.member_id,
-            request_platform=PLATFORM_CODE,
-            version_code=VERSION_CODE,
-            api_key=LIKEMINDS_API_KEY,
+            request_platform=self.platform_code,
+            version_code=self.version_code,
+            api_key=self.api_key,
         )
         chatroom_data = chatroom_manager.create_chatroom(req_body)
 
@@ -62,12 +70,13 @@ class MigrateChannels:
                 )
 
             else:
-                # TODO: Add code to upload image url to S3 and replace the image_url with the new one
-                s3_path = self._create_s3_path_to_save_chatroom_images(channel_data.chatroom_image_url)
-                s3_url = LambdaUtilities.migrate_to_s3(channel_data.chatroom_image_url, s3_path)
+                
+                if channel_data.chatroom_image_url:
+                    s3_path = self._create_s3_path_to_save_chatroom_images(channel_data.chatroom_image_url)
+                    s3_url = LambdaUtilities.migrate_to_s3(channel_data.chatroom_image_url, s3_path)
 
-                if not s3_url:
-                    raise ValueError(f"Error in uploading file to s3: {s3_url} for user uuid: {channel_data.channel_url}")
+                    if s3_url:
+                        channel_data.chatroom_image_url = s3_url
 
                 request_body = channel_data.model_dump(
                     include=[

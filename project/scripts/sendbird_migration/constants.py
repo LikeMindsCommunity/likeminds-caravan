@@ -1,5 +1,6 @@
 
 
+SENDBIRD_API_BASE_URL = "https://api-{}.sendbird.com/v3"
 # Older Migration Class - To be used when exporting using APIs
 APPLICATION_ID = "A7128051-8508-46A1-B4A2-821886B5781F"
 API_TOKEN = "441ddd489a87926711df7e8e6c473af1fca1c532"
