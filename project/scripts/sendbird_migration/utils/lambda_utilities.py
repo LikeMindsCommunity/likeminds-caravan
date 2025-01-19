@@ -32,10 +32,8 @@ class LambdaUtilities:
 
         response = requests.put(LAMBDA_URL, json=payload, headers=headers)
         if response.status_code != 200:
-            print(f"Error: {response.json()}")
+            print(f"Error when migrating file to s3 for file_url: {file_url} & file_path: {file_path} | response: {response.json()}")
             return ""
-
-        print(f"File successfully migrated to s3 for url: {file_url} | response: {response.json()}")
 
         public_url = response.json().get("s3_url")
 

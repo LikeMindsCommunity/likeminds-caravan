@@ -98,9 +98,9 @@ class SendbirdMigration:
     def _send_request(
         self, method: str, url: str, params: dict = None, body: dict = None
     ):
-        print(
-            f"Sending request to URL: {url}, method: {method}, params: {params}, body: {body}"
-        )
+        # print(
+        #     f"Sending request to URL: {url}, method: {method}, params: {params}, body: {body}"
+        # )
         response = requests.request(
             method, url, headers=self._create_headers(), params=params, data=body
         )
@@ -166,7 +166,7 @@ class SendbirdMigration:
                 params["token"] = token #test this
                 
 
-            response = self._send_request("GET", url)
+            response = self._send_request("GET", url, params=params)
 
             token = response.get("next")
             channels = response.get("channels")
@@ -211,7 +211,7 @@ class SendbirdMigration:
                     platform_code=self.platform_code, version_code=self.version_code, channels_data=validated_channels
                 ).create_all_chatrooms()
 
-                print(f"Successfully migrated channels: {len(channels)}")
+                print(f"Successfully migrated {channel_type}/s: {len(channels)}")
 
 
     def migrate_all_data(self):
