@@ -18,8 +18,8 @@ from external_services.caching.cache_impl import CacheImpl
 class MessageUtilites:
 
     @staticmethod
-    def get_lm_id_from_sendbird_message_id(sendbird_message_id: int) -> int:
-        lm_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY.format(sendbird_message_id))
+    def get_lm_id_from_sendbird_message_id(sendbird_message_id: int, community_id: int) -> int:
+        lm_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY.format(community_id, sendbird_message_id))
         if not lm_id:
             print("No conversation id found in the cache for sendbird message id: %d" % sendbird_message_id)
             return None
@@ -27,8 +27,8 @@ class MessageUtilites:
         return lm_id
     
     @staticmethod
-    def get_lm_user_id_from_sendbird_user_id(sendbird_user_id: str) -> int:
-        lm_user_id = CacheImpl.get_cache(SENDBIRD_USER_MAP_KEY.format(sendbird_user_id))
+    def get_lm_user_id_from_sendbird_user_id(sendbird_user_id: str, community_id: int) -> int:
+        lm_user_id = CacheImpl.get_cache(SENDBIRD_USER_MAP_KEY.format(community_id, sendbird_user_id))
         if not lm_user_id:
             print("No user id found in the cache for sendbird user id: %d" % sendbird_user_id)
             return None
@@ -69,6 +69,7 @@ class AttachmentModel(BaseModel):
 
     user_id: int = 0
     chatroom_id: int = 0
+    community_id: int = 0
 
     attachment_message: str 
     replied_conversation_id: int = 0
@@ -181,7 +182,12 @@ class AttachmentModel(BaseModel):
 
             parent_message_id = parent_message.get("message_id")
             if parent_message_id:
-                lm_id = MessageUtilites.get_lm_id_from_sendbird_message_id(parent_message_id)
+
+                community_id = data.get("community_id")
+                if not community_id:
+                    raise PydanticCustomError("invalid_community_id", "No community id found in the attachment.")
+                
+                lm_id = MessageUtilites.get_lm_id_from_sendbird_message_id(parent_message_id, community_id)
                 if not lm_id:
                     raise PydanticCustomError("invalid_replied_conversation_id", "No replied conversation id found in the cache.")
                 
@@ -220,6 +226,7 @@ class PollOptionsModel(BaseModel):
 class ReactionModel(BaseModel):
     reaction_key: str = Field(alias="key")
     user_ids: List[int] = []
+    community_id: int = 0
 
     @classmethod
     @model_validator(mode="before")
@@ -232,7 +239,11 @@ class ReactionModel(BaseModel):
         
         for user_id in users_list:
 
-            lm_user_id = MessageUtilites.get_lm_user_id_from_sendbird_user_id(user_id)
+            community_id = data.get("community_id")
+            if not community_id:
+                raise PydanticCustomError("invalid_community_id", "No community id found in the reaction.")
+
+            lm_user_id = MessageUtilites.get_lm_user_id_from_sendbird_user_id(user_id, community_id)
             if not lm_user_id:
                 print(f"No user id found in the cache for sendbird user id: {user_id} for reaction key: {data.get('reaction_key')}")
                 continue
@@ -254,6 +265,7 @@ class MessageModel(BaseModel):
     is_deleted: bool = Field(alias="is_removed")
     created_at: int
     user_id: int
+    community_id: int
 
     state: int = 0
     text: str = Field(alias="message")
@@ -295,9 +307,13 @@ class MessageModel(BaseModel):
         user_id = data.get("user", {}).get("user_id")
         if not user_id:
             raise PydanticCustomError("invalid_user_id", "No user id found in the message.")
+        
+        community_id = data.get("community_id")
+        if not community_id:
+            raise PydanticCustomError("invalid_community_id", "No community id found in the message.")
 
         # Fetch likeminds user_id from cache
-        lm_user_id =  CacheImpl.get_cache(SENDBIRD_USER_MAP_KEY.format(user_id))
+        lm_user_id =  MessageUtilites.get_lm_user_id_from_sendbird_user_id(user_id, community_id)
         if not lm_user_id:
             raise PydanticCustomError("invalid_user_id", "No user id found in the cache.")
 
@@ -312,9 +328,13 @@ class MessageModel(BaseModel):
         chatroom_id = data.get("channel_id")
         if not chatroom_id:
             raise PydanticCustomError("invalid_chatroom_id", "No chatroom id found in the message.")
+        
+        community_id = data.get("community_id")
+        if not community_id:
+            raise PydanticCustomError("invalid_community_id", "No community id found in the message.")
 
         # Fetch likeminds chatroom_id from cache
-        lm_chatroom_id =  CacheImpl.get_cache(SENDBIRD_CHANNEL_MAP_KEY.format(chatroom_id))
+        lm_chatroom_id =  CacheImpl.get_cache(SENDBIRD_CHANNEL_MAP_KEY.format(community_id, chatroom_id))
         if not lm_chatroom_id:
             raise PydanticCustomError("invalid_chatroom_id", "No chatroom id found in the cache.")
 
@@ -358,8 +378,12 @@ class MessageModel(BaseModel):
 
         if data.get('replied_conversation_id'):
 
+            community_id = data.get("community_id")
+            if not community_id:
+                raise PydanticCustomError("invalid_community_id", "No community id found in the message.")
+
             # Fetch LM conversation_id from cache
-            conversation_id = MessageUtilites.get_lm_id_from_sendbird_message_id(data.get('replied_conversation_id'))
+            conversation_id = MessageUtilites.get_lm_id_from_sendbird_message_id(data.get('replied_conversation_id'), community_id)
             if not conversation_id:
                 raise PydanticCustomError("invalid_replied_conversation_id", "No replied conversation id found in the cache.")
 
@@ -383,7 +407,7 @@ class MessageModel(BaseModel):
 
         reactions_data = data.get("reactions")
         if reactions_data:
-            data["reactions"] = ReactionModel(**reactions_data)
+            data["reactions"] = ReactionModel(**reactions_data, community_id=data.get("community_id"))
 
         return data
 
@@ -479,7 +503,12 @@ class MessageModel(BaseModel):
 
                     parent_message_id = parent_message.get("message_id")
                     if parent_message_id:
-                        lm_id = MessageUtilites.get_lm_id_from_sendbird_message_id(parent_message_id)
+
+                        community_id = data.get("community_id")
+                        if not community_id:
+                            raise PydanticCustomError("invalid_community_id", "No community id found in the message.")
+                        
+                        lm_id = MessageUtilites.get_lm_id_from_sendbird_message_id(parent_message_id, community_id)
                         if not lm_id:
                             raise PydanticCustomError("invalid_replied_conversation_id", "No replied conversation id found in the cache.")
                         

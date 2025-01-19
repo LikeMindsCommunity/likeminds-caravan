@@ -62,12 +62,12 @@ class MigrateUsers:
 
         for user_data in self.users_data:
 
-            lm_user_id = CacheImpl.get_cache(SENDBIRD_USER_MAP_KEY.format(user_data.uuid))
+            cache_key = SENDBIRD_USER_MAP_KEY.format(self.community_id, user_data.uuid)
+
+            lm_user_id = CacheImpl.get_cache(cache_key)
             if lm_user_id:
                 print(f"User already migrated for sendbird_user_id: {user_data.uuid} | lm_user_id: {lm_user_id}")
                 continue
-
-            # TODO: Add code to upload image url to S3 and replace the image_url with the new one
 
             if user_data.image_url:
                 s3_path = self._create_s3_path_to_save_profile(user_data.image_url, user_data.uuid)
@@ -116,7 +116,7 @@ class MigrateUsers:
                     member_instances_list.append(member_instance)
 
                 # Set the cache for the user
-                CacheImpl.set_cache(SENDBIRD_USER_MAP_KEY.format(user_data.uuid), sdk_user_instance.user.id, TTL_FOR_CACHE)
+                CacheImpl.set_cache(cache_key, TTL_FOR_CACHE)
 
         ModelUtilities.bulk_update_instances(
             SDKClientUsersInfo, sdk_instances_list, fields=["created_at"]

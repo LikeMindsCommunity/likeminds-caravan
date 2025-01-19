@@ -64,7 +64,7 @@ class MigrateChannels:
         chatroom_instances_list = []
 
         for channel_data in self.channels_data:
-            cache_key = SENDBIRD_CHANNEL_MAP_KEY.format(channel_data.channel_url)
+            cache_key = SENDBIRD_CHANNEL_MAP_KEY.format(self.community_id, channel_data.channel_url)
             chatroom_id = CacheImpl.get_cache(cache_key)
 
             if chatroom_id:

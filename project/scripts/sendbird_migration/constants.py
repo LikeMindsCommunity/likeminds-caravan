@@ -27,6 +27,6 @@ USER_PROFILE_ROUTE = "<<[{}]|route://user_profile/[{}]>>" # NAME, USER_ID
 MENTIONED_USERS_SYMBOL = "∞" # Misfits symbol for mentioned users
 
 # Cache Keys for Mapping Sendbird -> Likeminds IDs
-SENDBIRD_CHANNEL_MAP_KEY = "sendbird_migration_channel_{}" # sendbird chatroom_id -> likeminds chatroom_id
-SENDBIRD_USER_MAP_KEY = "sendbird_user_{}" # sendbird user_id -> likeminds user_id
-SENDBIRD_MESSAGE_MAP_KEY = "sendbird_message_{}" # sendbird message_id -> likeminds conversation_id
+SENDBIRD_CHANNEL_MAP_KEY = "sendbird_migration_channel_{}_{}" # community_id, sendbird_channel_id
+SENDBIRD_USER_MAP_KEY = "sendbird_user_{}_{}" # community_id, sendbird_user_id
+SENDBIRD_MESSAGE_MAP_KEY = "sendbird_message_{}_{}" # community_id, sendbird_message_id
