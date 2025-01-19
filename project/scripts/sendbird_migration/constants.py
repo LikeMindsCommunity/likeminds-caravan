@@ -10,15 +10,19 @@ TTL_FOR_CACHE = 60 * 60 * 60
 
 JSON_FILE_TYPE = ".json"
 
+# S3 Paths for Media files
 USER_PROFILE_IMAGE_S3_PATH = "files/profile/{}/{}-{}"
 CHATROOM_IMAGE_S3_PATH = "files/chatroom/image/{}"
+CONVERATION_FILE_S3_PATH = "files/collabcard/{}/conversation/{}/" # Chatroom ID, user_id
+DEFAULT_FILE_S3_PATH = "files/"
 
 LAMBDA_URL = "https://mcm23vgasphq26jbnp4xwtkeku0qkhzb.lambda-url.ap-south-1.on.aws/"  # Hosted on old AWS account
 
-USER_PROFILE_ROUTE = "<<[%s]|route://user_profile/[%s]>>"
-MENTIONED_USERS_SYMBOL = "@" #TODO: Update this for misfits
+USER_PROFILE_ROUTE = "<<[{}]|route://user_profile/[{}]>>" # NAME, USER_ID
+
+MENTIONED_USERS_SYMBOL = "∞" # Misfits symbol for mentioned users
 
 # Cache Keys for Mapping Sendbird -> Likeminds IDs
-SENDBIRD_CHANNEL_MAP_KEY = "sendbird_migration_channel_%s" # sendbird chatroom_id -> likeminds chatroom_id
-SENDBIRD_USER_MAP_KEY = "sendbird_user_%s" # sendbird user_id -> likeminds user_id
-SENDBIRD_MESSAGE_MAP_KEY = "sendbird_message_%d" # sendbird message_id -> likeminds conversation_id
+SENDBIRD_CHANNEL_MAP_KEY = "sendbird_migration_channel_{}" # sendbird chatroom_id -> likeminds chatroom_id
+SENDBIRD_USER_MAP_KEY = "sendbird_user_{}" # sendbird user_id -> likeminds user_id
+SENDBIRD_MESSAGE_MAP_KEY = "sendbird_message_{}" # sendbird message_id -> likeminds conversation_id

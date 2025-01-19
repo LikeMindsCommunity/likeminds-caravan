@@ -7,11 +7,11 @@ from pydantic_core import PydanticCustomError
 from ..models.user import UserModel
 from ..models.channel import ChannelModel
 from ..utils.lambda_utilities import LambdaUtilities
-from ..constants import (SENDBIRD_USER_MAP_KEY, SENDBIRD_CHANNEL_MAP_KEY, SENDBIRD_MESSAGE_MAP_KEY, USER_PROFILE_ROUTE, MENTIONED_USERS_SYMBOL)
+from ..constants import (SENDBIRD_USER_MAP_KEY, SENDBIRD_CHANNEL_MAP_KEY, SENDBIRD_MESSAGE_MAP_KEY, 
+                         USER_PROFILE_ROUTE, MENTIONED_USERS_SYMBOL, CONVERATION_FILE_S3_PATH, DEFAULT_FILE_S3_PATH)
 
 from utility.time_utilities import TimeUtilities
 from utility.states import conversation_states, card_types, multi_select_poll_states, attachment_types
-# from utility.cache_keys import SENDBIRD_MIGRATION_CHANNEL_MAP_CACHE_KEY
 from external_services.caching.cache_impl import CacheImpl
 
 
@@ -19,7 +19,7 @@ class MessageUtilites:
 
     @staticmethod
     def get_lm_id_from_sendbird_message_id(sendbird_message_id: int) -> int:
-        lm_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY % sendbird_message_id)
+        lm_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY.format(sendbird_message_id))
         if not lm_id:
             print("No conversation id found in the cache for sendbird message id: %d" % sendbird_message_id)
             return None
@@ -28,13 +28,22 @@ class MessageUtilites:
     
     @staticmethod
     def get_lm_user_id_from_sendbird_user_id(sendbird_user_id: str) -> int:
-        lm_user_id = CacheImpl.get_cache(SENDBIRD_USER_MAP_KEY % sendbird_user_id)
+        lm_user_id = CacheImpl.get_cache(SENDBIRD_USER_MAP_KEY.format(sendbird_user_id))
         if not lm_user_id:
             print("No user id found in the cache for sendbird user id: %d" % sendbird_user_id)
             return None
         
         return lm_user_id
     
+    @staticmethod
+    def get_file_path_for_conversation_files(chatroom_id: int, user_id: int) -> str:
+        
+        if not (chatroom_id and user_id):
+            print(f"No chatroom id or user_id found for conversation files.")
+            return DEFAULT_FILE_S3_PATH
+        
+        return CONVERATION_FILE_S3_PATH.format(chatroom_id, user_id)
+
     # function to replace mentions
     def replace_mentions(text, users):
         while users:
@@ -58,6 +67,9 @@ class AttachmentModel(BaseModel):
     height: int =  None
     width: int = None
 
+    user_id: int = 0
+    chatroom_id: int = 0
+
     attachment_message: str 
     replied_conversation_id: int = 0
 
@@ -66,11 +78,10 @@ class AttachmentModel(BaseModel):
 
         url = data.get('url')
         if url:
-            #TODO: FilePath according
-            file_path = ""
-
+            file_path = MessageUtilites.get_file_path_for_conversation_files(data.get('chatroom_id'), data.get('user_id'))
             attachment_url = LambdaUtilities.migrate_to_s3(url, file_path)
-            data["url"] = attachment_url
+            if attachment_url:
+                data["url"] = attachment_url
 
         return data
 
@@ -106,13 +117,12 @@ class AttachmentModel(BaseModel):
     def _validate_thumbnail_urls(data):
 
         if data.get('thumbnails'):
-            # TODO: FilePath accordingly
-            file_path = ""
-
+            file_path = MessageUtilites.get_file_path_for_conversation_files(data.get('chatroom_id'), data.get('user_id'))
             url = data.get('thumbnails')[0].get('url')
             if url:
                 thumbnail_url = LambdaUtilities.migrate_to_s3(url, file_path)
-                data["thumbnail_url"] = thumbnail_url
+                if thumbnail_url:
+                    data["thumbnail_url"] = thumbnail_url
 
         return data
 
@@ -154,16 +164,14 @@ class AttachmentModel(BaseModel):
             
         url = data.get('fileUrl')
         if url:
-            #TODO: FilePath according
-            file_path = ""
-
+            file_path = MessageUtilites.get_file_path_for_conversation_files(data.get('chatroom_id'), data.get('user_id'))
             attachment_url = LambdaUtilities.migrate_to_s3(url, file_path)
-            data["url"] = attachment_url
+            if attachment_url:
+                data["url"] = attachment_url
 
         thumbnail_url = data.get('videoThumbnailUrl')
         if thumbnail_url:
-            #TODO: Update file_path accordingly
-            file_path = ""
+            file_path = MessageUtilites.get_file_path_for_conversation_files(data.get('chatroom_id'), data.get('user_id'))
             url = LambdaUtilities.migrate_to_s3(thumbnail_url, file_path)
             if url:
                 data["thumbnail_url"] = thumbnail_url
@@ -219,13 +227,15 @@ class ReactionModel(BaseModel):
 
         users_list = data.get("user_ids")
         if not users_list:
-            raise PydanticCustomError("invalid_user_ids", "No user ids found in the reaction.")
+            print(f"No user ids found in the reaction for key: {data.get('reaction_key')}")
+            return data
         
         for user_id in users_list:
 
             lm_user_id = MessageUtilites.get_lm_user_id_from_sendbird_user_id(user_id)
             if not lm_user_id:
-                raise PydanticCustomError("invalid_user_id", "No user id found in the cache.")
+                print(f"No user id found in the cache for sendbird user id: {user_id} for reaction key: {data.get('reaction_key')}")
+                continue
             
             data["user_ids"].append(lm_user_id)
 
@@ -262,8 +272,10 @@ class MessageModel(BaseModel):
     multiple_select_state: Optional[str] = Field(default=None)
     multiple_select_no: Optional[int] = Field(default=0)
 
-    reactions: List[ReactionModel] = [] 
-    poll_votes = [] #TODO: Add support for poll votes
+    reactions: List[ReactionModel] = []
+
+    # @root_validator(pre=True)
+    # def pass_user_id_and_chatroom_id
 
     @staticmethod
     def _validate_state(data):
@@ -285,7 +297,7 @@ class MessageModel(BaseModel):
             raise PydanticCustomError("invalid_user_id", "No user id found in the message.")
 
         # Fetch likeminds user_id from cache
-        lm_user_id =  CacheImpl.get_cache(SENDBIRD_USER_MAP_KEY % user_id)
+        lm_user_id =  CacheImpl.get_cache(SENDBIRD_USER_MAP_KEY.format(user_id))
         if not lm_user_id:
             raise PydanticCustomError("invalid_user_id", "No user id found in the cache.")
 
@@ -302,7 +314,7 @@ class MessageModel(BaseModel):
             raise PydanticCustomError("invalid_chatroom_id", "No chatroom id found in the message.")
 
         # Fetch likeminds chatroom_id from cache
-        lm_chatroom_id =  CacheImpl.get_cache(SENDBIRD_CHANNEL_MAP_KEY % chatroom_id)
+        lm_chatroom_id =  CacheImpl.get_cache(SENDBIRD_CHANNEL_MAP_KEY.format(chatroom_id))
         if not lm_chatroom_id:
             raise PydanticCustomError("invalid_chatroom_id", "No chatroom id found in the cache.")
 
@@ -322,14 +334,21 @@ class MessageModel(BaseModel):
 
             data["attachments"] = []
 
+            user_id = data.get("user_id")
+            chatroom_id = data.get("chatroom_id")
+
+            if not user_id or not chatroom_id:
+                print(f"No user user_id or chatroom id found in the message data: {data}")
+                return data
+
             if files_data:
                 for index, file_data in enumerate(files_data):
-                    attachment = AttachmentModel(**file_data, index=index)
+                    attachment = AttachmentModel(**file_data, index=index, user_id=user_id, chatroom_id=chatroom_id)
                     data["attachments"].append(attachment)
 
             if file_data:
                 file_data["index"] = len(data["attachments"]) + 1
-                attachment = AttachmentModel(**file_data)
+                attachment = AttachmentModel(**file_data, user_id=user_id, chatroom_id=chatroom_id)
                 data["attachments"].append(attachment)
 
         return data
@@ -358,6 +377,15 @@ class MessageModel(BaseModel):
         data["created_at"] = TimeUtilities.convert_epoch_to_ms(created_at)
 
         return data
+    
+    @staticmethod
+    def _validate_reactions(data):
+
+        reactions_data = data.get("reactions")
+        if reactions_data:
+            data["reactions"] = ReactionModel(**reactions_data)
+
+        return data
 
     @classmethod
     @model_validator(mode="before")
@@ -368,7 +396,8 @@ class MessageModel(BaseModel):
         data = cls._validate_attachments(data)
         data = cls._validate_replied_conversation_id(data)
         data = cls._validate_created_at(data)
-        data = AttachmentModel._validate_thumbnail_urls(data) #TODO: Test this
+        data = cls._validate_reactions(data)
+        data = AttachmentModel._validate_thumbnail_urls(data)
 
         return data
 
@@ -408,15 +437,6 @@ class MessageModel(BaseModel):
         return data
 
     @staticmethod
-    def _populate_reactions(data):
-
-        reactions_data = data.get("reactions")
-        if reactions_data:
-            data["reactions"] = ReactionModel(**reactions_data)
-
-        return data
-
-    @staticmethod
     def _populate_mentions(data):
 
         if data.get("mentioned_users"):
@@ -437,7 +457,7 @@ class MessageModel(BaseModel):
                     )
 
                 # Using user_id as uuid to create user mention route
-                user_mention_route = USER_PROFILE_ROUTE % (user_name, user_id)
+                user_mention_route = USER_PROFILE_ROUTE.format(user_name, user_id)
                 mentioned_user_lm_routes.append(user_mention_route)
 
             # Replace all 'SYMBOL' in the message with the mentioned users
@@ -467,14 +487,23 @@ class MessageModel(BaseModel):
 
                 type = metadata.get("type")
                 if type == "multi-media":
+                    
                     attachments = metadata.get("metaData")
                     if attachments:
+
                         lm_attachments = []
                         index = len(data["attachments"]) + 1
+
+                        user_id = data.get("user_id")
+                        chatroom_id = data.get("chatroom_id")
+
+                        if not user_id or not chatroom_id:
+                            print(f"No user user_id or chatroom id found in the message data: {data}")
+                            return data
+
                         for _, attachment in enumerate(attachments):
-                            attachment["index"] = index
+                            lm_attachments.append(AttachmentModel(**attachment, index=index, user_id=user_id, chatroom_id=chatroom_id))
                             index += 1
-                            lm_attachments.append(AttachmentModel(**attachment))
 
                         data["attachments"].extend(lm_attachments)
 
@@ -500,7 +529,6 @@ class MessageModel(BaseModel):
     @model_validator(mode="after")
     def _validate_after(cls, data):
         data = cls._populate_polls(data)
-        # data = cls._populate_reactions(data) #TODO: Confirm if this is not needed or not (If handled by pydantic automatically)
         data = cls._populate_mentions(data)
 
         data = cls._populate_misfits_metadata(data)

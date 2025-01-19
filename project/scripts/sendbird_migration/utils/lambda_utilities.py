@@ -28,6 +28,8 @@ class LambdaUtilities:
             print(f"Error: {response.json()}")
             return ""
 
+        print(f"File successfully migrated to s3 for url: {file_url} | response: {response.json()}")
+
         public_url = response.json().get("s3_url")
 
         return public_url

@@ -1,8 +1,7 @@
 from typing import List
 
 from ..models.message import MessageModel, ReactionModel, MessageUtilites
-from ..constants import PLATFORM_CODE, VERSION_CODE, LIKEMINDS_API_KEY
-from ..models.message import SENDBIRD_MESSAGE_MAP_KEY #TODO: Move to constants
+from ..constants import SENDBIRD_MESSAGE_MAP_KEY
 from ..constants import TTL_FOR_CACHE
 
 from togther.models import ModelUtilities, card_answers, conversationPolls, answerAttachment
@@ -27,7 +26,7 @@ class MigrateMessages:
         
     def _create_convesation_and_its_related_data(self, sendbird_message_id: str,  user_id: int, req_body: dict, 
                                                  chatroom_id: int, created_at: int, is_deleted: bool, 
-                                                 reactions: List[ReactionModel] = None, poll_votes=None):
+                                                 reactions: List[ReactionModel] = None):
 
         conversation_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY.format(sendbird_message_id))
         if conversation_id:
@@ -64,8 +63,9 @@ class MigrateMessages:
 
             print(f"Reactions created for conversation_id: {conversation_id} with reactions: {reactions}")
 
-        if poll_votes:
-            #TODO: Add poll votes
+        polls = conversation_response.get("conversation", {}).get("polls")
+        if polls:
+            #TODO: For each poll options, fetch poll votes from API and create poll votes
             pass
 
         return conversation_response
@@ -184,7 +184,6 @@ class MigrateMessages:
                 user_id = message_data.user_id
 
                 reactions = message_data.reactions
-                poll_votes = message_data.poll_votes
 
                 # Create Conversation and its related data
                 self._create_convesation_and_its_related_data(
@@ -195,7 +194,6 @@ class MigrateMessages:
                     created_at=created_at,
                     is_deleted=is_deleted,
                     reactions=reactions,
-                    poll_votes=poll_votes
                 )
 
             except Exception as e:
