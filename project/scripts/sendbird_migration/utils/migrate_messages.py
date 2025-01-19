@@ -3,12 +3,12 @@ from typing import List
 from ..models.message import MessageModel, ReactionModel, MessageUtilites
 from ..constants import PLATFORM_CODE, VERSION_CODE, LIKEMINDS_API_KEY
 from ..models.message import CONVERSATION_LM_KEY #TODO: Move to constants
+from ..constants import TTL_FOR_CACHE
 
+from togther.models import ModelUtilities, card_answers, conversationPolls, answerAttachment
 from collabmates_api.conversation.conversation_impl import ConversationImpl
 from utility.version_utilities import VersionUtilities
 from external_services.caching.cache_impl import CacheImpl
-
-TTL_FOR_CACHE = 60 * 60 * 60 #TODO: Move to constants
 
 class MigrateMessages:
     
@@ -86,8 +86,52 @@ class MigrateMessages:
         if conversation_response.get("error_message"):
             raise ValueError(f"Error in create_conversation_v1: {conversation_response.get('error_message')} | req_body: {req_body} | user_id: {user_id}")
         
+        conversation_id = conversation_response.get("id")
+        if not conversation_id:
+            raise ValueError(f"Cannot find conversation_id in response for user_id: {user_id} | conversation_response: {conversation_response}")
 
-        #TODO: Update created_at and is_deleted for message and its attachments if any
+        # Update convesation created_at and is_deleted
+        filter_dict = {
+            "id": conversation_id
+        }
+
+        update_dict = {
+            "last_updated": created_at,
+            "created_at": created_at,
+        }
+
+        if is_deleted:
+            update_dict["is_deleted"] = True
+            update_dict["deleted_by_user_id"] = user_id
+
+        ModelUtilities.model_update(card_answers, filter_dict, update_dict)
+
+        # Update conversationPolls created_at
+        polls = conversation_response.get("conversation", {}).get("polls")
+        if polls:
+            filter_dict = {
+                "conversation_id": conversation_id
+            }
+
+            update_dict = {
+                "created_at": created_at,
+                "updated_at": created_at
+            }
+
+            ModelUtilities.model_update(conversationPolls, filter_dict, update_dict)
+
+        # Update answerAttachment created_at
+        attachments = conversation_response.get("conversation", {}).get("attachments")
+        if attachments:
+            filter_dict = {
+                'answer_id': conversation_id,
+            }
+
+            update_dict = {
+                "created_at": created_at,
+            }
+
+            ModelUtilities.model_update(answerAttachment, filter_dict, update_dict)
 
         return conversation_response
                 

@@ -19,7 +19,7 @@ CHATROOM_LM_KEY = "chatroom_%s" # sendbird chatroom_id -> likeminds chatroom_id
 CONVERSATION_LM_KEY = "conversation_%d" # sendbird conversation_id -> likeminds conversation_id
 
 USER_PROFILE_ROUTE = "<<[%s]|route://user_profile/[%s]>>"
-MENTIONED_USERS_SYMBOL = "@"
+MENTIONED_USERS_SYMBOL = "@" #TODO: Update this for misfits
 
 class MessageUtilites:
 
@@ -261,6 +261,7 @@ class MessageModel(BaseModel):
     og_tags: Optional[OgTagsModel] = None
 
     polls: List[PollOptionsModel] = []
+    poll_type: int = 2 # Default poll type is 2 (Open Poll)
     expiry_time: int = 0
     no_poll_expiry: bool = False
     allow_add_option: bool = False
@@ -318,7 +319,6 @@ class MessageModel(BaseModel):
     @staticmethod
     def _validate_attachments(data):
 
-        # TODO: Might need to update according to misfits data and their multi-media flow
         if data.get('type') == 'FILE':
 
             file_data = data.get("file")
@@ -402,7 +402,6 @@ class MessageModel(BaseModel):
                 ]
             else:
                 #TODO: Fetch poll options from API and update the data
-                #TODO: Need to add support of poll voters and their votes (Using API)
                 pass
 
             if poll_data.get("allow_multiple_votes"):
@@ -425,7 +424,7 @@ class MessageModel(BaseModel):
 
     @staticmethod
     def _populate_mentions(data):
-        # TODO: complete this after confirmation from misfits team
+
         if data.get("mentioned_users"):
 
             mentioned_user_lm_routes = []
