@@ -65,7 +65,7 @@ def download_file_from_url(file_url):
 
         temp_path = DOWNLOAD_PATH + file_name
 
-        response = requests.get(file_url, stream=True)
+        response = requests.get(file_url, stream=True) #TODO add support of sendbirdApiToken for accessing private files
         response.raise_for_status()
 
         with open(temp_path, "wb") as file:
@@ -103,7 +103,7 @@ def upload_file_to_s3(file_path, file_name, is_prod):
     try:
         s3 = boto3.client("s3")
         bucket_name = S3_BUCKET_PROD if is_prod else S3_BUCKET_BETA
-        object_key = f"{file_path}/{quote(file_name, safe='')}"
+        object_key = f"{file_path}{quote(file_name, safe='')}" #TODO Confirm if this is correct and update in Lambda
         temp_path = DOWNLOAD_PATH + file_name
 
         s3.upload_file(
