@@ -2,7 +2,9 @@ import requests
 
 from ..constants import APPLICATION_ID, API_TOKEN, LIKEMINDS_API_KEY, PLATFORM_CODE, VERSION_CODE, SENDBIRD_API_BASE_URL
 from ..models.user import Users
+from ..models.channel import Channels
 from ..utils.migrate_users import MigrateUsers
+from ..utils.migrate_channels import MigrateChannels
 
 from collabmates_api.sdk.models import SdkClient
 from togther.models import ModelUtilities
@@ -22,11 +24,7 @@ class SendbirdMigration:
     bot_id: int = None
 
     base_url = ""
-    endpoints = {
-        "list_users": f"{base_url}/users",
-        "list_open_channels": f"{base_url}/open_channels",
-        "list_group_channels": f"{base_url}/group_channels",
-    }
+    endpoints = {}
 
     def __init__(self, api_key: str = None, application_id: str = None, api_token: str = None, 
                  platform_code: str = None, version_code: str = None):
@@ -50,6 +48,12 @@ class SendbirdMigration:
 
         if not self.base_url or not self.api_token:
             raise ValueError("Base Url/Api Token is empty!")
+        
+        self.endpoints = {
+            "list_users": f"{self.base_url}/users",
+            "list_open_channels": f"{self.base_url}/open_channels",
+            "list_group_channels": f"{self.base_url}/group_channels",
+        }
         
         self.community_id = self.get_community_from_api_key()
         self.bot_id = self.get_bot_id_from_bot_uuid()
@@ -108,7 +112,7 @@ class SendbirdMigration:
 
         return json_response
 
-    def list_users(self):
+    def list_users(self, chunk_size: int = 20):
         """
         Fetch users from Sendbird API in chunks using pagination.
 
@@ -122,7 +126,7 @@ class SendbirdMigration:
 
             params = {
                 "active_mode": "all", # This will return all users
-                "limit": 20,
+                "limit": chunk_size,
             }
 
             if token:
@@ -138,11 +142,11 @@ class SendbirdMigration:
             if not token:
                 break
 
-    def list_channels(self, channel_type: str = "open_channel"):
-        should_break_loop = False
-        token = ""
+    def list_channels(self, channel_type: str = "open_channel", chunk_size: int = 20):
 
-        while not should_break_loop:
+        token = None
+
+        while True:
             if channel_type == "open_channel":
                 url = self.endpoints.get("list_open_channels")
 
@@ -153,23 +157,28 @@ class SendbirdMigration:
                 raise ValueError(
                     f"Invalid channel type: {channel_type} in list_channels method"
                 )
+            
+            params = {
+                "limit": chunk_size, #Test this
+            }
 
             if token:
-                url += f"&token={token}"
+                params["token"] = token #test this
+                
 
             response = self._send_request("GET", url)
+
             token = response.get("next")
+            channels = response.get("channels")
+
+            yield channels
 
             if not token:
-                should_break_loop = True
-
-            for user_dict in response.get("users"):
-                print(user_dict)
-                print("*" * 50)
+                break
     
-    def migrate_users(self):
+    def migrate_all_users(self, chunk_size: int = 20):
 
-        for users in self.list_users():
+        for users in self.list_users(chunk_size):
 
             # Load up the users and validate them
             validated_users = Users(users=users).users
@@ -183,11 +192,33 @@ class SendbirdMigration:
             print(f"Successfully migrated users: {len(validated_users)}")
 
         return
-    
+
+    def migrate_all_channels(self):
+
+        channel_types = ["open_channel", "group_channel"]
+
+        for channel_type in channel_types:
+
+            # Migration of open channels
+            for channels in self.list_channels(channel_type=channel_type):
+
+                # Load up the channels and validate them
+                validated_channels = Channels(channels=channels).channels
+
+                # Migrate the channels
+                MigrateChannels(
+                    bot_id=self.bot_id, community_id=self.community_id, api_key=self.api_key, 
+                    platform_code=self.platform_code, version_code=self.version_code, channels_data=validated_channels
+                ).create_all_chatrooms()
+
+                print(f"Successfully migrated channels: {len(channels)}")
+
+
     def migrate_all_data(self):
 
-        self.migrate_users()
-        # self.list_channels(channel_type="open_channel")
+        self.migrate_all_users()
+        self.migrate_all_channels()
+
         return
 
 

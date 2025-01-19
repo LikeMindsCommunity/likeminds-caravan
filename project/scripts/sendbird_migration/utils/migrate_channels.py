@@ -32,6 +32,9 @@ class MigrateChannels:
         self.member_id = bot_id
         self.community_id = community_id
         self.channels_data = channels_data
+        self.api_key = api_key
+        self.platform_code = platform_code
+        self.version_code = version_code
 
     @staticmethod
     def _create_s3_path_to_save_chatroom_images(url: str):
@@ -91,6 +94,7 @@ class MigrateChannels:
                 print(
                     f"Calling api/chatroom/create POST with request body: {request_body}"
                 )
+
                 chatroom_data = self._create_chatroom_in_community(request_body)
 
                 chatroom_id = chatroom_data.get("chatroom", {}).get("id")

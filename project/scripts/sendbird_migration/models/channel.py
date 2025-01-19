@@ -1,8 +1,7 @@
 from pydantic import BaseModel, Field, model_validator
 from typing import List
 
-from user import UserModel
-
+from .user import UserModel
 
 from utility.states import card_types
 
