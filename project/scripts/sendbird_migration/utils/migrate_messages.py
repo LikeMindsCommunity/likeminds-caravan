@@ -1,3 +1,4 @@
+import traceback
 from typing import List
 
 from ..models.message import MessageModel, ReactionModel, MessageUtilites
@@ -14,21 +15,24 @@ class MigrateMessages:
     api_key: str = ""
     platform_code: str = ""
     version_code: str = ""
+    community_id: int = None
 
     messages_data = []
     
-    def __init__(self, api_key: str, platform_code: str, version_code: str, messages_data: List[MessageModel]):
+    def __init__(self, api_key: str, community_id: int, platform_code: str, version_code: str, 
+                 messages_data: List[MessageModel]):
         
         self.api_key = api_key
+        self.community_id = community_id
         self.platform_code = platform_code
         self.version_code = version_code
         self.messages_data = messages_data
         
-    def _create_convesation_and_its_related_data(self, sendbird_message_id: str,  user_id: int, req_body: dict, 
-                                                 chatroom_id: int, created_at: int, is_deleted: bool, 
+    def _create_convesation_and_its_related_data(self, sendbird_message_id: str,  user_id: int, community_id: int, 
+                                                 req_body: dict, chatroom_id: int, created_at: int, is_deleted: bool, 
                                                  reactions: List[ReactionModel] = None):
 
-        conversation_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY.format(sendbird_message_id))
+        conversation_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY.format(community_id,sendbird_message_id))
         if conversation_id:
             print(f"Conversation already created for sendbird_message_id: {sendbird_message_id}")
             return
@@ -51,7 +55,7 @@ class MigrateMessages:
                 raise ValueError(f"Cannot find conversation_id in response for message_id: {sendbird_message_id} | conversation_response: {conversation_response}")
             
             # Set cache for conversation_id
-            CacheImpl.set_cache(SENDBIRD_MESSAGE_MAP_KEY.format(sendbird_message_id), conversation_id, timeout=TTL_FOR_CACHE)
+            CacheImpl.set_cache(SENDBIRD_MESSAGE_MAP_KEY.format(community_id,sendbird_message_id), conversation_id, timeout=TTL_FOR_CACHE)
 
             print(f"Conversation created for sendbird_message_id: {sendbird_message_id} with conversation_id: {conversation_id} & chatroom_id: {chatroom_id}")
     
@@ -75,9 +79,8 @@ class MigrateMessages:
         
         conversaton_manager = ConversationImpl(
             member_id=user_id,
-            request_platform=platform_code,
+            platform_code=platform_code,
             version_code=version_code,
-            api_key=api_key,
             api_version_code=VersionUtilities.APIVersionCodes.V1.value
         )
 
@@ -189,6 +192,7 @@ class MigrateMessages:
                 self._create_convesation_and_its_related_data(
                     sendbird_message_id=sendbird_message_id,
                     user_id=user_id,
+                    community_id=self.community_id,
                     req_body=request_body,
                     chatroom_id=chatroom_id,
                     created_at=created_at,
@@ -198,4 +202,5 @@ class MigrateMessages:
 
             except Exception as e:
                 print(f"Error in creating conversation for sendbird_message_id: {sendbird_message_id}: {e}")
+                traceback.print_exc()
                 continue

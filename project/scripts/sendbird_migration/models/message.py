@@ -1,7 +1,8 @@
-import json, mimetypes
+import json, mimetypes, traceback
 
 from typing import List, Optional
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ValidationError
+
 from pydantic_core import PydanticCustomError
 
 from ..models.user import UserModel
@@ -19,9 +20,10 @@ class MessageUtilites:
 
     @staticmethod
     def get_lm_id_from_sendbird_message_id(sendbird_message_id: int, community_id: int) -> int:
+
         lm_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY.format(community_id, sendbird_message_id))
         if not lm_id:
-            print("No conversation id found in the cache for sendbird message id: %d" % sendbird_message_id)
+            print(f"No conversation id found in the cache for sendbird message id: {sendbird_message_id}")
             return None
         
         return lm_id
@@ -30,7 +32,7 @@ class MessageUtilites:
     def get_lm_user_id_from_sendbird_user_id(sendbird_user_id: str, community_id: int) -> int:
         lm_user_id = CacheImpl.get_cache(SENDBIRD_USER_MAP_KEY.format(community_id, sendbird_user_id))
         if not lm_user_id:
-            print("No user id found in the cache for sendbird user id: %d" % sendbird_user_id)
+            print( f"No user id found in the cache for sendbird user id: {sendbird_user_id}")
             return None
         
         return lm_user_id
@@ -74,7 +76,6 @@ class AttachmentModel(BaseModel):
     attachment_message: str 
     replied_conversation_id: int = 0
 
-    @staticmethod
     def _validate_url(data):
 
         url = data.get('url')
@@ -86,7 +87,6 @@ class AttachmentModel(BaseModel):
 
         return data
 
-    @staticmethod
     def _validate_type(data):
 
         type = ''
@@ -127,15 +127,6 @@ class AttachmentModel(BaseModel):
 
         return data
 
-    @classmethod
-    @model_validator(mode="before")
-    def _validate_before(cls, data):
-        data = cls._validate_url(data)
-        data = cls._validate_type(data)
-        data = cls._validate_thumbnail_urls(data)
-
-        return data
-    
     @staticmethod
     def _validate_misfits_keys(data):
 
@@ -195,7 +186,6 @@ class AttachmentModel(BaseModel):
             
         return data
     
-    @staticmethod
     def _populate_misfits_metadata(data):
 
         metadata = data.get('data')
@@ -210,10 +200,13 @@ class AttachmentModel(BaseModel):
         
         return data
 
-    @classmethod
-    @model_validator(mode="after")
-    def _validate_after(cls, data):
+    @model_validator(mode="before")
+    def _validate_before(cls, data):
+        data = cls._validate_url(data)
+        data = cls._validate_type(data)
+        data = cls._validate_thumbnail_urls(data)
         data = cls._validate_misfits_keys(data)
+
         data = cls._populate_misfits_metadata(data)
 
         return data
@@ -228,7 +221,6 @@ class ReactionModel(BaseModel):
     user_ids: List[int] = []
     community_id: int = 0
 
-    @classmethod
     @model_validator(mode="before")
     def _validate_user_ids(cls, data):
 
@@ -262,14 +254,14 @@ class OgTagsModel(BaseModel):
 
 class MessageModel(BaseModel):
     sendbird_message_id: int = Field(alias="message_id")
-    is_deleted: bool = Field(alias="is_removed")
-    created_at: int
-    user_id: int
-    community_id: int
+    is_deleted: bool = Field(alias="is_removed", default=False)
+    created_at: int = 0
+    user_id: int = 0
+    community_id: int = 0
 
     state: int = 0
     text: str = Field(alias="message")
-    chatroom_id: int = Field(alias="channel_id")
+    chatroom_id: int = 0
 
     attachments: Optional[List[AttachmentModel]] = []
     replied_conversation_id: int = 0
@@ -286,13 +278,12 @@ class MessageModel(BaseModel):
 
     reactions: List[ReactionModel] = []
 
-    # @root_validator(pre=True)
-    # def pass_user_id_and_chatroom_id
-
-    @staticmethod
     def _validate_state(data):
         # Validate the state
-        conversation_states_dict = {"MESG": conversation_states.ANSWER, "FILE": conversation_states.ANSWER }
+        conversation_states_dict = {
+            "MESG": conversation_states.ANSWER, 
+            "FILE": conversation_states.ANSWER
+        }
 
         if not (data.get("type") and data.get("type") in conversation_states_dict):
             raise PydanticCustomError("invalid_message_type", "Invalid message type.")
@@ -300,7 +291,6 @@ class MessageModel(BaseModel):
         data["state"] = conversation_states_dict[data.get("type")]
         return data
 
-    @staticmethod
     def _validate_user(data):
 
         # Fetch user_id
@@ -321,12 +311,11 @@ class MessageModel(BaseModel):
 
         return data
 
-    @staticmethod
     def _validate_chatroom_id(data):
 
         # Fetch chatroom_id
-        chatroom_id = data.get("channel_id")
-        if not chatroom_id:
+        channel_url = data.get("channel_url")
+        if not channel_url:
             raise PydanticCustomError("invalid_chatroom_id", "No chatroom id found in the message.")
         
         community_id = data.get("community_id")
@@ -334,7 +323,7 @@ class MessageModel(BaseModel):
             raise PydanticCustomError("invalid_community_id", "No community id found in the message.")
 
         # Fetch likeminds chatroom_id from cache
-        lm_chatroom_id =  CacheImpl.get_cache(SENDBIRD_CHANNEL_MAP_KEY.format(community_id, chatroom_id))
+        lm_chatroom_id =  CacheImpl.get_cache(SENDBIRD_CHANNEL_MAP_KEY.format(community_id, channel_url))
         if not lm_chatroom_id:
             raise PydanticCustomError("invalid_chatroom_id", "No chatroom id found in the cache.")
 
@@ -342,7 +331,6 @@ class MessageModel(BaseModel):
 
         return data
 
-    @staticmethod
     def _validate_attachments(data):
 
         if data.get('type') == 'FILE':
@@ -373,7 +361,6 @@ class MessageModel(BaseModel):
 
         return data
 
-    @staticmethod
     def _validate_replied_conversation_id(data):
 
         if data.get('replied_conversation_id'):
@@ -391,18 +378,16 @@ class MessageModel(BaseModel):
 
         return data
 
-    @staticmethod
     def _validate_created_at(data):
 
         created_at = data.get("created_at")
         if not created_at:
             raise PydanticCustomError("invalid_created_at", "No created_at found in the message.")
 
-        data["created_at"] = TimeUtilities.convert_epoch_to_ms(created_at)
+        data["created_at"] = MessageUtilites.ensure_epoch_in_ms(created_at)
 
         return data
     
-    @staticmethod
     def _validate_reactions(data):
 
         reactions_data = data.get("reactions")
@@ -411,21 +396,6 @@ class MessageModel(BaseModel):
 
         return data
 
-    @classmethod
-    @model_validator(mode="before")
-    def _validate_before(cls, data):
-        data = cls._validate_state(data)
-        data = cls._validate_user(data)
-        data = cls._validate_chatroom_id(data)
-        data = cls._validate_attachments(data)
-        data = cls._validate_replied_conversation_id(data)
-        data = cls._validate_created_at(data)
-        data = cls._validate_reactions(data)
-        data = AttachmentModel._validate_thumbnail_urls(data)
-
-        return data
-
-    @staticmethod
     def _populate_polls(data):
 
         poll_data = data.get("poll")
@@ -460,7 +430,6 @@ class MessageModel(BaseModel):
 
         return data
 
-    @staticmethod
     def _populate_mentions(data):
 
         if data.get("mentioned_users"):
@@ -490,7 +459,6 @@ class MessageModel(BaseModel):
 
         return data
 
-    @staticmethod
     def _populate_misfits_metadata(data):
 
         if data.get('data'):
@@ -541,10 +509,9 @@ class MessageModel(BaseModel):
 
         return data
 
-    @staticmethod
     def _populate_misfits_attachment_meta(data):
 
-        attachments = data.get('attachments')
+        attachments = data.get('attachments', [])
         for attachment in attachments:
             if attachment.get('attachment_message'):
                 data["text"] = attachment.get('attachment_message')
@@ -553,18 +520,58 @@ class MessageModel(BaseModel):
                 data["replied_conversation_id"] = attachment.get('replied_conversation_id')
 
         return data
+    
+    @model_validator(mode="before")
+    def _validate_before(cls, data):
 
-    @classmethod
-    @model_validator(mode="after")
-    def _validate_after(cls, data):
+        data = cls._validate_state(data)
+        data = cls._validate_user(data)
+        data = cls._validate_chatroom_id(data)
+        data = cls._validate_attachments(data)
+        data = cls._validate_replied_conversation_id(data)
+        data = cls._validate_created_at(data)
+        data = cls._validate_reactions(data)
+        data = AttachmentModel._validate_thumbnail_urls(data)
+
         data = cls._populate_polls(data)
         data = cls._populate_mentions(data)
-
         data = cls._populate_misfits_metadata(data)
         data = cls._populate_misfits_attachment_meta(data)
-        
+
         return data
 
 
 class Messages(BaseModel):
     messages: List[MessageModel]
+
+    @model_validator(mode="before")
+    def validate_messages(cls, values):
+
+        validated_messages = []
+
+        for message in values.get('messages', []):
+            try:
+
+                if message.get('type') == 'ADMM':
+                    # Skip admin messages
+                    print(f"Skipping ADMM (Admin) message {message.get('message_id')}")
+                    continue
+
+                validated_message = MessageModel(**message)
+                validated_messages.append(validated_message)
+
+            except ValidationError as e:
+                traceback.print_exc()
+                print(f"Validation error for message_id: {message.get('message_id')} | Exception: {e}")
+                # Handle validation errors as needed
+                continue
+               
+            except Exception as e:
+                print(f"Unexpected error for message {message.get('message_id')}: {e}")
+                # Print stack trace
+                traceback.print_exc()
+                # Handle other exceptions as needed
+                raise e
+
+        values['messages'] = validated_messages
+        return values

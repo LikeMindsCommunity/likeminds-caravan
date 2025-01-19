@@ -33,10 +33,7 @@ class MigrateUsers:
 
     @staticmethod
     def _create_s3_path_to_save_profile(url: str, uuid: str):
-        url_path = Path(url)
-
-        return USER_PROFILE_IMAGE_S3_PATH.format(uuid, url_path.stem, "".join([
-            str(TimeUtilities.current_time_in_milliseconds()), url_path.suffix]))
+        return USER_PROFILE_IMAGE_S3_PATH.format(uuid)
 
     def _add_member_to_community(self, req_body):
         community_manager = CommunityImpl(
@@ -116,7 +113,7 @@ class MigrateUsers:
                     member_instances_list.append(member_instance)
 
                 # Set the cache for the user
-                CacheImpl.set_cache(cache_key, TTL_FOR_CACHE)
+                CacheImpl.set_cache(cache_key, sdk_user_instance.user.id, TTL_FOR_CACHE)
 
         ModelUtilities.bulk_update_instances(
             SDKClientUsersInfo, sdk_instances_list, fields=["created_at"]

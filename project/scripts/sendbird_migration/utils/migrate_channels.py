@@ -38,10 +38,7 @@ class MigrateChannels:
 
     @staticmethod
     def _create_s3_path_to_save_chatroom_images(url: str):
-        url_path = Path(url)
-
-        return CHATROOM_IMAGE_S3_PATH.format("".join([
-            str(TimeUtilities.current_time_in_milliseconds()), url_path.suffix]))
+        return CHATROOM_IMAGE_S3_PATH
 
     def _create_chatroom_in_community(self, req_body):
         chatroom_manager = ChatroomImpl(

@@ -15,8 +15,8 @@ TTL_FOR_CACHE = 60 * 60 * 60
 JSON_FILE_TYPE = ".json"
 
 # S3 Paths for Media files
-USER_PROFILE_IMAGE_S3_PATH = "files/profile/{}/{}-{}"
-CHATROOM_IMAGE_S3_PATH = "files/chatroom/image/{}"
+USER_PROFILE_IMAGE_S3_PATH = "files/profile/{}/"
+CHATROOM_IMAGE_S3_PATH = "files/chatroom/image/"
 CONVERATION_FILE_S3_PATH = "files/collabcard/{}/conversation/{}/" # Chatroom ID, user_id
 DEFAULT_FILE_S3_PATH = "files/"
 
