@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from gevent import monkey
-monkey.patch_all()  # Apply gevent monkey patching
+# from gevent import monkey
+# monkey.patch_all()  # Apply gevent monkey patching
 
 import os
 import sys
