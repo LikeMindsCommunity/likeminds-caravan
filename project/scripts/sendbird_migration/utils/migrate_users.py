@@ -3,14 +3,12 @@ from pathlib import Path
 
 from ..models.user import UserModel
 from ..utils.lambda_utilities import LambdaUtilities
-from ..constants import (LIKEMINDS_API_KEY, PLATFORM_CODE, VERSION_CODE, USER_PROFILE_IMAGE_S3_PATH,
-                         SENDBIRD_USER_MAP_KEY, TTL_FOR_CACHE)
+from ..constants import (USER_PROFILE_IMAGE_S3_PATH, SENDBIRD_USER_MAP_KEY, TTL_FOR_CACHE)
 
 from collabmates_api.community.community_impl import CommunityImpl
 from togther.models import SDKClientUsersInfo, Members, Userinfo, ModelUtilities
 from utility.time_utilities import TimeUtilities
 from external_services.caching.cache_impl import CacheImpl
-
 
 
 class MigrateUsers:
@@ -22,7 +20,7 @@ class MigrateUsers:
     community_id: int = None
     users_data: List[UserModel] = []
 
-    def __init__(self, api_key: int, platform_code: str, version_code: str, bot_id: int, community_id: int, 
+    def __init__(self, api_key: str, platform_code: str, version_code: str, bot_id: int, community_id: int,
                  users_data: List[UserModel]):
         self.member_id = bot_id
         self.community_id = community_id
@@ -33,7 +31,10 @@ class MigrateUsers:
 
     @staticmethod
     def _create_s3_path_to_save_profile(url: str, uuid: str):
-        return USER_PROFILE_IMAGE_S3_PATH.format(uuid)
+        url_path = Path(url)
+
+        return USER_PROFILE_IMAGE_S3_PATH.format(uuid, url_path.stem, "".join([
+            str(TimeUtilities.current_time_in_milliseconds()), url_path.suffix]))
 
     def _add_member_to_community(self, req_body):
         community_manager = CommunityImpl(

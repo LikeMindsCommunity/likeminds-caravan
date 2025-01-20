@@ -1,4 +1,5 @@
-import json, os
+import json
+import os
 
 from typing import List
 
@@ -149,6 +150,9 @@ class SendbirdMigrationV2:
     def migrate_data(self):
         # Migrate channels
         MigrateUsers(
+            api_key=LIKEMINDS_API_KEY,
+            platform_code=PLATFORM_CODE,
+            version_code=VERSION_CODE,
             bot_id=self.bot_id,
             community_id=self.community_instance.id,
             users_data=self.users_json_data,
@@ -156,6 +160,9 @@ class SendbirdMigrationV2:
 
         # Migrate channels
         MigrateChannels(
+            api_key=LIKEMINDS_API_KEY,
+            platform_code=PLATFORM_CODE,
+            version_code=VERSION_CODE,
             bot_id=self.bot_id,
             community_id=self.community_instance.id,
             channels_data=self.channels_json_data,

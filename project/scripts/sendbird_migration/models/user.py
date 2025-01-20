@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, model_validator
 from utility.time_utilities import TimeUtilities
 from typing import List
 
+
 class UserModel(BaseModel):
     uuid: str = Field(alias="user_id")
     user_name: str = Field(alias="nickname")

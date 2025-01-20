@@ -50,6 +50,7 @@ def fetch_headers_body_from_event(event):
     try:
         event_body = event.get("body", "")
         body = json.loads(event_body)
+
     except Exception as e:
         body = {}
 
@@ -65,7 +66,10 @@ def download_file_from_url(file_url):
 
         temp_path = DOWNLOAD_PATH + file_name
 
-        response = requests.get(file_url, stream=True) #TODO add support of sendbirdApiToken for accessing private files
+        # TODO add support of sendbirdApiToken for accessing private files
+
+        response = requests.get(file_url, stream=True)
+
         response.raise_for_status()
 
         with open(temp_path, "wb") as file:
@@ -100,6 +104,8 @@ def download_file_from_s3(file_url):
 
 
 def upload_file_to_s3(file_path, file_name, is_prod):
+    temp_path = ""
+
     try:
         s3 = boto3.client("s3")
         bucket_name = S3_BUCKET_PROD if is_prod else S3_BUCKET_BETA

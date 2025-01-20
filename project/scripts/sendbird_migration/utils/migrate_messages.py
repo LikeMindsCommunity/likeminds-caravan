@@ -1,7 +1,7 @@
 import traceback
 from typing import List
 
-from ..models.message import MessageModel, ReactionModel, MessageUtilites
+from ..models.message import MessageModel, ReactionModel
 from ..constants import SENDBIRD_MESSAGE_MAP_KEY
 from ..constants import TTL_FOR_CACHE
 
@@ -9,6 +9,7 @@ from togther.models import ModelUtilities, card_answers, conversationPolls, answ
 from collabmates_api.conversation.conversation_impl import ConversationImpl
 from utility.version_utilities import VersionUtilities
 from external_services.caching.cache_impl import CacheImpl
+
 
 class MigrateMessages:
     
@@ -28,21 +29,21 @@ class MigrateMessages:
         self.version_code = version_code
         self.messages_data = messages_data
         
-    def _create_convesation_and_its_related_data(self, sendbird_message_id: str,  user_id: int, community_id: int, 
-                                                 req_body: dict, chatroom_id: int, created_at: int, is_deleted: bool, 
-                                                 reactions: List[ReactionModel] = None):
+    def _create_conversation_and_its_related_data(self, sendbird_message_id: str,  user_id: int, community_id: int,
+                                                  req_body: dict, chatroom_id: int, created_at: int, is_deleted: bool,
+                                                  reactions: List[ReactionModel] = None):
 
-        conversation_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY.format(community_id,sendbird_message_id))
+        conversation_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY.format(community_id, sendbird_message_id))
         if conversation_id:
             print(f"Conversation already created for sendbird_message_id: {sendbird_message_id}")
             return
         else:
 
-            print(f"Create conversation for sendbird_message_id: {sendbird_message_id} with user_id: {user_id} & request_body: {req_body}")
+            print(f"Create conversation for sendbird_message_id: {sendbird_message_id} with user_id: "
+                  f"{user_id} & request_body: {req_body}")
 
             conversation_response = self._create_conversation(
                 user_id=user_id,
-                api_key=self.api_key,
                 platform_code=self.platform_code,
                 version_code=self.version_code,
                 req_body=req_body,
@@ -53,9 +54,11 @@ class MigrateMessages:
             conversation_id = conversation_response.get("id")
             
             # Set cache for conversation_id
-            CacheImpl.set_cache(SENDBIRD_MESSAGE_MAP_KEY.format(community_id,sendbird_message_id), conversation_id, timeout=TTL_FOR_CACHE)
+            CacheImpl.set_cache(SENDBIRD_MESSAGE_MAP_KEY.format(community_id, sendbird_message_id), conversation_id,
+                                timeout=TTL_FOR_CACHE)
 
-            print(f"Conversation created for sendbird_message_id: {sendbird_message_id} with conversation_id: {conversation_id} & chatroom_id: {chatroom_id}")
+            print(f"Conversation created for sendbird_message_id: {sendbird_message_id} with conversation_id: "
+                  f"{conversation_id} & chatroom_id: {chatroom_id}")
     
         if reactions:
 
@@ -67,15 +70,16 @@ class MigrateMessages:
 
         polls = conversation_response.get("conversation", {}).get("polls")
         if polls:
-            #TODO: For each poll options, fetch poll votes from API and create poll votes
+            # TODO: For each poll options, fetch poll votes from API and create poll votes
             pass
 
         return conversation_response
 
-    def _create_conversation(self, user_id: int, api_key: str, platform_code: str, version_code: str, req_body: dict, 
+    @staticmethod
+    def _create_conversation(user_id: int, platform_code: str, version_code: str, req_body: dict,
                              created_at: int, is_deleted: bool):
         
-        conversaton_manager = ConversationImpl(
+        conversation_manager = ConversationImpl(
             member_id=user_id,
             platform_code=platform_code,
             version_code=version_code,
@@ -83,15 +87,17 @@ class MigrateMessages:
         )
 
         # Create Message
-        conversation_response = conversaton_manager.create_conversation_v1(req_body)
+        conversation_response = conversation_manager.create_conversation_v1(req_body)
         if conversation_response.get("error_message"):
-            raise ValueError(f"Error in create_conversation_v1: {conversation_response.get('error_message')} | req_body: {req_body} | user_id: {user_id}")
+            raise ValueError(f"Error in create_conversation_v1: {conversation_response.get('error_message')} | "
+                             f"req_body: {req_body} | user_id: {user_id}")
         
         conversation_id = conversation_response.get("id")
         if not conversation_id:
-            raise ValueError(f"Cannot find conversation_id in response for user_id: {user_id} | conversation_response: {conversation_response}")
+            raise ValueError(f"Cannot find conversation_id in response for user_id: {user_id} | "
+                             f"conversation_response: {conversation_response}")
 
-        # Update convesation created_at and is_deleted
+        # Update conversation created_at and is_deleted
         filter_dict = {
             "id": conversation_id
         }
@@ -135,8 +141,9 @@ class MigrateMessages:
             ModelUtilities.model_update(answerAttachment, filter_dict, update_dict)
 
         return conversation_response
-                
-    def _create_reactions_for_message(self, reactions: List[ReactionModel], conversation_id: int, chatroom_id: int):
+
+    @staticmethod
+    def _create_reactions_for_message(reactions: List[ReactionModel], conversation_id: int, chatroom_id: int):
         
         for reaction in reactions:
             for reaction_user_id in reaction.user_ids:
@@ -148,7 +155,9 @@ class MigrateMessages:
 
                 reaction_response = conversation_manager.add_reaction(reaction.reaction_key)
                 if reaction_response.get("error_message"):
-                    print(f"Error in add_reaction: {reaction_response.get('error_message')} | user_id: {reaction_user_id} | reaction: {reaction} | conversation_id: {conversation_id} | chatroom_id: {chatroom_id}")
+                    print(f"Error in add_reaction: {reaction_response.get('error_message')} | "
+                          f"user_id: {reaction_user_id} | reaction: {reaction} | conversation_id: {conversation_id} | "
+                          f"chatroom_id: {chatroom_id}")
                     raise ValueError(reaction_response.get("error_message"))
                 
         return 
@@ -159,6 +168,7 @@ class MigrateMessages:
         print(f"Total messages to be added: {len(self.messages_data)}")
         
         for message_data in self.messages_data:
+            sendbird_message_id = message_data.sendbird_message_id
 
             try:
                 request_body = message_data.model_dump(
@@ -179,7 +189,6 @@ class MigrateMessages:
                     ]
                 )
 
-                sendbird_message_id = message_data.sendbird_message_id
                 is_deleted = message_data.is_deleted
                 created_at = message_data.created_at
                 chatroom_id = message_data.chatroom_id
@@ -188,7 +197,7 @@ class MigrateMessages:
                 reactions = message_data.reactions
 
                 # Create Conversation and its related data
-                self._create_convesation_and_its_related_data(
+                self._create_conversation_and_its_related_data(
                     sendbird_message_id=sendbird_message_id,
                     user_id=user_id,
                     community_id=self.community_id,

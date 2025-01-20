@@ -61,7 +61,6 @@ class SendbirdMigration:
         if not self.community_id or not self.bot_id:
             raise ValueError("Community ID/Bot ID not found using API key")
 
-
     def get_community_from_api_key(self):
         if not self.api_key:
             raise ValueError(
@@ -95,31 +94,30 @@ class SendbirdMigration:
         else:
             raise ValueError("Bot ID not found using fetch_user_bot")
     
-    def _construct_url(self, type: str, channel_type: str = None, channel_url: str = None):
+    def _construct_url(self, endpoint_type: str, channel_type: str = None, channel_url: str = None):
 
         base_url = self.base_url
         LIST_USERS_ENDPOINT = "{base_url}/users"
         LIST_CHANNELS_ENDPOINT = "{base_url}/{channel_type}"
         LIST_MESSAGES_ENDPOINT = "{base_url}/{channel_type}/{channel_url}/messages"
 
-        if type == "list_users":
+        if endpoint_type == "list_users":
             return LIST_USERS_ENDPOINT.format(base_url=base_url)
         
-        elif type == "list_channels":
+        elif endpoint_type == "list_channels":
             if not channel_type:
                 raise ValueError("Channel type is empty in _construct_url method for list_channels")
             
             return LIST_CHANNELS_ENDPOINT.format(base_url=base_url, channel_type=channel_type)
         
-        elif type == "list_messages":
+        elif endpoint_type == "list_messages":
             if not channel_type or not channel_url:
                 raise ValueError("Channel type or channel url is empty in _construct_url method for list_messages")
             
             return LIST_MESSAGES_ENDPOINT.format(base_url=base_url, channel_type=channel_type, channel_url=channel_url)
         
         else:
-            raise ValueError(f"Invalid type: {type} in _construct_url method")
-        
+            raise ValueError(f"Invalid type: {endpoint_type} in _construct_url method")
 
     def _create_headers(self):
         return {"Api-Token": f"{self.api_token}", "Content-Type": "application/json"}
@@ -127,15 +125,13 @@ class SendbirdMigration:
     def _send_request(
         self, method: str, url: str, params: dict = None, body: dict = None
     ):
-        # print(
-        #     f"Sending request to URL: {url}, method: {method}, params: {params}, body: {body}"
-        # )
         response = requests.request(
             method, url, headers=self._create_headers(), params=params, data=body
         )
 
         if not response.ok:
-            raise ValueError(f"Error in Sendbird API | Response: {response.json()}| status_code: {response.status_code}")
+            raise ValueError(f"Error in Sendbird API | Response: {response.json()}| "
+                             f"status_code: {response.status_code}")
 
         json_response = response.json()
 
@@ -153,7 +149,7 @@ class SendbirdMigration:
         
         token = None
         params = {
-            "active_mode": "all", # This will return all users
+            "active_mode": "all",  # This will return all users
             "limit": chunk_size,
         }
 
@@ -186,14 +182,14 @@ class SendbirdMigration:
             )
         
         params = {
-            "limit": chunk_size, #Test this
+            "limit": chunk_size,  # Test this
         }
 
         token = None
         while True:
 
             if token:
-                params["token"] = token #test this
+                params["token"] = token  # Test this
 
             response = self._send_request("GET", url, params=params)
 
@@ -240,7 +236,6 @@ class SendbirdMigration:
 
             yield messages
 
-    
     def migrate_all_users(self, chunk_size: int = 20):
 
         for users in self.get_paginated_users_list(chunk_size):
@@ -250,8 +245,8 @@ class SendbirdMigration:
 
             # Migrate the users
             MigrateUsers(
-                bot_id=self.bot_id, community_id=self.community_id, api_key=self.api_key, platform_code=self.platform_code,
-                 version_code=self.version_code, users_data=validated_users
+                bot_id=self.bot_id, community_id=self.community_id, api_key=self.api_key,
+                platform_code=self.platform_code, version_code=self.version_code, users_data=validated_users
             ).add_all_members_data()
 
             print(f"Successfully migrated users: {len(validated_users)}")
@@ -309,7 +304,6 @@ class SendbirdMigration:
                         print(f"Successfully migrated {len(messages)} messages for channel: {channel_url}")
         return
 
-
     def migrate_all_data(self):
 
         self.migrate_all_users()
@@ -317,6 +311,3 @@ class SendbirdMigration:
         self.migrate_all_messages()
 
         return
-
-
-
