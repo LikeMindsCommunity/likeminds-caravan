@@ -11,12 +11,12 @@ S3_REGION = "ap-south-1"
 def lambda_handler(event, context):
     print("event: ", event)
 
-    file_url, file_path, is_prod, err = validate_request_and_fetch_params(event)
+    file_url, file_path, is_prod, err, sendbird_api_token = validate_request_and_fetch_params(event)
     if err != "":
         print("Error in validation: ", err)
         return get_json_response(file_url, "", err)
 
-    file_name, err = download_file_from_url(file_url)
+    file_name, err = download_file_from_url(file_url, sendbird_api_token)
     if err != "":
         print("error download from s3: ", err)
         return get_json_response(file_url, "", err)
@@ -34,16 +34,17 @@ def validate_request_and_fetch_params(event):
 
     file_url = body.get("file_url", "")
     file_path = body.get("file_path", "")
+    sendbird_api_token = body.get("sendbird_api_token", "")
 
     is_prod = True if body.get("is_prod", False) is True else False
 
     if not (file_url and file_path):
-        return "", "", "", "both file_url & file_path is required"
+        return "", "", "", "both file_url & file_path is required", sendbird_api_token
 
     if headers["x-platform-type"] not in VALID_PLATFORM_TYPES:
-        return "", "", "", "Not Authorised"
+        return "", "", "", "Not Authorised", sendbird_api_token
 
-    return file_url, file_path, is_prod, ""
+    return file_url, file_path, is_prod, "", sendbird_api_token
 
 
 def fetch_headers_body_from_event(event):
@@ -58,7 +59,7 @@ def fetch_headers_body_from_event(event):
     return headers, body
 
 
-def download_file_from_url(file_url):
+def download_file_from_url(file_url, sendbird_api_token: str):
     try:
         parsed_url = urlparse(file_url)
         file_name = os.path.basename(parsed_url.path)
@@ -68,7 +69,7 @@ def download_file_from_url(file_url):
 
         # TODO add support of sendbirdApiToken for accessing private files
 
-        response = requests.get(file_url, stream=True)
+        response = requests.request("GET", file_url, headers={"Api-Token": sendbird_api_token}, stream=True)
 
         response.raise_for_status()
 
