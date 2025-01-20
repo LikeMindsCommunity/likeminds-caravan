@@ -51,8 +51,6 @@ class MigrateMessages:
             )
         
             conversation_id = conversation_response.get("id")
-            if not conversation_id :
-                raise ValueError(f"Cannot find conversation_id in response for message_id: {sendbird_message_id} | conversation_response: {conversation_response}")
             
             # Set cache for conversation_id
             CacheImpl.set_cache(SENDBIRD_MESSAGE_MAP_KEY.format(community_id,sendbird_message_id), conversation_id, timeout=TTL_FOR_CACHE)
@@ -150,7 +148,8 @@ class MigrateMessages:
 
                 reaction_response = conversation_manager.add_reaction(reaction.reaction_key)
                 if reaction_response.get("error_message"):
-                    raise ValueError(f"Error in add_reaction: {reaction_response.get('error_message')} | user_id: {reaction_user_id} | reaction: {reaction} | conversation_id: {conversation_id} | chatroom_id: {chatroom_id}")
+                    print(f"Error in add_reaction: {reaction_response.get('error_message')} | user_id: {reaction_user_id} | reaction: {reaction} | conversation_id: {conversation_id} | chatroom_id: {chatroom_id}")
+                    raise ValueError(reaction_response.get("error_message"))
                 
         return 
     

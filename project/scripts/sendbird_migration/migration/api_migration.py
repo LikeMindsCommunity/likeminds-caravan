@@ -221,9 +221,12 @@ class SendbirdMigration:
                     "include_poll_details": "true",
                     "including_removed": "true",
                     "include_parent_message_info": "true",
+                    "include": False,
                     "message_ts": 0,
-                    "next_limit": chunk_size
+                    "prev_limit": 0,
+                    "next_limit": chunk_size,
                 }
+        
         while True:
 
             response = self._send_request("GET", url, params=params)
@@ -232,11 +235,10 @@ class SendbirdMigration:
             if not messages:
                 break
 
-            yield messages
-
             # Update message_ts to the created_at of the last message in the current page
-            last_message_ts = messages[-1]['created_at']
-            params['message_ts'] = last_message_ts
+            params['message_ts'] = messages[-1]['created_at']
+
+            yield messages
 
     
     def migrate_all_users(self, chunk_size: int = 20):

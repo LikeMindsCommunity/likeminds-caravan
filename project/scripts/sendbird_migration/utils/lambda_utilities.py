@@ -21,6 +21,7 @@ class LambdaUtilities:
             "x-platform-type": "caravan-service"
         }
 
+        #TODO: Add support of Api-Token in this and Lambda Function as well (Misfits Private Files)
         payload = {
             "file_url": file_url,
             "file_path": file_path,
