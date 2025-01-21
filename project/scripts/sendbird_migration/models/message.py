@@ -7,57 +7,12 @@ from pydantic import BaseModel, Field, model_validator, ValidationError
 from pydantic_core import PydanticCustomError
 
 from ..utils.lambda_utilities import LambdaUtilities
+from ..utils.migration_utils import MigrationUtils
 from ..constants import (SENDBIRD_USER_MAP_KEY, SENDBIRD_CHANNEL_MAP_KEY, SENDBIRD_MESSAGE_MAP_KEY, 
                          USER_PROFILE_ROUTE, MENTIONED_USERS_SYMBOL, CONVERATION_FILE_S3_PATH, DEFAULT_FILE_S3_PATH)
 
 from utility.states import conversation_states, multi_select_poll_states, attachment_types
 from external_services.caching.cache_impl import CacheImpl
-
-
-class MessageUtilities:
-
-    @staticmethod
-    def get_lm_id_from_sendbird_message_id(sendbird_message_id: int, community_id: int) -> Optional[int]:
-
-        lm_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY.format(community_id, sendbird_message_id))
-        if not lm_id:
-            print(f"No conversation id found in the cache for sendbird message id: {sendbird_message_id}")
-            return None
-        
-        return lm_id
-    
-    @staticmethod
-    def get_lm_user_id_from_sendbird_user_id(sendbird_user_id: str, community_id: int) -> Optional[int]:
-        lm_user_id = CacheImpl.get_cache(SENDBIRD_USER_MAP_KEY.format(community_id, sendbird_user_id))
-        if not lm_user_id:
-            print(f"No user id found in the cache for sendbird user id: {sendbird_user_id}")
-            return None
-        
-        return lm_user_id
-    
-    @staticmethod
-    def get_file_path_for_conversation_files(chatroom_id: int, user_id: int) -> str:
-        
-        if not (chatroom_id and user_id):
-            print(f"No chatroom id or user_id found for conversation files.")
-            return DEFAULT_FILE_S3_PATH
-        
-        return CONVERATION_FILE_S3_PATH.format(chatroom_id, user_id)
-
-    @staticmethod
-    # function to replace mentions
-    def replace_mentions(text, users):
-        while users:
-            text = text.replace(MENTIONED_USERS_SYMBOL, users.pop(0), 1)
-        return text
-
-    @staticmethod
-    def ensure_epoch_in_ms(epoch_time):
-        # Check if the epoch time is in seconds (10 digits) or milliseconds (13 digits)
-        if len(str(epoch_time)) == 10:
-            # Convert seconds to milliseconds
-            return epoch_time * 1000
-        return epoch_time
 
 
 class AttachmentModel(BaseModel):
@@ -89,7 +44,7 @@ class AttachmentModel(BaseModel):
 
         url = data.get('url')
         if url:
-            file_path = MessageUtilities.get_file_path_for_conversation_files(data.get('chatroom_id'),
+            file_path = MigrationUtils.get_file_path_for_conversation_files(data.get('chatroom_id'),
                                                                               data.get('user_id'))
             attachment_url = LambdaUtilities.migrate_to_s3(url, file_path)
             if attachment_url:
@@ -129,7 +84,7 @@ class AttachmentModel(BaseModel):
     def validate_thumbnail_urls(data):
 
         if data.get('thumbnails'):
-            file_path = MessageUtilities.get_file_path_for_conversation_files(data.get('chatroom_id'),
+            file_path = MigrationUtils.get_file_path_for_conversation_files(data.get('chatroom_id'),
                                                                               data.get('user_id'))
             url = data.get('thumbnails')[0].get('url')
             if url:
@@ -167,7 +122,7 @@ class AttachmentModel(BaseModel):
             
         url = metadata.get('fileUrl')
         if url:
-            file_path = MessageUtilities.get_file_path_for_conversation_files(metadata.get('chatroom_id'),
+            file_path = MigrationUtils.get_file_path_for_conversation_files(metadata.get('chatroom_id'),
                                                                               metadata.get('user_id'))
             attachment_url = LambdaUtilities.migrate_to_s3(url, file_path)
             if attachment_url:
@@ -175,7 +130,7 @@ class AttachmentModel(BaseModel):
 
         thumbnail_url = metadata.get('videoThumbnailUrl')
         if thumbnail_url:
-            file_path = MessageUtilities.get_file_path_for_conversation_files(metadata.get('chatroom_id'),
+            file_path = MigrationUtils.get_file_path_for_conversation_files(metadata.get('chatroom_id'),
                                                                               metadata.get('user_id'))
             url = LambdaUtilities.migrate_to_s3(thumbnail_url, file_path)
             if url:
@@ -191,7 +146,7 @@ class AttachmentModel(BaseModel):
                 if not community_id:
                     raise PydanticCustomError("invalid_community_id", "No community id found in the attachment.")
                 
-                lm_id = MessageUtilities.get_lm_id_from_sendbird_message_id(parent_message_id, community_id)
+                lm_id = MigrationUtils.get_lm_id_from_sendbird_message_id(parent_message_id, community_id)
                 if not lm_id:
                     print(f"No conversation id found in the cache for sendbird message id: {parent_message_id}")
                 else:
@@ -229,7 +184,11 @@ class AttachmentModel(BaseModel):
 
 
 class PollOptionsModel(BaseModel):
-    text: str
+    option_id: int = 0
+    text: str = ""
+    vote_count: int = 0
+    poll_id: int = 0
+    created_by: str = ""
 
 
 class ReactionModel(BaseModel):
@@ -254,7 +213,7 @@ class ReactionModel(BaseModel):
             if not community_id:
                 raise PydanticCustomError("invalid_community_id", "No community id found in the reaction.")
 
-            lm_user_id = MessageUtilities.get_lm_user_id_from_sendbird_user_id(user_id, community_id)
+            lm_user_id = MigrationUtils.get_lm_user_id_from_sendbird_user_id(user_id, community_id)
             if not lm_user_id:
                 print(f"No user id found in the cache for sendbird user id: {user_id} for reaction key: "
                       f"{data.get('reaction_key')}")
@@ -327,7 +286,7 @@ class MessageModel(BaseModel):
             raise PydanticCustomError("invalid_community_id", "No community id found in the message.")
 
         # Fetch likeminds user_id from cache
-        lm_user_id = MessageUtilities.get_lm_user_id_from_sendbird_user_id(user_id, community_id)
+        lm_user_id = MigrationUtils.get_lm_user_id_from_sendbird_user_id(user_id, community_id)
         if not lm_user_id:
             raise PydanticCustomError("invalid_user_id", "No user id found in the cache.")
 
@@ -407,7 +366,7 @@ class MessageModel(BaseModel):
                 raise PydanticCustomError("invalid_community_id", "No community id found in the message.")
 
             # Fetch LM conversation_id from cache
-            conversation_id = MessageUtilities.get_lm_id_from_sendbird_message_id(data.get('replied_conversation_id'),
+            conversation_id = MigrationUtils.get_lm_id_from_sendbird_message_id(data.get('replied_conversation_id'),
                                                                                   community_id)
             if not conversation_id:
                 print(f"No conversation id found in the cache for sendbird message id: "
@@ -424,7 +383,7 @@ class MessageModel(BaseModel):
         if not created_at:
             raise PydanticCustomError("invalid_created_at", "No created_at found in the message.")
 
-        data["created_at"] = MessageUtilities.ensure_epoch_in_ms(created_at)
+        data["created_at"] = MigrationUtils.ensure_epoch_in_ms(created_at)
 
         return data
 
@@ -457,7 +416,7 @@ class MessageModel(BaseModel):
                 if poll_data.get("close_at", 0) <= 0:
                     data["no_poll_expiry"] = True
                 else:
-                    data["expiry_time"] = MessageUtilities.ensure_epoch_in_ms(poll_data.get("close_at"))
+                    data["expiry_time"] = MigrationUtils.ensure_epoch_in_ms(poll_data.get("close_at"))
 
             if poll_data.get("options"):
                 data["polls"] = [
@@ -487,7 +446,7 @@ class MessageModel(BaseModel):
                         "invalid_user_id", "No user id found in the mentioned users."
                     )
                 
-                lm_user_id = MessageUtilities.get_lm_user_id_from_sendbird_user_id(user_id, data.get("community_id"))
+                lm_user_id = MigrationUtils.get_lm_user_id_from_sendbird_user_id(user_id, data.get("community_id"))
 
                 user_name = user.get("nickname")
                 if not user_name:
@@ -501,7 +460,7 @@ class MessageModel(BaseModel):
                 mentioned_user_lm_routes.append(user_mention_route)
 
             # Replace all 'SYMBOL' in the message with the mentioned users
-            message = MessageUtilities.replace_mentions(data.get("text"), mentioned_user_lm_routes)
+            message = MigrationUtils.replace_mentions(data.get("text"), mentioned_user_lm_routes)
             data["text"] = message
 
         return data
@@ -524,7 +483,7 @@ class MessageModel(BaseModel):
                         if not community_id:
                             raise PydanticCustomError("invalid_community_id", "No community id found in the message.")
                         
-                        lm_id = MessageUtilities.get_lm_id_from_sendbird_message_id(parent_message_id, community_id)
+                        lm_id = MigrationUtils.get_lm_id_from_sendbird_message_id(parent_message_id, community_id)
                         if not lm_id:
                             print(f"No conversation id found in the cache for sendbird message id: {parent_message_id}")
                         else:

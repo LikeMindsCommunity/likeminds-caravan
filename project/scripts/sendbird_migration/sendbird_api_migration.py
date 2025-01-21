@@ -144,6 +144,7 @@ class SendbirdApiMigration:
                             platform_code=self.platform_code,
                             version_code=self.version_code,
                             messages_data=validated_messages,
+                            sendbird_api_utils=self.api_utils,
                         ).create_all_messages()
 
                         print(
