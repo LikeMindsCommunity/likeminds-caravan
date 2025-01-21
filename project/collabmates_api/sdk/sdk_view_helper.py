@@ -1,11 +1,12 @@
 from django.db.models import Q
 from utility.response_utilities import ResponseUtilities
-from togther.models import (ModelUtilities, communityQuestions, SDKClientUsersInfo, removedMembers)
+from togther.models import (ModelUtilities, communityQuestions, SDKClientUsersInfo, removedMembers, Members)
 from utility.states import (login_types)
 from utility.validation_utilities import ValidationUtilities
 from .models import SdkClient, SdkOnboardingScreen
 from datetime import datetime, timedelta
 from utility.constants import MONTHS_ORDER
+from scripts.sendbird_migration.utils.sendbird_utils import SendbirdApiUtils
 
 class SdkViewHelper:
 
@@ -340,7 +341,7 @@ class SdkViewHelper:
 
         if 'no_of_months' not in request_params or not no_of_months:
             validated_request_params = request_params.copy()
-            
+
             validated_request_params['no_of_months'] = '6'
             no_of_months = '6'
         else:
@@ -361,7 +362,7 @@ class SdkViewHelper:
 
         if validated_dict.get('error_message'):
             return validated_dict
-        
+
         return {
             'request_params': validated_request_params,
             'user_instance': validated_dict.get('user_id'),
@@ -384,7 +385,7 @@ class SdkViewHelper:
         for month_name, year in last_n_months:
             if year not in organized:
                 organized[year] = {"chat": [], "feed": [], "total": []}
-            
+
             # Initialize each month in both lists with a count of 0
             organized[year]["chat"].append({"label": month_name, "count": 0})
             organized[year]["feed"].append({"label": month_name, "count": 0})
@@ -393,7 +394,7 @@ class SdkViewHelper:
         # Populate the data from mau_data
         for month, year, count, platform in mau_data:
             clean_month_str = month.strip() if month else month
-            
+
             if year in organized:
                 for entry in organized[year][platform]:
                     if entry['label'] == clean_month_str:
@@ -416,3 +417,51 @@ class SdkViewHelper:
             })
 
         return result
+
+    @staticmethod
+    def migrate_sendbird_data_validator(request_body, member_id, api_key):
+
+        if not request_body:
+            return ResponseUtilities.get_inner_error_context('Invalid request body')
+
+        validation_params = {
+            "community_id": {"api_key": api_key},
+            "user_id": member_id,
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get("error_message"):
+            return validated_dict
+
+        user_instance = validated_dict.get("user_id")
+        community_instance = validated_dict.get("community_id")
+
+        # Validate if member is community owner
+        if not Members.is_member_community_owner(user_instance, community_instance):
+            return ResponseUtilities.get_inner_error_context('Only Community owner cannot migrate data')
+
+        application_id = request_body.get('application_id')
+        api_token = request_body.get('api_token')
+        migration_type = request_body.get('migration_type')
+        customer_name = request_body.get('customer_name')
+
+        if not (application_id or api_token):
+            return ResponseUtilities.get_inner_error_context('Application ID/Api Token is empty!')
+        
+        # Validate sendbird creds
+        response = SendbirdApiUtils.validate_sendbird_creds(application_id, api_token)
+        if response.get('error_message'):
+            return response
+        
+        if migration_type not in ['users', 'channels', 'messages', 'all']:
+            return ResponseUtilities.get_inner_error_context('Invalid migration type! Accepted values: "users", "channels", "messages", "all"')
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'application_id': application_id,
+            'api_token': api_token,
+            'migration_type': migration_type,
+            'customer_name': customer_name
+        }

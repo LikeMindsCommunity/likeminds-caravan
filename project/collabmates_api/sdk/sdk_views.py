@@ -261,3 +261,20 @@ class SdkMauView(APIView):
             return JsonResponse(response_data, status=response_data['status'])
 
         return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
+    
+class MigrateSendbirdView(APIView):
+
+    def post(self, request):
+
+        request_body = RequestUtilities.load_request_body(request)
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+
+        sdk_manager = SdkImpl(member_id=member_id, api_key=api_key)
+
+        response_data = sdk_manager.migrate_sendbird_data(request_body)
+        if response_data.get('error_message'):
+            return JsonResponse(response_data, status=response_data['status'])
+        
+        return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
+

@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from rest_framework import status as status_codes
 
@@ -19,8 +20,7 @@ from collabmates_api.user.view_impl import UserImpl
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 from collabmates_api.rest_api import CommunitySerializerV1
 from collabmates_api.raw_queries import get_mau_overview_data_for_community
-import uuid
-
+from scripts.sendbird_migration.sendbird_api_migration import SendbirdApiMigration
 
 class SdkImpl(SdkManager):
 
@@ -501,3 +501,29 @@ class SdkImpl(SdkManager):
         result['mau_data'] = organized_mau_data
 
         return result
+    
+    def migrate_sendbird_data(self, req_body) -> dict:
+
+        validated_request = SdkViewHelper.migrate_sendbird_data_validator(req_body, self.get_member_id, self.get_api_key())
+        if 'error_message' in validated_request:
+            return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        application_id = validated_request.get('application_id')
+        api_token = validated_request.get('api_token')
+        migration_type = validated_request.get('migration_type')
+
+        sendbird_migration = SendbirdApiMigration(
+            api_key=self.api_key, application_id=application_id, api_token=api_token
+        )
+
+        if migration_type == 'users':
+            sendbird_migration.migrate_all_users()
+        elif migration_type == 'channels':
+            sendbird_migration.migrate_all_channels()
+        elif migration_type == 'messages':
+            sendbird_migration.migrate_all_messages()
+        elif migration_type == 'all':
+            sendbird_migration.migrate_all_data()
+
+        return {'success': True}

@@ -118,6 +118,26 @@ class SendbirdApiUtils:
 
         return json_response
 
+    @staticmethod
+    def validate_sendbird_creds(application_id: str, api_token: str) -> dict :
+
+        if not application_id or not api_token:
+            return {"error_message": "Application ID/Api Token is empty!"}
+
+        base_url = SENDBIRD_API_BASE_URL.format(application_id)
+        list_users_endbpoint = LIST_USERS_ENDPOINT.format(base_url=base_url)
+
+        response = requests.request(
+            "GET", list_users_endbpoint, headers={"Api-Token": api_token}
+        )
+
+        if not response.ok:
+            return {
+                "error_message": f"Error in Sendbird API | Response: {response.json()} | status_code: {response.status_code}"
+            }
+
+        return {}
+
     def yield_paginated_users_list(self, chunk_size: int = 20):
 
         url = self._construct_url(ENDPOINT_TYPE_LIST_USERS)
