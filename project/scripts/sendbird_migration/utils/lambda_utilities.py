@@ -1,8 +1,6 @@
 import requests
 from django.conf import settings
 
-from ..constants import LAMBDA_URL
-
 
 class LambdaUtilities:
 
@@ -29,7 +27,9 @@ class LambdaUtilities:
         if not settings.IS_BETA:
             payload["is_prod"] = True
 
-        response = requests.put(LAMBDA_URL, json=payload, headers=headers)
+        lambda_url = settings.MIGRATE_TO_S3_LAMBDA_URL
+
+        response = requests.put(lambda_url, json=payload, headers=headers)
         if response.status_code != 200:
             print(
                 f"Error when migrating file to s3 for file_url: {file_url} & file_path: {file_path} | response: {response.json()}"

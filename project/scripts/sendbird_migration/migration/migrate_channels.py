@@ -2,8 +2,7 @@ from typing import List
 from pathlib import Path
 
 from ..models.channel import ChannelModel
-from ..constants import (PLATFORM_CODE, VERSION_CODE, LIKEMINDS_API_KEY, TTL_FOR_CACHE, 
-                         CHATROOM_IMAGE_S3_PATH, SENDBIRD_CHANNEL_MAP_KEY)
+from ..constants import (TTL_FOR_CACHE, CHATROOM_IMAGE_S3_PATH, SENDBIRD_CHANNEL_MAP_KEY)
 
 from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
 from togther.models import (

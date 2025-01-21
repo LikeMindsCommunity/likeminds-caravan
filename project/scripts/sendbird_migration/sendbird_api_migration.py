@@ -15,8 +15,7 @@ from .migration.migrate_channels import MigrateChannels
 from .migration.migrate_messages import MigrateMessages
 
 
-# TODO: Add support of API exposure for the migration
-# TODO: Add support of Misfits Check for Metadata
+# TODO: Add Migration Symbol to all the logs. (And log everything to a file as well which can be stored to s3)
 class SendbirdApiMigration:
 
     api_key: str = ""

@@ -1,11 +1,15 @@
+# Lambda File - To be deployed in AWS Lambda to migrate files to Likmeinds S3
+
 import json, os, time, boto3, requests
 from urllib.parse import quote, urlparse
 
 VALID_PLATFORM_TYPES = ["caravan-service"]
 DOWNLOAD_PATH = "/tmp/"
-S3_BUCKET_PROD = "prod-likeminds-media"
-S3_BUCKET_BETA = "beta-likeminds-media"
-S3_REGION = "ap-south-1"
+
+# Update the following accordingly
+S3_BUCKET_PROD = ""
+S3_BUCKET_BETA = ""
+S3_REGION = ""
 
 
 def lambda_handler(event, context):

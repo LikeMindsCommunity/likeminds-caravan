@@ -1,9 +1,6 @@
 # Constants for Sendbird Migration (Older)
-APPLICATION_ID = "A7128051-8508-46A1-B4A2-821886B5781F"
-API_TOKEN = "441ddd489a87926711df7e8e6c473af1fca1c532"
-LIKEMINDS_API_KEY = "35fdd780-499f-4948-a87d-cf7502948314"
+LIKEMINDS_API_KEY = "<LIKEMINDS_API_KEY>"
 PLATFORM_CODE = "web"
-PLATFORM_TYPE = "dashboard"
 VERSION_CODE = 26
 
 # Sendbird Endpoints
@@ -30,9 +27,6 @@ USER_PROFILE_IMAGE_S3_PATH = "files/profile/{}/{}-{}"
 CHATROOM_IMAGE_S3_PATH = "files/chatroom/image/{}"
 CONVERSATION_FILE_S3_PATH = "files/collabcard/{}/conversation/{}/"  # Chatroom ID, user_id
 DEFAULT_FILE_S3_PATH = "files/"
-
-# Lambda URL for Migrating Files to Likeminds S3
-LAMBDA_URL = "https://mcm23vgasphq26jbnp4xwtkeku0qkhzb.lambda-url.ap-south-1.on.aws/"  # Hosted on old AWS account
 
 # TTL for Sendbird -> LM ID Mapping Cache
 TTL_FOR_CACHE = 60 * 60 * 60
