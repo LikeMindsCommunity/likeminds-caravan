@@ -7,10 +7,11 @@ from ..constants import LAMBDA_URL
 class LambdaUtilities:
 
     @staticmethod
-    def migrate_to_s3(file_url, file_path) -> str:
+    def migrate_to_s3(file_url, file_path, sendbird_api_token: str = None) -> str:
         """
         file_url: str - URL of the file to be migrated
         file_path: str - Path where the file should be stored in S3
+        sendbird_api_token: str - To access private sendbird files
 
         Migrates the file to S3 and returns the public URL
         """
@@ -20,8 +21,10 @@ class LambdaUtilities:
 
         headers = {"x-platform-type": "caravan-service"}
 
-        # TODO: Add support of Api-Token in this and Lambda Function as well (Misfits Private Files)
         payload = {"file_url": file_url, "file_path": file_path, "is_prod": False}
+
+        if sendbird_api_token:
+            payload["sendbird_api_token"] = sendbird_api_token
 
         if not settings.IS_BETA:
             payload["is_prod"] = True

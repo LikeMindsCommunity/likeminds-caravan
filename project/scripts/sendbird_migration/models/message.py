@@ -27,9 +27,11 @@ class AttachmentModel(BaseModel):
     user_id: int = 0
     chatroom_id: int = 0
     community_id: int = 0
+    sendbird_api_token: str = ""
 
     attachment_message: str = ""
     replied_conversation_id: int = 0
+
 
     @staticmethod
     def _validate_file_name(data):
@@ -44,9 +46,11 @@ class AttachmentModel(BaseModel):
 
         url = data.get('url')
         if url:
-            file_path = MigrationUtils.get_file_path_for_conversation_files(data.get('chatroom_id'),
-                                                                              data.get('user_id'))
-            attachment_url = LambdaUtilities.migrate_to_s3(url, file_path)
+            file_path = MigrationUtils.get_file_path_for_conversation_files(data.get('chatroom_id'), 
+                                                                            data.get('user_id'))
+            attachment_url = LambdaUtilities.migrate_to_s3(
+                url, file_path, data.get("sendbird_api_token")
+            )
             if attachment_url:
                 data["url"] = attachment_url
 
@@ -88,7 +92,9 @@ class AttachmentModel(BaseModel):
                                                                               data.get('user_id'))
             url = data.get('thumbnails')[0].get('url')
             if url:
-                thumbnail_url = LambdaUtilities.migrate_to_s3(url, file_path)
+                thumbnail_url = LambdaUtilities.migrate_to_s3(
+                    url, file_path, data.get("sendbird_api_token")
+                )
                 if thumbnail_url:
                     data["thumbnail_url"] = thumbnail_url
 
@@ -119,12 +125,14 @@ class AttachmentModel(BaseModel):
                 data["type"] = metadata_type
             else:
                 print(f"Invalid attachment type found in the misfits Type: {metadata_type}")
-            
+
         url = metadata.get('fileUrl')
         if url:
             file_path = MigrationUtils.get_file_path_for_conversation_files(metadata.get('chatroom_id'),
                                                                               metadata.get('user_id'))
-            attachment_url = LambdaUtilities.migrate_to_s3(url, file_path)
+            attachment_url = LambdaUtilities.migrate_to_s3(
+                url, file_path, data.get("sendbird_api_token")
+            )
             if attachment_url:
                 data["url"] = attachment_url
 
@@ -132,7 +140,9 @@ class AttachmentModel(BaseModel):
         if thumbnail_url:
             file_path = MigrationUtils.get_file_path_for_conversation_files(metadata.get('chatroom_id'),
                                                                               metadata.get('user_id'))
-            url = LambdaUtilities.migrate_to_s3(thumbnail_url, file_path)
+            url = LambdaUtilities.migrate_to_s3(
+                thumbnail_url, file_path, data.get("sendbird_api_token")
+            )
             if url:
                 data["thumbnail_url"] = thumbnail_url
 
@@ -145,13 +155,13 @@ class AttachmentModel(BaseModel):
                 community_id = metadata.get("community_id")
                 if not community_id:
                     raise PydanticCustomError("invalid_community_id", "No community id found in the attachment.")
-                
+
                 lm_id = MigrationUtils.get_lm_id_from_sendbird_message_id(parent_message_id, community_id)
                 if not lm_id:
                     print(f"No conversation id found in the cache for sendbird message id: {parent_message_id}")
                 else:
                     data["replied_conversation_id"] = lm_id
-            
+
         return data
 
     @staticmethod
@@ -163,10 +173,10 @@ class AttachmentModel(BaseModel):
                 metadata = json.loads(metadata)
                 if metadata:
                     data = AttachmentModel._validate_misfits_keys(data, metadata)
-                    
+
             except json.JSONDecodeError:
                 raise PydanticCustomError("invalid_metadata", "Invalid metadata found in the attachment.")
-        
+
         return data
 
     @classmethod
@@ -234,6 +244,7 @@ class OgTagsModel(BaseModel):
 
 
 class MessageModel(BaseModel):
+
     sendbird_message_id: int = Field(alias="message_id")
     is_deleted: bool = Field(alias="is_removed", default=False)
     created_at: int = 0
@@ -258,6 +269,8 @@ class MessageModel(BaseModel):
     multiple_select_no: Optional[int] = Field(default=0)
 
     reactions: List[ReactionModel] = []
+
+    sendbird_api_token: str = ""
 
     @staticmethod
     def _validate_state(data):
@@ -344,14 +357,16 @@ class MessageModel(BaseModel):
             
             if file_data:
                 file_data["index"] = len(data["attachments"]) + 1
-                attachment = AttachmentModel(**file_data, user_id=user_id, chatroom_id=chatroom_id)
+                attachment = AttachmentModel(**file_data, user_id=user_id, chatroom_id=chatroom_id, 
+                                             sendbird_api_token=data.get("sendbird_api_token"))
                 data["attachments"].append(attachment)
 
                 return data
 
             if files_data:
                 for index, file_data in enumerate(files_data):
-                    attachment = AttachmentModel(**file_data, index=index, user_id=user_id, chatroom_id=chatroom_id)
+                    attachment = AttachmentModel(**file_data, index=index, user_id=user_id, chatroom_id=chatroom_id, 
+                                                 sendbird_api_token=data.get("sendbird_api_token"))
                     data["attachments"].append(attachment)
 
         return data
@@ -507,7 +522,8 @@ class MessageModel(BaseModel):
 
                         for _, attachment in enumerate(attachments):
                             lm_attachments.append(AttachmentModel(**attachment, index=index, user_id=user_id,
-                                                                  chatroom_id=chatroom_id))
+                                                                  chatroom_id=chatroom_id), 
+                                                                  sendbird_api_token=data.get("sendbird_api_token"))
                             index += 1
 
                         data["attachments"] = lm_attachments

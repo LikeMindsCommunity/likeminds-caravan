@@ -15,6 +15,8 @@ from .migration.migrate_channels import MigrateChannels
 from .migration.migrate_messages import MigrateMessages
 
 
+# TODO: Add support of API exposure for the migration
+# TODO: Add support of Misfits Check for Metadata
 class SendbirdApiMigration:
 
     api_key: str = ""
@@ -62,6 +64,14 @@ class SendbirdApiMigration:
         if not self.bot_id:
             raise ValueError("Bot ID not found using API key")
 
+    def _add_metadata_to_messages(self, messages: list) -> list:
+        
+        for message in messages:
+            message["community_id"] = self.community_id
+            message["sendbird_api_token"] = self.api_token
+
+        return messages
+
     def migrate_all_users(self, chunk_size: int = 20):
 
         for users in self.api_utils.yield_paginated_users_list(chunk_size):
@@ -77,6 +87,7 @@ class SendbirdApiMigration:
                 platform_code=self.platform_code,
                 version_code=self.version_code,
                 users_data=validated_users,
+                sendbird_api_token=self.api_token,
             ).add_all_members_data()
 
             print(f"Successfully migrated users: {len(validated_users)}")
@@ -128,11 +139,8 @@ class SendbirdApiMigration:
                         channel_type=channel_type, channel_url=channel_url
                     ):
 
-                        # Add LM community_id to each message
-                        messages = [
-                            {**message, "community_id": self.community_id}
-                            for message in messages
-                        ]
+                        # Add community_id & api_token to each messages
+                        messages = self._add_metadata_to_messages(messages)
 
                         # Load up the messages and validate them
                         validated_messages = Messages(messages=messages).messages

@@ -67,9 +67,13 @@ def download_file_from_url(file_url, sendbird_api_token: str):
 
         temp_path = DOWNLOAD_PATH + file_name
 
-        # TODO add support of sendbirdApiToken for accessing private files
+        headers = None
 
-        response = requests.request("GET", file_url, headers={"Api-Token": sendbird_api_token}, stream=True)
+        if sendbird_api_token:
+            headers = {}
+            headers["Api-Token"] = sendbird_api_token
+
+        response = requests.request("GET", file_url, headers=headers, stream=True)
 
         response.raise_for_status()
 

@@ -18,6 +18,8 @@ from ..utils.lambda_utilities import LambdaUtilities
 
 class MigrateChannels:
 
+    sendbird_api_token: str = ""
+
     api_key: str = ""
     platform_code: str = ""
     version_code: str = ""
@@ -27,7 +29,7 @@ class MigrateChannels:
 
     def __init__(
         self, api_key: str, platform_code: str, version_code: str, bot_id: int, community_id: int, 
-        channels_data: List[ChannelModel]
+        channels_data: List[ChannelModel], sendbird_api_token: str = None
     ):
         self.member_id = bot_id
         self.community_id = community_id
@@ -35,6 +37,9 @@ class MigrateChannels:
         self.api_key = api_key
         self.platform_code = platform_code
         self.version_code = version_code
+
+        if sendbird_api_token:
+            self.sendbird_api_token = sendbird_api_token
 
     @staticmethod
     def _create_s3_path_to_save_chatroom_images(url: str):
@@ -76,7 +81,7 @@ class MigrateChannels:
                 
                 if channel_data.chatroom_image_url:
                     s3_path = self._create_s3_path_to_save_chatroom_images(channel_data.chatroom_image_url)
-                    s3_url = LambdaUtilities.migrate_to_s3(channel_data.chatroom_image_url, s3_path)
+                    s3_url = LambdaUtilities.migrate_to_s3(channel_data.chatroom_image_url, s3_path, self.sendbird_api_token)
 
                     if s3_url:
                         channel_data.chatroom_image_url = s3_url
