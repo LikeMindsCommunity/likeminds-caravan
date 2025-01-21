@@ -3,13 +3,13 @@ import os
 
 from typing import List
 
-from ..constants import LIKEMINDS_API_KEY, PLATFORM_CODE, VERSION_CODE, JSON_FILE_TYPE
-from ..models.user import Users
-from ..models.channel import Channels
-from ..models.message import MessageModel, Messages
+from .constants import LIKEMINDS_API_KEY, PLATFORM_CODE, VERSION_CODE, JSON_FILE_TYPE
+from .models.user import Users
+from .models.channel import Channels
+from .models.message import MessageModel, Messages
 
-from ..utils.migrate_users import MigrateUsers
-from ..utils.migrate_channels import MigrateChannels
+from .migration.migrate_users import MigrateUsers
+from .migration.migrate_channels import MigrateChannels
 
 
 from collabmates_api.sdk.models import SdkClient
@@ -17,10 +17,10 @@ from togther.models import ModelUtilities
 from collabmates_api.user.user_impl import UserImpl
 
 
-class SendbirdMigrationV2:
+class SendbirdJsonMigration:
 
     supported_file_types = [JSON_FILE_TYPE]
-    chunk_size = 1000 # TO be used for message migration
+    chunk_size = 1000  # TO be used for message migration
 
     def __init__(
         self,
@@ -143,9 +143,11 @@ class SendbirdMigrationV2:
             with open(message_file, "r") as file_data:
                 messages = json.load(file_data)
 
-                for i in range(0, len(messages), self.chunk_size):    
+                for i in range(0, len(messages), self.chunk_size):
                     chunk = messages[i : i + self.chunk_size]
-                    self.messages_json_data += Messages(**chunk).messages # TEST For large files
+                    self.messages_json_data += Messages(
+                        **chunk
+                    ).messages  # TEST For large files
 
     def migrate_data(self):
         # Migrate channels
