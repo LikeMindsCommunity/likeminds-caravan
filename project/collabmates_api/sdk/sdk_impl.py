@@ -21,7 +21,7 @@ from collabmates_api.member_community.member_community_impl import MemberCommuni
 from collabmates_api.rest_api import CommunitySerializerV1
 from collabmates_api.raw_queries import get_mau_overview_data_for_community
 from scripts.sendbird_migration.sendbird_api_migration import SendbirdApiMigration
-
+from utility.celery_tasks import migrate_sendbird_data
 class SdkImpl(SdkManager):
 
     member_id = None
@@ -513,17 +513,9 @@ class SdkImpl(SdkManager):
         api_token = validated_request.get('api_token')
         migration_type = validated_request.get('migration_type')
 
-        sendbird_migration = SendbirdApiMigration(
-            api_key=self.api_key, application_id=application_id, api_token=api_token
+        # Run the migration task in the background
+        migrate_sendbird_data.delay(
+            self.api_key, application_id, api_token, migration_type
         )
 
-        if migration_type == 'users':
-            sendbird_migration.migrate_all_users()
-        elif migration_type == 'channels':
-            sendbird_migration.migrate_all_channels()
-        elif migration_type == 'messages':
-            sendbird_migration.migrate_all_messages()
-        elif migration_type == 'all':
-            sendbird_migration.migrate_all_data()
-
-        return {'success': True}
+        return {'success': True, 'message': "Migration task has been started. Check the logs for progress."}
