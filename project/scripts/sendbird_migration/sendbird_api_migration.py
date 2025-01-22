@@ -1,4 +1,3 @@
-import requests
 
 from .constants import (
     OPEN_CHANNELS_TYPE,

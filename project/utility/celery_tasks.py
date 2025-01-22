@@ -39,7 +39,6 @@ from utility.states import card_types, conversation_poll_types, conversation_sta
     community_setting_types, CollabcardTypes, message_template_chatroom_types, webhook_chatroom_methods
 
 from utility.validation_utilities import ValidationUtilities
-from scripts.sendbird_migration.sendbird_api_migration import SendbirdApiMigration
 from collabmates_api.search.sync import ElasticSearchSync
 
 error_logger = LoggingWrapper.get_instance()
@@ -2898,6 +2897,8 @@ def migrate_sendbird_data(api_key:str, application_id: str, api_token: str, migr
         error_logger.error("SendbirdMigration | Invalid parameters for sendbird data migration")
         return
     
+    from scripts.sendbird_migration.sendbird_api_migration import SendbirdApiMigration
+    
     try:
 
         sendbird_migration = SendbirdApiMigration(
@@ -2914,8 +2915,11 @@ def migrate_sendbird_data(api_key:str, application_id: str, api_token: str, migr
             sendbird_migration.migrate_all_data()
 
     except Exception as e:
-        traceback.print_exc()
-        error_logger.error("SendbirdMigration | Error while migrating sendbird data: {}".format(e))
+        error_logger.error(
+            (
+                f"SendbirdMigration | Error while migrating sendbird data: {e} | Stacktrace: {traceback.format_exc()}")
+
+            )
         return
 
     return

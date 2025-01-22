@@ -5,7 +5,7 @@ from ..constants import (
     SENDBIRD_MESSAGE_MAP_KEY,
     SENDBIRD_USER_MAP_KEY,
     DEFAULT_FILE_S3_PATH,
-    CONVERATION_FILE_S3_PATH,
+    CONVERSATION_FILE_S3_PATH,
     MENTIONED_USERS_SYMBOL,
 )
 
@@ -62,7 +62,7 @@ class MigrationUtils:
 
             return DEFAULT_FILE_S3_PATH
 
-        return CONVERATION_FILE_S3_PATH.format(chatroom_id, user_id)
+        return CONVERSATION_FILE_S3_PATH.format(chatroom_id, user_id)
 
     @staticmethod
     # function to replace mentions

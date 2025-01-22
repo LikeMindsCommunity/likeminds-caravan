@@ -504,7 +504,8 @@ class SdkImpl(SdkManager):
     
     def migrate_sendbird_data(self, req_body) -> dict:
 
-        validated_request = SdkViewHelper.migrate_sendbird_data_validator(req_body, self.get_member_id, self.get_api_key())
+        validated_request = SdkViewHelper.migrate_sendbird_data_validator(req_body, self.get_member_id(), 
+                                                                          self.get_api_key())
         if 'error_message' in validated_request:
             return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
                                                             status_codes.HTTP_400_BAD_REQUEST)

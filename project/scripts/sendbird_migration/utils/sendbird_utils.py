@@ -123,18 +123,22 @@ class SendbirdApiUtils:
 
         if not application_id or not api_token:
             return {"error_message": "Application ID/Api Token is empty!"}
+        
+        try:
 
-        base_url = SENDBIRD_API_BASE_URL.format(application_id)
-        list_users_endbpoint = LIST_USERS_ENDPOINT.format(base_url=base_url)
+            base_url = SENDBIRD_API_BASE_URL.format(application_id)
+            list_users_endbpoint = LIST_USERS_ENDPOINT.format(base_url=base_url)
 
-        response = requests.request(
-            "GET", list_users_endbpoint, headers={"Api-Token": api_token}
-        )
+            response = requests.get(
+                url=list_users_endbpoint, headers={"Api-Token": api_token}
+            )
 
-        if not response.ok:
-            return {
-                "error_message": f"Error in Sendbird API | Response: {response.json()} | status_code: {response.status_code}"
-            }
+            if not response.ok:
+                return {
+                    "error_message": f"Error in Sendbird API | Response: {response.json()} | status_code: {response.status_code}"
+                }
+        except Exception as e:
+            return {"error_message": f"Error in Sendbird API | {str(e)}"}
 
         return {}
 

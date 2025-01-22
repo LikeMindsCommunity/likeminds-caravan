@@ -8,8 +8,6 @@ from pydantic_core import PydanticCustomError
 
 from ..utils.lambda_utilities import LambdaUtilities
 from ..utils.migration_utils import MigrationUtils
-from ..constants import (SENDBIRD_USER_MAP_KEY, SENDBIRD_CHANNEL_MAP_KEY, SENDBIRD_MESSAGE_MAP_KEY, 
-                         USER_PROFILE_ROUTE, MENTIONED_USERS_SYMBOL, CONVERATION_FILE_S3_PATH, DEFAULT_FILE_S3_PATH)
 
 from utility.states import conversation_states, multi_select_poll_states, attachment_types
 from external_services.caching.cache_impl import CacheImpl

@@ -424,21 +424,17 @@ class SdkViewHelper:
         if not request_body:
             return ResponseUtilities.get_inner_error_context('Invalid request body')
 
-        validation_params = {
-            "community_id": {"api_key": api_key},
-            "user_id": member_id,
-        }
+        validation_params = {"community_id": {"api_key": api_key}, "user_id": member_id}
 
         validated_dict = ValidationUtilities.is_valid(validation_params)
-
         if validated_dict.get("error_message"):
             return validated_dict
 
-        user_instance = validated_dict.get("user_id")
         community_instance = validated_dict.get("community_id")
+        user_instance = validated_dict.get("user_id")
 
-        # Validate if member is community owner
-        if not Members.is_member_community_owner(user_instance, community_instance):
+        # Validate if member is project creator
+        if not SdkClient.is_project_creator(community_instance, user_instance):
             return ResponseUtilities.get_inner_error_context('Only Community owner cannot migrate data')
 
         application_id = request_body.get('application_id')
@@ -448,12 +444,12 @@ class SdkViewHelper:
 
         if not (application_id or api_token):
             return ResponseUtilities.get_inner_error_context('Application ID/Api Token is empty!')
-        
+
         # Validate sendbird creds
         response = SendbirdApiUtils.validate_sendbird_creds(application_id, api_token)
         if response.get('error_message'):
             return response
-        
+
         if migration_type not in ['users', 'channels', 'messages', 'all']:
             return ResponseUtilities.get_inner_error_context('Invalid migration type! Accepted values: "users", "channels", "messages", "all"')
 
