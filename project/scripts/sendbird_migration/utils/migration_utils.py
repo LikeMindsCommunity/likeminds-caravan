@@ -7,6 +7,7 @@ from ..constants import (
     DEFAULT_FILE_S3_PATH,
     CONVERSATION_FILE_S3_PATH,
     MENTIONED_USERS_SYMBOL,
+    SENDBIRD_CHANNEL_MAP_KEY
 )
 
 from external_services.logging.logging_wrapper import LoggingWrapper
@@ -51,6 +52,23 @@ class MigrationUtils:
             return None
 
         return lm_user_id
+
+    @staticmethod
+    def get_lm_chatroom_id_from_sendbird_channel_id(
+        sendbird_channel_id: str, community_id: int
+    ) -> Optional[int]:
+        lm_chatroom_id = CacheImpl.get_cache(
+            SENDBIRD_CHANNEL_MAP_KEY.format(community_id, sendbird_channel_id)
+        )
+        if not lm_chatroom_id:
+            info_logger.error(
+                (
+                    f"SendbirdMigration | No chatroom id found in the cache for sendbird channel id: {sendbird_channel_id}"
+                )
+            )
+            return None
+
+        return lm_chatroom_id
 
     @staticmethod
     def get_file_path_for_conversation_files(chatroom_id: int, user_id: int) -> str:

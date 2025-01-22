@@ -37,7 +37,7 @@ class LikemindsUtils:
         if not api_key:
             return 0
         
-        context = UserImpl().fetch_user_bot(api_key=api_key)
+        context = UserImpl(user_id=None).fetch_user_bot(api_key=api_key)
         if context.get("error_message"):
             info_logger.error(
                 (

@@ -1,3 +1,4 @@
+import time
 
 from .constants import (
     OPEN_CHANNELS_TYPE,
@@ -167,6 +168,10 @@ class SendbirdApiMigration:
 
         self.migrate_all_users()
         self.migrate_all_channels()
+
+        # Adding delay before creating messages (As users need to get Rights first)
+        time.sleep(60) 
+
         self.migrate_all_messages()
 
         return

@@ -8,6 +8,7 @@ from pydantic_core import PydanticCustomError
 
 from ..utils.lambda_utilities import LambdaUtilities
 from ..utils.migration_utils import MigrationUtils
+from ..constants import USER_PROFILE_ROUTE
 
 from utility.states import conversation_states, multi_select_poll_states, attachment_types
 from external_services.caching.cache_impl import CacheImpl
@@ -34,7 +35,6 @@ class AttachmentModel(BaseModel):
 
     attachment_message: str = ""
     replied_conversation_id: int = 0
-
 
     @staticmethod
     def _validate_file_name(data):
@@ -191,7 +191,6 @@ class AttachmentModel(BaseModel):
 
         return data
 
-    @classmethod
     @model_validator(mode="before")
     def _validate_before(cls, data):
         data = cls._validate_file_name(data)
@@ -218,7 +217,6 @@ class ReactionModel(BaseModel):
     user_ids: List[int] = []
     community_id: int = 0
 
-    @classmethod
     @model_validator(mode="before")
     def _validate_user_ids(cls, data):
 
@@ -313,7 +311,7 @@ class MessageModel(BaseModel):
         user_id = data.get("user", {}).get("user_id")
         if not user_id:
             raise PydanticCustomError("invalid_user_id", "No user id found in the message.")
-        
+
         community_id = data.get("community_id")
         if not community_id:
             raise PydanticCustomError("invalid_community_id", "No community id found in the message.")
@@ -342,13 +340,13 @@ class MessageModel(BaseModel):
         channel_url = data.get("channel_url")
         if not channel_url:
             raise PydanticCustomError("invalid_chatroom_id", "No chatroom id found in the message.")
-        
+
         community_id = data.get("community_id")
         if not community_id:
             raise PydanticCustomError("invalid_community_id", "No community id found in the message.")
 
         # Fetch likeminds chatroom_id from cache
-        lm_chatroom_id = CacheImpl.get_cache(SENDBIRD_CHANNEL_MAP_KEY.format(community_id, channel_url))
+        lm_chatroom_id = MigrationUtils.get_lm_chatroom_id_from_sendbird_channel_id(channel_url, community_id)
         if not lm_chatroom_id:
             raise PydanticCustomError("invalid_chatroom_id", "No chatroom id found in the cache.")
 
@@ -378,20 +376,25 @@ class MessageModel(BaseModel):
                         )
                     )
                 return data
-            
+
             if file_data:
                 file_data["index"] = len(data["attachments"]) + 1
-                attachment = AttachmentModel(**file_data, user_id=user_id, chatroom_id=chatroom_id, 
-                                             sendbird_api_token=data.get("sendbird_api_token"))
-                data["attachments"].append(attachment)
+                file_data["user_id"] = user_id
+                file_data["chatroom_id"] = chatroom_id
+                file_data["sendbird_api_token"] = data.get("sendbird_api_token")
+
+                data["attachments"].append(AttachmentModel(**file_data))
 
                 return data
 
             if files_data:
                 for index, file_data in enumerate(files_data):
-                    attachment = AttachmentModel(**file_data, index=index, user_id=user_id, chatroom_id=chatroom_id, 
-                                                 sendbird_api_token=data.get("sendbird_api_token"))
-                    data["attachments"].append(attachment)
+                    file_data["index"] = index
+                    file_data["user_id"] = user_id
+                    file_data["chatroom_id"] = chatroom_id
+                    file_data["sendbird_api_token"] = data.get("sendbird_api_token")
+
+                    data["attachments"].append(AttachmentModel(**file_data))
 
         return data
 
@@ -437,7 +440,8 @@ class MessageModel(BaseModel):
         if reactions_data:
             reactions_list = []
             for reaction in reactions_data:
-                reactions = ReactionModel(**reaction, community_id=data.get("community_id"))
+                reaction["community_id"] = data.get("community_id")
+                reactions = ReactionModel(**reaction)
                 reactions_list.append(reactions)
 
             data["reactions"] = reactions_list
@@ -488,7 +492,7 @@ class MessageModel(BaseModel):
                     raise PydanticCustomError(
                         "invalid_user_id", "No user id found in the mentioned users."
                     )
-                
+
                 lm_user_id = MigrationUtils.get_lm_user_id_from_sendbird_user_id(user_id, data.get("community_id"))
 
                 user_name = user.get("nickname")
@@ -525,7 +529,7 @@ class MessageModel(BaseModel):
                         community_id = data.get("community_id")
                         if not community_id:
                             raise PydanticCustomError("invalid_community_id", "No community id found in the message.")
-                        
+
                         lm_id = MigrationUtils.get_lm_id_from_sendbird_message_id(parent_message_id, community_id)
                         if not lm_id:
                             info_logger.error(
@@ -539,7 +543,7 @@ class MessageModel(BaseModel):
 
                 media_type = metadata.get("type")
                 if media_type == "multi-media":
-                    
+
                     attachments = metadata.get("metaData")
                     if attachments:
 
@@ -559,9 +563,12 @@ class MessageModel(BaseModel):
                             return data
 
                         for _, attachment in enumerate(attachments):
-                            lm_attachments.append(AttachmentModel(**attachment, index=index, user_id=user_id,
-                                                                  chatroom_id=chatroom_id), 
-                                                                  sendbird_api_token=data.get("sendbird_api_token"))
+                            attachment["index"] = index
+                            attachment["user_id"] = user_id
+                            attachment["chatroom_id"] = chatroom_id
+                            attachment["sendbird_api_token"] = data.get("sendbird_api_token")
+
+                            lm_attachments.append(AttachmentModel(**attachment))
                             index += 1
 
                         data["attachments"] = lm_attachments
@@ -579,13 +586,12 @@ class MessageModel(BaseModel):
             if attachment.attachment_message:
                 data["text"] = attachment.attachment_message if not attachment.attachment_message == "file" \
                     else data.get("text")
-            
+
             if attachment.replied_conversation_id:
                 data["replied_conversation_id"] = attachment.replied_conversation_id
 
         return data
 
-    @classmethod
     @model_validator(mode="before")
     def _validate_before(cls, data):
 
@@ -610,7 +616,6 @@ class MessageModel(BaseModel):
 class Messages(BaseModel):
     messages: List[MessageModel]
 
-    @classmethod
     @model_validator(mode="before")
     def validate_messages(cls, values):
 

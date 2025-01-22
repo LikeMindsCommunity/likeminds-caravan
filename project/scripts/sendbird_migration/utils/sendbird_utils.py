@@ -28,10 +28,10 @@ class SendbirdApiUtils:
 
         self.application_id = application_id
         self.api_token = api_token
+        self.base_url = SENDBIRD_API_BASE_URL.format(application_id)
 
         self._validate()
 
-        self.base_url = SENDBIRD_API_BASE_URL.format(application_id)
 
     def _validate(self):
 
@@ -56,7 +56,7 @@ class SendbirdApiUtils:
         base_url = self.base_url
 
         if endpoint_type == ENDPOINT_TYPE_LIST_USERS:
-            return LIST_USERS_ENDPOINT.format(base_url=base_url)
+            return LIST_USERS_ENDPOINT.format(base_url)
 
         elif endpoint_type == ENDPOINT_TYPE_LIST_CHANNELS:
             if not channel_type:
@@ -65,7 +65,7 @@ class SendbirdApiUtils:
                 )
 
             return LIST_CHANNELS_ENDPOINT.format(
-                base_url=base_url, channel_type=channel_type
+                base_url, channel_type
             )
 
         elif endpoint_type == ENDPOINT_TYPE_LIST_MESSAGES:
@@ -75,7 +75,7 @@ class SendbirdApiUtils:
                 )
 
             return LIST_MESSAGES_ENDPOINT.format(
-                base_url=base_url, channel_type=channel_type, channel_url=channel_url
+                base_url, channel_type, channel_url
             )
 
         elif endpoint_type == ENDPOINT_TYPE_LIST_POLL_OPTIONS:
@@ -84,7 +84,7 @@ class SendbirdApiUtils:
                     "Poll ID is empty in _construct_url method for list_poll_options"
                 )
 
-            return LIST_POLL_OPTIONS.format(base_url=base_url, poll_id=poll_id)
+            return LIST_POLL_OPTIONS.format(base_url, poll_id)
 
         elif endpoint_type == ENDPOINT_TYPE_LIST_POLL_VOTERS:
             if not poll_id or not poll_option_id:
@@ -93,7 +93,7 @@ class SendbirdApiUtils:
                 )
 
             return LIST_POLL_VOTERS_ENDPOINT.format(
-                base_url=base_url, poll_id=poll_id, poll_option_id=poll_option_id
+                base_url, poll_id, poll_option_id
             )
 
         else:
@@ -127,7 +127,7 @@ class SendbirdApiUtils:
         try:
 
             base_url = SENDBIRD_API_BASE_URL.format(application_id)
-            list_users_endbpoint = LIST_USERS_ENDPOINT.format(base_url=base_url)
+            list_users_endbpoint = LIST_USERS_ENDPOINT.format(base_url)
 
             response = requests.get(
                 url=list_users_endbpoint, headers={"Api-Token": api_token}

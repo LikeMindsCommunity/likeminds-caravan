@@ -5,11 +5,11 @@ VERSION_CODE = 26
 
 # Sendbird Endpoints
 SENDBIRD_API_BASE_URL = "https://api-{}.sendbird.com/v3"
-LIST_USERS_ENDPOINT = "{base_url}/users"
-LIST_CHANNELS_ENDPOINT = "{base_url}/{channel_type}"
-LIST_MESSAGES_ENDPOINT = "{base_url}/{channel_type}/{channel_url}/messages"
-LIST_POLL_OPTIONS = "{base_url}/polls/{poll_id}"
-LIST_POLL_VOTERS_ENDPOINT = "{base_url}/polls/{poll_id}/options/{poll_option_id}/voters"
+LIST_USERS_ENDPOINT = "{}/users"
+LIST_CHANNELS_ENDPOINT = "{}/{}"
+LIST_MESSAGES_ENDPOINT = "{}/{}/{}/messages"
+LIST_POLL_OPTIONS = "{}/polls/{}"
+LIST_POLL_VOTERS_ENDPOINT = "{}/polls/{}/options/{}/voters"
 
 # Sendbird Enpoint Types
 ENDPOINT_TYPE_LIST_USERS = "list_users"
@@ -32,9 +32,9 @@ DEFAULT_FILE_S3_PATH = "files/"
 TTL_FOR_CACHE = 60 * 60 * 60
 
 # Cache Keys for Mapping Sendbird -> Likeminds IDs
-SENDBIRD_CHANNEL_MAP_KEY = "sendbird_migration_channel_{}_{}"  # community_id, sendbird_channel_id
-SENDBIRD_USER_MAP_KEY = "sendbird_user_{}_{}"  # community_id, sendbird_user_id
-SENDBIRD_MESSAGE_MAP_KEY = "sendbird_message_{}_{}"  # community_id, sendbird_message_id
+SENDBIRD_CHANNEL_MAP_KEY = "sendbird_migration_{}_channel_{}"  # community_id, sendbird_channel_id
+SENDBIRD_USER_MAP_KEY = "sendbird_migration_{}_user_{}"  # community_id, sendbird_user_id
+SENDBIRD_MESSAGE_MAP_KEY = "sendbird_migration_{}_message_{}"  # community_id, sendbird_message_id
 
 JSON_FILE_TYPE = ".json"
 

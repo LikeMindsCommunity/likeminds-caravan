@@ -2917,9 +2917,9 @@ def migrate_sendbird_data(api_key:str, application_id: str, api_token: str, migr
     except Exception as e:
         error_logger.error(
             (
-                f"SendbirdMigration | Error while migrating sendbird data: {e} | Stacktrace: {traceback.format_exc()}")
-
+                f"SendbirdMigration | Error while migrating sendbird data: {e} | Stacktrace: {traceback.format_exc()}"
             )
+        )
         return
 
     return

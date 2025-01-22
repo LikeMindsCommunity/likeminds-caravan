@@ -205,7 +205,7 @@ class MigrateMessages:
 
             info_logger.info(
                 (
-                    f"SendbirdMigration | Created conversation for sendbird_message_id: {sendbird_message_id}"
+                    f"SendbirdMigration | creating conversation for sendbird_message_id: {sendbird_message_id}"
                     f" with user_id: {user_id} & request_body: {req_body}"
                 )
             )
