@@ -8580,7 +8580,7 @@ def send_otp_on_email(email):
     context = {}
     success = False
 
-    generate_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s""" % (
+    generate_url = """https://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s""" % (
         email, email_key)
     response = rqst.get(generate_url)
     print(response.content)
@@ -8601,7 +8601,7 @@ def send_otp_on_email(email):
 
 def verify_otp_on_email(email, otp):
     email_key = settings.EMAIL_GHUPSHAP_KEY
-    verify_url = """http://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s&code=%s""" % (
+    verify_url = """https://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s&code=%s""" % (
         str(email), email_key, str(otp))
 
     response = rqst.get(verify_url)
