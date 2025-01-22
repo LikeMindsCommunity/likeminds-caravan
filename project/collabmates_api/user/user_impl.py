@@ -1199,8 +1199,7 @@ class UserImpl(UserManager):
             sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo, 
                                                                             {'user_id': user_instance}).first()
 
-            return self.create_user_context(user_instance, 
-                                                    sdk_client_user_info_instance=sdk_client_user_info_instance)
+            return self.create_user_context(user_instance, sdk_client_user_info_instance=sdk_client_user_info_instance)
 
         return ResponseUtilities.get_impl_error_context('Community bot not found',
                                                         status_code=status_codes.HTTP_400_BAD_REQUEST)
@@ -2788,12 +2787,12 @@ class UserHelper:
         user_ids_list = list(email_filter.values_list('user_id', flat=True))
 
         if not community_instance:
-            user_info_instance = ModelUtilities.get_model_filter(Userinfo, 
-                                                               {'user_id_id__in': user_ids_list}).first()
+            user_info_instance = ModelUtilities.get_model_filter(Userinfo,
+                                                                 {'user_id_id__in': user_ids_list}).first()
             
             if not user_info_instance:
                 return ResponseUtilities.get_impl_error_context('Wrong OTP!',
-                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
             
             return {
                 'success': True,

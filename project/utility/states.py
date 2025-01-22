@@ -1109,6 +1109,14 @@ class AttachmentTypes:
     VOICE_NOTE = "voice_note"
     GIF = "gif"
 
+    @classmethod
+    def is_valid_attachment_type(cls, attachment_type: str) -> bool:
+
+        if attachment_type not in [cls.IMAGE, cls.AUDIO, cls.VIDEO, cls.VOICE_NOTE, cls.GIF]:
+            return False
+        
+        return True
+
 
 attachment_types = AttachmentTypes()
 

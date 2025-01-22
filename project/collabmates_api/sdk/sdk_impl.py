@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from rest_framework import status as status_codes
 
@@ -19,9 +20,8 @@ from collabmates_api.user.view_impl import UserImpl
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
 from collabmates_api.rest_api import CommunitySerializerV1
 from collabmates_api.raw_queries import get_mau_overview_data_for_community
-import uuid
-
-
+from scripts.sendbird_migration.sendbird_api_migration import SendbirdApiMigration
+from utility.celery_tasks import migrate_sendbird_data
 class SdkImpl(SdkManager):
 
     member_id = None
@@ -501,3 +501,22 @@ class SdkImpl(SdkManager):
         result['mau_data'] = organized_mau_data
 
         return result
+    
+    def migrate_sendbird_data(self, req_body) -> dict:
+
+        validated_request = SdkViewHelper.migrate_sendbird_data_validator(req_body, self.get_member_id(), 
+                                                                          self.get_api_key())
+        if 'error_message' in validated_request:
+            return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
+                                                            status_codes.HTTP_400_BAD_REQUEST)
+
+        application_id = validated_request.get('application_id')
+        api_token = validated_request.get('api_token')
+        migration_type = validated_request.get('migration_type')
+
+        # Run the migration task in the background
+        migrate_sendbird_data.delay(
+            self.api_key, application_id, api_token, migration_type
+        )
+
+        return {'success': True, 'message': "Migration task has been started. Check the logs for progress."}

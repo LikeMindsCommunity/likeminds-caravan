@@ -2196,7 +2196,7 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True}
 
-    def add_community_member(self, req_body: dict, auto_join: bool=False) -> {}:
+    def add_community_member(self, req_body: dict, auto_join: bool = False) -> {}:
         validated_req_body = CommunityViewHelper.validate_add_community_member_request(self.get_member_id(),
                                                                                        self.get_api_key(),
                                                                                        req_body)
@@ -2205,7 +2205,6 @@ class CommunityImpl(CommunityManager):
             return ResponseUtilities.get_impl_error_context(validated_req_body.get('error_message'),
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-        user_instance = validated_req_body.get('user_instance')
         community_instance = validated_req_body.get('community_instance')
 
         req_body = {

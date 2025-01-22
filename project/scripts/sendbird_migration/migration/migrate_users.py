@@ -1,0 +1,169 @@
+import traceback
+from typing import List
+from pathlib import Path
+
+from ..models.user import UserModel
+from ..utils.lambda_utilities import LambdaUtilities
+from ..constants import (USER_PROFILE_IMAGE_S3_PATH, SENDBIRD_USER_MAP_KEY, TTL_FOR_CACHE)
+
+from collabmates_api.community.community_impl import CommunityImpl
+from togther.models import SDKClientUsersInfo, Members, Userinfo, ModelUtilities
+from utility.time_utilities import TimeUtilities
+from external_services.caching.cache_impl import CacheImpl
+
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+info_logger = LoggingWrapper.get_instance()
+error_logger = LoggingWrapper.get_instance()
+
+class MigrateUsers:
+
+    sendbird_api_token: str = ""
+
+    api_key: str = ""
+    platform_code: str = ""
+    version_code: str = ""
+    member_id: int = None
+    community_id: int = None
+    users_data: List[UserModel] = []
+
+    def __init__(
+        self,
+        api_key: str,
+        platform_code: str,
+        version_code: str,
+        bot_id: int,
+        community_id: int,
+        users_data: List[UserModel],
+        sendbird_api_token: str = None,
+    ):
+        self.member_id = bot_id
+        self.community_id = community_id
+        self.users_data = users_data
+        self.api_key = api_key
+        self.platform_code = platform_code
+        self.version_code = version_code
+
+        if sendbird_api_token:
+            self.sendbird_api_token = sendbird_api_token
+
+    @staticmethod
+    def _create_s3_path_to_save_profile(url: str, uuid: str):
+        url_path = Path(url)
+
+        return USER_PROFILE_IMAGE_S3_PATH.format(uuid, url_path.stem, "".join([
+            str(TimeUtilities.current_time_in_milliseconds()), url_path.suffix]))
+
+    def _add_member_to_community(self, req_body):
+        community_manager = CommunityImpl(
+            member_id=self.member_id,
+            api_key=self.api_key,
+            request_platform=self.platform_code,
+            version_code=self.version_code,
+        )
+        community_data = community_manager.add_community_member(req_body)
+
+        if community_data.get("error_message"):
+            raise ValueError(community_data.get("error_message"))
+
+        return community_data
+
+    def add_all_members_data(self):
+        info_logger.info(
+            (
+                f"SendbirdMigration | Total users to be added: {len(self.users_data)}"
+            )
+        )
+
+
+        sdk_instances_list = []
+        userinfo_instances_list = []
+        member_instances_list = []
+
+        for user_data in self.users_data:
+
+            try:
+                cache_key = SENDBIRD_USER_MAP_KEY.format(self.community_id, user_data.uuid)
+
+                lm_user_id = CacheImpl.get_cache(cache_key)
+                if lm_user_id:
+                    info_logger.info(
+                        (
+                            f"SendbirdMigration | User already migrated for sendbird_user_id: {user_data.uuid} " 
+                            f"| lm_user_id: {lm_user_id}"
+                        )
+                    )
+                    continue
+
+                if user_data.image_url:
+                    s3_path = self._create_s3_path_to_save_profile(user_data.image_url, user_data.uuid)
+                    s3_url = LambdaUtilities.migrate_to_s3(user_data.image_url, s3_path, self.sendbird_api_token)
+
+                    if s3_url:
+                        user_data.image_url = s3_url
+
+                request_body = user_data.model_dump(
+                    include=["uuid", "user_name", "image_url"]
+                )
+
+                info_logger.info(
+                    (
+                        f"SendbirdMigration | Calling api/community/member POST with request body: {request_body}"
+                    )
+                )
+                
+                self._add_member_to_community(request_body)
+
+                # Update the created_at for Users, SdkClientUsersInfo, Members schema
+                sdk_user_instance: SDKClientUsersInfo = ModelUtilities.get_model_filter(
+                    SDKClientUsersInfo,
+                    {"user_unique_id": user_data.uuid, "community": self.community_id},
+                ).first()
+
+                if sdk_user_instance:
+                    created_at = TimeUtilities.convert_sec_to_milliseconds(
+                        user_data.created_at
+                    )
+
+                    sdk_user_instance.created_at = created_at
+                    sdk_user_instance.user.userinfo.created_at = user_data.created_at
+
+                    sdk_instances_list.append(sdk_user_instance)
+                    userinfo_instances_list.append(sdk_user_instance.user.userinfo)
+
+                    member_instance: Members = ModelUtilities.get_model_filter(
+                        Members,
+                        {
+                            "community_id": self.community_id,
+                            "member_id": sdk_user_instance.user,
+                        },
+                    ).first()
+
+                    if member_instance:
+                        member_instance.created_at = user_data.created_at
+                        member_instance.became_member_at = user_data.created_at
+                        member_instances_list.append(member_instance)
+
+                    # Set the cache for the user
+                    CacheImpl.set_cache(cache_key, sdk_user_instance.user.id, TTL_FOR_CACHE)
+            
+            except Exception as e:
+                info_logger.error(
+                    (
+                        f"SendbirdMigration | Error in adding member data for user: {user_data.uuid} | Error: {e}"
+                        f" | Traceback: {traceback.format_exc()}"
+                    )
+                )
+                
+                continue
+
+        # Bulk update the instances
+        ModelUtilities.bulk_update_instances(
+            SDKClientUsersInfo, sdk_instances_list, fields=["created_at"]
+        )
+        ModelUtilities.bulk_update_instances(
+            Userinfo, userinfo_instances_list, fields=["created_at"]
+        )
+        ModelUtilities.bulk_update_instances(
+            Members, member_instances_list, fields=["created_at", "became_member_at"]
+        )
