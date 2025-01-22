@@ -1,6 +1,10 @@
 import requests
 from django.conf import settings
 
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+info_logger = LoggingWrapper.get_instance()
+error_logger = LoggingWrapper.get_instance()
 
 class LambdaUtilities:
 
@@ -31,8 +35,11 @@ class LambdaUtilities:
 
         response = requests.put(lambda_url, json=payload, headers=headers)
         if response.status_code != 200:
-            print(
-                f"Error when migrating file to s3 for file_url: {file_url} & file_path: {file_path} | response: {response.json()}"
+            info_logger.error(
+                (
+                    f"SendbirdMigration | Error when migrating file to s3 for file_url: {file_url} & "
+                    f" file_path: {file_path} | response: {response.json()}"
+                )
             )
             return ""
 

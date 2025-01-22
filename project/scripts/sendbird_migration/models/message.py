@@ -14,6 +14,11 @@ from ..constants import (SENDBIRD_USER_MAP_KEY, SENDBIRD_CHANNEL_MAP_KEY, SENDBI
 from utility.states import conversation_states, multi_select_poll_states, attachment_types
 from external_services.caching.cache_impl import CacheImpl
 
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+info_logger = LoggingWrapper.get_instance()
+error_logger = LoggingWrapper.get_instance()
+
 
 class AttachmentModel(BaseModel):
     url: str = ""
@@ -124,7 +129,11 @@ class AttachmentModel(BaseModel):
             if attachment_types.is_valid_attachment_type(metadata_type):
                 data["type"] = metadata_type
             else:
-                print(f"Invalid attachment type found in the misfits Type: {metadata_type}")
+                info_logger.error(
+                        (
+                            f"SendbirdMigration | Invalid attachment type found in the misfits Type: {metadata_type}"
+                        )
+                    )
 
         url = metadata.get('fileUrl')
         if url:
@@ -158,7 +167,12 @@ class AttachmentModel(BaseModel):
 
                 lm_id = MigrationUtils.get_lm_id_from_sendbird_message_id(parent_message_id, community_id)
                 if not lm_id:
-                    print(f"No conversation id found in the cache for sendbird message id: {parent_message_id}")
+                    info_logger.error(
+                        (
+                            f"SendbirdMigration | No conversation id found in the cache for " 
+                            f"sendbird message id: {parent_message_id}"
+                        )
+                    )
                 else:
                     data["replied_conversation_id"] = lm_id
 
@@ -212,7 +226,11 @@ class ReactionModel(BaseModel):
 
         users_list = data.get("user_ids")
         if not users_list:
-            print(f"No user ids found in the reaction for key: {data.get('reaction_key')}")
+            info_logger.error(
+                (
+                    f"SendbirdMigration | No user ids found in the reaction for key: {data.get('reaction_key')}"
+                )
+            )
             return data
         
         lm_user_ids = []
@@ -225,8 +243,12 @@ class ReactionModel(BaseModel):
 
             lm_user_id = MigrationUtils.get_lm_user_id_from_sendbird_user_id(user_id, community_id)
             if not lm_user_id:
-                print(f"No user id found in the cache for sendbird user id: {user_id} for reaction key: "
-                      f"{data.get('reaction_key')}")
+                info_logger.error(
+                    (
+                        f"SendbirdMigration | No user id found in the cache for sendbird user id: {user_id} "
+                        f"for reaction key: {data.get('reaction_key')}"
+                    )
+                )
                 continue
             
             lm_user_ids.append(lm_user_id)
@@ -352,7 +374,11 @@ class MessageModel(BaseModel):
             chatroom_id = data.get("chatroom_id")
 
             if not user_id or not chatroom_id:
-                print(f"No user user_id or chatroom id found in the message data: {data}")
+                info_logger.error(
+                        (
+                            f"SendbirdMigration | No user user_id or chatroom id found in the message data: {data}"
+                        )
+                    )
                 return data
             
             if file_data:
@@ -384,8 +410,12 @@ class MessageModel(BaseModel):
             conversation_id = MigrationUtils.get_lm_id_from_sendbird_message_id(data.get('replied_conversation_id'),
                                                                                   community_id)
             if not conversation_id:
-                print(f"No conversation id found in the cache for sendbird message id: "
-                      f"{data.get('replied_conversation_id')}")
+                info_logger.error(
+                    (
+                        f"SendbirdMigration | No conversation id found in the cache for sendbird message id: "
+                        f"{data.get('replied_conversation_id')}"
+                    )
+                )
             else:
                 data["replied_conversation_id"] = conversation_id
 
@@ -500,7 +530,12 @@ class MessageModel(BaseModel):
                         
                         lm_id = MigrationUtils.get_lm_id_from_sendbird_message_id(parent_message_id, community_id)
                         if not lm_id:
-                            print(f"No conversation id found in the cache for sendbird message id: {parent_message_id}")
+                            info_logger.error(
+                                (
+                                    f"SendbirdMigration | No conversation id found in the cache for " 
+                                    f"sendbird message id: {parent_message_id}"
+                                )
+                            )
                         else:
                             data["replied_conversation_id"] = lm_id
 
@@ -517,7 +552,12 @@ class MessageModel(BaseModel):
                         chatroom_id = data.get("chatroom_id")
 
                         if not user_id or not chatroom_id:
-                            print(f"No user user_id or chatroom id found in the message data: {data}")
+                            info_logger.error(
+                                (
+                                    f"SendbirdMigration | No user user_id or chatroom id found in the " 
+                                    f"message data: {data}"
+                                )
+                            )
                             return data
 
                         for _, attachment in enumerate(attachments):
@@ -583,24 +623,33 @@ class Messages(BaseModel):
 
                 if message.get('type') == 'ADMM':
                     # Skip admin messages
-                    print(f"Skipping ADMM (Admin) message {message.get('message_id')}")
+                    info_logger.info(
+                        (
+                            f"SendbirdMigration | Skipping ADMM (Admin) message {message.get('message_id')}"
+                        )
+                    )
                     continue
 
                 validated_message = MessageModel(**message)
                 validated_messages.append(validated_message)
 
             except ValidationError as e:
-                traceback.print_exc()
-                print(f"Validation error for message_id: {message.get('message_id')} | Exception: {e}")
-                # Handle validation errors as needed
+                info_logger.error(
+                    (
+                        f"SendbirdMigration | Validation error for message_id: {message.get('message_id')} "
+                        f"| Exception: {e} | Traceback: {traceback.format_exc()}"
+                    )
+                )
                 continue
-               
+
             except Exception as e:
-                print(f"Unexpected error for message {message.get('message_id')}: {e}")
-                # Print stack trace
-                traceback.print_exc()
-                # Handle other exceptions as needed
-                raise e
+                info_logger.error(
+                    (
+                        f"SendbirdMigration | Unexpected error for message {message.get('message_id')} "
+                        f"Error: {e} | Traceback: {traceback.format_exc()}"
+                    )
+                )
+                continue
 
         values['messages'] = validated_messages
         return values

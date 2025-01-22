@@ -9,6 +9,10 @@ from ..constants import (
     MENTIONED_USERS_SYMBOL,
 )
 
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+info_logger = LoggingWrapper.get_instance()
+error_logger = LoggingWrapper.get_instance()
 
 class MigrationUtils:
 
@@ -21,8 +25,11 @@ class MigrationUtils:
             SENDBIRD_MESSAGE_MAP_KEY.format(community_id, sendbird_message_id)
         )
         if not lm_id:
-            print(
-                f"No conversation id found in the cache for sendbird message id: {sendbird_message_id}"
+            info_logger.info(
+                (
+                    f"SendbirdMigration | No conversation id found in the cache for " 
+                    f"sendbird message id: {sendbird_message_id}"
+                )
             )
             return None
 
@@ -36,8 +43,10 @@ class MigrationUtils:
             SENDBIRD_USER_MAP_KEY.format(community_id, sendbird_user_id)
         )
         if not lm_user_id:
-            print(
-                f"No user id found in the cache for sendbird user id: {sendbird_user_id}"
+            info_logger.error(
+                (
+                    f"SendbirdMigration | No user id found in the cache for sendbird user id: {sendbird_user_id}"
+                )
             )
             return None
 
@@ -47,7 +56,10 @@ class MigrationUtils:
     def get_file_path_for_conversation_files(chatroom_id: int, user_id: int) -> str:
 
         if not (chatroom_id and user_id):
-            print(f"No chatroom id or user_id found for conversation files.")
+            info_logger.error(
+                f"SendbirdMigration | No chatroom id or user_id found for conversation files."
+            )
+
             return DEFAULT_FILE_S3_PATH
 
         return CONVERATION_FILE_S3_PATH.format(chatroom_id, user_id)

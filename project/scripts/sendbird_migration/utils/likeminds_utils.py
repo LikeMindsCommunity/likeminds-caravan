@@ -1,9 +1,12 @@
-
 from togther.models import ModelUtilities
 from collabmates_api.sdk.models import SdkClient
 
 from collabmates_api.user.user_impl import UserImpl
 
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+info_logger = LoggingWrapper.get_instance()
+error_logger = LoggingWrapper.get_instance()
 
 class LikemindsUtils:
 
@@ -18,7 +21,12 @@ class LikemindsUtils:
         )
 
         if not sdk_filter:
-            print(f"Sdk Community not found for API key: {api_key}")
+            info_logger.error(
+                (
+                    f"SendbirdMigration | Sdk Community not found for API key: {api_key}"
+                )
+            )
+
             return 0
         
         return sdk_filter.first().community.id
@@ -31,11 +39,20 @@ class LikemindsUtils:
         
         context = UserImpl().fetch_user_bot(api_key=api_key)
         if context.get("error_message"):
-            print(f"Error in fetch_user_bot for api_key: {api_key} | error_message: {context.get('error_message')}")
+            info_logger.error(
+                (
+                    f"SendbirdMigration | Error in fetch_user_bot for api_key: {api_key} " 
+                    f"| error_message: {context.get('error_message')}"
+                )
+            )
             return 0
 
         if context.get("user", {}).get("id"):
             return context.get("user", {}).get("id")
         else:
-            print(f"Bot ID not found for API key: {api_key} | context: {context}")
+            info_logger.error(
+                (
+                    f"SendbirdMigration | Bot ID not found for API key: {api_key} | context: {context}"
+                )
+            )
             return 0

@@ -1,4 +1,5 @@
 from __future__ import absolute_import, unicode_literals
+import traceback
 
 from celery import shared_task
 from django.conf import settings
@@ -2896,18 +2897,25 @@ def migrate_sendbird_data(api_key:str, application_id: str, api_token: str, migr
     if not (api_key and application_id and api_token and migration_type):
         error_logger.error("SendbirdMigration | Invalid parameters for sendbird data migration")
         return
+    
+    try:
 
-    sendbird_migration = SendbirdApiMigration(
-            api_key=api_key, application_id=application_id, api_token=api_token
-        )
+        sendbird_migration = SendbirdApiMigration(
+                api_key=api_key, application_id=application_id, api_token=api_token
+            )
 
-    if migration_type == 'users':
-        sendbird_migration.migrate_all_users()
-    elif migration_type == 'channels':
-        sendbird_migration.migrate_all_channels()
-    elif migration_type == 'messages':
-        sendbird_migration.migrate_all_messages()
-    elif migration_type == 'all':
-        sendbird_migration.migrate_all_data()
+        if migration_type == 'users':
+            sendbird_migration.migrate_all_users()
+        elif migration_type == 'channels':
+            sendbird_migration.migrate_all_channels()
+        elif migration_type == 'messages':
+            sendbird_migration.migrate_all_messages()
+        elif migration_type == 'all':
+            sendbird_migration.migrate_all_data()
+
+    except Exception as e:
+        traceback.print_exc()
+        error_logger.error("SendbirdMigration | Error while migrating sendbird data: {}".format(e))
+        return
 
     return

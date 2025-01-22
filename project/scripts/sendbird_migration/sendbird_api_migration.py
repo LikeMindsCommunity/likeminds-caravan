@@ -14,6 +14,11 @@ from .migration.migrate_users import MigrateUsers
 from .migration.migrate_channels import MigrateChannels
 from .migration.migrate_messages import MigrateMessages
 
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+info_logger = LoggingWrapper.get_instance()
+error_logger = LoggingWrapper.get_instance()
+
 
 # TODO: Add Migration Symbol to all the logs. (And log everything to a file as well which can be stored to s3)
 class SendbirdApiMigration:
@@ -64,7 +69,7 @@ class SendbirdApiMigration:
             raise ValueError("Bot ID not found using API key")
 
     def _add_metadata_to_messages(self, messages: list) -> list:
-        
+
         for message in messages:
             message["community_id"] = self.community_id
             message["sendbird_api_token"] = self.api_token
@@ -89,7 +94,7 @@ class SendbirdApiMigration:
                 sendbird_api_token=self.api_token,
             ).add_all_members_data()
 
-            print(f"Successfully migrated users: {len(validated_users)}")
+            info_logger.info(f"SendbirdMigration | Successfully migrated users: {len(validated_users)}")
 
         return
 
@@ -117,7 +122,9 @@ class SendbirdApiMigration:
                     channels_data=validated_channels,
                 ).create_all_chatrooms()
 
-                print(f"Successfully migrated {channel_type}/s: {len(channels)}")
+                info_logger.info(
+                    f"SendbirdMigration | Successfully migrated {channel_type}/s: {len(channels)}"
+                )
 
     def migrate_all_messages(self):
 
@@ -154,9 +161,7 @@ class SendbirdApiMigration:
                             sendbird_api_utils=self.api_utils,
                         ).create_all_messages()
 
-                        print(
-                            f"Successfully migrated {len(messages)} messages for channel: {channel_url}"
-                        )
+                        info_logger.info(f"SendbirdMigration | Successfully migrated {len(messages)} messages for channel: {channel_url}")
         return
 
     def migrate_all_data(self):

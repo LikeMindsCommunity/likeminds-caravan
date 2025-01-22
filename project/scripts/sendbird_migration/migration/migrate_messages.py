@@ -13,6 +13,10 @@ from collabmates_api.conversation.conversation_impl import ConversationImpl
 from utility.version_utilities import VersionUtilities
 from external_services.caching.cache_impl import CacheImpl
 
+from external_services.logging.logging_wrapper import LoggingWrapper
+
+info_logger = LoggingWrapper.get_instance()
+error_logger = LoggingWrapper.get_instance()
 
 class MigrateMessages:
 
@@ -114,9 +118,13 @@ class MigrateMessages:
 
                 reaction_response = conversation_manager.add_reaction(reaction.reaction_key)
                 if reaction_response.get("error_message"):
-                    print(f"Error in add_reaction: {reaction_response.get('error_message')} | "
-                          f"user_id: {reaction_user_id} | reaction: {reaction} | conversation_id: {conversation_id} | "
-                          f"chatroom_id: {chatroom_id}")
+                    info_logger.error(
+                        (
+                            f"SendbirdMigration | Error in add_reaction: {reaction_response.get('error_message')} | "
+                            f"user_id: {reaction_user_id} | reaction: {reaction} | conversation_id: {conversation_id} | "
+                            f"chatroom_id: {chatroom_id}"
+                        )
+                    )
                     raise ValueError(reaction_response.get("error_message"))
 
         return 
@@ -127,7 +135,11 @@ class MigrateMessages:
             return
 
         if len(conversation_polls) != len(sendbird_polls):
-            print(f"Conversation Polls and Sendbird Polls length mismatch for conversation_id: {conversation_id}")
+            info_logger.error(
+                (
+                    f"SendbirdMigration | Conversation Polls and Sendbird Polls length mismatch for conversation_id: {conversation_id}"
+                )
+            )
             return
 
         for index, sendbird_poll in enumerate(sendbird_polls):
@@ -146,8 +158,10 @@ class MigrateMessages:
                     # Fetch LM user_id
                     lm_user_id = MigrationUtils.get_lm_user_id_from_sendbird_user_id(user.uuid, self.community_id)
                     if not lm_user_id:
-                        print(
-                            f" _create_poll_votes | LM user_id not found for sendbird_user_id: {user.uuid}"
+                        info_logger.error(
+                            (
+                                f"SendbirdMigration | In _create_poll_votes LM user_id not found for sendbird_user_id: {user.uuid}"
+                            )
                         )
                         continue
 
@@ -159,9 +173,20 @@ class MigrateMessages:
                     # Submit Poll
                     response = ConversationImpl(member_id=lm_user_id).submit_poll(req_body)
                     if response.get("error_message"):
-                        print(f"Error in submit_poll: {response.get('error_message')} | lm_user_id: {lm_user_id} | conversation_id: {conversation_id} | poll_id: {poll_id} | option_id: {option_id}")
+                        info_logger.error(
+                            (
+                                f"SendbirdMigration | Error in submit_poll: {response.get('error_message')} |" 
+                                f"lm_user_id: {lm_user_id} | conversation_id: {conversation_id} | poll_id: {poll_id} "
+                                f"| option_id: {option_id}"
+                            )
+                        )
                     else:
-                        print(f"Poll submitted for lm_user_id: {lm_user_id} | conversation_id: {conversation_id} | poll_id: {poll_id} | option_id: {option}")
+                        info_logger.info(
+                            (
+                                f"SendbirdMigration | Poll submitted for lm_user_id: {lm_user_id} " 
+                                f"| conversation_id: {conversation_id} | poll_id: {poll_id} | option_id: {option_id}"
+                            )
+                        )
 
         return
 
@@ -172,12 +197,18 @@ class MigrateMessages:
 
         conversation_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY.format(community_id, sendbird_message_id))
         if conversation_id:
-            print(f"Conversation already created for sendbird_message_id: {sendbird_message_id}")
+            info_logger.info(
+                            f"SendbirdMigration | Conversation already created for sendbird_message_id: {sendbird_message_id}"
+                        )
             return
         else:
 
-            print(f"Create conversation for sendbird_message_id: {sendbird_message_id} with user_id: "
-                  f"{user_id} & request_body: {req_body}")
+            info_logger.info(
+                (
+                    f"SendbirdMigration | Created conversation for sendbird_message_id: {sendbird_message_id}"
+                    f" with user_id: {user_id} & request_body: {req_body}"
+                )
+            )
 
             conversation_response = self._create_conversation(
                 user_id=user_id,
@@ -194,32 +225,59 @@ class MigrateMessages:
             CacheImpl.set_cache(SENDBIRD_MESSAGE_MAP_KEY.format(community_id, sendbird_message_id), conversation_id,
                                 timeout=TTL_FOR_CACHE)
 
-            print(f"Conversation created for sendbird_message_id: {sendbird_message_id} with conversation_id: "
-                  f"{conversation_id} & chatroom_id: {chatroom_id}")
+            info_logger.info(
+                (
+                    f"SendbirdMigration | Conversation created for sendbird_message_id: {sendbird_message_id} "
+                    f" with conversation_id: {conversation_id} & chatroom_id: {chatroom_id}"
+                )
+            )
 
         if reactions:
 
-            print(f"Creating reactions for conversation_id: {conversation_id} with reactions: {reactions}")
+            info_logger.info(
+                (
+                    f"SendbirdMigration | Creating reactions for conversation_id: {conversation_id}" 
+                    f" with reactions: {reactions}"
+                )
+            )
 
             self._create_reactions_for_message(reactions, conversation_id, chatroom_id)
 
-            print(f"Reactions created for conversation_id: {conversation_id} with reactions: {reactions}")
+            info_logger.info(
+                (
+                    f"SendbirdMigration | Reactions created for conversation_id: {conversation_id} "
+                    f"with reactions: {reactions}"
+                )
+             )
 
         polls = conversation_response.get("conversation", {}).get("polls")
         if polls and poll_options:
-            
-            print(f"Creating poll votes for conversation_id: {conversation_id} with polls: {polls} & poll_options: {poll_options}")
+
+            info_logger.info(
+                (
+                    f"SendbirdMigration | Creating poll votes for conversation_id: {conversation_id}"
+                    f"with polls: {polls} & poll_options: {poll_options}"
+                )
+            )
 
             self._create_poll_votes(conversation_id, polls, poll_options)
 
-            print(f"Poll votes created for conversation_id: {conversation_id} with polls: {polls} & poll_options: {poll_options}")
+            info_logger.info(
+                (
+                    f"SendbirdMigration | Poll votes created for conversation_id: {conversation_id} " 
+                    f"with polls: {polls} & poll_options: {poll_options}"
+                )
+            )
 
         return conversation_response
 
     def create_all_messages(self):
 
-        print("*" * 50)
-        print(f"Total messages to be added: {len(self.messages_data)}")
+        info_logger.info(
+            (
+                f"SendbirdMigration | Total messages to be added: {len(self.messages_data)}"
+            )
+        )
 
         for message_data in self.messages_data:
             sendbird_message_id = message_data.sendbird_message_id
@@ -265,6 +323,11 @@ class MigrateMessages:
                 )
 
             except Exception as e:
-                print(f"Error in creating conversation for sendbird_message_id: {sendbird_message_id}: {e}")
-                traceback.print_exc()
+                info_logger.error(
+                    (
+                        f"SendbirdMigration | Error in creating conversation for sendbird_message_id: "
+                        f" {sendbird_message_id}: | Error: {e} | Traceback: {traceback.format_exc()}"
+                    )
+                )
+                
                 continue
