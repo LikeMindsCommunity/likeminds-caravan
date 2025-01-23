@@ -20,7 +20,7 @@ info_logger = LoggingWrapper.get_instance()
 error_logger = LoggingWrapper.get_instance()
 
 
-# TODO: Add Migration Symbol to all the logs. (And log everything to a file as well which can be stored to s3)
+# TODO: Log all the API data in a json file and push it to s3
 class SendbirdApiMigration:
 
     api_key: str = ""
