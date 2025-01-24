@@ -9,12 +9,14 @@ from ..constants import (TTL_FOR_CACHE, CHATROOM_IMAGE_S3_PATH, SENDBIRD_CHANNEL
 from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
 from togther.models import (
     ModelUtilities,
-    Collabcard
+    Collabcard,
+    card_answers
 )
 from utility.time_utilities import TimeUtilities
 from external_services.caching.cache_impl import CacheImpl
 
 from ..utils.lambda_utilities import LambdaUtilities
+from ..utils.migration_utils import MigrationUtils
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -72,6 +74,7 @@ class MigrateChannels:
         info_logger.info(f"SendbirdMigration | Total channels to be added: {len(self.channels_data)}")
 
         chatroom_instances_list = []
+        conversation_instances_list = []
 
         for channel_data in self.channels_data:
 
@@ -123,11 +126,13 @@ class MigrateChannels:
                     Collabcard, chatroom_id
                 )
 
+                channel_creation_time = MigrationUtils.ensure_epoch_in_ms(
+                    channel_data.created_at
+                )
+
                 if chatroom_instance:
-                    chatroom_instance.created_at = (
-                        TimeUtilities.convert_sec_to_milliseconds(channel_data.created_at)
-                    )
-                    chatroom_instance.date_epoch = channel_data.created_at
+                    chatroom_instance.created_at = channel_creation_time
+                    chatroom_instance.date_epoch = channel_creation_time
 
                     chatroom_instances_list.append(chatroom_instance)
 
@@ -149,14 +154,30 @@ class MigrateChannels:
                                 f"setting: {response_context.get('error_message')}"
                             )
                         )   
+
+                conversation_instance = ModelUtilities.get_model_filter(
+                    card_answers, { "card_id":  chatroom_id }
+                ).order_by("id").last()
+
+                if conversation_instance:
+                    conversation_instance.last_updated = channel_creation_time
+                    conversation_instance.created_at = channel_creation_time
+
+                    conversation_instances_list.append(conversation_instance)
+
             except Exception as e:
                 error_logger.error(
                     f"SendbirdMigration | Error in creating chatroom for channel: {channel_data.channel_url} | Error: {e}"
                     f" | Stack trace: {traceback.format_exc()}"
                 )
                 continue
-        
-        # Bulk update the instances
+
+        # Bulk update Chatroom instances
         ModelUtilities.bulk_update_instances(
             Collabcard, chatroom_instances_list, fields=["created_at", "date_epoch"]
+        )
+
+        # Bulk update Conversation instances
+        ModelUtilities.bulk_update_instances(
+            card_answers, conversation_instances_list, fields=["last_updated", "created_at"]
         )

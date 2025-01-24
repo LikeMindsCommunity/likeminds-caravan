@@ -14,6 +14,8 @@ from ..constants import (
     LIST_POLL_VOTERS_ENDPOINT,
     OPEN_CHANNELS_TYPE,
     GROUP_CHANNELS_TYPE,
+    ENDPOINT_TYPE_LIST_OPEN_CHANNEL_PARTICIPANTS,
+    LIST_OPEN_CHANNEL_PARTICIPANTS_ENDPOINT,
 )
 
 
@@ -31,7 +33,6 @@ class SendbirdApiUtils:
         self.base_url = SENDBIRD_API_BASE_URL.format(application_id)
 
         self._validate()
-
 
     def _validate(self):
 
@@ -96,6 +97,13 @@ class SendbirdApiUtils:
                 base_url, poll_id, poll_option_id
             )
 
+        elif endpoint_type == ENDPOINT_TYPE_LIST_OPEN_CHANNEL_PARTICIPANTS:
+            if not channel_url:
+                raise ValueError(
+                    "Channel URL is empty in _construct_url method for list_open_channel_participants"
+                )
+
+            return LIST_OPEN_CHANNEL_PARTICIPANTS_ENDPOINT.format(base_url, channel_url)
         else:
             raise ValueError(f"Invalid type: {endpoint_type} in _construct_url method")
 
@@ -123,7 +131,7 @@ class SendbirdApiUtils:
 
         if not application_id or not api_token:
             return {"error_message": "Application ID/Api Token is empty!"}
-        
+
         try:
 
             base_url = SENDBIRD_API_BASE_URL.format(application_id)
@@ -187,6 +195,7 @@ class SendbirdApiUtils:
 
         params = {
             "limit": chunk_size,
+            "show_member": True,  # Include members in Group channels
         }
 
         token = None
@@ -201,6 +210,35 @@ class SendbirdApiUtils:
             channels = response.get("channels")
 
             yield channels
+
+            if not token:
+                break
+
+    def yield_open_channel_participants(self, channel_url: str, chunk_size: int = 20):
+
+        if not channel_url:
+            raise ValueError("Channel URL is empty in yield_open_channel_participants method")
+
+        url = self._construct_url(
+            ENDPOINT_TYPE_LIST_OPEN_CHANNEL_PARTICIPANTS, channel_url=channel_url
+        )
+
+        params = {
+            "limit": chunk_size,
+        }
+
+        token = None
+        while True:
+
+            if token:
+                params["token"] = token
+
+            response = self._send_request("GET", url, params=params)
+
+            token = response.get("next")
+            participants = response.get("participants")
+
+            yield participants
 
             if not token:
                 break

@@ -18,21 +18,11 @@ class ChannelModel(BaseModel):
     members_can_message: bool = True
     type: int = card_types.CARD_NORMAL
 
-    @classmethod
-    @model_validator(mode="before")
-    def _validate_members(cls, data):
-        if data.get("is_public") is None:
-            data["members"] = data.get("participants")
-
-        return data
-
-    @classmethod
     @model_validator(mode="before")
     def _validate_is_secret(cls, data):
         data["is_secret"] = not data.get("is_public", True)
         return data
 
-    @classmethod
     @model_validator(mode="before")
     def _validate_members_can_message(cls, data):
         data["members_can_message"] = not data.get("freeze", False)

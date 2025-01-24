@@ -7,6 +7,7 @@ VERSION_CODE = 26
 SENDBIRD_API_BASE_URL = "https://api-{}.sendbird.com/v3"
 LIST_USERS_ENDPOINT = "{}/users"
 LIST_CHANNELS_ENDPOINT = "{}/{}"
+LIST_OPEN_CHANNEL_PARTICIPANTS_ENDPOINT = "{}/open_channels/{}/participants"
 LIST_MESSAGES_ENDPOINT = "{}/{}/{}/messages"
 LIST_POLL_OPTIONS = "{}/polls/{}"
 LIST_POLL_VOTERS_ENDPOINT = "{}/polls/{}/options/{}/voters"
@@ -17,6 +18,7 @@ ENDPOINT_TYPE_LIST_CHANNELS = "list_channels"
 ENDPOINT_TYPE_LIST_MESSAGES = "list_messages"
 ENDPOINT_TYPE_LIST_POLL_OPTIONS = "list_poll_options"
 ENDPOINT_TYPE_LIST_POLL_VOTERS = "list_poll_voters"
+ENDPOINT_TYPE_LIST_OPEN_CHANNEL_PARTICIPANTS = "list_open_channel_participants"
 
 # Sendbird Channel Types
 OPEN_CHANNELS_TYPE = "open_channels"
