@@ -16,6 +16,7 @@ from utility.time_utilities import TimeUtilities
 from external_services.caching.cache_impl import CacheImpl
 
 from ..utils.lambda_utilities import LambdaUtilities
+from ..utils.migration_utils import MigrationUtils
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -125,11 +126,13 @@ class MigrateChannels:
                     Collabcard, chatroom_id
                 )
 
-                chatroom_creation_time = TimeUtilities.current_time_in_milliseconds()
+                channel_creation_time = MigrationUtils.ensure_epoch_in_ms(
+                    channel_data.created_at
+                )
 
                 if chatroom_instance:
-                    chatroom_instance.created_at = chatroom_creation_time
-                    chatroom_instance.date_epoch = chatroom_creation_time
+                    chatroom_instance.created_at = channel_creation_time
+                    chatroom_instance.date_epoch = channel_creation_time
 
                     chatroom_instances_list.append(chatroom_instance)
 
@@ -157,8 +160,8 @@ class MigrateChannels:
                 ).order_by("id").last()
 
                 if conversation_instance:
-                    conversation_instance.last_updated = chatroom_creation_time
-                    conversation_instance.created_at = chatroom_creation_time
+                    conversation_instance.last_updated = channel_creation_time
+                    conversation_instance.created_at = channel_creation_time
 
                     conversation_instances_list.append(conversation_instance)
 
