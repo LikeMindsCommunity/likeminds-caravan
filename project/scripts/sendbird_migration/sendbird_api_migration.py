@@ -108,6 +108,23 @@ class SendbirdApiMigration:
             for channels in self.api_utils.yield_paginated_channels_list(
                 channel_type=channel_type
             ):
+                
+                if channel_type == OPEN_CHANNELS_TYPE:
+
+                    # Fetch open channel participants 
+                    for channel in channels:
+
+                        if not channel.get('participant_count'):
+                            continue
+
+                        members = []
+
+                        for participants in self.api_utils.yield_open_channel_participants(
+                            channel_url=channel.get("channel_url")
+                        ):
+                            members.extend(participants)
+
+                        channel["members"] = members
 
                 # Load up the channels and validate them
                 validated_channels = Channels(channels=channels).channels
