@@ -1,3 +1,4 @@
+import json, os
 from typing import Optional
 
 from external_services.caching.cache_impl import CacheImpl
@@ -10,6 +11,7 @@ from ..constants import (
     SENDBIRD_CHANNEL_MAP_KEY
 )
 
+from external_services.amazon_s3.s3_client_impl import S3ClientImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 info_logger = LoggingWrapper.get_instance()
@@ -96,3 +98,34 @@ class MigrationUtils:
             # Convert seconds to milliseconds
             return epoch_time * 1000
         return epoch_time
+
+    @staticmethod
+    def dump_data_to_json_file(file_path: str, data):
+
+        try:
+            # Dump data to a JSON file
+            if os.path.exists(file_path):
+                with open(file_path, "r+") as file:
+                    data = json.load(file)
+                    data.extend(data)
+                    file.seek(0)
+                    json.dump(data, file, indent=4)
+            else:
+                with open(file_path, "w") as file:
+                    json.dump(data, file, indent=4)
+
+        except Exception as e:
+            error_logger.error(
+                f"SendbirdMigration | Error while dumping messages to JSON file: {str(e)}"
+            )
+
+    @staticmethod
+    def upload_data_dump_to_s3(object_path: str, file_path: str):
+
+        # Upload the JSON file to S3
+        bucket_name = "likeminds-sendbird-migration" #TODO: move to constants and to beta and prod.py | Create bucket in s3 as well
+
+        s3_client = S3ClientImpl(bucket_name) 
+        s3_client.upload_file_to_s3_bucket(object_path=object_path, file_path=file_path)
+
+        info_logger.info(f"SendbirdMigration | Successfully uploaded {file_path} to S3")

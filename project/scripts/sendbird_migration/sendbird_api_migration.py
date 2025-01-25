@@ -1,14 +1,16 @@
-import time
+import time, os
 
 from .constants import (
     OPEN_CHANNELS_TYPE,
     GROUP_CHANNELS_TYPE,
+    MESSAGES_DUMP_JSON_FILE_PATH,
 )
 from .models.user import Users
 from .models.channel import Channels
 from .models.message import Messages
 from .utils.sendbird_utils import SendbirdApiUtils
 from .utils.likeminds_utils import LikemindsUtils
+from .utils.migration_utils import MigrationUtils
 
 from .migration.migrate_users import MigrateUsers
 from .migration.migrate_channels import MigrateChannels
@@ -16,6 +18,7 @@ from .migration.migrate_messages import MigrateMessages
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.caching.cache_impl import CacheImpl
+
 
 info_logger = LoggingWrapper.get_instance()
 error_logger = LoggingWrapper.get_instance()
@@ -147,9 +150,9 @@ class SendbirdApiMigration:
     def migrate_all_messages(self):
 
         # fetch cache keys for all chatrooms
-        cache_keys = CacheImpl.get_keys_for_pattern(f"sendbird_migration_{self.community_id}_channel_*")
+        channel_keys = CacheImpl.get_keys_for_pattern(f"sendbird_migration_{self.community_id}_channel_*")
 
-        for key in cache_keys:
+        for key in channel_keys:
 
             # Parse the key to get the channel_url
             channel_url = key.split("_")[-1]
@@ -157,10 +160,17 @@ class SendbirdApiMigration:
             # Parse channel type from channel_url
             channel_type = OPEN_CHANNELS_TYPE if channel_url.split("_")[1] == "open" else GROUP_CHANNELS_TYPE
 
+            messages_dump_file_path = MESSAGES_DUMP_JSON_FILE_PATH.format(channel_url)
+
             # Fetch messages for channel
             for messages in self.api_utils.yield_paginated_messages(
                 channel_type=channel_type, channel_url=channel_url
             ):
+
+                # Dump messages to a JSON file
+                MigrationUtils.dump_data_to_json_file(
+                    file_path=messages_dump_file_path, data=messages
+                )
 
                 # Add community_id & api_token to each messages
                 messages = self._add_metadata_to_messages(messages)
@@ -180,6 +190,13 @@ class SendbirdApiMigration:
 
                 info_logger.info(f"SendbirdMigration | Successfully migrated {len(messages)} messages for channel: {channel_url}")
 
+            MigrationUtils.upload_data_dump_to_s3(
+                object_path=messages_dump_file_path, file_path=f"{self.community_id}{messages_dump_file_path}"
+            )
+
+            # delete the json file
+            os.remove(messages_dump_file_path)
+
         return
 
     def migrate_all_data(self):
@@ -193,39 +210,3 @@ class SendbirdApiMigration:
         self.migrate_all_messages()
 
         return
-
-
-# channel_types = [OPEN_CHANNELS_TYPE, GROUP_CHANNELS_TYPE]
-
-# for channel_type in channel_types:
-
-#     # Fetch channels
-#     for channels in self.api_utils.yield_paginated_channels_list(
-#         channel_type=channel_type
-#     ):
-
-#         for channel in channels:
-#             channel_url = channel.get("channel_url")
-
-#             # Fetch messages for each channel
-#             for messages in self.api_utils.yield_paginated_messages(
-#                 channel_type=channel_type, channel_url=channel_url
-#             ):
-
-#                 # Add community_id & api_token to each messages
-#                 messages = self._add_metadata_to_messages(messages)
-
-#                 # Load up the messages and validate them
-#                 validated_messages = Messages(messages=messages).messages
-
-#                 # Migrate the messages
-#                 MigrateMessages(
-#                     api_key=self.api_key,
-#                     community_id=self.community_id,
-#                     platform_code=self.platform_code,
-#                     version_code=self.version_code,
-#                     messages_data=validated_messages,
-#                     sendbird_api_utils=self.api_utils,
-#                 ).create_all_messages()
-
-#                 info_logger.info(f"SendbirdMigration | Successfully migrated {len(messages)} messages for channel: {channel_url}")
