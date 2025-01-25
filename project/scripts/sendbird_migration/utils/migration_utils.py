@@ -82,8 +82,8 @@ class MigrationUtils:
 
         return CONVERSATION_FILE_S3_PATH.format(chatroom_id, user_id)
 
-    @staticmethod
     # function to replace mentions
+    @staticmethod
     def replace_mentions(text, users):
         while users:
             text = text.replace(MENTIONED_USERS_SYMBOL, users.pop(0), 1)
