@@ -1,6 +1,8 @@
 import json, os
 from typing import Optional
 
+from django.conf import settings
+
 from external_services.caching.cache_impl import CacheImpl
 from ..constants import (
     SENDBIRD_MESSAGE_MAP_KEY,
@@ -123,9 +125,11 @@ class MigrationUtils:
     def upload_data_dump_to_s3(object_path: str, file_path: str):
 
         # Upload the JSON file to S3
-        bucket_name = "likeminds-sendbird-migration" #TODO: move to constants and to beta and prod.py | Create bucket in s3 as well
+        bucket = (
+            settings.S3_BUCKETS.get("sendbird_migration")
+        )  
 
-        s3_client = S3ClientImpl(bucket_name) 
+        s3_client = S3ClientImpl(bucket) 
         s3_client.upload_file_to_s3_bucket(object_path=object_path, file_path=file_path)
 
         info_logger.info(f"SendbirdMigration | Successfully uploaded {file_path} to S3")
