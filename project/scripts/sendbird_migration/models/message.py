@@ -49,8 +49,8 @@ class AttachmentModel(BaseModel):
 
         url = data.get('url')
         if url:
-            file_path = MigrationUtils.get_file_path_for_conversation_files(data.get('chatroom_id'), 
-                                                                            data.get('user_id'))
+            file_path = MigrationUtils.get_file_path_for_conversation_files(
+                data.get('chatroom_id'), data.get('user_id'), url)
             attachment_url = LambdaUtilities.migrate_to_s3(
                 url, file_path, data.get("sendbird_api_token")
             )
@@ -91,8 +91,8 @@ class AttachmentModel(BaseModel):
     def validate_thumbnail_urls(data):
 
         if data.get('thumbnails'):
-            file_path = MigrationUtils.get_file_path_for_conversation_files(data.get('chatroom_id'),
-                                                                              data.get('user_id'))
+            file_path = MigrationUtils.get_file_path_for_conversation_files(
+                data.get('chatroom_id'), data.get('user_id'), url)
             url = data.get('thumbnails')[0].get('url')
             if url:
                 thumbnail_url = LambdaUtilities.migrate_to_s3(
@@ -135,8 +135,8 @@ class AttachmentModel(BaseModel):
 
         url = metadata.get('fileUrl')
         if url:
-            file_path = MigrationUtils.get_file_path_for_conversation_files(metadata.get('chatroom_id'),
-                                                                              metadata.get('user_id'))
+            file_path = MigrationUtils.get_file_path_for_conversation_files(
+                metadata.get('chatroom_id'), metadata.get('user_id'), url)
             attachment_url = LambdaUtilities.migrate_to_s3(
                 url, file_path, data.get("sendbird_api_token")
             )
@@ -145,8 +145,8 @@ class AttachmentModel(BaseModel):
 
         thumbnail_url = metadata.get('videoThumbnailUrl')
         if thumbnail_url:
-            file_path = MigrationUtils.get_file_path_for_conversation_files(metadata.get('chatroom_id'),
-                                                                              metadata.get('user_id'))
+            file_path = MigrationUtils.get_file_path_for_conversation_files(
+                metadata.get('chatroom_id'), metadata.get('user_id'), url)
             url = LambdaUtilities.migrate_to_s3(
                 thumbnail_url, file_path, data.get("sendbird_api_token")
             )

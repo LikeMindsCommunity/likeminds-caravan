@@ -23,7 +23,11 @@ class LambdaUtilities:
 
         headers = {"x-platform-type": "caravan-service"}
 
-        payload = {"file_url": file_url, "file_path": file_path, "is_prod": False}
+        payload = {
+            "file_url": file_url, 
+            "object_key": file_path, 
+            "is_prod": False
+        }
 
         if sendbird_api_token:
             payload["sendbird_api_token"] = sendbird_api_token

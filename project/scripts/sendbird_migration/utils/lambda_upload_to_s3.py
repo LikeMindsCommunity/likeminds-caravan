@@ -85,7 +85,6 @@ def download_file_from_url(file_url, sendbird_api_token: str):
 
 
 def upload_file_to_s3(object_key, is_prod):
-    temp_path = ""
 
     try:
 
@@ -104,7 +103,7 @@ def upload_file_to_s3(object_key, is_prod):
         return "", str(e)
 
     finally:
-        os.remove(temp_path)
+        os.remove(DOWNLOAD_PATH)
 
 
 def get_json_response(file_url, s3_url, err):

@@ -1,5 +1,6 @@
 import json, os
 from typing import Optional
+from pathlib import Path
 
 from django.conf import settings
 
@@ -13,6 +14,7 @@ from ..constants import (
     SENDBIRD_CHANNEL_MAP_KEY
 )
 
+from utility.time_utilities import TimeUtilities
 from external_services.amazon_s3.s3_client_impl import S3ClientImpl
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -75,16 +77,20 @@ class MigrationUtils:
         return lm_chatroom_id
 
     @staticmethod
-    def get_file_path_for_conversation_files(chatroom_id: int, user_id: int) -> str:
+    def get_file_path_for_conversation_files(chatroom_id: int, user_id: int, url: str) -> str:
 
-        if not (chatroom_id and user_id):
+        url_path = Path(url)
+
+        if not (chatroom_id and user_id and url):
             info_logger.error(
-                f"SendbirdMigration | No chatroom id or user_id found for conversation files."
+                f"SendbirdMigration | No chatroom id or user_id or url found for conversation files."
             )
 
             return DEFAULT_FILE_S3_PATH
 
-        return CONVERSATION_FILE_S3_PATH.format(chatroom_id, user_id)
+        file_name = f"{url_path.stem}-{str(TimeUtilities.current_time_in_milliseconds())}{url_path.suffix}"
+
+        return CONVERSATION_FILE_S3_PATH.format(chatroom_id, user_id, file_name)
 
     # function to replace mentions
     @staticmethod
