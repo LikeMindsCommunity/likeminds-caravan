@@ -4,6 +4,7 @@ from .constants import (
     OPEN_CHANNELS_TYPE,
     GROUP_CHANNELS_TYPE,
     MESSAGES_DUMP_JSON_FILE_PATH,
+    SENDBIRD_CHANNEL_MAP_KEY,
 )
 from .models.user import Users
 from .models.channel import Channels
@@ -150,7 +151,9 @@ class SendbirdApiMigration:
     def migrate_all_messages(self):
 
         # fetch cache keys for all chatrooms
-        channel_keys = CacheImpl.get_keys_for_pattern(f"sendbird_migration_{self.community_id}_channel_*")
+        channel_keys = CacheImpl.get_keys_for_pattern(
+            SENDBIRD_CHANNEL_MAP_KEY.format(self.community_id, "*")
+        )
 
         for key in channel_keys:
 
