@@ -40,6 +40,6 @@ SENDBIRD_MESSAGE_MAP_KEY = "sendbird_migration_{}_message_{}"  # community_id, s
 
 JSON_FILE_TYPE = ".json"
 
-USER_PROFILE_ROUTE = "<<[{}]|route://user_profile/[{}]>>"  # NAME, USER_ID
+USER_PROFILE_ROUTE = "<<{}|route://user_profile/{}>>"  # NAME, USER_ID
 
 MENTIONED_USERS_SYMBOL = "∞"  # Misfits symbol for mentioned users
