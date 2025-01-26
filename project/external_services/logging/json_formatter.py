@@ -23,24 +23,30 @@ class JsonFormatter(logging.Formatter):
             'module': record.module,
             'function': record.funcName,
             'line': record.lineno,
-            'message': record.getMessage(),
         }
 
-        # Parse HTTP request information if it's a server log
+        # Get the message and try to parse it if it's JSON
+        message = record.getMessage()
+        try:
+            message_dict = json.loads(message)
+            # Instead of putting the JSON string in 'message', expand it into the log_data
+            log_data.update(message_dict)
+        except json.JSONDecodeError:
+            # If message is not JSON, store it as is
+            log_data['message'] = message
+
+        # Rest of the HTTP request parsing logic for django.server
         if record.name == 'django.server':
-            message = log_data['message']
             try:
-                # Extract method and URI from messages like: "GET /api/sdk/mau_overview?no_of_months=3 HTTP/1.1" 200 392
                 if '"' in message:
-                    parts = message.split('"')  # Split by quotes
-                    request_part = parts[1]  # Get the part between quotes
-                    method = request_part.split()[0]  # First word is the method
-                    full_uri = request_part.split()[1]  # Second part is the URI
-                    url = full_uri.split('?')[0]  # Remove query parameters
+                    parts = message.split('"')
+                    request_part = parts[1]
+                    method = request_part.split()[0]
+                    full_uri = request_part.split()[1]
+                    url = full_uri.split('?')[0]
                     
-                    # Extract status code and response time from the end
-                    status_code = int(parts[-1].strip().split()[0])  # First number after the quoted part
-                    response_time = int(parts[-1].strip().split()[1])  # Second number after the quoted part
+                    status_code = int(parts[-1].strip().split()[0])
+                    response_time = int(parts[-1].strip().split()[1])
                     
                     log_data.update({
                         'method': method,
@@ -49,7 +55,7 @@ class JsonFormatter(logging.Formatter):
                         'response_time': response_time
                     })
             except (IndexError, ValueError):
-                pass  # If parsing fails, we just won't add these fields
+                pass
 
         # Add any extra attributes from the record
         if hasattr(record, 'props'):
