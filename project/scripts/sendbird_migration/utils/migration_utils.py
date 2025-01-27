@@ -114,10 +114,10 @@ class MigrationUtils:
             # Dump data to a JSON file
             if os.path.exists(file_path):
                 with open(file_path, "r+") as file:
-                    data = json.load(file)
-                    data.extend(data)
+                    file_data = json.load(file)
+                    file_data.extend(data)
                     file.seek(0)
-                    json.dump(data, file, indent=4)
+                    json.dump(file_data, file, indent=4)
             else:
                 with open(file_path, "w") as file:
                     json.dump(data, file, indent=4)
@@ -131,11 +131,10 @@ class MigrationUtils:
     def upload_data_dump_to_s3(object_path: str, file_path: str):
 
         # Upload the JSON file to S3
-        bucket = (
-            settings.S3_BUCKETS.get("sendbird_migration")
-        )  
+        bucket = settings.S3_BUCKETS.get("sendbird_migration")
 
         s3_client = S3ClientImpl(bucket) 
-        s3_client.upload_file_to_s3_bucket(object_path=object_path, file_path=file_path)
+        uploaded = s3_client.upload_file_to_s3_bucket(object_path=object_path, file_path=file_path)
 
-        info_logger.info(f"SendbirdMigration | Successfully uploaded {file_path} to S3")
+        if uploaded:
+            info_logger.info(f"SendbirdMigration | Successfully uploaded {file_path} to S3")

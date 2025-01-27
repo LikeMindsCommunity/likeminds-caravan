@@ -210,6 +210,25 @@ class MigrateMessages:
                 )
             )
 
+            # Join chatroom if chatroom is secret
+            from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
+
+            chatroom_manager = ChatroomImpl(user_id, chatroom_id=chatroom_id)
+
+            req_body = {
+                "chatroom_id": chatroom_id,
+                "secret_chatroom_participants": [user_id],
+                "is_channel_invite": False,
+            }
+
+            response = chatroom_manager.add_secret_chatroom_participant(req_body)
+            info_logger.info(
+                (
+                    f"SendbirdMigration | User joined chatroom for sendbird_message_id: {sendbird_message_id} "
+                    f"with user_id: {user_id} & chatroom_id: {chatroom_id} | response: {response}"
+                )
+            )
+
             conversation_response = self._create_conversation(
                 user_id=user_id,
                 platform_code=self.platform_code,
@@ -282,6 +301,20 @@ class MigrateMessages:
         for message_data in self.messages_data:
             sendbird_message_id = message_data.sendbird_message_id
 
+            if message_data.sendbird_parent_msg_id:
+                lm_parent_conversation_id = MigrationUtils.get_lm_id_from_sendbird_message_id(
+                    message_data.sendbird_parent_msg_id, self.community_id
+                )
+                if lm_parent_conversation_id:
+                    message_data.replied_conversation_id = lm_parent_conversation_id
+                else:
+                    info_logger.error(
+                        (
+                            f"SendbirdMigration | Parent conversation not found for sendbird_message_id: "
+                            f"{sendbird_message_id}"
+                        )
+                    )
+                    continue
             try:
                 request_body = message_data.model_dump(
                     include=[
@@ -329,5 +362,5 @@ class MigrateMessages:
                         f" {sendbird_message_id}: | Error: {e} | Traceback: {traceback.format_exc()}"
                     )
                 )
-                
+
                 continue

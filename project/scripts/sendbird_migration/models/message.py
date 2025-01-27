@@ -35,6 +35,7 @@ class AttachmentModel(BaseModel):
 
     attachment_message: str = ""
     replied_conversation_id: int = 0
+    sendbird_parent_msg_id: int = 0
 
     @staticmethod
     def _validate_file_name(data):
@@ -167,10 +168,11 @@ class AttachmentModel(BaseModel):
                 if not lm_id:
                     info_logger.error(
                         (
-                            f"SendbirdMigration | No conversation id found in the cache for " 
-                            f"sendbird message id: {parent_message_id}"
+                            f"SendbirdMigration | No conversation id found in the cache for "
+                            f"sendbird message id: {parent_message_id}. Adding it to sendbird_parent_msg_id"
                         )
                     )
+                    data["sendbird_parent_msg_id"] = parent_message_id
                 else:
                     data["replied_conversation_id"] = lm_id
 
@@ -263,6 +265,7 @@ class OgTagsModel(BaseModel):
 
 class MessageModel(BaseModel):
 
+    sendbird_parent_msg_id: int = 0
     sendbird_message_id: int = Field(alias="message_id")
     is_deleted: bool = Field(alias="is_removed", default=False)
     created_at: int = 0
@@ -399,24 +402,27 @@ class MessageModel(BaseModel):
         return data
 
     @staticmethod
-    def _validate_replied_conversation_id(data):
+    def _validate_parent_message_id(data):
 
-        if data.get('replied_conversation_id'):
+        parent_message_id = data.get("parent_message_id")
+        if parent_message_id:
 
             community_id = data.get("community_id")
             if not community_id:
                 raise PydanticCustomError("invalid_community_id", "No community id found in the message.")
 
             # Fetch LM conversation_id from cache
-            conversation_id = MigrationUtils.get_lm_id_from_sendbird_message_id(data.get('replied_conversation_id'),
-                                                                                  community_id)
+            conversation_id = MigrationUtils.get_lm_id_from_sendbird_message_id(
+                parent_message_id, community_id
+            )
             if not conversation_id:
                 info_logger.error(
                     (
                         f"SendbirdMigration | No conversation id found in the cache for sendbird message id: "
-                        f"{data.get('replied_conversation_id')}"
+                        f"{data.get('replied_conversation_id')}. Adding it to sendbird_parent_msg_id"
                     )
                 )
+                data["sendbird_parent_msg_id"] = parent_message_id
             else:
                 data["replied_conversation_id"] = conversation_id
 
@@ -534,10 +540,11 @@ class MessageModel(BaseModel):
                         if not lm_id:
                             info_logger.error(
                                 (
-                                    f"SendbirdMigration | No conversation id found in the cache for " 
-                                    f"sendbird message id: {parent_message_id}"
+                                    f"SendbirdMigration | No conversation id found in the cache for "
+                                    f"sendbird message id: {parent_message_id}. Adding it to sendbird_parent_msg_id"
                                 )
                             )
+                            data["sendbird_parent_msg_id"] = parent_message_id
                         else:
                             data["replied_conversation_id"] = lm_id
 
@@ -590,6 +597,9 @@ class MessageModel(BaseModel):
             if attachment.replied_conversation_id:
                 data["replied_conversation_id"] = attachment.replied_conversation_id
 
+            if attachment.sendbird_parent_msg_id:
+                data["sendbird_parent_msg_id"] = attachment.sendbird_parent_msg_id
+
         return data
 
     @model_validator(mode="before")
@@ -600,7 +610,7 @@ class MessageModel(BaseModel):
         data = cls._validate_message(data)
         data = cls._validate_chatroom_id(data)
         data = cls._validate_attachments(data)
-        data = cls._validate_replied_conversation_id(data)
+        data = cls._validate_parent_message_id(data)
         data = cls._validate_created_at(data)
         data = cls._validate_reactions(data)
         data = AttachmentModel.validate_thumbnail_urls(data)

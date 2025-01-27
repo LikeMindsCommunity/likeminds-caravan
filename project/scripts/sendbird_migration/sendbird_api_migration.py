@@ -152,18 +152,23 @@ class SendbirdApiMigration:
 
         # fetch cache keys for all chatrooms
         channel_keys = CacheImpl.get_keys_for_pattern(
-            SENDBIRD_CHANNEL_MAP_KEY.format(self.community_id, "*")
+            "*" + SENDBIRD_CHANNEL_MAP_KEY.format(self.community_id, "*")
         )
 
         for key in channel_keys:
 
             # Parse the key to get the channel_url
-            channel_url = key.split("_")[-1]
+            channel_url = str(key).split("channel_", 1)[1].rstrip("'")
 
             # Parse channel type from channel_url
             channel_type = OPEN_CHANNELS_TYPE if channel_url.split("_")[1] == "open" else GROUP_CHANNELS_TYPE
 
             messages_dump_file_path = MESSAGES_DUMP_JSON_FILE_PATH.format(channel_url)
+
+            # Create json file where we will dump chatroom messages
+            MigrationUtils.dump_data_to_json_file(
+                file_path=messages_dump_file_path, data=[]
+            )
 
             # Fetch messages for channel
             for messages in self.api_utils.yield_paginated_messages(
@@ -194,7 +199,7 @@ class SendbirdApiMigration:
                 info_logger.info(f"SendbirdMigration | Successfully migrated {len(messages)} messages for channel: {channel_url}")
 
             MigrationUtils.upload_data_dump_to_s3(
-                object_path=messages_dump_file_path, file_path=f"{self.community_id}{messages_dump_file_path}"
+                object_path=messages_dump_file_path, file_path=f"{self.community_id}/{messages_dump_file_path}"
             )
 
             # delete the json file
