@@ -436,7 +436,11 @@ def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
 def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     
     # Fetch sdk client record to fetch api key
-    sdk_client = SdkClient.objects.get(community=billingRecord.community)
+    try:
+        sdk_client = SdkClient.objects.get(community=billingRecord.community)
+    except Exception as e:
+        error_logger.error(f"Error fetching SdkClient for community {billingRecord.community}: {str(e)}")
+        return
 
     # If no record exists for given community, break the flow
     if not sdk_client:
