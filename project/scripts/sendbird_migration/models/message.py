@@ -551,6 +551,8 @@ class MessageModel(BaseModel):
                 media_type = metadata.get("type")
                 if media_type == "multi-media":
 
+                    data["text"] = "" # Set text to blank, as multi-media messages don't have text
+
                     attachments = metadata.get("metaData")
                     if attachments:
 
