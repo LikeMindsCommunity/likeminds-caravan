@@ -51,7 +51,7 @@ class MigrateMessages:
         )
 
         # Create Message
-        conversation_response = conversation_manager.create_conversation_v1(req_body)
+        conversation_response = conversation_manager.create_conversation_v1(req_body, internal_migration=True)
         if conversation_response.get("error_message"):
             raise ValueError(f"Error in create_conversation_v1: {conversation_response.get('error_message')} | "
                              f"req_body: {req_body} | user_id: {user_id}")
@@ -210,24 +210,7 @@ class MigrateMessages:
                 )
             )
 
-            # Join chatroom if chatroom is secret
-            from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
-
-            chatroom_manager = ChatroomImpl(user_id, chatroom_id=chatroom_id)
-
-            req_body = {
-                "chatroom_id": chatroom_id,
-                "secret_chatroom_participants": [user_id],
-                "is_channel_invite": False,
-            }
-
-            response = chatroom_manager.add_secret_chatroom_participant(req_body)
-            info_logger.info(
-                (
-                    f"SendbirdMigration | User joined chatroom for sendbird_message_id: {sendbird_message_id} "
-                    f"with user_id: {user_id} & chatroom_id: {chatroom_id} | response: {response}"
-                )
-            )
+            # self._join_secret_chatroom_before_create_conversation(user_id, chatroom_id, sendbird_message_id)
 
             conversation_response = self._create_conversation(
                 user_id=user_id,
@@ -290,6 +273,27 @@ class MigrateMessages:
 
         return conversation_response
 
+    def _join_secret_chatroom_before_create_conversation(self, user_id: int, chatroom_id: int, sendbird_message_id: str):
+
+        # Join chatroom if chatroom is secret
+        from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
+
+        chatroom_manager = ChatroomImpl(user_id, chatroom_id=chatroom_id)
+
+        req_body = {
+            "chatroom_id": chatroom_id,
+            "secret_chatroom_participants": [user_id],
+            "is_channel_invite": False,
+        }
+
+        response = chatroom_manager.add_secret_chatroom_participant(req_body)
+        info_logger.info(
+            (
+                f"SendbirdMigration | User joined chatroom for sendbird_message_id: {sendbird_message_id} "
+                f"with user_id: {user_id} & chatroom_id: {chatroom_id} | response: {response}"
+            )
+        )
+
     def create_all_messages(self):
 
         info_logger.info(
@@ -310,7 +314,7 @@ class MigrateMessages:
                 else:
                     info_logger.error(
                         (
-                            f"SendbirdMigration | Parent conversation not found for sendbird_message_id: "
+                            f"SendbirdMigration | No conversation id found in the cache for sendbird_parent_msg_id: "
                             f"{sendbird_message_id}"
                         )
                     )

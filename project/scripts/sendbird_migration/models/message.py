@@ -166,7 +166,7 @@ class AttachmentModel(BaseModel):
 
                 lm_id = MigrationUtils.get_lm_id_from_sendbird_message_id(parent_message_id, community_id)
                 if not lm_id:
-                    info_logger.error(
+                    info_logger.info(
                         (
                             f"SendbirdMigration | No conversation id found in the cache for "
                             f"sendbird message id: {parent_message_id}. Adding it to sendbird_parent_msg_id"
@@ -416,7 +416,7 @@ class MessageModel(BaseModel):
                 parent_message_id, community_id
             )
             if not conversation_id:
-                info_logger.error(
+                info_logger.info(
                     (
                         f"SendbirdMigration | No conversation id found in the cache for sendbird message id: "
                         f"{data.get('replied_conversation_id')}. Adding it to sendbird_parent_msg_id"
@@ -538,7 +538,7 @@ class MessageModel(BaseModel):
 
                         lm_id = MigrationUtils.get_lm_id_from_sendbird_message_id(parent_message_id, community_id)
                         if not lm_id:
-                            info_logger.error(
+                            info_logger.info(
                                 (
                                     f"SendbirdMigration | No conversation id found in the cache for "
                                     f"sendbird message id: {parent_message_id}. Adding it to sendbird_parent_msg_id"
