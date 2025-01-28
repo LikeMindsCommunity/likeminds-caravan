@@ -955,7 +955,7 @@ class ConversationImpl(ConversationManager):
 
         return conversation_response
 
-    def create_conversation_v1(self, req_body: dict) -> {}:
+    def create_conversation_v1(self, req_body: dict, internal_migration: bool = False) -> {}:
         chatroom_id = req_body.get('chatroom_id', None)
         has_files = req_body.get('has_files', False)
         replied_conversation_id = req_body.get('replied_conversation_id')
@@ -986,7 +986,7 @@ class ConversationImpl(ConversationManager):
 
         community_instance = chatroom_instance.community
 
-        if chatroom_instance.is_secret and \
+        if not internal_migration and chatroom_instance.is_secret and \
                 not ConversationHelper.is_user_secret_chatroom_participant(chatroom_instance, self.get_member_id()):
             return ResponseUtilities.get_impl_error_context('You are not a part of this secret chatroom',
                                                             status_codes.HTTP_400_BAD_REQUEST)
@@ -1068,9 +1068,10 @@ class ConversationImpl(ConversationManager):
 
                 self._fill_poll_options(user_instance, conversation_instance, req_body)
 
-                ConversationHelper.auto_follow_chatroom(chatroom_instance, chatroom_state_instance,
-                                                        conversation_instance, user_instance, member_state,
-                                                        trigger_webhook=True)
+                if not internal_migration:
+                    ConversationHelper.auto_follow_chatroom(chatroom_instance, chatroom_state_instance,
+                                                            conversation_instance, user_instance, member_state,
+                                                            trigger_webhook=True)
 
                 tagged_members_list, is_group_tag = ConversationHelper.auto_follow_for_tagged_members(
                     chatroom_instance, conversation_instance)
@@ -1083,17 +1084,18 @@ class ConversationImpl(ConversationManager):
                 # Updating the updated_at of Collabcard schema
                 chatroom_instance.save()
 
-            ConversationHelper.run_async_task_on_conversation_create.delay(user_id=user_instance.id,
-                                                                           chatroom_id=chatroom_instance.id,
-                                                                           conversation_id=conversation_instance.id,
-                                                                           req_body=req_body,
-                                                                           member_state=member_state,
-                                                                           trigger_webhook=True,
-                                                                           attachments_data=attachments_data,
-                                                                           tagged_members_list=tagged_members_list,
-                                                                           is_group_tag=is_group_tag,
-                                                                           all_files_uploaded=all_files_uploaded)
-            
+            if not internal_migration:
+                ConversationHelper.run_async_task_on_conversation_create.delay(user_id=user_instance.id,
+                                                                            chatroom_id=chatroom_instance.id,
+                                                                            conversation_id=conversation_instance.id,
+                                                                            req_body=req_body,
+                                                                            member_state=member_state,
+                                                                            trigger_webhook=True,
+                                                                            attachments_data=attachments_data,
+                                                                            tagged_members_list=tagged_members_list,
+                                                                            is_group_tag=is_group_tag,
+                                                                            all_files_uploaded=all_files_uploaded)
+                
             # Trigger chatbot for direct message conversation
             if trigger_bot and chatroom_instance.type == card_types.CARD_DIRECT_MESSAGE:
                 ConversationHelper.trigger_chatbot_for_chatroom_against_conversation.delay(

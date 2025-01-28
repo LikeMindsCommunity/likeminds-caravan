@@ -2,6 +2,7 @@ from external_services.caching.cache_manager import CacheManager
 import redis
 from django.conf import settings
 from django.core.cache import cache
+from django_redis import get_redis_connection
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -99,4 +100,24 @@ class CacheImpl(CacheManager):
             error_logger.error(e.args)
 
         return result
+    
+    @staticmethod
+    def get_keys_for_pattern(pattern: str):
+        """
+        Get all keys matching a specific pattern in Redis using Django cache.
 
+        Args:
+            pattern (str): The pattern to match keys.
+
+        Returns:
+            list: A list of keys matching the pattern.
+        """
+        try:
+            # Get the Redis connection from Django cache
+            redis_client = get_redis_connection("default")
+            keys = redis_client.keys(pattern)
+            return keys
+        except Exception as e:
+            print(f"Error retrieving keys for pattern {pattern}: {e}")
+            return []
+            

@@ -27,8 +27,10 @@ GROUP_CHANNELS_TYPE = "group_channels"
 # S3 Paths for Media files
 USER_PROFILE_IMAGE_S3_PATH = "files/profile/{}/{}-{}"
 CHATROOM_IMAGE_S3_PATH = "files/chatroom/image/{}"
-CONVERSATION_FILE_S3_PATH = "files/collabcard/{}/conversation/{}/"  # Chatroom ID, user_id
+CONVERSATION_FILE_S3_PATH = "files/collabcard/{}/conversation/{}/{}"  # Chatroom ID, user_id, file_name
 DEFAULT_FILE_S3_PATH = "files/"
+
+MESSAGES_DUMP_JSON_FILE_PATH = "{}_messages.json"
 
 # TTL for Sendbird -> LM ID Mapping Cache
 TTL_FOR_CACHE = 60 * 60 * 60

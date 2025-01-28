@@ -65,11 +65,16 @@ CORALOGIX_LOGGER = {
 }
 
 S3_BUCKETS = {
-    'media_bucket': {
-        'arn': 'arn:aws:s3:::beta-likeminds-media',
-        'name': 'beta-likeminds-media',
-        'region': 'ap-south-1'
-    }
+    "media_bucket": {
+        "arn": "arn:aws:s3:::beta-likeminds-media",
+        "name": "beta-likeminds-media",
+        "region": "ap-south-1",
+    },
+    "sendbird_migration": {
+        "arn": "arn:aws:s3:::sendbird-migration-dump",
+        "name": "sendbird-migration-dump",
+        "region": "ap-south-1",
+    },
 }
 
 GHUPSHUP_KEY = "03f92dd7cbf3b983d8c9a4dc7ac485c7"
