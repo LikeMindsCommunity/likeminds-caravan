@@ -4,12 +4,13 @@ from collabmates_api.raw_queries import get_users_meta_info
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from django.conf import settings
-from datetime import date
+from datetime import date, datetime
 from dateutil import relativedelta
 from celery import shared_task
 from project.celery import app
 import requests
 import json
+import boto3
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -432,6 +433,93 @@ def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
 
     return filters
 
+def create_cloudwatch_filter_pattern(api_key: str, sdk_source: str):
+    """Create CloudWatch Logs filter pattern based on API key and SDK source"""
+    
+    filter_initiate = '{ ($.log_processed.text.request.absolute_uri = %api/sdk/initiate%) && ' + \
+               '($.log_processed.text.request.headers.sdk_source = "' + sdk_source + '" ) && ' + \
+               '($.log_processed.text.request.headers.api_key = "' + api_key + '") }'
+    
+    filter_chatroom = '{ $.log_processed.text.request.headers.api_key = "' + api_key + '" && ' + \
+                  '$.log_processed.text.request.headers.sdk_source = "' + sdk_source + '" && ' + \
+                  '($.log_processed.text.request.absolute_uri = %api/v2/fetch_chatroom% || ' + \
+                  '$.log_processed.text.request.absolute_uri = %api/chatroom/fetch%) }'
+    
+    if sdk_source == 'feed':
+        return [filter_initiate]
+    
+    elif sdk_source == 'chat':
+        # Split into two separate filter patterns to avoid regex limitation
+        return [filter_initiate, filter_chatroom]
+    
+    return ''
+
+def get_cloudwatch_logs_data(filter_patterns: list):
+    """Query CloudWatch Logs using the filter pattern(s)"""
+    client = boto3.client('logs',
+                         region_name=settings.AWS_REGION,
+                         aws_access_key_id=settings.CLOUDWATCH_AWS_ACCESS_KEY_ID,
+                         aws_secret_access_key=settings.CLOUDWATCH_AWS_SECRET_ACCESS_KEY)
+    hits = []
+
+    # Calculate time range (last 24 hours)
+    end_time = int(datetime.now().timestamp() * 1000)
+    start_time = end_time - (24 * 60 * 60 * 1000)
+
+    try:
+        paginator = client.get_paginator('filter_log_events')
+        log_group_name = settings.CLOUDWATCH_LOG_GROUP
+        
+        for pattern in filter_patterns:
+            for page in paginator.paginate(
+                logGroupName=log_group_name,
+                startTime=start_time,
+                endTime=end_time,
+                filterPattern=pattern
+            ):
+                for event in page.get('events', []):
+                    try:
+                        log_entry = json.loads(event['message'])
+                        hits.append({
+                            'log': log_entry.get('log_processed', {}).get('text', {}).get('request', {})
+                        })
+                    except json.JSONDecodeError:
+                        error_logger.error(f'Error parsing CloudWatch log message: {event["message"]}')
+                        continue
+                
+    except Exception as e:
+        error_logger.error(f'Error querying CloudWatch Logs: {str(e)}')
+    
+    return hits
+
+def getUserListFromCloudWatchData(cloudwatch_data):
+    """Extract user IDs from CloudWatch Logs data"""
+    users_list = set()
+
+    if cloudwatch_data:
+        for entry in cloudwatch_data:
+            if not entry.get('log'):
+                continue
+
+            request_entry = entry['log']
+            
+            if not request_entry:
+                continue
+
+            # Extract user ID from headers
+            if request_entry.get('headers', {}).get('x_member_id'):
+                users_list.add(request_entry['headers']['x_member_id'])
+
+            # Extract user ID from query params if present
+            if request_entry.get('query', {}).get('uuid'):
+                users_list.add(request_entry['query']['uuid'])
+
+            # Extract user ID from body if present
+            if request_entry.get('body', {}).get('user_unique_id'):
+                users_list.add(request_entry['body']['user_unique_id'])
+
+    return users_list
+
 
 def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     
@@ -446,22 +534,22 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     if not sdk_client:
         return
 
-    filters = create_full_text_search_coralogix_filter(sdk_client.api_key, billingRecord.sdk)
+    filters = create_cloudwatch_filter_pattern(sdk_client.api_key, billingRecord.sdk)
 
-    # Fetch coralogix data for above generated filters
-    coralogixData = getCoralogixData(filters)
+    # Fetch cloudwatch data for above generated filters
+    cloudwatchData = get_cloudwatch_logs_data(filters)
 
-    # Fetch unique user Ids from above fetched coralogix data
-    users_list = getUserListFromCoralogixData(coralogixData)
+    # Fetch unique user Ids from above fetched cloudwatch data
+    users_list = getUserListFromCloudWatchData(cloudwatchData)
 
     if not users_list:
         # Logging user list received from coralogix
-        info_logger.info("""MAU Tracker Coralogix Data: {}[{}] - No Data Found """.format(billingRecord.community.name,
+        info_logger.info("""MAU Tracker Cloudwatch Data: {}[{}] - No Data Found """.format(billingRecord.community.name,
                                                                                           billingRecord.sdk))
         return
 
     # Logging user list received from coralogix
-    info_logger.info("""MAU Tracker Coralogix Data: {}[{}] ({}) - {} """.format(billingRecord.community.name,
+    info_logger.info("""MAU Tracker Cloudwatch Data: {}[{}] ({}) - {} """.format(billingRecord.community.name,
                                                                                 billingRecord.sdk,
                                                                                 len(users_list),
                                                                                 users_list))
