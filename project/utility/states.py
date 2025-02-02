@@ -1200,3 +1200,13 @@ class CommunityIntegrationStatusTypes(models.TextChoices):
 class SyncConversationsOrderTypes(ExtendedEnum):
     ASCENDING = "ASC"
     DESCENDING = "DESC"
+
+
+class ReplyPrivatelyAllowedScope(ExtendedEnum):
+    NO_ONE = "NO_ONE"
+    ALL_MEMBERS = "ALL_MEMBERS"
+    ONLY_CMS = "ONLY_CMS"
+
+
+class LMWidgetType(ExtendedEnum):
+    REPLY_PRIVATELY = "REPLY_PRIVATELY"
