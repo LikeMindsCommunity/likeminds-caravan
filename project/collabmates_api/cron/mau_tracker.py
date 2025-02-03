@@ -438,19 +438,24 @@ def create_cloudwatch_filter_pattern(api_key: str, sdk_source: str):
     if sdk_source == 'feed':
         # JSON filter syntax for CloudWatch Logs
         return '{ ($.log_processed.text.request.absolute_uri = %api/sdk/initiate%) && ' + \
+               '($.log_processed.text.request.headers.sdk_source = "' + sdk_source + '" ) && ' + \
                '($.log_processed.text.request.headers.api_key = "' + api_key + '") }'
     elif sdk_source == 'chat':
         return '{ ($.log_processed.text.request.absolute_uri = %api/sdk/initiate%) || ' + \
                '($.log_processed.text.request.absolute_uri = %api/v2/fetch_chatroom%) || ' + \
                '($.log_processed.text.request.absolute_uri = %api/chatroom/fetch%) && ' + \
+               '($.log_processed.text.request.headers.sdk_source = "' + sdk_source + '" ) && ' + \
                '($.log_processed.text.request.headers.api_key = "' + api_key + '") }'
     return ''
 
 def get_cloudwatch_logs_data(filter_pattern: str):
     """Query CloudWatch Logs using the filter pattern"""
-    client = boto3.client('logs')
+    client = boto3.client('logs',
+                         region_name=settings.AWS_REGION,
+                         aws_access_key_id=settings.CLOUDWATCH_AWS_ACCESS_KEY_ID,
+                         aws_secret_access_key=settings.CLOUDWATCH_AWS_SECRET_ACCESS_KEY)
     hits = []
-    
+
     # Calculate time range (last 24 hours)
     end_time = int(datetime.now().timestamp() * 1000)
     start_time = end_time - (24 * 60 * 60 * 1000)
@@ -467,7 +472,7 @@ def get_cloudwatch_logs_data(filter_pattern: str):
             endTime=end_time,
             filterPattern=filter_pattern,
             PaginationConfig={
-                'PageSize': 500
+                'PageSize': 1000
             }
         ):
             for event in page.get('events', []):
@@ -531,10 +536,10 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     filters = create_cloudwatch_filter_pattern(sdk_client.api_key, billingRecord.sdk)
 
     # Fetch coralogix data for above generated filters
-    coralogixData = get_cloudwatch_logs_data(filters)
+    cloudwatchData = get_cloudwatch_logs_data(filters)
 
     # Fetch unique user Ids from above fetched coralogix data
-    users_list = getUserListFromCloudWatchData(coralogixData)
+    users_list = getUserListFromCloudWatchData(cloudwatchData)
 
     if not users_list:
         # Logging user list received from coralogix
