@@ -435,21 +435,27 @@ def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
 
 def create_cloudwatch_filter_pattern(api_key: str, sdk_source: str):
     """Create CloudWatch Logs filter pattern based on API key and SDK source"""
+    
+    filter_initiate = '{ ($.log_processed.text.request.absolute_uri = %api/sdk/initiate%) && ' + \
+               '($.log_processed.text.request.headers.sdk_source = "' + sdk_source + '" ) && ' + \
+               '($.log_processed.text.request.headers.api_key = "' + api_key + '") }'
+    
+    filter_chatroom = '{ $.log_processed.text.request.headers.api_key = "' + api_key + '" && ' + \
+                  '$.log_processed.text.request.headers.sdk_source = "' + sdk_source + '" && ' + \
+                  '($.log_processed.text.request.absolute_uri = "%api/v2/fetch_chatroom%" || ' + \
+                  '$.log_processed.text.request.absolute_uri = "%api/chatroom/fetch%") }'
+    
     if sdk_source == 'feed':
-        # JSON filter syntax for CloudWatch Logs
-        return '{ ($.log_processed.text.request.absolute_uri = %api/sdk/initiate%) && ' + \
-               '($.log_processed.text.request.headers.sdk_source = "' + sdk_source + '" ) && ' + \
-               '($.log_processed.text.request.headers.api_key = "' + api_key + '") }'
+        return [filter_initiate]
+    
     elif sdk_source == 'chat':
-        return '{ ($.log_processed.text.request.absolute_uri = %api/sdk/initiate%) || ' + \
-               '($.log_processed.text.request.absolute_uri = %api/v2/fetch_chatroom%) || ' + \
-               '($.log_processed.text.request.absolute_uri = %api/chatroom/fetch%) && ' + \
-               '($.log_processed.text.request.headers.sdk_source = "' + sdk_source + '" ) && ' + \
-               '($.log_processed.text.request.headers.api_key = "' + api_key + '") }'
+        # Split into two separate filter patterns to avoid regex limitation
+        return [filter_initiate, filter_chatroom]
+    
     return ''
 
-def get_cloudwatch_logs_data(filter_pattern: str):
-    """Query CloudWatch Logs using the filter pattern"""
+def get_cloudwatch_logs_data(filter_patterns: list):
+    """Query CloudWatch Logs using the filter pattern(s)"""
     client = boto3.client('logs',
                          region_name=settings.AWS_REGION,
                          aws_access_key_id=settings.CLOUDWATCH_AWS_ACCESS_KEY_ID,
@@ -462,29 +468,24 @@ def get_cloudwatch_logs_data(filter_pattern: str):
 
     try:
         paginator = client.get_paginator('filter_log_events')
-        
-        # Use settings to get log group name
         log_group_name = settings.CLOUDWATCH_LOG_GROUP
         
-        for page in paginator.paginate(
-            logGroupName=log_group_name,
-            startTime=start_time,
-            endTime=end_time,
-            filterPattern=filter_pattern,
-            PaginationConfig={
-                'PageSize': 1000
-            }
-        ):
-            for event in page.get('events', []):
-                try:
-                    # Parse the complete log entry
-                    log_entry = json.loads(event['message'])
-                    hits.append({
-                        'log': log_entry.get('log_processed', {}).get('text', {}).get('request', {})
-                    })
-                except json.JSONDecodeError:
-                    error_logger.error(f'Error parsing CloudWatch log message: {event["message"]}')
-                    continue
+        for pattern in filter_patterns:
+            for page in paginator.paginate(
+                logGroupName=log_group_name,
+                startTime=start_time,
+                endTime=end_time,
+                filterPattern=pattern
+            ):
+                for event in page.get('events', []):
+                    try:
+                        log_entry = json.loads(event['message'])
+                        hits.append({
+                            'log': log_entry.get('log_processed', {}).get('text', {}).get('request', {})
+                        })
+                    except json.JSONDecodeError:
+                        error_logger.error(f'Error parsing CloudWatch log message: {event["message"]}')
+                        continue
                 
     except Exception as e:
         error_logger.error(f'Error querying CloudWatch Logs: {str(e)}')
@@ -535,20 +536,20 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
 
     filters = create_cloudwatch_filter_pattern(sdk_client.api_key, billingRecord.sdk)
 
-    # Fetch coralogix data for above generated filters
+    # Fetch cloudwatch data for above generated filters
     cloudwatchData = get_cloudwatch_logs_data(filters)
 
-    # Fetch unique user Ids from above fetched coralogix data
+    # Fetch unique user Ids from above fetched cloudwatch data
     users_list = getUserListFromCloudWatchData(cloudwatchData)
 
     if not users_list:
         # Logging user list received from coralogix
-        info_logger.info("""MAU Tracker Coralogix Data: {}[{}] - No Data Found """.format(billingRecord.community.name,
+        info_logger.info("""MAU Tracker Cloudwatch Data: {}[{}] - No Data Found """.format(billingRecord.community.name,
                                                                                           billingRecord.sdk))
         return
 
     # Logging user list received from coralogix
-    info_logger.info("""MAU Tracker Coralogix Data: {}[{}] ({}) - {} """.format(billingRecord.community.name,
+    info_logger.info("""MAU Tracker Cloudwatch Data: {}[{}] ({}) - {} """.format(billingRecord.community.name,
                                                                                 billingRecord.sdk,
                                                                                 len(users_list),
                                                                                 users_list))
