@@ -11,6 +11,7 @@ from project.celery import app
 import requests
 import json
 import boto3
+import time
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -433,95 +434,99 @@ def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
 
     return filters
 
-def create_cloudwatch_filter_pattern(api_key: str, sdk_source: str):
-    """Create CloudWatch Logs filter pattern based on API key and SDK source"""
-    
-    filter_initiate = '{ ($.log_processed.text.request.absolute_uri = %api/sdk/initiate%) && ' + \
-               '($.log_processed.text.request.headers.sdk_source = "' + sdk_source + '" ) && ' + \
-               '($.log_processed.text.request.headers.api_key = "' + api_key + '") }'
-    
-    filter_chatroom = '{ $.log_processed.text.request.headers.api_key = "' + api_key + '" && ' + \
-                  '$.log_processed.text.request.headers.sdk_source = "' + sdk_source + '" && ' + \
-                  '($.log_processed.text.request.absolute_uri = %api/v2/fetch_chatroom% || ' + \
-                  '$.log_processed.text.request.absolute_uri = %api/chatroom/fetch%) }'
-    
-    if sdk_source == 'feed':
-        return [filter_initiate]
-    
-    elif sdk_source == 'chat':
-        # Split into two separate filter patterns to avoid regex limitation
-        return [filter_initiate, filter_chatroom]
-    
-    return ''
+def getFilteredCloudwatchLogs():
 
-def get_cloudwatch_logs_data(filter_patterns: list):
-    """Query CloudWatch Logs using the filter pattern(s)"""
-    client = boto3.client('logs',
-                         region_name=settings.AWS_REGION,
-                         aws_access_key_id=settings.CLOUDWATCH_AWS_ACCESS_KEY_ID,
-                         aws_secret_access_key=settings.CLOUDWATCH_AWS_SECRET_ACCESS_KEY)
-    hits = []
+    client = boto3.client('logs')
 
-    # Calculate time range (last 24 hours)
-    end_time = int(datetime.now().timestamp() * 1000)
-    start_time = end_time - (24 * 60 * 60 * 1000)
+    query = f"""
+    fields  log_processed.text.request.headers.api_key,
+            log_processed.text.request.headers.sdk_source,
+            log_processed.text.request.body.user_unique_id,
+            log_processed.text.request.headers.x_member_id,
+            log_processed.text.request.query.uuid
+    | filter kubernetes.container_name = "caravan-beta"
+    | filter log_processed.text.request.absolute_uri like "api/sdk/initiate"
+        or log_processed.text.request.absolute_uri like "api/chatroom/fetch"
+        or log_processed.text.request.absolute_uri like "api/v2/fetch_chatroom"
+    | sort @timestamp desc
+    """
 
     try:
-        paginator = client.get_paginator('filter_log_events')
-        log_group_name = settings.CLOUDWATCH_LOG_GROUP
-        
-        for pattern in filter_patterns:
-            for page in paginator.paginate(
-                logGroupName=log_group_name,
-                startTime=start_time,
-                endTime=end_time,
-                filterPattern=pattern
-            ):
-                for event in page.get('events', []):
-                    try:
-                        log_entry = json.loads(event['message'])
-                        hits.append({
-                            'log': log_entry.get('log_processed', {}).get('text', {}).get('request', {})
-                        })
-                    except json.JSONDecodeError:
-                        error_logger.error(f'Error parsing CloudWatch log message: {event["message"]}')
-                        continue
-                
-    except Exception as e:
-        error_logger.error(f'Error querying CloudWatch Logs: {str(e)}')
-    
-    return hits
+        response = client.start_query(
+            logGroupName=settings.CLOUDWATCH_LOG_GROUP,
+            startTime=int((datetime.now() - relativedelta.relativedelta(days=1)).timestamp()),
+            endTime=int(datetime.now().timestamp()),
+            queryString=query
+        )
 
-def getUserListFromCloudWatchData(cloudwatch_data):
+        # polling loop to wait for results
+        while True:
+            logs = client.get_query_results(queryId=response['queryId'])
+            status = logs['status']
+            
+            if status in ['Complete', 'Failed', 'Cancelled']:
+                break
+                
+            time.sleep(1)  # Wait 1 second before checking again
+
+        if status in ['Failed', 'Cancelled']:
+            return []
+        
+        # Transform the field names in the response
+        if 'results' in logs:
+            for result in logs['results']:
+                for field in result:
+                    if field['field'] == 'log_processed.text.request.headers.api_key':
+                        field['field'] = 'api_key'
+                    elif field['field'] == 'log_processed.text.request.headers.sdk_source':
+                        field['field'] = 'sdk_source'
+                    elif field['field'] == 'log_processed.text.request.body.user_unique_id':
+                        field['field'] = 'user_unique_id'
+                    elif field['field'] == 'log_processed.text.request.headers.x_member_id':
+                        field['field'] = 'x_member_id'
+                    elif field['field'] == 'log_processed.text.request.query.uuid':
+                        field['field'] = 'uuid'
+
+            return logs['results']
+        else:
+            return []
+
+    except Exception as e:
+        error_logger.error(f"Error querying CloudWatch Logs: {str(e)}")
+        return []
+
+def getUserListFromCloudWatchData(cloudwatch_data, api_key, sdk_source):
     """Extract user IDs from CloudWatch Logs data"""
     users_list = set()
 
-    if cloudwatch_data:
-        for entry in cloudwatch_data:
-            if not entry.get('log'):
-                continue
+    if not cloudwatch_data:
+        return users_list
 
-            request_entry = entry['log']
-            
-            if not request_entry:
-                continue
+    # Group fields by result entry using @ptr as identifier
+    for result in cloudwatch_data:
+        entry_api_key = None
+        entry_sdk_source = None
+        
+        # First check if this entry matches our api_key and sdk_source
+        for field in result:
+            if field['field'] == 'api_key':
+                entry_api_key = field['value']
+            elif field['field'] == 'sdk_source':
+                entry_sdk_source = field['value']
+        
+        # Skip if entry doesn't match our filters
+        if entry_api_key != api_key or entry_sdk_source != sdk_source:
+            continue
 
-            # Extract user ID from headers
-            if request_entry.get('headers', {}).get('x_member_id'):
-                users_list.add(request_entry['headers']['x_member_id'])
-
-            # Extract user ID from query params if present
-            if request_entry.get('query', {}).get('uuid'):
-                users_list.add(request_entry['query']['uuid'])
-
-            # Extract user ID from body if present
-            if request_entry.get('body', {}).get('user_unique_id'):
-                users_list.add(request_entry['body']['user_unique_id'])
+        # Extract user IDs from various fields
+        for field in result:
+            if field['field'] in ['x_member_id', 'uuid', 'user_unique_id']:
+                users_list.add(field['value'])
 
     return users_list
 
 
-def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
+def updateUniqueUsersOfACommunityBillingEntry(billingRecord, cloudwatchData):
     
     # Fetch sdk client record to fetch api key
     try:
@@ -534,13 +539,8 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
     if not sdk_client:
         return
 
-    filters = create_cloudwatch_filter_pattern(sdk_client.api_key, billingRecord.sdk)
-
-    # Fetch cloudwatch data for above generated filters
-    cloudwatchData = get_cloudwatch_logs_data(filters)
-
     # Fetch unique user Ids from above fetched cloudwatch data
-    users_list = getUserListFromCloudWatchData(cloudwatchData)
+    users_list = getUserListFromCloudWatchData(cloudwatchData, sdk_client.api_key, billingRecord.sdk)
 
     if not users_list:
         # Logging user list received from coralogix
@@ -569,7 +569,6 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord):
             ModelUtilities.update_or_create_model(ActiveUser, {'billing': billingRecord,
                                                                'uuid': user.get('user_unique_id')}, {})
 
-
 def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
     # Fetch active user IDs for a specific billing record
     activeUsers = list(ModelUtilities.get_model_filter(ActiveUser,
@@ -583,7 +582,6 @@ def updateUniqueUsersDataOfACommunityInActiveMonthlyData(billingRecord, today):
                                           {'mau_count': len(activeUsers),
                                            'users_list': json.dumps(activeUsers)})
 
-
 @shared_task
 def track():
     # Logging process stage
@@ -592,6 +590,9 @@ def track():
     # Fetch all the billing records for which MAU needs to be computed
     billingRecords = ModelUtilities.get_model_filter(CommunityBillingDates, {})
     today = date.today()
+
+    # Premptively fetch all logs
+    cloudwatchData = getFilteredCloudwatchLogs()
 
     for billingRecord in billingRecords:
         # Logging process stage
@@ -613,7 +614,7 @@ def track():
             continue
 
         # Update Unique Active Users of a Billing record for the day
-        updateUniqueUsersOfACommunityBillingEntry(billingRecord)
+        updateUniqueUsersOfACommunityBillingEntry(billingRecord, cloudwatchData)
 
         # Logging process stage
         info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
