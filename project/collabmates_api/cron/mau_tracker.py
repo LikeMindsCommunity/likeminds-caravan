@@ -442,8 +442,8 @@ def create_cloudwatch_filter_pattern(api_key: str, sdk_source: str):
     
     filter_chatroom = '{ $.log_processed.text.request.headers.api_key = "' + api_key + '" && ' + \
                   '$.log_processed.text.request.headers.sdk_source = "' + sdk_source + '" && ' + \
-                  '($.log_processed.text.request.absolute_uri = "%api/v2/fetch_chatroom%" || ' + \
-                  '$.log_processed.text.request.absolute_uri = "%api/chatroom/fetch%") }'
+                  '($.log_processed.text.request.absolute_uri = %api/v2/fetch_chatroom% || ' + \
+                  '$.log_processed.text.request.absolute_uri = %api/chatroom/fetch%) }'
     
     if sdk_source == 'feed':
         return [filter_initiate]
