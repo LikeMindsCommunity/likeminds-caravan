@@ -436,7 +436,10 @@ def create_full_text_search_coralogix_filter(api_key: str, sdk_source: str):
 
 def getFilteredCloudwatchLogs():
 
-    client = boto3.client('logs')
+    client = boto3.client('logs',
+                         region_name=settings.AWS_REGION,
+                         aws_access_key_id=settings.CLOUDWATCH_AWS_ACCESS_KEY_ID,
+                         aws_secret_access_key=settings.CLOUDWATCH_AWS_SECRET_ACCESS_KEY)
 
     query = f"""
     fields  log_processed.text.request.headers.api_key,
