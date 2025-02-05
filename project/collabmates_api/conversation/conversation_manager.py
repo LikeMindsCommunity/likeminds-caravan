@@ -19,6 +19,7 @@ class ConversationManager(metaclass=abc.ABCMeta):
                 (hasattr(subclass, 'update_last_seen_event') and callable(subclass.update_last_seen_event)) and
                 (hasattr(subclass, 'fetch_unseen_count_in_event') and callable(subclass.fetch_unseen_count_in_event)) and
                 (hasattr(subclass, 'fetch_link_for_event') and callable(subclass.fetch_link_for_event)) and
+                (hasattr(subclass, 'create_message_task') and callable(subclass.create_message_task)) and
                 (hasattr(subclass, 'fetch_user_all_events') and callable(subclass.fetch_user_all_events)) or
                 NotImplemented)
 
@@ -41,6 +42,13 @@ class ConversationManager(metaclass=abc.ABCMeta):
     def create_conversation_v1(self, req_body: dict) -> dict:
         """
         create conversation revamp
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def create_message_task(self, req_body: dict) -> dict:
+        """
+        perform async tasks after create message in pandemonium
         """
         raise NotImplementedError
 

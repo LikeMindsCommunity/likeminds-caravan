@@ -4,7 +4,8 @@ from .view_conversation_impl import (FetchConversation, CreateConversation, AddC
                                      RemoveReaction, SetChatroomTopic, ConversationEventAttendView,
                                      SetConversationEventAttendedView, FetchUnseenCountInEvent,
                                      UpdateLastSeenEventChatroom, FetchLinkForEvent, FetchUserAllEvents,
-                                     FetchUnreadPreview, FetchPreviewUnreadMessageCount)
+                                     FetchUnreadPreview, FetchPreviewUnreadMessageCount,
+                                     CreateMessageTask)
 
 urlpatterns = [
     path('fetch', FetchConversation.as_view(), name="fetch_conversation"),
@@ -23,5 +24,7 @@ urlpatterns = [
     path('event/fetch_all', FetchUserAllEvents.as_view(), name="fetch_all_events"),
     path('fetch_unread_previews', FetchUnreadPreview.as_view(), name="fetch_unread_previews"),
     path('fetch_preview_unread_messages_count', FetchPreviewUnreadMessageCount.as_view(),
-         name="fetch_preview_unread_messages_count")
+         name="fetch_preview_unread_messages_count"),
+    path('create_message_task', CreateMessageTask.as_view(),
+         name="create_message_task")
 ]
