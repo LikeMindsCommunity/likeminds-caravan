@@ -39,8 +39,6 @@ class OTPApiClient(OTPApiManager):
             adaptor = CustomHttpAdapter()
             api_response = adaptor.customSSLContext(url)
 
-            # api_response = requests.request('GET', url)
-
             info_logger.info(f"""GUPSHUP Generate OTP API Response Status Code: {api_response.status_code}, 
             Response : {api_response.text}""")
 
@@ -63,7 +61,7 @@ class OTPApiClient(OTPApiManager):
             msg91_auth_key = settings.MSG91_AUTH_KEY
             url = MSG91_SENDOTP_URI % (msg91_auth_key, template_id, phone_number)
 
-            api_response = requests.request('GET', url, verify=False)
+            api_response = requests.request('GET', url)
 
             info_logger.info(
                 f'MSG 91 Generate OTP API Response Status Code: {api_response.status_code}, Response : {api_response.json()}')
@@ -119,8 +117,6 @@ class OTPApiClient(OTPApiManager):
             # Manually enabling legacy renegotiation for hitting GET request (Gupshup server does not support it)
             adaptor = CustomHttpAdapter()
             api_response = adaptor.customSSLContext(url)
-
-            # api_response = requests.request('GET', url)
 
             info_logger.info(
                 f'GUPSHUP Verify OTP API Response Status Code: {api_response.status_code}, Response : {api_response.text}')
