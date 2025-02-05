@@ -1,5 +1,10 @@
 import json
 import os
+import ssl
+import urllib3
+
+from urllib3.util.ssl_ import create_urllib3_context
+from requests.adapters import HTTPAdapter
 
 import requests
 from django.conf import settings
@@ -27,10 +32,14 @@ class OTPApiClient(OTPApiManager):
 
             gupshup_user_id, gupshup_password = OTPHelper.get_gupshup_credentials(is_international)
 
-            url = OTP_GUPSHUP_URL.format(gupshup_user_id, gupshup_password, phone_number,
-                                         OTPHelper.get_otp_message())
+            url = OTP_GUPSHUP_URL.format(gupshup_user_id, gupshup_password, phone_number,OTPHelper.get_otp_message())
 
-            api_response = requests.request('GET', url)
+
+            # Manually enabling legacy renegotiation for hitting GET request
+            adaptor = CustomHttpAdapter()
+            api_response = adaptor.customSSLContext(url)
+
+            # api_response = requests.request('GET', url)
 
             info_logger.info(f"""GUPSHUP Generate OTP API Response Status Code: {api_response.status_code}, 
             Response : {api_response.text}""")
@@ -54,7 +63,7 @@ class OTPApiClient(OTPApiManager):
             msg91_auth_key = settings.MSG91_AUTH_KEY
             url = MSG91_SENDOTP_URI % (msg91_auth_key, template_id, phone_number)
 
-            api_response = requests.request('GET', url)
+            api_response = requests.request('GET', url, verify=False)
 
             info_logger.info(
                 f'MSG 91 Generate OTP API Response Status Code: {api_response.status_code}, Response : {api_response.json()}')
@@ -106,7 +115,12 @@ class OTPApiClient(OTPApiManager):
 
             url = GUPSHUP_VERIFY_OTP_URL.format(gupshup_user_id, gupshup_password, phone_number, otp)
 
-            api_response = requests.request('GET', url)
+
+            # Manually enabling legacy renegotiation for hitting GET request (Gupshup server does not support it)
+            adaptor = CustomHttpAdapter()
+            api_response = adaptor.customSSLContext(url)
+
+            # api_response = requests.request('GET', url)
 
             info_logger.info(
                 f'GUPSHUP Verify OTP API Response Status Code: {api_response.status_code}, Response : {api_response.text}')
@@ -235,3 +249,34 @@ class OTPHelper:
             json_response['error_message'] = "Incorrect OTP"
 
         return json_response
+
+
+# Bug fix when Gupshup server is not supporting legacy renegotiation
+class CustomHttpAdapter(HTTPAdapter):
+    def __init__(self, ssl_context=None, **kwargs):
+        self.ssl_context = ssl_context
+        super().__init__(**kwargs)
+
+    # These funcs are called internally (in requests.Session().mount())
+    def init_poolmanager(self, *args, **kwargs):
+        kwargs['ssl_context'] = self.ssl_context
+        return super().init_poolmanager(*args, **kwargs)
+
+    def proxy_manager_for(self, *args, **kwargs):
+        kwargs['ssl_context'] = self.ssl_context
+        return super().proxy_manager_for(*args, **kwargs)
+
+    def customSSLContext(self, url):
+        # Create a custom SSL context
+            ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+            # Manually enable legacy renegotiation (required for Gupshup server)
+            ctx.options |= 0x4  
+
+            # Use custom adapter with requests
+            session = requests.Session()
+            adaptor = CustomHttpAdapter(ctx)
+            session.mount('https://', adaptor)
+
+            api_response = session.get(url)
+
+            return api_response
