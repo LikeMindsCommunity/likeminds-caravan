@@ -1,4 +1,5 @@
 from __future__ import absolute_import, unicode_literals
+import traceback
 
 from celery import shared_task
 from django.conf import settings
@@ -38,7 +39,6 @@ from utility.states import card_types, conversation_poll_types, conversation_sta
     community_setting_types, CollabcardTypes, message_template_chatroom_types, webhook_chatroom_methods
 
 from utility.validation_utilities import ValidationUtilities
-
 from collabmates_api.search.sync import ElasticSearchSync
 
 error_logger = LoggingWrapper.get_instance()
@@ -2889,3 +2889,37 @@ def post_state_message_in_chatroom(user_id, chatroom_id, conversation_answer,
         card_state_instance.save()
 
     return conversation_instance
+
+@shared_task
+def migrate_sendbird_data(api_key:str, application_id: str, api_token: str, migration_type: str):
+
+    if not (api_key and application_id and api_token and migration_type):
+        error_logger.error("SendbirdMigration | Invalid parameters for sendbird data migration")
+        return
+    
+    from scripts.sendbird_migration.sendbird_api_migration import SendbirdApiMigration
+    
+    try:
+
+        sendbird_migration = SendbirdApiMigration(
+                api_key=api_key, application_id=application_id, api_token=api_token
+            )
+
+        if migration_type == 'users':
+            sendbird_migration.migrate_all_users()
+        elif migration_type == 'channels':
+            sendbird_migration.migrate_all_channels()
+        elif migration_type == 'messages':
+            sendbird_migration.migrate_all_messages()
+        elif migration_type == 'all':
+            sendbird_migration.migrate_all_data()
+
+    except Exception as e:
+        error_logger.error(
+            (
+                f"SendbirdMigration | Error while migrating sendbird data: {e} | Stacktrace: {traceback.format_exc()}"
+            )
+        )
+        return
+
+    return

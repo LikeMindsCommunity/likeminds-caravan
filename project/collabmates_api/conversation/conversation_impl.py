@@ -955,7 +955,7 @@ class ConversationImpl(ConversationManager):
 
         return conversation_response
 
-    def create_conversation_v1(self, req_body: dict) -> {}:
+    def create_conversation_v1(self, req_body: dict, internal_migration: bool = False) -> {}:
         chatroom_id = req_body.get('chatroom_id', None)
         has_files = req_body.get('has_files', False)
         replied_conversation_id = req_body.get('replied_conversation_id')
@@ -986,7 +986,7 @@ class ConversationImpl(ConversationManager):
 
         community_instance = chatroom_instance.community
 
-        if chatroom_instance.is_secret and \
+        if not internal_migration and chatroom_instance.is_secret and \
                 not ConversationHelper.is_user_secret_chatroom_participant(chatroom_instance, self.get_member_id()):
             return ResponseUtilities.get_impl_error_context('You are not a part of this secret chatroom',
                                                             status_codes.HTTP_400_BAD_REQUEST)
@@ -1068,9 +1068,10 @@ class ConversationImpl(ConversationManager):
 
                 self._fill_poll_options(user_instance, conversation_instance, req_body)
 
-                ConversationHelper.auto_follow_chatroom(chatroom_instance, chatroom_state_instance,
-                                                        conversation_instance, user_instance, member_state,
-                                                        trigger_webhook=True)
+                if not internal_migration:
+                    ConversationHelper.auto_follow_chatroom(chatroom_instance, chatroom_state_instance,
+                                                            conversation_instance, user_instance, member_state,
+                                                            trigger_webhook=True)
 
                 tagged_members_list, is_group_tag = ConversationHelper.auto_follow_for_tagged_members(
                     chatroom_instance, conversation_instance)
@@ -1083,17 +1084,18 @@ class ConversationImpl(ConversationManager):
                 # Updating the updated_at of Collabcard schema
                 chatroom_instance.save()
 
-            ConversationHelper.run_async_task_on_conversation_create.delay(user_id=user_instance.id,
-                                                                           chatroom_id=chatroom_instance.id,
-                                                                           conversation_id=conversation_instance.id,
-                                                                           req_body=req_body,
-                                                                           member_state=member_state,
-                                                                           trigger_webhook=True,
-                                                                           attachments_data=attachments_data,
-                                                                           tagged_members_list=tagged_members_list,
-                                                                           is_group_tag=is_group_tag,
-                                                                           all_files_uploaded=all_files_uploaded)
-            
+            if not internal_migration:
+                ConversationHelper.run_async_task_on_conversation_create.delay(user_id=user_instance.id,
+                                                                            chatroom_id=chatroom_instance.id,
+                                                                            conversation_id=conversation_instance.id,
+                                                                            req_body=req_body,
+                                                                            member_state=member_state,
+                                                                            trigger_webhook=True,
+                                                                            attachments_data=attachments_data,
+                                                                            tagged_members_list=tagged_members_list,
+                                                                            is_group_tag=is_group_tag,
+                                                                            all_files_uploaded=all_files_uploaded)
+                
             # Trigger chatbot for direct message conversation
             if trigger_bot and chatroom_instance.type == card_types.CARD_DIRECT_MESSAGE:
                 ConversationHelper.trigger_chatbot_for_chatroom_against_conversation.delay(
@@ -1123,6 +1125,69 @@ class ConversationImpl(ConversationManager):
             transaction.rollback()
             return ResponseUtilities.get_impl_error_context("Some error occurred in creating conversation!",
                                                             status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+    def create_message_task(self, req_body: dict) -> dict:
+        api_version = req_body.get("api_version", None)
+        chatroom_id = req_body.get("chatroom_id", None)
+        chatroom_state_id = req_body.get("chatroom_state_id", None)
+        member_state = req_body.get("member_state", None)
+        message_id = req_body.get("message_id", None)
+        create_message_request = req_body.get("request_body", None)
+        user_id = req_body.get("user_id", None)
+
+        validated_request_context = ConversationHelper.validate_create_message_task_request(
+            chatroom_id,
+            chatroom_state_id,
+            message_id,
+            user_id
+        )
+        if validated_request_context.get("error_message"):
+            return ResponseUtilities.get_impl_error_context(
+                validated_request_context.get('error_message'),
+                status_code=status_codes.HTTP_400_BAD_REQUEST
+            )
+
+        ConversationHelper.auto_follow_chatroom(
+            validated_request_context.get("chatroom"),
+            validated_request_context.get("chatroom_state"),
+            validated_request_context.get("message"),
+            validated_request_context.get("user"),
+            member_state,
+            trigger_webhook=True
+        )
+
+        tagged_members_list, is_group_tag = ConversationHelper.auto_follow_for_tagged_members(
+            validated_request_context.get("chatroom"),
+            validated_request_context.get("message")
+        )
+
+        ConversationHelper.run_async_task_on_conversation_create.delay(
+            user_id=validated_request_context.get("user").id,
+            chatroom_id=validated_request_context.get("chatroom").id,
+            conversation_id=validated_request_context.get("message").id,
+            req_body=req_body,
+            member_state=member_state,
+            trigger_webhook=True,
+            attachments_data=req_body.get('attachments'),
+            tagged_members_list=tagged_members_list,
+            is_group_tag=is_group_tag,
+            all_files_uploaded=True
+        )
+
+        if create_message_request.get('trigger_bot', False) and \
+                (validated_request_context.get("chatroom").type == card_types.CARD_DIRECT_MESSAGE):
+
+            ConversationHelper.trigger_chatbot_for_chatroom_against_conversation.delay(
+                validated_request_context.get("chatroom").id,
+                validated_request_context.get("message").id,
+                create_message_request.get('should_stream_chatbot_response', False),
+                self.get_api_version_code(),
+                api_version
+            )
+
+        return {
+            'success': True
+        }
 
     def add_reaction(self, reaction: str) -> dict:
         validated_request = ConversationViewHelper.validate_add_reaction_request(self.get_member_id(),
@@ -3060,3 +3125,41 @@ class ConversationHelper:
             "max_completion_tokens": max_completion_tokens,
             "max_prompt_tokens": max_prompt_tokens
         }
+
+    @staticmethod
+    def validate_create_message_task_request(
+            chatroom_id: int,
+            chatroom_state_id: int,
+            message_id: int,
+            user_id: int
+    ):
+        validation_context = dict()
+        if not chatroom_id:
+            return ResponseUtilities.get_inner_error_context('chatroom id missing')
+        chatroom = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+        if not chatroom:
+            return ResponseUtilities.get_inner_error_context('failed to get chatroom')
+        validation_context["chatroom"] = chatroom
+
+        if not chatroom_state_id:
+            return ResponseUtilities.get_inner_error_context('chatroom state id missing')
+        chatroom_state = ModelUtilities.get_model_instance_or_none(collabcardState, chatroom_state_id)
+        if not chatroom_state:
+            return ResponseUtilities.get_inner_error_context('failed to get chatroom state')
+        validation_context["chatroom_state"] = chatroom_state
+
+        if not message_id:
+            return ResponseUtilities.get_inner_error_context('message id missing')
+        message = ModelUtilities.get_model_instance_or_none(card_answers, message_id)
+        if not message:
+            return ResponseUtilities.get_inner_error_context('failed to get message')
+        validation_context["message"] = message
+
+        if not user_id:
+            return ResponseUtilities.get_inner_error_context('user id missing')
+        user = ModelUtilities.get_model_instance_or_none(Userinfo, user_id)
+        if not user:
+            return ResponseUtilities.get_inner_error_context('failed to get user')
+        validation_context["user"] = user
+
+        return validation_context

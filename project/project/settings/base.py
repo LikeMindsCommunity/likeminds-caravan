@@ -282,11 +282,8 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        'large': {
-            'format': '%(asctime)s  %(levelname)s  %(filename)s  %(funcName)s  %(lineno)d  %(message)s  '
-        },
-        'tiny': {
-            'format': '%(asctime)s  %(levelname)s %(message)s  '
+        'json': {
+            '()': 'external_services.logging.json_formatter.JsonFormatter',
         }
     },
     'handlers': {
@@ -296,7 +293,7 @@ LOGGING = {
             'maxBytes': 1024 * 10 * 10,  # 10 MB
             'backupCount': 5,
             'filename': 'utility/logs/custom.log',
-            'formatter': 'large',
+            'formatter': 'json',
         },
         'console': {
             'level': 'INFO',
@@ -304,24 +301,25 @@ LOGGING = {
             'filename': 'utility/logs/collabmates.log',
             'maxBytes': 1024 * 10 * 10,  # 10 MB
             'backupCount': 5,
-            'formatter': 'tiny',
+            'formatter': 'json',
         },
         'stream_info_handler': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
             'stream': sys.stdout,
-            'formatter': 'tiny'
+            'formatter': 'json'
         },
         'stream_error_handler': {
             'level': 'ERROR',
             'class': 'logging.StreamHandler',
             'stream': sys.stderr,
-            'formatter': 'tiny'
+            'formatter': 'json'
         },
         'mail_admins': {
             'level': 'ERROR',
             'class': 'django.utils.log.AdminEmailHandler',
             'include_html': True,
+            'formatter': 'json'
         },
     },
     'loggers': {
@@ -412,5 +410,12 @@ if SERVER_TYPE != "MIGRATION":
 OG_TAGS_URL_REQUEST_TIMEOUT_IN_SECONDS = os.getenv('OG_TAGS_URL_REQUEST_TIMEOUT_IN_SECONDS')
 
 CORALOGIX_QUERY_API_KEY = os.getenv('CORALOGIX_QUERY_API_KEY')
+
+MIGRATE_TO_S3_LAMBDA_URL = os.getenv("MIGRATE_TO_S3_LAMBDA_URL")
+
+CLOUDWATCH_LOG_GROUP = os.getenv('CLOUDWATCH_LOG_GROUP')
+CLOUDWATCH_AWS_ACCESS_KEY_ID = os.getenv('CLOUDWATCH_AWS_ACCESS_KEY_ID')
+CLOUDWATCH_AWS_SECRET_ACCESS_KEY = os.getenv('CLOUDWATCH_AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('AWS_REGION')
 
 APP_VERSION = '2.62.0'

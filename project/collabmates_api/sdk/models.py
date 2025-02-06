@@ -75,6 +75,14 @@ class SdkClient(models.Model):
             filter_dict['api_key'] = api_key
 
         return True if ModelUtilities.get_model_filter(SdkClient, filter_dict) else False
+    
+    @staticmethod
+    def is_project_creator(community_instance, user_instance) -> bool:
+        
+        if not (community_instance and user_instance):
+            return False
+        
+        return True if SdkClient.objects.filter(community=community_instance, project_creator=user_instance).exists() else False
 
 
 class SdkPlatform(models.Model):

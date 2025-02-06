@@ -89,6 +89,27 @@ class CreateConversation(APIView):
         return JsonResponse(conversation_response)
 
 
+class CreateMessageTask(APIView):
+
+    """internal API to perform async tasks after create message in pandemonium"""
+
+    @staticmethod
+    def post(request):
+        req_body = RequestUtilities.load_request_body(request)
+        if not req_body:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context('Invalid request body',
+                                                                                status_codes.HTTP_400_BAD_REQUEST))
+
+        conversation_manager = ConversationImpl(member_id=req_body.get("user_id", None))
+        create_message_task = conversation_manager.create_message_task(req_body)
+
+        if create_message_task.get('error_message'):
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(
+                create_message_task.get('error_message'), create_message_task.get('status')))
+
+        return JsonResponse(create_message_task)
+
+
 class AddConversationPollOptions(APIView):
 
     def post(self, request):

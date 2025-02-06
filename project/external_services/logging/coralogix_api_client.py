@@ -63,7 +63,7 @@ class CoralogixApiClient(CoralogixApiManager):
 
         except Exception:
             message = "Coralogix api call failed:\n%s" % traceback.format_exc()
-            self.error_logger.error(message)
+            self.stream_error_logger.error(message)
 
     def _create_logging_api_payload(self, payload: dict) -> dict:
         log_entry_object = CORALOGIX_CONSTS.get('LOG_ENTRY_SCHEMA')
