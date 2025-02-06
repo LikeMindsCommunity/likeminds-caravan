@@ -33,7 +33,7 @@ DEFAULT_FILE_S3_PATH = "files/"
 MESSAGES_DUMP_JSON_FILE_PATH = "{}_messages.json"
 
 # TTL for Sendbird -> LM ID Mapping Cache
-TTL_FOR_CACHE = 60 * 60 * 60
+TTL_FOR_CACHE = 60 * 60 * 24 * 30
 
 # Cache Keys for Mapping Sendbird -> Likeminds IDs
 SENDBIRD_CHANNEL_MAP_KEY = "sendbird_migration_{}_channel_{}"  # community_id, sendbird_channel_id
