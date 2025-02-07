@@ -75,7 +75,6 @@ class MigrateUsers:
             )
         )
 
-
         sdk_instances_list = []
         userinfo_instances_list = []
         member_instances_list = []

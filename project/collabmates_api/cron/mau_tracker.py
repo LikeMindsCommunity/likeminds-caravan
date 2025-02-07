@@ -447,7 +447,7 @@ def getFilteredCloudwatchLogs():
             log_processed.text.request.body.user_unique_id,
             log_processed.text.request.headers.x_member_id,
             log_processed.text.request.query.uuid
-    | filter kubernetes.container_name = "caravan-beta"
+    | filter kubernetes.container_name = "{settings.CLOUDWATCH_KUBERNETES_CONTAINER_NAME}"
     | filter log_processed.text.request.absolute_uri like "api/sdk/initiate"
         or log_processed.text.request.absolute_uri like "api/chatroom/fetch"
         or log_processed.text.request.absolute_uri like "api/v2/fetch_chatroom"
