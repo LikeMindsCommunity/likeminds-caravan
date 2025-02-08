@@ -143,6 +143,7 @@ WIDGETS_METADATA_CONFIGURATION = "widgets_metadata"
 GUEST_FLOW_METADATA_CONFIGURATION = "guest_flow_metadata"
 FEED_SETTINGS_CONFIGURATION = "feed_settings"
 PERSONALISED_FEED_WEIGHTS = "personalised_feed_weights"
+REPLY_PRIVATELY_CONFIGURATION = "reply_privately"
 CHATBOT_CONFIGURATIONS = "chatbot"
 CHAT_POLL_CONFIGURATIONS = "chat_poll"
 
@@ -253,9 +254,15 @@ COMMUNITY_CONFIGURATIONS = {
             "multiple_select_no": 1, # How many options users can select 
             "is_anonymous": False, # If poll is anonymous
             "allow_add_option": False # If other people can add options to the poll
-        }
-    }
-    
+        },
+    },
+    REPLY_PRIVATELY_CONFIGURATION: {
+        "type": REPLY_PRIVATELY_CONFIGURATION,
+        "description": "Community configurations for reply privately",
+        "value": {
+            "allowed_scope": "NO_ONE"
+        },
+    },
 }
 
 CHATBOT_PROVIDER_OPENAI = "open_ai_assistant"
@@ -278,6 +285,7 @@ CREATE_FEED_POLL_CONFIGURATION_VALUES = ["everyone", "only_cm", "no_one"]
 AUTO_APPROVE_POST_CONFIGURATION_VALUES = ["everyone", "only_cm", "no_one"]
 
 SWARM_WIDGET_ENDPOINT = "/widget"
+SWARM_LM_WIDGET_ENDPOINT = "/widget/lm"
 
 # Internal Platform types
 PLATFORM_TYPE_CARAVAN_SERVICE = "caravan-service"
