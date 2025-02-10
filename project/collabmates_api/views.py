@@ -105,6 +105,7 @@ from utility.utils import print_time_taken
 
 
 from urllib import parse
+from external_services.otp.otp_api_client import CustomHttpAdapter
 
 url = settings.URL
 error_logger = LoggingWrapper.get_instance()
@@ -8582,7 +8583,11 @@ def send_otp_on_email(email):
 
     generate_url = """https://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s""" % (
         email, email_key)
-    response = rqst.get(generate_url)
+
+    # Manually enabling legacy renegotiation for hitting GET request
+    adaptor = CustomHttpAdapter()
+    response = adaptor.customSSLContext(generate_url)
+    
     print(response.content)
 
     if response.status_code == 200:
@@ -8604,7 +8609,11 @@ def verify_otp_on_email(email, otp):
     verify_url = """https://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s&code=%s""" % (
         str(email), email_key, str(otp))
 
-    response = rqst.get(verify_url)
+
+    # Manually enabling legacy renegotiation for hitting GET request
+    adaptor = CustomHttpAdapter()
+    response = adaptor.customSSLContext(verify_url)
+
     print(response.content)
     context = {}
     success = False
