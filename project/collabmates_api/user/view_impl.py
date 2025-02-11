@@ -357,7 +357,7 @@ class UserOTPView(APIView):
         response_data = user_manager.send_user_otp(otp_type=req_body.get('otp_mode'),
                                                    mobile_no=req_body.get('mobile_no'),
                                                    country_code=req_body.get('country_code'),
-                                                   email_id=req_body.get('email_id'),
+                                                   email_id=req_body.get('email_id').lower(),
                                                    is_retry=req_body.get('is_retry'))
 
         if 'error_message' in response_data:
@@ -375,7 +375,7 @@ class UserOTPView(APIView):
         response_data = user_manager.verify_user_otp(otp_type=req_params.get('otp_mode'),
                                                      mobile_no=req_params.get('mobile_no'),
                                                      country_code=req_params.get('country_code'),
-                                                     email_id=req_params.get('email_id'),
+                                                     email_id=req_params.get('email_id').lower(),
                                                      otp=req_params.get('otp'))
 
         if 'error_message' in response_data:
