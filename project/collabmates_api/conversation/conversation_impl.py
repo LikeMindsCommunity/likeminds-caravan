@@ -974,7 +974,8 @@ class ConversationImpl(ConversationManager):
                                                                                     chatroom_id,
                                                                                     req_body['text'],
                                                                                     replied_conversation_id,
-                                                                                    req_body.get('temporary_id'))
+                                                                                    req_body.get('temporary_id'),
+                                                                                    internal_migration)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -991,7 +992,7 @@ class ConversationImpl(ConversationManager):
             return ResponseUtilities.get_impl_error_context('You are not a part of this secret chatroom',
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
-        if req_body.get('state') and (req_body['state'] == conversation_states.CONVERSATION_POLL):
+        if not internal_migration and req_body.get('state') and (req_body['state'] == conversation_states.CONVERSATION_POLL):
             
             validated_request = ConversationHelper.validate_poll_conversation_request(req_body, user_instance,
                                                                                       chatroom_instance, 
@@ -2837,9 +2838,7 @@ class ConversationHelper:
 
     @staticmethod
     def validate_create_conversation_request(user_instance, user_id, chatroom_instance, chatroom_id, message,
-                                             replied_conversation_id=None, temporary_id=None):
-
-        start = time.time()
+                                             replied_conversation_id=None, temporary_id=None, internal_migration=False):
 
         if user_instance is None:
             user_instance = ModelUtilities.get_user_instance_or_none(user_id)
@@ -2878,25 +2877,28 @@ class ConversationHelper:
 
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return ResponseUtilities.get_inner_error_context("Responding is disabled")
+        
+        # If internal_migration is False, then validate user permissions
+        if not internal_migration:
 
-        has_right = ModelUtilities.get_model_filter(userMemberRights,
-                                                    {'user': user_instance, 'community': community_instance,
-                                                     'right__state': member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM})
+            has_right = ModelUtilities.get_model_filter(userMemberRights,
+                                                        {'user': user_instance, 'community': community_instance,
+                                                        'right__state': member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM})
 
-        if not has_right:
-            return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
+            if not has_right:
+                return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
 
-        # Get user specific chatroom settings
-        user_chatroom_settings = chatroom_impl.ChatroomHelper.compute_user_chatroom_settings(user_instance, 
-                                                                                             chatroom_instance, 
-                                                                                             is_admin,
-                                                                                             [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE])
-    
-            
+            # Get user specific chatroom settings
+            user_chatroom_settings = chatroom_impl.ChatroomHelper.compute_user_chatroom_settings(user_instance, 
+                                                                                                chatroom_instance, 
+                                                                                                is_admin,
+                                                                                                [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE])
+        
+                
 
-        # If user_chatroom_settings for 'member_can_message' is false, then return error
-        if not user_chatroom_settings or not user_chatroom_settings[0].enabled :
-            return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
+            # If user_chatroom_settings for 'member_can_message' is false, then return error
+            if not user_chatroom_settings or not user_chatroom_settings[0].enabled :
+                return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
 
         return {
             'user_instance': user_instance,
