@@ -121,7 +121,7 @@ class AttachmentModel(BaseModel):
     def _validate_misfits_keys(data, metadata):
 
         message = metadata.get('msg')
-        if message:
+        if message is not None:
             data["attachment_message"] = message
 
         name = metadata.get('name')
@@ -604,7 +604,7 @@ class MessageModel(BaseModel):
         attachments = data.get('attachments', [])
         for attachment in attachments:
             if attachment.attachment_message:
-                data["text"] = attachment.attachment_message if not attachment.attachment_message == "file" \
+                data["text"] = attachment.attachment_message if not attachment.attachment_message in ("file", "FILE") \
                     else data.get("text")
 
             if attachment.replied_conversation_id:
