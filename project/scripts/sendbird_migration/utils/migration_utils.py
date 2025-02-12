@@ -5,6 +5,7 @@ from pathlib import Path
 from django.conf import settings
 
 from external_services.caching.cache_impl import CacheImpl
+from utility.cache_keys import CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY
 from ..constants import (
     SENDBIRD_MESSAGE_MAP_KEY,
     SENDBIRD_USER_MAP_KEY,
@@ -138,3 +139,18 @@ class MigrationUtils:
 
         if uploaded:
             info_logger.info(f"SendbirdMigration | Successfully uploaded {file_path} to S3")
+
+    @staticmethod
+    def clear_chatroom_participants_count_cache_for_sendbird_channel_id(
+        sendbird_channel_id: str, community_id: int
+    ):
+        chatroom_id = MigrationUtils.get_lm_chatroom_id_from_sendbird_channel_id(
+            sendbird_channel_id, community_id
+        )
+
+        if chatroom_id:
+            CacheImpl.delete_key(CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY.format(chatroom_id))
+
+        info_logger.info(
+            f"SendbirdMigration | Cleared chatroom participants count cache for channel: {sendbird_channel_id} | chatroom_id: {chatroom_id}"
+        )

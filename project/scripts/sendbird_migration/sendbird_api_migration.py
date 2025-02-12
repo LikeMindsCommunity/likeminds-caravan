@@ -198,6 +198,11 @@ class SendbirdApiMigration:
 
                 info_logger.info(f"SendbirdMigration | Successfully migrated {len(messages)} messages for channel: {channel_url}")
 
+            # Delete Cache key for chatroom participants
+            MigrationUtils.clear_chatroom_participants_count_cache_for_sendbird_channel_id(
+                channel_url=channel_url, community_id=self.community_id
+            )
+            
             MigrationUtils.upload_data_dump_to_s3(
                 object_path=messages_dump_file_path, file_path=f"{self.community_id}/{messages_dump_file_path}"
             )
