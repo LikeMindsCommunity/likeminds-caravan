@@ -174,16 +174,24 @@ class MigrationUtils:
         os.remove(local_path)
 
     @staticmethod
-    def clear_chatroom_participants_count_cache_for_sendbird_channel_id(
-        sendbird_channel_id: str, community_id: int
+    def delete_chatroom_participants_count_cache(
+        chatroom_id: int
     ):
-        chatroom_id = MigrationUtils.get_lm_chatroom_id_from_sendbird_channel_id(
-            sendbird_channel_id, community_id
-        )
+        
+        if not chatroom_id:
+            error_logger.error(
+                f"SendbirdMigration | No chatroom id found for clearing chatroom participants count cache."
+            )
 
-        if chatroom_id:
-            CacheImpl.delete_key(CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY.format(chatroom_id))
+            return
 
-        info_logger.info(
-            f"SendbirdMigration | Cleared chatroom participants count cache for channel: {sendbird_channel_id} | chatroom_id: {chatroom_id}"
-        )
+        deleted = CacheImpl.delete_key(CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY.format(chatroom_id))
+
+        if deleted:
+            info_logger.info(
+                f"SendbirdMigration | Cleared chatroom participants count cache for chatroom: {chatroom_id}"
+            )
+        else:
+            error_logger.error(
+                f"SendbirdMigration | Error while clearing chatroom participants count cache for chatroom: {chatroom_id}"
+            )
