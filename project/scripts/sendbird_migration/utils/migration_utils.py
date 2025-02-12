@@ -12,7 +12,8 @@ from ..constants import (
     DEFAULT_FILE_S3_PATH,
     CONVERSATION_FILE_S3_PATH,
     MENTIONED_USERS_SYMBOL,
-    SENDBIRD_CHANNEL_MAP_KEY
+    SENDBIRD_CHANNEL_MAP_KEY,
+    CHANNEL_TO_CHATROOM_ID_MAP_JSON_FILE_PATH,
 )
 
 from utility.time_utilities import TimeUtilities
@@ -139,6 +140,38 @@ class MigrationUtils:
 
         if uploaded:
             info_logger.info(f"SendbirdMigration | Successfully uploaded {file_path} to S3")
+
+    @staticmethod
+    def upload_channel_to_chatroom_id_map_to_s3(channel_to_chatroom_ids: dict, community_id: int):
+
+        local_path = CHANNEL_TO_CHATROOM_ID_MAP_JSON_FILE_PATH.format(community_id)
+
+        # Dump Dict to a JSON file
+        MigrationUtils.dump_data_to_json_file(
+            file_path=local_path,
+            data=channel_to_chatroom_ids,
+        )
+
+        # Upload the JSON file to S3
+        bucket = settings.S3_BUCKETS.get("sendbird_migration")
+
+        s3_client = S3ClientImpl(bucket) 
+        uploaded = s3_client.upload_file_to_s3_bucket(
+            object_path=local_path,
+            file_path=f"{community_id}/channel_to_chatroom_id_map/{local_path}",
+        )
+
+        if uploaded:
+            info_logger.info(
+                f"SendbirdMigration | Successfully uploaded channel to chatroom ids to S3 for community: {community_id}"
+            )
+        else:
+            error_logger.error(
+                f"SendbirdMigration | Error while uploading channel to chatroom ids to S3 for community: {community_id}"
+            )
+
+        # Remove the local file
+        os.remove(local_path)
 
     @staticmethod
     def clear_chatroom_participants_count_cache_for_sendbird_channel_id(
