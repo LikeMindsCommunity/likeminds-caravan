@@ -271,11 +271,19 @@ class ReactionModel(BaseModel):
 
 
 class OgTagsModel(BaseModel):
-    title: str
-    description: str
+    title: str = Field(alias="og:title")
+    description: str = Field(alias="og:description")
+    url: str = Field(alias="og:url")
     image: str
-    url: str
 
+    @model_validator(mode="before")
+    def _validate_image(cls, data):
+
+        image_url = data.get("og:image", {}).get("url")
+        if image_url:
+            data["image"] = image_url
+
+        return data
 
 class MessageModel(BaseModel):
 
