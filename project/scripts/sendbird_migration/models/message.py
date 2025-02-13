@@ -121,7 +121,7 @@ class AttachmentModel(BaseModel):
     def _validate_misfits_keys(data, metadata):
 
         message = metadata.get('msg')
-        if message:
+        if message is not None:
             data["attachment_message"] = message
 
         name = metadata.get('name')
@@ -271,11 +271,19 @@ class ReactionModel(BaseModel):
 
 
 class OgTagsModel(BaseModel):
-    title: str
-    description: str
+    title: str = Field(alias="og:title")
+    description: str = Field(alias="og:description")
+    url: str = Field(alias="og:url")
     image: str
-    url: str
 
+    @model_validator(mode="before")
+    def _validate_image(cls, data):
+
+        image_url = data.get("og:image", {}).get("url")
+        if image_url:
+            data["image"] = image_url
+
+        return data
 
 class MessageModel(BaseModel):
 
@@ -604,7 +612,7 @@ class MessageModel(BaseModel):
         attachments = data.get('attachments', [])
         for attachment in attachments:
             if attachment.attachment_message:
-                data["text"] = attachment.attachment_message if not attachment.attachment_message == "file" \
+                data["text"] = attachment.attachment_message if not attachment.attachment_message in ("file", "FILE") \
                     else data.get("text")
 
             if attachment.replied_conversation_id:

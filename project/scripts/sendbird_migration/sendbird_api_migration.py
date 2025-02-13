@@ -150,6 +150,8 @@ class SendbirdApiMigration:
 
     def migrate_all_messages(self):
 
+        channel_to_chatroom_ids = {}
+
         # fetch cache keys for all chatrooms
         channel_keys = CacheImpl.get_keys_for_pattern(
             "*" + SENDBIRD_CHANNEL_MAP_KEY.format(self.community_id, "*")
@@ -159,6 +161,17 @@ class SendbirdApiMigration:
 
             # Parse the key to get the channel_url
             channel_url = str(key).split("channel_", 1)[1].rstrip("'")
+
+            chatroom_id = MigrationUtils.get_lm_chatroom_id_from_sendbird_channel_id(
+                sendbird_channel_id=channel_url, community_id=self.community_id
+            )
+            if not chatroom_id:
+                error_logger.error(
+                    f"SendbirdMigration | Chatroom ID not found for channel: {channel_url}"
+                )
+                continue
+
+            channel_to_chatroom_ids[channel_url] = chatroom_id
 
             # Parse channel type from channel_url
             channel_type = OPEN_CHANNELS_TYPE if channel_url.split("_")[1] == "open" else GROUP_CHANNELS_TYPE
@@ -198,6 +211,10 @@ class SendbirdApiMigration:
 
                 info_logger.info(f"SendbirdMigration | Successfully migrated {len(messages)} messages for channel: {channel_url}")
 
+            # Delete Cache key for chatroom participants
+            MigrationUtils.delete_chatroom_participants_count_cache(chatroom_id)
+
+            # Upload Messages Dump to S3
             MigrationUtils.upload_data_dump_to_s3(
                 object_path=messages_dump_file_path, file_path=f"{self.community_id}/{messages_dump_file_path}"
             )
@@ -205,6 +222,11 @@ class SendbirdApiMigration:
             # delete the json file
             os.remove(messages_dump_file_path)
 
+        # Upload Channel TO Chatroom ID Mapping to S3
+        MigrationUtils.upload_channel_to_chatroom_id_map_to_s3(
+            channel_to_chatroom_ids=channel_to_chatroom_ids,
+            community_id=self.community_id,
+        )
         return
 
     def migrate_all_data(self):
