@@ -143,7 +143,7 @@ class MigrateMessages:
             return
 
         for index, sendbird_poll in enumerate(sendbird_polls):
-            option_id = sendbird_poll.option_id
+            option_id = sendbird_poll.id
             poll_id = sendbird_poll.poll_id
 
             # Fetch Poll voters for each option
@@ -330,6 +330,7 @@ class MigrateMessages:
                         "metadata",
                         "og_tags",
                         "polls",
+                        "poll_type",
                         "expiry_time",
                         "no_poll_expiry",
                         "allow_add_option",

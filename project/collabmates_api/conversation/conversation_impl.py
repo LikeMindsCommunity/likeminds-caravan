@@ -67,7 +67,7 @@ from utility.states import (member_states, collabcard_states, card_types, SyncNo
                             conversation_states, conversation_poll_types, chatroom_not_opened_types,
                             user_email_send_status_types, member_rights, unsubscribe_types, noti_states,
                             chat_request_states, webhook_chatroom_methods, attachment_types, WidgetTypes, 
-                            WebhookTypes, UserRoles, multi_select_poll_states)
+                            WebhookTypes, UserRoles, multi_select_poll_states, LMWidgetType)
 
 from utility.webhook_utilities import (WebhookUtilties)
 from collabmates_api.webhook.constants import (WEBHOOK_SOURCE_CHAT, MAX_WEBHOOK_USERS_META_LIMIT)
@@ -974,7 +974,8 @@ class ConversationImpl(ConversationManager):
                                                                                     chatroom_id,
                                                                                     req_body['text'],
                                                                                     replied_conversation_id,
-                                                                                    req_body.get('temporary_id'))
+                                                                                    req_body.get('temporary_id'),
+                                                                                    internal_migration)
 
         if validated_request.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
@@ -991,7 +992,7 @@ class ConversationImpl(ConversationManager):
             return ResponseUtilities.get_impl_error_context('You are not a part of this secret chatroom',
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
-        if req_body.get('state') and (req_body['state'] == conversation_states.CONVERSATION_POLL):
+        if not internal_migration and req_body.get('state') and (req_body['state'] == conversation_states.CONVERSATION_POLL):
             
             validated_request = ConversationHelper.validate_poll_conversation_request(req_body, user_instance,
                                                                                       chatroom_instance, 
@@ -1003,6 +1004,7 @@ class ConversationImpl(ConversationManager):
 
         is_guest = False
         is_widgets_enabled = False
+        is_lm_widget = False
 
         chatroom_state_instance = None
         state_filter = ModelUtilities.get_model_filter(collabcardState, {'card': chatroom_instance,
@@ -1046,16 +1048,19 @@ class ConversationImpl(ConversationManager):
                 conversation_instance = self._create_conversation_instance(conversation_content)
 
                 if widget_metadata:
-                    is_widgets_enabled = is_community_widget_enabled(community_instance, WidgetTypes.MESSAGE.value)
+                    is_lm_widget = any([widget_metadata.get("type", "") == LMWidgetType.REPLY_PRIVATELY.value])
 
-                    if not is_widgets_enabled:
-                        return ResponseUtilities.get_impl_error_context("Widgets are disabled!",
-                                                                        status_codes.HTTP_400_BAD_REQUEST)
+                    if not is_lm_widget:
+                        is_widgets_enabled = is_community_widget_enabled(community_instance, WidgetTypes.MESSAGE.value)
+
+                        if not is_widgets_enabled:
+                            return ResponseUtilities.get_impl_error_context("Widgets are disabled!",
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
 
                     widget_response = InternalServiceUtilities.create_widget_in_swarm(
                         user_instance.userinfo.user_unique_id, chatroom_instance.community_id,
                         entity_id=str(conversation_instance.id), entity_type=WidgetTypes.MESSAGE.value,
-                        metadata=widget_metadata)
+                        metadata=widget_metadata, is_lm_widget=is_lm_widget)
 
                     if "error_message" in widget_response:
                         conversation_instance.delete()
@@ -1086,15 +1091,15 @@ class ConversationImpl(ConversationManager):
 
             if not internal_migration:
                 ConversationHelper.run_async_task_on_conversation_create.delay(user_id=user_instance.id,
-                                                                            chatroom_id=chatroom_instance.id,
-                                                                            conversation_id=conversation_instance.id,
-                                                                            req_body=req_body,
-                                                                            member_state=member_state,
-                                                                            trigger_webhook=True,
-                                                                            attachments_data=attachments_data,
-                                                                            tagged_members_list=tagged_members_list,
-                                                                            is_group_tag=is_group_tag,
-                                                                            all_files_uploaded=all_files_uploaded)
+                                                                               chatroom_id=chatroom_instance.id,
+                                                                               conversation_id=conversation_instance.id,
+                                                                               req_body=req_body,
+                                                                               member_state=member_state,
+                                                                               trigger_webhook=True,
+                                                                               attachments_data=attachments_data,
+                                                                               tagged_members_list=tagged_members_list,
+                                                                               is_group_tag=is_group_tag,
+                                                                               all_files_uploaded=all_files_uploaded)
                 
             # Trigger chatbot for direct message conversation
             if trigger_bot and chatroom_instance.type == card_types.CARD_DIRECT_MESSAGE:
@@ -1108,7 +1113,8 @@ class ConversationImpl(ConversationManager):
             context = {
                 "current_user_id": self.get_member_id(),
                 "fetch_reply": True,
-                "is_widget_enabled": is_widgets_enabled
+                "is_widget_enabled": is_widgets_enabled,
+                "is_lm_widget": is_lm_widget
             }
 
             conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
@@ -2832,9 +2838,7 @@ class ConversationHelper:
 
     @staticmethod
     def validate_create_conversation_request(user_instance, user_id, chatroom_instance, chatroom_id, message,
-                                             replied_conversation_id=None, temporary_id=None):
-
-        start = time.time()
+                                             replied_conversation_id=None, temporary_id=None, internal_migration=False):
 
         if user_instance is None:
             user_instance = ModelUtilities.get_user_instance_or_none(user_id)
@@ -2873,25 +2877,28 @@ class ConversationHelper:
 
         if chatroom_instance.type == card_types.CARD_MASTER_INTRO:
             return ResponseUtilities.get_inner_error_context("Responding is disabled")
+        
+        # If internal_migration is False, then validate user permissions
+        if not internal_migration:
 
-        has_right = ModelUtilities.get_model_filter(userMemberRights,
-                                                    {'user': user_instance, 'community': community_instance,
-                                                     'right__state': member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM})
+            has_right = ModelUtilities.get_model_filter(userMemberRights,
+                                                        {'user': user_instance, 'community': community_instance,
+                                                        'right__state': member_rights.MEMBER_RIGHT_RESPOND_IN_ROOM})
 
-        if not has_right:
-            return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
+            if not has_right:
+                return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
 
-        # Get user specific chatroom settings
-        user_chatroom_settings = chatroom_impl.ChatroomHelper.compute_user_chatroom_settings(user_instance, 
-                                                                                             chatroom_instance, 
-                                                                                             is_admin,
-                                                                                             [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE])
-    
-            
+            # Get user specific chatroom settings
+            user_chatroom_settings = chatroom_impl.ChatroomHelper.compute_user_chatroom_settings(user_instance, 
+                                                                                                chatroom_instance, 
+                                                                                                is_admin,
+                                                                                                [CHATROOM_USER_SETTINGS_MEMBER_CAN_MESSAGE])
+        
+                
 
-        # If user_chatroom_settings for 'member_can_message' is false, then return error
-        if not user_chatroom_settings or not user_chatroom_settings[0].enabled :
-            return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
+            # If user_chatroom_settings for 'member_can_message' is false, then return error
+            if not user_chatroom_settings or not user_chatroom_settings[0].enabled :
+                return ResponseUtilities.get_inner_error_context("You don't have right to respond in chatroom!")
 
         return {
             'user_instance': user_instance,

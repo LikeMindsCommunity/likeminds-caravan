@@ -1013,6 +1013,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
         self.fetch_reply = self.context.get('fetch_reply', True)
         self.current_user_id = self.context.get('current_user_id', None)
         self.is_widget_enabled = self.context.get('is_widget_enabled', False)
+        self.is_lm_widget = self.context.get('is_lm_widget', False)
 
     def get_reactions(self, obj):
 
@@ -1202,7 +1203,7 @@ class CardAnswersDBSyncSerializer(serializers.ModelSerializer):
             elif field.field_name == 'deleted_by' and data['deleted_by']:
                 data['deleted_by_member'] = self.get_serialised_userinfo(data['deleted_by'])
 
-            elif field.field_name == 'widget_id' and not self.is_widget_enabled:
+            elif field.field_name == 'widget_id' and not (self.is_widget_enabled or self.is_lm_widget):
                 data[field.field_name] = ""
 
         return data

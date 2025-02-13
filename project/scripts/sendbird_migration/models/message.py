@@ -71,6 +71,7 @@ class AttachmentModel(BaseModel):
         parts = sendbird_type.split('/')
         if len(parts) > 1:
             main_type = parts[0]
+            secondary_type = parts[1]
 
             # Determine the type based on the main type
             if main_type == 'image':
@@ -82,9 +83,17 @@ class AttachmentModel(BaseModel):
                 data["type"] = 'audio'
             elif main_type == 'video':
                 data["type"] = 'video'
+            elif main_type == 'application':
+                data["type"] = secondary_type
             else:
-                raise PydanticCustomError("invalid_attachment_type",
-                                          "Unsupported attachment type found in the attachment.")
+                data["type"] = main_type
+
+                info_logger.info(
+                    (
+                        f"SendbirdMigration | Invalid attachment type found in the attachment. "
+                        f"Type: {sendbird_type}, using existing type: {data.get('type')}"
+                    )
+                )
 
         return data
 
@@ -92,10 +101,14 @@ class AttachmentModel(BaseModel):
     def validate_thumbnail_urls(data):
 
         if data.get('thumbnails'):
-            file_path = MigrationUtils.get_file_path_for_conversation_files(
-                data.get('chatroom_id'), data.get('user_id'), url)
+
             url = data.get('thumbnails')[0].get('url')
             if url:
+
+                file_path = MigrationUtils.get_file_path_for_conversation_files(
+                    data.get("chatroom_id"), data.get("user_id"), url
+                )
+                
                 thumbnail_url = LambdaUtilities.migrate_to_s3(
                     url, file_path, data.get("sendbird_api_token")
                 )
@@ -108,7 +121,7 @@ class AttachmentModel(BaseModel):
     def _validate_misfits_keys(data, metadata):
 
         message = metadata.get('msg')
-        if message:
+        if message is not None:
             data["attachment_message"] = message
 
         name = metadata.get('name')
@@ -128,11 +141,12 @@ class AttachmentModel(BaseModel):
             if attachment_types.is_valid_attachment_type(metadata_type):
                 data["type"] = metadata_type
             else:
-                info_logger.error(
-                        (
-                            f"SendbirdMigration | Invalid attachment type found in the misfits Type: {metadata_type}"
-                        )
+                info_logger.info(
+                    (
+                        f"SendbirdMigration | Invalid attachment type found in the misfits Type: {metadata_type}, "
+                        f"using existing type: {data.get('type')}"
                     )
+                )
 
         url = metadata.get('fileUrl')
         if url:
@@ -147,7 +161,7 @@ class AttachmentModel(BaseModel):
         thumbnail_url = metadata.get('videoThumbnailUrl')
         if thumbnail_url:
             file_path = MigrationUtils.get_file_path_for_conversation_files(
-                metadata.get('chatroom_id'), metadata.get('user_id'), url)
+                metadata.get('chatroom_id'), metadata.get('user_id'), thumbnail_url)
             url = LambdaUtilities.migrate_to_s3(
                 thumbnail_url, file_path, data.get("sendbird_api_token")
             )
@@ -207,7 +221,7 @@ class AttachmentModel(BaseModel):
 
 
 class PollOptionsModel(BaseModel):
-    option_id: int = 0
+    id: int = 0
     text: str = ""
     vote_count: int = 0
     poll_id: int = 0
@@ -257,11 +271,19 @@ class ReactionModel(BaseModel):
 
 
 class OgTagsModel(BaseModel):
-    title: str
-    description: str
-    image: str
-    url: str
+    title: str = Field(alias="og:title", default="")
+    description: str = Field(alias="og:description", default="")
+    url: str = Field(alias="og:url", default="")
+    image: str = ""
 
+    @model_validator(mode="before")
+    def _validate_image(cls, data):
+
+        image_url = data.get("og:image", {}).get("url")
+        if image_url:
+            data["image"] = image_url
+
+        return data
 
 class MessageModel(BaseModel):
 
@@ -279,14 +301,14 @@ class MessageModel(BaseModel):
     attachments: Optional[List[AttachmentModel]] = []
     replied_conversation_id: int = 0
     metadata: dict = {}
-    og_tags: Optional[OgTagsModel] = None
+    og_tags: Optional[OgTagsModel] = Field(alias="og_tag", default=None)
 
     polls: List[PollOptionsModel] = []
     poll_type: int = 2  # Default poll type is 2 (Open Poll)
     expiry_time: int = 0
-    no_poll_expiry: bool = False
+    no_poll_expiry: bool = True
     allow_add_option: bool = False
-    multiple_select_state: Optional[str] = Field(default=None)
+    multiple_select_state: Optional[int] = Field(default=None)
     multiple_select_no: Optional[int] = Field(default=0)
 
     reactions: List[ReactionModel] = []
@@ -465,16 +487,13 @@ class MessageModel(BaseModel):
             if poll_data.get("title"):
                 data["text"] = poll_data.get("title")
 
-            if poll_data.get("close_at"):
-                if poll_data.get("close_at", 0) <= 0:
-                    data["no_poll_expiry"] = True
-                else:
-                    data["expiry_time"] = MigrationUtils.ensure_epoch_in_ms(poll_data.get("close_at"))
+            if poll_data.get("close_at") and poll_data.get("close_at") > 0:
+                data["expiry_time"] = MigrationUtils.ensure_epoch_in_ms(poll_data.get("close_at"))
+                data["no_poll_expiry"] = False
 
             if poll_data.get("options"):
                 data["polls"] = [
-                    PollOptionsModel(text=poll_option.get("text"))
-                    for poll_option in poll_data.get("options")
+                    PollOptionsModel(**poll_option) for poll_option in poll_data.get("options")
                 ]
 
             if poll_data.get("allow_multiple_votes"):
@@ -593,7 +612,7 @@ class MessageModel(BaseModel):
         attachments = data.get('attachments', [])
         for attachment in attachments:
             if attachment.attachment_message:
-                data["text"] = attachment.attachment_message if not attachment.attachment_message == "file" \
+                data["text"] = attachment.attachment_message if not attachment.attachment_message in ("file", "FILE") \
                     else data.get("text")
 
             if attachment.replied_conversation_id:
@@ -601,6 +620,9 @@ class MessageModel(BaseModel):
 
             if attachment.sendbird_parent_msg_id:
                 data["sendbird_parent_msg_id"] = attachment.sendbird_parent_msg_id
+
+        if data.get("text") in ("file", "FILE"):
+            data["text"] = ""
 
         return data
 

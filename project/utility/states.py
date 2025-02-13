@@ -1108,11 +1108,12 @@ class AttachmentTypes:
     VIDEO = "video"
     VOICE_NOTE = "voice_note"
     GIF = "gif"
+    PDF = "pdf"
 
     @classmethod
     def is_valid_attachment_type(cls, attachment_type: str) -> bool:
 
-        if attachment_type not in [cls.IMAGE, cls.AUDIO, cls.VIDEO, cls.VOICE_NOTE, cls.GIF]:
+        if attachment_type not in [cls.IMAGE, cls.AUDIO, cls.VIDEO, cls.VOICE_NOTE, cls.GIF, cls.PDF]:
             return False
         
         return True
@@ -1200,3 +1201,13 @@ class CommunityIntegrationStatusTypes(models.TextChoices):
 class SyncConversationsOrderTypes(ExtendedEnum):
     ASCENDING = "ASC"
     DESCENDING = "DESC"
+
+
+class ReplyPrivatelyAllowedScope(ExtendedEnum):
+    NO_ONE = "NO_ONE"
+    ALL_MEMBERS = "ALL_MEMBERS"
+    ONLY_CMS = "ONLY_CMS"
+
+
+class LMWidgetType(ExtendedEnum):
+    REPLY_PRIVATELY = "REPLY_PRIVATELY"

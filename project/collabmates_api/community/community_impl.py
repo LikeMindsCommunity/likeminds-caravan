@@ -90,7 +90,8 @@ from utility.states import member_states, card_types, click_states, member_right
     airtable_webhook_types, WebhookTypes, community_dm_settings_state_types, community_dm_settings_duration_types, \
     api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
     CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus, GuestFlowUserTypes, \
-    UserRoles, CommunityIntegrationStatusTypes, conversation_poll_types, multi_select_poll_states
+    UserRoles, CommunityIntegrationStatusTypes, conversation_poll_types, multi_select_poll_states, \
+    ReplyPrivatelyAllowedScope
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -100,7 +101,8 @@ from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDI
                                WIDGETS_METADATA_CONFIGURATION, PERSONALISED_FEED_WEIGHTS, FEED_SETTINGS_CONFIGURATION,
                                CREATE_FEED_POLL_CONFIGURATION_VALUES, CHATBOT_CONFIGURATIONS, CHATBOT_PROVIDER_OPENAI,
                                CHATBOT_DEFAULT_THREAD_CONTEXT, VALID_NOTIFICATION_FEED_ACTIONS, 
-                               AUTO_APPROVE_POST_CONFIGURATION_VALUES, CHAT_POLL_CONFIGURATIONS)
+                               AUTO_APPROVE_POST_CONFIGURATION_VALUES, CHAT_POLL_CONFIGURATIONS,
+                               REPLY_PRIVATELY_CONFIGURATION)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -5767,8 +5769,8 @@ class CommunityHelper:
                         return ResponseUtilities.get_inner_error_context(f"Invalid key sent in notification_feed_actions - {key}")
             
             if update_values.get('auto_approve_post'):
-                if not isinstance(update_values.get('auto_approve_post'), str
-                    ) or (update_values.get('auto_approve_post') not in AUTO_APPROVE_POST_CONFIGURATION_VALUES):
+                if not isinstance(update_values.get('auto_approve_post'), str) or (
+                        update_values.get('auto_approve_post') not in AUTO_APPROVE_POST_CONFIGURATION_VALUES):
                     return ResponseUtilities.get_inner_error_context(
                         "Please send valid value for auto_approve_post (possible values - 'everyone', 'only_cm', 'no_one')")
 
@@ -5813,8 +5815,8 @@ class CommunityHelper:
                     "Invalid allow_add_option value - Please send boolean value.")
                 
             if update_values.get('poll_type'):
-                if not isinstance(update_values.get('poll_type'), str
-                    ) or not conversation_poll_types.is_valid_poll_type_enum(update_values.get('poll_type')):
+                if not isinstance(update_values.get('poll_type'), str) or \
+                        not conversation_poll_types.is_valid_poll_type_enum(update_values.get('poll_type')):
                     return ResponseUtilities.get_inner_error_context(
                         "Invalid poll_type value - allowed update_values: instant | deferred | open .")
                     
@@ -5832,8 +5834,13 @@ class CommunityHelper:
             if update_values.get('multiple_select_no') and not isinstance(update_values.get('multiple_select_no'), int):
                 return ResponseUtilities.get_inner_error_context(
                     "Invalid multiple_select_no value - Please send integer value.")
-            
-             
+
+        elif configuration_type == REPLY_PRIVATELY_CONFIGURATION:
+
+            if any([not update_values.get('allowed_scope'),
+                    update_values.get('allowed_scope') not in ReplyPrivatelyAllowedScope.list()]):
+                return ResponseUtilities.get_inner_error_context("Invalid allowed scope value.")
+
         return {
             'community_instance': community_instance,
             'user_instance': user_instance,
@@ -6571,8 +6578,14 @@ class CommunityHelper:
             if configuration_value.get('no_poll_expiry') and configuration_value.get('poll_type') == conversation_poll_types.DEFERRED_POLL_ENUM:
                 configuration_value['no_poll_expiry'] = False
                 record_updated = True
-            
-            
+
+        elif configuration_type == REPLY_PRIVATELY_CONFIGURATION:
+
+            if update_values.get('allowed_scope') and \
+                    update_values.get('allowed_scope') in ReplyPrivatelyAllowedScope.list():
+                configuration_value['allowed_scope'] = update_values.get('allowed_scope')
+                record_updated = True
+
         # Update configuration instance if record is updated
         if record_updated:
             configuration_instance.value = configuration_value

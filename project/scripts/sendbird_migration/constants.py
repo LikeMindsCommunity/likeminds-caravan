@@ -31,6 +31,7 @@ CONVERSATION_FILE_S3_PATH = "files/collabcard/{}/conversation/{}/{}"  # Chatroom
 DEFAULT_FILE_S3_PATH = "files/"
 
 MESSAGES_DUMP_JSON_FILE_PATH = "{}_messages.json"
+CHANNEL_TO_CHATROOM_ID_MAP_JSON_FILE_PATH = "{}_channel_url_to_chatroom_id_map.json"
 
 # TTL for Sendbird -> LM ID Mapping Cache
 TTL_FOR_CACHE = 60 * 60 * 24 * 30

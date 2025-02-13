@@ -3892,6 +3892,8 @@ class ChatroomImpl(ChatroomManager):
         chat_request_state = validated_request.get('chat_request_state')
         message = req_body.get('text')
         should_stream_chatbot_response = req_body.get('should_stream_chatbot_response', False)
+        widget_metadata = req_body.get('metadata')
+        message_temporary_id = req_body.get('temporary_id')
 
         user_instances_list = [card_instance.user, card_instance.chatroom_with_user]
         user_member_state = Members.get_community_member_state(card_instance.community, card_instance.user)
@@ -3914,7 +3916,10 @@ class ChatroomImpl(ChatroomManager):
             response = ChatroomHelper.initiate_dm_connection_request(user_instance, card_instance, user_member_state,
                                                                      member_state, user_has_dm_right, message,
                                                                      chat_request_state, user_instances_list,
-                                                                     card_state_filter)
+                                                                     card_state_filter, widget_metadata,
+                                                                     message_temporary_id, self.get_request_platform(),
+                                                                     self.get_version_code(), self.get_device_id(),
+                                                                     self.get_api_version_code())
 
             if not response.get('success'):
                 return ResponseUtilities.get_impl_error_context(response.get('error_message'),
@@ -5760,7 +5765,8 @@ class ChatroomHelper:
     @staticmethod
     def initiate_dm_connection_request(user_instance, card_instance, user_member_state, member_state,
                                        user_has_dm_right, message, chat_request_state, user_instances_list,
-                                       card_state_filter):
+                                       card_state_filter, widget_metadata, message_temporary_id, platform_code,
+                                       version_code, device_id, api_version):
 
         if any([user_member_state == member_states.ADMIN, member_state == member_states.ADMIN]):
             return get_error_context(False, 'Cannot initiate DM request in which one user is CM!')
@@ -5783,33 +5789,18 @@ class ChatroomHelper:
                                      'chat_request_created_at': TimeUtilities.current_time_in_milliseconds(),
                                      'updated_at': TimeUtilities.current_time_in_sec()})
 
-        conv_state = conversation_states.ANSWER
+        from collabmates_api.conversation.conversation_impl import ConversationImpl
 
-        if card_instance.user == user_instance:
-            other_member_instance = card_instance.chatroom_with_user
+        conversation_request_body = {
+            'chatroom_id': card_instance.id,
+            'text': message,
+            'metadata': widget_metadata,
+            'temporary_id': message_temporary_id
+        }
 
-        else:
-            other_member_instance = card_instance.user
-
-        conversation_instance = initial_message_dm_chatroom(card_instance, user_instance, other_member_instance,
-                                                            card_instance.community, user_instances_list,
-                                                            message, user_member_state, member_state,
-                                                            conversation_state=conv_state,
-                                                            update_chatroom_updated_at=True)
-
-        send_notification_on_dm_request_initiation.delay(card_instance.id, user_instance.id,
-                                                         user_instance.userinfo.name)
-
-        from collabmates_api.conversation.conversation_impl import ConversationHelper
-        ConversationHelper.update_latest_conversation_id_to_firebase_v1.delay(card_instance.id,
-                                                                              conversation_instance.id,
-                                                                              card_instance.community_id,
-                                                                              only_update_home_feed=True)
-
-        context = {"current_user_id": user_instance.id, "fetch_reply": True}
-        conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
-
-        return {'success': True, 'conversation': conversation}
+        conversation_manager = ConversationImpl(user_instance.id, platform_code=platform_code, device_id=device_id,
+                                                version_code=version_code, api_version_code=api_version)
+        return conversation_manager.create_conversation_v1(conversation_request_body)
 
     @staticmethod
     def accept_dm_connection_request(user_instance, card_instance, user_member_state, member_state,
