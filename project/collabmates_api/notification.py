@@ -500,6 +500,7 @@ def generate_payload_for_notification_webhooks(webhook_type, notification_payloa
 
     return payload
 
+
 @shared_task
 def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dict, community_id, sdk_source):
     '''function to trigger webhooks for notifications'''
@@ -652,7 +653,7 @@ def notification_meta(notification_list, message, is_broadcast_notification: boo
 
 
 def get_connection():
-    '''function to create a postgres connection'''
+    """function to create a postgres connection"""
     try:
         # connection = psycopg2.connect(user=db_user,
         #                               password=db_password,
@@ -666,7 +667,7 @@ def get_connection():
 
 
 def get_token_for_fcm(member_id, flag=None):
-    '''function to get token from user'''
+    """function to get token from user"""
     try:
         conn = get_connection()
         curr = conn.cursor()
