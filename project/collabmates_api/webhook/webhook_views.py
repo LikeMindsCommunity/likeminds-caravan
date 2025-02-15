@@ -14,6 +14,7 @@ class WebhooksView(APIView):
         
         api_key = RequestUtilities.get_api_key_from_headers(request)
         member_id = RequestUtilities.get_member_id_from_headers(request)
+        request_params = RequestUtilities.fetch_request_query_params(request)
         validated_request = WebhookViewHelper.validate_basic_webhook_request(member_id, api_key)
 
         if 'error_message' in validated_request:
@@ -22,7 +23,7 @@ class WebhooksView(APIView):
             return JsonResponse(context['data'], status=context['status'])
 
         webhook_manager = WebhookImpl(member_id=member_id, api_key=api_key)
-        response_data = webhook_manager.fetch_webhooks()
+        response_data = webhook_manager.fetch_webhooks(response_type=request_params.get('response_type'))
 
         if 'error_message' in response_data:
             context = ResponseUtilities.get_view_impl_error_context(response_data['error_message'],

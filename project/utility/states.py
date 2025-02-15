@@ -783,6 +783,10 @@ class WebhookTypes(ExtendedEnum):
     COMMENT_REACT = "comment.react"
     NOTIFICATIONS_CHAT = "notifications.chat"
     NOTIFICATIONS_FEED = "notifications.feed"
+    CHATROOM_MESSAGE_SENT = "chatroom.message.sent"
+    CHATROOM_MESSAGE_REACTED = "chatroom.message.reacted"
+    CHATROOM_MESSAGE_DELETED = "chatroom.message.deleted"
+    CHATROOM_POLL_CREATED = "chatroom.poll.created"
 
     @classmethod
     def validate_webhook_type(cls, webhook_type) -> bool:
@@ -1216,3 +1220,7 @@ class ReplyPrivatelyAllowedScope(ExtendedEnum):
 
 class LMWidgetType(ExtendedEnum):
     REPLY_PRIVATELY = "REPLY_PRIVATELY"
+
+
+class WebhooksResponseTypes(ExtendedEnum):
+    GROUP_URL = "GROUP_URL"

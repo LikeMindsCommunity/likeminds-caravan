@@ -1,16 +1,19 @@
 import json
 from rest_framework import status as status_codes
+from django.db.models import QuerySet, F
+from django.contrib.postgres.aggregates import JSONBAgg
 
 from .webhook_manager import WebhookManager
 from .serializers import WebhookSerializer
 from .webhook_impl_helper import WebhookImplHelper
 from .models import CommunityWebhook
+from .constants import WEBHOOK_TYPES_TITLE_MAP
 
 from togther.models import ModelUtilities, Community
-from collabmates_api.sdk.models import SdkClient 
 from utility.response_utilities import ResponseUtilities
 from utility.internal_service_utilities import InternalServiceUtilities
 from utility.cache_keys import SWARM_CACHE_KEY_WEBHOOKS
+from utility.states import WebhooksResponseTypes
 
 
 class WebhookImpl(WebhookManager):
@@ -49,10 +52,53 @@ class WebhookImpl(WebhookManager):
     def get_api_key(self) -> str:
         return self.api_key
 
-    def fetch_webhooks(self) -> dict:
+    @staticmethod
+    def _fetch_group_url_webhooks_response(webhook_instances: QuerySet):
+        aggregated_results = (
+            webhook_instances.values('url').annotate(
+                webhook_data=JSONBAgg(F('webhook_type')),
+                is_active_list=JSONBAgg(F('is_active'))
+            )
+        )
 
+        # Transforming the queryset into the required dictionary format
+        result_dict = {
+            item["url"]: dict(zip(item["webhook_data"], item["is_active_list"]))
+            for item in aggregated_results
+        }
+
+        webhooks_url_response = []
+
+        for url, webhook_data in result_dict.items():
+            webhook_response = {
+                'url': url
+            }
+
+            for webhook_type, webhook_title_map in WEBHOOK_TYPES_TITLE_MAP.items():
+                webhook_category = webhook_title_map.get('category')
+
+                if webhook_category not in webhook_response:
+                    webhook_response[webhook_category] = {
+                        webhook_type: {
+                            'name': webhook_title_map.get('name'),
+                            'status': webhook_data.get(webhook_type, False)
+                        }
+                    }
+
+                else:
+                    webhook_response[webhook_category][webhook_type] = {
+                        'name': webhook_title_map.get('name'),
+                        'status': webhook_data.get(webhook_type, False)
+                    }
+
+            webhooks_url_response.append(webhook_response)
+
+        return webhooks_url_response
+
+    def fetch_webhooks(self, response_type: str = None) -> dict:
         validated_request = WebhookImplHelper.validate_fetch_webhooks_request(self.get_api_key(),
-                                                                              self.get_member_id())
+                                                                              self.get_member_id(),
+                                                                              response_type)
 
         if 'error_message' in validated_request:
             return ResponseUtilities.get_impl_error_context(validated_request['error_message'],
@@ -62,9 +108,13 @@ class WebhookImpl(WebhookManager):
 
         webhook_instances = ModelUtilities.get_model_filter(CommunityWebhook, {'community_id': community_instance.id})
 
-        webhook_data = WebhookSerializer(webhook_instances, many=True)
+        if response_type == WebhooksResponseTypes.GROUP_URL.value:
+            webhook_data = self._fetch_group_url_webhooks_response(webhook_instances)
 
-        return {'success': True, 'webhooks': webhook_data.data}
+        else:
+            webhook_data = WebhookSerializer(webhook_instances, many=True).data
+
+        return {'success': True, 'webhooks': webhook_data}
 
     @staticmethod
     def _create_webhook_instance(community_id, url, webhook_type, is_active) -> dict:
@@ -176,7 +226,6 @@ class WebhookImpl(WebhookManager):
         return response
 
     def fetch_webhook(self) -> dict:
-
         validated_request = WebhookImplHelper.validate_fetch_webhook_request(self.get_api_key(),
                                                                              self.get_member_id(),
                                                                              self.get_webhook_id())
@@ -191,8 +240,7 @@ class WebhookImpl(WebhookManager):
 
         return {'success': True, 'webhooks': webhook_data.data}
 
-    def update_webhook(self, webhook_url:str = None, is_active:bool = None) -> dict:
-
+    def update_webhook(self, webhook_url: str = None, is_active: bool = None) -> dict:
         validated_request = WebhookImplHelper.validate_update_webhook_request(self.get_api_key(),
                                                                               self.get_member_id(),
                                                                               self.get_webhook_id())

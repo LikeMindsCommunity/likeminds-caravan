@@ -6,9 +6,10 @@ class WebhookManager(metaclass=abc.ABCMeta):
     @classmethod
     def __subclasshook__(cls, subclass):
         return ((hasattr(subclass, 'fetch_webhook') and callable(subclass.fetch_webhook)) and
+                (hasattr(subclass, 'fetch_webhooks') and callable(subclass.fetch_webhooks)) and
                 (hasattr(subclass, 'add_webhook') and callable(subclass.add_webhook)) and
                 (hasattr(subclass, 'add_or_update_webhook') and callable(subclass.add_or_update_webhook)) and
-                (hasattr(subclass, 'update_webhook') and callable (subclass.update_webhook)) and
+                (hasattr(subclass, 'update_webhook') and callable(subclass.update_webhook)) and
                 (hasattr(subclass, 'delete_webhook') and callable(subclass.delete_webhook)) or
                 NotImplemented)
 
@@ -16,6 +17,13 @@ class WebhookManager(metaclass=abc.ABCMeta):
     def fetch_webhook(self) -> dict:
         """
         fetch webhook for community
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_webhooks(self, response_type: str = None) -> dict:
+        """
+        fetch all webhooks for community
         """
         raise NotImplementedError
 

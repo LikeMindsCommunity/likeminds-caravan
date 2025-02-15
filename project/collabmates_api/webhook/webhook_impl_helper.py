@@ -1,6 +1,6 @@
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
-from utility.states import WebhookTypes
+from utility.states import WebhookTypes, WebhooksResponseTypes
 
 from .constants import WEBHOOK_LIMIT
 
@@ -29,16 +29,16 @@ class WebhookImplHelper:
         if validated_dict.get('error_message'):
             return validated_dict
         
-        community_instace = validated_dict.get('community_id')
+        community_instance = validated_dict.get('community_id')
         user_instance = validated_dict.get('user_id')
 
-        is_admin = Members.is_member_community_promoter(community_instace, user_instance)
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
 
         if not is_admin:
             return ResponseUtilities.get_inner_error_context('You are not the owner/CM of community')
 
         webhook_instances = ModelUtilities.get_model_filter(
-            CommunityWebhook, {'community_id': community_instace.id, 'webhook_type': webhook_type})
+            CommunityWebhook, {'community_id': community_instance.id, 'webhook_type': webhook_type})
 
         if len(webhook_instances) >= WEBHOOK_LIMIT:
             return ResponseUtilities.get_inner_error_context('You can only create 5 webhooks of same type')
@@ -49,14 +49,14 @@ class WebhookImplHelper:
             return ResponseUtilities.get_inner_error_context('Webhook exist with given details')
         
         return {
-            'community_instance': community_instace,
+            'community_instance': community_instance,
             'user_instance': user_instance,
             'webhook_type': webhook_type,
             'webhook_url': webhook_url,
         }
     
     @staticmethod
-    def validate_fetch_webhooks_request(api_key: str, user_id: str) -> dict:
+    def validate_fetch_webhooks_request(api_key: str, user_id: str, response_type: str = None) -> dict:
         validation_params = {
             'community_id': {
                 'api_key': api_key
@@ -69,16 +69,19 @@ class WebhookImplHelper:
         if validated_dict.get('error_message'):
             return validated_dict
         
-        community_instace = validated_dict.get('community_id')
+        community_instance = validated_dict.get('community_id')
         user_instance = validated_dict.get('user_id')
 
-        is_admin = Members.is_member_community_promoter(community_instace, user_instance)
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
 
         if not is_admin:
             return ResponseUtilities.get_inner_error_context('You are not the owner/CM of community')
 
+        if response_type and response_type not in WebhooksResponseTypes.list():
+            return ResponseUtilities.get_inner_error_context('Response type not supported yet')
+
         return {
-            'community_instance': community_instace,
+            'community_instance': community_instance,
             'user_instance': user_instance,
         }
     
@@ -96,24 +99,24 @@ class WebhookImplHelper:
         if validated_dict.get('error_message'):
             return validated_dict
         
-        community_instace = validated_dict.get('community_id')
+        community_instance = validated_dict.get('community_id')
         user_instance = validated_dict.get('user_id')
 
-        is_admin = Members.is_member_community_promoter(community_instace, user_instance)
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
 
         if not is_admin:
             return ResponseUtilities.get_inner_error_context('You are not the owner/CM of community')
 
         webhook_instance = ModelUtilities.get_model_filter(CommunityWebhook, 
                                                            {'id': webhook_id,
-                                                            'community_id': community_instace.id}
+                                                            'community_id': community_instance.id}
                                                            ).first()
 
         if not webhook_instance:
             return ResponseUtilities.get_inner_error_context('Invalid webhook id')
 
         return {
-            'community_instance': community_instace,
+            'community_instance': community_instance,
             'user_instance': user_instance,
             'webhook_instance': webhook_instance,
         }
@@ -132,24 +135,24 @@ class WebhookImplHelper:
         if validated_dict.get('error_message'):
             return validated_dict
         
-        community_instace = validated_dict.get('community_id')
+        community_instance = validated_dict.get('community_id')
         user_instance = validated_dict.get('user_id')
 
-        is_admin = Members.is_member_community_promoter(community_instace, user_instance)
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
 
         if not is_admin:
             return ResponseUtilities.get_inner_error_context('You are not the owner/CM of community')
         
         webhook_instance = ModelUtilities.get_model_filter(CommunityWebhook,
                                                            {'id': webhook_id,
-                                                            'community_id': community_instace.id}
+                                                            'community_id': community_instance.id}
                                                            ).first()
         
         if not webhook_instance:
             return ResponseUtilities.get_inner_error_context('Invalid webhook id')
         
         return {
-            'community_instance': community_instace,
+            'community_instance': community_instance,
             'user_instance': user_instance,
             'webhook_instance': webhook_instance
         }
@@ -168,24 +171,24 @@ class WebhookImplHelper:
         if validated_dict.get('error_message'):
             return validated_dict
 
-        community_instace = validated_dict.get('community_id')
+        community_instance = validated_dict.get('community_id')
         user_instance = validated_dict.get('user_id')
 
-        is_admin = Members.is_member_community_promoter(community_instace, user_instance)
+        is_admin = Members.is_member_community_promoter(community_instance, user_instance)
 
         if not is_admin:
             return ResponseUtilities.get_inner_error_context('You are not the owner/CM of community')
 
         webhook_instance = ModelUtilities.get_model_filter(CommunityWebhook,
                                                            {'id': webhook_id,
-                                                            'community_id': community_instace.id}
+                                                            'community_id': community_instance.id}
                                                            ).first()
 
         if not webhook_instance:
             return ResponseUtilities.get_inner_error_context('Invalid webhook id')
 
         return {
-            'community_instance': community_instace,
+            'community_instance': community_instance,
             'user_instance': user_instance,
             'webhook_instance': webhook_instance
         }
