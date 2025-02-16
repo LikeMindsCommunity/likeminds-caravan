@@ -6,6 +6,8 @@ from django.conf import settings
 
 from external_services.caching.cache_impl import CacheImpl
 from utility.cache_keys import CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY
+from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY
+
 from ..constants import (
     SENDBIRD_MESSAGE_MAP_KEY,
     SENDBIRD_USER_MAP_KEY,
@@ -186,6 +188,26 @@ class MigrationUtils:
             return
 
         deleted = CacheImpl.delete_key(CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY.format(chatroom_id))
+
+        if deleted:
+            info_logger.info(
+                f"SendbirdMigration | Cleared chatroom participants count cache for chatroom: {chatroom_id}"
+            )
+        else:
+            error_logger.error(
+                f"SendbirdMigration | Error while clearing chatroom participants count cache for chatroom: {chatroom_id}"
+            )
+
+    @staticmethod
+    def delete_total_messages_count_cache(chatroom_id: int):
+        if not chatroom_id:
+            error_logger.error(
+                f"SendbirdMigration | No chatroom id found for clearing chatroom participants count cache."
+            )
+
+            return
+
+        deleted = CacheImpl.delete_key(CONVERSATIONS_COUNT_CACHE_KEY.format(chatroom_id))
 
         if deleted:
             info_logger.info(
