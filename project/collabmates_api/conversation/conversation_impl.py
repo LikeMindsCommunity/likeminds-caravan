@@ -992,8 +992,9 @@ class ConversationImpl(ConversationManager):
             return ResponseUtilities.get_impl_error_context('You are not a part of this secret chatroom',
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
-        if not internal_migration and req_body.get('state') and (req_body['state'] == conversation_states.CONVERSATION_POLL):
-            
+        if not internal_migration and req_body.get('state') and (
+                req_body['state'] == conversation_states.CONVERSATION_POLL
+        ):
             validated_request = ConversationHelper.validate_poll_conversation_request(req_body, user_instance,
                                                                                       chatroom_instance, 
                                                                                       community_instance)
@@ -1732,8 +1733,7 @@ class ConversationImpl(ConversationManager):
         return conversation_response
 
     @staticmethod
-    def genereate_payload_data_for_chatroom_user_tagged_webhook(conversation_id: int, users_list: list, event_type: str):
-
+    def generate_payload_data_for_chatroom_user_tagged_webhook(conversation_id: int, users_list: list, event_type: str):
         payload_data = {}
 
         conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id, 
@@ -1763,8 +1763,7 @@ class ConversationImpl(ConversationManager):
         return payload_data
 
     @staticmethod
-    def genereate_payload_data_for_chatroom_conversation_replied_webhook(conversation_id: int, event_type: str):
-
+    def generate_payload_data_for_chatroom_conversation_replied_webhook(conversation_id: int, event_type: str):
         payload_data = {}
 
         conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id, 
@@ -1800,7 +1799,34 @@ class ConversationImpl(ConversationManager):
         return payload_data
 
     @staticmethod
-    def generate_payload_for_conversation_webhook_event(conversation_id: int, users_list: list, event_type: str) -> dict:
+    def generate_payload_data_for_chatroom_message_sent_webhook(conversation_id: int, event_type: str):
+        payload_data = {}
+
+        conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id,
+                                                                                              event_type)
+
+        if not conversation_payload:
+            return {}
+
+        chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
+            conversation_payload['chatroom_id'])
+
+        payload_data['chatroom'] = chatroom_payload
+
+        payload_data['message'] = conversation_payload
+
+        created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events([conversation_payload['user_id']])
+
+        if not created_by_user:
+            return {}
+
+        payload_data['sender'] = created_by_user[0]
+
+        return payload_data
+
+    @staticmethod
+    def generate_payload_for_conversation_webhook_event(conversation_id: int, users_list: list,
+                                                        event_type: str) -> dict:
 
         payload = {
             "event": event_type,
@@ -1811,13 +1837,18 @@ class ConversationImpl(ConversationManager):
 
         # If event `user is tagged in a chatroom`
         if event_type == WebhookTypes.CHATROOM_USER_TAGGED.value:
-            payload_data = ConversationImpl.genereate_payload_data_for_chatroom_user_tagged_webhook(conversation_id,
-                                                                                                    users_list,
-                                                                                                    event_type)
+            payload_data = ConversationImpl.generate_payload_data_for_chatroom_user_tagged_webhook(conversation_id,
+                                                                                                   users_list,
+                                                                                                   event_type)
 
         # If event `user replied in a chatroom`
         elif event_type == WebhookTypes.CHATROOM_CONVERSATION_REPLIED.value:
-            payload_data = ConversationImpl.genereate_payload_data_for_chatroom_conversation_replied_webhook(
+            payload_data = ConversationImpl.generate_payload_data_for_chatroom_conversation_replied_webhook(
+                conversation_id, event_type)
+
+        # If event `message sent in a chatroom`
+        elif event_type == WebhookTypes.CHATROOM_MESSAGE_SENT.value:
+            payload_data = ConversationImpl.generate_payload_data_for_chatroom_message_sent_webhook(
                 conversation_id, event_type)
 
         else:
@@ -2814,6 +2845,12 @@ class ConversationHelper:
             start_time = TimeUtilities.convert_epoch_to_datetime_in_IST(conversation_instance.expiry_time)
             update_deferred_conversation_poll_updated_at_value.apply_async(args=args, kwargs={},
                                                                            eta=start_time)
+
+        # Trigger webhook for Send message
+        ConversationImpl.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
+                                                                      conversation_instance.id,
+                                                                      [],
+                                                                      WebhookTypes.CHATROOM_MESSAGE_SENT.value)
 
     @staticmethod
     def _validate_group_tags(
