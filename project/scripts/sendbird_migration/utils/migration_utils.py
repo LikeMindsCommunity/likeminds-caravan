@@ -211,9 +211,9 @@ class MigrationUtils:
 
         if deleted:
             info_logger.info(
-                f"SendbirdMigration | Cleared chatroom participants count cache for chatroom: {chatroom_id}"
+                f"SendbirdMigration | Cleared conversation count cache for chatroom: {chatroom_id}"
             )
         else:
             error_logger.error(
-                f"SendbirdMigration | Error while clearing chatroom participants count cache for chatroom: {chatroom_id}"
+                f"SendbirdMigration | Error while clearing conversation count cache for chatroom: {chatroom_id}"
             )

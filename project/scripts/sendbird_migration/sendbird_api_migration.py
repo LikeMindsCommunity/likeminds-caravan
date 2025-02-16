@@ -214,6 +214,9 @@ class SendbirdApiMigration:
             # Delete Cache key for chatroom participants
             MigrationUtils.delete_chatroom_participants_count_cache(chatroom_id)
 
+            # Delete Cache key for conversation count
+            MigrationUtils.delete_total_messages_count_cache(chatroom_id)
+
             # Upload Messages Dump to S3
             MigrationUtils.upload_data_dump_to_s3(
                 object_path=messages_dump_file_path, file_path=f"{self.community_id}/{messages_dump_file_path}"
