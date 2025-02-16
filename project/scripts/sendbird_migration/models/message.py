@@ -271,10 +271,10 @@ class ReactionModel(BaseModel):
 
 
 class OgTagsModel(BaseModel):
-    title: str = Field(alias="og:title")
-    description: str = Field(alias="og:description")
-    url: str = Field(alias="og:url")
-    image: str
+    title: str = Field(alias="og:title", default="")
+    description: str = Field(alias="og:description", default="")
+    url: str = Field(alias="og:url", default="")
+    image: str = ""
 
     @model_validator(mode="before")
     def _validate_image(cls, data):
@@ -284,6 +284,7 @@ class OgTagsModel(BaseModel):
             data["image"] = image_url
 
         return data
+
 
 class MessageModel(BaseModel):
 
@@ -301,7 +302,7 @@ class MessageModel(BaseModel):
     attachments: Optional[List[AttachmentModel]] = []
     replied_conversation_id: int = 0
     metadata: dict = {}
-    og_tags: Optional[OgTagsModel] = None
+    og_tags: Optional[OgTagsModel] = Field(alias="og_tag", default=None)
 
     polls: List[PollOptionsModel] = []
     poll_type: int = 2  # Default poll type is 2 (Open Poll)
@@ -620,6 +621,9 @@ class MessageModel(BaseModel):
 
             if attachment.sendbird_parent_msg_id:
                 data["sendbird_parent_msg_id"] = attachment.sendbird_parent_msg_id
+
+        if data.get("text") in ("file", "FILE"):
+            data["text"] = ""
 
         return data
 
