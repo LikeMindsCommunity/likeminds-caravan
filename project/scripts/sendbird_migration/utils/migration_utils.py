@@ -202,7 +202,7 @@ class MigrationUtils:
     def delete_total_messages_count_cache(chatroom_id: int):
         if not chatroom_id:
             error_logger.error(
-                f"SendbirdMigration | No chatroom id found for clearing chatroom participants count cache."
+                f"SendbirdMigration | No chatroom id found for clearing conversation count cache."
             )
 
             return
