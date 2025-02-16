@@ -222,17 +222,6 @@ class WebhookImplHelper:
         if not is_admin:
             return ResponseUtilities.get_inner_error_context('You are not the owner/CM of community')
 
-        webhook_instances = ModelUtilities.get_model_filter(
-            CommunityWebhook, {'community_id': community_instance.id, 'webhook_type__in': webhook_statuses.keys()})
-
-        if len(webhook_instances) >= WEBHOOK_LIMIT:
-            return ResponseUtilities.get_inner_error_context('You can only create 5 webhooks of same type')
-
-        same_webhook_instances = webhook_instances.filter(url=webhook_url)
-
-        if len(same_webhook_instances) > 0:
-            return ResponseUtilities.get_inner_error_context('Webhook exist with given details')
-
         return {
             'community_instance': community_instance,
             'user_instance': user_instance,

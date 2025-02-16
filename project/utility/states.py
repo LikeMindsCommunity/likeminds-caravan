@@ -785,6 +785,7 @@ class WebhookTypes(ExtendedEnum):
     NOTIFICATIONS_FEED = "notifications.feed"
     CHATROOM_MESSAGE_SENT = "chatroom.message.sent"
     CHATROOM_MESSAGE_REACTED = "chatroom.message.reacted"
+    CHATROOM_MESSAGE_REACTION_DELETED = "chatroom.message.reaction.deleted"
     CHATROOM_MESSAGE_DELETED = "chatroom.message.deleted"
     CHATROOM_POLL_CREATED = "chatroom.poll.created"
 
