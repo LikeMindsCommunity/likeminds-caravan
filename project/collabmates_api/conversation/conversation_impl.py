@@ -35,6 +35,7 @@ from ..raw_queries import activate_chatroom_on_conversation_creation, \
     get_users_sdk_meta_dict
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, UserinfoSerializer
+from collabmates_api.serializers import get_answer_files
 from ..sync.model_update import update_models_for_syncing_apis
 # from ..tasks import send_chatroom_owner_mail
 from ..utility import (pagination, m2cm_v2_version_check, is_community_widget_enabled)
@@ -1825,6 +1826,32 @@ class ConversationImpl(ConversationManager):
         return payload_data
 
     @staticmethod
+    def generate_payload_data_for_micro_poll_created_webhook(conversation_id: int, event_type: str):
+        payload_data = {}
+
+        conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id,
+                                                                                              event_type)
+
+        if not conversation_payload:
+            return {}
+
+        chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
+            conversation_payload['chatroom_id'])
+
+        payload_data['chatroom'] = chatroom_payload
+
+        payload_data['message'] = conversation_payload
+
+        created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events([conversation_payload['user_id']])
+
+        if not created_by_user:
+            return {}
+
+        payload_data['created_by'] = created_by_user[0]
+
+        return payload_data
+
+    @staticmethod
     def generate_payload_for_conversation_webhook_event(conversation_id: int, users_list: list,
                                                         event_type: str) -> dict:
 
@@ -1849,6 +1876,11 @@ class ConversationImpl(ConversationManager):
         # If event `message sent in a chatroom`
         elif event_type == WebhookTypes.CHATROOM_MESSAGE_SENT.value:
             payload_data = ConversationImpl.generate_payload_data_for_chatroom_message_sent_webhook(
+                conversation_id, event_type)
+
+        # If event `poll is created in a chatroom`
+        elif event_type == WebhookTypes.CHATROOM_POLL_CREATED.value:
+            payload_data = ConversationImpl.generate_payload_data_for_micro_poll_created_webhook(
                 conversation_id, event_type)
 
         else:
@@ -2846,6 +2878,12 @@ class ConversationHelper:
             update_deferred_conversation_poll_updated_at_value.apply_async(args=args, kwargs={},
                                                                            eta=start_time)
 
+            # Trigger webhook for Send message
+            ConversationImpl.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
+                                                                          conversation_instance.id,
+                                                                          [],
+                                                                          WebhookTypes.CHATROOM_POLL_CREATED.value)
+
         # Trigger webhook for Send message
         ConversationImpl.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
                                                                       conversation_instance.id,
@@ -3008,7 +3046,6 @@ class ConversationHelper:
                         
     @staticmethod
     def get_conversation_payload_for_webhook_events(conversation_id: int, event_type: str):
-        
         conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
         
         if not conversation_instance:
@@ -3024,9 +3061,33 @@ class ConversationHelper:
 
         if event_type == WebhookTypes.CHATROOM_CONVERSATION_REPLIED.value:
             payload['replied_conversation_id'] = conversation_instance.reply_id
-        
+
+        if all([event_type == WebhookTypes.CHATROOM_MESSAGE_SENT.value,
+                conversation_instance.attachment_count > 0,
+                conversation_instance.attachments_uploaded]):
+            # Add attachments data
+            answer_files = get_answer_files(conversation_instance.id)
+            payload['attachment'] = []
+
+            for _, value in answer_files.items():
+                payload['attachment'] += value
+
+        if event_type == WebhookTypes.CHATROOM_POLL_CREATED.value:
+            payload['poll'] = {
+                'id': conversation_instance.id,
+                'question': conversation_instance.answer,
+                'created_at': conversation_instance.created_at,
+                'options': get_conversation_poll({'conversation_instance': conversation_instance,
+                                                  'conversation_id': conversation_instance.id,
+                                                  'poll_type': conversation_instance.poll_type,
+                                                  'multiple_select_no': conversation_instance.multiple_select_no,
+                                                  'expiry_time': conversation_instance.expiry_time,
+                                                  'member_id': conversation_instance.user_id}),
+                'expires_at': conversation_instance.expiry_time
+            }
+
         return payload
-    
+
     @staticmethod
     @shared_task
     def trigger_chatbot_for_chatroom_against_conversation(
