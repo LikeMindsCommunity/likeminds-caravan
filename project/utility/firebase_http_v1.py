@@ -49,7 +49,8 @@ class FCMHTTPV1Notification:
         # Set up headers and endpoint
         fcm_headers = {
             "Authorization": "Bearer " + self.access_token,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "mutable-content": 1    # added mutable content for android
         }
         self.requests_session.headers.update(fcm_headers)
         self.FCM_END_POINT = FCM_INITIAL_URL + self.service_account_file_dict['project_id'] + "/messages:send"
@@ -144,6 +145,9 @@ class FCMHTTPV1Notification:
             
             if 'ios' in stacks:
                 fcm_payload['message']['apns'] = extra_kwargs_ios      # stack specific options will now have to be explicitly loaded acc v1 format
+                # extra ios options added for testing
+                fcm_payload['message']['mutable_content'] = True
+                fcm_payload['message']['data']['mutable_content'] = True
 
             if 'web' in stacks:
                 fcm_payload['message']['webpush'] = extra_kwargs_web      # stack specific options will now have to be explicitly loaded acc v1 format
