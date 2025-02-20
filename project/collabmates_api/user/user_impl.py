@@ -2712,7 +2712,7 @@ class UserHelper:
                                                                  {'user_id_id__in': user_ids_list}).first()
             
             if not user_info_instance:
-                return ResponseUtilities.get_impl_error_context('User Not Found!',
+                return ResponseUtilities.get_impl_error_context('No user found associated with this mobile no!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
             
             return {
