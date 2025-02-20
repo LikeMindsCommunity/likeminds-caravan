@@ -235,7 +235,7 @@ def send_notification_for_ios(token_list, message, service_account_file_dict=Non
         "payload": {
             "aps": {
                 "mutable-content": 1,
-                "sound": message['payload'].get('sound')
+                # "sound": message['payload'].get('sound')      # commented for testing
             }
         }
     }
