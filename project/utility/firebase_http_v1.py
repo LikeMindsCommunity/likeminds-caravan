@@ -51,7 +51,6 @@ class FCMHTTPV1Notification:
             "Authorization": "Bearer " + self.access_token,
             "Content-Type": "application/json",
         }
-
         # Adding extra headers in case of ios
         self.add_extra_headers(stacks, fcm_headers)
 
@@ -148,6 +147,7 @@ class FCMHTTPV1Notification:
             
             if 'ios' in stacks:
                 fcm_payload['message']['apns'] = extra_kwargs_ios      # stack specific options will now have to be explicitly loaded acc v1 format
+                
                 
 
             if 'web' in stacks:
@@ -264,25 +264,8 @@ class FCMHTTPV1Notification:
         return response_dict
 
 
-    def add_extra_testing_kwargs_for_ios(self, stacks, payload):
-        if not (stacks and 'ios' in stacks and isinstance(payload, dict)):
-            return 
-
-        if 'message' in payload and isinstance(payload['message'], dict):
-            mutable_content_value = 1
-
-            payload['message']['mutable-content'] = mutable_content_value
-            payload['message']['mutable_content'] = bool(mutable_content_value) 
-
-            # Also adding inside data key
-            if isinstance(payload['message'].get('data'), dict):
-                payload['message']['data']['mutable-content'] = mutable_content_value
-                payload['message']['data']['mutable_content'] = bool(mutable_content_value)
-
-
-
     def add_extra_headers(self, stacks, headers):
         if not (stacks and 'ios' in stacks and isinstance(headers, dict)):
             return
 
-        headers["mutable-content"] = 1  # Use dictionary syntax
+        headers["mutable-content"] = "1" 
