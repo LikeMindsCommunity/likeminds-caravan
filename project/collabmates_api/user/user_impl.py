@@ -2712,7 +2712,7 @@ class UserHelper:
                                                                  {'user_id_id__in': user_ids_list}).first()
             
             if not user_info_instance:
-                return ResponseUtilities.get_impl_error_context('Wrong OTP!',
+                return ResponseUtilities.get_impl_error_context('User Not Found!',
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
             
             return {
