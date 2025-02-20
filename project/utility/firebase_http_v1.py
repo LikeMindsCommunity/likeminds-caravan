@@ -157,9 +157,6 @@ class FCMHTTPV1Notification:
         if remove_notification:
             del fcm_payload['message']['notification']
 
-        # Adding extra data in case of ios, for testing purpose.        
-        self.add_extra_testing_kwargs_for_ios(stacks, fcm_payload)
-
         return self.json_dumps(fcm_payload)
 
     def registration_id_chunks(self, registration_ids):
