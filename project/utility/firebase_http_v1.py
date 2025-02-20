@@ -51,7 +51,6 @@ class FCMHTTPV1Notification:
             "Authorization": "Bearer " + self.access_token,
             "Content-Type": "application/json",
         }
-
         # Adding extra headers in case of ios
         self.add_extra_headers(stacks, fcm_headers)
 
@@ -149,6 +148,7 @@ class FCMHTTPV1Notification:
             if 'ios' in stacks:
                 fcm_payload['message']['apns'] = extra_kwargs_ios      # stack specific options will now have to be explicitly loaded acc v1 format
                 
+                
 
             if 'web' in stacks:
                 fcm_payload['message']['webpush'] = extra_kwargs_web      # stack specific options will now have to be explicitly loaded acc v1 format
@@ -156,6 +156,9 @@ class FCMHTTPV1Notification:
         # Do this if you only want to send a data message.
         if remove_notification:
             del fcm_payload['message']['notification']
+
+        # Adding extra data in case of ios, for testing purpose.        
+        self.add_extra_testing_kwargs_for_ios(stacks, fcm_payload)
 
         return self.json_dumps(fcm_payload)
 
