@@ -240,9 +240,7 @@ def send_notification_for_ios(token_list, message, service_account_file_dict=Non
         }
     }
 
-    legacy_extra_kwargs = {
-        "mutable-content": 1
-    }
+    legacy_extra_kwargs = {}
 
     final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message, ['ios'],
                                       legacy_extra_kwargs, {}, http_v1_extra_kwargs, NotificationPlatform.IOS.value)
@@ -314,7 +312,6 @@ def send_notification_for_flutter(token_list, message, service_account_file_dict
             "channel_id": "likeminds_flutter_channel"
         },
         "ios": {
-            "mutable-content": 1,
             "content_available": True,
         }
     }

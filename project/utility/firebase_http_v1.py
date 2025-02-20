@@ -50,8 +50,11 @@ class FCMHTTPV1Notification:
         fcm_headers = {
             "Authorization": "Bearer " + self.access_token,
             "Content-Type": "application/json",
-            "mutable-content": 1    # added mutable content for android
         }
+
+        # Adding extra headers in case of ios
+        self.add_extra_headers(stacks, fcm_headers)
+
         self.requests_session.headers.update(fcm_headers)
         self.FCM_END_POINT = FCM_INITIAL_URL + self.service_account_file_dict['project_id'] + "/messages:send"
 
@@ -145,9 +148,7 @@ class FCMHTTPV1Notification:
             
             if 'ios' in stacks:
                 fcm_payload['message']['apns'] = extra_kwargs_ios      # stack specific options will now have to be explicitly loaded acc v1 format
-                # extra ios options added for testing
-                fcm_payload['message']['mutable_content'] = True
-                fcm_payload['message']['data']['mutable_content'] = True
+                
 
             if 'web' in stacks:
                 fcm_payload['message']['webpush'] = extra_kwargs_web      # stack specific options will now have to be explicitly loaded acc v1 format
@@ -155,6 +156,9 @@ class FCMHTTPV1Notification:
         # Do this if you only want to send a data message.
         if remove_notification:
             del fcm_payload['message']['notification']
+
+        # Adding extra data in case of ios, for testing purpose.        
+        self.add_extra_testing_kwargs_for_ios(stacks, fcm_payload)
 
         return self.json_dumps(fcm_payload)
 
@@ -258,3 +262,27 @@ class FCMHTTPV1Notification:
                 error_logger.info("FCM server is temporarily unavailable")
         
         return response_dict
+
+
+    def add_extra_testing_kwargs_for_ios(self, stacks, payload):
+        if not (stacks and 'ios' in stacks and isinstance(payload, dict)):
+            return 
+
+        if 'message' in payload and isinstance(payload['message'], dict):
+            mutable_content_value = 1
+
+            payload['message']['mutable-content'] = mutable_content_value
+            payload['message']['mutable_content'] = bool(mutable_content_value) 
+
+            # Also adding inside data key
+            if isinstance(payload['message'].get('data'), dict):
+                payload['message']['data']['mutable-content'] = mutable_content_value
+                payload['message']['data']['mutable_content'] = bool(mutable_content_value)
+
+
+
+    def add_extra_headers(self, stacks, headers):
+        if not (stacks and 'ios' in stacks and isinstance(headers, dict)):
+            return
+
+        headers["mutable-content"] = 1  # Use dictionary syntax
