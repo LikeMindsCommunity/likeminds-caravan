@@ -7,7 +7,7 @@ class CommunityWebhook(models.Model):
 
     community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True)
     url = models.TextField()
-    webhook_type = models.CharField(max_length=30)
+    webhook_type = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
     created_at = models.BigIntegerField(default=0)
     updated_at = models.BigIntegerField(default=0)

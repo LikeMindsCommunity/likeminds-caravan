@@ -97,7 +97,7 @@ class WebhookUtilties:
                                                       to_mails_list=team_emails)
         
     @shared_task(bind=True, retry_kwargs={'max_retries': MAX_WEBHOOK_RETRY_LIMIT + 1})
-    def send_webhook_request_with_payload(self, url:str, payload:dict, webhook_type:str, secret:str = None):
+    def send_webhook_request_with_payload(self, url: str, payload: dict, webhook_type: str, secret: str = None):
         """
         Celery task to send webhook request with payload
         """

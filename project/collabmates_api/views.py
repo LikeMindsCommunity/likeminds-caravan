@@ -10850,6 +10850,8 @@ def delete_conversation(request):
     conversation_list = []
     community_id = None
 
+    from collabmates_api.conversation.conversation_impl import ConversationImpl
+
     for conversation_id in conversation_ids:
 
         conversation = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
@@ -10865,6 +10867,12 @@ def delete_conversation(request):
         conversation_dict = CardAnswersDBSyncSerializer(conversation, context=conversation_context, many=False).data
         conversation_list.append(conversation_dict)
         community_id = conversation_dict['community_id']
+
+        # Trigger webhook for Send message
+        ConversationImpl.trigger_webhook_for_conversation_event.delay(conversation.community_id,
+                                                                      conversation_id,
+                                                                      [member_id],
+                                                                      WebhookTypes.CHATROOM_MESSAGE_DELETED.value)
 
     ElasticSearchSync.delete_conversations.delay(conversation_ids)
 

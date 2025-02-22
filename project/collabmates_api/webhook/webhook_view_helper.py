@@ -1,11 +1,11 @@
 from utility.states import WebhookTypes
 from utility.response_utilities import ResponseUtilities
 
+
 class WebhookViewHelper:
 
     @staticmethod
     def validate_basic_webhook_request(member_id, api_key):
-
         if not member_id:
             return ResponseUtilities.get_inner_error_context('send x-member-id in headers')
         
@@ -16,7 +16,6 @@ class WebhookViewHelper:
 
     @staticmethod
     def validate_body_webhook_request(request_body, member_id, api_key=None):
-
         basic_validation = WebhookViewHelper.validate_basic_webhook_request(member_id, api_key)
 
         if 'error_message' in basic_validation:
@@ -29,7 +28,6 @@ class WebhookViewHelper:
 
     @staticmethod
     def add_webhook_body_validator(request_body, member_id, api_key=None):
-
         basic_validation = WebhookViewHelper.validate_body_webhook_request(request_body, member_id, api_key)
 
         if 'error_message' in basic_validation:
@@ -51,7 +49,6 @@ class WebhookViewHelper:
 
     @staticmethod
     def update_webhook_body_validator(request_body, member_id, api_key):
-
         basic_validator = WebhookViewHelper.validate_basic_webhook_request(member_id, api_key)
 
         if 'error_message' in basic_validator:
@@ -65,5 +62,20 @@ class WebhookViewHelper:
         
         if is_active and not isinstance(is_active, bool):
             return ResponseUtilities.get_inner_error_context('is_active should be boolean')
+
+        return request_body
+
+    @staticmethod
+    def add_or_update_webhook_body_validator(request_body, member_id, api_key=None):
+        basic_validation = WebhookViewHelper.validate_body_webhook_request(request_body, member_id, api_key)
+
+        if 'error_message' in basic_validation:
+            return basic_validation
+
+        if 'webhook_statuses' not in request_body or not isinstance(request_body.get('webhook_statuses'), dict):
+            return ResponseUtilities.get_inner_error_context('invalid webhook_statuses in body')
+
+        if 'url' not in request_body:
+            return ResponseUtilities.get_inner_error_context('send url in body')
 
         return request_body

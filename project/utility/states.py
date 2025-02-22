@@ -88,7 +88,8 @@ class MemberRights:
                          MEMBER_RIGHT_INVITE_PRIVATE_LINK, MEMBER_RIGHT_AUTO_APPROVE,
                          MEMBER_RIGHT_CREATE_SECRET_ROOM]
     
-    FEED_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_POSTS, MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS, MEMBER_RIGHT_CREATE_FEED_POLL]
+    FEED_MEMBER_RIGHTS = [MEMBER_RIGHT_CREATE_POSTS, MEMBER_RIGHT_COMMENT_AND_REPLY_ON_POSTS,
+                          MEMBER_RIGHT_CREATE_FEED_POLL]
 
 
 member_rights = MemberRights()
@@ -173,6 +174,7 @@ class ReportTagTypes:
 
 
 report_Tag_Types = ReportTagTypes()
+
 
 class ReportClosingStatus(enum.Enum):
     STATUS_APPROVED = "approved"
@@ -260,8 +262,7 @@ class MultiSelectPollStates:
     AT_MAX_ENUM = "at_max"
     AT_MOST_ENUM = "at_most"
     AT_LEAST_ENUM = "at_least"
-    
-    
+
     @classmethod
     def is_valid_poll_state_enum(cls, poll_state: str) -> bool:
         return poll_state in [cls.EXACTLY_ENUM, cls.AT_MAX_ENUM, cls.AT_MOST_ENUM, cls.AT_LEAST_ENUM]
@@ -443,7 +444,7 @@ class HomeSnackbarType(enum.Enum):
         try:
             if cls.__contains__(value):
                 response = True
-        except AttributeError as e:
+        except AttributeError:
             response = False
         finally:
             return response
@@ -461,7 +462,7 @@ class SyncTypes(enum.Enum):
         try:
             if cls.__contains__(value):
                 response = True
-        except AttributeError as e:
+        except AttributeError:
             response = False
         finally:
             return response
@@ -533,8 +534,7 @@ class ConversationPollTypes:
     INSTANT_POLL_NAME = "Instant Poll"
     DEFERRED_POLL_NAME = "Deferred Poll"
     OPEN_POLL_NAME = "Open Poll"
-    
-    
+
     @classmethod
     def is_valid_poll_type_enum(cls, poll_type: str) -> bool:
         return poll_type in [cls.INSTANT_POLL_ENUM, cls.DEFERRED_POLL_ENUM, cls.OPEN_POLL_ENUM]
@@ -767,7 +767,7 @@ class AirtableWebhookTypes:
 airtable_webhook_types = AirtableWebhookTypes()
 
 
-class WebhookTypes(enum.Enum):
+class WebhookTypes(ExtendedEnum):
     COMMUNITY_JOINED = "community.joined"
     CHATROOM_JOINED = "chatroom.joined"
     CHATROOM_LEFT = "chatroom.left"
@@ -783,6 +783,11 @@ class WebhookTypes(enum.Enum):
     COMMENT_REACT = "comment.react"
     NOTIFICATIONS_CHAT = "notifications.chat"
     NOTIFICATIONS_FEED = "notifications.feed"
+    CHATROOM_MESSAGE_SENT = "chatroom.message.sent"
+    CHATROOM_MESSAGE_REACTED = "chatroom.message.reacted"
+    CHATROOM_MESSAGE_REACTION_DELETED = "chatroom.message.reaction.deleted"
+    CHATROOM_MESSAGE_DELETED = "chatroom.message.deleted"
+    CHATROOM_POLL_CREATED = "chatroom.poll.created"
 
     @classmethod
     def validate_webhook_type(cls, webhook_type) -> bool:
@@ -793,7 +798,7 @@ class WebhookTypes(enum.Enum):
         return cls._value2member_map_
 
 
-class WenhookChatroomMethodTypes:
+class WebhookChatroomMethodTypes:
     SELF_JOINED = "self_joined"
     CM_ADDED = "cm_added"
     CHATROOM_AUTO_FOLLOWED = "chatroom_auto_followed"
@@ -804,15 +809,20 @@ class WenhookChatroomMethodTypes:
     CM_REMOVED = "cm_removed"
     COHORT_CHATROOM_REMOVED = "cohort_chatroom_removed"
 
-webhook_chatroom_methods = WenhookChatroomMethodTypes()
+
+webhook_chatroom_methods = WebhookChatroomMethodTypes()
+
 
 class WebhookCommunityMethodTypes:
     COMMUNITY_JOIN = "community_join"
 
+
 webhook_community_methods = WebhookCommunityMethodTypes()
+
 
 class WebhookProfileMethodTypes:
     COMMUNITY_JOIN = "community_join"
+
 
 webhook_profile_methods = WebhookProfileMethodTypes()
 
@@ -1211,3 +1221,7 @@ class ReplyPrivatelyAllowedScope(ExtendedEnum):
 
 class LMWidgetType(ExtendedEnum):
     REPLY_PRIVATELY = "REPLY_PRIVATELY"
+
+
+class WebhooksResponseTypes(ExtendedEnum):
+    GROUP_URL = "GROUP_URL"

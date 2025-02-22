@@ -35,6 +35,7 @@ from ..raw_queries import activate_chatroom_on_conversation_creation, \
     get_users_sdk_meta_dict
 from ..rest_api import CardAnswersDBSyncSerializer
 from ..serializers import conversationSerializer, UserinfoSerializer
+from collabmates_api.serializers import get_answer_files
 from ..sync.model_update import update_models_for_syncing_apis
 # from ..tasks import send_chatroom_owner_mail
 from ..utility import (pagination, m2cm_v2_version_check, is_community_widget_enabled)
@@ -992,8 +993,9 @@ class ConversationImpl(ConversationManager):
             return ResponseUtilities.get_impl_error_context('You are not a part of this secret chatroom',
                                                             status_codes.HTTP_400_BAD_REQUEST)
 
-        if not internal_migration and req_body.get('state') and (req_body['state'] == conversation_states.CONVERSATION_POLL):
-            
+        if not internal_migration and req_body.get('state') and (
+                req_body['state'] == conversation_states.CONVERSATION_POLL
+        ):
             validated_request = ConversationHelper.validate_poll_conversation_request(req_body, user_instance,
                                                                                       chatroom_instance, 
                                                                                       community_instance)
@@ -1243,6 +1245,12 @@ class ConversationImpl(ConversationManager):
                                         {'pk': self.get_conversation_id()},
                                         {'last_updated': TimeUtilities.current_time_in_milliseconds()})
 
+        # Trigger webhook for Send message
+        ConversationImpl.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
+                                                                      conversation_instance.id,
+                                                                      [user_instance.id],
+                                                                      WebhookTypes.CHATROOM_MESSAGE_REACTED.value)
+
         context = {
             "success": True
         }
@@ -1282,6 +1290,11 @@ class ConversationImpl(ConversationManager):
             ModelUtilities.model_update(card_answers,
                                         {'pk': self.get_conversation_id()},
                                         {'last_updated': TimeUtilities.current_time_in_milliseconds()})
+
+            # Trigger webhook for Send message
+            ConversationImpl.trigger_webhook_for_conversation_event.delay(
+                conversation_instance.community_id, conversation_instance.id, [user_instance.id],
+                WebhookTypes.CHATROOM_MESSAGE_REACTION_DELETED.value)
 
         context = {
             "success": True
@@ -1732,8 +1745,7 @@ class ConversationImpl(ConversationManager):
         return conversation_response
 
     @staticmethod
-    def genereate_payload_data_for_chatroom_user_tagged_webhook(conversation_id: int, users_list: list, event_type: str):
-
+    def generate_payload_data_for_chatroom_user_tagged_webhook(conversation_id: int, users_list: list, event_type: str):
         payload_data = {}
 
         conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id, 
@@ -1763,8 +1775,7 @@ class ConversationImpl(ConversationManager):
         return payload_data
 
     @staticmethod
-    def genereate_payload_data_for_chatroom_conversation_replied_webhook(conversation_id: int, event_type: str):
-
+    def generate_payload_data_for_chatroom_conversation_replied_webhook(conversation_id: int, event_type: str):
         payload_data = {}
 
         conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id, 
@@ -1800,8 +1811,142 @@ class ConversationImpl(ConversationManager):
         return payload_data
 
     @staticmethod
-    def generate_payload_for_conversation_webhook_event(conversation_id: int, users_list: list, event_type: str) -> dict:
+    def generate_payload_data_for_chatroom_message_sent_webhook(conversation_id: int, event_type: str):
+        payload_data = {}
 
+        conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id,
+                                                                                              event_type)
+
+        if not conversation_payload:
+            return {}
+
+        chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
+            conversation_payload['chatroom_id'])
+
+        payload_data['chatroom'] = chatroom_payload
+
+        payload_data['message'] = conversation_payload
+
+        created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events([conversation_payload['user_id']])
+
+        if not created_by_user:
+            return {}
+
+        payload_data['sender'] = created_by_user[0]
+
+        return payload_data
+
+    @staticmethod
+    def generate_payload_data_for_micro_poll_created_webhook(conversation_id: int, event_type: str):
+        payload_data = {}
+
+        conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id,
+                                                                                              event_type)
+
+        if not conversation_payload:
+            return {}
+
+        chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
+            conversation_payload['chatroom_id'])
+
+        payload_data['chatroom'] = chatroom_payload
+
+        payload_data['message'] = conversation_payload
+
+        created_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events([conversation_payload['user_id']])
+
+        if not created_by_user:
+            return {}
+
+        payload_data['created_by'] = created_by_user[0]
+
+        return payload_data
+
+    @staticmethod
+    def generate_payload_data_for_message_deleted_webhook(conversation_id: int, users_list: list, event_type: str):
+        payload_data = {}
+
+        conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id,
+                                                                                              event_type)
+
+        if not conversation_payload:
+            return {}
+
+        chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
+            conversation_payload['chatroom_id'])
+
+        payload_data['chatroom'] = chatroom_payload
+
+        payload_data['message'] = conversation_payload
+
+        if users_list:
+            deleted_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
+            payload_data['deleted_by'] = deleted_by_user[0] if deleted_by_user else {}
+
+        return payload_data
+
+    @staticmethod
+    def generate_payload_data_for_message_reacted_webhook(conversation_id: int, users_list: list, event_type: str):
+        payload_data = {}
+
+        conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id,
+                                                                                              event_type)
+
+        if not conversation_payload:
+            return {}
+
+        chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
+            conversation_payload['chatroom_id'])
+
+        payload_data['chatroom'] = chatroom_payload
+
+        payload_data['message'] = conversation_payload
+
+        if users_list:
+            filter_dict = {
+                'user': users_list[0],
+                'chatroom': conversation_payload['chatroom_id'],
+                'conversation': conversation_id
+            }
+            reaction_instance = ModelUtilities.get_model_filter(MessageReactions, filter_dict).first()
+
+            if reaction_instance:
+                payload_data['reaction'] = {
+                    "emoji": reaction_instance.reaction
+                }
+
+            reacted_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
+            payload_data['reacted_by'] = reacted_by_user[0] if reacted_by_user else {}
+
+        return payload_data
+
+    @staticmethod
+    def generate_payload_data_for_message_reaction_deleted_webhook(conversation_id: int, users_list: list,
+                                                                   event_type: str):
+        payload_data = {}
+
+        conversation_payload = ConversationHelper.get_conversation_payload_for_webhook_events(conversation_id,
+                                                                                              event_type)
+
+        if not conversation_payload:
+            return {}
+
+        chatroom_payload = chatroom_impl.ChatroomHelper.get_chatroom_payload_for_webhook_events(
+            conversation_payload['chatroom_id'])
+
+        payload_data['chatroom'] = chatroom_payload
+
+        payload_data['message'] = conversation_payload
+
+        if users_list:
+            reaction_deleted_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
+            payload_data['reaction_deleted_by'] = reaction_deleted_by_user[0] if reaction_deleted_by_user else {}
+
+        return payload_data
+
+    @staticmethod
+    def generate_payload_for_conversation_webhook_event(conversation_id: int, users_list: list,
+                                                        event_type: str) -> dict:
         payload = {
             "event": event_type,
             "source": WEBHOOK_SOURCE_CHAT,
@@ -1811,14 +1956,39 @@ class ConversationImpl(ConversationManager):
 
         # If event `user is tagged in a chatroom`
         if event_type == WebhookTypes.CHATROOM_USER_TAGGED.value:
-            payload_data = ConversationImpl.genereate_payload_data_for_chatroom_user_tagged_webhook(conversation_id,
-                                                                                                    users_list,
-                                                                                                    event_type)
+            payload_data = ConversationImpl.generate_payload_data_for_chatroom_user_tagged_webhook(conversation_id,
+                                                                                                   users_list,
+                                                                                                   event_type)
 
         # If event `user replied in a chatroom`
         elif event_type == WebhookTypes.CHATROOM_CONVERSATION_REPLIED.value:
-            payload_data = ConversationImpl.genereate_payload_data_for_chatroom_conversation_replied_webhook(
+            payload_data = ConversationImpl.generate_payload_data_for_chatroom_conversation_replied_webhook(
                 conversation_id, event_type)
+
+        # If event `message sent in a chatroom`
+        elif event_type == WebhookTypes.CHATROOM_MESSAGE_SENT.value:
+            payload_data = ConversationImpl.generate_payload_data_for_chatroom_message_sent_webhook(
+                conversation_id, event_type)
+
+        # If event `poll is created in a chatroom`
+        elif event_type == WebhookTypes.CHATROOM_POLL_CREATED.value:
+            payload_data = ConversationImpl.generate_payload_data_for_micro_poll_created_webhook(
+                conversation_id, event_type)
+
+        # If event `message deleted from a chatroom`
+        elif event_type == WebhookTypes.CHATROOM_MESSAGE_DELETED.value:
+            payload_data = ConversationImpl.generate_payload_data_for_message_deleted_webhook(
+                conversation_id, users_list, event_type)
+
+        # If event `message reacted in a chatroom`
+        elif event_type == WebhookTypes.CHATROOM_MESSAGE_REACTED.value:
+            payload_data = ConversationImpl.generate_payload_data_for_message_reacted_webhook(
+                conversation_id, users_list, event_type)
+
+        # If event `message reaction deleted from a chatroom`
+        elif event_type == WebhookTypes.CHATROOM_MESSAGE_REACTION_DELETED.value:
+            payload_data = ConversationImpl.generate_payload_data_for_message_reaction_deleted_webhook(
+                conversation_id, users_list, event_type)
 
         else:
             return {}
@@ -1844,7 +2014,7 @@ class ConversationImpl(ConversationManager):
         if not webhooks:
             return
 
-        payload = ConversationImpl.generate_payload_for_conversation_webhook_event(conversation_id, 
+        payload = ConversationImpl.generate_payload_for_conversation_webhook_event(conversation_id,
                                                                                    users_list, 
                                                                                    event_type)
 
@@ -2815,6 +2985,18 @@ class ConversationHelper:
             update_deferred_conversation_poll_updated_at_value.apply_async(args=args, kwargs={},
                                                                            eta=start_time)
 
+            # Trigger webhook for Send message
+            ConversationImpl.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
+                                                                          conversation_instance.id,
+                                                                          [],
+                                                                          WebhookTypes.CHATROOM_POLL_CREATED.value)
+
+        # Trigger webhook for Send message
+        ConversationImpl.trigger_webhook_for_conversation_event.delay(conversation_instance.community_id,
+                                                                      conversation_instance.id,
+                                                                      [],
+                                                                      WebhookTypes.CHATROOM_MESSAGE_SENT.value)
+
     @staticmethod
     def _validate_group_tags(
             message: str,
@@ -2971,7 +3153,6 @@ class ConversationHelper:
                         
     @staticmethod
     def get_conversation_payload_for_webhook_events(conversation_id: int, event_type: str):
-        
         conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
         
         if not conversation_instance:
@@ -2987,9 +3168,33 @@ class ConversationHelper:
 
         if event_type == WebhookTypes.CHATROOM_CONVERSATION_REPLIED.value:
             payload['replied_conversation_id'] = conversation_instance.reply_id
-        
+
+        if all([event_type == WebhookTypes.CHATROOM_MESSAGE_SENT.value,
+                conversation_instance.attachment_count > 0,
+                conversation_instance.attachments_uploaded]):
+            # Add attachments data
+            answer_files = get_answer_files(conversation_instance.id)
+            payload['attachment'] = []
+
+            for _, value in answer_files.items():
+                payload['attachment'] += value
+
+        if event_type == WebhookTypes.CHATROOM_POLL_CREATED.value:
+            payload['poll'] = {
+                'id': conversation_instance.id,
+                'question': conversation_instance.answer,
+                'created_at': conversation_instance.created_at,
+                'options': get_conversation_poll({'conversation_instance': conversation_instance,
+                                                  'conversation_id': conversation_instance.id,
+                                                  'poll_type': conversation_instance.poll_type,
+                                                  'multiple_select_no': conversation_instance.multiple_select_no,
+                                                  'expiry_time': conversation_instance.expiry_time,
+                                                  'member_id': conversation_instance.user_id}),
+                'expires_at': conversation_instance.expiry_time
+            }
+
         return payload
-    
+
     @staticmethod
     @shared_task
     def trigger_chatbot_for_chatroom_against_conversation(
