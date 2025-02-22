@@ -235,7 +235,7 @@ def send_notification_for_ios(token_list, message, service_account_file_dict=Non
         "payload": {
             "aps": {
                 "mutable-content": 1,
-                "sound": message['payload'].get('sound')
+                # "sound": message['payload'].get('sound')      # commented for testing
             }
         }
     }
@@ -243,7 +243,7 @@ def send_notification_for_ios(token_list, message, service_account_file_dict=Non
     legacy_extra_kwargs = {}
 
     final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message, ['ios'],
-                                      legacy_extra_kwargs, http_v1_extra_kwargs, {}, NotificationPlatform.IOS.value)
+                                      legacy_extra_kwargs, {}, http_v1_extra_kwargs, NotificationPlatform.IOS.value)
 
     return final_result
 
