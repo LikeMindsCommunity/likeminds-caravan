@@ -3174,10 +3174,7 @@ class ConversationHelper:
                 conversation_instance.attachments_uploaded]):
             # Add attachments data
             answer_files = get_answer_files(conversation_instance.id)
-            payload['attachment'] = []
-
-            for _, value in answer_files.items():
-                payload['attachment'] += value
+            payload['attachment'] = answer_files.get('attachments')
 
         if event_type == WebhookTypes.CHATROOM_POLL_CREATED.value:
             payload['poll'] = {

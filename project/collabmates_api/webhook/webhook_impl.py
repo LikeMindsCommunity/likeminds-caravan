@@ -14,6 +14,7 @@ from utility.response_utilities import ResponseUtilities
 from utility.internal_service_utilities import InternalServiceUtilities
 from utility.cache_keys import SWARM_CACHE_KEY_WEBHOOKS
 from utility.states import WebhooksResponseTypes
+from utility.time_utilities import TimeUtilities
 
 
 class WebhookImpl(WebhookManager):
@@ -181,15 +182,18 @@ class WebhookImpl(WebhookManager):
 
         # Update webhook instances
         update_webhook_instances_list = []
+        current_time_in_ms = TimeUtilities.current_time_in_milliseconds()
 
         for webhook_instance in webhook_filter:
             webhook_status = webhook_statuses.get(webhook_instance.webhook_type, None)
 
             if webhook_status is not None:
                 webhook_instance.is_active = webhook_status
+                webhook_instance.updated_at = current_time_in_ms
                 update_webhook_instances_list.append(webhook_instance)
 
-        ModelUtilities.bulk_update_instances(CommunityWebhook, update_webhook_instances_list, fields=['is_active'])
+        ModelUtilities.bulk_update_instances(CommunityWebhook, update_webhook_instances_list,
+                                             fields=['is_active', 'updated_at'])
 
         # Create webhook instances
         create_webhook_instances_list = []
@@ -197,7 +201,9 @@ class WebhookImpl(WebhookManager):
         for webhook_type in new_webhook_types:
             create_webhook_instances_list.append(CommunityWebhook(community=community,
                                                                   url=url,
-                                                                  webhook_type=webhook_type))
+                                                                  webhook_type=webhook_type,
+                                                                  created_at=current_time_in_ms,
+                                                                  updated_at=current_time_in_ms))
 
         ModelUtilities.bulk_create_instances(CommunityWebhook, create_webhook_instances_list)
 
