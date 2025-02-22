@@ -91,7 +91,8 @@ class MigrateChannels:
 
                     if channel_data.chatroom_image_url:
                         s3_path = self._create_s3_path_to_save_chatroom_images(channel_data.chatroom_image_url)
-                        s3_url = LambdaUtilities.migrate_to_s3(channel_data.chatroom_image_url, s3_path, self.sendbird_api_token)
+                        s3_url = LambdaUtilities.migrate_to_s3(channel_data.chatroom_image_url, s3_path,
+                                                               self.sendbird_api_token)
 
                         if s3_url:
                             channel_data.chatroom_image_url = s3_url

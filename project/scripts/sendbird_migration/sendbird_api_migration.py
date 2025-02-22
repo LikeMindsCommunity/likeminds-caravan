@@ -1,4 +1,7 @@
-import time, os
+import time
+import os
+
+import pandas as pd
 
 from .constants import (
     OPEN_CHANNELS_TYPE,
@@ -19,6 +22,7 @@ from .migration.migrate_messages import MigrateMessages
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.caching.cache_impl import CacheImpl
+from external_services.amazon_s3.s3_utils import S3Utils
 
 
 info_logger = LoggingWrapper.get_instance()
@@ -73,6 +77,8 @@ class SendbirdApiMigration:
         if not self.bot_id:
             raise ValueError("Bot ID not found using API key")
 
+        self.channel_participants_map = None
+
     def _add_metadata_to_messages(self, messages: list) -> list:
 
         for message in messages:
@@ -80,6 +86,31 @@ class SendbirdApiMigration:
             message["sendbird_api_token"] = self.api_token
 
         return messages
+
+    def _add_channel_participants_list_from_file(self, channel_participants_file_url: str = None):
+
+        if not channel_participants_file_url:
+            return True, ''
+
+        # Download the file and save it in local
+        local_file_path = S3Utils.download_file_from_s3_url(channel_participants_file_url)
+
+        if not local_file_path:
+            return False, error_logger.error(f'Error downloading the chatroom participants file from '
+                                             f'url: {channel_participants_file_url}')
+
+        df = pd.read_csv(local_file_path)
+
+        if df.empty:
+            return False, error_logger.error(f'Error in creating df from CSV file whose '
+                                             f'url: {channel_participants_file_url}')
+
+        self.channel_participants_map = df.groupby("Chat link")["User ID"].apply(set).to_dict()
+
+        if not self.channel_participants_map:
+            return False, error_logger.error(f'Error in creating map from dataframe: {df}')
+
+        return True, ''
 
     def migrate_all_users(self, chunk_size: int = 20):
 
@@ -103,7 +134,9 @@ class SendbirdApiMigration:
 
         return
 
-    def migrate_all_channels(self):
+    def migrate_all_channels(self, channel_participants_file_url: str = None):
+        # Create channel participants map from file url
+        self._add_channel_participants_list_from_file(channel_participants_file_url)
 
         channel_types = [OPEN_CHANNELS_TYPE, GROUP_CHANNELS_TYPE]
 
@@ -123,11 +156,23 @@ class SendbirdApiMigration:
                             continue
 
                         members = []
+                        should_call_participants_api = False
 
-                        for participants in self.api_utils.yield_open_channel_participants(
-                            channel_url=channel.get("channel_url")
-                        ):
-                            members.extend(participants)
+                        if self.channel_participants_map:
+                            members = self.channel_participants_map.get(channel.get("channel_url"))
+
+                            if not members:
+                                should_call_participants_api = True
+
+                        else:
+                            should_call_participants_api = True
+
+                        if should_call_participants_api:
+
+                            for participants in self.api_utils.yield_open_channel_participants(
+                                channel_url=channel.get("channel_url")
+                            ):
+                                members.extend(participants)
 
                         channel["members"] = members
 

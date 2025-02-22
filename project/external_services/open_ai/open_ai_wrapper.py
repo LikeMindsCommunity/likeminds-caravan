@@ -1,4 +1,4 @@
-import requests, os, base64
+import os
 
 from openai import OpenAI
 
@@ -6,7 +6,7 @@ from external_services.pandemonium.pandemonium_api_client import PandemoniumAPIC
 from utility.response_utilities import ResponseUtilities
 from utility.states import attachment_types
 
-from external_services.amazon_s3.s3_utils import S3_Utils
+from external_services.amazon_s3.s3_utils import S3Utils
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from external_services.open_ai.constants import (DEFAULT_VISION_MODEL,
@@ -113,7 +113,7 @@ class OpenAiWrapper:
 
             if attachment.get("type") == attachment_types.IMAGE:
                 image_attachment_present = True
-                image_file_id = self.dowload_file_from_url_and_upload_to_open_ai(attachment.get("url"))
+                image_file_id = self.download_file_from_url_and_upload_to_open_ai(attachment.get("url"))
                 if image_file_id:
                     content.append({ "type": "image_file", "image_file": { "file_id": image_file_id}})
 
@@ -171,13 +171,17 @@ class OpenAiWrapper:
 
         except Exception as e:
             return {
-                "error_message": f"Exception occured while running and fetching latest message from OpenAI API assistant_id: {assistant_id} | thread_id: {thread_id} | params: {params} | error: {str(e)}",
+                "error_message": f"Exception occurred while running and fetching latest message from OpenAI API "
+                                 f"assistant_id: {assistant_id} | thread_id: {thread_id} | params: {params} | "
+                                 f"error: {str(e)}",
                 "thread_id": thread_id
             }
 
     def transcribe_audio(self, audio_url: str = "") -> str:
+        file_path = None
+
         try:
-            file_path = S3_Utils.download_file_from_s3_url(audio_url)
+            file_path = S3Utils.download_file_from_s3_url(audio_url)
             if file_path:
                 audio_file = open(file_path, "rb")
                 transcription = self.client.audio.transcriptions.create(
@@ -204,20 +208,27 @@ class OpenAiWrapper:
         try:
             file_obj = self.client.files.create(file=open(file_path, "rb"), purpose="vision")
             return file_obj.id
+
         except Exception as e:
             error_logger.error(f"Error while uploading file to open_ai | error: {str(e)}")
             return ""
 
-    def dowload_file_from_url_and_upload_to_open_ai(self, file_url: str = "") -> str:
+    def download_file_from_url_and_upload_to_open_ai(self, file_url: str = "") -> str:
+        file_path = None
+
         try:
-            file_path = S3_Utils.download_file_from_s3_url(file_url)
+            file_path = S3Utils.download_file_from_s3_url(file_url)
+
             if file_path:
                 return self.upload_file(file_path)
+
             else:
                 return ""
+
         except Exception as e:
             error_logger.error(f"Error while downloading file for file_url: {file_url} | error: {str(e)}")
             return ""
+
         finally:
             if file_path:
                 os.remove(file_path)

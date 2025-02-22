@@ -261,7 +261,8 @@ class SdkMauView(APIView):
             return JsonResponse(response_data, status=response_data['status'])
 
         return JsonResponse(response_data, status=status_codes.HTTP_200_OK)
-    
+
+
 class MigrateSendbirdView(APIView):
 
     def post(self, request):

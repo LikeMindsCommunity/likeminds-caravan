@@ -2890,8 +2890,10 @@ def post_state_message_in_chatroom(user_id, chatroom_id, conversation_answer,
 
     return conversation_instance
 
+
 @shared_task
-def migrate_sendbird_data(api_key:str, application_id: str, api_token: str, migration_type: str):
+def migrate_sendbird_data(api_key:str, application_id: str, api_token: str, migration_type: str,
+                          channel_participants_file_url: str = None):
 
     if not (api_key and application_id and api_token and migration_type):
         error_logger.error("SendbirdMigration | Invalid parameters for sendbird data migration")
@@ -2907,10 +2909,13 @@ def migrate_sendbird_data(api_key:str, application_id: str, api_token: str, migr
 
         if migration_type == 'users':
             sendbird_migration.migrate_all_users()
+
         elif migration_type == 'channels':
-            sendbird_migration.migrate_all_channels()
+            sendbird_migration.migrate_all_channels(channel_participants_file_url)
+
         elif migration_type == 'messages':
             sendbird_migration.migrate_all_messages()
+
         elif migration_type == 'all':
             sendbird_migration.migrate_all_data()
 
