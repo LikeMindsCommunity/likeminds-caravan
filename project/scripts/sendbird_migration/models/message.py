@@ -285,6 +285,7 @@ class OgTagsModel(BaseModel):
 
         return data
 
+
 class MessageModel(BaseModel):
 
     sendbird_parent_msg_id: int = 0

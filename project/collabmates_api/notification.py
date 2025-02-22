@@ -234,18 +234,16 @@ def send_notification_for_ios(token_list, message, service_account_file_dict=Non
     http_v1_extra_kwargs = {        # refer FCMHTTPV1Notification.parse_payload to construct kwargs
         "payload": {
             "aps": {
-                "mutable_content": 'true',
-                "sound": message['payload'].get('sound')
+                "mutable-content": 1,
+                # "sound": message['payload'].get('sound')      # commented for testing
             }
         }
     }
 
-    legacy_extra_kwargs = {
-        "mutable_content": True
-    }
+    legacy_extra_kwargs = {}
 
     final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message, ['ios'],
-                                      legacy_extra_kwargs, http_v1_extra_kwargs, {}, NotificationPlatform.IOS.value)
+                                      legacy_extra_kwargs, {}, http_v1_extra_kwargs, NotificationPlatform.IOS.value)
 
     return final_result
 
@@ -303,7 +301,7 @@ def send_notification_for_flutter(token_list, message, service_account_file_dict
         "payload": {
             "aps": {
                 "content_available": 'true',
-                "mutable_content": 'true',
+                "mutable-content": 1,
             }
         }
     }
@@ -315,7 +313,6 @@ def send_notification_for_flutter(token_list, message, service_account_file_dict
         },
         "ios": {
             "content_available": True,
-            "mutable_content": True
         }
     }
 
