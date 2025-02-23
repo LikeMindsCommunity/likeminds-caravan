@@ -96,19 +96,20 @@ class SendbirdApiMigration:
         local_file_path = S3Utils.download_file_from_s3_url(channel_participants_file_url)
 
         if not local_file_path:
-            return False, error_logger.error(f'Error downloading the chatroom participants file from '
+            return False, error_logger.error(f'SendbirdMigration | '
+                                             f'Error downloading the chatroom participants file from '
                                              f'url: {channel_participants_file_url}')
 
         df = pd.read_csv(local_file_path)
 
         if df.empty:
-            return False, error_logger.error(f'Error in creating df from CSV file whose '
+            return False, error_logger.error(f'SendbirdMigration | Error in creating df from CSV file whose '
                                              f'url: {channel_participants_file_url}')
 
         self.channel_participants_map = df.groupby("Chat link")["User ID"].apply(set).to_dict()
 
         if not self.channel_participants_map:
-            return False, error_logger.error(f'Error in creating map from dataframe: {df}')
+            return False, error_logger.error(f'SendbirdMigration | Error in creating map from dataframe: {df}')
 
         return True, ''
 
