@@ -76,6 +76,7 @@ class MigrateChannels:
 
         if not chatroom_instance:
             error_logger.error(f'SendbirdMigration | No chatroom found for chatroom_id: {chatroom_id}')
+            return
 
         chatroom_manager = ChatroomImpl(
             self.member_id,
@@ -88,7 +89,7 @@ class MigrateChannels:
         if chatroom_instance.is_secret:
             request_body = {
                 'chatroom_id': chatroom_id,
-                'uuids': chatroom_participants_list,
+                'secret_chatroom_participants': chatroom_participants_list,
                 'is_secret': chatroom_instance.is_secret
             }
 

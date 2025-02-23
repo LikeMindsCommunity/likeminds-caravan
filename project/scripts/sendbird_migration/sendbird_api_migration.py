@@ -160,7 +160,7 @@ class SendbirdApiMigration:
                         should_call_participants_api = False
 
                         if self.channel_participants_map:
-                            members = self.channel_participants_map.get(channel.get("channel_url"))
+                            members = list(self.channel_participants_map.get(channel.get("channel_url")))
 
                             if not members:
                                 should_call_participants_api = True
