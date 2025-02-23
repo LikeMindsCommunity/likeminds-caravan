@@ -201,9 +201,7 @@ class SendbirdApiMigration:
         info_logger.info(f'SendbirdMigration | Adding participants to channels: {self.channel_participants_map}')
 
         for channel_url, participants_list in self.channel_participants_map.items():
-            cache_key = SENDBIRD_CHANNEL_MAP_KEY.format(self.community_id, channel_url)
-
-            lm_chatroom_id = CacheImpl.get_cache(cache_key)
+            lm_chatroom_id = MigrationUtils.get_lm_chatroom_id_from_sendbird_channel_id(channel_url, self.community_id)
 
             info_logger.info(f'SendbirdMigration | Chatroom id: {lm_chatroom_id}, '
                              f'participants list: {participants_list}')
