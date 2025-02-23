@@ -2916,6 +2916,9 @@ def migrate_sendbird_data(api_key:str, application_id: str, api_token: str, migr
         elif migration_type == 'messages':
             sendbird_migration.migrate_all_messages()
 
+        elif migration_type == 'channel_participants':
+            sendbird_migration.add_participants_to_channels(channel_participants_file_url)
+
         elif migration_type == 'all':
             sendbird_migration.migrate_all_data()
 

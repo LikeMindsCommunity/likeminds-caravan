@@ -193,6 +193,19 @@ class SendbirdApiMigration:
                     f"SendbirdMigration | Successfully migrated {channel_type}/s: {len(channels)}"
                 )
 
+    def add_participants_to_channels(self, channel_participants_file_url: str):
+        info_logger.info(f'Adding participants to channels')
+
+        # Create channel participants map from file url
+        self._add_channel_participants_list_from_file(channel_participants_file_url)
+
+        for channel_url, participants_list in self.channel_participants_map.items():
+            cache_key = SENDBIRD_CHANNEL_MAP_KEY.format(self.community_id, channel_url)
+
+            lm_chatroom_id = CacheImpl.get_cache(cache_key)
+
+            info_logger.info(f'Chatroom id: {lm_chatroom_id}, participants list: {participants_list}')
+
     def migrate_all_messages(self):
 
         channel_to_chatroom_ids = {}
