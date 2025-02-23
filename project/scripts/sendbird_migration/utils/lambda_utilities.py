@@ -6,6 +6,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 info_logger = LoggingWrapper.get_instance()
 error_logger = LoggingWrapper.get_instance()
 
+
 class LambdaUtilities:
 
     @staticmethod

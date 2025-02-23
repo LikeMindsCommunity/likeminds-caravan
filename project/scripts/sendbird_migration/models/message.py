@@ -11,7 +11,6 @@ from ..utils.migration_utils import MigrationUtils
 from ..constants import USER_PROFILE_ROUTE
 
 from utility.states import conversation_states, multi_select_poll_states, attachment_types
-from external_services.caching.cache_impl import CacheImpl
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 

@@ -13,6 +13,7 @@ from togther.models import (
     card_answers
 )
 from utility.time_utilities import TimeUtilities
+from utility.states import webhook_chatroom_methods
 from external_services.caching.cache_impl import CacheImpl
 
 from ..utils.lambda_utilities import LambdaUtilities
@@ -70,6 +71,40 @@ class MigrateChannels:
 
         return chatroom_data
 
+    def add_participants_in_chartroom(self, chatroom_id, chatroom_participants_list: list):
+        chatroom_instance = ModelUtilities.get_model_instance_or_none(Collabcard, chatroom_id)
+
+        if not chatroom_instance:
+            error_logger.error(f'SendbirdMigration | No chatroom found for chatroom_id: {chatroom_id}')
+            return
+
+        chatroom_manager = ChatroomImpl(
+            self.member_id,
+            request_platform=self.platform_code,
+            version_code=self.version_code,
+            api_key=self.api_key,
+            chatroom_id=chatroom_id
+        )
+
+        if chatroom_instance.is_secret:
+            request_body = {
+                'chatroom_id': chatroom_id,
+                'secret_chatroom_participants': chatroom_participants_list,
+                'is_secret': chatroom_instance.is_secret
+            }
+
+            chatroom_data = chatroom_manager.add_secret_chatroom_participant(
+                request_body, is_internal=True, trigger_webhook=False, join_method=webhook_chatroom_methods.CM_ADDED)
+
+            info_logger.info(f'SendbirdMigration | Added chatroom participants to secret chatroom_id: {chatroom_id},'
+                             f'response: {chatroom_data}')
+
+        else:
+            chatroom_data = chatroom_manager.add_members_to_chatroom(None, chatroom_participants_list)
+
+            info_logger.info(f'SendbirdMigration | Added chatroom participants to open chatroom_id: {chatroom_id},'
+                             f'response: {chatroom_data}')
+
     def create_all_chatrooms(self):
         info_logger.info(f"SendbirdMigration | Total channels to be added: {len(self.channels_data)}")
 
@@ -91,7 +126,8 @@ class MigrateChannels:
 
                     if channel_data.chatroom_image_url:
                         s3_path = self._create_s3_path_to_save_chatroom_images(channel_data.chatroom_image_url)
-                        s3_url = LambdaUtilities.migrate_to_s3(channel_data.chatroom_image_url, s3_path, self.sendbird_api_token)
+                        s3_url = LambdaUtilities.migrate_to_s3(channel_data.chatroom_image_url, s3_path,
+                                                               self.sendbird_api_token)
 
                         if s3_url:
                             channel_data.chatroom_image_url = s3_url
