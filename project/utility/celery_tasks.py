@@ -2892,7 +2892,7 @@ def post_state_message_in_chatroom(user_id, chatroom_id, conversation_answer,
 
 
 @shared_task
-def migrate_sendbird_data(api_key:str, application_id: str, api_token: str, migration_type: str,
+def migrate_sendbird_data(api_key: str, application_id: str, api_token: str, migration_type: str,
                           channel_participants_file_url: str = None):
 
     if not (api_key and application_id and api_token and migration_type):
