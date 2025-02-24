@@ -1,4 +1,7 @@
-import time, os
+import time
+import os
+
+import pandas as pd
 
 from .constants import (
     OPEN_CHANNELS_TYPE,
@@ -19,6 +22,7 @@ from .migration.migrate_messages import MigrateMessages
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 from external_services.caching.cache_impl import CacheImpl
+from external_services.amazon_s3.s3_utils import S3Utils
 
 
 info_logger = LoggingWrapper.get_instance()
@@ -73,6 +77,8 @@ class SendbirdApiMigration:
         if not self.bot_id:
             raise ValueError("Bot ID not found using API key")
 
+        self.channel_participants_map = None
+
     def _add_metadata_to_messages(self, messages: list) -> list:
 
         for message in messages:
@@ -80,6 +86,32 @@ class SendbirdApiMigration:
             message["sendbird_api_token"] = self.api_token
 
         return messages
+
+    def _add_channel_participants_list_from_file(self, channel_participants_file_url: str = None):
+
+        if not channel_participants_file_url:
+            return True, ''
+
+        # Download the file and save it in local
+        local_file_path = S3Utils.download_file_from_s3_url(channel_participants_file_url)
+
+        if not local_file_path:
+            return False, error_logger.error(f'SendbirdMigration | '
+                                             f'Error downloading the chatroom participants file from '
+                                             f'url: {channel_participants_file_url}')
+
+        df = pd.read_csv(local_file_path)
+
+        if df.empty:
+            return False, error_logger.error(f'SendbirdMigration | Error in creating df from CSV file whose '
+                                             f'url: {channel_participants_file_url}')
+
+        self.channel_participants_map = df.groupby("Chat link")["User ID"].apply(set).to_dict()
+
+        if not self.channel_participants_map:
+            return False, error_logger.error(f'SendbirdMigration | Error in creating map from dataframe: {df}')
+
+        return True, ''
 
     def migrate_all_users(self, chunk_size: int = 20):
 
@@ -103,7 +135,9 @@ class SendbirdApiMigration:
 
         return
 
-    def migrate_all_channels(self):
+    def migrate_all_channels(self, channel_participants_file_url: str = None):
+        # Create channel participants map from file url
+        self._add_channel_participants_list_from_file(channel_participants_file_url)
 
         channel_types = [OPEN_CHANNELS_TYPE, GROUP_CHANNELS_TYPE]
 
@@ -123,11 +157,23 @@ class SendbirdApiMigration:
                             continue
 
                         members = []
+                        should_call_participants_api = False
 
-                        for participants in self.api_utils.yield_open_channel_participants(
-                            channel_url=channel.get("channel_url")
-                        ):
-                            members.extend(participants)
+                        if self.channel_participants_map:
+                            members = list(self.channel_participants_map.get(channel.get("channel_url")))
+
+                            if not members:
+                                should_call_participants_api = True
+
+                        else:
+                            should_call_participants_api = True
+
+                        if should_call_participants_api:
+
+                            for participants in self.api_utils.yield_open_channel_participants(
+                                channel_url=channel.get("channel_url")
+                            ):
+                                members.extend(participants)
 
                         channel["members"] = members
 
@@ -148,7 +194,32 @@ class SendbirdApiMigration:
                     f"SendbirdMigration | Successfully migrated {channel_type}/s: {len(channels)}"
                 )
 
+    def add_participants_to_channels(self, channel_participants_file_url: str):
+        # Create channel participants map from file url
+        self._add_channel_participants_list_from_file(channel_participants_file_url)
+
+        info_logger.info(f'SendbirdMigration | Adding participants to channels: {self.channel_participants_map}')
+
+        for channel_url, participants_list in self.channel_participants_map.items():
+            lm_chatroom_id = MigrationUtils.get_lm_chatroom_id_from_sendbird_channel_id(channel_url, self.community_id)
+
+            info_logger.info(f'SendbirdMigration | Chatroom id: {lm_chatroom_id}, '
+                             f'participants list: {participants_list}')
+
+            # Call method to add chatroom participants in chatroom
+            MigrateChannels(
+                bot_id=self.bot_id,
+                community_id=self.community_id,
+                api_key=self.api_key,
+                platform_code=self.platform_code,
+                version_code=self.version_code,
+                channels_data=[],
+            ).add_participants_in_chartroom(chatroom_id=lm_chatroom_id,
+                                            chatroom_participants_list=list(participants_list))
+
     def migrate_all_messages(self):
+
+        channel_to_chatroom_ids = {}
 
         # fetch cache keys for all chatrooms
         channel_keys = CacheImpl.get_keys_for_pattern(
@@ -159,6 +230,17 @@ class SendbirdApiMigration:
 
             # Parse the key to get the channel_url
             channel_url = str(key).split("channel_", 1)[1].rstrip("'")
+
+            chatroom_id = MigrationUtils.get_lm_chatroom_id_from_sendbird_channel_id(
+                sendbird_channel_id=channel_url, community_id=self.community_id
+            )
+            if not chatroom_id:
+                error_logger.error(
+                    f"SendbirdMigration | Chatroom ID not found for channel: {channel_url}"
+                )
+                continue
+
+            channel_to_chatroom_ids[channel_url] = chatroom_id
 
             # Parse channel type from channel_url
             channel_type = OPEN_CHANNELS_TYPE if channel_url.split("_")[1] == "open" else GROUP_CHANNELS_TYPE
@@ -198,6 +280,13 @@ class SendbirdApiMigration:
 
                 info_logger.info(f"SendbirdMigration | Successfully migrated {len(messages)} messages for channel: {channel_url}")
 
+            # Delete Cache key for chatroom participants
+            MigrationUtils.delete_chatroom_participants_count_cache(chatroom_id)
+
+            # Delete Cache key for conversation count
+            MigrationUtils.delete_total_messages_count_cache(chatroom_id)
+
+            # Upload Messages Dump to S3
             MigrationUtils.upload_data_dump_to_s3(
                 object_path=messages_dump_file_path, file_path=f"{self.community_id}/{messages_dump_file_path}"
             )
@@ -205,6 +294,11 @@ class SendbirdApiMigration:
             # delete the json file
             os.remove(messages_dump_file_path)
 
+        # Upload Channel TO Chatroom ID Mapping to S3
+        MigrationUtils.upload_channel_to_chatroom_id_map_to_s3(
+            channel_to_chatroom_ids=channel_to_chatroom_ids,
+            community_id=self.community_id,
+        )
         return
 
     def migrate_all_data(self):

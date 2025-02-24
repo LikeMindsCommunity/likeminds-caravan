@@ -105,6 +105,7 @@ from utility.utils import print_time_taken
 
 
 from urllib import parse
+from external_services.otp.otp_api_client import CustomHttpAdapter
 
 url = settings.URL
 error_logger = LoggingWrapper.get_instance()
@@ -8582,7 +8583,11 @@ def send_otp_on_email(email):
 
     generate_url = """https://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s""" % (
         email, email_key)
-    response = rqst.get(generate_url)
+
+    # Manually enabling legacy renegotiation for hitting GET request
+    adaptor = CustomHttpAdapter()
+    response = adaptor.customSSLContext(generate_url)
+    
     print(response.content)
 
     if response.status_code == 200:
@@ -8604,7 +8609,11 @@ def verify_otp_on_email(email, otp):
     verify_url = """https://enterprise.smsgupshup.com/apps/TwoFactorAuth/incoming.php?email=%s&key=%s&code=%s""" % (
         str(email), email_key, str(otp))
 
-    response = rqst.get(verify_url)
+
+    # Manually enabling legacy renegotiation for hitting GET request
+    adaptor = CustomHttpAdapter()
+    response = adaptor.customSSLContext(verify_url)
+
     print(response.content)
     context = {}
     success = False
@@ -10841,6 +10850,8 @@ def delete_conversation(request):
     conversation_list = []
     community_id = None
 
+    from collabmates_api.conversation.conversation_impl import ConversationImpl
+
     for conversation_id in conversation_ids:
 
         conversation = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
@@ -10856,6 +10867,12 @@ def delete_conversation(request):
         conversation_dict = CardAnswersDBSyncSerializer(conversation, context=conversation_context, many=False).data
         conversation_list.append(conversation_dict)
         community_id = conversation_dict['community_id']
+
+        # Trigger webhook for Send message
+        ConversationImpl.trigger_webhook_for_conversation_event.delay(conversation.community_id,
+                                                                      conversation_id,
+                                                                      [member_id],
+                                                                      WebhookTypes.CHATROOM_MESSAGE_DELETED.value)
 
     ElasticSearchSync.delete_conversations.delay(conversation_ids)
 
@@ -10941,7 +10958,8 @@ def edit_conversation(request):
     community_instance = conversation.community
     community_id = community_instance.id
 
-    is_widgets_enabled = is_community_widget_enabled(community_instance, WidgetTypes.MESSAGE.value)
+    is_widgets_enabled = False
+    is_lm_widget = False
 
     if conversation.is_deleted:
         context = ResponseUtilities.get_view_impl_error_context('Cannot edit deleted conversation',
@@ -10962,10 +10980,15 @@ def edit_conversation(request):
                                                                             status_codes.HTTP_400_BAD_REQUEST)
                     return JsonResponse(**context)
 
-            if not is_widgets_enabled:
-                context = ResponseUtilities.get_view_impl_error_context("Widgets are disabled!",
-                                                                        status_codes.HTTP_400_BAD_REQUEST)
-                return JsonResponse(**context)
+            is_lm_widget = any([widget_metadata.get("type", "") == LMWidgetType.REPLY_PRIVATELY.value])
+
+            if not is_lm_widget:
+                is_widgets_enabled = is_community_widget_enabled(community_instance, WidgetTypes.MESSAGE.value)
+
+                if not is_widgets_enabled:
+                    context = ResponseUtilities.get_view_impl_error_context("Widgets are disabled!",
+                                                                            status_codes.HTTP_400_BAD_REQUEST)
+                    return JsonResponse(**context)
 
             widget_response = InternalServiceUtilities.get_widget_data_from_swarm(
                 user_instance.userinfo.user_unique_id, community_id, entity_id=str(conversation.id),
@@ -10976,7 +10999,7 @@ def edit_conversation(request):
                 widget_id = widget_response.get('_id')
 
                 widget_response = InternalServiceUtilities.update_widget_in_swarm(
-                    user_instance.userinfo.user_unique_id, community_id, widget_id, widget_metadata)
+                    user_instance.userinfo.user_unique_id, community_id, widget_id, widget_metadata, is_lm_widget)
 
                 if "error_message" in widget_response:
                     context = ResponseUtilities.get_view_impl_error_context(widget_response.get('error_message'),
@@ -10986,7 +11009,7 @@ def edit_conversation(request):
             else:
                 widget_response = InternalServiceUtilities.create_widget_in_swarm(
                     user_instance.userinfo.user_unique_id, community_id, entity_id=str(conversation.id),
-                    entity_type=WidgetTypes.MESSAGE.value, metadata=widget_metadata)
+                    entity_type=WidgetTypes.MESSAGE.value, metadata=widget_metadata, is_lm_widget=is_lm_widget)
 
                 if "error_message" in widget_response:
                     context = ResponseUtilities.get_view_impl_error_context(widget_response.get('error_message'),
@@ -11023,7 +11046,8 @@ def edit_conversation(request):
     context = {
         "current_user_id": member_id,
         "fetch_reply": True,
-        "is_widget_enabled": is_widgets_enabled
+        "is_widget_enabled": is_widgets_enabled,
+        "is_lm_widget": is_lm_widget
     }
 
     conversation_dict = CardAnswersDBSyncSerializer(conversation, context=context, many=False).data

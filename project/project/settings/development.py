@@ -84,7 +84,8 @@ OTP_TEMPLATE_ID = '5fd9f7f1e96b780fae01acff'
 ADMINS = [
             ('Ankit', 'ankit.garg@likeminds.community'),
             ('Shubh', 'shubh.gupta@likeminds.community'),
-            ('Mahir', 'mahir.gupta@likeminds.community')
+            ('Ketan', 'ketan@likeminds.community'),
+            ('Shobhit', 'shobhit.singh@likeminds.community')
          ]
 
 CACHES = {

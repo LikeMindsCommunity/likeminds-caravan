@@ -234,18 +234,15 @@ def send_notification_for_ios(token_list, message, service_account_file_dict=Non
     http_v1_extra_kwargs = {        # refer FCMHTTPV1Notification.parse_payload to construct kwargs
         "payload": {
             "aps": {
-                "mutable_content": 'true',
-                "sound": message['payload'].get('sound')
+                "mutable-content": 1,
             }
         }
     }
 
-    legacy_extra_kwargs = {
-        "mutable_content": True
-    }
+    legacy_extra_kwargs = {}
 
     final_result = send_notifications(service_account_file_dict, firebase_key, [token_list], message, ['ios'],
-                                      legacy_extra_kwargs, http_v1_extra_kwargs, {}, NotificationPlatform.IOS.value)
+                                      legacy_extra_kwargs, {}, http_v1_extra_kwargs, NotificationPlatform.IOS.value)
 
     return final_result
 
@@ -303,7 +300,7 @@ def send_notification_for_flutter(token_list, message, service_account_file_dict
         "payload": {
             "aps": {
                 "content_available": 'true',
-                "mutable_content": 'true',
+                "mutable-content": 1,
             }
         }
     }
@@ -315,7 +312,6 @@ def send_notification_for_flutter(token_list, message, service_account_file_dict
         },
         "ios": {
             "content_available": True,
-            "mutable_content": True
         }
     }
 
@@ -500,6 +496,7 @@ def generate_payload_for_notification_webhooks(webhook_type, notification_payloa
 
     return payload
 
+
 @shared_task
 def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dict, community_id, sdk_source):
     '''function to trigger webhooks for notifications'''
@@ -652,7 +649,7 @@ def notification_meta(notification_list, message, is_broadcast_notification: boo
 
 
 def get_connection():
-    '''function to create a postgres connection'''
+    """function to create a postgres connection"""
     try:
         # connection = psycopg2.connect(user=db_user,
         #                               password=db_password,
@@ -666,7 +663,7 @@ def get_connection():
 
 
 def get_token_for_fcm(member_id, flag=None):
-    '''function to get token from user'''
+    """function to get token from user"""
     try:
         conn = get_connection()
         curr = conn.cursor()

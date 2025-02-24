@@ -6,7 +6,7 @@ from collabmates_api.sdk.models import (SdkClient)
 
 from utility.constants import (SWARM_DELETE_CACHE_ENDPOINT, KETTLE_DELETE_CACHE_ENDPOINT, PLATFORM_TYPE_CARAVAN_SERVICE,
                                SWARM_USER_FEED_DATA_REMOVAL_ENDPOINT, SWARM_PENDING_POST_UPDATE_ENDPOINT,
-                               SWARM_WIDGET_ENDPOINT)
+                               SWARM_WIDGET_ENDPOINT, SWARM_LM_WIDGET_ENDPOINT)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 
@@ -203,7 +203,7 @@ class InternalServiceUtilities:
 
     @staticmethod
     def create_widget_in_swarm(user_unique_id: str, community_id: int, entity_id: str, entity_type: str,
-                               metadata: dict):
+                               metadata: dict, is_lm_widget: bool = False):
 
         if not (user_unique_id or community_id):
             return ResponseUtilities.get_inner_error_context("Invalid user or API key!")
@@ -218,6 +218,9 @@ class InternalServiceUtilities:
             api_key = sdk_client_instance.api_key
 
             swarm_create_widget_url = settings.SWARM_BASE_URL + SWARM_WIDGET_ENDPOINT
+
+            if is_lm_widget:
+                swarm_create_widget_url = settings.SWARM_BASE_URL + SWARM_LM_WIDGET_ENDPOINT
 
             client = ApiClient()
             client.update_request_url(swarm_create_widget_url)
@@ -319,7 +322,8 @@ class InternalServiceUtilities:
             return ResponseUtilities.get_inner_error_context("Some error occurred!")
 
     @staticmethod
-    def update_widget_in_swarm(user_unique_id: str, community_id: int, widget_id: str, metadata: dict):
+    def update_widget_in_swarm(user_unique_id: str, community_id: int, widget_id: str, metadata: dict,
+                               is_lm_widget: bool = False):
 
         if not (user_unique_id or community_id):
             return ResponseUtilities.get_inner_error_context("Invalid user or API key!")
@@ -334,6 +338,9 @@ class InternalServiceUtilities:
             api_key = sdk_client_instance.api_key
 
             swarm_update_widget_url = settings.SWARM_BASE_URL + SWARM_WIDGET_ENDPOINT + f"/{widget_id}"
+
+            if is_lm_widget:
+                swarm_update_widget_url = settings.SWARM_BASE_URL + SWARM_LM_WIDGET_ENDPOINT + f"/{widget_id}"
 
             client = ApiClient()
             client.update_request_url(swarm_update_widget_url)
@@ -351,7 +358,12 @@ class InternalServiceUtilities:
             })
 
             # Send delete request
-            response = client.put().response
+            if is_lm_widget:
+                response = client.patch().response
+
+            else:
+                response = client.put().response
+
             response_data = response.json()
 
             if response.status_code == 200:

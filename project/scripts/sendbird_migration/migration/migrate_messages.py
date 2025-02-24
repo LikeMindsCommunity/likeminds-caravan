@@ -106,7 +106,8 @@ class MigrateMessages:
 
         return conversation_response
 
-    def _create_reactions_for_message(self, reactions: List[ReactionModel], conversation_id: int, chatroom_id: int):
+    @staticmethod
+    def _create_reactions_for_message(reactions: List[ReactionModel], conversation_id: int, chatroom_id: int):
 
         for reaction in reactions:
             for reaction_user_id in reaction.user_ids:
@@ -143,7 +144,7 @@ class MigrateMessages:
             return
 
         for index, sendbird_poll in enumerate(sendbird_polls):
-            option_id = sendbird_poll.option_id
+            option_id = sendbird_poll.id
             poll_id = sendbird_poll.poll_id
 
             # Fetch Poll voters for each option
@@ -273,8 +274,8 @@ class MigrateMessages:
 
         return conversation_response
 
-    def _join_secret_chatroom_before_create_conversation(self, user_id: int, chatroom_id: int, sendbird_message_id: str):
-
+    @staticmethod
+    def _join_secret_chatroom_before_create_conversation(user_id: int, chatroom_id: int, sendbird_message_id: str):
         # Join chatroom if chatroom is secret
         from collabmates_api.chatroom.chatroom_impl import ChatroomImpl
 
@@ -295,7 +296,6 @@ class MigrateMessages:
         )
 
     def create_all_messages(self):
-
         info_logger.info(
             (
                 f"SendbirdMigration | Total messages to be added: {len(self.messages_data)}"
@@ -330,6 +330,7 @@ class MigrateMessages:
                         "metadata",
                         "og_tags",
                         "polls",
+                        "poll_type",
                         "expiry_time",
                         "no_poll_expiry",
                         "allow_add_option",

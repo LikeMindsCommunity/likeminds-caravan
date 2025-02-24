@@ -2707,12 +2707,28 @@ class UserHelper:
 
         user_ids_list = list(mobile_filter.values_list('user_id', flat=True))
 
+        if not community_instance:
+            user_info_instance = ModelUtilities.get_model_filter(Userinfo,
+                                                                 {'user_id_id__in': user_ids_list}).first()
+            
+            if not user_info_instance:
+                return ResponseUtilities.get_impl_error_context('No user found associated with this mobile no!',
+                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
+            
+            return {
+                'success': True,
+                'existing_user': True,
+                'user': get_logged_in_user(user_instance=user_info_instance.user_id),
+                'app_access': app_access
+            }
+
         sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
                                                                         {'community': community_instance,
                                                                          'user__in': user_ids_list}).first()
 
         if not sdk_client_user_info_instance:
-            return ResponseUtilities.get_inner_error_context('Wrong OTP!')
+            return ResponseUtilities.get_impl_error_context('Wrong OTP!',
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
         removed_member = ModelUtilities.get_model_filter(removedMembers,
                                                          {'community': community_instance,
@@ -2746,9 +2762,13 @@ class UserHelper:
         if mobile_filter:
             user_ids_list = list(mobile_filter.values_list('user_id', flat=True))
 
-            sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
-                                                                            {'community': community_instance,
-                                                                             'user__in': user_ids_list}).first()
+            if community_instance:
+                sdk_client_user_info_instance = ModelUtilities.get_model_filter(SDKClientUsersInfo,
+                                                                                {'community': community_instance,
+                                                                                 'user__in': user_ids_list}).first()
+            else:
+                user_info_instance = ModelUtilities.get_model_filter(Userinfo,
+                                                                     {'user_id_id__in': user_ids_list}).first()
 
         if sdk_client_user_info_instance:
             existing_user = True
@@ -2763,12 +2783,17 @@ class UserHelper:
             user_object = get_logged_in_user(user_instance=sdk_client_user_info_instance.user,
                                              sdk_client_info_flag=True)
 
+        if user_info_instance:
+            existing_user = True
+            user_object = get_logged_in_user(user_instance=user_info_instance.user_id)
+
         return {
             'success': True,
             'existing_user': existing_user,
             'user': user_object,
             'app_access': app_access
         }
+
 
     @staticmethod
     def verify_user_email_otp_on_beta(community_instance, email_id):

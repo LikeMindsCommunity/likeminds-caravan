@@ -6,11 +6,11 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
 
-class S3_Utils():
-        
+
+class S3Utils:
+
     @staticmethod
     def download_file_from_s3_url(url: str) -> str:
-        
         file_name = get_file_name_from_url(url)
         download_file_path = f"/tmp/{file_name}"
 

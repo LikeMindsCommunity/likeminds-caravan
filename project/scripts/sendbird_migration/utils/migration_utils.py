@@ -5,13 +5,17 @@ from pathlib import Path
 from django.conf import settings
 
 from external_services.caching.cache_impl import CacheImpl
+from utility.cache_keys import CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY
+from utility.constants import CONVERSATIONS_COUNT_CACHE_KEY
+
 from ..constants import (
     SENDBIRD_MESSAGE_MAP_KEY,
     SENDBIRD_USER_MAP_KEY,
     DEFAULT_FILE_S3_PATH,
     CONVERSATION_FILE_S3_PATH,
     MENTIONED_USERS_SYMBOL,
-    SENDBIRD_CHANNEL_MAP_KEY
+    SENDBIRD_CHANNEL_MAP_KEY,
+    CHANNEL_TO_CHATROOM_ID_MAP_JSON_FILE_PATH,
 )
 
 from utility.time_utilities import TimeUtilities
@@ -20,6 +24,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 
 info_logger = LoggingWrapper.get_instance()
 error_logger = LoggingWrapper.get_instance()
+
 
 class MigrationUtils:
 
@@ -138,3 +143,78 @@ class MigrationUtils:
 
         if uploaded:
             info_logger.info(f"SendbirdMigration | Successfully uploaded {file_path} to S3")
+
+    @staticmethod
+    def upload_channel_to_chatroom_id_map_to_s3(channel_to_chatroom_ids: dict, community_id: int):
+
+        local_path = CHANNEL_TO_CHATROOM_ID_MAP_JSON_FILE_PATH.format(community_id)
+
+        # Dump Dict to a JSON file
+        MigrationUtils.dump_data_to_json_file(
+            file_path=local_path,
+            data=channel_to_chatroom_ids,
+        )
+
+        # Upload the JSON file to S3
+        bucket = settings.S3_BUCKETS.get("sendbird_migration")
+
+        s3_client = S3ClientImpl(bucket) 
+        uploaded = s3_client.upload_file_to_s3_bucket(
+            object_path=local_path,
+            file_path=f"{community_id}/channel_to_chatroom_id_map/{local_path}",
+        )
+
+        if uploaded:
+            info_logger.info(
+                f"SendbirdMigration | Successfully uploaded channel to chatroom ids to S3 for community: {community_id}"
+            )
+        else:
+            error_logger.error(
+                f"SendbirdMigration | Error while uploading channel to chatroom ids to S3 for community: {community_id}"
+            )
+
+        # Remove the local file
+        os.remove(local_path)
+
+    @staticmethod
+    def delete_chatroom_participants_count_cache(
+        chatroom_id: int
+    ):
+        
+        if not chatroom_id:
+            error_logger.error(
+                f"SendbirdMigration | No chatroom id found for clearing chatroom participants count cache."
+            )
+
+            return
+
+        deleted = CacheImpl.delete_key(CHATROOM_PARTICIPANTS_COUNT_CACHE_KEY.format(chatroom_id))
+
+        if deleted:
+            info_logger.info(
+                f"SendbirdMigration | Cleared chatroom participants count cache for chatroom: {chatroom_id}"
+            )
+        else:
+            error_logger.error(
+                f"SendbirdMigration | Error while clearing chatroom participants count cache for chatroom: {chatroom_id}"
+            )
+
+    @staticmethod
+    def delete_total_messages_count_cache(chatroom_id: int):
+        if not chatroom_id:
+            error_logger.error(
+                f"SendbirdMigration | No chatroom id found for clearing conversation count cache."
+            )
+
+            return
+
+        deleted = CacheImpl.delete_key(CONVERSATIONS_COUNT_CACHE_KEY.format(chatroom_id))
+
+        if deleted:
+            info_logger.info(
+                f"SendbirdMigration | Cleared conversation count cache for chatroom: {chatroom_id}"
+            )
+        else:
+            error_logger.error(
+                f"SendbirdMigration | Error while clearing conversation count cache for chatroom: {chatroom_id}"
+            )
