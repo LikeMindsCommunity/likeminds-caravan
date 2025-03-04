@@ -2751,6 +2751,7 @@ class UserHelper:
         existing_user = False
         user_object = None
         sdk_client_user_info_instance = None
+        user_info_instance = None
 
         filter_dict = {
             'country_code': country_code,
