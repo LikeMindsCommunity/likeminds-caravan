@@ -2586,37 +2586,36 @@ class CommunityImpl(CommunityManager):
         return {'success': True, 'report_id': report_instance.id}
     
     def close_community_reports(self, report_ids, status) -> dict:
-            
-            validated_request = CommunityHelper.validate_close_community_reports_request(self.get_member_id(),
-                                                                                         self.get_api_key(),
-                                                                                         report_ids,
-                                                                                         status)
-    
-            if validated_request.get('error_message'):
-                return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
-                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
-            
-            user_instance = validated_request.get('user_instance')
-            community_instance = validated_request.get('community_instance')
-            report_instances = validated_request.get('report_instances')
+        validated_request = CommunityHelper.validate_close_community_reports_request(self.get_member_id(),
+                                                                                     self.get_api_key(),
+                                                                                     report_ids,
+                                                                                     status)
 
-            # If status is sent, then approve or reject under review pending posts
-            if status:
-                
-                report_ids = [report.id for report in report_instances]
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-                CommunityHelper.close_under_review_pending_post_reports.delay(community_instance.id, user_instance.id,
-                                                                              report_ids, status)
+        user_instance = validated_request.get('user_instance')
+        community_instance = validated_request.get('community_instance')
+        report_instances = validated_request.get('report_instances')
 
-            else:
+        # If status is sent, then approve or reject under review pending posts
+        if status:
+            report_ids = [report.id for report in report_instances]
+            CommunityHelper.close_under_review_pending_post_reports.delay(community_instance.id,
+                                                                          user_instance.id,
+                                                                          report_ids, status)
 
-                # Update report instances
-                report_instances.update(is_closed=True, closed_by=user_instance, closed_time=TimeUtilities.current_time_in_sec())
+        else:
+            # Update report instances
+            report_instances.update(
+                is_closed=True, closed_by=user_instance, closed_time=TimeUtilities.current_time_in_sec()
+            )
 
-            # Update report count for all admins in community
-            update_report_count_for_all_promoters.delay(community_id=community_instance.id)
-            
-            return {'success': True}
+        # Update report count for all admins in community
+        update_report_count_for_all_promoters.delay(community_id=community_instance.id)
+
+        return {'success': True}
     
     def fetch_community_configurations(self, configuration_types=None) -> dict:
         validated_request = CommunityHelper.validate_fetch_community_configurations_request(self.get_member_id(),
@@ -6002,9 +6001,9 @@ class CommunityHelper:
             remove_all_manager_rights(community_instance, user_instance)
 
             check_reports_and_update_action.delay(action_taken_by=current_user_instance.id,
-                                                    action_taken=report_action_types.REMOVE_FROM_COMMUNITY,
-                                                    user=user_id, community=community_id,
-                                                    action_taken_tag_id=tag_id, action_taken_reason=reason)
+                                                  action_taken=report_action_types.REMOVE_FROM_COMMUNITY,
+                                                  user=user_id, community=community_id,
+                                                  action_taken_tag_id=tag_id, action_taken_reason=reason)
             
             send_notification_for_removed_member.delay(admin_id=current_user_instance.id,
                                                        removed_user_id=user_id, community_id=community_id)
@@ -6688,6 +6687,7 @@ class CommunityHelper:
             report.is_closed = True
             report.closed_by = user_instance
             report.action_taken = action_taken
+            report.closed_time = TimeUtilities.current_time_in_sec()
             report.save()
 
             info_logger.info(f"Successfully approved/rejected {pending_post_id} pending post for report: {report.id}")
