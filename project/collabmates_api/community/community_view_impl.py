@@ -1095,13 +1095,32 @@ class CommunityReportView(APIView):
         req_body = RequestUtilities.load_request_body(request)
 
         community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
-        res = community_manager.close_community_reports(report_ids=req_body.get('report_ids'), 
-                                                        status=req_body.get('status'))
+        res = community_manager.update_community_reports(report_ids=req_body.get('report_ids'),
+                                                         action_taken=req_body.get('action_taken'))
 
         if 'error_message' in res:
             return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
                                                                                 res.get('status')))
         
+        return JsonResponse(res)
+
+    def get(self, request):
+        member_id = RequestUtilities.get_member_id_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
+        params = RequestUtilities.fetch_request_query_params(request)
+
+        page = RequestUtilities.get_page_number(request, default=1)
+        page_size = RequestUtilities.get_page_size(request, default=10)
+        is_closed = StringUtilities.get_boolean_from_string(params.get('is_closed'))
+        filter_types = StringUtilities.get_list_from_string(params.get('filter_type'), [])
+
+        community_manager = CommunityImpl(member_id=member_id, api_key=api_key)
+        res = community_manager.fetch_community_reports(page, page_size, is_closed, filter_types)
+
+        if 'error_message' in res:
+            return JsonResponse(**ResponseUtilities.get_view_impl_error_context(res.get('error_message'),
+                                                                                res.get('status')))
+
         return JsonResponse(res)
 
 

@@ -5493,11 +5493,12 @@ def get_ordered_chatrooms_data_on_unseen_count(user_id, community_id: str = None
         if conn:
             conn.close()
 
+
 def get_mau_overview_data_for_community(community_id, no_of_months):
 
     if not community_id or not no_of_months:
         return None
-    
+
     try:
         sql = f"""
             SELECT 
@@ -5524,13 +5525,87 @@ def get_mau_overview_data_for_community(community_id, no_of_months):
 
         conn = get_connection()
         curr = conn.cursor()
-        
+
         curr.execute(sql)
         mau_data = curr.fetchall()
-        
+
         curr.close()
-        
+
         return mau_data
+    except (Exception, psycopg2.Error) as error:
+        error_logger.error("Error while connecting to PostgreSQL %s ", error)
+        if conn:
+            conn.close()
+
+
+def get_grouped_report_ids_based_on_reported_entity(user_id: int, community_id: int, is_closed: bool,
+                                                    parsed_filter_types: list, is_owner: bool, parents_cm_list: list,
+                                                    excluded_entity_types: list, page: int, limit: int = 10):
+    try:
+        page_number = int(page)
+        offset = (page_number - 1) * limit
+
+        filter_types_raw_query = ""
+        is_owner_raw_query = ""
+
+        if parsed_filter_types:
+            filter_types_raw_query = f"AND type IN {get_tuple_from_array_v2(parsed_filter_types)}"
+
+        if is_owner:
+            is_owner_raw_query = f"AND user_reported_id NOT IN {get_tuple_from_array_v2(parents_cm_list + [user_id])}"
+
+            if excluded_entity_types:
+                is_owner_raw_query += f" AND type NOT IN {get_tuple_from_array_v2(excluded_entity_types)}"
+
+        sql = f"""
+            WITH group_data
+                 AS (SELECT id,
+                            CASE
+                              WHEN collabcard_id IS NOT NULL THEN
+                              'CARD_'
+                              || collabcard_id :: VARCHAR
+                              WHEN conversation_id IS NOT NULL THEN
+                              'CONV_'
+                              || conversation_id :: VARCHAR
+                              WHEN reported_member_id IS NOT NULL THEN
+                              'MEMBER_'
+                              || reported_member_id :: VARCHAR
+                              WHEN entity_id IS NOT NULL THEN 'ENTITY_'
+                                                              || entity_id :: VARCHAR
+                            END AS group_key
+                     FROM   togther_report
+                     WHERE community_id = {community_id} AND is_closed = {is_closed} {filter_types_raw_query} 
+                           {is_owner_raw_query}),
+                 ranked_data
+                 AS (SELECT id,
+                            group_key,
+                            Max(id)
+                              over (
+                                PARTITION BY group_key) AS max_id
+                     FROM   group_data),
+                 dense_rank_data
+                 AS (SELECT *,
+                   Dense_rank()
+                     over (
+                       ORDER BY max_id DESC) AS dense_rank
+            FROM   ranked_data
+            ORDER  BY id DESC)
+            
+            SELECT *
+            FROM   dense_rank_data
+            where dense_rank > {offset} AND dense_rank <= {offset + limit};
+        """
+
+        conn = get_connection()
+        curr = conn.cursor()
+
+        curr.execute(sql)
+        ranked_report_data = convert_sql_query_result_to_dict(curr, curr.fetchall())
+
+        curr.close()
+
+        return [report_data.get('id') for report_data in ranked_report_data]
+
     except (Exception, psycopg2.Error) as error:
         error_logger.error("Error while connecting to PostgreSQL %s ", error)
         if conn:
