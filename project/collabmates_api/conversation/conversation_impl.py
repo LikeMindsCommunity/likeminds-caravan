@@ -3181,6 +3181,8 @@ class ConversationHelper:
             "created_at": conversation_instance.created_at,
             "chatroom_id": conversation_instance.card_id,
             "user_id": conversation_instance.user_id,
+            "are_participants_tagged": (True if re.findall(PARTICIPANTS_TAG_REGEX, conversation_instance.answer)
+                                        else False)
         }
 
         if event_type == WebhookTypes.CHATROOM_CONVERSATION_REPLIED.value:
