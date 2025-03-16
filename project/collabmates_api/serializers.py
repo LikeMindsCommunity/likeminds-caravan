@@ -1912,7 +1912,22 @@ class ReportSerializer:
     def group_serialize(self):
 
         for instance in self.reports_filter:
-            report_data = {}
+            report_data = {
+                "tag": instance.tag,
+                "reason": instance.reason,
+                "accused_user": instance.user_reported,
+                "reported_by_user": instance.reported_by,
+                "type": instance.type,
+                "action_taken_tag": instance.action_taken_tag,
+                "action_taken_reason": instance.action_taken_reason,
+                "action_taken_by": instance.action_taken_by,
+                "action_taken": instance.action_taken,
+                "reports": [],
+                "rights_added": instance.rights_added,
+                "rights_removed": instance.rights_removed,
+                "closed_by": instance.closed_by,
+                "closed_on": instance.closed_time,
+            }
 
             if instance.tag:
                 tag_data = self.tag_data.get(instance.tag.id)
@@ -1922,9 +1937,6 @@ class ReportSerializer:
                     self.tag_data[instance.tag.id] = tag_data
 
                 report_data['tag'] = tag_data
-
-            if instance.reason:
-                report_data["reason"] = instance.reason
 
             if instance.user_reported:
                 user_data = self.users_data.get(instance.user_reported.id, [])
