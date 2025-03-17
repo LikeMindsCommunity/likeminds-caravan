@@ -1902,6 +1902,11 @@ class ConversationImpl(ConversationManager):
 
         payload_data['message'] = conversation_payload
 
+        conversation_creator = MemberCommunityHelper.get_users_payload_for_webhook_events(
+            [conversation_payload.get('user_id')])
+
+        payload_data['conversation_creator'] = conversation_creator[0] if conversation_creator else {}
+
         if users_list:
             filter_dict = {
                 'user': users_list[0],
@@ -1937,6 +1942,11 @@ class ConversationImpl(ConversationManager):
         payload_data['chatroom'] = chatroom_payload
 
         payload_data['message'] = conversation_payload
+
+        conversation_creator = MemberCommunityHelper.get_users_payload_for_webhook_events(
+            [conversation_payload.get('user_id')])
+
+        payload_data['conversation_creator'] = conversation_creator[0] if conversation_creator else {}
 
         if users_list:
             reaction_deleted_by_user = MemberCommunityHelper.get_users_payload_for_webhook_events(users_list)
