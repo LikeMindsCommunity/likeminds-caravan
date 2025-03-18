@@ -1820,7 +1820,7 @@ def report_serializer(report_instance, current_user_id, sdk_client_info_flag: bo
     elif report_instance.collabcard is not None:
         report["chatroom"] = get_chatroom_instance(report_instance.collabcard, current_user_id, 
                                                    sdk_client_info_flag=sdk_client_info_flag)
-        
+
         report["conversation_users"] = get_last_two_conversation_user_images(report_instance.collabcard)
 
     if report_instance.entity_id:
@@ -1896,6 +1896,189 @@ def report_serializer(report_instance, current_user_id, sdk_client_info_flag: bo
     report["reported_on"] = report_instance.date_epoch
 
     return report
+
+
+class ReportSerializer:
+
+    def __init__(self, current_user_id, community_id, reports_filter):
+        self.current_user_id = current_user_id
+        self.community_id = community_id
+        self.reports_filter = reports_filter
+        self.response_data: dict = {}
+        self.meta_data: dict = {}
+        self.users_data: dict = {}
+        self.tag_data: dict = {}
+
+    def group_serialize(self):
+
+        for instance in self.reports_filter:
+            report_data = {
+                "tag": instance.tag,
+                "reason": instance.reason,
+                "accused_user": instance.user_reported,
+                "reported_by_user": instance.reported_by,
+                "type": instance.type,
+                "action_taken_tag": instance.action_taken_tag,
+                "action_taken_reason": instance.action_taken_reason,
+                "action_taken_by": instance.action_taken_by,
+                "action_taken": instance.action_taken,
+                "reports": [],
+                "rights_added": instance.rights_added,
+                "rights_removed": instance.rights_removed,
+                "closed_by": instance.closed_by,
+                "closed_on": instance.closed_time,
+            }
+
+            if instance.tag:
+                tag_data = self.tag_data.get(instance.tag.id)
+
+                if not tag_data:
+                    tag_data = report_tag_serializer(instance.tag)
+                    self.tag_data[instance.tag.id] = tag_data
+
+                report_data['tag'] = tag_data
+
+            if instance.user_reported:
+                user_data = self.users_data.get(instance.user_reported.id, [])
+
+                if not user_data:
+                    user_profile = get_members_profile(member_ids=[instance.user_reported.id],
+                                                       community_id=self.community_id,
+                                                       sdk_client_info_flag=True)
+
+                    user_data = user_profile[0]
+                    self.users_data[instance.user_reported.id] = user_data
+
+                report_data['accused_user'] = user_data
+
+            if instance.reported_by:
+                user_data = self.users_data.get(instance.reported_by.id, [])
+
+                if not user_data:
+                    user_profile = get_members_profile(member_ids=[instance.reported_by.id],
+                                                       community_id=self.community_id,
+                                                       sdk_client_info_flag=True)
+
+                    user_data = user_profile[0]
+                    self.users_data[instance.reported_by.id] = user_data
+
+                report_data["reported_by_user"] = user_data
+
+            if instance.type is not None:
+                report_data["type"] = REPORT_TYPES_INT[instance.type]
+
+            if instance.action_taken_tag:
+                tag_data = self.tag_data.get(instance.action_taken_tag.id)
+
+                if not tag_data:
+                    tag_data = report_tag_serializer(instance.action_taken_tag)
+                    self.tag_data[instance.action_taken_tag.id] = tag_data
+
+                report_data["action_taken_tag"] = tag_data
+
+            if instance.action_taken_reason:
+                report_data["action_taken_reason"] = instance.action_taken_reason
+
+            if instance.action_taken_by:
+                user_data = self.users_data.get(instance.action_taken_by.id, [])
+
+                if not user_data:
+                    user_profile = get_members_profile(member_ids=[instance.action_taken_by.id],
+                                                       community_id=self.community_id,
+                                                       sdk_client_info_flag=True)
+
+                    user_data = user_profile[0]
+
+                report_data["action_taken_by"] = user_data
+
+            if instance.action_taken is not None:
+                report_data["action_taken"] = instance.action_taken
+
+            if instance.rights_added is not None:
+                report_data["rights_added"] = json.loads(instance.rights_added)
+
+            if instance.rights_removed is not None:
+                report_data["rights_removed"] = json.loads(instance.rights_removed)
+
+            # if report_instance.is_closed:
+            report_data["is_closed"] = instance.is_closed if instance.is_closed is not None else False
+
+            if instance.closed_by is not None:
+                user_data = self.users_data.get(instance.closed_by.id, [])
+
+                if not user_data:
+                    user_profile = get_members_profile(member_ids=[instance.closed_by.id],
+                                                       community_id=self.community_id,
+                                                       sdk_client_info_flag=True)
+                    user_data = user_profile[0]
+
+                report_data["closed_by"] = user_data
+
+            if instance.closed_time:
+                report_data["closed_on"] = instance.closed_time
+
+            report_data["reported_on"] = instance.date_epoch
+
+            if instance.conversation is not None:
+                conversation_data = self.meta_data.get('conversation', {}).get(instance.conversation.id)
+
+                if not conversation_data:
+                    conversation = conversationSerializer(instance.conversation,
+                                                          current_user_id=self.current_user_id,
+                                                          fetch_poll_conversation=True,
+                                                          sdk_client_info_flag=True)
+
+                    conversation_chatroom = get_chatroom_instance(instance.conversation.card, self.current_user_id,
+                                                                  sdk_client_info_flag=True)
+
+                    conversation_users = get_last_two_conversation_user_images(instance.conversation.card)
+
+                    self.meta_data['conversation'][instance.conversation.id] = {
+                        'conversation': conversation,
+                        'chatroom': conversation_chatroom,
+                        'conversation_users': conversation_users,
+                    }
+
+                key = ''.join(['CONV_', str(instance.conversation.id)])
+
+                if key not in self.response_data:
+                    self.response_data[key] = {**conversation_data, **{'reports': [report_data]}}
+
+                else:
+                    self.response_data[key]['reports'].append(report_data)
+
+            elif instance.collabcard is not None:
+                chatroom_data = self.meta_data.get('chatroom', {}).get(instance.collabcard.id)
+
+                if not chatroom_data:
+                    chatroom = get_chatroom_instance(instance.collabcard, self.current_user_id,
+                                                     sdk_client_info_flag=True)
+                    conversation_users = get_last_two_conversation_user_images(instance.collabcard)
+
+                    self.meta_data['chatroom'][instance.collabcard.id] = {
+                        'chatroom': chatroom,
+                        'conversation_users': conversation_users
+                    }
+
+                key = ''.join(['CARD_', str(instance.conversation.id)])
+
+                if key not in self.response_data:
+                    self.response_data[key] = {**chatroom_data, **{'reports': [report_data]}}
+
+                else:
+                    self.response_data[key]['reports'].append(report_data)
+
+            if instance.entity_id:
+                report_data["entity_id"] = instance.entity_id
+                key = ''.join(['ENTITY_', str(instance.entity_id)])
+
+                if key not in self.response_data:
+                    self.response_data[key] = {**{"entity_id": instance.entity_id}, **{'reports': [report_data]}}
+
+                else:
+                    self.response_data[key]['reports'].append(report_data)
+
+        return list(self.response_data.values())
 
 
 def get_last_two_conversation_user_images(chatroom):

@@ -1,12 +1,11 @@
 from rest_framework.views import APIView
 from django.http import JsonResponse
-from rest_framework import serializers, fields
+from rest_framework import serializers
 
 from external_services.caching.cache_impl import CacheImpl
 from utility.json_utilities import JsonUtilities
 from togther.models import *
 from django.contrib.auth.models import User
-from collections import OrderedDict
 import json
 import time
 
