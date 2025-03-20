@@ -2654,7 +2654,7 @@ class CommunityImpl(CommunityManager):
         else:
             reports_data = []
 
-        return {'success': True, 'reports': reports_data}
+        return {'success': True, 'reports_data': reports_data}
 
     def fetch_community_configurations(self, configuration_types=None) -> dict:
         validated_request = CommunityHelper.validate_fetch_community_configurations_request(self.get_member_id(),
