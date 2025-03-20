@@ -12212,7 +12212,6 @@ def fetch_reports(request):
         return JsonResponse(context['data'], status=context['status'])
 
     current_user_id = get_member_id_from_headers(request)
-    # user_instance = User.objects.get(id=current_user_id)
 
     community_id = request.GET.get('community_id', None)
     api_key = RequestUtilities.get_api_key_from_headers(request)
@@ -12224,7 +12223,8 @@ def fetch_reports(request):
     sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
 
     pagination_filter_check = VersionUtilities.check_version(platform_code, version_code, 
-                                                             VersionUtilities.fetch_reports_pagination_and_filter, sdk_source)
+                                                             VersionUtilities.fetch_reports_pagination_and_filter,
+                                                             sdk_source)
     api_revamp_v1_check = VersionUtilities.api_revamp_v1_check(accept_version)
 
     if not current_user_id:
@@ -12274,7 +12274,6 @@ def fetch_reports(request):
                                                                 status_codes.HTTP_400_BAD_REQUEST)
         return JsonResponse(context['data'], status=context['status'])
 
-
     try:    
         # Version check for pagination & filter
         if pagination_filter_check or api_revamp_v1_check:
@@ -12283,7 +12282,7 @@ def fetch_reports(request):
             page = NumberUtilities.get_integer_from_string(request.GET.get('page'), 1)
             page_size = NumberUtilities.get_integer_from_string(request.GET.get('page_size'), 20)
             is_closed = request.GET.get('is_closed', None)
-            filter_type =  request.GET.get('filter_type', None)
+            filter_type = request.GET.get('filter_type', None)
 
             if page <= 0:
                 page = 1
@@ -12304,11 +12303,11 @@ def fetch_reports(request):
                 # Parse filter_types from string to int
                 if api_revamp_v1_check:
                     parsed_filter_types = []
-                    
-                    for type in filter_types:
 
-                        if type in REPORT_TYPES:
-                            parsed_filter_types.append(REPORT_TYPES[type])
+                    for filter_type in filter_types:
+
+                        if filter_type in REPORT_TYPES:
+                            parsed_filter_types.append(REPORT_TYPES[filter_type])
                         
                         else:
                             context = ResponseUtilities.get_view_impl_error_context("Invalid filter_type",
@@ -12324,9 +12323,9 @@ def fetch_reports(request):
 
             reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
                                                    is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,
-                                                   parent_cm_list=parent_cm_list, page = page, page_size = page_size, 
+                                                   parent_cm_list=parent_cm_list, page=page, page_size=page_size,
                                                    is_closed=is_closed, filter_type=filter_types)
-            
+
         else:
             reports = get_related_reports_for_user(user_id=current_user_id, community_id=community_id, has_right_0=has_right_0,
                                                    is_owner=is_owner, has_right_1=has_right_1, has_right_2=has_right_2,

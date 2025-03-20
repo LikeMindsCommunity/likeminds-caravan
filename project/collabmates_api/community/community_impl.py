@@ -1,4 +1,6 @@
-import json, csv, os
+import json
+import csv
+import os
 
 from celery import shared_task
 from django.contrib.auth.models import User
@@ -14,7 +16,7 @@ from collabmates_api.rest_api import CommunitySerializerV1, CommunitySettingsSer
     CommunityDMSettingsSerializer, CommunityNotificationSettingsSerializer, FeedNotificationSettingsSerializer, \
     ReportTagsSerializer, CommunityConfigurationsSerializer, ChatbotMetaSerializer, CommunityIntegrationStatusSerializer
 
-from collabmates_api.serializers import UserinfoSerializer
+from collabmates_api.serializers import UserinfoSerializer, ReportSerializer
 
 from collabmates_api.views import get_leave_community_text, send_notification_for_join_requests, \
     give_default_member_rights, send_notification_to_admins, update_member_rights_in_conversation_engage, \
@@ -91,7 +93,7 @@ from utility.states import member_states, card_types, click_states, member_right
     api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
     CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus, GuestFlowUserTypes, \
     UserRoles, CommunityIntegrationStatusTypes, conversation_poll_types, multi_select_poll_states, \
-    ReplyPrivatelyAllowedScope
+    ReplyPrivatelyAllowedScope, ReportActionTypeEnums
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -108,6 +110,7 @@ from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
 from utility.version_utilities import VersionUtilities
 from utility.string_utilities import StringUtilities
+from utility.json_utilities import JsonUtilities
 
 from utility.utils import check_notification_flag, get_first_name_from_name, is_version_code_supported_for_intro_room, \
     decode_option, community_default_image, community_default_thumbnail
@@ -120,7 +123,7 @@ from ..notifications.tasks import send_mail_for_first_time_edit_community_questi
 from ..notifications.tasks_impl import TasksHelper
 from ..user.user_impl import UserHelper, UserImpl
 
-from ..raw_queries import get_members_meta_list, get_users_meta_info
+from ..raw_queries import get_members_meta_list, get_users_meta_info, get_grouped_report_ids_based_on_reported_entity
 
 from ..tasks import send_community_confirmation_email, cm_onboarding_version_check, get_user_email_preferred_verified, \
     directory_questions_v2_version_check, get_user_phone, update_report_count_for_all_promoters
@@ -2585,39 +2588,74 @@ class CommunityImpl(CommunityManager):
 
         return {'success': True, 'report_id': report_instance.id}
     
-    def close_community_reports(self, report_ids, status) -> dict:
-            
-            validated_request = CommunityHelper.validate_close_community_reports_request(self.get_member_id(),
-                                                                                         self.get_api_key(),
-                                                                                         report_ids,
-                                                                                         status)
-    
-            if validated_request.get('error_message'):
-                return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
-                                                                status_code=status_codes.HTTP_400_BAD_REQUEST)
-            
-            user_instance = validated_request.get('user_instance')
-            community_instance = validated_request.get('community_instance')
-            report_instances = validated_request.get('report_instances')
+    def update_community_reports(self, report_ids, action_taken) -> dict:
+        validated_request = CommunityHelper.validate_update_community_reports_request(self.get_member_id(),
+                                                                                      self.get_api_key(),
+                                                                                      report_ids,
+                                                                                      action_taken)
 
-            # If status is sent, then approve or reject under review pending posts
-            if status:
-                
-                report_ids = [report.id for report in report_instances]
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
 
-                CommunityHelper.close_under_review_pending_post_reports.delay(community_instance.id, user_instance.id,
-                                                                              report_ids, status)
+        user_instance = validated_request.get('user_instance')
+        community_instance = validated_request.get('community_instance')
+        report_instances = validated_request.get('report_instances')
 
-            else:
+        # If status is sent, then approve or reject under review pending posts
+        if action_taken in [ReportActionTypeEnums.PENDING_POST_APPROVED.name,
+                            ReportActionTypeEnums.PENDING_POST_REJECTED.name]:
+            report_ids = [report.id for report in report_instances]
+            CommunityHelper.close_under_review_pending_post_reports.delay(community_instance.id,
+                                                                          user_instance.id,
+                                                                          report_ids, action_taken)
 
-                # Update report instances
-                report_instances.update(is_closed=True, closed_by=user_instance, closed_time=TimeUtilities.current_time_in_sec())
+        else:
+            action_taken = ReportActionTypeEnums[action_taken].value[0]
 
-            # Update report count for all admins in community
-            update_report_count_for_all_promoters.delay(community_id=community_instance.id)
-            
-            return {'success': True}
-    
+            # Update report instances
+            report_instances.update(
+                is_closed=True, closed_by=user_instance, closed_time=TimeUtilities.current_time_in_sec(),
+                action_taken=action_taken
+            )
+
+        # Update report count for all admins in community
+        update_report_count_for_all_promoters.delay(community_id=community_instance.id)
+
+        return {'success': True}
+
+    def fetch_community_reports(self, page: int, page_size: int, is_closed: bool = False,
+                                filter_types: list = None) -> dict:
+        validated_request = CommunityHelper.validate_fetch_community_reports_request(self.get_member_id(),
+                                                                                     self.get_api_key(),
+                                                                                     filter_types)
+
+        if validated_request.get('error_message'):
+            return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
+                                                            status_code=status_codes.HTTP_400_BAD_REQUEST)
+
+        user_instance = validated_request.get('user_instance')
+        community_instance = validated_request.get('community_instance')
+        member_instance = validated_request.get('member_instance')
+
+        parsed_filter_types = []
+
+        if filter_types:
+            parsed_filter_types = [REPORT_TYPES[filter_type] for filter_type in filter_types]
+
+        reports_filter = CommunityHelper.fetch_paginated_community_reports(user_instance, community_instance,
+                                                                           is_closed, parsed_filter_types,
+                                                                           member_instance, page, page_size)
+
+        if reports_filter:
+            reports_data = ReportSerializer(current_user_id=user_instance.id, community_id=community_instance.id,
+                                            reports_filter=reports_filter).group_serialize()
+
+        else:
+            reports_data = []
+
+        return {'success': True, 'reports_data': reports_data}
+
     def fetch_community_configurations(self, configuration_types=None) -> dict:
         validated_request = CommunityHelper.validate_fetch_community_configurations_request(self.get_member_id(),
                                                                                             self.get_community_id(),
@@ -5471,7 +5509,7 @@ class CommunityHelper:
         }
     
     @staticmethod
-    def validate_close_community_reports_request(user_id, api_key, report_ids, status):
+    def validate_update_community_reports_request(user_id, api_key, report_ids, action_taken):
 
         if not report_ids or not isinstance(report_ids, list):
             return ResponseUtilities.get_inner_error_context("Invalid report_ids")
@@ -5502,16 +5540,11 @@ class CommunityHelper:
                                                                     'community': community_instance})
 
         # If status is passed for pending post reports, then filter only pending post reports else exclude 
-        if status: 
+        if not (action_taken and action_taken in ReportActionTypeEnums.list_names()):
+            return ResponseUtilities.get_inner_error_context("Invalid action taken sent.")
 
-            if not ReportClosingStatus.is_valid_status(status):
-                return ResponseUtilities.get_inner_error_context("Invalid status sent for pending post reports")
-            
-            report_instances.filter(type=REPORT_TYPE_PENDING_POST_INT)
+        report_instances.filter(type=ReportActionTypeEnums[action_taken].value[1])
 
-        else:
-            report_instances.exclude(type=REPORT_TYPE_PENDING_POST_INT)
-        
         # Check if report ids are valid
         if len(report_instances) != len(report_ids):
             return ResponseUtilities.get_inner_error_context("Invalid report_id/s sent")
@@ -5521,6 +5554,40 @@ class CommunityHelper:
             'community_instance': community_instance,
             'member_instance': member_instance,
             'report_instances': report_instances,
+        }
+
+    @staticmethod
+    def validate_fetch_community_reports_request(user_id, api_key, filter_types):
+        validation_params = {
+            'community_id': {
+                'api_key': api_key
+            },
+            'user_id': user_id
+        }
+
+        validated_dict = ValidationUtilities.is_valid(validation_params)
+
+        if validated_dict.get('error_message'):
+            return validated_dict
+
+        community_instance = validated_dict.get('community_id')
+        user_instance = validated_dict.get('user_id')
+
+        member_instance = ModelUtilities.get_model_filter(Members, {'member_id': user_instance,
+                                                                    'community_id': community_instance}).first()
+
+        if not member_instance:
+            return ResponseUtilities.get_inner_error_context('User is not member of community')
+
+        if filter_types:
+            invalid_filter_types = set(filter_types) - set(REPORT_TYPES.keys())
+            return ResponseUtilities.get_inner_error_context(f'Invalid filter types: ('
+                                                             f'{",".join([i for i in invalid_filter_types])})')
+
+        return {
+            'user_instance': user_instance,
+            'community_instance': community_instance,
+            'member_instance': member_instance
         }
 
     @staticmethod
@@ -6002,9 +6069,9 @@ class CommunityHelper:
             remove_all_manager_rights(community_instance, user_instance)
 
             check_reports_and_update_action.delay(action_taken_by=current_user_instance.id,
-                                                    action_taken=report_action_types.REMOVE_FROM_COMMUNITY,
-                                                    user=user_id, community=community_id,
-                                                    action_taken_tag_id=tag_id, action_taken_reason=reason)
+                                                  action_taken=report_action_types.REMOVE_FROM_COMMUNITY,
+                                                  user=user_id, community=community_id,
+                                                  action_taken_tag_id=tag_id, action_taken_reason=reason)
             
             send_notification_for_removed_member.delay(admin_id=current_user_instance.id,
                                                        removed_user_id=user_id, community_id=community_id)
@@ -6651,18 +6718,15 @@ class CommunityHelper:
             return {'success': True}
         
         except Exception as e:
-            error_logger.error(f"Exception occurred while setting up Inferdo's API Key for community - {community_instance.id} -  {community_instance.name} | Error: {e.args}")
-            return ResponseUtilities.get_inner_error_context(f"Some error occured setting up Inferdo's API Key, please contact support")
+            error_logger.error(f"Exception occurred while setting up Inferdo's API Key for community - "
+                               f"{community_instance.id} -  {community_instance.name} | Error: {e.args}")
+            return ResponseUtilities.get_inner_error_context(f"Some error occured setting up Inferdo's API Key, please "
+                                                             f"contact support")
         
     @staticmethod
     @shared_task    
-    def close_under_review_pending_post_reports(community_id: int, user_id: int, report_ids: list, status: str):
-
-        if not ReportClosingStatus.is_valid_status(status):
-            return
-        
-        action_taken = report_action_types.PENDING_POST_APPROVED \
-            if status == ReportClosingStatus.STATUS_APPROVED.value else report_action_types.PENDING_POST_REJECTED
+    def close_under_review_pending_post_reports(community_id: int, user_id: int, report_ids: list, action_taken: str):
+        action_taken = ReportActionTypeEnums[action_taken].value[0]
         sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
         user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
         report_instances = ModelUtilities.get_model_filter(Report, {'id__in': report_ids})
@@ -6671,23 +6735,30 @@ class CommunityHelper:
             info_logger.info(f"Missing params: sdk_client_instance: {sdk_client_instance}, "
                              f"user_instance: {user_instance}, report_instances: {report_instances}")
             return
-        
+
+        if action_taken == ReportActionTypeEnums.PENDING_POST_APPROVED.name:
+            status = ReportClosingStatus.STATUS_APPROVED.value
+
+        else:
+            status = ReportClosingStatus.STATUS_REJECTED.value
+
         # For each report, approve or reject the pending post in swarm service and close the report
         for report in report_instances:
-
             pending_post_id = report.entity_id
             response = InternalServiceUtilities.approve_or_reject_pending_post_in_swarm_service(
                 sdk_client_instance.api_key, user_instance.userinfo.user_unique_id, pending_post_id, status)
-            
+
             # If there was an error from swarm service log the error and continue
             if response.get('error_message'):
-                error_logger.error(f"Error occurred while approving/rejecting pending post: {pending_post_id} for report: {report.id} - {response.get('error_message')}")
+                error_logger.error(f"Error occurred while approving/rejecting pending post: {pending_post_id} for "
+                                   f"report: {report.id} - {response.get('error_message')}")
                 continue
 
             # Close the report if the pending post was approved or rejected successfully
             report.is_closed = True
             report.closed_by = user_instance
             report.action_taken = action_taken
+            report.closed_time = TimeUtilities.current_time_in_sec()
             report.save()
 
             info_logger.info(f"Successfully approved/rejected {pending_post_id} pending post for report: {report.id}")
@@ -7166,3 +7237,31 @@ class CommunityHelper:
             integration_instances_response.values(), many=True).data
 
         return serialised_community_integrations
+
+    @staticmethod
+    def fetch_paginated_community_reports(user_instance, community_instance, is_closed, parsed_filter_types,
+                                          member_instance, page, page_size):
+        is_owner = member_instance.is_owner
+        has_admin_delete_right = check_admin_delete_right(user=user_instance, community=community_instance)
+        has_admin_approve_right = check_admin_approve_right(user=user_instance, community=community_instance)
+        has_admin_edit_community_right = check_admin_edit_community_right(user=user_instance,
+                                                                          community=community_instance)
+        parent_cm_list = JsonUtilities.load_json_data(member_instance.parent_cm_list, [])
+
+        excluded_entity_types_list = []
+
+        if not is_owner:
+
+            if has_admin_delete_right and not has_admin_approve_right and not has_admin_edit_community_right:
+                # if user has only right 0
+                excluded_entity_types_list = [0]
+
+            elif has_admin_delete_right and not has_admin_approve_right and not has_admin_edit_community_right:
+                # if user has only right 1
+                excluded_entity_types_list = [1, 2]
+
+        report_ids = get_grouped_report_ids_based_on_reported_entity(
+            user_instance.id, community_instance.id, is_closed, parsed_filter_types, is_owner, parent_cm_list,
+            excluded_entity_types_list, page, page_size)
+
+        return ModelUtilities.get_model_filter(Report, {'id__in': report_ids})

@@ -8,6 +8,10 @@ class ExtendedEnum(enum.Enum):
     def list(cls):
         return list(map(lambda c: c.value, cls))
 
+    @classmethod
+    def list_names(cls):
+        return list(map(lambda c: c.name, cls))
+
 
 class PlatformCodes:
     ANDROID = "an"
@@ -144,6 +148,10 @@ class ReportActionTypes:
     CHATROOM_DELETED_BY_CREATOR = 6
     PENDING_POST_APPROVED = 7
     PENDING_POST_REJECTED = 8
+    POST_APPROVED = 9
+    POST_REJECTED = 10
+    COMMENT_APPROVED = 11
+    COMMENT_REJECTED = 12
 
 
 report_action_types = ReportActionTypes()
@@ -162,6 +170,27 @@ class ReportTypes:
 
 
 report_Types = ReportTypes()
+
+
+class ReportActionTypeEnums(ExtendedEnum):
+    # Value contains the tuple in (ReportActionType, ReportType) format
+    EDIT_MEMBER_PERMISSION = 0, 0
+    REMOVE_FROM_COMMUNITY = 1, 0
+    LEFT_THE_COMMUNITY = 2, 1
+    RESPONSE_DELETED_BY_CM = 3, 2
+    RESPONSE_DELETED_BY_CREATOR = 4, 2
+    CHATROOM_DELETED_BY_CM = 5, 1
+    CHATROOM_DELETED_BY_CREATOR = 6, 1
+    PENDING_POST_APPROVED = 7, 8
+    PENDING_POST_REJECTED = 8, 8
+    POST_APPROVED = 9, 5
+    POST_REJECTED = 10, 5
+    COMMENT_APPROVED = 11, 6
+    COMMENT_REJECTED = 12, 6
+
+
+class ReportActionTypeMap(ExtendedEnum):
+    pass
 
 
 # tag types for reports
