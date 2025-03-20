@@ -167,6 +167,9 @@ class OpenAiWrapper:
                     params, messages, chatroom_id, should_stream_chatbot_response
                 )
 
+            if response == '':
+                raise Exception("No response received from OpenAI API")
+
             return {"response": response, "thread_id": thread_id}
 
         except Exception as e:
@@ -248,7 +251,10 @@ class OpenAiWrapper:
         ) as stream:
             response: str = ""
 
+            events = []
+
             for event in stream:
+                events.append(event.event)
                 if should_stream_chatbot_response and \
                     event.event == "thread.message.delta" and \
                         event.data and \
@@ -264,6 +270,9 @@ class OpenAiWrapper:
                         event.data.content and \
                         len(event.data.content) > 0:
                     response = event.data.content[0].text.value
+
+            if response == '':
+                info_logger.error(f"get_stream_response_with_thread | No response received from OpenAI API for thread_id: {thread_id} events: {events}")
 
             return response
 
@@ -281,7 +290,10 @@ class OpenAiWrapper:
             response: str = ""
             thread_id: str = ""
 
+            events = []
+
             for event in stream:
+                events.append(event.event)
                 if event.event == "thread.created":
                     thread_id = event.data.id
                 if (
@@ -298,6 +310,9 @@ class OpenAiWrapper:
                 if event.event == "thread.message.completed" and event.data and event.data.content and len(
                         event.data.content) > 0:
                     response = event.data.content[0].text.value
+
+            if response == '':
+                info_logger.error(f"create_stream_response_without_thread | No response received from OpenAI API, events: {events}")
 
         return response, thread_id
 
