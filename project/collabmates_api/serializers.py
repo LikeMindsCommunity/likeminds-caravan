@@ -1913,6 +1913,7 @@ class ReportSerializer:
 
         for instance in self.reports_filter:
             report_data = {
+                "id": instance.id,
                 "tag": instance.tag,
                 "reason": instance.reason,
                 "accused_user": instance.user_reported,
@@ -1922,7 +1923,6 @@ class ReportSerializer:
                 "action_taken_reason": instance.action_taken_reason,
                 "action_taken_by": instance.action_taken_by,
                 "action_taken": instance.action_taken,
-                "reports": [],
                 "rights_added": instance.rights_added,
                 "rights_removed": instance.rights_removed,
                 "closed_by": instance.closed_by,
