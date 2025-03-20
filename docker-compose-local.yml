@@ -53,21 +53,6 @@ services:
       dockerfile: ./Dockerfile.caravan-local
     ports:
       - 8000:8000
-    environment:
-      - DEVELOPMENT_DB_NAME=caravan-local
-      - DEVELOPMENT_DB_USER=postgres
-      - DEVELOPMENT_DB_PASSWORD=postgres
-      - DEVELOPMENT_DB_HOST=caravan_postgres
-      - DEVELOPMENT_DB_PORT=5432
-      - CACHE_LOCATION=redis://caravan_redis:6381/
-      - CACHE_HOST=caravan_redis
-      - CACHE_PORT=6379
-      - ELASTIC_SEARCH_HOST="caravan_elasticsearch:9200"
-      - BROKER_URL=amqp://guest:guest@caravan_rabbitmq:5672
-      - SUBSCRIPTION_SERVER_URL=http://skulk:8080
-      - SWARM_BASE_URL=http://swarm:8081
-      - KETTLE_BASE_URL=http://auth:8080
-      - PANDEMONIUM_BASE_URL=
     restart: unless-stopped
     networks:
       - likeminds-network
@@ -79,22 +64,8 @@ services:
 
   caravan_celery:
     container_name: caravan_celery
-    build: ./Dockerfile.caravan-celery-local
-    environment:
-      - DEVELOPMENT_DB_NAME=caravan-local
-      - DEVELOPMENT_DB_USER=postgres
-      - DEVELOPMENT_DB_PASSWORD=postgres
-      - DEVELOPMENT_DB_HOST=caravan_postgres
-      - DEVELOPMENT_DB_PORT=5432
-      - CACHE_LOCATION=redis://caravan_redis:6381/
-      - CACHE_HOST=caravan_redis
-      - CACHE_PORT=6379
-      - ELASTIC_SEARCH_HOST="caravan_elasticsearch:9200"
-      - BROKER_URL=amqp://guest:guest@caravan_rabbitmq:5672
-      - SUBSCRIPTION_SERVER_URL=http://skulk:8080
-      - SWARM_BASE_URL=http://swarm:8081
-      - KETTLE_BASE_URL=http://auth:8080
-      - PANDEMONIUM_BASE_URL=
+    build: 
+      dockerfile: ./Dockerfile.caravan-celery-local
     restart: unless-stopped
     networks:
       - likeminds-network
