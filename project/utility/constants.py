@@ -144,6 +144,7 @@ GUEST_FLOW_METADATA_CONFIGURATION = "guest_flow_metadata"
 FEED_SETTINGS_CONFIGURATION = "feed_settings"
 PERSONALISED_FEED_WEIGHTS = "personalised_feed_weights"
 REPLY_PRIVATELY_CONFIGURATION = "reply_privately"
+APP_VIEWS_CONFIGURATION = "app_views"
 CHATBOT_CONFIGURATIONS = "chatbot"
 CHAT_POLL_CONFIGURATIONS = "chat_poll"
 
@@ -261,6 +262,17 @@ COMMUNITY_CONFIGURATIONS = {
         "description": "Community configurations for reply privately",
         "value": {
             "allowed_scope": "NO_ONE"
+        },
+    },
+    APP_VIEWS_CONFIGURATION: {
+        "type": APP_VIEWS_CONFIGURATION,
+        "description": "Custom app views for different screens for feed or chat",
+        "value": {
+            "feed": {
+                "home": {
+                    "default": {}
+                }
+            }
         },
     },
 }

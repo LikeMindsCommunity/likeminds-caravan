@@ -104,7 +104,7 @@ from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDI
                                CREATE_FEED_POLL_CONFIGURATION_VALUES, CHATBOT_CONFIGURATIONS, CHATBOT_PROVIDER_OPENAI,
                                CHATBOT_DEFAULT_THREAD_CONTEXT, VALID_NOTIFICATION_FEED_ACTIONS, 
                                AUTO_APPROVE_POST_CONFIGURATION_VALUES, CHAT_POLL_CONFIGURATIONS,
-                               REPLY_PRIVATELY_CONFIGURATION)
+                               REPLY_PRIVATELY_CONFIGURATION, APP_VIEWS_CONFIGURATION)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -5908,6 +5908,11 @@ class CommunityHelper:
                     update_values.get('allowed_scope') not in ReplyPrivatelyAllowedScope.list()]):
                 return ResponseUtilities.get_inner_error_context("Invalid allowed scope value.")
 
+        elif configuration_type == APP_VIEWS_CONFIGURATION:
+
+            if update_values.get('feed', {}).get('home', {}):
+                return ResponseUtilities.get_inner_error_context("Invalid value of app views.")
+
         return {
             'community_instance': community_instance,
             'user_instance': user_instance,
@@ -6652,6 +6657,17 @@ class CommunityHelper:
                     update_values.get('allowed_scope') in ReplyPrivatelyAllowedScope.list():
                 configuration_value['allowed_scope'] = update_values.get('allowed_scope')
                 record_updated = True
+
+        elif configuration_type == APP_VIEWS_CONFIGURATION:
+
+            if update_values.get('feed'):
+                feed_views = update_values.get('feed')
+
+                if feed_views.get('home', {}) and isinstance(feed_views.get('home', {}), dict):
+                    configuration_value['feed']['home'] = {
+                        **configuration_value['feed']['home'], **feed_views.get('home')
+                    }
+                    record_updated = True
 
         # Update configuration instance if record is updated
         if record_updated:
