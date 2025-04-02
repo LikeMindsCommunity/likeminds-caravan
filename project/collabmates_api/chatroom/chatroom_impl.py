@@ -3928,8 +3928,11 @@ class ChatroomImpl(ChatroomManager):
         elif chat_request_state == chat_request_states.ACCEPTED:
             response = ChatroomHelper.accept_dm_connection_request(user_instance, card_instance, user_member_state,
                                                                    member_state, chat_request_state, card_state_filter,
-                                                                   message, user_instances_list,
-                                                                   should_stream_chatbot_response)
+                                                                   widget_metadata, message_temporary_id,
+                                                                   self.get_request_platform(),
+                                                                   self.get_version_code(), self.get_device_id(),
+                                                                   self.get_api_version_code(),
+                                                                   message, should_stream_chatbot_response)
 
             if not response.get('success'):
                 return ResponseUtilities.get_impl_error_context(response.get('error_message'),
@@ -5804,7 +5807,8 @@ class ChatroomHelper:
 
     @staticmethod
     def accept_dm_connection_request(user_instance, card_instance, user_member_state, member_state,
-                                     chat_request_state, card_state_filter, message=None, user_instances_list=None,
+                                     chat_request_state, card_state_filter, widget_metadata, message_temporary_id,
+                                     platform_code, version_code, device_id, api_version, message=None,
                                      should_stream_chatbot_response: bool = False):
 
         filter_dict = {
@@ -5839,29 +5843,26 @@ class ChatroomHelper:
                                          'chat_request_created_at': TimeUtilities.current_time_in_milliseconds(),
                                          'updated_at': TimeUtilities.current_time_in_sec()})
 
-            conv_state = conversation_states.ANSWER
+            from collabmates_api.conversation.conversation_impl import ConversationImpl
 
-            if card_instance.user == user_instance:
-                other_member_instance = card_instance.chatroom_with_user
-
-            else:
-                other_member_instance = card_instance.user
-
-            conversation_instance = initial_message_dm_chatroom(card_instance, user_instance, other_member_instance,
-                                                                card_instance.community, user_instances_list,
-                                                                message, user_member_state, member_state,
-                                                                conversation_state=conv_state,
-                                                                update_chatroom_updated_at=True)
-            
             # If chatroom user is chatbot, then trigger chatbot response
+            trigger_bot = False
+
             if UserRoles.is_chatbot(card_instance.user.userinfo.roles):
-                conversation_impl.ConversationHelper.trigger_chatbot_for_chatroom_against_conversation.delay(
-                    card_instance.id, conversation_instance.id, should_stream_chatbot_response)
+                trigger_bot = True
 
-            context = {"current_user_id": user_instance.id, "fetch_reply": True}
-            conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
+            conversation_request_body = {
+                'chatroom_id': card_instance.id,
+                'text': message,
+                'metadata': widget_metadata,
+                'temporary_id': message_temporary_id,
+                'should_stream_chatbot_response': should_stream_chatbot_response,
+                'trigger_bot': trigger_bot
+            }
 
-            return {'success': True, 'should_call_block_unblock': True, 'conversation': conversation}
+            conversation_manager = ConversationImpl(user_instance.id, platform_code=platform_code, device_id=device_id,
+                                                    version_code=version_code, api_version_code=api_version)
+            return conversation_manager.create_conversation_v1(conversation_request_body)
 
         if card_state_filter.exclude(chat_request_state=chat_request_states.INITIATED):
             return get_error_context(False, 'Connection request either not initiated or is rejected!')
