@@ -3778,12 +3778,12 @@ class ChatroomImpl(ChatroomManager):
 
         context = {
             'success': True,
-            'chatroom': ChatroomHelper.compute_chatroom_response(chatroom_instance, user_instance,
-                                                                 community_instance, sdk_client_info_flag=True,
-                                                                 chatroom_created_at_uniform_check=chatroom_created_at_uniform_check),
-            'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(self.get_member_id(),
-                                                                                           chatroom_instance,
-                                                                                           chatroom_created_at_uniform_check=chatroom_created_at_uniform_check)
+            'chatroom': ChatroomHelper.compute_chatroom_response(
+                chatroom_instance, user_instance, community_instance, sdk_client_info_flag=True,
+                chatroom_created_at_uniform_check=chatroom_created_at_uniform_check),
+            'chatroom_local': ChatroomHelper.fetch_serialized_chatroom_for_local_db_sycing(
+                self.get_member_id(), chatroom_instance,
+                chatroom_created_at_uniform_check=chatroom_created_at_uniform_check)
         }
 
         return context
@@ -5837,12 +5837,6 @@ class ChatroomHelper:
                 return ResponseUtilities.get_impl_error_context('Empty text!',
                                                                 status_codes.HTTP_400_BAD_REQUEST)
 
-            ModelUtilities.model_update(collabcardState, {'card': card_instance},
-                                        {'chat_request_state': chat_request_state,
-                                         'chat_requested_by': user_instance,
-                                         'chat_request_created_at': TimeUtilities.current_time_in_milliseconds(),
-                                         'updated_at': TimeUtilities.current_time_in_sec()})
-
             from collabmates_api.conversation.conversation_impl import ConversationImpl
 
             # If chatroom user is chatbot, then trigger chatbot response
@@ -5862,7 +5856,17 @@ class ChatroomHelper:
 
             conversation_manager = ConversationImpl(user_instance.id, platform_code=platform_code, device_id=device_id,
                                                     version_code=version_code, api_version_code=api_version)
-            return conversation_manager.create_conversation_v1(conversation_request_body)
+            conversation_response = conversation_manager.create_conversation_v1(conversation_request_body)
+
+            if conversation_response.get('success'):
+                ModelUtilities.model_update(collabcardState, {'card': card_instance},
+                                            {'chat_request_state': chat_request_state,
+                                             'chat_requested_by': user_instance,
+                                             'chat_request_created_at': TimeUtilities.current_time_in_milliseconds(),
+                                             'updated_at': TimeUtilities.current_time_in_sec()})
+                conversation_response["should_call_block_unblock"] = True
+
+            return conversation_response
 
         if card_state_filter.exclude(chat_request_state=chat_request_states.INITIATED):
             return get_error_context(False, 'Connection request either not initiated or is rejected!')
