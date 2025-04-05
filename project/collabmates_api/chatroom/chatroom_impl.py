@@ -5819,9 +5819,18 @@ class ChatroomHelper:
 
         dm_without_connection_setting = ModelUtilities.get_model_filter(CommunitySettings, filter_dict).first()
 
-        if any([user_member_state == member_states.ADMIN, member_state == member_states.ADMIN,
-                all([user_member_state == member_states.MEMBER, member_state == member_states.MEMBER,
-                     dm_without_connection_setting])]):
+        user_card_state_instance = card_state_filter.filter(user=user_instance).first()
+
+        if user_card_state_instance and all([
+            user_card_state_instance.chat_request_state is None,
+            any([
+                user_member_state == member_states.ADMIN,
+                member_state == member_states.ADMIN,
+                all([
+                    user_member_state == member_states.MEMBER,
+                    member_state == member_states.MEMBER,
+                    dm_without_connection_setting
+            ])])]):
 
             user_card_state_instance = card_state_filter.filter(user=user_instance).first()
 
