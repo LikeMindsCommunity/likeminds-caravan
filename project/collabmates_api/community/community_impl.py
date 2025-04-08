@@ -5581,8 +5581,10 @@ class CommunityHelper:
 
         if filter_types:
             invalid_filter_types = set(filter_types) - set(REPORT_TYPES.keys())
-            return ResponseUtilities.get_inner_error_context(f'Invalid filter types: ('
-                                                             f'{",".join([i for i in invalid_filter_types])})')
+
+            if invalid_filter_types:
+                return ResponseUtilities.get_inner_error_context(f'Invalid filter types: ('
+                                                                 f'{",".join([i for i in invalid_filter_types])})')
 
         return {
             'user_instance': user_instance,
