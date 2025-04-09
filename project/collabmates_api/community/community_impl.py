@@ -6724,11 +6724,10 @@ class CommunityHelper:
                                f"{community_instance.id} -  {community_instance.name} | Error: {e.args}")
             return ResponseUtilities.get_inner_error_context(f"Some error occured setting up Inferdo's API Key, please "
                                                              f"contact support")
-        
+
     @staticmethod
-    @shared_task    
+    @shared_task
     def close_under_review_pending_post_reports(community_id: int, user_id: int, report_ids: list, action_taken: str):
-        action_taken = ReportActionTypeEnums[action_taken].value[0]
         sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
         user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
         report_instances = ModelUtilities.get_model_filter(Report, {'id__in': report_ids})
@@ -6759,7 +6758,7 @@ class CommunityHelper:
             # Close the report if the pending post was approved or rejected successfully
             report.is_closed = True
             report.closed_by = user_instance
-            report.action_taken = action_taken
+            report.action_taken = ReportActionTypeEnums[action_taken].value[0]
             report.closed_time = TimeUtilities.current_time_in_sec()
             report.save()
 
