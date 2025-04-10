@@ -7265,4 +7265,5 @@ class CommunityHelper:
             user_instance.id, community_instance.id, is_closed, parsed_filter_types, is_owner, parent_cm_list,
             excluded_entity_types_list, page, page_size)
 
-        return ModelUtilities.get_model_filter(Report, {'id__in': report_ids})
+        return ModelUtilities.get_model_filter(Report, {'id__in': report_ids}).order_by('-closed_time').order_by(
+            '-date_epoch')
