@@ -270,7 +270,6 @@ COMMUNITY_CONFIGURATIONS = {
         "value": {
             "feed": {
                 "home": {
-                    "default": {}
                 }
             }
         },
