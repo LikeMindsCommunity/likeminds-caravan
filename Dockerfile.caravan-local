@@ -1,0 +1,48 @@
+# syntax=docker/dockerfile:1
+
+FROM ubuntu:20.04
+
+RUN apt-get update && apt-get install -y software-properties-common gcc && \
+    add-apt-repository -y ppa:deadsnakes/ppa
+
+# Install Python and additional required packages
+RUN apt-get update && apt-get install -y \
+    python3.6 \
+    python3-distutils \
+    python3-pip \
+    python3-apt \
+    python3-venv \
+    libpq-dev \
+    python3-dev \
+    build-essential \
+    libssl-dev \
+    libffi-dev \
+    libjpeg-dev \
+    libpng-dev \
+    zlib1g-dev \
+    libtiff-dev \
+    libfreetype6-dev
+
+WORKDIR /usr/src/app
+
+COPY ./project/requirements.txt requirements.txt
+
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENV SERVER_TYPE="API-SERVER"
+
+# Upgrade pip and install wheel before installing requirements
+RUN pip3 install --upgrade pip==24.0 setuptools wheel
+
+RUN pip3 install -r requirements.txt
+
+ADD . $WORKDIR
+
+RUN mkdir -p /usr/src/app/project/utility/logs && \
+    touch /usr/src/app/project/utility/logs/collabmates.log && \
+    touch /usr/src/app/project/utility/logs/custom.log
+
+RUN chmod +x ./docker-entrypoint/entry-caravan-local.sh
+
+CMD [ "/bin/bash", "./docker-entrypoint/entry-caravan-local.sh" ]

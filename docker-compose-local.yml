@@ -1,0 +1,84 @@
+services:
+  caravan_postgres:
+    image: postgres:latest
+    container_name: caravan_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: caravan-local
+    ports:
+      - 5432:5432
+    restart: unless-stopped
+    networks:
+      - likeminds-network
+    volumes:
+      - caravan_postgres_data:/var/lib/postgresql/data
+
+  caravan_elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.0
+    container_name: caravan_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - 9200:9200
+    restart: unless-stopped
+    networks:
+      - likeminds-network
+
+  caravan_rabbitmq:
+    image: rabbitmq:latest
+    container_name: caravan_rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - 5672:5672
+      - 15672:15672
+    networks:
+      - likeminds-network
+
+  caravan_redis:
+    image: redis
+    container_name: caravan_redis
+    ports:
+      - 6381:6379
+    restart: unless-stopped
+    networks:
+      - likeminds-network
+
+  caravan:
+    container_name: caravan
+    build:
+      dockerfile: ./Dockerfile.caravan-local
+    ports:
+      - 8000:8000
+    restart: unless-stopped
+    networks:
+      - likeminds-network
+    depends_on:
+      - caravan_postgres
+      - caravan_elasticsearch
+      - caravan_rabbitmq
+      - caravan_redis
+
+  caravan_celery:
+    container_name: caravan_celery
+    build: 
+      dockerfile: ./Dockerfile.caravan-celery-local
+    restart: unless-stopped
+    networks:
+      - likeminds-network
+    depends_on:
+      - caravan_postgres
+      - caravan_elasticsearch
+      - caravan_rabbitmq
+      - caravan_redis
+
+networks:
+  likeminds-network:
+    external: true
+
+volumes:
+  caravan_postgres_data:
+    driver: local

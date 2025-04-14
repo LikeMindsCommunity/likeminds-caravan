@@ -189,10 +189,6 @@ class ReportActionTypeEnums(ExtendedEnum):
     COMMENT_REJECTED = 12, 6
 
 
-class ReportActionTypeMap(ExtendedEnum):
-    pass
-
-
 # tag types for reports
 class ReportTagTypes:
     CHATROOM_REPORT_TAG = 0

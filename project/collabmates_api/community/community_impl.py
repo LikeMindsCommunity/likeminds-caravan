@@ -2654,7 +2654,7 @@ class CommunityImpl(CommunityManager):
         else:
             reports_data = []
 
-        return {'success': True, 'reports': reports_data}
+        return {'success': True, 'reports_data': reports_data}
 
     def fetch_community_configurations(self, configuration_types=None) -> dict:
         validated_request = CommunityHelper.validate_fetch_community_configurations_request(self.get_member_id(),
@@ -5581,8 +5581,10 @@ class CommunityHelper:
 
         if filter_types:
             invalid_filter_types = set(filter_types) - set(REPORT_TYPES.keys())
-            return ResponseUtilities.get_inner_error_context(f'Invalid filter types: ('
-                                                             f'{",".join([i for i in invalid_filter_types])})')
+
+            if invalid_filter_types:
+                return ResponseUtilities.get_inner_error_context(f'Invalid filter types: ('
+                                                                 f'{",".join([i for i in invalid_filter_types])})')
 
         return {
             'user_instance': user_instance,
@@ -6738,11 +6740,10 @@ class CommunityHelper:
                                f"{community_instance.id} -  {community_instance.name} | Error: {e.args}")
             return ResponseUtilities.get_inner_error_context(f"Some error occured setting up Inferdo's API Key, please "
                                                              f"contact support")
-        
+
     @staticmethod
-    @shared_task    
+    @shared_task
     def close_under_review_pending_post_reports(community_id: int, user_id: int, report_ids: list, action_taken: str):
-        action_taken = ReportActionTypeEnums[action_taken].value[0]
         sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community_id': community_id}).first()
         user_instance = ModelUtilities.get_user_instance_or_none(user_id, community_id)
         report_instances = ModelUtilities.get_model_filter(Report, {'id__in': report_ids})
@@ -6773,7 +6774,7 @@ class CommunityHelper:
             # Close the report if the pending post was approved or rejected successfully
             report.is_closed = True
             report.closed_by = user_instance
-            report.action_taken = action_taken
+            report.action_taken = ReportActionTypeEnums[action_taken].value[0]
             report.closed_time = TimeUtilities.current_time_in_sec()
             report.save()
 
@@ -7280,4 +7281,5 @@ class CommunityHelper:
             user_instance.id, community_instance.id, is_closed, parsed_filter_types, is_owner, parent_cm_list,
             excluded_entity_types_list, page, page_size)
 
-        return ModelUtilities.get_model_filter(Report, {'id__in': report_ids})
+        return ModelUtilities.get_model_filter(Report, {'id__in': report_ids}).order_by('-closed_time').order_by(
+            '-date_epoch')

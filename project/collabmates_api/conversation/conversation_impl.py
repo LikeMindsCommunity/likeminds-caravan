@@ -999,7 +999,7 @@ class ConversationImpl(ConversationManager):
             validated_request = ConversationHelper.validate_poll_conversation_request(req_body, user_instance,
                                                                                       chatroom_instance, 
                                                                                       community_instance)
-            
+
             if validated_request.get('error_message'):
                 return ResponseUtilities.get_impl_error_context(validated_request.get('error_message'),
                                                                 status_code=status_codes.HTTP_400_BAD_REQUEST)
@@ -1102,7 +1102,7 @@ class ConversationImpl(ConversationManager):
                                                                                tagged_members_list=tagged_members_list,
                                                                                is_group_tag=is_group_tag,
                                                                                all_files_uploaded=all_files_uploaded)
-                
+
             # Trigger chatbot for direct message conversation
             if trigger_bot and chatroom_instance.type == card_types.CARD_DIRECT_MESSAGE:
                 ConversationHelper.trigger_chatbot_for_chatroom_against_conversation.delay(
@@ -2961,7 +2961,7 @@ class ConversationHelper:
         if 'share_link' in req_body:
             ConversationHelper.update_share_link_og_tags_in_conversation.delay(conversation_instance.id, 
                                                                                req_body['share_link'])
-            
+
         if replied_conversation:
             webhook_events.append(WebhookTypes.CHATROOM_CONVERSATION_REPLIED.value)
 
@@ -2989,9 +2989,11 @@ class ConversationHelper:
         args = [conversation_instance.id]
 
         if conversation_instance.state == conversation_states.CONVERSATION_POLL:
-            start_time = TimeUtilities.convert_epoch_to_datetime_in_IST(conversation_instance.expiry_time)
-            update_deferred_conversation_poll_updated_at_value.apply_async(args=args, kwargs={},
-                                                                           eta=start_time)
+            # Updating the poll conversation in chatroom
+            if conversation_instance.expiry_time:
+                start_time = TimeUtilities.convert_epoch_to_datetime_in_IST(conversation_instance.expiry_time)
+                update_deferred_conversation_poll_updated_at_value.apply_async(
+                    args=args, kwargs={}, eta=start_time)
 
             webhook_events.append(WebhookTypes.CHATROOM_POLL_CREATED.value)
 
@@ -3134,7 +3136,7 @@ class ConversationHelper:
         poll_chat_configs = configurations[0].get('value')
 
         # Update req_body for poll configurations
-        if poll_chat_configs.get('allow_override', True) is False: 
+        if not poll_chat_configs.get('allow_override', True):
             req_body['poll_type'] = conversation_poll_types.get_int_poll_type_from_string(
                 poll_chat_configs.get('poll_type', 'instant'))
 
@@ -3146,17 +3148,17 @@ class ConversationHelper:
             req_body['is_anonymous'] = poll_chat_configs.get('is_anonymous', False)
 
             req_body['allow_add_option'] = poll_chat_configs.get('allow_add_option', False)
-            
+
             req_body['no_poll_expiry'] = poll_chat_configs.get('no_poll_expiry', False)
-            
+
             if req_body['no_poll_expiry']:
                 req_body['expiry_time'] = None
-                
+
             elif not req_body.get('expiry_time'):
                 return ResponseUtilities.get_inner_error_context("Poll expiry time is required for poll!")
-            
+
             req_body['allow_vote_change'] = poll_chat_configs.get('allow_vote_change', True)
-            
+
         else:
             if req_body.get('poll_type') is None:
                 return ResponseUtilities.get_inner_error_context("Poll type is required!")

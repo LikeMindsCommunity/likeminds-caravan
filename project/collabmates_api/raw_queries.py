@@ -5571,14 +5571,22 @@ def get_grouped_report_ids_based_on_reported_entity(user_id: int, community_id: 
                               'MEMBER_'
                               || reported_member_id :: VARCHAR
                               WHEN entity_id IS NOT NULL THEN 'ENTITY_'
-                                                              || entity_id :: VARCHAR
-                            END AS group_key
+                              || entity_id :: VARCHAR
+                            END AS group_key,
+                            closed_time,
+					 		date_epoch
                      FROM   togther_report
                      WHERE community_id = {community_id} AND is_closed = {is_closed} {filter_types_raw_query} 
                            {is_owner_raw_query}),
                  ranked_data
                  AS (SELECT id,
                             group_key,
+                            Max(closed_time)
+                              over (
+                                PARTITION BY group_key) AS close_time_stamp,
+							Max(date_epoch)
+                              over (
+                                PARTITION BY group_key) AS epoch_time_stamp,
                             Max(id)
                               over (
                                 PARTITION BY group_key) AS max_id
@@ -5589,7 +5597,7 @@ def get_grouped_report_ids_based_on_reported_entity(user_id: int, community_id: 
                      over (
                        ORDER BY max_id DESC) AS dense_rank
             FROM   ranked_data
-            ORDER  BY id DESC)
+            ORDER  BY close_time_stamp DESC, epoch_time_stamp DESC, max_id DESC)
             
             SELECT *
             FROM   dense_rank_data
