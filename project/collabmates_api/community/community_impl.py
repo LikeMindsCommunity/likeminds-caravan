@@ -93,7 +93,7 @@ from utility.states import member_states, card_types, click_states, member_right
     api_types, login_types, noti_states, feed_notification_states, deleted_members, report_action_types, \
     CommunityDMSettingTypes, ChatNotificationTypes, FeedNotifcationTypes, ReportClosingStatus, GuestFlowUserTypes, \
     UserRoles, CommunityIntegrationStatusTypes, conversation_poll_types, multi_select_poll_states, \
-    ReplyPrivatelyAllowedScope, ReportActionTypeEnums
+    ReplyPrivatelyAllowedScope, ReportActionTypeEnums, FeedAppViewTypes, FeedAppAPITypes
 
 from utility.time_utilities import TimeUtilities
 from utility.url_utilities import UrlUtilities
@@ -104,7 +104,7 @@ from utility.constants import (PLATFORM_CODE_WEB, COMMUNITY_CONFIGURATIONS, MEDI
                                CREATE_FEED_POLL_CONFIGURATION_VALUES, CHATBOT_CONFIGURATIONS, CHATBOT_PROVIDER_OPENAI,
                                CHATBOT_DEFAULT_THREAD_CONTEXT, VALID_NOTIFICATION_FEED_ACTIONS, 
                                AUTO_APPROVE_POST_CONFIGURATION_VALUES, CHAT_POLL_CONFIGURATIONS,
-                               REPLY_PRIVATELY_CONFIGURATION)
+                               REPLY_PRIVATELY_CONFIGURATION, APP_VIEWS_CONFIGURATION)
 from utility.api_client import ApiClient
 from utility.response_utilities import ResponseUtilities
 from utility.validation_utilities import ValidationUtilities
@@ -5908,7 +5908,67 @@ class CommunityHelper:
 
             if any([not update_values.get('allowed_scope'),
                     update_values.get('allowed_scope') not in ReplyPrivatelyAllowedScope.list()]):
-                return ResponseUtilities.get_inner_error_context("Invalid allowed scope value.")
+                return ResponseUtilities.get_inner_error_context('Invalid allowed scope value.')
+
+        elif configuration_type == APP_VIEWS_CONFIGURATION:
+
+            for api_view_key, api_view in update_values.items():
+
+                if not (isinstance(api_view, dict) and api_view):
+                    return ResponseUtilities.get_inner_error_context(f"Invalid value of {api_view_key}. It should be "
+                                                                     f"an object.")
+
+                for screen_view_key, screen_view in api_view.items():
+
+                    if not (isinstance(screen_view, dict) and screen_view):
+                        return ResponseUtilities.get_inner_error_context(
+                            f"Invalid value of {screen_view_key}. It should be an object.")
+
+                    missing_required_keys = {'view_type', 'tabs'} - set(list(screen_view.keys()))
+
+                    if missing_required_keys:
+                        return ResponseUtilities.get_inner_error_context(
+                            f"Keys {missing_required_keys} are missing in {screen_view_key}.")
+
+                    if not isinstance(screen_view.get('view_type'), str):
+                        return ResponseUtilities.get_inner_error_context(
+                            f"Invalid value of view_type in {screen_view_key}. It should be a string.")
+
+                    if screen_view.get('view_type') not in FeedAppViewTypes.list():
+                        return ResponseUtilities.get_inner_error_context(
+                            f"Invalid value of view_type in {screen_view_key}. "
+                            f"Supported values - {FeedAppViewTypes.list()}."
+                        )
+
+                    if not (isinstance(screen_view.get('tabs'), list) and screen_view.get('tabs')):
+                        return ResponseUtilities.get_inner_error_context(
+                            f"Invalid value of tabs in {screen_view_key}. It should be a list.")
+
+                    for tab in screen_view.get('tabs'):
+
+                        if not isinstance(tab, dict):
+                            return ResponseUtilities.get_inner_error_context(
+                                f"Invalid value of tabs in {screen_view_key}. It should be a list of objects.")
+
+                        missing_required_keys = {'tab_name', 'api_type'} - set(list(tab.keys()))
+
+                        if missing_required_keys:
+                            return ResponseUtilities.get_inner_error_context(
+                                f"Keys {missing_required_keys} are missing in tabs {screen_view_key}.")
+
+                        if not isinstance(tab.get('tab_name'), str):
+                            return ResponseUtilities.get_inner_error_context(
+                                f"Invalid value of tab_name in {screen_view_key}. It should be a string.")
+
+                        if not isinstance(tab.get('api_type'), str):
+                            return ResponseUtilities.get_inner_error_context(
+                                f"Invalid value of tab_id in {screen_view_key}. It should be a string.")
+
+                        if tab.get('api_type') not in FeedAppAPITypes.list():
+                            return ResponseUtilities.get_inner_error_context(
+                                f"Invalid value of api_type in {screen_view_key}. "
+                                f"Supported values - {FeedAppAPITypes.list()}."
+                            )
 
         return {
             'community_instance': community_instance,
@@ -6654,6 +6714,15 @@ class CommunityHelper:
                     update_values.get('allowed_scope') in ReplyPrivatelyAllowedScope.list():
                 configuration_value['allowed_scope'] = update_values.get('allowed_scope')
                 record_updated = True
+
+        elif configuration_type == APP_VIEWS_CONFIGURATION:
+
+            if update_values.get('feed'):
+                feed_views = update_values.get('feed')
+
+                if feed_views.get('home', {}) and isinstance(feed_views.get('home', {}), dict):
+                    configuration_value['feed']['home'] = feed_views.get('home')
+                    record_updated = True
 
         # Update configuration instance if record is updated
         if record_updated:
