@@ -3221,6 +3221,25 @@ class ConversationHelper:
                 'expires_at': conversation_instance.expiry_time
             }
 
+            poll_options = []
+            option_members = {}
+
+            for poll_option in payload.get('poll', {}).get('options', []):
+
+                if "member" in poll_option:
+                    member_id = poll_option.get("member", {}).get("id")
+
+                    if not member_id:
+                        continue
+
+                    option_members[member_id] = poll_option['member']
+                    poll_option["member"] = member_id
+
+                poll_options.append(poll_option)
+
+            payload['poll']['options'] = poll_options
+            payload['poll']['option_members_data'] = option_members
+
         return payload
 
     @staticmethod
