@@ -263,7 +263,6 @@ class OpenAiWrapper:
                         len(event.data.delta.content) > 0:
                             
                     message_chunk = event.data.delta.content[0].text.value
-                    self.send_message_to_pandemonium(chatroom_id, message_chunk)
 
                 if event.event == "thread.message.completed" and \
                         event.data and \
@@ -273,10 +272,6 @@ class OpenAiWrapper:
 
             if response == '':
                 info_logger.error(f"get_stream_response_with_thread | No response received from OpenAI API for thread_id: {thread_id} events: {events}")
-
-        # Send full response if streaming is disabled
-        if not should_stream_chatbot_response and response:
-            self.send_message_to_pandemonium(chatroom_id, response)
 
             return response
 
@@ -309,7 +304,6 @@ class OpenAiWrapper:
                     and len(event.data.delta.content) > 0
                 ):
                     message_chunk = event.data.delta.content[0].text.value
-                    self.send_message_to_pandemonium(chatroom_id, message_chunk)
 
                 if event.event == "thread.message.completed" and event.data and event.data.content and len(
                         event.data.content) > 0:
@@ -317,10 +311,6 @@ class OpenAiWrapper:
 
             if response == '':
                 info_logger.error(f"create_stream_response_without_thread | No response received from OpenAI API, events: {events}")
-
-        # Send full response if streaming is disabled
-        if not should_stream_chatbot_response and response:
-            self.send_message_to_pandemonium(chatroom_id, response)
 
         return response, thread_id
 
