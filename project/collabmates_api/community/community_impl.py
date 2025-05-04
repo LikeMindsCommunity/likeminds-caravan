@@ -66,7 +66,7 @@ from external_services.wa_notification.wa_notification_impl import NotificationI
 from external_services.segment.segment_impl import SegmentImpl
 from external_services.caching.cache_impl import CacheImpl
 
-from utility.cache_keys import (SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY,
+from utility.cache_keys import (KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PATTERN, KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PREFIX, SWARM_CACHE_KEY_CONFIGURATIONS, SWARM_TOP_LIKED_COMMENTS_CACHE_KEY,
                                 KETTLE_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_USER_META,
                                 KETTLE_CACHE_KEY_PROFILE_META_CONFIGURATIONS, WIDGET_CONFIGURATIONS_CACHE_KEY,
                                 SWARM_CACHE_KEY_COMMUNITY_SETTINGS, KETTLE_CACHE_KEY_ANONYMOUS_USER_META,
@@ -1453,6 +1453,16 @@ class CommunityImpl(CommunityManager):
                 InternalServiceUtilities.delete_cache_from_kettle_service.delay(
                     community_instance.id, user_instance.id,
                     [KETTLE_CACHE_KEY_COMMUNITY_SETTINGS.format(community_instance.id)])
+                
+            if community_setting["setting_type"] in [community_setting_types.FEED,
+                                                     community_setting_types.CREATE_POLL]:
+
+                # Call Kettle api to delete cache key for feed_member_access_* cache
+                InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                    community_instance.id, 
+                    user_instance.id,
+                    [KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PREFIX]
+                )
 
             if community_setting["setting_type"] in [community_setting_types.POST_APPROVAL_NEEDED,
                                                      community_setting_types.FEED_REPOST,
@@ -6092,6 +6102,13 @@ class CommunityHelper:
         if lm_uuids:
             InternalServiceUtilities.remove_users_feed_data.delay(
                 community_id=community_id, user_id=current_user_id, lm_uuids=lm_uuids, is_cm=True)
+            
+            # Call Kettle api to delete cache key for feed_member_access_* cache
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_id,
+                user_id=current_user_id,
+                key_patterns=[KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PREFIX]
+            )    
 
         # If function call is Async, upload reports to s3
         if is_async:
@@ -6500,6 +6517,13 @@ class CommunityHelper:
                     # Update rights for all members & managers in the community
                     CommunityHelper.update_create_feed_poll_settings_for_community.delay(community_id, user_id, update_values.get('create_feed_poll'))
 
+                    # Call Kettle api to delete cache key for feed_member_access_* cache
+                    InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                        community_id=community_id, 
+                        user_id=user_id,
+                        key_patterns=[KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PREFIX]
+                    )
+
                     record_updated = True
                     
             if update_values.get('menu_items_config') and isinstance(update_values.get('menu_items_config'), dict):
@@ -6540,6 +6564,8 @@ class CommunityHelper:
                     community_id=community_id, user_id=user_id,
                     key_patterns=[KETTLE_CACHE_KEY_FEED_SETTINGS_CONFIGURATIONS.format(community_id)]
                 )
+
+            
                 
         elif configuration_type == PERSONALISED_FEED_WEIGHTS:
             filter_dict = {

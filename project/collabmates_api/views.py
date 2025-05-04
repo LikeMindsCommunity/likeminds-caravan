@@ -25,7 +25,7 @@ update_priority, WebhookTypes
 from utility.cache_keys import (CONVERSATION_COMMUNITY_PREVIEW, EVENT_ATTENDEES_CHATROOM, EVENT_INSTRUCTORS_CHATROOM,
                                 EVENT_HIGHLIGHTS_CHATROOM, EVENT_FAQ_CHATROOM, EVENT_MEMBERTESTIMONIALS_CHATROOM,
                                 EVENT_ATTENDEES_CONVERSATION, CHATROOM_PARTICIPANTS_CREATED_CACHE_KEY,
-                                INTERNATIONAL_OTP_GENERATE_CACHE_KEY, KETTLE_CACHE_KEY_USER_META, 
+                                INTERNATIONAL_OTP_GENERATE_CACHE_KEY, KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PATTERN, KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PREFIX, KETTLE_CACHE_KEY_USER_META, 
                                 SWARM_CACHE_KEY_USER_COMMUNITY_CHANNELS)
 from utility.celery_tasks import (
     update_last_unseen_in_engage_on_card_creation,
@@ -2026,6 +2026,13 @@ def remove_from_member(request):
                         InternalServiceUtilities.delete_cache_from_kettle_service.delay(
                             community_id=community_instance.id, user_id=user_instance.id,
                             key_patterns=[cache_key] 
+                        )
+
+                        # Call Kettle api to delete cache key for feed_member_access_{user_id}_* cache
+                        InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                            community_id=community_instance.id, 
+                            user_id=user_instance.id,
+                            key_patterns=[KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PATTERN.format(user_instance.id)]
                         )
 
                     else:
@@ -11512,6 +11519,12 @@ def update_community_manager_rights(request):
                 key_patterns=[cache_key] 
             )
 
+            # Call Kettle api to delete cache key for feed_member_access_{user_id}_* cache
+            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                community_id=community_id,
+                user_id=current_user_id,
+                key_patterns=[KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PATTERN.format(user_id)])
+
             if len(rights_added) > 0:
                 send_notification_for_right_given_to_manager.delay(user_id, community_id, list(rights_added))
 
@@ -11661,6 +11674,13 @@ def remove_community_manager(request):
 
         # Delete user meta cache in kettle service
         cache_key = KETTLE_CACHE_KEY_USER_META.format(community_instance.id, user_instance.userinfo.user_unique_id)
+
+        # Call Kettle api to delete cache key for feed_member_access_{user_id}_* cache
+        InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+            community_id=community_id,
+            user_id=current_user_id,
+            key_patterns=[KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PATTERN.format(user_id)]
+        )
 
         InternalServiceUtilities.delete_cache_from_kettle_service.delay(
             community_id=community_instance.id, user_id=user_instance.id,
@@ -12065,6 +12085,13 @@ def update_community_member_rights(request):
 
         # Update chatroom indexing
         ElasticSearchSync.update_all_community_chatrooms_for_a_user.delay(user_id, community_id)
+
+        # Call Kettle api to delete cache key for feed_member_access_{user_id}_* cache
+        InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+            community_id, 
+            current_user_id,
+            [KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PATTERN.format(user_id)]
+        )
 
         return JsonResponse({'success': True})
     else:
@@ -12864,6 +12891,13 @@ def update_community_rights(request):
             f"community id = {community_id}")
 
         update_member_rights_list_for_community_members.delay(community_id)
+
+        # Call Kettle api to delete cache key for feed_member_access_* cache
+        InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                    community_id=community_id, 
+                    user_id=current_user_id,
+                    key_patterns=[KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PREFIX]
+                )
 
         return JsonResponse({'success': True})
     else:
