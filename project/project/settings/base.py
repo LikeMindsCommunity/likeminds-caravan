@@ -292,13 +292,13 @@ LOGGING = {
             'class': 'logging.handlers.RotatingFileHandler',
             'maxBytes': 1024 * 10 * 10,  # 10 MB
             'backupCount': 5,
-            'filename': os.path.join(BASE_DIR, 'utility/logs/custom.log'),
+            'filename': 'utility/logs/custom.log',
             'formatter': 'json',
         },
         'console': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'utility/logs/collabmates.log'), #/utility/logs/collabmates.log
+            'filename': 'utility/logs/collabmates.log',
             'maxBytes': 1024 * 10 * 10,  # 10 MB
             'backupCount': 5,
             'formatter': 'json',

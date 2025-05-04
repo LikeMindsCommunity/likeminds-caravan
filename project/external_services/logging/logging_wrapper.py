@@ -13,14 +13,10 @@ class LoggingWrapper(LoggerManager):
 
     def __init__(self) -> None:
 
-        if getattr(settings, 'USE_INTERNAL_FILE_LOGGER', True):
+        if getattr(settings, 'USE_INTERNAL_FILE_LOGGER', False):
             logger = FileLoggerImpl.get_instance()
         else:
             logger = CoralogixLoggerImpl.get_instance()
-
-        # Force using FileLoggerImpl for local debugging
-        # REMOVE BEFORE PUSHING
-        logger = FileLoggerImpl.get_instance()
 
         logger.setLevel(logging.INFO)
         LoggingWrapper.__instance__ = logger
