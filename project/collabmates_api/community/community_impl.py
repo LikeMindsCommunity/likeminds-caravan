@@ -2302,13 +2302,6 @@ class CommunityImpl(CommunityManager):
                 key_patterns=[cache_key] 
             )
 
-            # Call Kettle api to delete cache key for feed_member_access_{user_id}_* cache
-            InternalServiceUtilities.delete_cache_from_kettle_service.delay(
-                community_id=community_instance.id,
-                user_id=member_instance.id,
-                key_patterns=[KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PATTERN.format(userinfo_instance.user_unique_id)]
-            )
-
         return {'success': True}
 
     def update_community_noti_settings(self, req_body):

@@ -2028,6 +2028,13 @@ def remove_from_member(request):
                             key_patterns=[cache_key] 
                         )
 
+                        # Call Kettle api to delete cache key for feed_member_access_{user_id}_* cache
+                        InternalServiceUtilities.delete_cache_from_kettle_service.delay(
+                            community_id=community_instance.id, 
+                            user_id=user_instance.id,
+                            key_patterns=[KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PATTERN.format(user_instance.id)]
+                        )
+
                     else:
                         context = ResponseUtilities.get_view_impl_error_context(
                             "Cannot remove the Owner of this community", status_codes.HTTP_400_BAD_REQUEST)
