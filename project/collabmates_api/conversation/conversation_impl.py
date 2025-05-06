@@ -3063,6 +3063,9 @@ class ConversationHelper:
             if not chatroom_instance:
                 return ResponseUtilities.get_inner_error_context('Invalid chatroom id')
 
+            if chatroom_instance.is_deleted:
+                return ResponseUtilities.get_inner_error_context('Chatroom does not exist')
+
         replied_conv_instance = None
 
         if replied_conversation_id:

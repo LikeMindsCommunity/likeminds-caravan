@@ -1446,6 +1446,11 @@ def send_follow_notification(card_id, user_id, conversation_id):
 
     community_instance = card_instance.community
 
+    # temporary disabling notifications for choice in production
+    CHOICE_COMMUNITY_ID = 50654
+    if not settings.IS_BETA and community_instance.id == CHOICE_COMMUNITY_ID:
+        return
+
     current_time = TimeUtilities.current_time_in_milliseconds()
 
     chatroom_follower_list = list(
