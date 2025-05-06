@@ -1192,8 +1192,7 @@ class ConversationImpl(ConversationManager):
                 validated_request_context.get("chatroom").id,
                 validated_request_context.get("message").id,
                 create_message_request.get('should_stream_chatbot_response', False),
-                self.get_api_version_code(),
-                api_version
+                self.get_api_version_code()
             )
 
         return {
@@ -3290,11 +3289,14 @@ class ConversationHelper:
 
         response = conversation_impl.create_conversation_v1(req_body)
 
-        ConversationHelper.send_message_to_pandemonium_without_streaming_type_chatroom( chatroom_id, response)
-
-        community_id = response.get('conversation').get('community_id')
-        if chatroom_instance : 
-            ConversationHelper.send_message_to_pandemonium_without_streaming_type_community( chatroom_instance, community_id, response)
+        if not should_stream_chatbot_response:
+            # sending non-streaming chatbot response to pandemonium chatroom
+            ConversationHelper.send_message_to_pandemonium_without_streaming_type_chatroom( chatroom_id, response)
+    
+            # sending non-streaming chatbot response to pandemonium community
+            community_id = response.get('conversation').get('community_id')
+            if chatroom_instance : 
+                ConversationHelper.send_message_to_pandemonium_without_streaming_type_community( chatroom_instance, community_id, response)
 
         if response.get('error_message'):
             error_logger.error(f"Error while creating conversation for chatbot for chatroom_id: {chatroom_id}: {response['error_message']}")
