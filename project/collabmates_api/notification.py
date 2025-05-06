@@ -551,6 +551,11 @@ def notification_meta(notification_list, message, is_broadcast_notification: boo
     # Get community id from the message payload
     community_id = get_community_id_from_notification_message(message)
 
+    # temporary disabling notifications for choice in production
+    CHOICE_COMMUNITY_ID = 50654
+    if not settings.IS_BETA and community_id == CHOICE_COMMUNITY_ID:
+        return
+
     # Trigger webhooks for notifications
     trigger_webhooks_for_notifications.delay(
         user_ids=user_id_list,
@@ -1445,11 +1450,6 @@ def send_follow_notification(card_id, user_id, conversation_id):
     answer = conversation_instance.answer
 
     community_instance = card_instance.community
-
-    # temporary disabling notifications for choice in production
-    CHOICE_COMMUNITY_ID = 50654
-    if not settings.IS_BETA and community_instance.id == CHOICE_COMMUNITY_ID:
-        return
 
     current_time = TimeUtilities.current_time_in_milliseconds()
 
