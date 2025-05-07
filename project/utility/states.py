@@ -1250,3 +1250,16 @@ class LMWidgetType(ExtendedEnum):
 
 class WebhooksResponseTypes(ExtendedEnum):
     GROUP_URL = "GROUP_URL"
+
+
+class FeedAppViewTypes(ExtendedEnum):
+    TOP_TABS = "TOP_TABS"
+    BOTTOM_TABS = "BOTTOM_TABS"
+    HAMBURGER = "HAMBURGER"
+    DROP_DOWN = "DROP_DOWN"
+
+
+class FeedAppAPITypes(ExtendedEnum):
+    PERSONALIZED_FEED = "PERSONALIZED_FEED"
+    UNIVERSAL_FEED = "UNIVERSAL_FEED"
+    TOPIC_FEED = "TOPIC_FEED"

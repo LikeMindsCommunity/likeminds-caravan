@@ -52,3 +52,7 @@ KETTLE_CACHE_CHATROOM_PARTICIPANTS = "chatroom_participants_{}" # chatroom_parti
 
 SWARM_CACHE_KEY_TOP_COMMENTS = "{}_*_top_liked_comments" # community_id
 
+KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY = "feed_member_access_{}_{}" # userId accessType
+KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PATTERN = "feed_member_access_{}_*" # userId
+KETTLE_CACHE_KEY_FEED_MEMBER_ACCESS_KEY_PREFIX = "feed_member_access_*"
+
