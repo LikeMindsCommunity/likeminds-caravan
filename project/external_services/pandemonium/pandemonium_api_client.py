@@ -21,3 +21,13 @@ class PandemoniumAPIClient:
             logging.info(f"published conversation data in pandemonium for chatroom_id={chatroom_id}, response={response.content}")
         else:
             logging.error(f"failed to publish conversation data in pandemonium. status_code={response.status_code}")
+
+    def publish_chatroom_conversation_to_pandemonium_via_community(self, community_id: int, data: dict):
+        url = f"{self.get_domain_url()}/{constants.ROUTE_PUBLISH}/{constants.COMMUNITY_TOPIC_PARAM}:{community_id}?{constants.TOPIC_MESSAGE_TYPE_PARAM}={constants.TOPIC_MESSAGE_TYPE_CONVERSATION}"
+        data = data
+
+        response = requests.post(url, json=data)
+        if response.status_code == 200:
+            logging.info(f"published conversation data in pandemonium for community_id={community_id}, response={response.content}")
+        else:
+            logging.error(f"failed to publish conversation data in pandemonium. status_code={response.status_code}")
