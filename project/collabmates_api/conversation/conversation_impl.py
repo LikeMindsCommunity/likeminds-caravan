@@ -1112,7 +1112,6 @@ class ConversationImpl(ConversationManager):
                     conversation_instance.id,
                     should_stream_chatbot_response,
                     self.get_api_version_code(),
-                    chatroom_instance,
                 )
 
             context = {
@@ -3232,7 +3231,6 @@ class ConversationHelper:
             conversation_id: int,
             should_stream_chatbot_response: bool = False,
             api_version_code: int = 1,
-            chatroom_instance = None,
     ):
 
         validation_dict = ConversationHelper.validate_trigger_chatbot_against_conversation(chatroom_id, conversation_id)
@@ -3295,8 +3293,7 @@ class ConversationHelper:
     
             # sending non-streaming chatbot response to pandemonium community
             community_id = response.get('conversation').get('community_id')
-            if chatroom_instance : 
-                ConversationHelper.send_message_to_pandemonium_without_streaming_type_community( chatroom_instance, community_id, response)
+            ConversationHelper.send_message_to_pandemonium_without_streaming_type_community(community_id, response)
 
         if response.get('error_message'):
             error_logger.error(f"Error while creating conversation for chatbot for chatroom_id: {chatroom_id}: {response['error_message']}")
@@ -3321,18 +3318,12 @@ class ConversationHelper:
         pandemonium_api_client.publish_chatroom_conversation_to_pandemonium(chatroom_id, data)
 
     @staticmethod
-    def send_message_to_pandemonium_without_streaming_type_community(chatroom_instance , community_id: int, data: str) -> None:
+    def send_message_to_pandemonium_without_streaming_type_community(community_id: int, data: str) -> None:
         pandemonium_api_client = PandemoniumAPIClient()
         
         data.pop("success", None)
 
-        is_secret = chatroom_instance.is_secret
-        chatroom_type = chatroom_instance.type
-
-        is_secret_bool = isinstance(is_secret, bool) and is_secret is True
-        is_dm_type = isinstance(chatroom_type, (int, float)) and chatroom_type == 10
-
-        # have to send 'participants' key with participants ids in community
+        # TODO : have to send 'participants' key with participants ids in community
         pandemonium_api_client.publish_chatroom_conversation_to_pandemonium_via_community(community_id, data)
 
     
