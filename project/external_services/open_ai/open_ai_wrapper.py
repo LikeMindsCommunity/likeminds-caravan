@@ -306,7 +306,7 @@ class OpenAiWrapper:
                 ):
                     message_chunk = event.data.delta.content[0].text.value
                     self.send_message_to_pandemonium(chatroom_id, message_chunk)
-
+                    
                 if event.event == "thread.message.completed" and event.data and event.data.content and len(
                         event.data.content) > 0:
                     response = event.data.content[0].text.value

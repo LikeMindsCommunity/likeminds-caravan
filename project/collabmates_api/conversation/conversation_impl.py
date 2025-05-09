@@ -13,6 +13,7 @@ from rest_framework import status as status_codes
 
 from external_services.caching.cache_impl import CacheImpl
 from internal_services.url_tags.uri_tags_impl import UriTagsImpl
+from external_services.pandemonium import pandemonium_api_client
 from utility.cache_keys import EVENT_ATTENDEES_CONVERSATION, CHATBOT_ASSISTANT_THREAD_CACHE_KEY
 from utility.json_utilities import JsonUtilities
 from utility.constants import CREATE_INTRO_TEXT_ADMIN, CREATE_INTRO_TEXT_MEMBER, CUSTOM_CLICK_TEXT, MINUTES_5, \
@@ -94,6 +95,7 @@ from ..owner_message_template import post_owner_message_template_in_intro_room, 
 from collabmates_api.search.sync import ElasticSearchSync
 from utility.internal_service_utilities import InternalServiceUtilities
 from external_services.open_ai.open_ai_wrapper import OpenAiWrapper
+from external_services.pandemonium.pandemonium_api_client import PandemoniumAPIClient
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -1189,8 +1191,7 @@ class ConversationImpl(ConversationManager):
                 validated_request_context.get("chatroom").id,
                 validated_request_context.get("message").id,
                 create_message_request.get('should_stream_chatbot_response', False),
-                self.get_api_version_code(),
-                api_version
+                self.get_api_version_code()
             )
 
         return {
@@ -3307,6 +3308,15 @@ class ConversationHelper:
         }
 
         response = conversation_impl.create_conversation_v1(req_body)
+
+        if not should_stream_chatbot_response:
+            # sending non-streaming chatbot response to pandemonium chatroom
+            ConversationHelper.send_message_to_pandemonium_without_streaming_type_chatroom( chatroom_id, response)
+    
+            # sending non-streaming chatbot response to pandemonium community
+            community_id = response.get('conversation').get('community_id')
+            ConversationHelper.send_message_to_pandemonium_without_streaming_type_community(community_id, response)
+
         if response.get('error_message'):
             error_logger.error(f"Error while creating conversation for chatbot for chatroom_id: {chatroom_id}: {response['error_message']}")
             return
@@ -3321,6 +3331,23 @@ class ConversationHelper:
                 'last_conversation_id': chatbot_conversation_id})
 
         return
+    
+    @staticmethod
+    def send_message_to_pandemonium_without_streaming_type_chatroom(chatroom_id: int, data: str) -> None:
+        pandemonium_api_client = PandemoniumAPIClient()
+        
+        data.pop("success", None)
+        pandemonium_api_client.publish_chatroom_conversation_to_pandemonium(chatroom_id, data)
+
+    @staticmethod
+    def send_message_to_pandemonium_without_streaming_type_community(community_id: int, data: str) -> None:
+        pandemonium_api_client = PandemoniumAPIClient()
+        
+        data.pop("success", None)
+
+        # TODO : have to send 'participants' key with participants ids in community
+        pandemonium_api_client.publish_chatroom_conversation_to_pandemonium_via_community(community_id, data)
+
     
     @staticmethod
     def validate_trigger_chatbot_against_conversation(chatroom_id: int, conversation_id: int):
