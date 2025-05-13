@@ -14,7 +14,7 @@ from togther.models import (ModelUtilities, communityAnswers, Community, SDKClie
 from .models import SdkClient, SdkPlatform, SdkOnboardingScreen
 from .sdk_view_helper import SdkViewHelper
 from .serializers import SdkProjectSerializer, OnboardingScreenSerializer
-from .constants import (GCP_SERVICE_ACCOUNT_PARAM)
+from .constants import (GCP_SERVICE_ACCOUNT_PARAM, PS_GCP_SERVICE_ACCOUNT_PARAM)
 from collabmates_api.community.community_impl import (CommunityImpl, CommunityHelper)
 from collabmates_api.user.view_impl import UserImpl
 from collabmates_api.member_community.member_community_impl import MemberCommunityImpl
@@ -172,6 +172,9 @@ class SdkImpl(SdkManager):
 
         if req_body.get(GCP_SERVICE_ACCOUNT_PARAM):
             sdk_client.gcp_service_account_file = req_body.get(GCP_SERVICE_ACCOUNT_PARAM)
+
+        if req_body.get(PS_GCP_SERVICE_ACCOUNT_PARAM):
+            sdk_client.ps_gcp_service_account_file = req_body.get(PS_GCP_SERVICE_ACCOUNT_PARAM)
 
         if req_body.get('firebase_server_key'):
             sdk_client.firebase_server_key = req_body.get('firebase_server_key')

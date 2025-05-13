@@ -1263,3 +1263,12 @@ class FeedAppAPITypes(ExtendedEnum):
     PERSONALIZED_FEED = "PERSONALIZED_FEED"
     UNIVERSAL_FEED = "UNIVERSAL_FEED"
     TOPIC_FEED = "TOPIC_FEED"
+
+
+class SDKPlatformCodes(ExtendedEnum):
+    ANDROID_SDK = 'an-sdk'
+    IOS_SDK = 'ios-sdk'
+    WEB_SDK = 'web-sdk'
+    FLUTTER_SDK = 'fl-sdk'
+    REACT_NATIVE_SDK = 'rn-sdk'
+    REACT_SDK = 'rt-sdk'

@@ -120,21 +120,25 @@ def get_firebase_server_key_or_service_file_from_message_payload(message):
     community_id = message_payload.get('community_id', None)
 
     service_account_file_dict = None
+    ps_service_account_file_dict = None
     server_key = settings.FCM_SERVER_KEY
 
     if community_id:
-        sdk_client_filter = ModelUtilities.get_model_filter(SdkClient, {'community': community_id})
+        sdk_client_instance = ModelUtilities.get_model_filter(SdkClient, {'community': community_id}).first()
 
-        if sdk_client_filter:
-            if sdk_client_filter[0].gcp_service_account_file:
-                service_account_file_dict = sdk_client_filter[0].gcp_service_account_file
+        if sdk_client_instance:
+            if sdk_client_instance.gcp_service_account_file:
+                service_account_file_dict = sdk_client_instance.gcp_service_account_file
 
-            if sdk_client_filter[0].firebase_server_key:
-                server_key = sdk_client_filter[0].firebase_server_key
+            if sdk_client_instance.firebase_server_key:
+                server_key = sdk_client_instance.firebase_server_key
+
+            if sdk_client_instance.ps_service_account_file_dict:
+                ps_service_account_file_dict = sdk_client_instance.ps_service_account_file_dict
 
         del message['payload']['community_id']
 
-    return server_key, service_account_file_dict
+    return server_key, service_account_file_dict, ps_service_account_file_dict
 
 
 def send_notifications(service_account_file_dict: dict, firebase_key: str, token_chunks_list: list, message: dict,
@@ -542,7 +546,7 @@ def trigger_webhooks_for_notifications(user_ids: list, notification_payload: dic
     return
 
 
-def notification_meta(notification_list, message, is_broadcast_notification: bool=False, sdk_source: str="chat"):
+def notification_meta(notification_list, message, is_broadcast_notification: bool = False, sdk_source: str = "chat"):
     """function to process notification to send"""
 
     # Get the user ids from the notification list
@@ -568,7 +572,8 @@ def notification_meta(notification_list, message, is_broadcast_notification: boo
 
     # If user_notifications are disabled, then log and return 
     if user_notifications_disabled_filter:
-        info_logger.info(f"User notifications are disabled for community: {community_id}, hence no notifications are triggered with message payload: {message} and for users: {user_id_list}")
+        info_logger.info(f"User notifications are disabled for community: {community_id}, hence no notifications are "
+                         f"triggered with message payload: {message} and for users: {user_id_list}")
         return
 
     # Pre compute user devices and their fcm tokens by user list
@@ -631,19 +636,34 @@ def notification_meta(notification_list, message, is_broadcast_notification: boo
 
             notification_payload_list.append(notification_payload_dict)
 
-    firebase_key, gcp_service_account_file_dict = get_firebase_server_key_or_service_file_from_message_payload(message)
+    firebase_key, gcp_service_account_file_dict, ps_service_account_file_dict = (
+        get_firebase_server_key_or_service_file_from_message_payload(message)
+    )
 
-    send_notification_for_android(tokens['Android'], message, gcp_service_account_file_dict, firebase_key)
+    android_service_account_file = (ps_service_account_file_dict.get(SDKPlatformCodes.ANDROID_SDK.value) or
+                                    gcp_service_account_file_dict)
+    ios_service_account_file = (ps_service_account_file_dict.get(SDKPlatformCodes.IOS_SDK.value) or
+                                gcp_service_account_file_dict)
+    web_service_account_file = (ps_service_account_file_dict.get(SDKPlatformCodes.WEB_SDK.value) or
+                                gcp_service_account_file_dict)
+    flutter_service_account_file = (ps_service_account_file_dict.get(SDKPlatformCodes.FLUTTER_SDK.value) or
+                                    gcp_service_account_file_dict)
+    rn_service_account_file = (ps_service_account_file_dict.get(SDKPlatformCodes.REACT_NATIVE_SDK.value) or
+                               gcp_service_account_file_dict)
+    react_service_account_file = (ps_service_account_file_dict.get(SDKPlatformCodes.REACT_SDK.value) or
+                                  gcp_service_account_file_dict)
 
-    send_notification_for_ios(tokens['iOS'], message, gcp_service_account_file_dict, firebase_key)
+    send_notification_for_android(tokens['Android'], message, android_service_account_file, firebase_key)
 
-    send_notification_for_web(tokens['web'], message, gcp_service_account_file_dict, firebase_key)
+    send_notification_for_ios(tokens['iOS'], message, ios_service_account_file, firebase_key)
 
-    send_notification_for_flutter(tokens['Flutter'], message, gcp_service_account_file_dict, firebase_key)
+    send_notification_for_web(tokens['web'], message, web_service_account_file, firebase_key)
 
-    send_notification_for_react_native(tokens['React Native'], message, gcp_service_account_file_dict, firebase_key)
+    send_notification_for_flutter(tokens['Flutter'], message, flutter_service_account_file, firebase_key)
 
-    send_notification_for_react(tokens['React'], message, gcp_service_account_file_dict, firebase_key)
+    send_notification_for_react_native(tokens['React Native'], message, rn_service_account_file, firebase_key)
+
+    send_notification_for_react(tokens['React'], message, react_service_account_file, firebase_key)
 
     track_notification_with_notification_payload_list(notification_payload_list)
 
