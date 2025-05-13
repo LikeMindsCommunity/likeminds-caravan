@@ -640,6 +640,9 @@ def notification_meta(notification_list, message, is_broadcast_notification: boo
         get_firebase_server_key_or_service_file_from_message_payload(message)
     )
 
+    if not ps_service_account_file_dict:
+        ps_service_account_file_dict = {}
+
     android_service_account_file = (ps_service_account_file_dict.get(SDKPlatformCodes.ANDROID_SDK.value) or
                                     gcp_service_account_file_dict)
     ios_service_account_file = (ps_service_account_file_dict.get(SDKPlatformCodes.IOS_SDK.value) or
