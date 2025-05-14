@@ -11,6 +11,7 @@ from external_services.logging.logging_wrapper import LoggingWrapper
 
 error_logger = LoggingWrapper.get_instance()
 
+
 class SdkProjectView(APIView):
 
     def get(self, request):
