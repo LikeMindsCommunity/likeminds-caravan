@@ -656,6 +656,8 @@ def notification_meta(notification_list, message, is_broadcast_notification: boo
     react_service_account_file = (ps_service_account_file_dict.get(SDKPlatformCodes.REACT_SDK.value) or
                                   gcp_service_account_file_dict)
 
+    info_logger.info(f"Notification message: {message}")
+
     send_notification_for_android(tokens['Android'], message, android_service_account_file, firebase_key)
 
     send_notification_for_ios(tokens['iOS'], message, ios_service_account_file, firebase_key)
