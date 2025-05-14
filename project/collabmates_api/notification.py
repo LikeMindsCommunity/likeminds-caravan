@@ -133,8 +133,8 @@ def get_firebase_server_key_or_service_file_from_message_payload(message):
             if sdk_client_instance.firebase_server_key:
                 server_key = sdk_client_instance.firebase_server_key
 
-            if sdk_client_instance.ps_service_account_file_dict:
-                ps_service_account_file_dict = sdk_client_instance.ps_service_account_file_dict
+            if sdk_client_instance.ps_gcp_service_account_file:
+                ps_service_account_file_dict = sdk_client_instance.ps_gcp_service_account_file
 
         del message['payload']['community_id']
 
