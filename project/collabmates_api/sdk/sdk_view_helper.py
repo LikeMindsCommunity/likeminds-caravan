@@ -110,7 +110,7 @@ class SdkViewHelper:
                 return ResponseUtilities.get_inner_error_context(f'{PS_GCP_SERVICE_ACCOUNT_PARAM} should be a JSON '
                                                                  'object.')
 
-            if set(ps_gcp_service_account_file.keys()) - SDKPlatformCodes.list():
+            if set(ps_gcp_service_account_file.keys()) - set(SDKPlatformCodes.list()):
                 return ResponseUtilities.get_inner_error_context(f'{PS_GCP_SERVICE_ACCOUNT_PARAM} should contain only '
                                                                  'valid keys.')
 
