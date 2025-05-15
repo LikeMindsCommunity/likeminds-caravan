@@ -1,12 +1,14 @@
 from django.db.models import Q
 from utility.response_utilities import ResponseUtilities
 from togther.models import (ModelUtilities, communityQuestions, SDKClientUsersInfo, removedMembers, Members)
-from utility.states import (login_types)
+from utility.states import (login_types, SDKPlatformCodes)
 from utility.validation_utilities import ValidationUtilities
 from .models import SdkClient, SdkOnboardingScreen
+from .constants import PS_GCP_SERVICE_ACCOUNT_PARAM
 from datetime import datetime, timedelta
 from utility.constants import MONTHS_ORDER
 from scripts.sendbird_migration.utils.sendbird_utils import SendbirdApiUtils
+
 
 class SdkViewHelper:
 
@@ -100,6 +102,17 @@ class SdkViewHelper:
 
         if 'platform' in request_body and request_body['platform'] and not isinstance(request_body['platform'], list):
             return ResponseUtilities.get_inner_error_context('platform object should be a list')
+
+        if PS_GCP_SERVICE_ACCOUNT_PARAM in req_body and req_body[PS_GCP_SERVICE_ACCOUNT_PARAM]:
+            ps_gcp_service_account_file = req_body[PS_GCP_SERVICE_ACCOUNT_PARAM]
+
+            if not isinstance(ps_gcp_service_account_file, dict):
+                return ResponseUtilities.get_inner_error_context(f'{PS_GCP_SERVICE_ACCOUNT_PARAM} should be a JSON '
+                                                                 'object.')
+
+            if set(ps_gcp_service_account_file.keys()) - set(SDKPlatformCodes.list()):
+                return ResponseUtilities.get_inner_error_context(f'{PS_GCP_SERVICE_ACCOUNT_PARAM} should contain only '
+                                                                 'valid keys.')
 
         return {'req_body': req_body}
 
