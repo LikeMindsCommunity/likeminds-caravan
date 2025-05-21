@@ -100,7 +100,8 @@ CACHES = {
 
 CACHE_CREDENTIALS = {
     'host': os.getenv('CACHE_HOST'),
-    'port': os.getenv('CACHE_PORT')
+    'port': os.getenv('CACHE_PORT'),
+    'password': os.getenv('CACHE_PASSWORD')
 }
 
 CALENDAR_CREDENTIALS = {

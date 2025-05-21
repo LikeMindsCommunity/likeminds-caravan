@@ -43,12 +43,11 @@ class CacheImpl(CacheManager):
     def ping_cache():
         redis_params = {
             'host': settings.CACHE_CREDENTIALS['host'],
-            'port': settings.CACHE_CREDENTIALS['port']
-        }
+            'port': settings.CACHE_CREDENTIALS['port'],
+            'password': settings.CACHE_CREDENTIALS['password']}
 
-        if settings.IS_LOAD_ENV:
-            redis_params['password'] = settings.CACHE_CREDENTIALS['password']
-            redis_params['ssl'] = True
+        # disabling tls config as using private hosted DNS zone in azure
+        # redis_params['ssl'] = True
 
         redis_connection = redis.Redis(**redis_params)
         redis_connection.ping()
