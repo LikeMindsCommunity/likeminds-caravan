@@ -1,0 +1,85 @@
+pipeline {
+    agent any
+
+    environment {
+        // Azure Container Registry Credentials
+        ACR_NAME = 'likemindsproductionregistry'
+        ACR_LOGIN_SERVER = 'likemindsproductionregistry.azurecr.io'
+    }
+
+    stages {
+        stage("Checkout code") {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Login to Azure') {
+            steps {
+                withCredentials([string(credentialsId: 'likeminds-production-service-principal-jenkins-credentials', variable: 'AZURE_CREDENTIALS')]) {
+                    sh '''
+                        set +x
+                        echo $AZURE_CREDENTIALS > azure_credentials.json
+                        az login --service-principal -u "$(jq -r .clientId azure_credentials.json)" \
+                                -p "$(jq -r .clientSecret azure_credentials.json)" \
+                                --tenant "$(jq -r .tenantId azure_credentials.json)"
+                        set -x
+                        echo 'silent login to azure successful'
+                    '''
+                }
+            }
+        }
+
+        stage('Login to ACR') {
+            steps {
+                sh '''
+                    set +x
+                    docker login $ACR_LOGIN_SERVER -u "$(jq -r .clientId azure_credentials.json)" \
+                    -p "$(jq -r .clientSecret azure_credentials.json)"
+                    set -x
+                    echo 'silent login to ACR successful'
+                '''
+            }
+        }
+
+
+        stage ('Build Image') {
+            steps {
+                sh '''
+                    docker build -f Dockerfile.caravan-celery-rabbitmq-prod -t $ACR_LOGIN_SERVER/likeminds-caravan-rabbitmq/caravan-celery-rabbitmq-production:caravan-celery-rabbitmq-V$BUILD_NUMBER .
+                '''
+            }
+        }
+
+
+        stage ('Push Image') {
+            steps {
+                sh '''
+                    az acr login --name $ACR_NAME
+                    docker push $ACR_LOGIN_SERVER/likeminds-caravan-rabbitmq/caravan-celery-rabbitmq-production:caravan-celery-rabbitmq-V$BUILD_NUMBER
+                '''
+            }
+        }
+
+        stage ('Remove Image from jenkins') {
+            steps {
+                sh "docker rmi $ACR_LOGIN_SERVER/likeminds-caravan-rabbitmq/caravan-celery-rabbitmq-production:caravan-celery-rabbitmq-V$BUILD_NUMBER"
+            }
+        }
+
+        stage ("update tag and push helm charts") {
+          steps {
+             script{
+                  git branch: 'LM-13485-azure-migration', url: 'git@github.com:LikeMindsCommunity/LikeMinds-Infra-Config.git'
+                  sh "ls"
+                  sh 'sed -i "s/tag: caravan-celery-rabbitmq-V[0-9]*/tag: caravan-celery-rabbitmq-V${BUILD_NUMBER}/g" ./azure/production/caravan-rabbitmq-prod/values.yaml'
+                  sh "git add ./azure/production/caravan-rabbitmq-prod/values.yaml"
+                  sh "git status"
+                  sh 'git commit -m "CI/CD pipeline updated $IMAGE_TAG image to new image tag"'
+                  sh 'git config --global credential.helper cache'
+		          sh "git push origin LM-13485-azure-migration"
+                }
+            }
+        }
+    }
+}
