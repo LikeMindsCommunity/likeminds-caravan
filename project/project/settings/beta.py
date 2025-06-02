@@ -94,13 +94,15 @@ CACHES = {
         'LOCATION': os.getenv('CACHE_LOCATION'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'PASSWORD': os.getenv('CACHE_PASSWORD'),
         }
     }
 }
 
 CACHE_CREDENTIALS = {
     'host': os.getenv('CACHE_HOST'),
-    'port': os.getenv('CACHE_PORT')
+    'port': os.getenv('CACHE_PORT'),
+    'password': os.getenv('CACHE_PASSWORD')
 }
 
 CALENDAR_CREDENTIALS = {
