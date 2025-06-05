@@ -57,13 +57,6 @@ AWS_CREDENTIALS = {
 USE_INTERNAL_FILE_LOGGER = False
 OMIT_200_OK_FULL_RESPONSE = True
 
-CORALOGIX_LOGGER = {
-    'PRIVATE_API_KEY': os.getenv('CORALOGIX_LOGGER_PRIVATE_API_KEY'),
-    'APPLICATION_NAME': 'LikeMinds_Beta',
-    'SUBSYSTEM_NAME_API': 'Backend_App_Api',
-    'SUBSYSTEM_NAME_APP': 'Backend_App_System'
-}
-
 S3_BUCKETS = {
     "media_bucket": {
         "arn": "arn:aws:s3:::beta-likeminds-media",
