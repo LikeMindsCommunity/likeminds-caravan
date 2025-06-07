@@ -3,6 +3,7 @@ import logging
 import traceback
 from datetime import datetime, timezone, timedelta
 
+
 class JsonFormatter(logging.Formatter):
     """
     Formatter that outputs JSON strings after gathering all the log record attributes
