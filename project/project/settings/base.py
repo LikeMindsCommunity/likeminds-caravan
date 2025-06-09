@@ -287,22 +287,6 @@ LOGGING = {
         }
     },
     'handlers': {
-        'file_handler': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'maxBytes': 1024 * 10 * 10,  # 10 MB
-            'backupCount': 5,
-            'filename': 'utility/logs/custom.log',
-            'formatter': 'json',
-        },
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'utility/logs/collabmates.log',
-            'maxBytes': 1024 * 10 * 10,  # 10 MB
-            'backupCount': 5,
-            'formatter': 'json',
-        },
         'stream_info_handler': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
@@ -323,11 +307,6 @@ LOGGING = {
         },
     },
     'loggers': {
-        'file_logger': {
-            'handlers': ['file_handler'],
-            'level': 'INFO',
-            'propagate': False,
-        },
         'stream_info_logger': {
             'handlers': ['stream_info_handler'],
             'level': 'INFO',
@@ -339,7 +318,7 @@ LOGGING = {
             'propagate': False,
         },
         'django': {
-            'handlers': ['console', 'stream_info_handler', 'stream_error_handler', 'mail_admins'],
+            'handlers': ['stream_info_handler', 'stream_error_handler', 'mail_admins'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
         },
     },
