@@ -111,5 +111,6 @@ class ApiLogger(MiddlewareMixin):
     def _send_to_internal_logger(self, log_object_dict: dict):
         if status.is_success(log_object_dict['response']['http_response_code']):
             self.logger.info(str(log_object_dict))
+
         else:
             self.logger.error(str(log_object_dict))
