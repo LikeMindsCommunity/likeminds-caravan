@@ -4,7 +4,7 @@ from collabmates_api.raw_queries import get_users_meta_info
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from django.conf import settings
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from dateutil import relativedelta
 from celery import shared_task
 from project.celery import app
@@ -531,7 +531,7 @@ def getFilteredLogs():
         response = client.query_workspace(
             workspace_id=settings.AZURE_LOG_ANALYTICS_WORKSPACE_ID,
             query=query,
-            timespan=(datetime.now() - relativedelta.relativedelta(days=1), datetime.now())
+            timespan=(datetime.now(timezone.utc) - relativedelta.relativedelta(days=1), datetime.now(timezone.utc))
         )
 
         # Process and transform the results
