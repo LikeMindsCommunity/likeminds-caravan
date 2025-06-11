@@ -1,4 +1,3 @@
-import sys
 import logging
 
 from external_services.logging.logger_manager import LoggerManager
