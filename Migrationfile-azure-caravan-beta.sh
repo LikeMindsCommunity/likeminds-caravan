@@ -2,12 +2,14 @@
 
 APPLICATION_ENVIRONMENT="BETA"
 APPLICATION_DOT_ENV_LOCATION="/home/apps/caravan-beta/Togther/project/project/settings/.env"
-APPLICATION_DOT_ENV_REMOTE_LOCATION="https://likemindsstagingstorage.blob.core.windows.net/likeminds-staging-configs/caravan-beta/caravan-beta-dot-env-private"
 APPLICATION_LOCATION="/home/apps/caravan-beta/Togther/project/"
 APPLICATION_MANAGE_SCRIPT_LOCATION="/home/apps/caravan-beta/Togther/project/manage.py"
 APPLICATION_NAME="CARAVAN"
 APPLICATION_REQUIREMENTS_LOCATION="/home/apps/caravan-beta/Togther/project/requirements.txt"
 APPLICATION_VENV_LOCATION="/home/apps/caravan-beta/caravan-beta-venv/bin/activate"
+APPICATION_ACCOUNT_NAME="likemindsstagingstorage"
+APPLICATION_CONTAINER_NAME="likeminds-staging-configs"
+APPLICATION_DOT_ENV_BLOB_NAME="caravan-beta/caravan-beta-dot-env-private"
 
 print_internal() {
     PREFIX="\n\n **** "
@@ -20,7 +22,7 @@ get_project_dot_env() {
   print_internal "get and write dot env into project folder"
   print_internal "writing file at $APPLICATION_DOT_ENV_LOCATION"
 
-  aws s3 cp $APPLICATION_DOT_ENV_REMOTE_LOCATION $APPLICATION_DOT_ENV_LOCATION --profile S3EnvDownloadUser
+  az storage blob download --account-name $APPICATION_ACCOUNT_NAME --container-name $APPLICATION_CONTAINER_NAME --name $APPLICATION_DOT_ENV_BLOB_NAME --file $APPLICATION_DOT_ENV_LOCATION
 
   print_internal "wrote dot env into project"
 }
