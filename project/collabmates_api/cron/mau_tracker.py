@@ -503,11 +503,14 @@ def getFilteredLogs():
     try:
         # Initialize Azure Log Analytics client
         from azure.monitor.query import LogsQueryClient
-        from azure.identity import AzureCliCredential
-        from azure.identity import DefaultAzureCredential
-        
-        credential = DefaultAzureCredential()
-        
+        from azure.identity import ClientSecretCredential
+
+        credential = ClientSecretCredential(
+            tenant_id=settings.AZURE_TENANT_ID,
+            client_id=settings.AZURE_CLIENT_ID,
+            client_secret=settings.AZURE_CLIENT_SECRET
+        )
+
         client = LogsQueryClient(credential)
 
         # KQL query to fetch relevant logs
