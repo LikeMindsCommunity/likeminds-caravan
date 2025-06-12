@@ -1,5 +1,6 @@
 import json
 import traceback
+from django.conf import settings
 from rest_framework import status
 from django.utils.deprecation import MiddlewareMixin
 
@@ -81,9 +82,15 @@ class ApiLogger(MiddlewareMixin):
 
     @staticmethod
     def _process_response_object(response: {}) -> dict:
+        content_str = response.content.decode('utf-8')
+        try:
+            # Try to parse as JSON
+            content = json.loads(content_str)
+        except Exception:
+            content = content_str
         response_dict = {
             'http_response_code': response.status_code,
-            'content': response.content.decode('utf-8')
+            'content': content
         }
 
         return response_dict
@@ -106,10 +113,13 @@ class ApiLogger(MiddlewareMixin):
         return log_object_dict
 
     def _send_to_logger(self, log_object_dict: dict) -> None:
+        if getattr(settings, 'OMIT_200_OK_FULL_RESPONSE', False) and \
+                status.is_success(log_object_dict['response']['http_response_code']):
+            log_object_dict['response']['content'] = dict()
         self._send_to_internal_logger(log_object_dict)
 
     def _send_to_internal_logger(self, log_object_dict: dict):
         if status.is_success(log_object_dict['response']['http_response_code']):
-            self.logger.info(str(log_object_dict))
+            self.logger.info(json.dumps(log_object_dict, default=str))
         else:
-            self.logger.error(str(log_object_dict))
+            self.logger.error(json.dumps(log_object_dict, default=str))
