@@ -28,7 +28,12 @@ class JsonFormatter(logging.Formatter):
 
         # Get the message and try to parse it if it's JSON
         message = record.getMessage()
-        log_data['text'] = message
+        try:
+            message_dict = json.loads(message)
+            log_data['text'] = message_dict
+        except json.JSONDecodeError:
+            # If message is not JSON, store it as is
+            log_data['text'] = message
 
         # Rest of the HTTP request parsing logic for django.server
         if record.name == 'django.server':
