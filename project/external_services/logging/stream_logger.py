@@ -16,7 +16,14 @@ class StreamLoggerImpl(LoggerManager):
         logger = logging.getLogger(__class__.__name__)
 
         stream_info_logger = logging.getLogger('stream_info_logger')
-        handler = stream_info_logger.handlers[0]
+        print(f"\n\nStreamLoggerImpl: \n\n{stream_info_logger}\n\n\n")
+        # Safely get or create a handler
+        if not stream_info_logger.handlers:
+            # If no handler, add a default StreamHandler
+            handler = logging.StreamHandler()
+            stream_info_logger.addHandler(handler)
+        else:
+            handler = stream_info_logger.handlers[0]
         logger.addHandler(handler)
 
         return logger

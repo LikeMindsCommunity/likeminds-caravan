@@ -34,7 +34,7 @@ class JsonFormatter(logging.Formatter):
             log_data.update(message_dict)
         except json.JSONDecodeError:
             # If message is not JSON, store it as is
-            log_data['message'] = message
+            log_data['text'] = message
 
         # Rest of the HTTP request parsing logic for django.server
         if record.name == 'django.server':
