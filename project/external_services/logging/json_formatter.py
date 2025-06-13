@@ -1,7 +1,9 @@
 import json
 import logging
+import sys
 import traceback
 from datetime import datetime, timezone, timedelta
+
 
 class JsonFormatter(logging.Formatter):
     """
@@ -29,11 +31,10 @@ class JsonFormatter(logging.Formatter):
         message = record.getMessage()
         try:
             message_dict = json.loads(message)
-            # Instead of putting the JSON string in 'message', expand it into the log_data
-            log_data.update(message_dict)
+            log_data['text'] = message_dict
         except json.JSONDecodeError:
             # If message is not JSON, store it as is
-            log_data['message'] = message
+            log_data['text'] = message
 
         # Rest of the HTTP request parsing logic for django.server
         if record.name == 'django.server':
@@ -54,8 +55,9 @@ class JsonFormatter(logging.Formatter):
                         'status_code': status_code,
                         'response_time': response_time
                     })
-            except (IndexError, ValueError):
-                pass
+            except (IndexError, ValueError) as e:
+                print(f"JsonFormatter parsing error: {e}", file=sys.stderr)
+
 
         # Add any extra attributes from the record
         if hasattr(record, 'props'):
