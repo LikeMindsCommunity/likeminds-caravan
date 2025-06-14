@@ -45,6 +45,7 @@ pipeline {
                                 cd /home/apps/caravan-beta/Togther && git checkout development && git pull
                                 chmod +x /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
                                 . /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
+                                cd /home/apps/caravan-beta/Togther
                                 git checkout -- /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
                             '"
                         """
