@@ -30,18 +30,24 @@ pipeline {
                 expression { params.run_migrations == true }
             }
             steps {
-                script{
-                    withCredentials([sshUserPrivateKey(credentialsId: 'likeminds-staging-azure-pem-file', keyFileVariable: 'SSH_KEY')])
-                     {
-                        sh """
-                        ssh-keyscan -H $migration_server_IP >> ~/.ssh/known_hosts
-                        ssh -i $SSH_KEY -o StrictHostKeyChecking=yes likeminds-staging-vm-user@$migration_server_IP "echo 'Connected successfully!'" << EOF
-                        cd /home/apps/caravan-beta/Togther && git checkout development && git pull
-                        chmod +x /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
-                        . /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
-                        cd /home/apps/caravan-beta/Togther && git checkout /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
-                        exit
-                        EOF"""
+                script {
+                    withCredentials([sshUserPrivateKey(credentialsId: 'likeminds-staging-azure-pem-file', keyFileVariable: 'SSH_KEY')]) {
+                        sh '''
+                            mkdir -p ~/.ssh
+                            chmod 700 ~/.ssh
+
+                            # Add the host to known_hosts
+                            ssh-keyscan -H ${migration_server_IP} >> ~/.ssh/known_hosts
+
+                            # Run the migration script on remote server
+                            ssh -i ${SSH_KEY} -o StrictHostKeyChecking=yes likeminds-staging-vm-user@${migration_server_IP} << 'EOF'
+                                cd /home/apps/caravan-beta/Togther && git checkout development && git pull
+                                chmod +x /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
+                                . /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
+                                git checkout -- /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
+                                exit
+                            EOF
+                        '''
                     }
                 }
             }
