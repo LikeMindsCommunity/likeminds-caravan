@@ -3802,3 +3802,7 @@ class CommunityIntegrationStatus(models.Model):
 
         self.updated_at = current_time
         super(CommunityIntegrationStatus, self).save(*args, **kwargs)
+
+
+class TemporaryTable(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.CASCADE)
