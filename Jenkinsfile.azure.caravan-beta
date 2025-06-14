@@ -15,7 +15,7 @@ pipeline {
 
     parameters {
         booleanParam(name: 'run_migrations', defaultValue: false, description: 'Run migrations on the migration instance')
-        string(name: 'migration_server_IP', defaultValue: '10.51.143.85', description: 'Migration instance server IP')
+        string(name: 'migration_server_IP', defaultValue: '10.57.160.12', description: 'Migration instance server IP')
     }
 
     stages {
