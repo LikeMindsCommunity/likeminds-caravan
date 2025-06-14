@@ -31,13 +31,16 @@ pipeline {
             }
             steps {
                 script{
-                    sh """ssh -tt -i "/var/lib/jenkins/.ssh/id_rsa" root@$migration_server_IP << EOF
-                    cd /home/apps/caravan-beta/Togther && git checkout development && git pull
-                    chmod +x /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
-                    . /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
-                    cd /home/apps/caravan-beta/Togther && git checkout /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
-                    exit
-                    EOF"""
+                    withCredentials([sshUserPrivateKey(credentialsId: 'likeminds-staging-azure-pem-file', keyFileVariable: 'sshKey')])
+                     {
+                        sh """ssh -tt -i ${sshKey} likeminds-staging-vm-user@$migration_server_IP << EOF
+                        cd /home/apps/caravan-beta/Togther && git checkout development && git pull
+                        chmod +x /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
+                        . /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
+                        cd /home/apps/caravan-beta/Togther && git checkout /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
+                        exit
+                        EOF"""
+                    }
                 }
             }
         }
