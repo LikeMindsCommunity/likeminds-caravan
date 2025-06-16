@@ -4,7 +4,7 @@ from collabmates_api.raw_queries import get_users_meta_info
 from external_services.logging.logging_wrapper import LoggingWrapper
 
 from django.conf import settings
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from dateutil import relativedelta
 from celery import shared_task
 import json
@@ -83,39 +83,92 @@ def getFilteredCloudwatchLogs():
         error_logger.error(f"Error querying CloudWatch Logs: {str(e)}")
         return []
 
-def getUserListFromCloudWatchData(cloudwatch_data, api_key, sdk_source):
-    """Extract user IDs from CloudWatch Logs data"""
+
+def getFilteredLogs():
+    try:
+        # Initialize Azure Log Analytics client
+        from azure.monitor.query import LogsQueryClient
+        from azure.identity import ClientSecretCredential
+
+        credential = ClientSecretCredential(
+            tenant_id=settings.AZURE_TENANT_ID,
+            client_id=settings.AZURE_CLIENT_ID,
+            client_secret=settings.AZURE_CLIENT_SECRET
+        )
+
+        client = LogsQueryClient(credential)
+
+        # KQL query to fetch relevant logs
+        query = """
+        ContainerLogV2
+        | where ContainerName == "{container_name}"
+        | where LogMessage.text.request.absolute_uri has "api/sdk/initiate" 
+            or LogMessage.text.request.absolute_uri has "api/chatroom/fetch" 
+            or LogMessage.text.request.absolute_uri has "api/v2/fetch_chatroom"
+        | project LogMessage.text.request.headers.api_key,
+            LogMessage.text.request.headers.sdk_source,
+            LogMessage.text.request.body.user_unique_id,
+            LogMessage.text.request.headers.x_member_id,
+            LogMessage.text.request.query.uuid
+        """.format(container_name=settings.AZURE_KUBERNETES_CONTAINER_NAME)
+
+        # Execute the query
+        response = client.query_workspace(
+            workspace_id=settings.AZURE_LOG_ANALYTICS_WORKSPACE_ID,
+            query=query,
+            timespan=(datetime.now(timezone.utc) - relativedelta.relativedelta(days=1), datetime.now(timezone.utc))
+        )
+
+        # Process and transform the results
+        results = []
+        if response and response.tables:
+            for table in response.tables:
+                for row in table.rows:
+                    try:
+                        results.append(row._row_dict)
+                    except Exception:
+                        continue
+
+        info_logger.info(f"Retrieved {len(results)} logs from Azure Log Analytics")
+        return results
+
+    except Exception as e:
+        error_logger.error(f"Error querying Azure Log Analytics: {str(e)}")
+        return []
+
+
+def getUserListFromAzureLogs(logs_data, api_key, sdk_source):
+    """Extract user IDs from Azure Log Analytics data"""
     users_list = set()
 
-    if not cloudwatch_data:
+    if not logs_data:
         return users_list
 
-    # Group fields by result entry using @ptr as identifier
-    for result in cloudwatch_data:
-        entry_api_key = None
-        entry_sdk_source = None
-        
-        # First check if this entry matches our api_key and sdk_source
-        for field in result:
-            if field['field'] == 'api_key':
-                entry_api_key = field['value']
-            elif field['field'] == 'sdk_source':
-                entry_sdk_source = field['value']
+    for log_entry in logs_data:
+        # Check if this entry matches our api_key and sdk_source
+        entry_api_key = log_entry.get('LogMessage_text_request_headers_api_key')
+        entry_sdk_source = log_entry.get('LogMessage_text_request_headers_sdk_source')
         
         # Skip if entry doesn't match our filters
         if entry_api_key != api_key or entry_sdk_source != sdk_source:
             continue
 
         # Extract user IDs from various fields
-        for field in result:
-            if field['field'] in ['x_member_id', 'uuid', 'user_unique_id']:
-                users_list.add(field['value'])
+        user_id = log_entry.get('LogMessage_text_request_body_user_unique_id')
+        member_id = log_entry.get('LogMessage_text_request_headers_x_member_id')
+        uuid = log_entry.get('LogMessage_text_request_query_uuid')
+
+        if user_id:
+            users_list.add(user_id)
+        if member_id:
+            users_list.add(member_id)
+        if uuid:
+            users_list.add(uuid)
 
     return users_list
 
 
-def updateUniqueUsersOfACommunityBillingEntry(billingRecord, cloudwatchData):
-    
+def updateUniqueUsersOfACommunityBillingEntry(billingRecord, logsData):
     # Fetch sdk client record to fetch api key
     try:
         sdk_client = SdkClient.objects.get(community=billingRecord.community)
@@ -127,17 +180,17 @@ def updateUniqueUsersOfACommunityBillingEntry(billingRecord, cloudwatchData):
     if not sdk_client:
         return
 
-    # Fetch unique user Ids from above fetched cloudwatch data
-    users_list = getUserListFromCloudWatchData(cloudwatchData, sdk_client.api_key, billingRecord.sdk)
+    # Fetch unique user Ids from above fetched logs data
+    users_list = getUserListFromAzureLogs(logsData, sdk_client.api_key, billingRecord.sdk)
 
     if not users_list:
         # Logging user list received
-        info_logger.info("""MAU Tracker Cloudwatch Data: {}[{}] - No Data Found """.format(billingRecord.community.name,
+        info_logger.info("""MAU Tracker Azure Logs Data: {}[{}] - No Data Found """.format(billingRecord.community.name,
                                                                                           billingRecord.sdk))
         return
 
     # Logging user list received
-    info_logger.info("""MAU Tracker Cloudwatch Data: {}[{}] ({}) - {} """.format(billingRecord.community.name,
+    info_logger.info("""MAU Tracker Azure Logs Data: {}[{}] ({}) - {} """.format(billingRecord.community.name,
                                                                                 billingRecord.sdk,
                                                                                 len(users_list),
                                                                                 users_list))
@@ -182,8 +235,8 @@ def track():
     today = date.today()
 
     # Premptively fetch all logs
-    cloudwatchData = getFilteredCloudwatchLogs()
-
+    logsData = getFilteredLogs()
+    
     for billingRecord in billingRecords:
         # Logging process stage
         info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,
@@ -204,7 +257,7 @@ def track():
             continue
 
         # Update Unique Active Users of a Billing record for the day
-        updateUniqueUsersOfACommunityBillingEntry(billingRecord, cloudwatchData)
+        updateUniqueUsersOfACommunityBillingEntry(billingRecord, logsData)
 
         # Logging process stage
         info_logger.info("""MAU Tracker Log: {}[{}] - {}""".format(billingRecord.community.name,

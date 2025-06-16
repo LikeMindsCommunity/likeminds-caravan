@@ -107,3 +107,5 @@ xmpppy==0.6.1
 zipp==2.1.0
 mixpanel==4.8.1
 analytics-python==1.4.0
+azure-monitor-query==1.0.0
+azure-identity==1.12.0
