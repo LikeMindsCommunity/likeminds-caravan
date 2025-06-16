@@ -8,8 +8,6 @@ from datetime import date, datetime, timezone
 from dateutil import relativedelta
 from celery import shared_task
 import json
-import boto3
-import time
 
 error_logger = LoggingWrapper.get_instance()
 info_logger = LoggingWrapper.get_instance()
@@ -17,71 +15,6 @@ info_logger = LoggingWrapper.get_instance()
 
 def getUUIDOfUsers(community_id, users_list):
     return get_users_meta_info(community_id, users_list)
-
-
-def getFilteredCloudwatchLogs():
-
-    client = boto3.client('logs',
-                         region_name=settings.AWS_REGION,
-                         aws_access_key_id=settings.CLOUDWATCH_AWS_ACCESS_KEY_ID,
-                         aws_secret_access_key=settings.CLOUDWATCH_AWS_SECRET_ACCESS_KEY)
-
-    query = f"""
-    fields  log_processed.text.request.headers.api_key,
-            log_processed.text.request.headers.sdk_source,
-            log_processed.text.request.body.user_unique_id,
-            log_processed.text.request.headers.x_member_id,
-            log_processed.text.request.query.uuid
-    | filter kubernetes.container_name = "{settings.CLOUDWATCH_KUBERNETES_CONTAINER_NAME}"
-    | filter log_processed.text.request.absolute_uri like "api/sdk/initiate"
-        or log_processed.text.request.absolute_uri like "api/chatroom/fetch"
-        or log_processed.text.request.absolute_uri like "api/v2/fetch_chatroom"
-    | sort @timestamp desc
-    """
-
-    try:
-        response = client.start_query(
-            logGroupName=settings.CLOUDWATCH_LOG_GROUP,
-            startTime=int((datetime.now() - relativedelta.relativedelta(days=1)).timestamp()),
-            endTime=int(datetime.now().timestamp()),
-            queryString=query
-        )
-
-        # polling loop to wait for results
-        while True:
-            logs = client.get_query_results(queryId=response['queryId'])
-            status = logs['status']
-            
-            if status in ['Complete', 'Failed', 'Cancelled']:
-                break
-                
-            time.sleep(1)  # Wait 1 second before checking again
-
-        if status in ['Failed', 'Cancelled']:
-            return []
-        
-        # Transform the field names in the response
-        if 'results' in logs:
-            for result in logs['results']:
-                for field in result:
-                    if field['field'] == 'log_processed.text.request.headers.api_key':
-                        field['field'] = 'api_key'
-                    elif field['field'] == 'log_processed.text.request.headers.sdk_source':
-                        field['field'] = 'sdk_source'
-                    elif field['field'] == 'log_processed.text.request.body.user_unique_id':
-                        field['field'] = 'user_unique_id'
-                    elif field['field'] == 'log_processed.text.request.headers.x_member_id':
-                        field['field'] = 'x_member_id'
-                    elif field['field'] == 'log_processed.text.request.query.uuid':
-                        field['field'] = 'uuid'
-
-            return logs['results']
-        else:
-            return []
-
-    except Exception as e:
-        error_logger.error(f"Error querying CloudWatch Logs: {str(e)}")
-        return []
 
 
 def getFilteredLogs():
