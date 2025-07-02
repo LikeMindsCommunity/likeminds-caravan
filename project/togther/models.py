@@ -3806,3 +3806,14 @@ class CommunityIntegrationStatus(models.Model):
 
 class TemporaryTable(models.Model):
     community = models.ForeignKey(Community, on_delete=models.CASCADE)
+    created_at = models.BigIntegerField(default=0)
+    updated_at = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        current_time = TimeUtilities.current_time_in_milliseconds()
+
+        if self.created_at == 0:
+            self.created_at = current_time
+
+        self.updated_at = current_time
+        super(TemporaryTable, self).save(*args, **kwargs)
