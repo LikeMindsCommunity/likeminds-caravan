@@ -1,5 +1,6 @@
 import time
 import os
+import json
 
 import pandas as pd
 
@@ -113,6 +114,27 @@ class SendbirdApiMigration:
 
         return True, ''
 
+    @staticmethod
+    def _get_channel_to_lm_chatroom_map_from_file_url(channel_lm_chatroom_mapping_file_url: str):
+
+        if not channel_lm_chatroom_mapping_file_url:
+            return True, ''
+
+        # Download the file and save it in local
+        local_file_path = S3Utils.download_file_from_s3_url(channel_lm_chatroom_mapping_file_url)
+
+        if not local_file_path:
+            return False, error_logger.error(f'SendbirdMigration | '
+                                             f'Error downloading the channel -> LM chatroom mapping file from '
+                                             f'url: {channel_lm_chatroom_mapping_file_url}')
+
+        file_data = {}
+
+        with open(local_file_path, "r+") as file:
+            file_data = json.load(file)
+
+        return True, file_data
+
     def migrate_all_users(self, chunk_size: int = 20):
 
         for users in self.api_utils.yield_paginated_users_list(chunk_size):
@@ -194,14 +216,28 @@ class SendbirdApiMigration:
                     f"SendbirdMigration | Successfully migrated {channel_type}/s: {len(channels)}"
                 )
 
-    def add_participants_to_channels(self, channel_participants_file_url: str):
+    def add_participants_to_channels(self, channel_participants_file_url: str,
+                                     channel_lm_chatroom_mapping_file_url: str):
         # Create channel participants map from file url
         self._add_channel_participants_list_from_file(channel_participants_file_url)
 
         info_logger.info(f'SendbirdMigration | Adding participants to channels: {self.channel_participants_map}')
 
+        channel_to_chatroom_map = {}
+        is_valid_channel_chatroom_map = False
+
+        if channel_lm_chatroom_mapping_file_url:
+            is_valid_channel_chatroom_map, channel_to_chatroom_map = self._get_channel_to_lm_chatroom_map_from_file_url(
+                channel_lm_chatroom_mapping_file_url)
+
         for channel_url, participants_list in self.channel_participants_map.items():
-            lm_chatroom_id = MigrationUtils.get_lm_chatroom_id_from_sendbird_channel_id(channel_url, self.community_id)
+
+            if is_valid_channel_chatroom_map:
+                lm_chatroom_id = channel_to_chatroom_map.get(channel_url)
+
+            else:
+                lm_chatroom_id = MigrationUtils.get_lm_chatroom_id_from_sendbird_channel_id(channel_url,
+                                                                                            self.community_id)
 
             info_logger.info(f'SendbirdMigration | Chatroom id: {lm_chatroom_id}, '
                              f'participants list: {participants_list}')
