@@ -519,10 +519,12 @@ class SdkImpl(SdkManager):
 
         # If user's participants file path attached or not
         channel_participants_file_url = req_body.get('channel_users_mapping_file_url')
+        channel_lm_chatroom_mapping_file_url = req_body.get('channel_lm_chatroom_mapping_file_url')
 
         # Run the migration task in the background
         migrate_sendbird_data.delay(
-            self.api_key, application_id, api_token, migration_type, channel_participants_file_url
+            self.api_key, application_id, api_token, migration_type, channel_participants_file_url,
+            channel_lm_chatroom_mapping_file_url
         )
 
         return {'success': True, 'message': "Migration task has been started. Check the logs for progress."}
