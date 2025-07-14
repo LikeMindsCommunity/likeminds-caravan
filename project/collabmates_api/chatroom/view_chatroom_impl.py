@@ -308,9 +308,10 @@ class FetchParticipantsOfSecretChatroom(APIView):
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, request_platform=platform_code,
-                                        version_code=version_code, sdk_source=sdk_source)
+                                        version_code=version_code, sdk_source=sdk_source, api_key=api_key)
 
         pagination_version_check = VersionUtilities.check_version(platform_code, version_code,
                                                                   VersionUtilities.participants_meta_pagination,
@@ -1057,9 +1058,10 @@ class FetchChatroomParticipantsView(APIView):
         platform_code = RequestUtilities.get_platform_code_with_sdk(request)
         version_code = RequestUtilities.get_version_code_from_headers(request)
         sdk_source = RequestUtilities.get_sdk_source_from_headers(request)
+        api_key = RequestUtilities.get_api_key_from_headers(request)
 
         chatroom_manager = ChatroomImpl(member_id, chatroom_id, request_platform=platform_code,
-                                        version_code=version_code, sdk_source=sdk_source)
+                                        version_code=version_code, sdk_source=sdk_source, api_key=api_key)
 
         pagination_version_check = VersionUtilities.check_version(platform_code, version_code,
                                                                   VersionUtilities.participants_meta_pagination,
