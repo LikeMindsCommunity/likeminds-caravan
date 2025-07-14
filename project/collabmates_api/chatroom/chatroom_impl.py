@@ -1893,7 +1893,8 @@ class ChatroomImpl(ChatroomManager):
                                               page_size: int = None):
 
         validated_req = ChatroomHelper.validate_fetch_secret_participants_meta_request(self.get_member_id(),
-                                                                                       self.get_chatroom_id())
+                                                                                       self.get_chatroom_id(),
+                                                                                       self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -3115,7 +3116,8 @@ class ChatroomImpl(ChatroomManager):
     def fetch_chatroom_participants(self, participant_name: str = None, page: int = None, page_size: int = None):
 
         validated_req = ChatroomHelper.validate_fetch_participants_meta_request(self.get_member_id(),
-                                                                                self.get_chatroom_id())
+                                                                                self.get_chatroom_id(),
+                                                                                self.get_api_key())
 
         if validated_req.get('error_message'):
             return ResponseUtilities.get_impl_error_context(validated_req.get('error_message'),
@@ -6219,10 +6221,13 @@ class ChatroomHelper:
         return queryset
 
     @staticmethod
-    def validate_fetch_participants_meta_request(user_id, chatroom_id):
+    def validate_fetch_participants_meta_request(user_id, chatroom_id, api_key):
         validation_params = {
             'chatroom_id': chatroom_id,
-            'user_id': user_id
+            'user_id': user_id,
+            'community_id': {
+                'api_key': api_key
+            }
         }
 
         validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
@@ -6232,6 +6237,10 @@ class ChatroomHelper:
 
         card_instance = validated_dict.get('chatroom_id')
         user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+
+        if card_instance.community != community_instance:
+            return ResponseUtilities.get_inner_error_context("Chatroom doesn't belong to this community!")
 
         if card_instance.is_secret:
             return ResponseUtilities.get_inner_error_context("Chatroom is secret!")
@@ -6239,10 +6248,13 @@ class ChatroomHelper:
         return {'user_instance': user_instance, 'card_instance': card_instance}
 
     @staticmethod
-    def validate_fetch_secret_participants_meta_request(user_id, chatroom_id):
+    def validate_fetch_secret_participants_meta_request(user_id, chatroom_id, api_key):
         validation_params = {
             'chatroom_id': chatroom_id,
-            'user_id': user_id
+            'user_id': user_id,
+            'community_id': {
+                'api_key': api_key
+            }
         }
 
         validated_dict = ValidationUtilities.is_valid(validation_params=validation_params)
@@ -6252,6 +6264,10 @@ class ChatroomHelper:
 
         card_instance = validated_dict.get('chatroom_id')
         user_instance = validated_dict.get('user_id')
+        community_instance = validated_dict.get('community_id')
+
+        if card_instance.community != community_instance:
+            return ResponseUtilities.get_inner_error_context("Chatroom doesn't belong to this community!")
 
         if not card_instance.is_secret:
             return ResponseUtilities.get_inner_error_context("Chatroom is open!")
