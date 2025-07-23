@@ -31,7 +31,15 @@ pipeline {
             }
             steps {
                 script {
-                    withCredentials([sshUserPrivateKey(credentialsId: 'likeminds-production-azure-pem-file', keyFileVariable: 'SSH_KEY')]) {
+                    withCredentials([
+                        sshUserPrivateKey(credentialsId: 'likeminds-production-azure-pem-file', keyFileVariable:
+                        'SSH_KEY'),
+                        string(credentialsId: 'likeminds-production-service-principle-client-id', variable: 'CLIENT_ID'),
+                        string(credentialsId: 'likeminds-production-jenkins-service-principle-client-secret', variable:
+                        'CLIENT_SECRET'),
+                        string(credentialsId: 'likeminds-production-jenkins-service-principle-tenant-id', variable:
+                        'TENANT_ID')
+                    ]) {
                         sh """
                             mkdir -p ~/.ssh
                             chmod 700 ~/.ssh
@@ -42,6 +50,9 @@ pipeline {
                             # Run remote commands in a single ssh line using bash -c
                             ssh -i ${SSH_KEY} -o StrictHostKeyChecking=yes likeminds-staging-vm-user@${migration_server_IP} \\
                             "sudo bash -c '
+                                export CLIENT_ID=${CLIENT_ID}
+                                export CLIENT_SECRET=${CLIENT_SECRET}
+                                export TENANT_ID=${TENANT_ID}
                                 cd /home/apps/caravan-prod/Togther && git checkout development && git pull
                                 chmod +x /home/apps/caravan-prod/Togther/Migrationfile-azure-caravan-prod.sh
                                 . /home/apps/caravan-prod/Togther/Migrationfile-azure-caravan-prod.sh
