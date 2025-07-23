@@ -53,7 +53,7 @@ pipeline {
                                 export CLIENT_ID=${CLIENT_ID}
                                 export CLIENT_SECRET=${CLIENT_SECRET}
                                 export TENANT_ID=${TENANT_ID}
-                                cd /home/apps/caravan-prod/Togther && git checkout development && git pull
+                                cd /home/apps/caravan-prod/Togther && git checkout master && git pull
                                 chmod +x /home/apps/caravan-prod/Togther/Migrationfile-azure-caravan-prod.sh
                                 . /home/apps/caravan-prod/Togther/Migrationfile-azure-caravan-prod.sh
                                 cd /home/apps/caravan-prod/Togther
