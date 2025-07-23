@@ -22,6 +22,7 @@ get_project_dot_env() {
   print_internal "get and write dot env into project folder"
   print_internal "writing file at $APPLICATION_DOT_ENV_LOCATION"
 
+  echo "CLIENT ID" "$CLIENT_ID"
   az login --service-principal --username "$CLIENT_ID" --password "$CLIENT_SECRET" --tenant "$TENANT_ID"
   az storage blob download --account-name $APPICATION_ACCOUNT_NAME --container-name $APPLICATION_CONTAINER_NAME --name $APPLICATION_DOT_ENV_BLOB_NAME --file $APPLICATION_DOT_ENV_LOCATION --auth-mode login
 
