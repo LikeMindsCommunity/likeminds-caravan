@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'togther',
     'django_select2',
     'corsheaders',
-    'collabmates_api',
+    # 'collabmates_api',
     'crispy_forms',
     'utility',
     'django_celery_beat',
@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'django_prometheus',
     'django_elasticsearch_dsl',
     'django_elasticsearch_dsl_drf',
+    'collabmates_api.apps.CollabmatesApiConfig'
 ]
 
 
