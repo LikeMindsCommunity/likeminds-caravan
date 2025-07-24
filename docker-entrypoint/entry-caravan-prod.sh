@@ -1,4 +1,4 @@
 source /opt/venv/bin/activate
 cd ./project
 export DJANGO_SETTINGS_MODULE=project.settings.production
-exec gunicorn --workers=1 --timeout=120 --bind 0.0.0.0:8081 --log-level debug project.wsgi:application
+exec gunicorn --workers=3 --timeout=120 --bind 0.0.0.0:8081 --log-level debug project.wsgi:application
