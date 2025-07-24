@@ -27,6 +27,8 @@ urlpatterns = [
     path('', include('collabmates_api.urls'), name='lm_api'),
     path('cms/', include('cms.urls'), name='cms'),
     path('status', HomeView.as_view(), name='home'),
+    path('', HomeView.as_view(), name='root'),
+
 ]
 
 if settings.DEBUG:
