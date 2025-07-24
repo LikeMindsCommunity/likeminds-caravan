@@ -7,10 +7,9 @@ class CollabmatesApiConfig(AppConfig):
 
 
     def ready(self):
-        if 'runserver' in sys.argv:  # Prevent during 'migrate', 'shell', etc.
-            print("Running connection checks...\n")
-            from .health_checks import check_postgres, check_redis, check_elasticsearch
-            import threading
-            threading.Thread(target=check_postgres).start()
-            threading.Thread(target=check_redis).start()
-            threading.Thread(target=check_elasticsearch).start()
+        print("Running connection checks...\n")
+        from .health_checks import check_postgres, check_redis, check_elasticsearch
+        import threading
+        threading.Thread(target=check_postgres).start()
+        threading.Thread(target=check_redis).start()
+        threading.Thread(target=check_elasticsearch).start()
