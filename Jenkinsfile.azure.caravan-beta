@@ -46,9 +46,9 @@ pipeline {
                             # Run remote commands in a single ssh line using bash -c
                             ssh -i ${SSH_KEY} -o StrictHostKeyChecking=yes likeminds-staging-vm-user@${migration_server_IP} \\
                             "sudo bash -c '
-                                echo $AZURE_CREDENTIALS > azure_credentials.json
-                                export CLIENT_ID=\"\$(jq -r .clientId azure_credentials.json)\"
-                                echo $CLIENT_ID
+                                echo \"\$AZURE_CREDENTIALS\" > azure_credentials.json
+                                export CLIENT_ID=\\\$(jq -r .clientId azure_credentials.json)
+                                echo CLIENT_ID=\\\$CLIENT_ID
 
                                 cd /home/apps/caravan-beta/Togther && git checkout LM-13902-ankit-jenkins-migration-deployment && git pull
                                 chmod +x /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
