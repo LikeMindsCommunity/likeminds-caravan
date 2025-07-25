@@ -69,9 +69,9 @@ pipeline {
                     sh '''
                         set +x
                         echo $AZURE_CREDENTIALS > azure_credentials.json
-                        az login --service-principal -u \"$(jq -r .clientId azure_credentials.json)\" \
-                                -p \"$(jq -r .clientSecret azure_credentials.json)\" \
-                                --tenant \"$(jq -r .tenantId azure_credentials.json)\"
+                        az login --service-principal -u "$(jq -r .clientId azure_credentials.json)" \
+                                -p "$(jq -r .clientSecret azure_credentials.json)" \
+                                --tenant "$(jq -r .tenantId azure_credentials.json)"
                         set -x
                         echo 'silent login to azure successful'
                     '''
