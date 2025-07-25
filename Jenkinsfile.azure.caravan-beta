@@ -35,6 +35,7 @@ pipeline {
                         sshUserPrivateKey(credentialsId: 'likeminds-staging-azure-pem-file', keyFileVariable: 'SSH_KEY'),
                         string(credentialsId: 'likeminds-staging-service-principal-jenkins-credentials', variable: 'AZURE_CREDENTIALS')
                     ]) {
+                        def escapedCreds = AZURE_CREDENTIALS.replace('"', '\\"')
                         sh """
                             mkdir -p ~/.ssh
                             chmod 700 ~/.ssh
@@ -45,7 +46,7 @@ pipeline {
                             # Run remote commands in a single ssh line using bash -c
                             ssh -i ${SSH_KEY} -o StrictHostKeyChecking=yes likeminds-staging-vm-user@${migration_server_IP} \\
                             "sudo bash -c '
-                                export AZURE_CREDENTIALS=${AZURE_CREDENTIALS}
+                                export AZURE_CREDENTIALS=\\"${escapedCreds}\\"
                                 cd /home/apps/caravan-beta/Togther && git checkout LM-13902-ankit-jenkins-migration-deployment && git pull
                                 chmod +x /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
                                 . /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
