@@ -45,10 +45,7 @@ pipeline {
                             # Run remote commands in a single ssh line using bash -c
                             ssh -i ${SSH_KEY} -o StrictHostKeyChecking=yes likeminds-staging-vm-user@${migration_server_IP} \\
                             "sudo bash -c '
-                                echo $AZURE_CREDENTIALS > azure_credentials.json
-                                export CLIENT_ID=$(jq -r .clientId azure_credentials.json)
-                                export CLIENT_SECRET=$(jq -r .clientSecret azure_credentials.json
-                                export TENANT_ID=$(jq -r .tenantId azure_credentials.json)
+                                export AZURE_CREDENTIALS=${AZURE_CREDENTIALS}
                                 cd /home/apps/caravan-beta/Togther && git checkout LM-13902-ankit-jenkins-migration-deployment && git pull
                                 chmod +x /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
                                 . /home/apps/caravan-beta/Togther/Migrationfile-azure-caravan-beta.sh
@@ -67,9 +64,9 @@ pipeline {
                     sh '''
                         set +x
                         echo $AZURE_CREDENTIALS > azure_credentials.json
-                        az login --service-principal -u "$(jq -r .clientId azure_credentials.json)" \
-                                -p "$(jq -r .clientSecret azure_credentials.json)" \
-                                --tenant "$(jq -r .tenantId azure_credentials.json)"
+                        az login --service-principal -u \"$(jq -r .clientId azure_credentials.json)\" \
+                                -p \"$(jq -r .clientSecret azure_credentials.json)\" \
+                                --tenant \"$(jq -r .tenantId azure_credentials.json)\"
                         set -x
                         echo 'silent login to azure successful'
                     '''
