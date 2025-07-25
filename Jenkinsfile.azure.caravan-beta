@@ -46,7 +46,7 @@ pipeline {
                             # Run remote commands in a single ssh line using bash -c
                             ssh -i ${SSH_KEY} -o StrictHostKeyChecking=yes likeminds-staging-vm-user@${migration_server_IP} \\
                             "sudo bash -c '
-                                echo \"\$AZURE_CREDENTIALS\" > azure_credentials.json
+                                echo $AZURE_CREDENTIALS > azure_credentials.json
                                 cat azure_credentials.json
                                 export CLIENT_ID=\\\$(jq -r .clientId azure_credentials.json)
                                 echo CLIENT_ID=\\\$CLIENT_ID
