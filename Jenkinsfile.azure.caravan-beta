@@ -45,13 +45,12 @@ pipeline {
                             # Add the host to known_hosts
                             ssh-keyscan -H ${migration_server_IP} >> ~/.ssh/known_hosts
 
+                            # Send JSON to remote machine without escaping
+                            ssh -i ${SSH_KEY} -o StrictHostKeyChecking=yes likeminds-staging-vm-user@${migration_server_IP} "cat > /tmp/azure_credentials.json" <<< '${AZURE_CREDENTIALS}'
+
                             # Run remote commands in a single ssh line using bash -c
                             ssh -i ${SSH_KEY} -o StrictHostKeyChecking=yes likeminds-staging-vm-user@${migration_server_IP} \\
                             "sudo bash -c '
-                                cat > /tmp/azure_credentials.json <<EOF
-                                    ${AZURE_CREDENTIALS}
-                                EOF
-
                                 CLIENT_ID=$(jq -r .clientId /tmp/azure_credentials.json)
                                 CLIENT_SECRET=$(jq -r .clientSecret /tmp/azure_credentials.json)
                                 TENANT_ID=$(jq -r .tenantId /tmp/azure_credentials.json)
