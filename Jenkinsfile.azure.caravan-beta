@@ -47,7 +47,7 @@ pipeline {
                             ssh -i ${SSH_KEY} -o StrictHostKeyChecking=yes likeminds-staging-vm-user@${migration_server_IP} \\
                             "sudo bash -c '
                                 echo $AZURE_CREDENTIALS > azure_credentials.json
-                                CLIENT_ID=\"$(jq -r .clientId azure_credentials.json)\"
+                                CLIENT_ID=\"\$(jq -r .clientId azure_credentials.json)\"
                                 echo CLIENT_ID
 
                                 cd /home/apps/caravan-beta/Togther && git checkout LM-13902-ankit-jenkins-migration-deployment && git pull
