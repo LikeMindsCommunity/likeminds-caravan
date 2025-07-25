@@ -22,7 +22,9 @@ get_project_dot_env() {
   print_internal "get and write dot env into project folder"
   print_internal "writing file at $APPLICATION_DOT_ENV_LOCATION"
 
-  echo $AZURE_CREDENTIALS > azure_credentials.json
+  echo "CLIENT_ID" $(jq -r .clientId azure_credentials.json)
+  echo "CLIENT_SECRET" $(jq -r .clientSecret azure_credentials.json)
+  echo "TENANT_ID" $(jq -r .tenantId azure_credentials.json)
   az login --service-principal --username \"$(jq -r .clientId azure_credentials.json)\" --password \"$(jq -r .clientSecret azure_credentials.json)\" --tenant \"$(jq -r .tenantId azure_credentials.json)\"
   az storage blob download --account-name $APPICATION_ACCOUNT_NAME --container-name $APPLICATION_CONTAINER_NAME --name $APPLICATION_DOT_ENV_BLOB_NAME --file $APPLICATION_DOT_ENV_LOCATION --auth-mode login
 
