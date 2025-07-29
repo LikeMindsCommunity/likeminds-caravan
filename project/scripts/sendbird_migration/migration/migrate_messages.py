@@ -11,7 +11,9 @@ from ..utils.migration_utils import MigrationUtils
 from togther.models import ModelUtilities, card_answers, conversationPolls, answerAttachment, conversationPollMembers
 from collabmates_api.conversation.conversation_impl import ConversationImpl
 from utility.version_utilities import VersionUtilities
+from utility.states import conversation_states
 from external_services.caching.cache_impl import CacheImpl
+from collabmates_api.rest_api import CardAnswersDBSyncSerializer
 
 from external_services.logging.logging_wrapper import LoggingWrapper
 
@@ -149,12 +151,19 @@ class MigrateMessages:
 
             # Fetch Poll voters for each option
             for voters in self.sendbird_api_utils.yield_poll_voters_for_option(poll_id, option_id):
+                info_logger.info(
+                    f"SendbirdMigration | Fetching voters for poll_id: {poll_id}, option_id: {option_id}, "
+                )
 
                 # Load up the users and validate them
                 users = Users(users=voters).users
 
                 # For each user, submit poll
                 for user in users:
+                    info_logger.info(
+                        f"SendbirdMigration | Creating poll vote for user: {user.uuid}, poll_id: {poll_id}, "
+                        f"option_id: {option_id}"
+                    )
 
                     # Fetch LM user_id
                     lm_user_id = MigrationUtils.get_lm_user_id_from_sendbird_user_id(user.uuid, self.community_id)
@@ -288,6 +297,80 @@ class MigrateMessages:
 
         return conversation_response
 
+    def _submit_polls(self, sendbird_message_id: str,  user_id: int, community_id: int, req_body: dict,
+                      poll_options: List[PollOptionsModel] = None):
+
+        conversation_id = CacheImpl.get_cache(SENDBIRD_MESSAGE_MAP_KEY.format(community_id, sendbird_message_id))
+        if not conversation_id:
+            info_logger.info(
+                f"SendbirdMigration | Conversation not exists for sendbird_message_id: {sendbird_message_id}"
+            )
+            return
+
+        else:
+
+            info_logger.info(
+                (
+                    f"SendbirdMigration | Submitting poll sendbird_message_id: {sendbird_message_id}"
+                    f" with user_id: {user_id} & request_body: {req_body}"
+                )
+            )
+
+            context = {
+                "current_user_id": user_id,
+                "fetch_reply": True,
+                "is_widget_enabled": False,
+                "is_lm_widget": False
+            }
+
+            conversation_instance = ModelUtilities.get_model_instance_or_none(card_answers, conversation_id)
+
+            if not conversation_instance:
+                info_logger.info(
+                    (
+                        f"SendbirdMigration | Conversation not exists in db: {conversation_id}"
+                        f" with user_id: {user_id} & request_body: {req_body}"
+                    )
+                )
+                return
+
+            if conversation_instance.state != conversation_states.CONVERSATION_POLL:
+                info_logger.info(
+                    (
+                        f"SendbirdMigration | Conversation {conversation_id} is not a poll conversation."
+                    )
+                )
+                return
+
+            conversation = CardAnswersDBSyncSerializer(conversation_instance, context=context, many=False).data
+
+            conversation_response = {
+                'success': True,
+                'id': conversation_instance.id,
+                'conversation': conversation
+            }
+
+            polls = conversation.get("polls")
+            if polls and poll_options:
+
+                info_logger.info(
+                    (
+                        f"SendbirdMigration | Creating poll votes for conversation_id: {conversation_id}"
+                        f"with polls: {polls} & poll_options: {poll_options}"
+                    )
+                )
+
+                self._create_poll_votes(conversation_id, polls, poll_options)
+
+                info_logger.info(
+                    (
+                        f"SendbirdMigration | Poll votes created for conversation_id: {conversation_id} " 
+                        f"with polls: {polls} & poll_options: {poll_options}"
+                    )
+                )
+
+        return conversation_response
+
     @staticmethod
     def _join_secret_chatroom_before_create_conversation(user_id: int, chatroom_id: int, sendbird_message_id: str):
         # Join chatroom if chatroom is secret
@@ -309,7 +392,7 @@ class MigrateMessages:
             )
         )
 
-    def create_all_messages(self):
+    def create_all_messages(self, only_submit_polls=False):
         info_logger.info(
             (
                 f"SendbirdMigration | Total messages to be added: {len(self.messages_data)}"
@@ -361,18 +444,29 @@ class MigrateMessages:
                 reactions = message_data.reactions
                 poll_options = message_data.polls
 
-                # Create Conversation and its related data
-                self._create_conversation_and_its_related_data(
-                    sendbird_message_id=sendbird_message_id,
-                    user_id=user_id,
-                    community_id=self.community_id,
-                    req_body=request_body,
-                    chatroom_id=chatroom_id,
-                    created_at=created_at,
-                    is_deleted=is_deleted,
-                    reactions=reactions,
-                    poll_options=poll_options,
-                )
+                if not only_submit_polls:
+                    # Create Conversation and its related data
+                    self._create_conversation_and_its_related_data(
+                        sendbird_message_id=sendbird_message_id,
+                        user_id=user_id,
+                        community_id=self.community_id,
+                        req_body=request_body,
+                        chatroom_id=chatroom_id,
+                        created_at=created_at,
+                        is_deleted=is_deleted,
+                        reactions=reactions,
+                        poll_options=poll_options,
+                    )
+
+                else:
+                    # Submit polls
+                    self._submit_polls(
+                        sendbird_message_id=sendbird_message_id,
+                        user_id=user_id,
+                        community_id=self.community_id,
+                        req_body=request_body,
+                        poll_options=poll_options,
+                    )
 
             except Exception as e:
                 info_logger.error(

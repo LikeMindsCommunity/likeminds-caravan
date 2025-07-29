@@ -253,7 +253,7 @@ class SendbirdApiMigration:
             ).add_participants_in_chartroom(chatroom_id=lm_chatroom_id,
                                             chatroom_participants_list=list(participants_list))
 
-    def migrate_all_messages(self):
+    def migrate_all_messages(self, only_submit_polls: bool = False):
 
         channel_to_chatroom_ids = {}
 
@@ -312,7 +312,7 @@ class SendbirdApiMigration:
                     version_code=self.version_code,
                     messages_data=validated_messages,
                     sendbird_api_utils=self.api_utils,
-                ).create_all_messages()
+                ).create_all_messages(only_submit_polls=only_submit_polls)
 
                 info_logger.info(f"SendbirdMigration | Successfully migrated {len(messages)} messages for channel: {channel_url}")
 
