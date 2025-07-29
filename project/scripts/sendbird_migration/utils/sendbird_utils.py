@@ -244,7 +244,7 @@ class SendbirdApiUtils:
                 break
 
     def yield_paginated_messages(
-        self, channel_type: str, channel_url: str, chunk_size: int = 10
+        self, channel_type: str, channel_url: str, chunk_size: int = 200
     ):
 
         url = self._construct_url(
