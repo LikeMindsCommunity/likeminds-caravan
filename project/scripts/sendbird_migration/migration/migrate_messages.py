@@ -181,9 +181,9 @@ class MigrateMessages:
                     }
 
                     is_exists = ModelUtilities.get_model_filter(conversationPollMembers,
-                                                                {'user_instance': lm_user_id,
-                                                                 'poll_instance': conversation_polls[index].get("id"),
-                                                                 'conversation_instance': conversation_id})
+                                                                {'user': lm_user_id,
+                                                                 'poll': conversation_polls[index].get("id"),
+                                                                 'conversation': conversation_id})
 
                     if is_exists:
                         info_logger.info(
