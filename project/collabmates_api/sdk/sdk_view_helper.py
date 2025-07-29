@@ -463,7 +463,7 @@ class SdkViewHelper:
         if response.get('error_message'):
             return response
 
-        if migration_type not in ['users', 'channels', 'messages', 'all', 'channel_participants']:
+        if migration_type not in ['users', 'channels', 'messages', 'all', 'channel_participants', 'submit_polls']:
             return ResponseUtilities.get_inner_error_context(f'Invalid migration type! Accepted values: "users", '
                                                              f'"channels", "messages", "all", "channel_participants')
 
