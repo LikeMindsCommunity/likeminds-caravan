@@ -305,9 +305,12 @@ class SendbirdApiUtils:
             if not poll_voters:
                 break
 
-            params["token"] = response.get("next")
-
             yield poll_voters
+
+            if not response.get("next"):
+                break
+
+            params["token"] = response.get("next")
 
         return response
 
