@@ -8,7 +8,7 @@ from ..constants import TTL_FOR_CACHE
 from ..utils.sendbird_utils import SendbirdApiUtils
 from ..utils.migration_utils import MigrationUtils
 
-from togther.models import ModelUtilities, card_answers, conversationPolls, answerAttachment
+from togther.models import ModelUtilities, card_answers, conversationPolls, answerAttachment, conversationPollMembers
 from collabmates_api.conversation.conversation_impl import ConversationImpl
 from utility.version_utilities import VersionUtilities
 from external_services.caching.cache_impl import CacheImpl
@@ -170,6 +170,20 @@ class MigrateMessages:
                         "conversation_id": conversation_id,
                         "polls": [{"id": conversation_polls[index].get("id")}]
                     }
+
+                    is_exists = ModelUtilities.get_model_filter(conversationPollMembers,
+                                                                {'user_instance': lm_user_id,
+                                                                 'poll_instance': conversation_polls[index].get("id"),
+                                                                 'conversation_instance': conversation_id})
+
+                    if is_exists:
+                        info_logger.info(
+                            (
+                                f"SendbirdMigration | Poll already exists for lm_user_id: {lm_user_id} " 
+                                f"| conversation_id: {conversation_id} | poll_id: {poll_id} | option_id: {option_id}"
+                            )
+                        )
+                        continue
 
                     # Submit Poll
                     response = ConversationImpl(member_id=lm_user_id).submit_poll(req_body)
