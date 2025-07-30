@@ -1522,6 +1522,10 @@ class ChatroomImpl(ChatroomManager):
                 secret_chatroom_participants = ModelUtilities.get_valid_member_ids(secret_chatroom_participants,
                                                                                    community_id=chatroom_instance.community_id)
 
+        info_logger.info(f'Adding secret chatroom participants: {secret_chatroom_participants} in chatroom: '
+                         f'{chatroom_instance.id} for user: {user_instance.id} with is_chatroom_invite: '
+                         f'{is_chatroom_invite} and join_method: {join_method}.')
+
         secret_chatroom_participants = ChatroomHelper.validate_secret_chatroom_participants_or_raise_exception(
             secret_chatroom_participants)
 
