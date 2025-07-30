@@ -89,7 +89,7 @@ class MigrateChannels:
         if chatroom_instance.is_secret:
             request_body = {
                 'chatroom_id': chatroom_id,
-                'secret_chatroom_participants': chatroom_participants_list,
+                'uuids': chatroom_participants_list,
                 'is_secret': chatroom_instance.is_secret
             }
 
