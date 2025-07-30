@@ -1572,6 +1572,10 @@ class ChatroomImpl(ChatroomManager):
 
         new_participants_list = list(set(secret_chatroom_participants) - set(existing_participants))
 
+        info_logger.info(f'Adding new secret chatroom participants: {new_participants_list} in chatroom: '
+                         f'{chatroom_instance.id} for user: {user_instance.id} with is_chatroom_invite: '
+                         f'{is_chatroom_invite} and join_method: {join_method}.')
+
         if len(new_participants_list) <= 0:
             return {'success': True}
 
