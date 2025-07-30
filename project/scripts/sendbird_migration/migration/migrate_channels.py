@@ -94,7 +94,7 @@ class MigrateChannels:
             }
 
             chatroom_data = chatroom_manager.add_secret_chatroom_participant(
-                request_body, is_internal=True, trigger_webhook=False, join_method=webhook_chatroom_methods.CM_ADDED)
+                request_body, is_internal=False, trigger_webhook=False, join_method=webhook_chatroom_methods.CM_ADDED)
 
             info_logger.info(f'SendbirdMigration | Added chatroom participants to secret chatroom_id: {chatroom_id},'
                              f'response: {chatroom_data}')
