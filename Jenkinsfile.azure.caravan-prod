@@ -44,7 +44,7 @@ pipeline {
                             ssh-keyscan -H ${migration_server_IP} >> ~/.ssh/known_hosts
 
                             # Run remote commands in a single ssh line using bash -c
-                            ssh -i ${SSH_KEY} -o StrictHostKeyChecking=yes likeminds-staging-vm-user@${migration_server_IP} \\
+                            ssh -i ${SSH_KEY} -o StrictHostKeyChecking=yes likeminds-production-vm-user@${migration_server_IP} \\
                             "sudo bash -c '
                                 echo $AZURE_CREDENTIALS > azure_credentials.json
                                 export CLIENT_ID=\"\$(jq -r .clientId azure_credentials.json)\"
