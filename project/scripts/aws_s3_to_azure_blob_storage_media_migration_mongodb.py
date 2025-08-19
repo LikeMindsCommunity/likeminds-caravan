@@ -72,7 +72,7 @@ def process_collection(collection_name):
     collection = mongo_db[collection_name]
     
     # Fetch only _ids first to avoid long-lived cursors
-    id_cursor = collection.find({"attachments.attachment_meta.url": {"$regex": "s3.ap-south-1.amazonaws.com"}, "is_deleted": False}, {"_id": 1})
+    id_cursor = collection.find({"attachments.attachment_meta.url": {"$regex": "s3.ap-south-1.amazonaws.com"}}, {"_id": 1})
     ids = [doc["_id"] for doc in id_cursor]
 
     print(f"  Found {len(ids)} documents to process in {collection_name}")
