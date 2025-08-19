@@ -115,14 +115,16 @@ def process_table(cursor, conn, table, column):
         try:
             print(f"  Syncing: {s3_url}")
             data, filename = download_from_s3(s3_url)
-            azure_url = upload_to_azure_blob(filename, data)
+            blob_name = f"{table}/{column}/{row_id}/{filename}"
+            print(f"Structured blob name: {blob_name}")
+            azure_url = upload_to_azure_blob(blob_name, data)
 
             # Update row in DB
             cursor.execute(f"UPDATE {table} SET {column} = %s WHERE id = %s;", (azure_url, row_id))
             conn.commit()
-            print(f"  Uploaded to Azure Blob Storage: {azure_url} at row_id {row_id}")
+            print(f"  ✅ Updated db with azure_url : {azure_url} at row_id {row_id}")
         except Exception as e:
-            print(f"  Failed for {s3_url}: {e}")
+            print(f"  ⚠️ Failed for {s3_url}: {e}")
 
 
 def main():
