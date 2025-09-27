@@ -577,7 +577,12 @@ class ChatroomImpl(ChatroomManager):
                             state=conversation_states.CONVERSATION_HEADER, current_user_id=self.get_member_id())
 
             # batch update for already existing users and saving their unseen count
+            info_logger.info(f"LM-14002 Log | _send_additional_notifications_and_tasks_after_room_creation.user_has_auto_approve_right: "
+                             f"{chatroom_instance.id}, is_secret: {chatroom_instance.is_secret}")
             if not chatroom_instance.is_secret:
+                info_logger.info(
+                    f"LM-14002 Log | _send_additional_notifications_and_tasks_after_room_creation.is_secret = false: "
+                    f"{chatroom_instance.id}")
                 ChatroomHelper.run_async_tasks_related_to_member_for_chatroom_posting.delay(
                     chatroom_instance.id, user_instance.id, community_instance.id,
                     chatroom_participants_list=chatroom_participants_list,
@@ -1283,6 +1288,8 @@ class ChatroomImpl(ChatroomManager):
             valid_ids = ModelUtilities.get_valid_user_ids_from_uuids(uuids, community_id)
             open_chatroom_participants = valid_ids
 
+        info_logger.info(f"LM-14002 Log | Creating tasks and notifications after chatroom creation for chatroom: "
+                         f"{chatroom_instance.id}")
         self._send_additional_notifications_and_tasks_after_room_creation(user_instance, community_instance,
                                                                           chatroom_instance, req_body,
                                                                           is_intro_card, user_has_auto_approve_right,
@@ -4912,6 +4919,11 @@ class ChatroomHelper:
 
         auto_follow_members_list = []
 
+        info_logger.info(
+            f"LM-14002 Log | set_state_for_all_chatroom_members_in_community: "
+            f"{card_instance.id}, {len(member_filter)}"
+        )
+
         for data in member_filter:
             user_instance = data.member_id
 
@@ -4953,6 +4965,11 @@ class ChatroomHelper:
 
         ModelUtilities.bulk_create_instances(collabcardState, bulk_create_list)
         ChatroomHelper.set_chatroom_participants_created_key_in_cache(card_instance.id, True)
+
+        info_logger.info(
+            f"LM-14002 Log | set_chatroom_participants_created_key_in_cache: "
+            f"{card_instance.id}"
+        )
 
         if event_attendees_list:
             update_event_attendees({
@@ -5016,6 +5033,11 @@ class ChatroomHelper:
         card_instance = ModelUtilities.get_model_instance_or_none(Collabcard, card_id)
         user_instance = ModelUtilities.get_model_instance_or_none(User, user_id)
         community_instance = ModelUtilities.get_model_instance_or_none(Community, community_id)
+
+        info_logger.info(
+            f"LM-14002 Log | run_async_tasks_related_to_member_for_chatroom_posting = false: "
+            f"{card_instance.id}, {user_instance.id}, {community_instance.id}"
+        )
 
         if not card_instance \
                 or not user_instance \
