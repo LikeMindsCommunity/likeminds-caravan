@@ -1,12 +1,15 @@
 import json
 import uuid
+import os
 
-from django.db import models
+from django.conf import settings
 from django.apps import apps
 from django.core.management.base import BaseCommand
 from django.db.models import ForeignKey
 from django.forms.models import model_to_dict
 from togther.models import ModelUtilities
+
+from external_services.amazon_s3.s3_client_impl import S3ClientImpl
 
 INCLUDED_APPS = ["togther", "auth", "collabmates_api"]
 INCLUDED_MODELS = [
@@ -14,7 +17,6 @@ INCLUDED_MODELS = [
     'togther.community',
     'togther.userinfo',
     'togther.report_tags',
-    'togther.inactivechatroomscount',
     'togther.conversationpolls',
     'togther.conversationpollmembers',
     'togther.conversationeventmembers',
@@ -39,8 +41,8 @@ INCLUDED_MODELS = [
     'togther.adminrights',
     'togther.memberrights',
     'togther.userdevices',
-    'togther.homesnackbar',
-    'togther.usersurvey',
+    # 'togther.homesnackbar',
+    # 'togther.usersurvey',
     'togther.messagereactions',
     'togther.communityuserdelete',
     'togther.cohortmember',
@@ -139,7 +141,6 @@ LOAD_MODEL_LABELS_ORDERED = [
     'collabmates_api.communitywebhook',
     'collabmates_api.connectionrequest',
     'collabmates_api.connection',
-    'togther.inactivechatroomscount',
     'togther.conversationpollmembers',
     'togther.conversationeventmembers',
     'togther.conversationeventnudge',
@@ -220,6 +221,11 @@ class Command(BaseCommand):
                 "id": community_id
             }
 
+        elif model_label == "togther.communityuserdelete":
+            filter_dict = {
+                "deleted_community_id": community_id
+            }
+
         elif "community" in field_names:
             filter_dict = {
                 "community": community_id
@@ -238,13 +244,14 @@ class Command(BaseCommand):
                 filter_dict["billing_id__in"] = community_billing_ids
 
         queryset = model.objects.filter(**filter_dict)
-
         count = queryset.count()
+
         if not count:
             dump_data[model_label] = {}
             return
 
         self.stdout.write(self.style.NOTICE(f"📦 Dumping {model_label} for filter: {filter_dict} ({count} records)..."))
+
         model_data = {}
 
         for obj in queryset.iterator():
@@ -291,6 +298,7 @@ class Command(BaseCommand):
         community_models = []
         independent_models = []
         other_models = []
+        user_models = []
 
         for model in all_models:
             if model._meta.app_label not in INCLUDED_APPS:
@@ -303,34 +311,65 @@ class Command(BaseCommand):
                 community_models.append(model)
             else:
                 if model_label in INCLUDED_MODELS:
-                    if not schema_fk_map.get(model_label, {}) and model_label not in ["togther.community"]:
+                    if not schema_fk_map.get(model_label, {}) and model_label not in [
+                        "togther.community", "auth.user", "togther.emailtokens"
+                    ]:
                         independent_models.append(model)
 
                     else:
-                        other_models.append(model)
+                        if model_label not in ["togther.userinfo", "auth.user", "togther.emailtokens",
+                                               "togther.usermobiles", "togther.useremails", "togther.userdevices",
+                                               "togther.directmessagetutorial", "collabmates_api.whatsappsubscription"]:
+                            other_models.append(model)
+
+        for model_label in ["auth.user", "togther.userinfo", "togther.emailtokens", "togther.usermobiles",
+                            "togther.useremails", "togther.userdevices", "togther.directmessagetutorial",
+                            "collabmates_api.whatsappsubscription"]:
+            user_models.append(schema_map.get(model_label))
 
         # Step 4: Dump each model
-        for models in [community_models, independent_models, other_models]:
+        for models in [community_models, other_models, independent_models, user_models]:
 
             for model in models:
                 self._dump_model(model, community_id, schema_fk_map, dump_data, user_ids)
 
         # Step 5: Save dump file
         filename = f"data_dump_{community_id}.json"
+
         with open(filename, "w+") as f:
             json.dump(dump_data, f, indent=4, default=str)
 
         self.stdout.write(self.style.SUCCESS(f"\n🎉 Dump complete — saved as {filename}"))
+
+        # Upload the JSON file to S3
+        bucket = settings.S3_BUCKETS.get("sendbird_migration")
+
+        s3_client = S3ClientImpl(bucket)
+        uploaded = s3_client.upload_file_to_s3_bucket(
+            object_path=filename,
+            file_path=f"{community_id}/database_dump/json/{filename}",
+        )
+
+        if uploaded:
+            self.stdout.write(self.style.SUCCESS(
+                f"✅ Uploaded database dump to S3 at {bucket}/{community_id}/database_dump/json/{filename}"
+            ))
+        else:
+            self.stdout.write(self.style.ERROR("Failed to upload database dump to S3."))
+
+        # Remove the local file
+        self.stdout.write(self.style.NOTICE("Removing local dump file..."))
+        os.remove(filename)
 
     def _load_model(self, model, data, schema_fk_map):
         model_label = self._get_model_label(model)
         model_data = data.get(model_label, {})
         bulk_create_list = []
 
-        self.stdout.write(self.style.NOTICE(f"📦 Loading {model_label} ({len(model_data)} records)..."))
-
         if not model_data:
             return
+
+        self.stdout.write(self.style.NOTICE(f"📦 Loading {model_label} ({len(model_data)} records)..."))
 
         # Identify M2M fields
         m2m_fields = [f.name for f in model._meta.many_to_many]
@@ -339,18 +378,12 @@ class Command(BaseCommand):
         # Phase 1 — Create all instances without self FKs
         deferred_self_fks = []  # (instance, fk_field, target_pk)
 
-        should_print = False
-        if model_label == 'togther.activeuser':
-            should_print = True
-
         for pk, record in model_data.items():
             if "id" in record:
                 del record["id"]
 
             # --- Handle FKs ---
             for fk_field, related_label in schema_fk_map.get(model_label, {}).items():
-                if should_print:
-                    print(fk_field, related_label)
                 if fk_field in record and record[fk_field] is not None:
                     if related_label == model_label:
                         self_fk_fields.append(fk_field)
@@ -362,14 +395,7 @@ class Command(BaseCommand):
 
                     related_data = data.get(related_label, {})
                     related_instance = related_data.get(str(record[fk_field]))
-
-                    if should_print:
-                        print(f"Processing FK field '{fk_field}' with related model '{related_label}' "
-                              f"and value '{record[fk_field]}'")
                     record[fk_field] = related_instance if related_instance else None
-
-            if should_print:
-                print(f"Record before creating {model_label}: {record}")
 
             # --- Handle M2M ---
             m2m_values = {}
