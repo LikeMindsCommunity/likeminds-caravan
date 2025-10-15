@@ -250,7 +250,7 @@ class Command(BaseCommand):
             dump_data[model_label] = {}
             return
 
-        self.stdout.write(self.style.NOTICE(f"📦 Dumping {model_label} for filter: {filter_dict} ({count} records)..."))
+        self.stdout.write(self.style.NOTICE(f"Dumping {model_label} for filter: {filter_dict} ({count} records)..."))
 
         model_data = {}
 
@@ -280,13 +280,13 @@ class Command(BaseCommand):
 
         dump_data[model_label] = model_data
 
-        self.stdout.write(self.style.SUCCESS(f"✅ Done: {model_label} ({count} records)"))
+        self.stdout.write(self.style.SUCCESS(f"Done: {model_label} ({count} records)"))
 
     def _dump_data(self, community_id):
         dump_data = {}
         user_ids = set()
 
-        self.stdout.write(self.style.WARNING(f"🚀 Starting filtered dump for community_id={community_id}"))
+        self.stdout.write(self.style.WARNING(f"Starting filtered dump for community_id={community_id}"))
 
         all_models = apps.get_models()
         total_models = len(all_models)
@@ -339,7 +339,7 @@ class Command(BaseCommand):
         with open(filename, "w+") as f:
             json.dump(dump_data, f, indent=4, default=str)
 
-        self.stdout.write(self.style.SUCCESS(f"\n🎉 Dump complete — saved as {filename}"))
+        self.stdout.write(self.style.SUCCESS(f"\nDump complete — saved as {filename}"))
 
         # Upload the JSON file to S3
         bucket = settings.S3_BUCKETS.get("sendbird_migration")
@@ -352,7 +352,7 @@ class Command(BaseCommand):
 
         if uploaded:
             self.stdout.write(self.style.SUCCESS(
-                f"✅ Uploaded database dump to S3 at {bucket}/{community_id}/database_dump/json/{filename}"
+                f"Uploaded database dump to S3 at {bucket}/{community_id}/database_dump/json/{filename}"
             ))
         else:
             self.stdout.write(self.style.ERROR("Failed to upload database dump to S3."))
@@ -369,7 +369,7 @@ class Command(BaseCommand):
         if not model_data:
             return
 
-        self.stdout.write(self.style.NOTICE(f"📦 Loading {model_label} ({len(model_data)} records)..."))
+        self.stdout.write(self.style.NOTICE(f"Loading {model_label} ({len(model_data)} records)..."))
 
         # Identify M2M fields
         m2m_fields = [f.name for f in model._meta.many_to_many]
@@ -430,7 +430,7 @@ class Command(BaseCommand):
             )
 
             self.stdout.write(
-                self.style.SUCCESS(f"✅ Updated {len(deferred_self_fks)} self-FKs for {model_label}")
+                self.style.SUCCESS(f"Updated {len(deferred_self_fks)} self-FKs for {model_label}")
             )
 
         # --- Handle many-to-many fields ---
@@ -449,14 +449,14 @@ class Command(BaseCommand):
                 del instance._pending_m2m
                 del instance._original_pk
 
-        self.stdout.write(self.style.SUCCESS(f"✅ Done: {model_label} loaded ({len(model_data)} records)"))
+        self.stdout.write(self.style.SUCCESS(f"Done: {model_label} loaded ({len(model_data)} records)"))
 
     def _load_data(self, file_path):
         if not file_path:
             self.stdout.write(self.style.ERROR("file_path is required for loading data"))
             return
 
-        self.stdout.write(self.style.WARNING(f"🚀 Starting loading from file_path={file_path}"))
+        self.stdout.write(self.style.WARNING(f"Starting loading from file_path={file_path}"))
 
         with open(file_path, "r") as f:
             load_data = json.load(f)
