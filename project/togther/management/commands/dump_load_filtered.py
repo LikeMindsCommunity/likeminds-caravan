@@ -421,7 +421,7 @@ class Command(BaseCommand):
 
             # Remove the local file
             self.stdout.write(self.style.NOTICE("Removing local dump file..."))
-            os.remove(filename)
+            os.remove(os.path.join(output_dir, filename))
 
     def _load_model(self, model, data, schema_fk_map):
         model_label = self._get_model_label(model)
