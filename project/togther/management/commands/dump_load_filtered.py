@@ -198,19 +198,96 @@ class Command(BaseCommand):
 
         return schema_fk_map, schema_map
 
-    def _dump_model(self, model, community_id, schema_fk_map, dump_data={}, user_ids=set()):
+    def _dump_model_streaming(self, model, file_path, filter_dict, model_ids_map, user_id_field_names, user_ids,
+                              chunk_size=10000):
+        """
+        Dumps model data incrementally into a single JSON file.
+        Appends data for each model to the same JSON file without holding everything in memory.
+        """
+
+        model_label = self._get_model_label(model)
+        queryset = model.objects.filter(**filter_dict)
+        count = queryset.count()
+
+        self.stdout.write(self.style.NOTICE(f"Dumping {model_label} for filter: {filter_dict} ({count} records)..."))
+
+        filename = f"{'/'.join([file_path, model_label.replace('.', '_')])}.json"
+        write_mode = "a" if os.path.exists(filename) else "w"
+
+        pk_id_list = []
+
+        with open(filename, write_mode, encoding="utf-8") as f:
+            if write_mode == "w":
+                f.write("{")
+
+            # Add comma if file already has content
+            if f.tell() > 1:
+                f.write(",\n")
+
+            f.write(f'"{model_label}": {{')
+            first = True
+
+            for obj in queryset.iterator(chunk_size=chunk_size):
+                data = model_to_dict(obj)
+                # Replace FKs with just their PKs
+                for field in model._meta.fields:
+
+                    if isinstance(field, ForeignKey):
+                        data[field.name] = getattr(obj, f"{field.name}_id", None)
+
+                        if field.name in user_id_field_names and data[field.name]:
+                            user_ids.add(data[field.name])
+
+                    if field.name == "id":
+                        value = getattr(obj, f"{field.name}", None)
+
+                        if isinstance(value, uuid.UUID):
+                            value = str(value)
+                            data[field.name] = value
+                        #
+                        # if model_label == "togther.cohort" and value:
+                        #     cohort_ids.add(value)
+                        #
+                        # elif model_label == "togther.card_answers" and value:
+                        #     conversation_ids.add(value)
+
+                pk_value = obj.pk
+
+                if isinstance(pk_value, uuid.UUID):
+                    pk_value = str(pk_value)
+
+                pk_id_list.append(pk_value)
+
+                if not first:
+                    f.write(",")
+                json.dump(str(pk_value), f)
+                f.write(":")
+                json.dump(data, f, default=str)
+                first = False
+
+            f.write("}}")
+
+        model_ids_map[model_label] = pk_id_list
+
+        self.stdout.write(self.style.SUCCESS(f"Done: {model_label} ({count} records)"))
+
+        return filename
+
+    def _dump_model(self, model, community_id, schema_fk_map, model_ids_map={}, user_ids=set(),
+                    chunk_size=10000):
         model_label = self._get_model_label(model)
         field_names = [f.name for f in model._meta.get_fields()]
         filter_dict = {}
         user_id_field_names = []
-        community_billing_ids = [record_id for record_id, _ in
-                                 dump_data.get("togther.communitybillingdates", {}).items()]
+        community_billing_ids = model_ids_map.get("togther.communitybillingdates", [])
+
+        file_path = "community_data_dump"
 
         for fk_field, related_model_label in schema_fk_map.get(model_label, {}).items():
-            records = dump_data.get(related_model_label, {})
+            records_list = model_ids_map.get(related_model_label, [])
 
-            if records:
-                filter_dict[f"{fk_field}__in"] = list(records.keys())
+            if records_list:
+                filter_dict[f"{fk_field}__in"] = records_list
 
             if related_model_label == "auth.user":
                 user_id_field_names.append(fk_field)
@@ -224,6 +301,11 @@ class Command(BaseCommand):
         elif model_label == "togther.communityuserdelete":
             filter_dict = {
                 "deleted_community_id": community_id
+            }
+
+        elif model_label == "collabmates_api.communityemailconfiguration":
+            filter_dict = {
+                "sdk_client__community_id": community_id
             }
 
         elif "community" in field_names:
@@ -243,47 +325,52 @@ class Command(BaseCommand):
             elif model_label == "togther.activeuser":
                 filter_dict["billing_id__in"] = community_billing_ids
 
-        queryset = model.objects.filter(**filter_dict)
-        count = queryset.count()
+        # queryset = model.objects.filter(**filter_dict)
+        # count = queryset.count()
 
-        if not count:
-            dump_data[model_label] = {}
-            return
+        self._dump_model_streaming(model, file_path, filter_dict, model_ids_map, user_id_field_names,
+                                   user_ids, chunk_size=chunk_size)
 
-        self.stdout.write(self.style.NOTICE(f"Dumping {model_label} for filter: {filter_dict} ({count} records)..."))
+        # if not count:
+        #     dump_data[model_label] = {}
+        #     return
 
-        model_data = {}
+        # self.stdout.write(self.style.NOTICE(f"Dumping {model_label} for filter: {filter_dict} ({count} records)..."))
 
-        for obj in queryset.iterator():
-            data = model_to_dict(obj)
-            # Replace FKs with just their PKs
-            for field in model._meta.fields:
+        # model_data = {}
+        #
+        # for obj in queryset.iterator(chunk_size=chunk_size):
+        #     data = model_to_dict(obj)
+        #     # Replace FKs with just their PKs
+        #     for field in model._meta.fields:
+        #
+        #         if isinstance(field, ForeignKey):
+        #             data[field.name] = getattr(obj, f"{field.name}_id", None)
+        #
+        #             if field.name in user_id_field_names and data[field.name]:
+        #                 user_ids.add(data[field.name])
+        #
+        #         if field.name == "id":
+        #             value = getattr(obj, f"{field.name}", None)
+        #
+        #             if isinstance(value, uuid.UUID):
+        #                 data[field.name] = str(value)
+        #
+        #     pk_value = obj.pk
+        #
+        #     if isinstance(pk_value, uuid.UUID):
+        #         pk_value = str(pk_value)
+        #
+        #     model_data[pk_value] = data
+        #
+        # dump_data[model_label] = model_data
 
-                if isinstance(field, ForeignKey):
-                    data[field.name] = getattr(obj, f"{field.name}_id", None)
-
-                    if field.name in user_id_field_names and data[field.name]:
-                        user_ids.add(data[field.name])
-
-                if field.name == "id":
-                    value = getattr(obj, f"{field.name}", None)
-
-                    if isinstance(value, uuid.UUID):
-                        data[field.name] = str(value)
-
-            pk_value = obj.pk
-
-            if isinstance(pk_value, uuid.UUID):
-                pk_value = str(pk_value)
-
-            model_data[pk_value] = data
-
-        dump_data[model_label] = model_data
-
-        self.stdout.write(self.style.SUCCESS(f"Done: {model_label} ({count} records)"))
+        # self.stdout.write(self.style.SUCCESS(f"Done: {model_label} ({count} records)"))
+        return file_path
 
     def _dump_data(self, community_id):
         dump_data = {}
+        model_ids_map = {}
         user_ids = set()
 
         self.stdout.write(self.style.WARNING(f"Starting filtered dump for community_id={community_id}"))
@@ -327,14 +414,23 @@ class Command(BaseCommand):
                             "collabmates_api.whatsappsubscription"]:
             user_models.append(schema_map.get(model_label))
 
+        output_dir = ""
+
         # Step 4: Dump each model
         for models in [community_models, other_models, independent_models, user_models]:
 
             for model in models:
-                self._dump_model(model, community_id, schema_fk_map, dump_data, user_ids)
+                output_dir = self._dump_model(model, community_id, schema_fk_map, model_ids_map, user_ids)
 
         # Step 5: Save dump file
         filename = f"data_dump_{community_id}.json"
+        json_files = [f for f in os.listdir(output_dir) if f.endswith(".json")]
+
+        for file_name in json_files:
+            file_path = os.path.join(output_dir, file_name)
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                dump_data.update(data)
 
         with open(filename, "w+") as f:
             json.dump(dump_data, f, indent=4, default=str)
