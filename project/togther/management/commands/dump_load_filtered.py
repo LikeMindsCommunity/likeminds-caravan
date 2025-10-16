@@ -388,11 +388,11 @@ class Command(BaseCommand):
         # filename = f"data_dump_{community_id}.json"
         json_files = [f for f in os.listdir(output_dir) if f.endswith(".json")]
 
-        for file_name in json_files:
-            file_path = os.path.join(output_dir, file_name)
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                dump_data.update(data)
+        # for file_name in json_files:
+        #     file_path = os.path.join(output_dir, file_name)
+        #     with open(file_path, "r", encoding="utf-8") as f:
+        #         data = json.load(f)
+        #         dump_data.update(data)
 
         # with open(filename, "w+") as f:
         #     json.dump(dump_data, f, indent=4, default=str)
@@ -422,8 +422,6 @@ class Command(BaseCommand):
             # Remove the local file
             self.stdout.write(self.style.NOTICE("Removing local dump file..."))
             os.remove(filename)
-
-        # self.stdout.write(self.style.SUCCESS(f"\nDump complete — saved as {output_dir}"))
 
     def _load_model(self, model, data, schema_fk_map):
         model_label = self._get_model_label(model)
