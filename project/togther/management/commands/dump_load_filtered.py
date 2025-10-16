@@ -403,12 +403,12 @@ class Command(BaseCommand):
         s3_client = S3ClientImpl(bucket)
 
         for filename in json_files:
-            # file_path = os.path.join(output_dir, file_name)
+            file_path = os.path.join(output_dir, filename)
             # with open(file_path, "r", encoding="utf-8") as f:
             #     data = json.load(f)
             #     dump_data.update(data)
             uploaded = s3_client.upload_file_to_s3_bucket(
-                object_path=filename,
+                object_path=file_path,
                 file_path=f"{community_id}/database_dump/json/{filename}",
             )
 
@@ -421,7 +421,7 @@ class Command(BaseCommand):
 
             # Remove the local file
             self.stdout.write(self.style.NOTICE("Removing local dump file..."))
-            os.remove(os.path.join(output_dir, filename))
+            os.remove(file_path)
 
     def _load_model(self, model, data, schema_fk_map):
         model_label = self._get_model_label(model)
