@@ -330,8 +330,7 @@ class Command(BaseCommand):
 
         return file_path
 
-    def _dump_data(self, community_id):
-        dump_data = {}
+    def _dump_data(self, community_id, should_combine_output=False):
         model_ids_map = {}
         user_ids = set()
 
@@ -385,17 +384,22 @@ class Command(BaseCommand):
                 output_dir = self._dump_model(model, community_id, schema_fk_map, model_ids_map, user_ids)
 
         # Step 5: Save dump file
-        # filename = f"data_dump_{community_id}.json"
         json_files = [f for f in os.listdir(output_dir) if f.endswith(".json")]
 
-        # for file_name in json_files:
-        #     file_path = os.path.join(output_dir, file_name)
-        #     with open(file_path, "r", encoding="utf-8") as f:
-        #         data = json.load(f)
-        #         dump_data.update(data)
+        if should_combine_output:
+            dump_data = {}
+            filename = f"data_dump_{community_id}.json"
 
-        # with open(filename, "w+") as f:
-        #     json.dump(dump_data, f, indent=4, default=str)
+            for file_name in json_files:
+                file_path = os.path.join(output_dir, file_name)
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    dump_data.update(data)
+
+            with open(filename, "w+") as f:
+                json.dump(dump_data, f, indent=4, default=str)
+
+            json_files = [filename]
 
         # Upload the JSON file to S3
         bucket = settings.S3_BUCKETS.get("sendbird_migration")
@@ -533,14 +537,16 @@ class Command(BaseCommand):
         parser.add_argument("--community_id", type=int, help="Community ID to filter data for")
         parser.add_argument("--action_type", type=str, help="Whether to dump or load data (dump/load)")
         parser.add_argument("--file_path", type=str, help="Path to the JSON file for loading data")
+        parser.add_argument("--should_combine_output", type=bool, help="Whether to combine output into a single file")
 
     def handle(self, *args, **options):
         community_id = options["community_id"]
         action_type = options["action_type"]
         file_path = options.get("file_path")
+        should_combine_output = options.get("should_combine_output", False)
 
         if action_type == "dump":
-            self._dump_data(community_id)
+            self._dump_data(community_id, should_combine_output)
 
         elif action_type == "load":
             self._load_data(file_path)
