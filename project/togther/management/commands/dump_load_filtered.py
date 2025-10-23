@@ -407,7 +407,12 @@ class Command(BaseCommand):
         s3_client = S3ClientImpl(bucket)
 
         for filename in json_files:
-            file_path = os.path.join(output_dir, filename)
+            if not should_combine_output:
+                file_path = os.path.join(output_dir, filename)
+
+            else:
+                file_path = filename
+
             # with open(file_path, "r", encoding="utf-8") as f:
             #     data = json.load(f)
             #     dump_data.update(data)
