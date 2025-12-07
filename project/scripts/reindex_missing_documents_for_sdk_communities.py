@@ -148,7 +148,8 @@ class ReindexBase:
             return None
 
         return Members.objects.filter(community_id=self.community_id).exclude(
-            id__in=member_ids).order_by("id").select_related("card", "community")
+            id__in=member_ids).order_by("id").select_related("member_id", "community_id", "joined_by", "approved_by",
+                                                             "parent_cm")
 
     def get_member_ids_from_elastic_search(self):
         if self.community_id is None:
