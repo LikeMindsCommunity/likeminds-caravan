@@ -44,6 +44,8 @@ class DataHelper:
                 ChatroomDocument().update(chunk_instances)
             elif isinstance(chunk_instances[0], card_answers):
                 ConversationDocument().update(chunk_instances)
+            elif isinstance(chunk_instances[0], Members):
+                MemberDirectoryDocument().update(chunk_instances)
 
             if end_index > total_instances:
                 end_index = total_instances
