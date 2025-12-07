@@ -147,7 +147,7 @@ class ReindexBase:
             print("Community ID is None")
             return None
 
-        return Members.objects.filter(community__id=self.community_id, remove=None).exclude(
+        return Members.objects.filter(community_id=self.community_id).exclude(
             id__in=member_ids).order_by("id").select_related("card", "community")
 
     def get_member_ids_from_elastic_search(self):
@@ -157,7 +157,7 @@ class ReindexBase:
 
         members = (
             MemberDirectoryDocument.search()
-            .filter("term", community__id=self.community_id)
+            .filter("term", community_id__id=self.community_id)
             .source(includes=["id"])
             .scan()
         )
