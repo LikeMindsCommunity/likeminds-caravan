@@ -294,23 +294,31 @@ class ReindexManager:
         self.members_reindexer.reindex_missing_members_of_a_community()
 
 
-# Example usage
-if __name__ == "__main__":
+def main():
     manager = ReindexManager()
 
-    community_id = None
-    if community_id is None:
-        print("Please provide a community ID")
+    community_ids = []
+    if not community_ids:
+        print("Please provide a community ID list")
         exit()
 
-    # Reindex chatrooms for a single community
-    manager.reindex_chatrooms_for_single_community(community_id)
+    for community_id in community_ids:
+        # Reindex members for a single community
+        manager.reindex_members_for_single_community(community_id)
 
-    # Reindex conversations for a single community
-    manager.reindex_conversations_for_single_community(community_id)
+        # Reindex chatrooms for a single community
+        manager.reindex_chatrooms_for_single_community(community_id)
 
-    # Reindex chatrooms for all active sdk communities
-    # manager.reindex_chatrooms_for_all_communities()
+        # Reindex conversations for a single community
+        manager.reindex_conversations_for_single_community(community_id)
 
-    # Reindex conversations for all active sdk communities
-    # manager.reindex_conversations_for_all_communities()
+        # Reindex chatrooms for all active sdk communities
+        # manager.reindex_chatrooms_for_all_communities()
+
+        # Reindex conversations for all active sdk communities
+        # manager.reindex_conversations_for_all_communities()
+
+
+# Example usage
+if __name__ == "__main__":
+    main()
