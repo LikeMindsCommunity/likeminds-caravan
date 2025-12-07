@@ -31,9 +31,14 @@ class DataHelper:
             if not chunk_instances:
                 continue
 
-            print(
-                f"Starting bulk update in ES for chunk: {chunk} for community: {chunk_instances[0].community.id}"
-            )
+            if isinstance(chunk_instances[0], Members):
+                print(
+                    f"Starting bulk update in ES for chunk: {chunk} for community: {chunk_instances[0].community_id.id}"
+                )
+            else:
+                print(
+                    f"Starting bulk update in ES for chunk: {chunk} for community: {chunk_instances[0].community.id}"
+                )
 
             if isinstance(chunk_instances[0], collabcardState):
                 ChatroomDocument().update(chunk_instances)
