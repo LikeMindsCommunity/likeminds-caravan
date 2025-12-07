@@ -3,10 +3,11 @@ import traceback
 
 from django.core.paginator import Paginator
 
-from togther.models import ModelUtilities, card_answers, collabcardState
+from togther.models import ModelUtilities, card_answers, collabcardState, Members
 from collabmates_api.sdk.models import SdkClient
 from collabmates_api.search.conversation_index import ConversationDocument
 from collabmates_api.search.chatroom_index import ChatroomDocument
+from collabmates_api.search.member_directory_index import MemberDirectoryDocument
 
 
 class DataHelper:
@@ -141,6 +142,29 @@ class ReindexBase:
 
         return chatroom_ids
 
+    def get_missing_members_in_a_community(self, member_ids):
+        if self.community_id is None:
+            print("Community ID is None")
+            return None
+
+        return Members.objects.filter(community__id=self.community_id, remove=None).exclude(
+            id__in=member_ids).order_by("id").select_related("card", "community")
+
+    def get_member_ids_from_elastic_search(self):
+        if self.community_id is None:
+            print("Community ID is None")
+            return None
+
+        members = (
+            MemberDirectoryDocument.search()
+            .filter("term", community__id=self.community_id)
+            .source(includes=["id"])
+            .scan()
+        )
+
+        return [member.id for member in members]
+
+
 class ReindexChatrooms(ReindexBase):
 
     def reindex_missing_chatrooms_of_a_community(self):
@@ -171,6 +195,7 @@ class ReindexChatrooms(ReindexBase):
 
     def reindex_chatrooms_for_all_communities(self):
         self.reindex_for_all_communities(self.reindex_missing_chatrooms_of_a_community)
+
 
 class ReindexConversations(ReindexBase):
 
@@ -205,11 +230,46 @@ class ReindexConversations(ReindexBase):
             self.reindex_missing_conversations_of_a_community
         )
 
+
+class ReindexMembersDirectory(ReindexBase):
+
+    def reindex_missing_members_of_a_community(self):
+
+        if self.community_id is None:
+            print("Community ID is None")
+            return None
+
+        start_time = time.time()
+        print(f"Reindexing missing members of community: {self.community_id}")
+
+        member_ids = self.get_member_ids_from_elastic_search()
+        members_queryset = self.get_missing_members_in_a_community(member_ids)
+
+        if not members_queryset:
+            return None
+
+        print(f"Total missing members: {members_queryset.count()}")
+
+        for members_instances in DataHelper.paginate_queryset(members_queryset, self.db_chunk_size):
+            DataHelper.bulk_update_in_elastic_search(
+                members_instances, chunk_size=self.es_chunk_size
+            )
+
+        self.print_time_taken(start_time, "Reindexed members")
+
+    def reindex_members_for_all_communities(self):
+
+        self.reindex_for_all_communities(
+            self.reindex_missing_members_of_a_community()
+        )
+
+
 class ReindexManager:
     
     def __init__(self):
         self.chatroom_reindexer = ReindexChatrooms()
         self.conversation_reindexer = ReindexConversations()
+        self.members_reindexer = ReindexMembersDirectory()
 
     def reindex_chatrooms_for_all_communities(self):
         self.chatroom_reindexer.reindex_chatrooms_for_all_communities()
@@ -224,6 +284,13 @@ class ReindexManager:
     def reindex_conversations_for_single_community(self, community_id):
         self.conversation_reindexer.community_id = community_id
         self.conversation_reindexer.reindex_missing_conversations_of_a_community()
+
+    def reindex_members_for_all_communities(self):
+        self.members_reindexer.reindex_members_for_all_communities()
+
+    def reindex_members_for_single_community(self, community_id):
+        self.members_reindexer.community_id = community_id
+        self.members_reindexer.reindex_missing_members_of_a_community()
 
 
 # Example usage
