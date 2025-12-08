@@ -17,7 +17,7 @@ class DataHelper:
         """
         Bulk update instances in chunks
         """
-        total_instances = len(instances)
+        total_instances = instances.count()
         total_chunks = total_instances // chunk_size
 
         if total_instances % chunk_size != 0:
@@ -187,8 +187,8 @@ class ReindexChatrooms(ReindexBase):
 
         chatroom_ids = self.get_chatroom_ids_from_elastic_search()
         chatroom_queryset = self.get_missing_chatrooms_in_a_community(chatroom_ids)
-        
-        if not chatroom_queryset:
+
+        if not chatroom_queryset.exists():
             return None
         
         print(f"Total missing chatrooms: {chatroom_queryset.count()}")
@@ -201,7 +201,7 @@ class ReindexChatrooms(ReindexBase):
             
         self.print_time_taken(start_time, "Reindexing chatrooms")
 
-    def reindex_chatrooms_for_all_communities(self):
+    def reindex_chatrooms_for_all_communibulk_update_in_elastic_searchties(self):
         self.reindex_for_all_communities(self.reindex_missing_chatrooms_of_a_community)
 
 
@@ -219,7 +219,7 @@ class ReindexConversations(ReindexBase):
         conversation_ids = self.get_conversation_ids_from_elastic_search()
         conversation_queryset = self.get_missing_conversations_in_a_community(conversation_ids)
         
-        if not conversation_queryset:
+        if not conversation_queryset.exists():
             return None
         
         print(f"Total missing conversations: {conversation_queryset.count()}")
@@ -253,7 +253,7 @@ class ReindexMembersDirectory(ReindexBase):
         member_ids = self.get_member_ids_from_elastic_search()
         members_queryset = self.get_missing_members_in_a_community(member_ids)
 
-        if not members_queryset:
+        if not members_queryset.exists():
             return None
 
         print(f"Total missing members: {members_queryset.count()}")
