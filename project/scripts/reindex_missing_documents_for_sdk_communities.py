@@ -1,5 +1,6 @@
 import time
 import traceback
+import psycopg2
 
 from django.core.paginator import Paginator
 
@@ -8,6 +9,8 @@ from collabmates_api.sdk.models import SdkClient
 from collabmates_api.search.conversation_index import ConversationDocument
 from collabmates_api.search.chatroom_index import ChatroomDocument
 from collabmates_api.search.member_directory_index import MemberDirectoryDocument
+from collabmates_api.notification import get_connection
+from collabmates_api.raw_queries import get_tuple_from_array, error_logger
 
 
 class DataHelper:
@@ -120,6 +123,34 @@ class ReindexBase:
 
         return converstion_ids
 
+    @staticmethod
+    def is_missing_chatrooms_exists_in_a_community(community_id: str = None, chatroom_ids: list = None):
+        conn = get_connection()
+        curr = conn.cursor()
+        try:
+            sql = f"""
+                    SELECT COUNT(*)
+                    FROM togther_collabcardState
+                    INNER JOIN togther_collabcard ON togther_collabcardState.card_id = togther_collabcard.id
+                    WHERE community_id={community_id}
+                    AND remove IS NULL
+                    AND togther_collabcard.is_deleted = FALSE
+                    AND togther_collabcard.secret_chatroom_left = FALSE
+                    AND togther_collabcardState.id NOT IN {get_tuple_from_array(chatroom_ids)}
+                """
+
+            curr.execute(sql)
+            card_tupple = curr.fetchone()
+            curr.close()
+
+            if card_tupple:
+                return card_tupple[0] > 0
+
+        except (Exception, psycopg2.Error) as error:
+            error_logger.error("Error while connecting to PostgreSQL %s ", error)
+            if conn:
+                conn.close()
+
     def get_missing_chatrooms_in_a_community(self, chatroom_ids):
         if self.community_id is None:
             print("Community ID is None")
@@ -188,7 +219,8 @@ class ReindexChatrooms(ReindexBase):
         chatroom_ids = self.get_chatroom_ids_from_elastic_search()
         chatroom_queryset = self.get_missing_chatrooms_in_a_community(chatroom_ids)
 
-        if not chatroom_queryset.exists():
+        if not self.is_missing_chatrooms_exists_in_a_community(
+                community_id=self.community_id, chatroom_ids=chatroom_ids):
             return None
         
         print(f"Total missing chatrooms: {chatroom_queryset.count()}")
