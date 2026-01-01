@@ -133,7 +133,7 @@ class ReindexBase:
                     FROM togther_collabcardState
                     INNER JOIN togther_collabcard ON togther_collabcardState.card_id = togther_collabcard.id
                     WHERE togther_collabcard.community_id={community_id}
-                    AND togther_collabcardState.remove IS NULL
+                    AND togther_collabcardState.remove_id IS NULL
                     AND togther_collabcard.is_deleted = FALSE
                     AND togther_collabcard.secret_chatroom_left = FALSE
                     AND togther_collabcardState.id NOT IN {get_tuple_from_array(chatroom_ids)}
