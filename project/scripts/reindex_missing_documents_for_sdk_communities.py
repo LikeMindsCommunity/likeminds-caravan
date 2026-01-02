@@ -135,7 +135,7 @@ class ReindexBase:
                     WHERE togther_collabcard.community_id={community_id}
                     AND togther_collabcardState.remove_id IS NULL
                     AND togther_collabcard.is_deleted = FALSE
-                    AND togther_collabcard.secret_chatroom_left = FALSE
+                    AND togther_collabcardState.secret_chatroom_left = FALSE
                     AND togther_collabcardState.id NOT IN {get_tuple_from_array(chatroom_ids)}
                 """
 
