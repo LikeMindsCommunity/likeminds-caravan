@@ -143,6 +143,8 @@ class ReindexBase:
                       );
                 """
 
+            print(sql)
+
             curr.execute(sql)
             card_tupple = curr.fetchone()
             curr.close()
