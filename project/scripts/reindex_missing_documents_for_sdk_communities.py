@@ -130,13 +130,17 @@ class ReindexBase:
         try:
             sql = f"""
                     SELECT COUNT(*)
-                    FROM togther_collabcardState
-                    INNER JOIN togther_collabcard ON togther_collabcardState.card_id = togther_collabcard.id
-                    WHERE togther_collabcard.community_id={community_id}
-                    AND togther_collabcardState.remove_id IS NULL
-                    AND togther_collabcard.is_deleted = FALSE
-                    AND togther_collabcardState.secret_chatroom_left = FALSE
-                    AND togther_collabcardState.id NOT IN {get_tuple_from_array(chatroom_ids)}
+                    FROM togther_collabcardState s
+                    JOIN togther_collabcard c ON s.card_id = c.id
+                    WHERE c.community_id = {community_id}
+                      AND s.remove_id IS NULL
+                      AND c.is_deleted = FALSE
+                      AND s.secret_chatroom_left = FALSE
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM unnest({chatroom_ids}) AS t(id)
+                          WHERE t.id = s.id
+                      );
                 """
 
             curr.execute(sql)
