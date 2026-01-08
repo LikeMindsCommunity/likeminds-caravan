@@ -138,7 +138,7 @@ class ReindexBase:
                       AND s.secret_chatroom_left = FALSE
                       AND NOT EXISTS (
                           SELECT 1
-                          FROM unnest({chatroom_ids}) AS t(id)
+                          FROM unnest({get_tuple_from_array(chatroom_ids)}) AS t(id)
                           WHERE t.id = s.id
                       );
                 """
