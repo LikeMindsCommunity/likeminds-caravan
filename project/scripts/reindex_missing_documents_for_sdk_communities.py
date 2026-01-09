@@ -138,7 +138,7 @@ class ReindexBase:
                       AND s.secret_chatroom_left = FALSE
                       AND NOT EXISTS (
                           SELECT 1
-                          FROM unnest(ARRAY[{','.join(chatroom_ids)}]::bigint[]) AS s(id)
+                          FROM unnest(ARRAY[{','.join([str(c_id) for c_id in chatroom_ids])}]::bigint[]) AS s(id)
                           WHERE t.id = s.id
                       );
                 """
