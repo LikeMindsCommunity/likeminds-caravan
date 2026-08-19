@@ -1,11 +1,11 @@
 #!/bin/bash
 
 APPLICATION_ENVIRONMENT="PRODUCTION"
-APPLICATION_DOT_ENV_LOCATION="/home/apps/caravan-prod/Togther/project/project/settings/.env"
-APPLICATION_LOCATION="/home/apps/caravan-prod/Togther/project/"
-APPLICATION_MANAGE_SCRIPT_LOCATION="/home/apps/caravan-prod/Togther/project/manage.py"
+APPLICATION_DOT_ENV_LOCATION="/home/apps/caravan-prod/likeminds-caravan/project/project/settings/.env"
+APPLICATION_LOCATION="/home/apps/caravan-prod/likeminds-caravan/project/"
+APPLICATION_MANAGE_SCRIPT_LOCATION="/home/apps/caravan-prod/likeminds-caravan/project/manage.py"
 APPLICATION_NAME="CARAVAN"
-APPLICATION_REQUIREMENTS_LOCATION="/home/apps/caravan-prod/Togther/project/requirements.txt"
+APPLICATION_REQUIREMENTS_LOCATION="/home/apps/caravan-prod/likeminds-caravan/project/requirements.txt"
 APPLICATION_VENV_LOCATION="/home/apps/caravan-prod/caravan-prod-venv/bin/activate"
 APPICATION_ACCOUNT_NAME="likemindsprodstorage"
 APPLICATION_CONTAINER_NAME="likeminds-production-configs"

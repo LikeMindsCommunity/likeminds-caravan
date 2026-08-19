@@ -19,7 +19,7 @@ def get_json_data_from_csv_file():
 
     # For prod
     else:
-        file = r'/home/ec2-user/Togther/project/scripts/subscription_record.csv'
+        file = r'/home/ec2-user/likeminds-caravan/project/scripts/subscription_record.csv'
 
     cols = pd.read_csv(file, nrows=1).columns
     df = pd.read_csv(file, usecols=cols)

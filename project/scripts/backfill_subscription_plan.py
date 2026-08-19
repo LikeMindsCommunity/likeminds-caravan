@@ -26,7 +26,7 @@ def get_json_data_from_csv_file():
 
     # For prod
     else:
-        file = r'/home/ec2-user/Togther/project/scripts/data_to_backfill.csv'
+        file = r'/home/ec2-user/likeminds-caravan/project/scripts/data_to_backfill.csv'
 
     cols = pd.read_csv(file, nrows=1).columns
     df = pd.read_csv(file, usecols=cols)
