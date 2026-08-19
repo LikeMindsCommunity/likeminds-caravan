@@ -36,7 +36,7 @@ pipeline {
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
-                    sh 'docker build -f Dockerfile.caravan-beta -t asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/togther/caravan-beta:${BUILD_NUMBER} . '
+                    sh 'docker build -f Dockerfile.caravan-beta -t asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/NateshR/likeminds-caravan/caravan-beta:${BUILD_NUMBER} . '
                 }
             }
         }
@@ -45,7 +45,7 @@ pipeline {
             steps{
                 script{
                     sh 'gcloud auth configure-docker asia.gcr.io'
-                    sh 'docker push asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/togther/caravan-beta:${BUILD_NUMBER}'
+                    sh 'docker push asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/NateshR/likeminds-caravan/caravan-beta:${BUILD_NUMBER}'
                 }
             }
         }

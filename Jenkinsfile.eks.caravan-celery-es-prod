@@ -36,7 +36,7 @@ pipeline {
         stage ("update tag and push helm charts") {
           steps {
              script{
-                  git branch: 'LM-10466-aws-migration', url: 'git@github.com:LikeMindsCommunity/LikeMinds-Infra-Config.git'
+                  git branch: 'LM-10466-aws-migration', url: 'git@github.com:LikeMindsCommunity/likeminds-infra-config.git'
                   sh "ls"
                   sh 'sed -i "s/tag: caravan-celery-es-V[0-9]*/tag: caravan-celery-es-V${BUILD_NUMBER}/g" ./prod/caravan-celery-es-prod/values.yaml'
                   sh "git add ./prod/caravan-celery-es-prod/values.yaml"
