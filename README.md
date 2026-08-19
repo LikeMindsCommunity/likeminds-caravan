@@ -32,3 +32,7 @@
 5. Build the images using `docker compose -f docker-compose-local.yml build --no-cache`
 
 6. Run the containers using `docker compose -f docker-compose-local.yml up`
+
+## License
+
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
