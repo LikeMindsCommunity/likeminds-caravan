@@ -1,12 +1,12 @@
 #!/bin/bash
 
 APPLICATION_ENVIRONMENT="LOAD"
-APPLICATION_DOT_ENV_LOCATION="/home/apps/caravan-load-testing/Togther/project/project/settings/.env"
+APPLICATION_DOT_ENV_LOCATION="/home/apps/caravan-load-testing/likeminds-caravan/project/project/settings/.env"
 APPLICATION_DOT_ENV_REMOTE_LOCATION="https://beta-likeminds-media.s3.ap-south-1.amazonaws.com/environment/load-test/caravan-load-test-dot-env"
-APPLICATION_LOCATION="/home/apps/caravan-load-testing/Togther/project/"
-APPLICATION_MANAGE_SCRIPT_LOCATION="/home/apps/caravan-load-testing/Togther/project/manage.py"
+APPLICATION_LOCATION="/home/apps/caravan-load-testing/likeminds-caravan/project/"
+APPLICATION_MANAGE_SCRIPT_LOCATION="/home/apps/caravan-load-testing/likeminds-caravan/project/manage.py"
 APPLICATION_NAME="CARAVAN"
-APPLICATION_REQUIREMENTS_LOCATION="/home/apps/caravan-load-testing/Togther/project/requirements.txt"
+APPLICATION_REQUIREMENTS_LOCATION="/home/apps/caravan-load-testing/likeminds-caravan/project/requirements.txt"
 APPLICATION_VENV_LOCATION="/home/apps/caravan-load-testing/caravan-beta-venv/bin/activate"
 
 print_internal() {

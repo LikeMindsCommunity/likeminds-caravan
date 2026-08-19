@@ -1,11 +1,11 @@
 #!/bin/bash
 
 APPLICATION_ENVIRONMENT="BETA"
-APPLICATION_DOT_ENV_LOCATION="/home/apps/caravan-beta/Togther/project/project/settings/.env"
-APPLICATION_LOCATION="/home/apps/caravan-beta/Togther/project/"
-APPLICATION_MANAGE_SCRIPT_LOCATION="/home/apps/caravan-beta/Togther/project/manage.py"
+APPLICATION_DOT_ENV_LOCATION="/home/apps/caravan-beta/likeminds-caravan/project/project/settings/.env"
+APPLICATION_LOCATION="/home/apps/caravan-beta/likeminds-caravan/project/"
+APPLICATION_MANAGE_SCRIPT_LOCATION="/home/apps/caravan-beta/likeminds-caravan/project/manage.py"
 APPLICATION_NAME="CARAVAN"
-APPLICATION_REQUIREMENTS_LOCATION="/home/apps/caravan-beta/Togther/project/requirements.txt"
+APPLICATION_REQUIREMENTS_LOCATION="/home/apps/caravan-beta/likeminds-caravan/project/requirements.txt"
 APPLICATION_VENV_LOCATION="/home/apps/caravan-beta/caravan-beta-venv/bin/activate"
 APPICATION_ACCOUNT_NAME="likemindsstagingstorage"
 APPLICATION_CONTAINER_NAME="likeminds-staging-configs"

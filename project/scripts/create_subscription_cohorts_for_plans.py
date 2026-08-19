@@ -27,7 +27,7 @@ def get_json_data_from_plan_data_file():
 
     # For prod
     else:
-        file = r'/home/ec2-user/Togther/project/scripts/plan_data.csv'
+        file = r'/home/ec2-user/likeminds-caravan/project/scripts/plan_data.csv'
 
     cols = pd.read_csv(file, nrows=1).columns
     df = pd.read_csv(file, usecols=cols)
@@ -54,7 +54,7 @@ def get_json_data_from_subscription_record_file():
 
     # For prod
     else:
-        file = r'/home/ec2-user/Togther/project/scripts/subscription_record.csv'
+        file = r'/home/ec2-user/likeminds-caravan/project/scripts/subscription_record.csv'
 
     cols = pd.read_csv(file, nrows=1).columns
     df = pd.read_csv(file, usecols=cols)
