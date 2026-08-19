@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - name: "likeminds-caravan-beta-1"
-        image: "asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/nateshr/togther/caravan-beta:93ce10d"
+        image: "asia.gcr.io/likeminds-nonprod-prj-24e1/github.com/NateshR/likeminds-caravan/caravan-beta:93ce10d"
         resources:
           requests:
             memory: "1000Mi"

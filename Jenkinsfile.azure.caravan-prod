@@ -131,7 +131,7 @@ pipeline {
         stage ("update tag and push helm charts") {
           steps {
              script{
-                  git branch: 'LM-13485-azure-migration', url: 'git@github.com:LikeMindsCommunity/LikeMinds-Infra-Config.git'
+                  git branch: 'LM-13485-azure-migration', url: 'git@github.com:LikeMindsCommunity/likeminds-infra-config.git'
                   sh "ls"
                   sh 'sed -i "s/tag: caravan-V[0-9]*/tag: caravan-V${BUILD_NUMBER}/g" ./azure/production/caravan-prod/values.yaml'
                   sh "git add ./azure/production/caravan-prod/values.yaml"
