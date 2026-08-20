@@ -51,10 +51,10 @@ pipeline {
                                 export CLIENT_SECRET=\"\$(jq -r .clientSecret azure_credentials.json)\"
                                 export TENANT_ID=\"\$(jq -r .tenantId azure_credentials.json)\"
 
-                                cd /home/apps/caravan-beta/Togther && git checkout development && git pull
+                                cd /home/apps/caravan-beta/likeminds-caravan && git checkout development && git pull
                                 chmod +x /home/apps/caravan-beta/likeminds-caravan/Migrationfile-azure-caravan-beta.sh
                                 . /home/apps/caravan-beta/likeminds-caravan/Migrationfile-azure-caravan-beta.sh
-                                cd /home/apps/caravan-beta/Togther
+                                cd /home/apps/caravan-beta/likeminds-caravan
                                 git checkout -- /home/apps/caravan-beta/likeminds-caravan/Migrationfile-azure-caravan-beta.sh
                             '"
                         """
