@@ -20,10 +20,10 @@ pipeline {
             steps {
                 script{
                     sh """ssh -tt -i "/var/lib/jenkins/.ssh/prod_ssh_keys" root@$migration_server_IP << EOF
-                    cd /home/apps/caravan-prod/Togther && git checkout master && git pull
+                    cd /home/apps/caravan-prod/likeminds-caravan && git checkout master && git pull
                     chmod +x /home/apps/caravan-prod/likeminds-caravan/Migrationfile-caravan-prod.sh
                     . /home/apps/caravan-prod/likeminds-caravan/Migrationfile-caravan-prod.sh
-                    cd /home/apps/caravan-prod/Togther && git checkout /home/apps/caravan-prod/likeminds-caravan/Migrationfile-caravan-prod.sh
+                    cd /home/apps/caravan-prod/likeminds-caravan && git checkout /home/apps/caravan-prod/likeminds-caravan/Migrationfile-caravan-prod.sh
                     exit
                     EOF"""
                 }
