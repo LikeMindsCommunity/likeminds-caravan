@@ -199,3 +199,6 @@ __init__.py
 /bin/
 /include/
 .vscode
+
+# TLS keys must never be committed
+*.pem
